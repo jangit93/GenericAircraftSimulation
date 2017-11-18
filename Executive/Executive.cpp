@@ -2,6 +2,7 @@
 #include"LinearInterpolation.h"
 #include"Atmosphere.h"
 #include"DataLogger.h"
+#include"DataCloud.h"
 #include<Map>
 #include<math.h>
 #include <iostream>
@@ -31,9 +32,10 @@ int main(int argv, char* argc[])
 	
 
 
-	LinearInterpolation *Interp = new LinearInterpolation;
+	//LinearInterpolation *Interp = new LinearInterpolation;
 	Atmopshere *Atmo			= new Atmopshere;
-
+	AtmosphereStruct Atmos;
+/*
 	MatrixXd CL = test->readInTable("CL.txt");
 	
 	std::cout << CL;
@@ -47,8 +49,24 @@ int main(int argv, char* argc[])
 		0.31);
 
 	std::cout << CA;
+	*/
+	Float64 Altitude;
+	DataLogger logAtmo("Atmosphere.txt", 25, " ");
+
+	logAtmo.add("Altitude", Altitude);
+	logAtmo.add("Rho", Atmos.rho);
+	logAtmo.add("Temperture", Atmos.Temperature);
+	logAtmo.add("Pressure", Atmos.Pressure);
+	logAtmo.add("SpeedOfSound", Atmos.speedOfSound);
+
+	logAtmo.printHeader();
+
 	Atmo->initAtmosphere();
-	Atmo->updateAtmosphere(1);
+	for (Altitude = 0; Altitude < 10000; Altitude++) {
+		Atmo->updateAtmosphere(Altitude, Atmos);
+		logAtmo.print();
+	}
+	
 	
 
 

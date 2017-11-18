@@ -20,6 +20,7 @@
 #include <math.h>
 #include <iostream>
 #include"../Tools/Constants.h"
+#include"../DataCloud/DataCloud.h"
 
 typedef double Float64;
 
@@ -33,7 +34,7 @@ public:
 
 	void	initAtmosphere();
 
-	double	updateAtmosphere(Float64 Altitude);
+	void	updateAtmosphere(Float64 &Altitude, AtmosphereStruct &AtmoData);
 
 private:
 	Float64	Temperature;	// [K]
@@ -41,7 +42,7 @@ private:
 	Float64	rho;			//[Kg / m³]
 	Float64 speedOfSound;   //[m / s]
 	
-
+	AtmosphereStruct AtmosphereData;
 
 };
 

@@ -4,8 +4,8 @@ DataLogger::DataLogger(std::string aPath, int aWidth, std::string aDelimiter)
 {
 	mWidth = aWidth;
 	mDelimiter = aDelimiter;
-
-	mStream.open(aPath);
+	std::string PathName = "../Output/";
+	mStream.open(PathName+aPath);
 
 	mStream << std::setiosflags(std::ios::left);
 
