@@ -17,8 +17,12 @@ namespace UnitTest1
 		TEST_METHOD(Atmosphere_test)
 		{
 			Atmopshere test;
+			AtmosphereStruct atmos;
+			
+			Float64 h = 1;
 			double rhot = 1.2264962070792322;
-			Assert::AreEqual(test.updateAtmosphere(1), 1.2264962070792322);
+			test.updateAtmosphere(h, atmos);
+			Assert::AreEqual(atmos.rho, 1.2264962070792322);
 			// TODO: Testcode hier eingeben
 		}
 
