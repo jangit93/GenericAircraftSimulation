@@ -11,4 +11,9 @@ struct AtmosphereStruct
 	Float64 speedOfSound;   //[m / s]
 };
 
+struct AerodynamicStruct
+{
+	Float64 AoA;
+};
+
 #endif	DATACLOUD_HPP

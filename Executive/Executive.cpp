@@ -3,10 +3,13 @@
 #include"Atmosphere.h"
 #include"DataLogger.h"
 #include"DataCloud.h"
+#include"ODESolver.cpp"
 #include<Map>
 #include<math.h>
 #include <iostream>
 #include <time.h> 
+
+
 
 int main(int argv, char* argc[])
 {
@@ -14,7 +17,8 @@ int main(int argv, char* argc[])
 
 		tstart = clock();              // start 
 
-		readInData *test = new readInData;
+
+		//readInData *test = new readInData;
 
 		//MatrixXd CL = test->readInTable("CL.txt");
 		/*
@@ -28,14 +32,8 @@ int main(int argv, char* argc[])
 		Float64  MAC		= test->readInParameter("MAC", "Aircraft.txt");
 		Float64  X_CG		= test->readInParameter("X_CG", "Aircraft.txt");
 		Float64  Y_CG		= test->readInParameter("Y_CG", "Aircraft.txt");
-		Float64  Z_CG		= test->readInParameter("Z_CG", "Aircraft.txt");*/
-	
+		Float64  Z_CG		= test->readInParameter("Z_CG", "Aircraft.txt");
 
-
-	//LinearInterpolation *Interp = new LinearInterpolation;
-	Atmopshere *Atmo			= new Atmopshere;
-	AtmosphereStruct Atmos;
-/*
 	MatrixXd CL = test->readInTable("CL.txt");
 	
 	std::cout << CL;
@@ -50,25 +48,17 @@ int main(int argv, char* argc[])
 
 	std::cout << CA;
 	*/
-	Float64 Altitude;
-	DataLogger logAtmo("Atmosphere.txt", 25, " ");
+		 Eigen::Vector2d v1;
+		 v1(0) = 1;
+		 v1(1) = 2;
 
-	logAtmo.add("Altitude", Altitude);
-	logAtmo.add("Rho", Atmos.rho);
-	logAtmo.add("Temperture", Atmos.Temperature);
-	logAtmo.add("Pressure", Atmos.Pressure);
-	logAtmo.add("SpeedOfSound", Atmos.speedOfSound);
+		 Eigen::Vector2d v2;
+		 v2(0) = 3;
+		 v2(1) = 4;
 
-	logAtmo.printHeader();
-
-	Atmo->initAtmosphere();
-	for (Altitude = 0; Altitude < 10000; Altitude++) {
-		Atmo->updateAtmosphere(Altitude, Atmos);
-		logAtmo.print();
-	}
+	Eigen::Vector2d A = EulerIntegration(v1,v2,0.01);
 	
-	
-
+	std::cout << A << std::endl;
 
 
 	time1 += clock() - tstart;     // end
