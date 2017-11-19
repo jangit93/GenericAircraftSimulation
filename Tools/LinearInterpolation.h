@@ -1,5 +1,5 @@
-#ifndef LINEARINTERPOLATION_HPP
-#define LINEARINTERPOLATION_HPP
+#ifndef LINEARINTERPOLATION_H
+#define LINEARINTERPOLATION_H
 
 #include <vector>
 #include <C:\Users\janol\source\repos\Project4\Project4\Debug\EIGENDIR\EIGEN\Dense>
@@ -42,4 +42,4 @@ private:
 	Float64	    interpolationValue;
 
 };
-#endif LINEARINTERPOLATION_HPP
+#endif LINEARINTERPOLATION_H

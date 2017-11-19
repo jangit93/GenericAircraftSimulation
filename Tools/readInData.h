@@ -15,8 +15,8 @@
 // revision:			1.0
 //
 //////////////////////////////////////////////////////////////////////////////////////////
-#ifndef READINDATA_HPP
-#define READINDATA_HPP
+#ifndef READINDATA_H
+#define READINDATA_H
 
 
 #include <fstream>
@@ -73,4 +73,4 @@ private:
 	std::string currtenLine;
 
 };
-#endif READINDATA_HPP
+#endif READINDATA_H

@@ -1,5 +1,5 @@
-#ifndef DATACLOUD_HPP
-#define DATACLOUD_HPP
+#ifndef DATACLOUD_H
+#define DATACLOUD_H
 
 typedef double Float64;
 
@@ -16,4 +16,8 @@ struct AerodynamicStruct
 	Float64 AoA;
 };
 
-#endif	DATACLOUD_HPP
+struct ThrustStruct {
+	Float64 i;
+};
+
+#endif	DATACLOUD_H

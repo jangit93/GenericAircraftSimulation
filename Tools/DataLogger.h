@@ -1,5 +1,5 @@
-#ifndef DATALOGGER_HPP
-#define DATALOGGER_HPP
+#ifndef DATALOGGER_H
+#define DATALOGGER_H
 
 #include<vector>
 #include<fstream>
@@ -32,4 +32,4 @@ private:
 	std::string mDelimiter;
 };
 
-#endif DATALOGGER_HPP
+#endif DATALOGGER_H
