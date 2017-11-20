@@ -1,7 +1,8 @@
 #ifndef DATACLOUD_H
 #define DATACLOUD_H
 
-typedef double Float64;
+#include"../Tools/IndependetDataTypes.h"
+#include"../EIGENDIR/Eigen/Dense"
 
 struct AtmosphereStruct
 {
@@ -14,10 +15,20 @@ struct AtmosphereStruct
 struct AerodynamicStruct
 {
 	Float64 AoA;
+	Float64 VelAero;
 };
 
 struct ThrustStruct {
-	Float64 i;
+	Eigen::Vector3d ThrustForce;
+	Eigen::Vector3d	ThrustMoments;
+	Float64	F_max;   //maximum Thrust[N]
+	Float64	i;       //engine installation angle[rad]
+	Float64 r;       //enginge position vector[m, m, m]
+	Float64	Kt;      //engine constant[-]
+};
+
+struct AirframeStruct {
+	Float64 StickPosition;
 };
 
 #endif	DATACLOUD_H

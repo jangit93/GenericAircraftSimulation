@@ -1,0 +1,6 @@
+#ifndef INDEPENDETDATATYPES_H
+#define INDEPENDETDATATYPES_H
+
+typedef double Float64;
+
+#endif	INDEPENDETDATATYPES_H

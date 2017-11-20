@@ -8,9 +8,10 @@ BaseThrust::~BaseThrust()
 {
 }
 
-void BaseThrust::initBaseThrust()
+void BaseThrust::initThrust()
 {
 }
+
 
 void BaseThrust::updateThrust()
 {

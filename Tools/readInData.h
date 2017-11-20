@@ -51,6 +51,7 @@ public:
 	//  function which reads in data and returns matrix
 	/////////////////////////////////////////////////////////////////
 	Float64 readInParameter(std::string CodeWord, std::string Filename);
+
 	 MatrixXd readInTable(std::string FileName);
 
 	VectorXd readInVector(std::string FileName);

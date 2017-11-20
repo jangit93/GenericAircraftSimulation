@@ -49,7 +49,7 @@ Float64 readInData::readInParameter(std::string CodeWord, std::string FileName)
 		}
 	}
 	input.close();
-	std::cout << CodeWord << " = " <<tempValue << std::endl;
+
 	Float64 Value = tempValue;
 	currtenLine.clear();
 

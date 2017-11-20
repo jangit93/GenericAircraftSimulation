@@ -2,7 +2,7 @@
 #define LINEARINTERPOLATION_H
 
 #include <vector>
-#include <C:\Users\janol\source\repos\Project4\Project4\Debug\EIGENDIR\EIGEN\Dense>
+#include"../EIGENDIR/Eigen/Dense"
 #include<math.h>
 
 
