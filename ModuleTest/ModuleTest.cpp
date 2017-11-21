@@ -25,7 +25,6 @@ void AtmosphereTest()
 
 	std::cout << "Atmosphere Test beendet" << std::endl;
 };
-
 int main()
 {
 	

@@ -3,27 +3,36 @@
 #include"Atmosphere.h"
 #include"DataLogger.h"
 #include"DataCloud.h"
-#include"ThrustAnalytical.h"
+#include"Engine.h"
 #include<Map>
 #include<math.h>
 #include <iostream>
 #include <time.h> 
 
 
-template <typename T>
-T Euler(T v1, T v2) {
-	v1 = v1 + 0.01*v2;
-	return v1;
-}
+
 int main(int argv, char* argc[])
 {
 	double time1 = 0.0, tstart;      // time measurment variable
 
 		tstart = clock();              // start 
 
+		int i = 1;
 
-		ThrustAnalytical Thrusttest;
-		Thrusttest.initThrust();
+		Float64 FlightTime = 1;
+		AtmosphereStruct  AtmoData;
+		AerodynamicStruct  AeroData;
+		AirframeStruct  AirframeData;
+		ThrustStruct  ThrustData;
+
+		Engine test;
+
+		test.updateEngine(FlightTime,
+						AtmoData,
+						AeroData,
+						AirframeData,
+						ThrustData);
+
 
 
 	time1 += clock() - tstart;     // end

@@ -15,9 +15,21 @@ public:
 
 	~BaseThrust();
 
-	virtual void initThrust();
+	void updateThrust(Float64 FlightTime,
+						AtmosphereStruct & AtmoData,
+						AerodynamicStruct & AeroData,
+						AirframeStruct & AirframeData,
+						ThrustStruct & ThrustData);
 
-	virtual void updateThrust();
+	void initThrust();
+
+	virtual void calcThrust(Float64 FlightTime,
+							AtmosphereStruct & AtmoData,
+							AerodynamicStruct & AeroData,
+							AirframeStruct & AirframeData,
+							ThrustStruct & ThrustData);
+
+	virtual void initializeThrust();
 
 };
 

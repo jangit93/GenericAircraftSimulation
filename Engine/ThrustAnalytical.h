@@ -11,13 +11,13 @@ public:
 
 	~ThrustAnalytical();
 
-	void initThrust();
+	void initializeThrust();
 
-	void updateThrust(Float64 FlightTime,
-					  AtmosphereStruct &AtmoData, 
-					  AerodynamicStruct &AeroData,
-					  AirframeStruct &AirframeData,
-					  ThrustStruct &ThrustData);
+	void calcThrust(Float64 FlightTime,
+					AtmosphereStruct & AtmoData,
+					AerodynamicStruct & AeroData,
+					AirframeStruct & AirframeData,
+					ThrustStruct & ThrustData);
 
 private:
 	Eigen::Vector3d ThrustForce;
