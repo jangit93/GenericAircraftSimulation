@@ -5,7 +5,7 @@ Engine::Engine()
 	int a = 2;
 	selectEngineType(a);
 
-	initEngineType();
+	initEngine();
 }
 
 Engine::~Engine()
@@ -17,17 +17,18 @@ void Engine::selectEngineType(int type)
 	switch (type)
 	{
 	case 1:
-		BasisThrust = new BaseThrust; 
+		Thrust = new BaseThrust; 
 		break;
 	case 2:
-		BasisThrust = new ThrustAnalytical;
+		std::cout << "Thrust:" << "Analytical Thrust" << std::endl;
+		Thrust = new ThrustAnalytical;
 		break;
 	}
 }
 
-void Engine::initEngineType()
+void Engine::initEngine()
 {
-	BasisThrust->initThrust();
+	Thrust->initThrust();
 }
 
 void Engine::updateEngine(Float64 FlightTime,
@@ -36,9 +37,9 @@ void Engine::updateEngine(Float64 FlightTime,
 						AirframeStruct & AirframeData,
 						ThrustStruct & ThrustData)
 {
-	BasisThrust->updateThrust(FlightTime,
-							  AtmoData,
-							  AeroData,
-							  AirframeData,
-							  ThrustData);
+	Thrust->updateThrust(FlightTime,
+						 AtmoData,
+						 AeroData,
+						 AirframeData,
+						 ThrustData);
 }

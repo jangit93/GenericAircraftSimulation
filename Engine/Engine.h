@@ -11,7 +11,7 @@ public:
 
 	void selectEngineType(int type);
 
-	void initEngineType();
+	void initEngine();
 
 	void updateEngine(Float64 FlightTime,
 						AtmosphereStruct & AtmoData,
@@ -20,7 +20,7 @@ public:
 						ThrustStruct & ThrustData);
 
 private:
-	BaseThrust * BasisThrust;
+	BaseThrust * Thrust;
 
 
 };

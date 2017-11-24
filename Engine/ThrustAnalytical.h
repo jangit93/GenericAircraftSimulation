@@ -30,6 +30,7 @@ private:
 	Float64 Kt;
 	Float64 incidenceAngle;
 	Eigen::Vector3d EnginePos;
+	readInData *ReadInThrustData;
 
 };
 #endif // !THRUSTANALYTICAL_H

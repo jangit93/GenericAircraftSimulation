@@ -2,7 +2,7 @@
 
 ThrustAnalytical::ThrustAnalytical():BaseThrust()
 {
-
+	ReadInThrustData = new readInData;
 }
 
 ThrustAnalytical::~ThrustAnalytical()
@@ -11,11 +11,10 @@ ThrustAnalytical::~ThrustAnalytical()
 
 void ThrustAnalytical::initializeThrust()
 {
-	std::cout << "Analytische Schubberechnung Init" << std::endl;
+	//std::cout << "Analytische Schubberechnung Init" << std::endl;
 	ThrustForce.setZero();
 	ThrustMoment.setZero();
 
-	readInData *ReadInThrustData = new readInData;
 	EnginePos(0) = ReadInThrustData->readInParameter("x_F", "Engine.dat");
 	EnginePos(1) = ReadInThrustData->readInParameter("y_F", "Engine.dat");
 	EnginePos(2) = ReadInThrustData->readInParameter("z_F", "Engine.dat");
@@ -31,7 +30,7 @@ void ThrustAnalytical::calcThrust(Float64 FlightTime,
 								  AirframeStruct & AirframeData,
 								  ThrustStruct & ThrustData)
 {
-	std::cout << "Analytische Schubberechnung" << std::endl;
+	//std::cout << "Analytische Schubberechnung" << std::endl;
 	std::cout << EnginePos << std::endl;
 	std:: cout << maxThrust <<  std::endl;
 }

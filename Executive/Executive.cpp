@@ -8,6 +8,7 @@
 #include<math.h>
 #include <iostream>
 #include <time.h> 
+#include"Aerodynamic.h"
 
 
 
@@ -19,6 +20,7 @@ int main(int argv, char* argc[])
 
 		int i = 1;
 
+		std::cout << "Aircraft Simulation" << std::endl;
 		Float64 FlightTime = 1;
 		AtmosphereStruct  AtmoData;
 		AerodynamicStruct  AeroData;
@@ -33,7 +35,13 @@ int main(int argv, char* argc[])
 						AirframeData,
 						ThrustData);
 
+		Aerodynamics Aerodynamic;
 
+		Aerodynamic.updateAerodynamic(FlightTime,
+									AtmoData,
+									AeroData,
+									AirframeData,
+									ThrustData);
 
 	time1 += clock() - tstart;     // end
 	time1 = time1 / CLOCKS_PER_SEC;  // rescale to seconds
@@ -43,4 +51,3 @@ int main(int argv, char* argc[])
 	system("Pause");
 
 }
-
