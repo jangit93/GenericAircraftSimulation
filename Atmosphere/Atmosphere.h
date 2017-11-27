@@ -1,18 +1,12 @@
-//////////////////////////////////////////////////////////////////////////////////////////
-//
-// class name:			Atmosphere
-//
-// short description:	class which calculates atmosphere parameter (NASA 1987)
-//
-// Date:				22.10.2017
-//
-// Author:				Jan Olucak
-//
-// external sources:	-Bachelorarbeit Jan Olucak
-//
-// revision:			1.0
-//
-//////////////////////////////////////////////////////////////////////////////////////////
+/** @defgroup	Atmosphere Atmosphere
+*	@author		Jan Olucak
+*	@date		25.11.2017
+*	@version	1.0
+*
+*	DataCloud is a global data storage for structures. It serves the purpose to provide data
+*	for several applications like the simulation itself, module and unit tests.
+*  @{
+*/
 
 #ifndef ATMOSPHERE__HPP
 #define ATMOSPHERE__HPP
@@ -21,19 +15,32 @@
 #include <iostream>
 #include"../Tools/Constants.h"
 #include"../DataCloud/DataCloud.h"
-
-typedef double Float64;
+#include"../Tools/IndependetDataTypes.h"
 
 class Atmopshere
 {
 public:
 
+	/**
+	* \brief constructor
+	*/
 	Atmopshere();
 
+	/**
+	* \brief destructor
+	*/
 	~Atmopshere();
 
+	/**
+	* \brief initialize atmospheric paramters
+	*/
 	void	initAtmosphere();
 
+	/**
+	* \brief calculates atmospheric data depending on altitude
+	*	@param	Altitude			current altitude
+	*	@return	AtmosphericStruc	store air density, speed of sound, temperature, pressure
+	*/
 	void	updateAtmosphere(Float64 &Altitude, AtmosphereStruct &AtmoData);
 
 private:
@@ -45,5 +52,5 @@ private:
 	AtmosphereStruct AtmosphereData;
 
 };
-
+/**@}*/
 #endif	ATMOSPHERE__HPP

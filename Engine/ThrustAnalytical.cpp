@@ -1,17 +1,20 @@
 #include "ThrustAnalytical.h"
 
+/// constructor
 ThrustAnalytical::ThrustAnalytical():BaseThrust()
 {
 	ReadInThrustData = new readInData;
 }
 
+/// destrcutor
 ThrustAnalytical::~ThrustAnalytical()
 {
 }
 
+/// data is read in from Engine.dat and stored in private variables
 void ThrustAnalytical::initializeThrust()
 {
-	//std::cout << "Analytische Schubberechnung Init" << std::endl;
+	
 	ThrustForce.setZero();
 	ThrustMoment.setZero();
 
@@ -23,16 +26,14 @@ void ThrustAnalytical::initializeThrust()
 	incidenceAngle = ReadInThrustData->readInParameter("incidenceAngle", "Engine.dat");
 }
 
-
+/// calculation of thrust forces and moments
 void ThrustAnalytical::calcThrust(Float64 FlightTime,
 								  AtmosphereStruct & AtmoData,
 								  AerodynamicStruct & AeroData,
 								  AirframeStruct & AirframeData,
 								  ThrustStruct & ThrustData)
 {
-	//std::cout << "Analytische Schubberechnung" << std::endl;
-	std::cout << EnginePos << std::endl;
-	std:: cout << maxThrust <<  std::endl;
+	std::cout << "Analytische Schubberechnung" << std::endl;
 }
 
 

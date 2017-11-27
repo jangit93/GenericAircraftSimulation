@@ -1,0 +1,90 @@
+\hypertarget{_airframe_8cpp_source}{}\section{Airframe.\+cpp}
+\label{_airframe_8cpp_source}\index{Airframe.\+cpp@{Airframe.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{preprocessor}{#include "Airframe.h"}
+00002 
+\Hypertarget{_airframe_8cpp_source_l00003}\hyperlink{group___airframe_a5e6632c7d0c5bc5b889de6cc2407944f}{00003} \hyperlink{group___airframe_a5e6632c7d0c5bc5b889de6cc2407944f}{Airframe::Airframe}()
+00004 \{
+00005     readIn = \textcolor{keyword}{new} \hyperlink{classread_in_data}{readInData};
+00006 \}
+00007 
+\Hypertarget{_airframe_8cpp_source_l00008}\hyperlink{group___airframe_af849116afbf7c4d7d2d5c189ff68cb7d}{00008} \hyperlink{group___airframe_af849116afbf7c4d7d2d5c189ff68cb7d}{Airframe::~Airframe}()
+00009 \{
+00010 \}
+00011 
+\Hypertarget{_airframe_8cpp_source_l00012}\hyperlink{group___airframe_a57b5f7a74d11723186f34fc183e1581b}{00012} \textcolor{keywordtype}{void} \hyperlink{group___airframe_a57b5f7a74d11723186f34fc183e1581b}{Airframe::initAirframe}(AircraftStruct & AircraftData,
+00013                             AirframeStruct & AirframeData)
+00014 \{
+00015 
+00016     AircraftData.mass       = readIn->readInParameter(\textcolor{stringliteral}{"mass"}, \textcolor{stringliteral}{"Aircraft.txt"});
+00017     AircraftData.wingarea   = readIn->readInParameter(\textcolor{stringliteral}{"wing\_area"}, \textcolor{stringliteral}{"Aircraft.txt"});
+00018     AircraftData.wingspan   = readIn->readInParameter(\textcolor{stringliteral}{"wing\_span"}, \textcolor{stringliteral}{"Aircraft.txt"});
+00019     AircraftData.MAC        = readIn->readInParameter(\textcolor{stringliteral}{"MAC"}, \textcolor{stringliteral}{"Aircraft.txt"});
+00020     AircraftData.X\_CG       = readIn->readInParameter(\textcolor{stringliteral}{"X\_CG"}, \textcolor{stringliteral}{"Aircraft.txt"});
+00021     AircraftData.Y\_CG       = readIn->readInParameter(\textcolor{stringliteral}{"Y\_CG"}, \textcolor{stringliteral}{"Aircraft.txt"});
+00022     AircraftData.Z\_CG       = readIn->readInParameter(\textcolor{stringliteral}{"Z\_CG"}, \textcolor{stringliteral}{"Aircraft.txt"});
+00023 
+00024 
+00025     AirframeData.intertiaTensor(0, 0) = readIn->readInParameter(\textcolor{stringliteral}{"I\_X"}, \textcolor{stringliteral}{"Aircraft.txt"});
+00026     AirframeData.intertiaTensor(0, 1) = 0;
+00027     AirframeData.intertiaTensor(0, 2) = readIn->readInParameter(\textcolor{stringliteral}{"I\_zx"}, \textcolor{stringliteral}{"Aircraft.txt"});
+00028 
+00029     AirframeData.intertiaTensor(1, 0) = 0;
+00030     AirframeData.intertiaTensor(1, 1) = readIn->readInParameter(\textcolor{stringliteral}{"I\_Y"}, \textcolor{stringliteral}{"Aircraft.txt"});
+00031     AirframeData.intertiaTensor(1, 2) = 0;
+00032 
+00033     AirframeData.intertiaTensor(2, 0) = readIn->readInParameter(\textcolor{stringliteral}{"I\_zx"}, \textcolor{stringliteral}{"Aircraft.txt"});
+00034     AirframeData.intertiaTensor(2, 1) = 0;
+00035     AirframeData.intertiaTensor(2, 2) = readIn->readInParameter(\textcolor{stringliteral}{"I\_Z"}, \textcolor{stringliteral}{"Aircraft.txt"});
+00036 \}
+00037 
+\Hypertarget{_airframe_8cpp_source_l00038}\hyperlink{group___airframe_ab3e18bd40fd5e68d793a164654a2821a}{00038} \textcolor{keywordtype}{void} \hyperlink{group___airframe_ab3e18bd40fd5e68d793a164654a2821a}{Airframe::updateTranslational}(AerodynamicStruct & AeroData, 
+00039                                    ThrustStruct & ThrustData, 
+00040                                     AircraftStruct & AircraftData, 
+00041                                     AirframeStruct & AirframeData)
+00042 \{
+00043     phi     = AirframeData.EulerAngles(0);
+00044     theta   = AirframeData.EulerAngles(1);
+00045 
+00046     AoA = AeroData.AoA *PI / 180;
+00047     AoS = AeroData.AoS *PI / 180;
+00048 
+00049     TotalForce = AeroData.AeroForces + ThrustData.ThrustForce;
+00050 
+00051     Vec\_fg << -sin(theta),
+00052             sin(phi)*cos(theta);
+00053             cos(phi)*cos(theta);
+00054 
+00055     AirframeData.accTransBody = (TotalForce / AircraftData.mass) + Vec\_fg  * GRAVITATIONAL\_CONSTANT;
+00056 \}
+00057 
+\Hypertarget{_airframe_8cpp_source_l00058}\hyperlink{group___airframe_af506bca34fa40f9ec0613b3be8f726eb}{00058} \textcolor{keywordtype}{void} \hyperlink{group___airframe_af506bca34fa40f9ec0613b3be8f726eb}{Airframe::updateRotational}(AerodynamicStruct & AeroData, 
+00059                                 ThrustStruct & ThrustData, 
+00060                                 AircraftStruct & AircraftData,
+00061                                 AirframeStruct &AirframeData)
+00062 \{
+00063     p = AirframeData.rotRatesBody(0);
+00064     q = AirframeData.rotRatesBody(1);
+00065     r = AirframeData.rotRatesBody(2);
+00066 
+00067     rotRates << p, q, r;
+00068     TotalMoment = AeroData.AeroMoments + ThrustData.ThrustMoments;
+00069 
+00070     Vec\_rotTensor << q*r*(AirframeData.intertiaTensor(2, 2) - AirframeData.intertiaTensor(1, 1)) - p*q*
+      AirframeData.intertiaTensor(0, 2),
+00071         r*p*(AirframeData.intertiaTensor(0, 0) - AirframeData.intertiaTensor(2, 2)) + (p*p - r*r)*
+      AirframeData.intertiaTensor(0, 2),
+00072         p*q*(AirframeData.intertiaTensor(1, 1) - AirframeData.intertiaTensor(0, 0)) + q*r*AirframeData.
+      intertiaTensor(0, 2);
+00073 
+00074     AirframeData.accRotBody = AirframeData.intertiaTensor.inverse()*(TotalMoment - Vec\_rotTensor);
+00075 
+00076     Eulerdot << 1, sin(phi) * tan(theta), cos(phi) * tan(theta),
+00077                 0, cos(phi), -sin(phi),
+00078                 0, sin(phi) / cos(theta), cos(phi) / cos(theta);
+00079 
+00080     AirframeData.Eulerdot = Eulerdot *rotRates;
+00081 
+00082 \}
+\end{DoxyCode}

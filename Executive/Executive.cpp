@@ -9,6 +9,7 @@
 #include <iostream>
 #include <time.h> 
 #include"Aerodynamic.h"
+#include"Airframe.h"
 
 
 
@@ -26,22 +27,31 @@ int main(int argv, char* argc[])
 		AerodynamicStruct  AeroData;
 		AirframeStruct  AirframeData;
 		ThrustStruct  ThrustData;
+		AircraftStruct AircraftData;
 
-		Engine test;
-
-		test.updateEngine(FlightTime,
+		Engine *test = new Engine;
+		Aerodynamics *Aerodynamic = new Aerodynamics;
+		system("pause");
+		test->updateEngine(FlightTime,
 						AtmoData,
 						AeroData,
 						AirframeData,
 						ThrustData);
 
-		Aerodynamics Aerodynamic;
+		
 
-		Aerodynamic.updateAerodynamic(FlightTime,
+		Aerodynamic->updateAerodynamic(FlightTime,
 									AtmoData,
 									AeroData,
 									AirframeData,
 									ThrustData);
+
+		Airframe airframe;
+		airframe.initAirframe(AircraftData, AirframeData);
+		airframe.updateRotational(AeroData,
+									ThrustData,
+									AircraftData,
+									AirframeData);
 
 	time1 += clock() - tstart;     // end
 	time1 = time1 / CLOCKS_PER_SEC;  // rescale to seconds

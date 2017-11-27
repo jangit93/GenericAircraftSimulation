@@ -1,0 +1,182 @@
+\hypertarget{read_in_data_8cpp_source}{}\section{read\+In\+Data.\+cpp}
+\label{read_in_data_8cpp_source}\index{read\+In\+Data.\+cpp@{read\+In\+Data.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{preprocessor}{#include "readInData.h"}
+00002 readInData::readInData()
+00003 \{
+00004     PathName2 = \textcolor{stringliteral}{"../Input/"};
+00005 \}
+00006 
+00007 readInData::~readInData()
+00008 \{
+00009 \}
+00010 
+00011 Float64 readInData::readInParameter(std::string CodeWord, std::string FileName)
+00012 \{
+00013     
+00014 
+00015     \textcolor{comment}{// Öffne File}
+00016     input.open(PathName2+FileName, std::ios::in);
+00017 
+00018     \textcolor{comment}{// Exit if file opening failed}
+00019     \textcolor{keywordflow}{if} (!input.is\_open()) \{
+00020         std::cerr << \textcolor{stringliteral}{"Daten von  "} << CodeWord << \textcolor{stringliteral}{" aus "} << FileName << \textcolor{stringliteral}{" konnten nicht gelesen werden"} <<
+       std::endl;
+00021         \textcolor{keywordflow}{return} 0;
+00022         \textcolor{comment}{//exit(1);}
+00023     \}
+00024 
+00025     \textcolor{comment}{// Durchlaufe File, solange Daten vorhanden}
+00026     \textcolor{keywordflow}{while} (!input.eof())
+00027     \{
+00028         \textcolor{comment}{// Einlesen Zeile für Zeile}
+00029         std::getline(input, currtenLine);
+00030 
+00031         \textcolor{comment}{// Suche nach Code Wort in der aktuellen Zeile}
+00032         std::size\_t found = currtenLine.find(CodeWord, 0);
+00033 
+00034         \textcolor{comment}{// Wenn Zeile gefunden, dann Parameter extrahieren}
+00035         \textcolor{keywordflow}{if} (found != std::string::npos)
+00036         \{
+00037 
+00038             \textcolor{keywordtype}{size\_t} pos = 0;
+00039             std::string delimiter = \textcolor{stringliteral}{"="};
+00040             std::string token = currtenLine.substr(pos, currtenLine.find(delimiter));
+00041 
+00042             \textcolor{keywordflow}{while} ((currtenLine.find(delimiter)) != std::string::npos) \{
+00043                 token = currtenLine.substr(0, pos);
+00044                 currtenLine.erase(0, pos + delimiter.length());
+00045             \}
+00046 
+00047             tempValue = std::stod(currtenLine.c\_str());
+00048 
+00049         \}
+00050     \}
+00051     input.close();
+00052 
+00053     Float64 Value = tempValue;
+00054     currtenLine.clear();
+00055 
+00056     \textcolor{keywordflow}{return} Value;
+00057 \}
+00058 
+00059 MatrixXd readInData::readInTable(std::string FileName)
+00060 \{
+00061     \textcolor{comment}{// initialisation of data}
+00062     lines, columns = -1;
+00063 
+00064 
+00065     std::ifstream input(PathName2 + FileName);
+00066 
+00067 
+00068     \textcolor{comment}{// Exit if file opening failed}
+00069     \textcolor{keywordflow}{if} (!input.is\_open()) \{
+00070         std::cerr << \textcolor{stringliteral}{"Daten von  "} << FileName << \textcolor{stringliteral}{" konnten nicht gelesen werden"} << std::endl;
+00071         \textcolor{keywordflow}{return} tempMatrix.setZero();
+00072     \}
+00073 
+00074     \textcolor{comment}{//Ignore header}
+00075     std::string dummyline;
+00076     getline(input, dummyline);
+00077 
+00078     \textcolor{keywordflow}{while} (getline(input, line))
+00079     \{
+00080         columncounter = 0;
+00081         std::stringstream lineparser(line);
+00082 
+00083         \textcolor{keywordflow}{while} (lineparser >> element)
+00084         \{
+00085 
+00086             tempData.push\_back(element);
+00087             ++columncounter;
+00088         \}
+00089         \textcolor{keywordflow}{if} (columns == -1) columns = columncounter;
+00090         \textcolor{comment}{/*if (columns != columncounter)}
+00091 \textcolor{comment}{        \{}
+00092 \textcolor{comment}{        cerr << "Fehler: Unterschiedliche Spaltenzahl in mindestens zwei Zeilen" << endl;}
+00093 \textcolor{comment}{        exit(1);}
+00094 \textcolor{comment}{        \}*/}
+00095     \}
+00096     lines = tempData.size() / columns;
+00097 
+00098     \textcolor{comment}{//write data to matrix}
+00099     tempMatrix.resize(lines, columns);
+00100     tempMatrix.setZero(lines, columns);
+00101 
+00102     \textcolor{keywordflow}{if} (columns == 1) \{
+00103 
+00104         tempVec.resize(lines);
+00105         tempVec.setZero(lines);
+00106     \}
+00107     \textcolor{keywordflow}{else} \{
+00108         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < lines; ++i)
+00109         \{
+00110             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < columns; ++j)
+00111             \{
+00112                 tempMatrix(i, j) = tempData[i*columns + j];
+00113             \}
+00114         \}
+00115 
+00116         tempData.clear();
+00117         \textcolor{keywordflow}{if} (columns == 1) \{
+00118             \textcolor{keywordflow}{return} tempVec;
+00119         \}
+00120         \textcolor{keywordflow}{return} tempMatrix;
+00121 
+00122     \}
+00123 \}
+00124 
+00125 VectorXd readInData::readInVector(std::string FileName)
+00126 \{
+00127     \textcolor{comment}{// initialisation of data}
+00128     lines, columns = -1;
+00129 
+00130 
+00131     std::ifstream input(PathName2 + FileName);
+00132 
+00133 
+00134     \textcolor{comment}{// Exit if file opening failed}
+00135     \textcolor{keywordflow}{if} (!input.is\_open()) \{
+00136         std::cerr << \textcolor{stringliteral}{"Daten von ... konnten nicht gelesen werden"} << std::endl;
+00137         exit(1);
+00138     \}
+00139 
+00140     \textcolor{keywordflow}{while} (getline(input, line))
+00141     \{
+00142         columncounter = 0;
+00143         std::stringstream lineparser(line);
+00144 
+00145         \textcolor{keywordflow}{while} (lineparser >> element)
+00146         \{
+00147 
+00148             tempData.push\_back(element);
+00149             ++columncounter;
+00150         \}
+00151         \textcolor{keywordflow}{if} (columns == -1) \{
+00152             columns = columncounter;
+00153         \}
+00154 
+00155 
+00156     \}
+00157     lines = tempData.size() / columns;
+00158 
+00159 
+00160     tempVec.resize(lines);
+00161     tempVec.setZero(lines);
+00162     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < lines; ++i)
+00163     \{
+00164         tempVec(i) = tempData[i];
+00165     \}
+00166 
+00167 
+00168     tempData.clear();
+00169 
+00170     \textcolor{keywordflow}{return} tempVec;
+00171 \}
+00172 
+00173 \textcolor{keywordtype}{void} readInData::setPath(std::string Pathname)
+00174 \{
+00175     PathName2 = Pathname;
+00176 \}
+\end{DoxyCode}
