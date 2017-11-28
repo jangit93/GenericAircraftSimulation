@@ -13,15 +13,29 @@ void BaseTrajectory::initTrajectory()
 	this->initializeTrajectory();
 }
 
-void BaseTrajectory::updateTrajectory()
+void BaseTrajectory::updateTrajectory(Float64 FlightTime, 
+									  AtmosphereStruct & AtmoData, 
+									  AerodynamicStruct & AeroData, 
+									  AirframeStruct & AirframeData, 
+									  ThrustStruct & ThrustData)
 {
-	this->calcTrajectory();
+	this->calcTrajectory(FlightTime,
+		AtmoData,
+		AeroData,
+		AirframeData,
+		ThrustData);
 }
+
 
 void BaseTrajectory::initializeTrajectory()
 {
 }
 
-void BaseTrajectory::calcTrajectory()
+void BaseTrajectory::calcTrajectory(Float64 FlightTime,
+									AtmosphereStruct & AtmoData,
+									AerodynamicStruct & AeroData, 
+									AirframeStruct & AirframeData, 
+									ThrustStruct & ThrustData)
 {
 }
+

@@ -5,7 +5,6 @@ Trajectory::Trajectory()
 	int a = 2;
 	selectTrajectory(a);
 
-	initTrajectory();
 }
 
 Trajectory::~Trajectory()
@@ -30,7 +29,17 @@ void Trajectory::initTrajectory()
 	traj->initTrajectory();
 }
 
-void Trajectory::updateTrajectory()
+void Trajectory::updateTrajectory(Float64 FlightTime, 
+								  AtmosphereStruct & AtmoData, 
+								  AerodynamicStruct & AeroData, 
+								  AirframeStruct & AirframeData, 
+								  ThrustStruct & ThrustData)
 {
-	traj->updateTrajectory();
+	traj->updateTrajectory(FlightTime,
+						   AtmoData,
+						   AeroData, 
+						   AirframeData, 
+						   ThrustData);
 }
+
+

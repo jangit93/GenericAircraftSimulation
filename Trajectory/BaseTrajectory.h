@@ -9,6 +9,7 @@
 
 #ifndef BASETRAJECTORY_H
 #define BASETRAJECTORY_H
+#include"DataCloud.h"
 
 class BaseTrajectory {
 public:
@@ -19,11 +20,19 @@ public:
 
 	void initTrajectory();
 
-	void updateTrajectory();
+	void updateTrajectory(Float64 FlightTime,
+							AtmosphereStruct & AtmoData,
+							AerodynamicStruct & AeroData,
+							AirframeStruct & AirframeData,
+							ThrustStruct & ThrustData);
 
 	virtual void initializeTrajectory();
 
-	virtual void calcTrajectory();
+	virtual void calcTrajectory(Float64 FlightTime,
+								AtmosphereStruct & AtmoData,
+								AerodynamicStruct & AeroData,
+								AirframeStruct & AirframeData,
+								ThrustStruct & ThrustData);
 
 
 private:

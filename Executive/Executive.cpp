@@ -22,39 +22,20 @@ int main(int argv, char* argc[])
 		int i = 1;
 
 		std::cout << "Aircraft Simulation" << std::endl;
-		/*Float64 FlightTime = 1;
+		Float64 FlightTime = 1;
 		AtmosphereStruct  AtmoData;
 		AerodynamicStruct  AeroData;
 		AirframeStruct  AirframeData;
 		ThrustStruct  ThrustData;
 		AircraftStruct AircraftData;
 
-		Engine *test = new Engine;
-		Aerodynamics *Aerodynamic = new Aerodynamics;
-		system("pause");
-		test->updateEngine(FlightTime,
-						AtmoData,
-						AeroData,
-						AirframeData,
-						ThrustData);
-
-		
-
-		Aerodynamic->updateAerodynamic(FlightTime,
-									AtmoData,
-									AeroData,
-									AirframeData,
-									ThrustData);
-
-		Airframe airframe;
-		airframe.initAirframe(AircraftData, AirframeData);
-		airframe.updateRotational(AeroData,
-									ThrustData,
-									AircraftData,
-									AirframeData);
-*/
 		Trajectory Test;
-		Test.updateTrajectory();
+		Test.initTrajectory();
+		Test.updateTrajectory(FlightTime,
+								AtmoData,
+								AeroData,
+								AirframeData,
+								ThrustData);
 
 	time1 += clock() - tstart;     // end
 	time1 = time1 / CLOCKS_PER_SEC;  // rescale to seconds

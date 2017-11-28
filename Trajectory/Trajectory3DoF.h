@@ -24,7 +24,11 @@ public:
 
 	void initializeTrajectory();
 
-	void calcTrajectory();
+	void calcTrajectorythis(Float64 FlightTime,
+							AtmosphereStruct & AtmoData,
+							AerodynamicStruct & AeroData,
+							AirframeStruct & AirframeData,
+							ThrustStruct & ThrustData);
 
 private:
 	Engine		 *engine;

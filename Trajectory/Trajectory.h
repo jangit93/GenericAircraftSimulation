@@ -25,7 +25,11 @@ public:
 
 	void initTrajectory();
 
-	void updateTrajectory();
+	void updateTrajectory(Float64 FlightTime,
+							AtmosphereStruct & AtmoData,
+							AerodynamicStruct & AeroData,
+							AirframeStruct & AirframeData,
+							ThrustStruct & ThrustData);
 
 private:
 	BaseTrajectory *traj;
