@@ -12,6 +12,10 @@
 #include"BaseThrust.h"
 #include"ThrustAnalytical.h"
 
+#ifndef ENGINE_H
+#define ENGINE_H
+
+
 class Engine
 {
 public:
@@ -56,3 +60,4 @@ private:
 
 };
 /**@}*/
+#endif // !ENGINE_H

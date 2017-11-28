@@ -4,8 +4,6 @@ Engine::Engine()
 {
 	int a = 2;
 	selectEngineType(a);
-
-	initEngine();
 }
 
 Engine::~Engine()

@@ -5,7 +5,6 @@ Aerodynamics::Aerodynamics()
 	int a = 2;
 	selectAerodynamicType(a);
 
-	initAerodynamic();
 }
 
 Aerodynamics::~Aerodynamics()

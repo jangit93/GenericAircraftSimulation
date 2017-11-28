@@ -13,9 +13,9 @@
 
 #include <math.h>
 #include <iostream>
-#include"../Tools/Constants.h"
-#include"../DataCloud/DataCloud.h"
-#include"../Tools/IndependetDataTypes.h"
+#include"Constants.h"
+#include"DataCloud.h"
+#include"IndependetDataTypes.h"
 
 class Atmopshere
 {
