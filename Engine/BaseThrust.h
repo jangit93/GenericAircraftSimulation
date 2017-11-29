@@ -43,7 +43,8 @@ public:
 	/**
 	*  The init function from the selected engine is called by a pointer.
 	*/
-	void initThrust();
+	void initThrust(ThrustStruct & ThrustData,
+					AircraftStruct &AircraftData);
 
 	/**
 	*	@brief calculate thrust forces and moments
@@ -60,7 +61,8 @@ public:
 							ThrustStruct & ThrustData);
 
 
-	virtual void initializeThrust();
+	virtual void initializeThrust(ThrustStruct & ThrustData,
+								  AircraftStruct &AircraftData);
 
 };
 

@@ -8,34 +8,54 @@ BaseTrajectory::~BaseTrajectory()
 {
 }
 
-void BaseTrajectory::initTrajectory()
+void BaseTrajectory::initTrajectory(AerodynamicStruct & AeroData,
+									AirframeStruct & AirframeData,
+									ThrustStruct & ThrustData,
+									AircraftStruct &AircraftData,
+									AutopilotStruct & AutopilotData,
+									GuidanceStruct & GuidanceData)
 {
-	this->initializeTrajectory();
+	this->initializeTrajectory(AeroData,
+								AirframeData,
+								ThrustData,
+								AircraftData,
+								AutopilotData,
+								GuidanceData);
 }
 
 void BaseTrajectory::updateTrajectory(Float64 FlightTime, 
 									  AtmosphereStruct & AtmoData, 
-									  AerodynamicStruct & AeroData, 
+									  AerodynamicStruct & AeroData,	
 									  AirframeStruct & AirframeData, 
-									  ThrustStruct & ThrustData)
+									  ThrustStruct & ThrustData, 
+									  AutopilotStruct & AutopilotData, 
+									  GuidanceStruct & GuidanceData)
 {
 	this->calcTrajectory(FlightTime,
-		AtmoData,
-		AeroData,
-		AirframeData,
-		ThrustData);
+						AtmoData,
+						AeroData,
+						AirframeData,
+						ThrustData,
+						AutopilotData,
+						GuidanceData);
 }
 
 
-void BaseTrajectory::initializeTrajectory()
+void BaseTrajectory::initializeTrajectory(AerodynamicStruct & AeroData,
+										AirframeStruct & AirframeData,
+										ThrustStruct & ThrustData,
+										AircraftStruct &AircraftData, 
+										AutopilotStruct & AutopilotData,
+										GuidanceStruct & GuidanceData)
 {
 }
 
-void BaseTrajectory::calcTrajectory(Float64 FlightTime,
-									AtmosphereStruct & AtmoData,
+void BaseTrajectory::calcTrajectory(Float64 FlightTime, 
+									AtmosphereStruct & AtmoData, 
 									AerodynamicStruct & AeroData, 
 									AirframeStruct & AirframeData, 
-									ThrustStruct & ThrustData)
+									ThrustStruct & ThrustData, 
+									AutopilotStruct & AutopilotData, 
+									GuidanceStruct & GuidanceData)
 {
 }
-

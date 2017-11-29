@@ -13,6 +13,7 @@
 #include"BaseTrajectory.h"
 #include"Engine.h"
 #include"Aerodynamic.h"
+#include"Airframe.h"
 #include<iostream>
 
 class Trajectory3Dof : public BaseTrajectory
@@ -22,17 +23,25 @@ public:
 
 	~Trajectory3Dof();
 
-	void initializeTrajectory();
+	void initializeTrajectory(AerodynamicStruct & AeroData,
+								AirframeStruct & AirframeData,
+								ThrustStruct & ThrustData,
+								AircraftStruct &AircraftData,
+								AutopilotStruct & AutopilotData,
+								GuidanceStruct & GuidanceData);
 
 	void calcTrajectorythis(Float64 FlightTime,
 							AtmosphereStruct & AtmoData,
 							AerodynamicStruct & AeroData,
 							AirframeStruct & AirframeData,
-							ThrustStruct & ThrustData);
+							ThrustStruct & ThrustData, 
+							AutopilotStruct & AutopilotData,
+							GuidanceStruct & GuidanceData);
 
 private:
 	Engine		 *engine;
 	Aerodynamics *aerodynamics;
+	Airframe     *airframe;
 };
 
 #endif // TRAJECTORY3DOF_H

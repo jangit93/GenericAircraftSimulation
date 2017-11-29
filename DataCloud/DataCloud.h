@@ -113,6 +113,13 @@ struct AircraftStruct {
 	Float64  X_CG;
 	Float64  Y_CG;
 	Float64  Z_CG;
+};
+
+struct AutopilotStruct {
+};
+
+struct GuidanceStruct
+{
 
 };
 /**@}*/

@@ -6,7 +6,7 @@
 *	Airframe class calculates body fixed acceleration
 *  @{
 */
-#ifndef AIRFRAME_h
+#ifndef AIRFRAME_H
 #define AIRFRAME_H
 
 #include<iostream>

@@ -25,9 +25,10 @@ void Aerodynamics::selectAerodynamicType(int type)
 	}
 }
 
-void Aerodynamics::initAerodynamic()
+void Aerodynamics::initAerodynamic(AerodynamicStruct & AeroData, AircraftStruct & AircraftData)
 {
-	aerodynamic->initAerodynamic();
+	aerodynamic->initAerodynamic(AeroData, 
+								 AircraftData);
 }
 
 void Aerodynamics::updateAerodynamic(Float64 FlightTime, 

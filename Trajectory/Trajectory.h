@@ -23,13 +23,20 @@ public:
 
 	void selectTrajectory(int type);
 
-	void initTrajectory();
-
 	void updateTrajectory(Float64 FlightTime,
-							AtmosphereStruct & AtmoData,
-							AerodynamicStruct & AeroData,
-							AirframeStruct & AirframeData,
-							ThrustStruct & ThrustData);
+						AtmosphereStruct & AtmoData,
+						AerodynamicStruct & AeroData,
+						AirframeStruct & AirframeData,
+						ThrustStruct & ThrustData,
+						AutopilotStruct & AutopilotData,
+						GuidanceStruct & GuidanceData);
+
+	void initTrajectory(AerodynamicStruct & AeroData,
+						AirframeStruct & AirframeData,
+						ThrustStruct & ThrustData,
+						AircraftStruct &AircraftData,
+						AutopilotStruct &AutopilotData,
+						GuidanceStruct &GuidanceData);
 
 private:
 	BaseTrajectory *traj;

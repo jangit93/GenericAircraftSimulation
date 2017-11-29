@@ -24,9 +24,12 @@ void Engine::selectEngineType(int type)
 	}
 }
 
-void Engine::initEngine()
+void Engine::initEngine(ThrustStruct & ThrustData,
+						AircraftStruct &AircraftData)
+			
 {
-	Thrust->initThrust();
+	Thrust->initThrust(ThrustData,
+					   AircraftData);
 }
 
 void Engine::updateEngine(Float64 FlightTime,

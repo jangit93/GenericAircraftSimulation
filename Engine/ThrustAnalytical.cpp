@@ -12,7 +12,8 @@ ThrustAnalytical::~ThrustAnalytical()
 }
 
 /// data is read in from Engine.dat and stored in private variables
-void ThrustAnalytical::initializeThrust()
+void ThrustAnalytical::initializeThrust(ThrustStruct & ThrustData,
+										AircraftStruct &AircraftData)
 {
 	
 	ThrustForce.setZero();

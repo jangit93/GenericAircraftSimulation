@@ -8,7 +8,8 @@ DATCOMAerodymamic::~DATCOMAerodymamic()
 {
 }
 
-void DATCOMAerodymamic::initializeAerodynamic()
+void DATCOMAerodymamic::initializeAerodynamic(AerodynamicStruct & AeroData,
+											  AircraftStruct & AircraftData)
 {
 	std::cout << "DATCOM Aerodynamic Init" << std::endl;
 }

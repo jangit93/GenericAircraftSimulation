@@ -42,7 +42,8 @@ public:
 	/**
 	* \brief initialize aerodynamic paramters
 	*/
-	void initAerodynamic();
+	void initAerodynamic(AerodynamicStruct & AeroData, 
+						 AircraftStruct & AircraftDatas);
 
 	/**
 	* \brief calculate aero forces and moments

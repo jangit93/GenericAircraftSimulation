@@ -21,9 +21,11 @@ void BaseAerodynamic::updateAerodynamic(Float64 FlightTime,
 						ThrustData);
 }
 
-void BaseAerodynamic::initAerodynamic()
+
+
+void BaseAerodynamic::initAerodynamic(AerodynamicStruct & AeroData, AircraftStruct & AircraftData)
 {
-	this->initializeAerodynamic();
+	this->initializeAerodynamic(AeroData, AircraftData);
 }
 
 void BaseAerodynamic::calcAerodynamic(Float64 FlightTime,
@@ -35,7 +37,7 @@ void BaseAerodynamic::calcAerodynamic(Float64 FlightTime,
 	std::cout << "Base Aerodynamic Update" << std::endl;
 }
 
-void BaseAerodynamic::initializeAerodynamic()
+void BaseAerodynamic::initializeAerodynamic(AerodynamicStruct & AeroData, AircraftStruct & AircraftData)
 {
 	std::cout << "Base Aerodynamic Init" << std::endl;
 }

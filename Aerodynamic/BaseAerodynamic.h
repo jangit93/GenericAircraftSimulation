@@ -44,7 +44,8 @@ public:
 	/**
 	*  @brief The init function from the selected aerodynamic model is called by a pointer.
 	*/
-	void initAerodynamic();
+	void initAerodynamic(AerodynamicStruct & AeroData,
+						 AircraftStruct &AircraftData);
 
 
 	virtual void calcAerodynamic(Float64 FlightTime,
@@ -54,7 +55,8 @@ public:
 								ThrustStruct & ThrustData);
 
 
-	virtual void initializeAerodynamic();
+	virtual void initializeAerodynamic(AerodynamicStruct & AeroData, 
+									   AircraftStruct & AircraftData);
 
 };
 #endif BASEAERODYNAMIC

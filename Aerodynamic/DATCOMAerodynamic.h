@@ -33,7 +33,8 @@ public:
 	/**
 	* @brief read in tables of derivatives
 	*/
-	void initializeAerodynamic();
+	void initializeAerodynamic(AerodynamicStruct & AeroData, 
+							   AircraftStruct & AircraftData);
 
 	/**
 	* @brief	current flight state is used to interpolated derivatives

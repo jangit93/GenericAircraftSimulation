@@ -8,12 +8,15 @@ BaseThrust::~BaseThrust()
 {
 }
 
-void BaseThrust::initThrust()
+void BaseThrust::initThrust(ThrustStruct & ThrustData,
+							AircraftStruct &AircraftData)
 {
-	this->initializeThrust();
+	this->initializeThrust(ThrustData, 
+						   AircraftData);
 }
 
-void BaseThrust::initializeThrust()
+void BaseThrust::initializeThrust(ThrustStruct & ThrustData,
+								  AircraftStruct &AircraftData)
 {
 	std::cout << "Basis Schubklasse Init" << std::endl;
 }

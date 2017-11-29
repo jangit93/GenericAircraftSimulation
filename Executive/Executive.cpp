@@ -28,14 +28,24 @@ int main(int argv, char* argc[])
 		AirframeStruct  AirframeData;
 		ThrustStruct  ThrustData;
 		AircraftStruct AircraftData;
+		AutopilotStruct AutpilotData;
+		GuidanceStruct GuidamceData;
 
-		Trajectory Test;
-		Test.initTrajectory();
-		Test.updateTrajectory(FlightTime,
+		Trajectory *Test = new Trajectory;
+		Test->initTrajectory(AeroData,
+							AirframeData,
+							ThrustData,
+							AircraftData,
+							AutpilotData,
+							GuidamceData);
+
+		Test->updateTrajectory(FlightTime,
 								AtmoData,
 								AeroData,
 								AirframeData,
-								ThrustData);
+								ThrustData, 
+								AutpilotData,
+								GuidamceData);
 
 	time1 += clock() - tstart;     // end
 	time1 = time1 / CLOCKS_PER_SEC;  // rescale to seconds

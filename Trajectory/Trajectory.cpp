@@ -24,22 +24,38 @@ void Trajectory::selectTrajectory(int type)
 	}
 }
 
-void Trajectory::initTrajectory()
-{
-	traj->initTrajectory();
-}
+
 
 void Trajectory::updateTrajectory(Float64 FlightTime, 
 								  AtmosphereStruct & AtmoData, 
 								  AerodynamicStruct & AeroData, 
 								  AirframeStruct & AirframeData, 
-								  ThrustStruct & ThrustData)
+								  ThrustStruct & ThrustData, 
+								  AutopilotStruct & AutopilotData,
+								  GuidanceStruct & GuidanceData)
 {
 	traj->updateTrajectory(FlightTime,
 						   AtmoData,
 						   AeroData, 
 						   AirframeData, 
-						   ThrustData);
+						   ThrustData,
+							AutopilotData,
+							GuidanceData);
+}
+
+void Trajectory::initTrajectory(AerodynamicStruct & AeroData, 
+								AirframeStruct & AirframeData, 
+								ThrustStruct & ThrustData, 
+								AircraftStruct & AircraftData, 
+								AutopilotStruct & AutopilotData, 
+								GuidanceStruct & GuidanceData)
+{
+	traj->initTrajectory(AeroData,
+						AirframeData,
+						ThrustData,
+						AircraftData,
+						AutopilotData,
+						GuidanceData);
 }
 
 

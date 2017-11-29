@@ -33,7 +33,8 @@ public:
 	/**
 	*  @brief read in Data from Engine.dat
 	*/
-	void initializeThrust();
+	void initializeThrust(ThrustStruct & ThrustData,
+						  AircraftStruct &AircraftData);
 
 	/**
 	*	@brief calculate thrust forces and moments
