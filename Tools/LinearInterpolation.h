@@ -4,6 +4,7 @@
 #include <vector>
 #include"../EIGENDIR/Eigen/Dense"
 #include<math.h>
+#include<algorithm>
 
 
 using Eigen::MatrixXd;
@@ -21,8 +22,6 @@ public:
 
 	~LinearInterpolation();
 
-	VectorXd loadTable(MatrixXd);
-
 	Float64 searchIndex(VectorXd Vector,
 						Float64 Value);
 
@@ -31,7 +30,10 @@ public:
 								  MatrixXd Table,
 								  Float64 Value1,
 								  Float64 Value2);
-	
+
+	Float64 linearInterpolation(VectorXd Vector1,
+								VectorXd Table,
+								Float64 Value);
 private:
 	Int32		index1;
 	Int32		index2;

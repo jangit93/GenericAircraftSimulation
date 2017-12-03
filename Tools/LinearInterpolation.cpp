@@ -8,11 +8,6 @@ LinearInterpolation::~LinearInterpolation()
 {
 }
 
-VectorXd LinearInterpolation::loadTable(MatrixXd)
-{
-	return VectorXd();
-}
-
 Float64 LinearInterpolation::searchIndex(VectorXd Vector,
 										 Float64 Value)
 {
@@ -56,5 +51,17 @@ Float64 LinearInterpolation::linearInterpolation(VectorXd Vector1,
 							dy		*dx_inv	*Table(index1, index2 + 1) +
 							dx		*dy		*Table(index1 + 1, index2 + 1);
 
+	return interpolationValue;
+}
+
+Float64 LinearInterpolation::linearInterpolation(VectorXd Vector1, VectorXd Table, Float64 Value)
+{
+	Int32 Index = searchIndex(Vector1, Value);
+	Float64 a = Vector1(Index);
+	dx = (Value - Vector1(Index))/ (Vector1(Index+1)- Vector1(Index));
+
+	dx_inv = 1 - dx;
+
+	interpolationValue = Table(Index)*dx_inv + Table(Index + 1)*dx;
 	return interpolationValue;
 }
