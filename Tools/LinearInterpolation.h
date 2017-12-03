@@ -25,13 +25,13 @@ public:
 	Float64 searchIndex(VectorXd Vector,
 						Float64 Value);
 
-	Float64 linearInterpolation(VectorXd Vector1,
+	Float64 linearInterpolation2D(VectorXd Vector1,
 								  VectorXd Vector2,
 								  MatrixXd Table,
 								  Float64 Value1,
 								  Float64 Value2);
 
-	Float64 linearInterpolation(VectorXd Vector1,
+	Float64 linearInterpolation1D(VectorXd Vector1,
 								VectorXd Table,
 								Float64 Value);
 private:

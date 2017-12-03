@@ -20,15 +20,7 @@ int main(int argv, char* argc[])
 //#pragma omp parallel 
 		tstart = clock();              // start 
 
-		LinearInterpolation test;
-		readInData test1;
-		test1.setPath("../Input/Aerodynamics/");
-	Eigen:VectorXd Cmq = test1.readInVector("CMQ.txt");
-		std::cout << Cmq << std::endl;
-		Eigen::VectorXd Ma = test1.readInVector("Ma.txt");
-		std::cout << Ma << std::endl;
-		Float64 a = test.linearInterpolation(Ma,Cmq,0.21);
-		std::cout << a << std::endl;
+
 		system("pause");
 		int i = 1;
 

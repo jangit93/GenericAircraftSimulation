@@ -68,7 +68,7 @@ namespace UnitTest1
 			// TODO: Testcode hier eingeben
 		}
 
-		TEST_METHOD(linearInterpolation_test)
+		TEST_METHOD(linearInterpolation_2D_test)
 		{
 			readInData test;
 			LinearInterpolation testInterp;
@@ -80,8 +80,24 @@ namespace UnitTest1
 			VectorXd Mach = test.readInVector("Ma.txt");
 
 
-			Assert::AreEqual(testInterp.linearInterpolation(AOA,Mach,CL,2,0.31) , 0.1912);
+			Assert::AreEqual(testInterp.linearInterpolation2D(AOA,Mach,CL,2,0.31) , 0.1912);
 			
+
+			// TODO: Testcode hier eingeben
+		}
+
+		TEST_METHOD(linearInterpolation_1D_test)
+		{
+			LinearInterpolation test;
+			readInData test1;
+
+			test1.setPath("../../Input/Aerodynamics/");
+			Eigen:VectorXd Cmq = test1.readInVector("CMQ.txt");
+
+			Eigen::VectorXd Ma = test1.readInVector("Ma.txt");
+
+			Assert::AreEqual(test.linearInterpolation1D(Ma, Cmq, 0.21), -7.3071);
+
 
 			// TODO: Testcode hier eingeben
 		}
