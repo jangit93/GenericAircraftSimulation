@@ -3,6 +3,7 @@
 
 #include"Atmosphere.h"
 #include"readInData.h"
+#include"DataCloud.h"
 #include"LinearInterpolation.h"
 #include <C:\Users\janol\Desktop\Studium\Master_Luft und Raumfahrttechnik\2.Fachsemester\Effizient Programmieren\Programierprojekt\GenericFlightSimulation\EIGENDIR\Eigen\dense>
 
@@ -79,7 +80,7 @@ namespace UnitTest1
 			VectorXd Mach = test.readInVector("Ma.txt");
 
 
-			Assert::AreEqual(testInterp.biLinearInterpolation(AOA,Mach,CL,2,0.31) , 0.1912);
+			Assert::AreEqual(testInterp.linearInterpolation(AOA,Mach,CL,2,0.31) , 0.1912);
 			
 
 			// TODO: Testcode hier eingeben

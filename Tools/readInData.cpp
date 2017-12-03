@@ -72,8 +72,8 @@ MatrixXd readInData::readInTable(std::string FileName)
 	}
 
 	//Ignore header
-	std::string dummyline;
-	getline(input, dummyline);
+	//std::string dummyline;
+	//getline(input, dummyline);
 
 	while (getline(input, line))
 	{

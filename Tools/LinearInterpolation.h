@@ -26,7 +26,7 @@ public:
 	Float64 searchIndex(VectorXd Vector,
 						Float64 Value);
 
-	Float64 biLinearInterpolation(VectorXd Vector1,
+	Float64 linearInterpolation(VectorXd Vector1,
 								  VectorXd Vector2,
 								  MatrixXd Table,
 								  Float64 Value1,

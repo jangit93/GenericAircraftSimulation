@@ -16,8 +16,8 @@ void Trajectory3Dof::initializeTrajectory(AerodynamicStruct & AeroData,
 										  AirframeStruct & AirframeData,
 										  ThrustStruct & ThrustData,
 										  AircraftStruct &AircraftData,
-										 AutopilotStruct & AutopilotData,
-										 GuidanceStruct & GuidanceData)
+										  AutopilotStruct & AutopilotData,
+										  GuidanceStruct & GuidanceData)
 {
 	airframe->initAirframe(AircraftData, 
 						   AirframeData);

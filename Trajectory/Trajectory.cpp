@@ -16,9 +16,11 @@ void Trajectory::selectTrajectory(int type)
 	switch (type)
 	{
 	case 1:
+		std::cout << "Trajectory: Base Trajectory" << std::endl;
 		traj = new BaseTrajectory;
 		break;
 	case 2:
+		std::cout << "Trajectory: Trajectory 3Dof" << std::endl;
 		traj = new Trajectory3Dof;
 		break;
 	}

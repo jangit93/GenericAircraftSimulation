@@ -12,6 +12,7 @@
 
 #include"Constants.h"
 #include"BaseAerodynamic.h"
+#include"readInData.h"
 #include<math.h>
 
 #ifndef DATCOMAERODYNAMIC_H
@@ -48,8 +49,42 @@ public:
 						ThrustStruct & ThrustData);
 
 private:
+	readInData *readIn;
 
+	//derivatives lift
+	Eigen::MatrixXd CA;
+	Eigen::MatrixXd CAalpha;
+	Eigen::MatrixXd CAeta;
+	Eigen::MatrixXd CAq;
 
+	//derivatives drag
+	Eigen::MatrixXd CW;
+	Eigen::MatrixXd CWeta;
+
+	//derivatives pitching moment
+	Eigen::MatrixXd CM;
+	Eigen::MatrixXd CMalpha;
+	Eigen::MatrixXd CMeta;
+	Eigen::VectorXd CMq;
+
+	//rolling moment
+	Eigen::MatrixXd CN;
+	Eigen::MatrixXd CNp;
+	Eigen::MatrixXd CNr;
+	Eigen::MatrixXd CNxi;
+
+	//yawing moment
+	Eigen::MatrixXd CL;
+	Eigen::MatrixXd CLp;
+	Eigen::MatrixXd CLq;
+	Eigen::MatrixXd CLr;
+	Eigen::MatrixXd CLxi;
+
+	//vectors for interpolation
+	Eigen::VectorXd AoA;
+	Eigen::VectorXd Ma;
+	Eigen::VectorXd Xi;
+	Eigen::VectorXd AoS;
 };
 
 #endif DATCOMAERODYNAMIC_H

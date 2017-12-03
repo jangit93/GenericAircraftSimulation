@@ -32,7 +32,7 @@ Float64 LinearInterpolation::searchIndex(VectorXd Vector,
 	return index;
 }
 
-Float64 LinearInterpolation::biLinearInterpolation(VectorXd Vector1,
+Float64 LinearInterpolation::linearInterpolation(VectorXd Vector1,
 												   VectorXd Vector2,
 												   MatrixXd Table,
 												   Float64 Value1,

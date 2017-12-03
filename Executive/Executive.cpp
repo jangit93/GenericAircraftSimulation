@@ -17,19 +17,20 @@ int main(int argv, char* argc[])
 {
 	double time1 = 0.0, tstart;      // time measurment variable
 
+#pragma omp parallel 
 		tstart = clock();              // start 
 
 		int i = 1;
 
-		std::cout << "Aircraft Simulation" << std::endl;
+		std::cout << "---------Aircraft Simulation----------" << std::endl;
 		Float64 FlightTime = 1;
-		AtmosphereStruct  AtmoData;
-		AerodynamicStruct  AeroData;
-		AirframeStruct  AirframeData;
-		ThrustStruct  ThrustData;
-		AircraftStruct AircraftData;
-		AutopilotStruct AutpilotData;
-		GuidanceStruct GuidamceData;
+		AtmosphereStruct	AtmoData;
+		AerodynamicStruct	AeroData;
+		AirframeStruct		AirframeData;
+		ThrustStruct		ThrustData;
+		AircraftStruct		AircraftData;
+		AutopilotStruct		AutpilotData;
+		GuidanceStruct		GuidamceData;
 
 		Trajectory *Test = new Trajectory;
 		Test->initTrajectory(AeroData,
@@ -38,7 +39,8 @@ int main(int argv, char* argc[])
 							AircraftData,
 							AutpilotData,
 							GuidamceData);
-
+		std::cout << "--------------------------------------" << std::endl;
+		system("pause");
 		Test->updateTrajectory(FlightTime,
 								AtmoData,
 								AeroData,

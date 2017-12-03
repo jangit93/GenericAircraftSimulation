@@ -25,6 +25,10 @@ void ThrustAnalytical::initializeThrust(ThrustStruct & ThrustData,
 
 	maxThrust = ReadInThrustData->readInParameter("F_max", "Engine.dat");
 	incidenceAngle = ReadInThrustData->readInParameter("incidenceAngle", "Engine.dat");
+
+	ThrustData.i = incidenceAngle;
+	ThrustData.F_max = maxThrust;
+	ThrustData.r = EnginePos;
 }
 
 /// calculation of thrust forces and moments
