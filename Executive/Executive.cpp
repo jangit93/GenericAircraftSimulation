@@ -7,11 +7,10 @@
 #include<Map>
 #include<math.h>
 #include <iostream>
-#include <time.h> 
+#include<ctime>
 #include"Aerodynamic.h"
 #include"Airframe.h"
 #include"Trajectory.h"
-
 
 int main(int argv, char* argc[])
 {
@@ -21,11 +20,8 @@ int main(int argv, char* argc[])
 		tstart = clock();              // start 
 
 
-		system("pause");
-		int i = 1;
-
 		std::cout << "---------Aircraft Simulation----------" << std::endl;
-		Float64 FlightTime = 1;
+		Float64				FlightTime = 1;
 		AtmosphereStruct	AtmoData;
 		AerodynamicStruct	AeroData;
 		AirframeStruct		AirframeData;

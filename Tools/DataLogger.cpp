@@ -47,7 +47,11 @@ void DataLogger::print()
 		mStream << std::to_string(*intVec.at(i)) + mDelimiter << std::setw(mWidth);
 	}
 	mStream << std::endl;
+
+
+	
 }
+
 
 void DataLogger::printHeader()
 {

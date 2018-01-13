@@ -31,7 +31,7 @@ void Trajectory3Dof::initializeTrajectory(AerodynamicStruct & AeroData,
 	std::cout << "init 3Dof Trajectory" << std::endl;
 }
 
-void Trajectory3Dof::calcTrajectorythis(Float64 FlightTime,	
+void Trajectory3Dof::calcTrajectory(Float64 FlightTime,	
 										AtmosphereStruct & AtmoData, 
 										AerodynamicStruct & AeroData,
 										AirframeStruct & AirframeData, 
@@ -39,7 +39,11 @@ void Trajectory3Dof::calcTrajectorythis(Float64 FlightTime,
 										AutopilotStruct & AutopilotData,
 										GuidanceStruct & GuidanceData)
 {
-	std::cout << "update 3Dof Trajectory" << std::endl;
+	aerodynamics->updateAerodynamic(FlightTime,
+									AtmoData,
+									AeroData,
+									AirframeData,
+									ThrustData);
 }
 
 

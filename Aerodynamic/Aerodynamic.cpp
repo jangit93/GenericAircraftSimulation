@@ -2,7 +2,7 @@
 
 Aerodynamics::Aerodynamics()
 {
-	int a = 2;
+	int a = 1;
 	selectAerodynamicType(a);
 
 }
@@ -16,9 +16,6 @@ void Aerodynamics::selectAerodynamicType(int type)
 	switch (type)
 	{
 	case 1:
-		aerodynamic = new BaseAerodynamic;
-		break;
-	case 2:
 		std::cout << "Aerodynamic: DATCOM Aerodynamic" << std::endl;
 		aerodynamic = new DATCOMAerodymamic;
 		break;

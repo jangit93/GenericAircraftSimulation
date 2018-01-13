@@ -30,7 +30,7 @@ public:
 								AutopilotStruct & AutopilotData,
 								GuidanceStruct & GuidanceData);
 
-	void calcTrajectorythis(Float64 FlightTime,
+	void calcTrajectory(Float64 FlightTime,
 							AtmosphereStruct & AtmoData,
 							AerodynamicStruct & AeroData,
 							AirframeStruct & AirframeData,

@@ -41,7 +41,11 @@ struct AerodynamicStruct
 {
 	Float64 AoA;		
 	Float64 AoS;
-	Float64 VelAero;	
+	Float64 VelAero;
+	Float64 Mach;
+	Float64 CA;
+	Float64 CM;
+	Float64 CW;
 	Eigen::Vector3d AeroForces;
 	Eigen::Vector3d AeroMoments;
 };
@@ -77,6 +81,9 @@ struct ThrustStruct {
 */
 struct AirframeStruct {
 	Float64 StickPosition;	
+	Float64 Eta;
+	Float64 Xi;
+	Float64 Zeta;
 	Eigen::Matrix3d intertiaTensor;
 	Eigen::Vector3d accTransBody;
 	Eigen::Vector3d accRotBody;
@@ -84,6 +91,10 @@ struct AirframeStruct {
 	Eigen::Vector3d velBody;
 	Eigen::Vector3d rotRatesBody;
 	Eigen::Vector3d Eulerdot;
+	Eigen::Vector3d velNED;
+	Eigen::Matrix3d matNEDToWind;
+	Eigen::Matrix3d matNEDToBody;
+	Eigen::Matrix3d matBodyToNED;
 
 };
 

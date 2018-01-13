@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['selectaerodynamictype',['selectAerodynamicType',['../group___aerodynamic.html#a9aa3397e8b1d91ed237146a57bbe6bcf',1,'Aerodynamics']]],
-  ['selectenginetype',['selectEngineType',['../group___engine.html#ac33371d6fff86c0c8e14495f10046d9a',1,'Engine']]]
+  ['linearinterpolation',['LinearInterpolation',['../class_linear_interpolation.html#aaae2ec77e7767bb5fc7ca34a6e1197f1',1,'LinearInterpolation']]],
+  ['linearinterpolation1d',['linearInterpolation1D',['../class_linear_interpolation.html#a76b750166902dedda7e44ed0b8170094',1,'LinearInterpolation']]],
+  ['linearinterpolation2d',['linearInterpolation2D',['../class_linear_interpolation.html#a6b143368c20db0d2cda905a86391f83f',1,'LinearInterpolation']]]
 ];

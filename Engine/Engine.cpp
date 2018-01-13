@@ -2,7 +2,7 @@
 
 Engine::Engine()
 {
-	int a = 2;
+	int a = 1;
 	selectEngineType(a);
 }
 
@@ -15,9 +15,6 @@ void Engine::selectEngineType(int type)
 	switch (type)
 	{
 	case 1:
-		Thrust = new BaseThrust; 
-		break;
-	case 2:
 		std::cout << "Thrust:" << "Analytical Thrust" << std::endl;
 		Thrust = new ThrustAnalytical;
 		break;

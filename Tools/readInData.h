@@ -1,20 +1,11 @@
-//////////////////////////////////////////////////////////////////////////////////////////
-//
-// class name:			readInTables
-//
-// short description:	class which reads in tables from text files
-//
-// Date:				22.10.2017
-//
-// Author:				Jan Olucak
-//
-// external sources:	-eigen library for Matrix operations
-//						-C++ -Das umfassendes Handbuch,Rheinwerk Computing,
-//						 Juergen Wolf
-//
-// revision:			1.0
-//
-//////////////////////////////////////////////////////////////////////////////////////////
+/** @ingroup	Tools Tools
+*	@author		Jan Olucak
+*	@date		25.11.2017
+*	@version	1.0
+*
+*	Read in data provides several methods to read in parameters from specific files. 
+*  @{
+*/
 #ifndef READINDATA_H
 #define READINDATA_H
 
@@ -37,25 +28,40 @@ typedef double Float64;
 class readInData
 {
 public:
-	//////////////////////////////////////////////////////////////////
-	// Base constructor
-	/////////////////////////////////////////////////////////////////
+	/**
+	* \brief constructor
+	*/
 	readInData();
 
-	//////////////////////////////////////////////////////////////////
-	// destructor
-	/////////////////////////////////////////////////////////////////
+	/**
+	* \brief destructor
+	*/
 	~readInData();
 
-	//////////////////////////////////////////////////////////////////
-	//  function which reads in data and returns matrix
-	/////////////////////////////////////////////////////////////////
-	Float64 readInParameter(std::string CodeWord, std::string Filename);
+	/**
+	* \brief read in a specific value from a file
+	* @param CodeWord specific name of a parameter 
+	* @param Filename Name of specific file
+	*/
+	Float64 readInParameter(std::string CodeWord, 
+							std::string Filename);
 
+	/**
+	* \brief read in tables from input file
+	* @param Filename Name of specific file
+	*/
 	 MatrixXd readInTable(std::string FileName);
 
+	 /**
+	 * \brief read in vector from input file
+	 * @param Filename Name of specific file
+	 */
 	VectorXd readInVector(std::string FileName);
 
+	/**
+	* \brief defines a relative path directory of input file
+	* @param Pathname relative path of data file directory
+	*/
 	void setPath(std::string Pathname);
 
 private:

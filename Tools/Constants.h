@@ -1,3 +1,12 @@
+/** @ingroup	Tools Tools
+*	@author		Jan Olucak
+*	@date		25.11.2017
+*	@version	1.0
+*
+*	Provides physical and mathematical constants
+*  @{
+*/
+
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 

@@ -4,4 +4,4 @@ clear
 close all 
 clc
 
-plotAtmosphereData();
+

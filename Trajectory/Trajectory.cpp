@@ -2,7 +2,7 @@
 
 Trajectory::Trajectory()
 {
-	int a = 2;
+	int a = 1;
 	selectTrajectory(a);
 
 }
@@ -16,13 +16,14 @@ void Trajectory::selectTrajectory(int type)
 	switch (type)
 	{
 	case 1:
-		std::cout << "Trajectory: Base Trajectory" << std::endl;
-		traj = new BaseTrajectory;
-		break;
-	case 2:
 		std::cout << "Trajectory: Trajectory 3Dof" << std::endl;
 		traj = new Trajectory3Dof;
 		break;
+
+	case 2:
+		std::cout << "Trajectory: Trajectory 6Dof" << std::endl;
+		break;
+
 	}
 }
 
@@ -41,8 +42,8 @@ void Trajectory::updateTrajectory(Float64 FlightTime,
 						   AeroData, 
 						   AirframeData, 
 						   ThrustData,
-							AutopilotData,
-							GuidanceData);
+						   AutopilotData,
+						   GuidanceData);
 }
 
 void Trajectory::initTrajectory(AerodynamicStruct & AeroData, 
