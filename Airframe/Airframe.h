@@ -13,6 +13,7 @@
 #include"DataCloud.h"
 #include"readInData.h"
 #include"Constants.h"
+#include<Eigen/Dense>
 
 
 class Airframe

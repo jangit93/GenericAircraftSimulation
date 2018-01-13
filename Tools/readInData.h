@@ -15,7 +15,8 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
-#include <C:\Users\janol\Desktop\Studium\Master_Luft und Raumfahrttechnik\2.Fachsemester\Effizient Programmieren\Programierprojekt\GenericFlightSimulation\EIGENDIR\Eigen\dense>
+#include<Eigen/Dense>
+//#include <C:\Users\janol\Desktop\Studium\Master_Luft und Raumfahrttechnik\2.Fachsemester\Effizient Programmieren\Programierprojekt\GenericFlightSimulation\EIGENDIR\Eigen\dense>
 using Eigen::MatrixXd;
 using Eigen::Vector3f;
 using Eigen::MatrixX2f;

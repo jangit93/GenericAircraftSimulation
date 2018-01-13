@@ -11,7 +11,7 @@
 #define LINEARINTERPOLATION_H
 
 #include <vector>
-#include"../EIGENDIR/Eigen/Dense"
+#include<Eigen/Dense>
 #include<math.h>
 #include<algorithm>
 

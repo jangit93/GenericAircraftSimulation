@@ -16,7 +16,7 @@
 #include"DataCloud.h"
 #include"readInData.h"
 #include"IndependetDataTypes.h"
-#include"../EIGENDIR/Eigen/Dense"
+#include<Eigen/Dense>
 
 
 class BaseThrust {

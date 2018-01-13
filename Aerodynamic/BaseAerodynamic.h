@@ -17,7 +17,7 @@
 #include<iostream>
 #include"DataCloud.h"
 #include"IndependetDataTypes.h"
-#include"../EIGENDIR/Eigen/Dense"
+#include<Eigen/Dense>
 
 class BaseAerodynamic {
 
