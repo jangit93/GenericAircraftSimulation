@@ -1,0 +1,134 @@
+/*
+* Copyright (C) 2013   Christopher C. Hulbert
+*
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions are met:
+*
+*    1. Redistributions of source code must retain the above copyright notice,
+*       this list of conditions and the following disclaimer.
+*
+*    2. Redistributions in binary form must reproduce the above copyright
+*       notice, this list of conditions and the following disclaimer in the
+*       documentation and/or other materials provided with the distribution.
+*
+* THIS SOFTWARE IS PROVIDED BY CHRISTOPHER C. HULBERT ``AS IS'' AND ANY
+* EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+* WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+* DISCLAIMED. IN NO EVENT SHALL CHRISTOPHER C. HULBERT OR CONTRIBUTORS BE
+* LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+* SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+* CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+* ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*/
+#include<iostream>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+#include "getopt.h"
+#include "matio.h"
+#include<algorithm>
+#include<eigen\dense>
+
+#include<vector>
+
+
+int main(int argc, char *argv[])
+{
+	const char *filename = "Autopilot.mat";
+	int   err = EXIT_SUCCESS;
+	mat_t    *mat;
+	matvar_t *matvar, *stru, *field;
+	size_t ing_index = 0;
+	const char *ing_fieldname = "u_bar";
+	int read_err;
+
+	Eigen::MatrixXd matrix;
+	Eigen::VectorXd vector;
+
+
+	// Öffnen des mat-files
+	mat = Mat_Open(filename, MAT_ACC_RDONLY);
+	if (NULL == mat) {
+		fprintf(stderr, "Error opening a.mat\n");
+		return EXIT_FAILURE;
+	}
+	// Informationen über File
+	matvar = Mat_VarReadInfo(mat, "AutpilotData");
+	if (NULL == matvar) {
+		fprintf(stderr, "Error reading 'AutpilotData' variable information\n");
+		err = EXIT_FAILURE;
+	}
+	else {
+		stru = Mat_VarGetStructsLinear(matvar, 0, 0, 9, 0); // liest gesamte Structure ein
+		if (NULL == stru) {
+			fprintf(stderr, "Error getting 'ing{%lu}'\n", ing_index);
+			err = EXIT_FAILURE;
+		}
+		else if (MAT_C_STRUCT != stru->class_type) {
+			fprintf(stderr, "Variable 'ing{%lu}' is not a struct-arrayn\n", ing_index);
+			err = EXIT_FAILURE;
+		}
+		else {
+			field = Mat_VarGetStructFieldByName(stru, ing_fieldname, 0); // suche nach bestimmten Feld
+			if (NULL == stru) {
+				fprintf(stderr, "Error getting 'ing{%lu}.%s'\n", ing_index, ing_fieldname);
+				err = EXIT_FAILURE;
+			}
+			else {
+				read_err = Mat_VarReadDataAll(mat, field); // liest
+				if (read_err) {
+					fprintf(stderr, "Error reading data for 'ing{%lu}.%s'\n", ing_index, ing_fieldname);
+					err = EXIT_FAILURE;
+				}
+				else {
+					//Mat_VarPrint(field, 1);
+					
+					if (MAT_T_DOUBLE == field->data_type) {
+					 field->dims;
+						unsigned xSize = field->nbytes / field->data_size;
+						const double *xData = static_cast<const double*>(field->data);
+						size_t * dim = static_cast<size_t*>(field->dims);
+						std::cout << dim[0] << "x"  << dim[1]<< std::endl;
+						if (dim[0] > 1 && dim[1] > 1)
+						{
+							matrix.resize(dim[0], dim[1]);
+							for (int i = 0; i < dim[0]; ++i) {
+								for (int ii = 0; ii < dim[1]; ii++) {
+									matrix(ii, i) = xData[i*dim[1] + ii];
+								}
+
+							}
+							std::cout << matrix << std::endl;
+						}
+						else {
+							vector.resize(std::max(dim[0],dim[1]));
+							for (int i = 0; i < std::max(dim[0], dim[1]); ++i) {
+									vector(i) = xData[i];
+							}
+							std::cout << vector << std::endl;
+						}
+					
+					}
+				}
+			}
+		}
+
+		Mat_VarFree(matvar);
+
+		
+	}
+	Mat_Close(mat);
+
+	
+
+
+
+	
+}

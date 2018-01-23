@@ -39,6 +39,7 @@ namespace UnitTest1
 		TEST_METHOD(readInTable_test)
 		{
 			readInData test;
+			// Test Matrix
 			MatrixXd m(3, 3);
 			m(0, 0) = -0.723;
 			m(0, 1) = -0.727;
