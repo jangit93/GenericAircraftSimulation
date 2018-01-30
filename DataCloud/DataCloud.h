@@ -187,5 +187,20 @@ struct GuidanceStruct
 	Float64 Phi_com;
     Float64 Beta_com;
 };
+
+struct IMUStruct
+{
+	Eigen::Vector3d realTransAcc;
+	Eigen::Vector3d realTRotAcc;
+};
+
+struct NavigationStruct
+{
+	Eigen::Vector3d intVelocity;
+	Eigen::Vector3d intPOS;
+	Eigen::Vector3d realVelocity;
+	Eigen::Vector3d realPOS;
+};
+
 /**@}*/	
 #endif	DATACLOUD_H

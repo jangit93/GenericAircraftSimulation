@@ -5,6 +5,8 @@
 #include"MatFileReader.h"
 #include"Guidance.h"
 #include"Transformation.h"
+#include"GPS.h"
+#include"IMU.h"
 #include<iostream>
 
 void AtmosphereTest()
@@ -236,8 +238,20 @@ int main()
 	//AtmosphereTest();
 
 	*/
-	AerodynamicTest();
+	//AerodynamicTest();
 	//GuidanceTest();
+	AirframeStruct AirframeData;
+	NavigationStruct NavData;
+	IMUStruct IMUData;
+
+	IMU imutest;
+	imutest.initIMU();
+	imutest.updateIMU(0,AirframeData,IMUData);
+
+	GPS gpstest;
+	gpstest.initGPS();
+	gpstest.updateGPS(0,NavData);
+	
 
 	system("pause");
 }
