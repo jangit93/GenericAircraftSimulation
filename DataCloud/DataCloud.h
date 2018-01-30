@@ -46,8 +46,17 @@ struct AerodynamicStruct
 	Float64 CA;
 	Float64 CM;
 	Float64 CW;
+	Float64 CZ;
+	Float64 CX;
+
+	//data needed for guidance
+	Float64 C_A0;
+	Float64 C_zdalpha;
+
 	Eigen::Vector3d AeroForces;
 	Eigen::Vector3d AeroMoments;
+
+	Float64 q_bar;
 };
 
 /**
@@ -126,12 +135,26 @@ struct AircraftStruct {
 	Float64  Z_CG;
 };
 
-struct AutopilotStruct {
+struct GainSchedulingStruct {
+	Float64 Alt;
+	Float64 Vel;
+	Eigen::VectorXd u_bar;
+	Eigen::VectorXd x_bar;
+	Eigen::VectorXd Kx_pitch;
+	Float64 Ke_pitch;
+	Float64 Kv_pitch;
+	Float64 Kx_Vel;
+	Float64 Ke_Vel;
+	Eigen::MatrixXd Kx_lat;
 };
+
 
 struct GuidanceStruct
 {
-
+	Float64 Velocity_com;
+	Float64	Theta_com;
+	Float64 Phi_com;
+    Float64 Beta_com;
 };
-/**@}*/
+/**@}*/	
 #endif	DATACLOUD_H

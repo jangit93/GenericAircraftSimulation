@@ -34,7 +34,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-//#include "getopt.h"
 #include"../matio/getopt/getopt.h"
 #include "../matio/src/matio.h"
 #include<algorithm>
@@ -52,9 +51,11 @@ public:
 
 	void setPath(const char Pathname);
 
-	std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> readMatFileStructure(const char *FieldName, const char *MatFileName);
+	std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> readMatFileStructure(const char *FieldName, int &start, int &stride, int &edge, int &copy_fields);
 
 	std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> readMatFileData(const char *FieldName);
+
+	matvar_t getMatFileInfo(const char *MatFileName);
 
 private:
 	char PathName;

@@ -24,16 +24,14 @@ void MatFileReader::setPath(const char Pathname)
 	PathName = Pathname;
 }
 
-
-std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> MatFileReader::readMatFileStructure(const char * FieldName, const char * MatFileName)
+std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> MatFileReader::readMatFileStructure(const char * FieldName, 
+																						 int & start, 
+																						 int & stride, 
+																						 int & edge, 
+																						 int & copy_fields)
 {
-	matvar = Mat_VarReadInfo(mat, MatFileName);
-	if (NULL == matvar) {
-		fprintf(stderr, "Error reading 'AutpilotData' variable information\n");
-		err = EXIT_FAILURE;
-	}
+	stru = Mat_VarGetStructsLinear(matvar, start, stride, edge, copy_fields); // liest gesamte Structure ein
 
-	stru = Mat_VarGetStructsLinear(matvar, 0, 0, 9, 0); // liest gesamte Structure ein
 	if (NULL == stru) {
 		fprintf(stderr, "Error getting 'ing{%lu}'\n", ing_index);
 		err = EXIT_FAILURE;
@@ -55,7 +53,7 @@ std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> MatFileReader::readMatFileS
 				err = EXIT_FAILURE;
 			}
 			else //Mat_VarPrint(field, 1);
-
+			{
 				if (MAT_T_DOUBLE == field->data_type) {
 					field->dims;
 					unsigned xSize = field->nbytes / field->data_size;
@@ -67,7 +65,7 @@ std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> MatFileReader::readMatFileS
 						matrix.resize(dim[0], dim[1]);
 						for (int i = 0; i < dim[0]; ++i) {
 							for (int ii = 0; ii < dim[1]; ii++) {
-								matrix(i, ii) = xData[ii*dim[1] + i];
+								matrix(i, ii) = xData[ii*dim[0] + i];
 							}
 
 						}
@@ -84,30 +82,32 @@ std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> MatFileReader::readMatFileS
 					}
 					return std::make_tuple(matrix, vector, value);
 				}
-
+			}
 		}
 	}
 }
+
+
+
 
 std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> MatFileReader::readMatFileData(const char * FieldName)
 {
 	matvar = Mat_VarRead(mat, FieldName);
 
-
+	//Mat_VarPrint(matvar, 1);
 	if (MAT_T_DOUBLE == matvar->data_type) {
 
 		unsigned xSize = matvar->nbytes / matvar->data_size;
 		const double *xData = static_cast<const double*>(matvar->data);
 		size_t * dim = static_cast<size_t*>(matvar->dims);
-		std::cout << dim[0] << "x" << dim[1] << std::endl;
+		//std::cout << dim[0] << "x" << dim[1] << std::endl;
 		if (dim[0] > 1 && dim[1] > 1)
 		{
 			matrix.resize(dim[0], dim[1]);
 			for (int i = 0; i < dim[0]; ++i) {
 				for (int ii = 0; ii < dim[1]; ii++) {
-					matrix(i, ii) = xData[ii*dim[1] + i];
+					matrix(i, ii) = xData[ii*dim[0] + i];
 				}
-
 			}
 
 		}
@@ -123,3 +123,16 @@ std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> MatFileReader::readMatFileD
 		return std::make_tuple(matrix, vector, value);
 	}
 }
+
+matvar_t MatFileReader::getMatFileInfo(const char * MatFileName)
+{
+
+	matvar = Mat_VarReadInfo(mat, MatFileName);
+	if (NULL == matvar) {
+		fprintf(stderr, "Error reading 'AutpilotData' variable information\n");
+		err = EXIT_FAILURE;
+	}
+
+	return *matvar;
+}
+

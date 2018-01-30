@@ -14,6 +14,7 @@
 #include"BaseAerodynamic.h"
 #include"readInData.h"
 #include"LinearInterpolation.h"
+#include"MatFileReader.h"
 #include<math.h>
 
 #ifndef DATCOMAERODYNAMIC_H
@@ -61,7 +62,6 @@ private:
 	
 	//derivatives lift table
 	Eigen::MatrixXd CA;
-	Eigen::MatrixXd CAalpha;
 	Eigen::MatrixXd CAeta;
 	Eigen::MatrixXd CAq;
 
@@ -69,17 +69,23 @@ private:
 	Eigen::MatrixXd CW;
 	Eigen::MatrixXd CWeta;
 
+	Eigen::MatrixXd CQ;
+	Eigen::MatrixXd CQp;
+	Float64			CQzeta;
+
 	//derivatives pitching moment table
 	Eigen::MatrixXd CM;
 	Eigen::MatrixXd CMalpha;
 	Eigen::MatrixXd CMeta;
 	Eigen::VectorXd CMq;
 
+
 	//rolling moment table
 	Eigen::MatrixXd CN;
 	Eigen::MatrixXd CNp;
 	Eigen::MatrixXd CNr;
 	Eigen::MatrixXd CNxi;
+	Float64 CNzeta;
 
 	//yawing moment table
 	Eigen::MatrixXd CL;
@@ -87,6 +93,7 @@ private:
 	Eigen::MatrixXd CLq;
 	Eigen::MatrixXd CLr;
 	Eigen::MatrixXd CLxi;
+	Float64 CLzeta;
 
 	//vectors for interpolation 
 	Eigen::VectorXd AoA;
@@ -101,20 +108,23 @@ private:
     Float64 c_w; 
 	Float64 c_weta;
 
+	Float64 c_y;
+	Float64 c_yp;
+	Float64 c_yzeta;
+	Float64 c_yxi;
+
     Float64 c_m; 	
     Float64 c_meta; 
     Float64 c_mq; 	
     Float64 c_A; 	
     Float64 c_aq; 	
     
-    //Float64 CQ = 
-    //Float64 CQy =
     
     Float64 c_l; 	
     Float64 c_lxi; 	
     Float64 c_lp; 	
     Float64 c_lr; 	
-    //Float64 Clzet
+	Float64 c_lzeta;
     
     Float64 c_n; 	
     Float64 c_nxi; 	
@@ -132,6 +142,12 @@ private:
     
     Eigen::Vector3d  velBody;
 	Eigen::Vector3d relVelNED;
+
+	Eigen::MatrixXd CAalpha;
+	Float64 c_zdalpha;
+	Float64 ca_alpha;
+	Float64 ca_0;
+
 
     Float64 Alpha; 			
     Float64 Beta; 	
