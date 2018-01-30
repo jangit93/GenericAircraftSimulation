@@ -15,7 +15,7 @@ void StateController::initStateController()
 	MatFileData = readAutopilotData.getMatFileInfo("AutpilotData");
 	Fields = MatFileData.dims[0] * MatFileData.dims[1];
 
-	GainSchedulingStruct * SchedulingPara = new GainSchedulingStruct[Fields];
+	AutopilotStruct * SchedulingPara = new AutopilotStruct[Fields];
 
 	start, stride, edge, copy_field = 0;
 	edge = 9;

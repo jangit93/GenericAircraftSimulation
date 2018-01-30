@@ -35,7 +35,16 @@ struct AtmosphereStruct
 * @param  VelAero		Velocity in Aerodynamic coordinate system
 * @param  AeroForces	Vector of all Aerodynamic forces
 * @param  AeroMoments	Vector of all Aerodynamic Moments
-*
+* @param  AoS			Angle of Sidesip
+* @param  Mach			Mach number
+* @param  CA			lift coefficient
+* @param  CW			drag coefficient
+* @param  CM			pitching-moment coefficient
+* @param  CX			body fixed coefficient x-direction
+* @param  CZ			body fixed coefficient z-direction
+* @param  C_A0			zero lift coefficient
+* @param  C_zdalpha		derivative of body fixed coefficient in z-direction
+* @param  q_bar			dynamic pressure
 */
 struct AerodynamicStruct
 {
@@ -80,13 +89,17 @@ struct ThrustStruct {
 /**
 * \brief stores Airframe data
 * @param StickPosition	position of throttle
-* @param intertiaTensor
+* @param intertiaTensor intertia Tensor
 * @param accTransBody	vector of translational acceleration body fixed coordinate system
 * @param accRotBody		vector of rotational acceleration body fixed coordinate system
 * @param EulerAngles	vector of euler angles
 * @param velBody		vector of velocity in body fixed coordinate system
 * @param rotRatesBody	vecotr of body fixed rotational rates
 * @param Eulerdot		vecotr of derivatives of euler angles
+* @param velNED			velocity in North-East-Down coordinate system
+* @param matNEDToTraj	transformation matrix NED to trajectory system
+* @param matNEDToBody	transformation matrix NED to body system
+* @param matBodyToNED	transformation matrix Body to NED system
 */
 struct AirframeStruct {
 	Float64 StickPosition;	
@@ -101,7 +114,7 @@ struct AirframeStruct {
 	Eigen::Vector3d rotRatesBody;
 	Eigen::Vector3d Eulerdot;
 	Eigen::Vector3d velNED;
-	Eigen::Matrix3d matNEDToWind;
+	Eigen::Matrix3d matNEDToTraj;
 	Eigen::Matrix3d matNEDToBody;
 	Eigen::Matrix3d matBodyToNED;
 
@@ -134,8 +147,20 @@ struct AircraftStruct {
 	Float64  Y_CG;
 	Float64  Z_CG;
 };
-
-struct GainSchedulingStruct {
+/**
+* \brief stores parameters for gain scheduling
+* @param Alt	Altitude of operating point
+* @param Vel	Velocity of operating point
+* @param u_bar	control vector of operating point
+* @param x_bar 	state vector of operating point
+* @param Kx_pitch 	control parameters for longitudinal movement
+* @param Ke_pitch 	control parameters for longitudinal movement
+* @param Kv_pitch 	control parameters for longitudinal movement
+* @param Kx_Vel 	control parameters for longitudinal movement
+* @param Ke_Vel 	control parameters for longitudinal movement
+* @param Kx_lat 	control parameters for lateral movement
+*/
+struct AutopilotStruct {
 	Float64 Alt;
 	Float64 Vel;
 	Eigen::VectorXd u_bar;
@@ -148,7 +173,13 @@ struct GainSchedulingStruct {
 	Eigen::MatrixXd Kx_lat;
 };
 
-
+/**
+* \brief stores guidance parameters 
+* @param Velocity_com	commanded velocity
+* @param Theta_com		commanded pitch angle
+* @param Phi_com		commanded roll angle
+* @param Beta_com		command angle of sideslip
+*/
 struct GuidanceStruct
 {
 	Float64 Velocity_com;
