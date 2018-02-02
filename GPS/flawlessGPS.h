@@ -11,9 +11,9 @@ public:
 
 	~flawlessGPS();
 
-	void initializeGPS();
+	void initGPS();
 
-	void calcGPS(Float64 FlightTime, NavigationStruct &NavData);
+	void updateGPS(Float64 FlightTime, NavigationStruct &NavData);
 
 private:
 

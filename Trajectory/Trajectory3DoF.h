@@ -23,14 +23,14 @@ public:
 
 	~Trajectory3Dof();
 
-	void initializeTrajectory(AerodynamicStruct & AeroData,
+	void initTrajectory(AerodynamicStruct & AeroData,
 								AirframeStruct & AirframeData,
 								ThrustStruct & ThrustData,
 								AircraftStruct &AircraftData,
 								AutopilotStruct & AutopilotData,
 								GuidanceStruct & GuidanceData);
 
-	void calcTrajectory(Float64 FlightTime,
+	void updateTrajectory(Float64 FlightTime,
 							AtmosphereStruct & AtmoData,
 							AerodynamicStruct & AeroData,
 							AirframeStruct & AirframeData,

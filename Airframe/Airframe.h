@@ -46,7 +46,6 @@ public:
 	*/
 	void updateTranslational(AerodynamicStruct  &AeroData,
 							 ThrustStruct		&ThrustData,
-							  AircraftStruct	&AircraftData,
 							AirframeStruct &AirframeData);
 
 	/**
@@ -59,11 +58,11 @@ public:
 	*/
 	void updateRotational(AerodynamicStruct  &AeroData,
 							ThrustStruct		&ThrustData,
-							AircraftStruct	&AircraftData,
 							AirframeStruct &AirframeData);
 
 
 private:
+	Float64 mass;
 	readInData *readIn;
 	Eigen::Vector3d Vec_fg;
 	Eigen::Vector3d Vec_rotTensor;

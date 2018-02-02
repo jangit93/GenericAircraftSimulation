@@ -10,13 +10,10 @@ public:
 
 	~BaseGPS();
 
-	void initGPS();
+	virtual void initGPS();
 
-	virtual void initializeGPS();
+	virtual void updateGPS(Float64 Flighttime, NavigationStruct &NavData);
 
-	void updateGPS(Float64 Flighttime, NavigationStruct &NavData);
-
-	virtual void calcGPS(Float64 Flighttime, NavigationStruct &NavData);
 
 
 private:

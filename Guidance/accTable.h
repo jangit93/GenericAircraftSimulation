@@ -16,9 +16,9 @@ public:
 
 	~accTable();
 
-	void initializeGuidance();
+	void initGuidance();
 
-	void calcGuidance(Float64 FlightTime,
+	void updateGuidance(Float64 FlightTime,
 					  AerodynamicStruct &AeroData,
 					  ThrustStruct &ThrustData,
 					  AircraftStruct &AircraftData,

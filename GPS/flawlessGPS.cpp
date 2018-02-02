@@ -8,11 +8,11 @@ flawlessGPS::~flawlessGPS()
 {
 }
 
-void flawlessGPS::initializeGPS()
+void flawlessGPS::initGPS()
 {
 }
 
-void flawlessGPS::calcGPS(Float64 FlightTime, NavigationStruct & NavData)
+void flawlessGPS::updateGPS(Float64 FlightTime, NavigationStruct & NavData)
 {
 	NavData.realPOS = NavData.intPOS;
 	NavData.realVelocity = NavData.intVelocity;

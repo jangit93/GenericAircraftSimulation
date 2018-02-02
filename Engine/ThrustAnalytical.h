@@ -33,7 +33,7 @@ public:
 	/**
 	*  @brief read in Data from Engine.dat
 	*/
-	void initializeThrust(ThrustStruct & ThrustData,
+	void initThrust(ThrustStruct & ThrustData,
 						  AircraftStruct &AircraftData);
 
 	/**
@@ -44,7 +44,7 @@ public:
 	*	@param AirframeData	get current throttle stick position
 	*	@return current thrust data is stored in ThrustStruct
 	*/
-	void calcThrust(Float64 FlightTime,					
+	void updateThrust(Float64 FlightTime,					
 					AtmosphereStruct & AtmoData,		
 					AerodynamicStruct & AeroData,		
 					AirframeStruct & AirframeData,		

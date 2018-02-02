@@ -2,9 +2,9 @@
 
 Trajectory3Dof::Trajectory3Dof()
 {
-	engine = new Engine;
+	engine		 = new Engine;
 	aerodynamics = new Aerodynamics;
-	airframe = new Airframe;
+	airframe     = new Airframe;
 
 }
 
@@ -12,7 +12,7 @@ Trajectory3Dof::~Trajectory3Dof()
 {
 }
 
-void Trajectory3Dof::initializeTrajectory(AerodynamicStruct & AeroData,
+void Trajectory3Dof::initTrajectory(AerodynamicStruct & AeroData,
 										  AirframeStruct & AirframeData,
 										  ThrustStruct & ThrustData,
 										  AircraftStruct &AircraftData,
@@ -31,19 +31,29 @@ void Trajectory3Dof::initializeTrajectory(AerodynamicStruct & AeroData,
 	std::cout << "init 3Dof Trajectory" << std::endl;
 }
 
-void Trajectory3Dof::calcTrajectory(Float64 FlightTime,	
-										AtmosphereStruct & AtmoData, 
-										AerodynamicStruct & AeroData,
-										AirframeStruct & AirframeData, 
-										ThrustStruct & ThrustData,
-										AutopilotStruct & AutopilotData,
-										GuidanceStruct & GuidanceData)
+void Trajectory3Dof::updateTrajectory(Float64 FlightTime,
+	AtmosphereStruct & AtmoData,
+	AerodynamicStruct & AeroData,
+	AirframeStruct & AirframeData,
+	ThrustStruct & ThrustData,
+	AutopilotStruct & AutopilotData,
+	GuidanceStruct & GuidanceData)
 {
+
+
 	aerodynamics->updateAerodynamic(FlightTime,
 									AtmoData,
 									AeroData,
 									AirframeData,
 									ThrustData);
+
+	engine->updateEngine(FlightTime,
+						 AtmoData,
+						 AeroData,
+						 AirframeData,
+						 ThrustData);
+
+		airframe->updateTranslational(AeroData,
+									  ThrustData,
+									  AirframeData);
 }
-
-

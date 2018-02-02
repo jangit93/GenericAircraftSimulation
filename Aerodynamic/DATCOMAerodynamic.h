@@ -36,7 +36,7 @@ public:
 	/**
 	* @brief read in tables of derivatives
 	*/
-	void initializeAerodynamic(AerodynamicStruct & AeroData, 
+	void initAerodynamic(AerodynamicStruct & AeroData, 
 							   AircraftStruct & AircraftData);
 
 	/**
@@ -44,7 +44,7 @@ public:
 				and  a linear aerodynamic model calculates forces
 				and moments
 	*/
-	void calcAerodynamic(Float64 FlightTime,
+	void updateAerodynamic(Float64 FlightTime,
 						AtmosphereStruct & AtmoData,
 						AerodynamicStruct & AeroData,
 						AirframeStruct & AirframeData,

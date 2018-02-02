@@ -9,7 +9,7 @@ DATCOMAerodymamic::~DATCOMAerodymamic()
 {
 }
 
-void DATCOMAerodymamic::initializeAerodynamic(AerodynamicStruct & AeroData,
+void DATCOMAerodymamic::initAerodynamic(AerodynamicStruct & AeroData,
 											  AircraftStruct & AircraftData)
 {
 
@@ -60,7 +60,7 @@ void DATCOMAerodymamic::initializeAerodynamic(AerodynamicStruct & AeroData,
 
 }
 
-void DATCOMAerodymamic::calcAerodynamic(Float64 FlightTime,
+void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
 										AtmosphereStruct & AtmoData,
 										AerodynamicStruct & AeroData,
 										AirframeStruct & AirframeData,

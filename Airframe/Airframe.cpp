@@ -12,7 +12,7 @@ Airframe::~Airframe()
 void Airframe::initAirframe(AircraftStruct & AircraftData,
 							AirframeStruct & AirframeData)
 {
-
+	mass = readIn->readInParameter("mass", "Aircraft.txt");
 	AircraftData.mass 		= readIn->readInParameter("mass", "Aircraft.txt");
 	AircraftData.wingarea 	= readIn->readInParameter("wing_area", "Aircraft.txt");
 	AircraftData.wingspan 	= readIn->readInParameter("wing_span", "Aircraft.txt");
@@ -36,8 +36,7 @@ void Airframe::initAirframe(AircraftStruct & AircraftData,
 }
 
 void Airframe::updateTranslational(AerodynamicStruct & AeroData, 
-								   ThrustStruct & ThrustData, 
-									AircraftStruct & AircraftData, 
+								   ThrustStruct & ThrustData,
 									AirframeStruct & AirframeData)
 {
 	phi		= AirframeData.EulerAngles(0);
@@ -52,12 +51,11 @@ void Airframe::updateTranslational(AerodynamicStruct & AeroData,
 			sin(phi)*cos(theta);
 			cos(phi)*cos(theta);
 
-	AirframeData.accTransBody = (TotalForce / AircraftData.mass) + Vec_fg  * GRAVITATIONAL_CONSTANT;
+	AirframeData.accTransBody = (TotalForce / mass) + Vec_fg  * GRAVITATIONAL_CONSTANT;
 }
 
 void Airframe::updateRotational(AerodynamicStruct & AeroData, 
-								ThrustStruct & ThrustData, 
-								AircraftStruct & AircraftData,
+								ThrustStruct & ThrustData,
 								AirframeStruct &AirframeData)
 {
 	p = AirframeData.rotRatesBody(0);

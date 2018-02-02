@@ -7,6 +7,7 @@
 #include"Transformation.h"
 #include"GPS.h"
 #include"IMU.h"
+#include"Navigation.h"
 #include<iostream>
 
 void AtmosphereTest()
@@ -238,11 +239,12 @@ int main()
 	//AtmosphereTest();
 
 	*/
-	//AerodynamicTest();
+	AerodynamicTest();
 	//GuidanceTest();
 	AirframeStruct AirframeData;
 	NavigationStruct NavData;
 	IMUStruct IMUData;
+	GuidanceStruct GuidanceData;
 
 	IMU imutest;
 	imutest.initIMU();
@@ -252,6 +254,9 @@ int main()
 	gpstest.initGPS();
 	gpstest.updateGPS(0,NavData);
 	
+	Navigation test;
+	test.initNavigation();
+	test.updateNavigation(0, NavData, GuidanceData);
 
 	system("pause");
 }

@@ -11,15 +11,10 @@ public:
 
 	~BaseIMU();
 
-	void initIMU();
+    virtual void initIMU();
 
-	virtual void initializeIMU();
+	virtual void updateIMU(Float64 Flighttime, AirframeStruct & AirframeData,IMUStruct &IMUData);
 
-	void updateIMU(Float64 Flighttime, AirframeStruct & AirframeData,IMUStruct &IMUData);
-
-	virtual void calcIMU(Float64 Flighttime, AirframeStruct & AirframeData, IMUStruct &IMUData);
-
-	
 
 
 private:

@@ -8,7 +8,7 @@ accTable::~accTable()
 {
 }
 
-void accTable::initializeGuidance()
+void accTable::initGuidance()
 {
 	MatFileReader readAccTable("../accTable.mat");
 
@@ -28,7 +28,7 @@ void accTable::initializeGuidance()
 
 }
 
-void accTable::calcGuidance(Float64 FlightTime, 
+void accTable::updateGuidance(Float64 FlightTime, 
 							AerodynamicStruct & AeroData, 
 							ThrustStruct & ThrustData, 
 							AircraftStruct & AircraftData, 

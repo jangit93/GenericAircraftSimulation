@@ -11,9 +11,9 @@ public:
 
 	~flawlessIMU();
 
-	void initializeIMU();
+	void initIMU();
 
-	void calcIMU(Float64 FlightTime, AirframeStruct & AirframeData, IMUStruct &IMUData);
+	void updateIMU(Float64 FlightTime, AirframeStruct & AirframeData, IMUStruct &IMUData);
 
 private:
 

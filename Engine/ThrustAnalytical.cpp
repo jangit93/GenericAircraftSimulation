@@ -12,7 +12,7 @@ ThrustAnalytical::~ThrustAnalytical()
 }
 
 /// data is read in from Engine.dat and stored in private variables
-void ThrustAnalytical::initializeThrust(ThrustStruct & ThrustData,
+void ThrustAnalytical::initThrust(ThrustStruct & ThrustData,
 										AircraftStruct &AircraftData)
 {
 	
@@ -32,7 +32,7 @@ void ThrustAnalytical::initializeThrust(ThrustStruct & ThrustData,
 }
 
 /// calculation of thrust forces and moments
-void ThrustAnalytical::calcThrust(Float64 FlightTime,
+void ThrustAnalytical::updateThrust(Float64 FlightTime,
 								  AtmosphereStruct & AtmoData,
 								  AerodynamicStruct & AeroData,
 								  AirframeStruct & AirframeData,
