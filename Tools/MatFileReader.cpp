@@ -24,7 +24,7 @@ void MatFileReader::setPath(const char Pathname)
 	PathName = Pathname;
 }
 
-std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> MatFileReader::readMatFileStructure(const char * FieldName, 
+std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Float64,Eigen::RowVectorXd> MatFileReader::readMatFileStructure(const char * FieldName, 
 																						 int & start, 
 																						 int & stride, 
 																						 int & edge, 
@@ -80,7 +80,7 @@ std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> MatFileReader::readMatFileS
 							vector(i) = xData[i];
 						}
 					}
-					return std::make_tuple(matrix, vector, value);
+					return std::make_tuple(matrix, vector, value,row_vector);
 				}
 			}
 		}
@@ -90,7 +90,7 @@ std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> MatFileReader::readMatFileS
 
 
 
-std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> MatFileReader::readMatFileData(const char * FieldName)
+std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Float64, Eigen::RowVectorXd> MatFileReader::readMatFileData(const char * FieldName)
 {
 	matvar = Mat_VarRead(mat, FieldName);
 
@@ -120,7 +120,7 @@ std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> MatFileReader::readMatFileD
 				vector(i) = xData[i];
 			}
 		}
-		return std::make_tuple(matrix, vector, value);
+		return std::make_tuple(matrix, vector, value,row_vector);
 	}
 }
 

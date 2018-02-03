@@ -12,7 +12,7 @@ void StateController::initStateController()
 {
 	MatFileReader readAutopilotData("../Autopilot.mat");
 
-	MatFileData = readAutopilotData.getMatFileInfo("AutpilotData");
+	MatFileData = readAutopilotData.getMatFileInfo("AutopilotData");
 	Fields = MatFileData.dims[0] * MatFileData.dims[1];
 
 	AutopilotStruct * SchedulingPara = new AutopilotStruct[Fields];
@@ -31,7 +31,7 @@ void StateController::initStateController()
 		SchedulingPara[start].Kx_Vel	= std::get<2>(readAutopilotData.readMatFileStructure("Kx_Vel", start, stride, edge, copy_field));
 		SchedulingPara[start].Ke_Vel	= std::get<2>(readAutopilotData.readMatFileStructure("Ke_Vel", start, stride, edge, copy_field));
 		SchedulingPara[start].Kx_lat	= std::get<0>(readAutopilotData.readMatFileStructure("Kx_lat", start, stride, edge, copy_field));
-
+		SchedulingPara[start].Ke_lat    = std::get<0>(readAutopilotData.readMatFileStructure("Ke_lat", start, stride, edge, copy_field));
 
 		std::cout << "Alt" << "\t" << SchedulingPara[start].Alt << "\n" << std::endl;
 		std::cout << "Vel" << "\t" << SchedulingPara[start].Vel << "\n" << std::endl;

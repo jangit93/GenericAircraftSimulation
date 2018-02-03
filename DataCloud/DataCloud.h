@@ -102,6 +102,8 @@ struct ThrustStruct {
 * @param matBodyToNED	transformation matrix Body to NED system
 */
 struct AirframeStruct {
+	Float64 Gamma;
+	Float64 Chi;
 	Float64 StickPosition;	
 	Float64 Eta;
 	Float64 Xi;
@@ -109,11 +111,14 @@ struct AirframeStruct {
 	Eigen::Matrix3d intertiaTensor;
 	Eigen::Vector3d accTransBody;
 	Eigen::Vector3d accRotBody;
+	Eigen::Vector3d accTransNED;
+	Eigen::Vector3d accRotNED;
 	Eigen::Vector3d EulerAngles;
 	Eigen::Vector3d velBody;
 	Eigen::Vector3d rotRatesBody;
 	Eigen::Vector3d Eulerdot;
 	Eigen::Vector3d velNED;
+	Eigen::Vector3d posNED;
 	Eigen::Matrix3d matNEDToTraj;
 	Eigen::Matrix3d matNEDToBody;
 	Eigen::Matrix3d matBodyToNED;
@@ -171,6 +176,7 @@ struct AutopilotStruct {
 	Float64 Kx_Vel;
 	Float64 Ke_Vel;
 	Eigen::MatrixXd Kx_lat;
+	Eigen::MatrixXd Ke_lat;
 };
 
 /**
@@ -200,6 +206,11 @@ struct NavigationStruct
 	Eigen::Vector3d intPOS;
 	Eigen::Vector3d realVelocity;
 	Eigen::Vector3d realPOS;
+};
+
+struct ActuatorStruct
+{
+
 };
 
 /**@}*/	

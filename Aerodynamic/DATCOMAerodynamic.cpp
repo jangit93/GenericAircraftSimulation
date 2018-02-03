@@ -58,6 +58,7 @@ void DATCOMAerodymamic::initAerodynamic(AerodynamicStruct & AeroData,
 	S = AircraftData.wingarea;
 	l_nu = AircraftData.MAC;
 
+
 }
 
 void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,

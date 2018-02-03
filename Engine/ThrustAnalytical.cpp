@@ -15,6 +15,8 @@ ThrustAnalytical::~ThrustAnalytical()
 void ThrustAnalytical::initThrust(ThrustStruct & ThrustData,
 										AircraftStruct &AircraftData)
 {
+	ThrustData.ThrustForce.setZero();
+	ThrustData.ThrustMoments.setZero();
 	
 	ThrustForce.setZero();
 	ThrustMoment.setZero();
@@ -38,7 +40,20 @@ void ThrustAnalytical::updateThrust(Float64 FlightTime,
 								  AirframeStruct & AirframeData,
 								  ThrustStruct & ThrustData)
 {
-	std::cout << "Analytische Schubberechnung" << std::endl;
+
+	                                              
+	Float64	T = AirframeData.StickPosition* maxThrust* (AtmoData.rho / RHO_0)* (1 + Kt * AeroData.Mach);
+
+	
+		ThrustData.ThrustForce(0) = T * cos(incidenceAngle);
+		ThrustData.ThrustForce(1) = 0;
+		ThrustData.ThrustForce(2) = T * sin(incidenceAngle);
+
+	
+		ThrustData.ThrustMoments(0) = T * sin(incidenceAngle) * EnginePos(1);
+		ThrustData.ThrustMoments(0) = T * (cos(incidenceAngle) * EnginePos(2) - sin(incidenceAngle)*EnginePos(0));
+		ThrustData.ThrustMoments(0) = -T * cos(incidenceAngle) * EnginePos(1);
+
 }
 
 

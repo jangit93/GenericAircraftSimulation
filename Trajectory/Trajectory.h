@@ -12,6 +12,7 @@
 
 #include"BaseTrajectory.h"
 #include"Trajectory3DoF.h"
+#include"Trajectory6DoF.h"
 
 class Trajectory {
 
@@ -40,7 +41,7 @@ public:
 
 private:
 	BaseTrajectory *traj;
-
+	
 };
 
 #endif

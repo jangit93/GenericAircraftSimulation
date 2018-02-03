@@ -39,7 +39,7 @@
 #include<algorithm>
 #include<eigen\dense>
 #include<tuple>
-
+#include"IndependetDataTypes.h"
 #include<vector>
 
 class MatFileReader
@@ -51,17 +51,18 @@ public:
 
 	void setPath(const char Pathname);
 
-	std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> readMatFileStructure(const char *FieldName, int &start, int &stride, int &edge, int &copy_fields);
+	std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Float64,Eigen::RowVectorXd> readMatFileStructure(const char *FieldName, int &start, int &stride, int &edge, int &copy_fields);
 
-	std::tuple<Eigen::MatrixXd, Eigen::VectorXd, double> readMatFileData(const char *FieldName);
+	std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Float64, Eigen::RowVectorXd> readMatFileData(const char *FieldName);
 
 	matvar_t getMatFileInfo(const char *MatFileName);
 
 private:
 	char PathName;
-	double value;
+	Float64 value;
 	Eigen::MatrixXd matrix;
 	Eigen::VectorXd vector;
+	Eigen::RowVectorXd row_vector;
 	int   err;
 	mat_t    *mat;
 	matvar_t *matvar, *stru, *field;

@@ -183,29 +183,19 @@ void GuidanceTest()
 int main()
 {
 	std::cout << "----------Module Test----------" << std::endl;
-	/*
-	struct AutopilotData {
-		double Alt;
-		double Vel;
-		Eigen::VectorXd u_bar;
-		Eigen::VectorXd x_bar;
-		Eigen::VectorXd Kx_pitch;
-		double Ke_pitch;
-		double Kv_pitch;
-		double Kx_Vel;
-		double Ke_Vel;
-		Eigen::MatrixXd Kx_lat;
-	};
+	AutopilotStruct AutopilotData;
+	
 
 	
 	MatFileReader test("../Autopilot.mat");
 
-	matvar_t MatFileData = test.getMatFileInfo("AutpilotData");
+	matvar_t MatFileData = test.getMatFileInfo("AutopilotData");
 	int Fields = MatFileData.dims[0] * MatFileData.dims[1];
 
-	AutopilotData * Autopilotdata = new AutopilotData[Fields];
+	AutopilotStruct * Autopilotdata = new AutopilotStruct[Fields];
 
 	int start, stride, edge, copy_field = 0;
+	stride = 0;
 	edge = 9;
 	
 	for (start = 0; start < Fields; start++) {
@@ -218,27 +208,15 @@ int main()
 	Autopilotdata[start].Kv_pitch	= std::get<2>(test.readMatFileStructure("Kv_pitch", start, stride, edge, copy_field));
 	Autopilotdata[start].Kx_Vel		= std::get<2>(test.readMatFileStructure("Kx_Vel", start, stride, edge, copy_field));
 	Autopilotdata[start].Ke_Vel		= std::get<2>(test.readMatFileStructure("Ke_Vel", start, stride, edge, copy_field));
-	Autopilotdata[start].Kx_lat		= std::get<0>(test.readMatFileStructure("Kx_lat", start, stride, edge, copy_field)) ;				  
+	Autopilotdata[start].Kx_lat		= std::get<0>(test.readMatFileStructure("Kx_lat", start, stride, edge, copy_field)) ;	
+	Autopilotdata[start].Ke_lat		= std::get<0>(test.readMatFileStructure("Ke_lat", start, stride, edge, copy_field)) ;
 	}
 
-	std::cout << "Alt" << "\t" << Autopilotdata[0].Alt				 << std::endl;
-	std::cout << "Vel" << "\t" << Autopilotdata[0].Vel				 << std::endl;
-	std::cout << "x_bar" << "\t" << Autopilotdata[0].x_bar.transpose()			 << std::endl;
-	std::cout << "u_bar" << "\t" << Autopilotdata[0].u_bar.transpose() << std::endl;
-	std::cout << "Kx_pitch" << "\t" << Autopilotdata[0].Kx_pitch	 << std::endl;
-	std::cout << "Ke_pitch" << "\t" << Autopilotdata[0].Ke_pitch	 << std::endl;
-	std::cout << "Kv_pitch" << "\t" << Autopilotdata[0].Kv_pitch	 << std::endl;
-	std::cout << "Kx_Vel" << "\t" << Autopilotdata[0].Kx_Vel		 << std::endl;
-	std::cout << "Ke_Vel" << "\t" << Autopilotdata[0].Ke_Vel		 << std::endl;
-	std::cout << "Kx_lat" << std::endl << Autopilotdata[0].Kx_lat		 << std::endl;
-	
 
-	MatFileReader test2("../ADM.mat");
-	std::cout << std::get<0>(test2.readMatFileData("C_A")) << std::endl;
 	
 	//AtmosphereTest();
 
-	*/
+
 	AerodynamicTest();
 	//GuidanceTest();
 	AirframeStruct AirframeData;
@@ -254,9 +232,9 @@ int main()
 	gpstest.initGPS();
 	gpstest.updateGPS(0,NavData);
 	
-	Navigation test;
-	test.initNavigation();
-	test.updateNavigation(0, NavData, GuidanceData);
+	Navigation testNav;
+	testNav.initNavigation();
+	testNav.updateNavigation(0, NavData, GuidanceData);
 
 	system("pause");
 }

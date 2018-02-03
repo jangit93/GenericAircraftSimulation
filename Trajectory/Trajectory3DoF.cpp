@@ -56,4 +56,6 @@ void Trajectory3Dof::updateTrajectory(Float64 FlightTime,
 		airframe->updateTranslational(AeroData,
 									  ThrustData,
 									  AirframeData);
+
+		
 }

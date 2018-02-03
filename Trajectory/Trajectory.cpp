@@ -2,7 +2,7 @@
 
 Trajectory::Trajectory()
 {
-	int a = 1;
+	int a = 2;
 	selectTrajectory(a);
 
 }
@@ -22,6 +22,7 @@ void Trajectory::selectTrajectory(int type)
 
 	case 2:
 		std::cout << "Trajectory: Trajectory 6Dof" << std::endl;
+		traj = new Trajectory6Dof;
 		break;
 
 	}

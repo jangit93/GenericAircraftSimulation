@@ -33,6 +33,21 @@ void Airframe::initAirframe(AircraftStruct & AircraftData,
 	AirframeData.intertiaTensor(2, 0) = readIn->readInParameter("I_zx", "Aircraft.txt");
 	AirframeData.intertiaTensor(2, 1) = 0;
 	AirframeData.intertiaTensor(2, 2) = readIn->readInParameter("I_Z", "Aircraft.txt");
+
+	AirframeData.accRotBody.setZero();
+	AirframeData.accRotNED.setZero();
+	AirframeData.accTransBody.setZero();
+	AirframeData.accTransNED.setZero();
+	AirframeData.EulerAngles.setZero();
+	AirframeData.Eulerdot.setZero();
+	AirframeData.matBodyToNED.setZero();
+	AirframeData.matNEDToBody.setZero();
+	AirframeData.matNEDToTraj.setZero();
+	AirframeData.posNED.setZero();
+	AirframeData.velBody.setZero();
+	AirframeData.velNED.setZero();
+	AirframeData.rotRatesBody.setZero();
+	
 }
 
 void Airframe::updateTranslational(AerodynamicStruct & AeroData, 
@@ -48,7 +63,7 @@ void Airframe::updateTranslational(AerodynamicStruct & AeroData,
 	TotalForce = AeroData.AeroForces + ThrustData.ThrustForce;
 
 	Vec_fg << -sin(theta),
-			sin(phi)*cos(theta);
+			sin(phi)*cos(theta),
 			cos(phi)*cos(theta);
 
 	AirframeData.accTransBody = (TotalForce / mass) + Vec_fg  * GRAVITATIONAL_CONSTANT;
