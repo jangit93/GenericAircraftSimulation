@@ -1,0 +1,154 @@
+\hypertarget{eigen_2bench_2_bench_sparse_util_8h_source}{}\section{eigen/bench/\+Bench\+Sparse\+Util.h}
+\label{eigen_2bench_2_bench_sparse_util_8h_source}\index{Bench\+Sparse\+Util.\+h@{Bench\+Sparse\+Util.\+h}}
+
+\begin{DoxyCode}
+00001 
+00002 \textcolor{preprocessor}{#include <Eigen/Sparse>}
+00003 \textcolor{preprocessor}{#include <bench/BenchTimer.h>}
+00004 \textcolor{preprocessor}{#include <set>}
+00005 
+00006 \textcolor{keyword}{using namespace }\hyperlink{namespacestd}{std};
+00007 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00008 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00009 
+00010 \textcolor{preprocessor}{#ifndef SIZE}
+00011 \textcolor{preprocessor}{#define SIZE 1024}
+00012 \textcolor{preprocessor}{#endif}
+00013 
+00014 \textcolor{preprocessor}{#ifndef DENSITY}
+00015 \textcolor{preprocessor}{#define DENSITY 0.01}
+00016 \textcolor{preprocessor}{#endif}
+00017 
+00018 \textcolor{preprocessor}{#ifndef SCALAR}
+00019 \textcolor{preprocessor}{#define SCALAR double}
+00020 \textcolor{preprocessor}{#endif}
+00021 
+00022 \textcolor{keyword}{typedef} SCALAR Scalar;
+00023 \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,Dynamic>} \hyperlink{group___core___module_class_eigen_1_1_matrix}{DenseMatrix};
+00024 \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,1>} \hyperlink{group___core___module}{DenseVector};
+00025 \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar>} \hyperlink{group___sparse_core___module}{EigenSparseMatrix};
+00026 
+00027 \textcolor{keywordtype}{void} fillMatrix(\textcolor{keywordtype}{float} density, \textcolor{keywordtype}{int} rows, \textcolor{keywordtype}{int} cols,  \hyperlink{group___sparse_core___module}{EigenSparseMatrix}& dst)
+00028 \{
+00029   dst.\hyperlink{group___sparse_core___module_a1518e58ac49bed0e2385b722a034f7d3}{reserve}(\textcolor{keywordtype}{double}(rows)*cols*density);
+00030   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j = 0; j < cols; j++)
+00031   \{
+00032     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < rows; i++)
+00033     \{
+00034       Scalar v = (internal::random<float>(0,1) < density) ? internal::random<Scalar>() : 0;
+00035       \textcolor{keywordflow}{if} (v!=0)
+00036         dst.\hyperlink{group___sparse_core___module_aae45e3b5fec7f6a0cdd10eec7c6d3666}{insert}(i,j) = v;
+00037     \}
+00038   \}
+00039   dst.finalize();
+00040 \}
+00041 
+00042 \textcolor{keywordtype}{void} fillMatrix2(\textcolor{keywordtype}{int} nnzPerCol, \textcolor{keywordtype}{int} rows, \textcolor{keywordtype}{int} cols,  \hyperlink{group___sparse_core___module}{EigenSparseMatrix}& dst)
+00043 \{
+00044 \textcolor{comment}{//   std::cout << "alloc " << nnzPerCol*cols << "\(\backslash\)n";}
+00045   dst.\hyperlink{group___sparse_core___module_a1518e58ac49bed0e2385b722a034f7d3}{reserve}(nnzPerCol*cols);
+00046   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j = 0; j < cols; j++)
+00047   \{
+00048     std::set<int> aux;
+00049     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < nnzPerCol; i++)
+00050     \{
+00051       \textcolor{keywordtype}{int} k = internal::random<int>(0,rows-1);
+00052       \textcolor{keywordflow}{while} (aux.find(k)!=aux.end())
+00053         k = internal::random<int>(0,rows-1);
+00054       aux.insert(k);
+00055 
+00056       dst.\hyperlink{group___sparse_core___module_aae45e3b5fec7f6a0cdd10eec7c6d3666}{insert}(k,j) = internal::random<Scalar>();
+00057     \}
+00058   \}
+00059   dst.finalize();
+00060 \}
+00061 
+00062 \textcolor{keywordtype}{void} eiToDense(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module}{EigenSparseMatrix}& src, \hyperlink{group___core___module_class_eigen_1_1_matrix}{DenseMatrix}& dst)
+00063 \{
+00064   dst.\hyperlink{class_eigen_1_1_plain_object_base_ac21ad5f989f320e46958b75ac8d9a1da}{setZero}();
+00065   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<src.\hyperlink{group___sparse_core___module_aa391750e3c530227e4a5c3c52e959975}{cols}(); ++j)
+00066     \textcolor{keywordflow}{for} (EigenSparseMatrix::InnerIterator it(src.derived(), j); it; ++it)
+00067       dst(it.index(),j) = it.value();
+00068 \}
+00069 
+00070 \textcolor{preprocessor}{#ifndef NOGMM}
+00071 \textcolor{preprocessor}{#include "gmm/gmm.h"}
+00072 \textcolor{keyword}{typedef} gmm::csc\_matrix<Scalar> GmmSparse;
+00073 \textcolor{keyword}{typedef} gmm::col\_matrix< gmm::wsvector<Scalar> > GmmDynSparse;
+00074 \textcolor{keywordtype}{void} eiToGmm(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module}{EigenSparseMatrix}& src, GmmSparse& dst)
+00075 \{
+00076   GmmDynSparse tmp(src.\hyperlink{group___sparse_core___module_a62e61bb861eee306d5b069ce652b5aa5}{rows}(), src.\hyperlink{group___sparse_core___module_aa391750e3c530227e4a5c3c52e959975}{cols}());
+00077   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<src.\hyperlink{group___sparse_core___module_aa391750e3c530227e4a5c3c52e959975}{cols}(); ++j)
+00078     \textcolor{keywordflow}{for} (EigenSparseMatrix::InnerIterator it(src.derived(), j); it; ++it)
+00079       tmp(it.index(),j) = it.value();
+00080   gmm::copy(tmp, dst);
+00081 \}
+00082 \textcolor{preprocessor}{#endif}
+00083 
+00084 \textcolor{preprocessor}{#ifndef NOMTL}
+00085 \textcolor{preprocessor}{#include <boost/numeric/mtl/mtl.hpp>}
+00086 \textcolor{keyword}{typedef} mtl::compressed2D<Scalar, mtl::matrix::parameters<mtl::tag::col\_major> > MtlSparse;
+00087 \textcolor{keyword}{typedef} mtl::compressed2D<Scalar, mtl::matrix::parameters<mtl::tag::row\_major> > MtlSparseRowMajor;
+00088 \textcolor{keywordtype}{void} eiToMtl(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module}{EigenSparseMatrix}& src, MtlSparse& dst)
+00089 \{
+00090   mtl::matrix::inserter<MtlSparse> ins(dst);
+00091   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<src.\hyperlink{group___sparse_core___module_aa391750e3c530227e4a5c3c52e959975}{cols}(); ++j)
+00092     \textcolor{keywordflow}{for} (EigenSparseMatrix::InnerIterator it(src.derived(), j); it; ++it)
+00093       ins[it.index()][j] = it.value();
+00094 \}
+00095 \textcolor{preprocessor}{#endif}
+00096 
+00097 \textcolor{preprocessor}{#ifdef CSPARSE}
+00098 \textcolor{keyword}{extern} \textcolor{stringliteral}{"C"} \{
+00099 \textcolor{preprocessor}{#include "cs.h"}
+00100 \}
+00101 \textcolor{keywordtype}{void} eiToCSparse(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module}{EigenSparseMatrix}& src, cs* &dst)
+00102 \{
+00103   cs* aux = cs\_spalloc (0, 0, 1, 1, 1);
+00104   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<src.\hyperlink{group___sparse_core___module_aa391750e3c530227e4a5c3c52e959975}{cols}(); ++j)
+00105     \textcolor{keywordflow}{for} (EigenSparseMatrix::InnerIterator it(src.derived(), j); it; ++it)
+00106       \textcolor{keywordflow}{if} (!cs\_entry(aux, it.index(), j, it.value()))
+00107       \{
+00108         std::cout << \textcolor{stringliteral}{"cs\_entry error\(\backslash\)n"};
+00109         exit(2);
+00110       \}
+00111    dst = cs\_compress(aux);
+00112 \textcolor{comment}{//    cs\_spfree(aux);}
+00113 \}
+00114 \textcolor{preprocessor}{#endif // CSPARSE}
+00115 
+00116 \textcolor{preprocessor}{#ifndef NOUBLAS}
+00117 \textcolor{preprocessor}{#include <boost/numeric/ublas/vector.hpp>}
+00118 \textcolor{preprocessor}{#include <boost/numeric/ublas/matrix.hpp>}
+00119 \textcolor{preprocessor}{#include <boost/numeric/ublas/io.hpp>}
+00120 \textcolor{preprocessor}{#include <boost/numeric/ublas/triangular.hpp>}
+00121 \textcolor{preprocessor}{#include <boost/numeric/ublas/vector\_sparse.hpp>}
+00122 \textcolor{preprocessor}{#include <boost/numeric/ublas/matrix\_sparse.hpp>}
+00123 \textcolor{preprocessor}{#include <boost/numeric/ublas/vector\_of\_vector.hpp>}
+00124 \textcolor{preprocessor}{#include <boost/numeric/ublas/operation.hpp>}
+00125 
+00126 \textcolor{keyword}{typedef} boost::numeric::ublas::compressed\_matrix<Scalar,boost::numeric::ublas::column\_major> UBlasSparse;
+00127 
+00128 \textcolor{keywordtype}{void} eiToUblas(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module}{EigenSparseMatrix}& src, UBlasSparse& dst)
+00129 \{
+00130   dst.resize(src.\hyperlink{group___sparse_core___module_a62e61bb861eee306d5b069ce652b5aa5}{rows}(), src.\hyperlink{group___sparse_core___module_aa391750e3c530227e4a5c3c52e959975}{cols}(), \textcolor{keyword}{false});
+00131   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<src.\hyperlink{group___sparse_core___module_aa391750e3c530227e4a5c3c52e959975}{cols}(); ++j)
+00132     \textcolor{keywordflow}{for} (EigenSparseMatrix::InnerIterator it(src.derived(), j); it; ++it)
+00133       dst(it.index(),j) = it.value();
+00134 \}
+00135 
+00136 \textcolor{keyword}{template} <\textcolor{keyword}{typename} EigenType, \textcolor{keyword}{typename} UblasType>
+00137 \textcolor{keywordtype}{void} eiToUblasVec(\textcolor{keyword}{const} EigenType& src, UblasType& dst)
+00138 \{
+00139   dst.resize(src.size());
+00140   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<src.size(); ++j)
+00141       dst[j] = src.coeff(j);
+00142 \}
+00143 \textcolor{preprocessor}{#endif}
+00144 
+00145 \textcolor{preprocessor}{#ifdef OSKI}
+00146 \textcolor{keyword}{extern} \textcolor{stringliteral}{"C"} \{
+00147 \textcolor{preprocessor}{#include <oski/oski.h>}
+00148 \}
+00149 \textcolor{preprocessor}{#endif}
+\end{DoxyCode}

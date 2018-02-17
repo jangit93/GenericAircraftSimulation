@@ -1,0 +1,145 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2bench_2btl_2actions_2action__lu__solve_8hh_source}{}\section{matio/visual\+\_\+studio/test/eigen/bench/btl/actions/action\+\_\+lu\+\_\+solve.hh}
+\label{matio_2visual__studio_2test_2eigen_2bench_2btl_2actions_2action__lu__solve_8hh_source}\index{action\+\_\+lu\+\_\+solve.\+hh@{action\+\_\+lu\+\_\+solve.\+hh}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{//=====================================================}
+00002 \textcolor{comment}{// File   :  action\_lu\_solve.hh}
+00003 \textcolor{comment}{// Author :  L. Plagne <laurent.plagne@edf.fr)>        }
+00004 \textcolor{comment}{// Copyright (C) EDF R&D,  lun sep 30 14:23:19 CEST 2002}
+00005 \textcolor{comment}{//=====================================================}
+00006 \textcolor{comment}{// }
+00007 \textcolor{comment}{// This program is free software; you can redistribute it and/or}
+00008 \textcolor{comment}{// modify it under the terms of the GNU General Public License}
+00009 \textcolor{comment}{// as published by the Free Software Foundation; either version 2}
+00010 \textcolor{comment}{// of the License, or (at your option) any later version.}
+00011 \textcolor{comment}{// }
+00012 \textcolor{comment}{// This program is distributed in the hope that it will be useful,}
+00013 \textcolor{comment}{// but WITHOUT ANY WARRANTY; without even the implied warranty of}
+00014 \textcolor{comment}{// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the}
+00015 \textcolor{comment}{// GNU General Public License for more details.}
+00016 \textcolor{comment}{// You should have received a copy of the GNU General Public License}
+00017 \textcolor{comment}{// along with this program; if not, write to the Free Software}
+00018 \textcolor{comment}{// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.}
+00019 \textcolor{comment}{// }
+00020 \textcolor{preprocessor}{#ifndef ACTION\_LU\_SOLVE}
+00021 \textcolor{preprocessor}{#define ACTION\_LU\_SOLVE}
+00022 \textcolor{preprocessor}{#include "utilities.h"}
+00023 \textcolor{preprocessor}{#include "STL\_interface.hh"}
+00024 \textcolor{preprocessor}{#include <string>}
+00025 \textcolor{preprocessor}{#include "init/init\_function.hh"}
+00026 \textcolor{preprocessor}{#include "init/init\_vector.hh"}
+00027 \textcolor{preprocessor}{#include "init/init\_matrix.hh"}
+00028 
+00029 \textcolor{keyword}{using namespace }\hyperlink{namespacestd}{std};
+00030 
+00031 \textcolor{keyword}{template}<\textcolor{keyword}{class} Interface>
+00032 \textcolor{keyword}{class }\hyperlink{class_action__lu__solve}{Action\_lu\_solve} 
+00033 \{
+00034 
+00035 public :
+00036 
+00037   \textcolor{keyword}{static} \textcolor{keyword}{inline} std::string name( \textcolor{keywordtype}{void} )
+00038   \{
+00039     \textcolor{keywordflow}{return} \textcolor{stringliteral}{"lu\_solve\_"}+Interface::name();
+00040   \}
+00041   
+00042   \textcolor{keyword}{static} \textcolor{keywordtype}{double} nb\_op\_base(\textcolor{keywordtype}{int} size)\{
+00043     \textcolor{keywordflow}{return} 2.0*size*size*size/3.0;  \textcolor{comment}{// questionable but not really important}
+00044   \}
+00045 
+00046 
+00047   \textcolor{keyword}{static} \textcolor{keywordtype}{double} calculate( \textcolor{keywordtype}{int} nb\_calc, \textcolor{keywordtype}{int} size ) \{
+00048 
+00049     \textcolor{comment}{// STL matrix and vector initialization}
+00050     
+00051     \textcolor{keyword}{typename} Interface::stl\_matrix A\_stl;
+00052     \textcolor{keyword}{typename} Interface::stl\_vector B\_stl;
+00053     \textcolor{keyword}{typename} Interface::stl\_vector X\_stl;
+00054 
+00055     init\_matrix<pseudo\_random>(A\_stl,size);
+00056     init\_vector<pseudo\_random>(B\_stl,size);
+00057     init\_vector<null\_function>(X\_stl,size);
+00058 
+00059     \textcolor{comment}{// generic matrix and vector initialization}
+00060 
+00061     \textcolor{keyword}{typename} Interface::gene\_matrix A;
+00062     \textcolor{keyword}{typename} Interface::gene\_vector B;
+00063     \textcolor{keyword}{typename} Interface::gene\_vector X;
+00064 
+00065     \textcolor{keyword}{typename} Interface::gene\_matrix LU; 
+00066 
+00067     Interface::matrix\_from\_stl(A,A\_stl);
+00068     Interface::vector\_from\_stl(B,B\_stl);
+00069     Interface::vector\_from\_stl(X,X\_stl);
+00070     Interface::matrix\_from\_stl(LU,A\_stl);
+00071   
+00072     \textcolor{comment}{// local variable :}
+00073 
+00074     \textcolor{keyword}{typename} Interface::Pivot\_Vector pivot; \textcolor{comment}{// pivot vector}
+00075     Interface::new\_Pivot\_Vector(pivot,size);
+00076     
+00077     \textcolor{comment}{// timer utilities}
+00078 
+00079     \hyperlink{class_portable___timer}{Portable\_Timer} chronos;
+00080 
+00081     \textcolor{comment}{// time measurement}
+00082 
+00083     chronos.start();
+00084     
+00085     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} ii=0;ii<nb\_calc;ii++)\{
+00086 
+00087       \textcolor{comment}{// LU factorization}
+00088       Interface::copy\_matrix(A,LU,size);
+00089       Interface::LU\_factor(LU,pivot,size);
+00090       
+00091       \textcolor{comment}{// LU solve}
+00092 
+00093       Interface::LU\_solve(LU,pivot,B,X,size);
+00094 
+00095     \}
+00096 
+00097     \textcolor{comment}{// Time stop}
+00098 
+00099     chronos.stop();
+00100 
+00101     \textcolor{keywordtype}{double} time=chronos.user\_time();
+00102   
+00103     \textcolor{comment}{// check result :}
+00104 
+00105     \textcolor{keyword}{typename} Interface::stl\_vector B\_new\_stl(size);
+00106     Interface::vector\_to\_stl(X,X\_stl);
+00107 
+00108     \hyperlink{class_s_t_l__interface}{STL\_interface<typename Interface::real\_type>::matrix\_vector\_product}
+      (A\_stl,X\_stl,B\_new\_stl,size); 
+00109   
+00110     \textcolor{keyword}{typename} Interface::real\_type error=
+00111       \hyperlink{class_s_t_l__interface}{STL\_interface<typename Interface::real\_type>::norm\_diff}
+      (B\_stl,B\_new\_stl);
+00112     
+00113     \textcolor{keywordflow}{if} (error>1.e-5)\{
+00114       INFOS(\textcolor{stringliteral}{"WRONG CALCULATION...residual="} << error);
+00115       \hyperlink{class_s_t_l__interface}{STL\_interface<typename Interface::real\_type>::display\_vector}
+      (B\_stl);
+00116       \hyperlink{class_s_t_l__interface}{STL\_interface<typename Interface::real\_type>::display\_vector}
+      (B\_new\_stl);
+00117       exit(0);
+00118     \}
+00119     
+00120     \textcolor{comment}{// deallocation and return time}
+00121     
+00122     Interface::free\_matrix(A,size);
+00123     Interface::free\_vector(B);
+00124     Interface::free\_vector(X);
+00125     Interface::free\_Pivot\_Vector(pivot);
+00126 
+00127     \textcolor{keywordflow}{return} time;
+00128   \}
+00129 
+00130 \};
+00131   
+00132 
+00133 \textcolor{preprocessor}{#endif}
+00134 
+00135 
+00136 
+\end{DoxyCode}

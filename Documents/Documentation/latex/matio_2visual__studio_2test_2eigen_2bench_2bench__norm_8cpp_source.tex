@@ -1,0 +1,377 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2bench_2bench__norm_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/bench/bench\+\_\+norm.cpp}
+\label{matio_2visual__studio_2test_2eigen_2bench_2bench__norm_8cpp_source}\index{bench\+\_\+norm.\+cpp@{bench\+\_\+norm.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{preprocessor}{#include <typeinfo>}
+00002 \textcolor{preprocessor}{#include <iostream>}
+00003 \textcolor{preprocessor}{#include <Eigen/Core>}
+00004 \textcolor{preprocessor}{#include "BenchTimer.h"}
+00005 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00006 \textcolor{keyword}{using namespace }\hyperlink{namespacestd}{std};
+00007 
+00008 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00009 EIGEN\_DONT\_INLINE \textcolor{keyword}{typename} T::Scalar sqsumNorm(\hyperlink{group___sparse_core___module}{T}& v)
+00010 \{
+00011   \textcolor{keywordflow}{return} v.norm();
+00012 \}
+00013 
+00014 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00015 EIGEN\_DONT\_INLINE \textcolor{keyword}{typename} T::Scalar stableNorm(\hyperlink{group___sparse_core___module}{T}& v)
+00016 \{
+00017   \textcolor{keywordflow}{return} v.stableNorm();
+00018 \}
+00019 
+00020 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00021 EIGEN\_DONT\_INLINE \textcolor{keyword}{typename} T::Scalar hypotNorm(\hyperlink{group___sparse_core___module}{T}& v)
+00022 \{
+00023   \textcolor{keywordflow}{return} v.hypotNorm();
+00024 \}
+00025 
+00026 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00027 EIGEN\_DONT\_INLINE \textcolor{keyword}{typename} T::Scalar blueNorm(\hyperlink{group___sparse_core___module}{T}& v)
+00028 \{
+00029   \textcolor{keywordflow}{return} v.blueNorm();
+00030 \}
+00031 
+00032 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00033 EIGEN\_DONT\_INLINE \textcolor{keyword}{typename} T::Scalar lapackNorm(\hyperlink{group___sparse_core___module}{T}& v)
+00034 \{
+00035   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} T::Scalar Scalar;
+00036   \textcolor{keywordtype}{int} n = v.size();
+00037   Scalar scale = 0;
+00038   Scalar ssq = 1;
+00039   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0;i<n;++i)
+00040   \{
+00041     Scalar ax = std::abs(v.coeff(i));
+00042     \textcolor{keywordflow}{if} (scale >= ax)
+00043     \{
+00044       ssq += numext::abs2(ax/scale);
+00045     \}
+00046     \textcolor{keywordflow}{else}
+00047     \{
+00048       ssq = Scalar(1) + ssq * numext::abs2(scale/ax);
+00049       scale = ax;
+00050     \}
+00051   \}
+00052   \textcolor{keywordflow}{return} scale * std::sqrt(ssq);
+00053 \}
+00054 
+00055 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00056 EIGEN\_DONT\_INLINE \textcolor{keyword}{typename} T::Scalar twopassNorm(\hyperlink{group___sparse_core___module}{T}& v)
+00057 \{
+00058   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} T::Scalar Scalar;
+00059   Scalar s = v.array().abs().maxCoeff();
+00060   \textcolor{keywordflow}{return} s*(v/s).norm();
+00061 \}
+00062 
+00063 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00064 EIGEN\_DONT\_INLINE \textcolor{keyword}{typename} T::Scalar bl2passNorm(\hyperlink{group___sparse_core___module}{T}& v)
+00065 \{
+00066   \textcolor{keywordflow}{return} v.stableNorm();
+00067 \}
+00068 
+00069 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00070 EIGEN\_DONT\_INLINE \textcolor{keyword}{typename} T::Scalar divacNorm(\hyperlink{group___sparse_core___module}{T}& v)
+00071 \{
+00072   \textcolor{keywordtype}{int} n =v.size() / 2;
+00073   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0;i<n;++i)
+00074     v(i) = v(2*i)*v(2*i) + v(2*i+1)*v(2*i+1);
+00075   n = n/2;
+00076   \textcolor{keywordflow}{while} (n>0)
+00077   \{
+00078     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0;i<n;++i)
+00079       v(i) = v(2*i) + v(2*i+1);
+00080     n = n/2;
+00081   \}
+00082   \textcolor{keywordflow}{return} std::sqrt(v(0));
+00083 \}
+00084 
+00085 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00086 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00087 \textcolor{preprocessor}{#ifdef EIGEN\_VECTORIZE}
+00088 Packet4f plt(\textcolor{keyword}{const} Packet4f& a, Packet4f& b) \{ \textcolor{keywordflow}{return} \_mm\_cmplt\_ps(a,b); \}
+00089 Packet2d plt(\textcolor{keyword}{const} Packet2d& a, Packet2d& b) \{ \textcolor{keywordflow}{return} \_mm\_cmplt\_pd(a,b); \}
+00090 
+00091 Packet4f pandnot(\textcolor{keyword}{const} Packet4f& a, Packet4f& b) \{ \textcolor{keywordflow}{return} \_mm\_andnot\_ps(a,b); \}
+00092 Packet2d pandnot(\textcolor{keyword}{const} Packet2d& a, Packet2d& b) \{ \textcolor{keywordflow}{return} \_mm\_andnot\_pd(a,b); \}
+00093 \textcolor{preprocessor}{#endif}
+00094 \}
+00095 \}
+00096 
+00097 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00098 EIGEN\_DONT\_INLINE \textcolor{keyword}{typename} T::Scalar pblueNorm(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module}{T}& v)
+00099 \{
+00100 \textcolor{preprocessor}{  #ifndef EIGEN\_VECTORIZE}
+00101   \textcolor{keywordflow}{return} v.blueNorm();
+00102 \textcolor{preprocessor}{  #else}
+00103   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} T::Scalar Scalar;
+00104 
+00105   \textcolor{keyword}{static} \textcolor{keywordtype}{int} nmax = 0;
+00106   \textcolor{keyword}{static} Scalar b1, b2, s1m, s2m, overfl, rbig, relerr;
+00107   \textcolor{keywordtype}{int} n;
+00108 
+00109   \textcolor{keywordflow}{if}(nmax <= 0)
+00110   \{
+00111     \textcolor{keywordtype}{int} nbig, ibeta, it, iemin, iemax, iexp;
+00112     Scalar abig, eps;
+00113 
+00114     nbig  = std::numeric\_limits<int>::max();            \textcolor{comment}{// largest integer}
+00115     ibeta = std::numeric\_limits<Scalar>::radix; \textcolor{comment}{//NumTraits<Scalar>::Base;                    // base for
+       floating-point numbers}
+00116     it    = std::numeric\_limits<Scalar>::digits; \textcolor{comment}{//NumTraits<Scalar>::Mantissa;                // number of
+       base-beta digits in mantissa}
+00117     iemin = std::numeric\_limits<Scalar>::min\_exponent;  \textcolor{comment}{// minimum exponent}
+00118     iemax = std::numeric\_limits<Scalar>::max\_exponent;  \textcolor{comment}{// maximum exponent}
+00119     rbig  = std::numeric\_limits<Scalar>::max();         \textcolor{comment}{// largest floating-point number}
+00120 
+00121     \textcolor{comment}{// Check the basic machine-dependent constants.}
+00122     \textcolor{keywordflow}{if}(iemin > 1 - 2*it || 1+it>iemax || (it==2 && ibeta<5)
+00123       || (it<=4 && ibeta <= 3 ) || it<2)
+00124     \{
+00125       eigen\_assert(\textcolor{keyword}{false} && \textcolor{stringliteral}{"the algorithm cannot be guaranteed on this computer"});
+00126     \}
+00127     iexp  = -((1-iemin)/2);
+00128     b1    = std::pow(ibeta, iexp);  \textcolor{comment}{// lower boundary of midrange}
+00129     iexp  = (iemax + 1 - it)/2;
+00130     b2    = std::pow(ibeta,iexp);   \textcolor{comment}{// upper boundary of midrange}
+00131 
+00132     iexp  = (2-iemin)/2;
+00133     s1m   = std::pow(ibeta,iexp);   \textcolor{comment}{// scaling factor for lower range}
+00134     iexp  = - ((iemax+it)/2);
+00135     s2m   = std::pow(ibeta,iexp);   \textcolor{comment}{// scaling factor for upper range}
+00136 
+00137     overfl  = rbig*s2m;          \textcolor{comment}{// overfow boundary for abig}
+00138     eps     = std::pow(ibeta, 1-it);
+00139     relerr  = std::sqrt(eps);      \textcolor{comment}{// tolerance for neglecting asml}
+00140     abig    = 1.0/eps - 1.0;
+00141     \textcolor{keywordflow}{if} (Scalar(nbig)>abig)  nmax = abig;  \textcolor{comment}{// largest safe n}
+00142     \textcolor{keywordflow}{else}                    nmax = nbig;
+00143   \}
+00144 
+00145   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{internal::packet\_traits<Scalar>::type} 
+      \hyperlink{group___sparse_core___module}{Packet};
+00146   \textcolor{keyword}{const} \textcolor{keywordtype}{int} ps = internal::packet\_traits<Scalar>::size;
+00147   Packet pasml = internal::pset1<Packet>(Scalar(0));
+00148   Packet pamed = internal::pset1<Packet>(Scalar(0));
+00149   Packet pabig = internal::pset1<Packet>(Scalar(0));
+00150   Packet ps2m = internal::pset1<Packet>(s2m);
+00151   Packet ps1m = internal::pset1<Packet>(s1m);
+00152   Packet pb2  = internal::pset1<Packet>(b2);
+00153   Packet pb1  = internal::pset1<Packet>(b1);
+00154   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j=0; j<v.size(); j+=ps)
+00155   \{
+00156     Packet ax = internal::pabs(v.template packet<Aligned>(j));
+00157     Packet ax\_s2m = internal::pmul(ax,ps2m);
+00158     Packet ax\_s1m = internal::pmul(ax,ps1m);
+00159     Packet maskBig = internal::plt(pb2,ax);
+00160     Packet maskSml = internal::plt(ax,pb1);
+00161 
+00162 \textcolor{comment}{//     Packet maskMed = internal::pand(maskSml,maskBig);}
+00163 \textcolor{comment}{//     Packet scale = internal::pset1(Scalar(0));}
+00164 \textcolor{comment}{//     scale = internal::por(scale, internal::pand(maskBig,ps2m));}
+00165 \textcolor{comment}{//     scale = internal::por(scale, internal::pand(maskSml,ps1m));}
+00166 \textcolor{comment}{//     scale = internal::por(scale, internal::pandnot(internal::pset1(Scalar(1)),maskMed));}
+00167 \textcolor{comment}{//     ax = internal::pmul(ax,scale);}
+00168 \textcolor{comment}{//     ax = internal::pmul(ax,ax);}
+00169 \textcolor{comment}{//     pabig = internal::padd(pabig, internal::pand(maskBig, ax));}
+00170 \textcolor{comment}{//     pasml = internal::padd(pasml, internal::pand(maskSml, ax));}
+00171 \textcolor{comment}{//     pamed = internal::padd(pamed, internal::pandnot(ax,maskMed));}
+00172 
+00173 
+00174     pabig = internal::padd(pabig, internal::pand(maskBig, internal::pmul(ax\_s2m,ax\_s2m)));
+00175     pasml = internal::padd(pasml, internal::pand(maskSml, internal::pmul(ax\_s1m,ax\_s1m)));
+00176     pamed = internal::padd(pamed, internal::pandnot(internal::pmul(ax,ax),internal::pand(maskSml,maskBig)))
+      ;
+00177   \}
+00178   Scalar abig = internal::predux(pabig);
+00179   Scalar asml = internal::predux(pasml);
+00180   Scalar amed = internal::predux(pamed);
+00181   \textcolor{keywordflow}{if}(abig > Scalar(0))
+00182   \{
+00183     abig = std::sqrt(abig);
+00184     \textcolor{keywordflow}{if}(abig > overfl)
+00185     \{
+00186       eigen\_assert(\textcolor{keyword}{false} && \textcolor{stringliteral}{"overflow"});
+00187       \textcolor{keywordflow}{return} rbig;
+00188     \}
+00189     \textcolor{keywordflow}{if}(amed > Scalar(0))
+00190     \{
+00191       abig = abig/s2m;
+00192       amed = std::sqrt(amed);
+00193     \}
+00194     \textcolor{keywordflow}{else}
+00195     \{
+00196       \textcolor{keywordflow}{return} abig/s2m;
+00197     \}
+00198 
+00199   \}
+00200   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(asml > Scalar(0))
+00201   \{
+00202     \textcolor{keywordflow}{if} (amed > Scalar(0))
+00203     \{
+00204       abig = std::sqrt(amed);
+00205       amed = std::sqrt(asml) / s1m;
+00206     \}
+00207     \textcolor{keywordflow}{else}
+00208     \{
+00209       \textcolor{keywordflow}{return} std::sqrt(asml)/s1m;
+00210     \}
+00211   \}
+00212   \textcolor{keywordflow}{else}
+00213   \{
+00214     \textcolor{keywordflow}{return} std::sqrt(amed);
+00215   \}
+00216   asml = std::min(abig, amed);
+00217   abig = std::max(abig, amed);
+00218   \textcolor{keywordflow}{if}(asml <= abig*relerr)
+00219     \textcolor{keywordflow}{return} abig;
+00220   \textcolor{keywordflow}{else}
+00221     \textcolor{keywordflow}{return} abig * std::sqrt(Scalar(1) + numext::abs2(asml/abig));
+00222 \textcolor{preprocessor}{  #endif}
+00223 \}
+00224 
+00225 \textcolor{preprocessor}{#define BENCH\_PERF(NRM) \{ \(\backslash\)}
+00226 \textcolor{preprocessor}{  float af = 0; double ad = 0; std::complex<float> ac = 0; \(\backslash\)}
+00227 \textcolor{preprocessor}{  Eigen::BenchTimer tf, td, tcf; tf.reset(); td.reset(); tcf.reset();\(\backslash\)}
+00228 \textcolor{preprocessor}{  for (int k=0; k<tries; ++k) \{ \(\backslash\)}
+00229 \textcolor{preprocessor}{    tf.start(); \(\backslash\)}
+00230 \textcolor{preprocessor}{    for (int i=0; i<iters; ++i) \{ af += NRM(vf); \} \(\backslash\)}
+00231 \textcolor{preprocessor}{    tf.stop(); \(\backslash\)}
+00232 \textcolor{preprocessor}{  \} \(\backslash\)}
+00233 \textcolor{preprocessor}{  for (int k=0; k<tries; ++k) \{ \(\backslash\)}
+00234 \textcolor{preprocessor}{    td.start(); \(\backslash\)}
+00235 \textcolor{preprocessor}{    for (int i=0; i<iters; ++i) \{ ad += NRM(vd); \} \(\backslash\)}
+00236 \textcolor{preprocessor}{    td.stop(); \(\backslash\)}
+00237 \textcolor{preprocessor}{  \} \(\backslash\)}
+00238 \textcolor{preprocessor}{  }\textcolor{comment}{/*for (int k=0; k<std::max(1,tries/3); ++k) \{ \(\backslash\)}
+00239 \textcolor{comment}{    tcf.start(); \(\backslash\)}
+00240 \textcolor{comment}{    for (int i=0; i<iters; ++i) \{ ac += NRM(vcf); \} \(\backslash\)}
+00241 \textcolor{comment}{    tcf.stop(); \(\backslash\)}
+00242 \textcolor{comment}{  \} */}\textcolor{preprocessor}{\(\backslash\)}
+00243 \textcolor{preprocessor}{  std::cout << #NRM << "\(\backslash\)t" << tf.value() << "   " << td.value() <<  "    " << tcf.value() << "\(\backslash\)n"; \(\backslash\)}
+00244 \textcolor{preprocessor}{\}}
+00245 
+00246 \textcolor{keywordtype}{void} check\_accuracy(\textcolor{keywordtype}{double} basef, \textcolor{keywordtype}{double} based, \textcolor{keywordtype}{int} s)
+00247 \{
+00248   \textcolor{keywordtype}{double} yf = basef * std::abs(internal::random<double>());
+00249   \textcolor{keywordtype}{double} yd = based * std::abs(internal::random<double>());
+00250   VectorXf vf = VectorXf::Ones(s) * yf;
+00251   VectorXd vd = VectorXd::Ones(s) * yd;
+00252 
+00253   std::cout << \textcolor{stringliteral}{"reference\(\backslash\)t"} << std::sqrt(\textcolor{keywordtype}{double}(s))*yf << \textcolor{stringliteral}{"\(\backslash\)t"} << std::sqrt(\textcolor{keywordtype}{double}(s))*yd << \textcolor{stringliteral}{"\(\backslash\)n"};
+00254   std::cout << \textcolor{stringliteral}{"sqsumNorm\(\backslash\)t"} << sqsumNorm(vf) << \textcolor{stringliteral}{"\(\backslash\)t"} << sqsumNorm(vd) << \textcolor{stringliteral}{"\(\backslash\)n"};
+00255   std::cout << \textcolor{stringliteral}{"hypotNorm\(\backslash\)t"} << hypotNorm(vf) << \textcolor{stringliteral}{"\(\backslash\)t"} << hypotNorm(vd) << \textcolor{stringliteral}{"\(\backslash\)n"};
+00256   std::cout << \textcolor{stringliteral}{"blueNorm\(\backslash\)t"} << blueNorm(vf) << \textcolor{stringliteral}{"\(\backslash\)t"} << blueNorm(vd) << \textcolor{stringliteral}{"\(\backslash\)n"};
+00257   std::cout << \textcolor{stringliteral}{"pblueNorm\(\backslash\)t"} << pblueNorm(vf) << \textcolor{stringliteral}{"\(\backslash\)t"} << pblueNorm(vd) << \textcolor{stringliteral}{"\(\backslash\)n"};
+00258   std::cout << \textcolor{stringliteral}{"lapackNorm\(\backslash\)t"} << lapackNorm(vf) << \textcolor{stringliteral}{"\(\backslash\)t"} << lapackNorm(vd) << \textcolor{stringliteral}{"\(\backslash\)n"};
+00259   std::cout << \textcolor{stringliteral}{"twopassNorm\(\backslash\)t"} << twopassNorm(vf) << \textcolor{stringliteral}{"\(\backslash\)t"} << twopassNorm(vd) << \textcolor{stringliteral}{"\(\backslash\)n"};
+00260   std::cout << \textcolor{stringliteral}{"bl2passNorm\(\backslash\)t"} << bl2passNorm(vf) << \textcolor{stringliteral}{"\(\backslash\)t"} << bl2passNorm(vd) << \textcolor{stringliteral}{"\(\backslash\)n"};
+00261 \}
+00262 
+00263 \textcolor{keywordtype}{void} check\_accuracy\_var(\textcolor{keywordtype}{int} ef0, \textcolor{keywordtype}{int} ef1, \textcolor{keywordtype}{int} ed0, \textcolor{keywordtype}{int} ed1, \textcolor{keywordtype}{int} s)
+00264 \{
+00265   VectorXf vf(s);
+00266   VectorXd vd(s);
+00267   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<s; ++i)
+00268   \{
+00269     vf[i] = std::abs(internal::random<double>()) * std::pow(\textcolor{keywordtype}{double}(10), internal::random<int>(ef0,ef1));
+00270     vd[i] = std::abs(internal::random<double>()) * std::pow(\textcolor{keywordtype}{double}(10), internal::random<int>(ed0,ed1));
+00271   \}
+00272 
+00273   \textcolor{comment}{//std::cout << "reference\(\backslash\)t" << internal::sqrt(double(s))*yf << "\(\backslash\)t" << internal::sqrt(double(s))*yd <<
+       "\(\backslash\)n";}
+00274   std::cout << \textcolor{stringliteral}{"sqsumNorm\(\backslash\)t"}  << sqsumNorm(vf)  << \textcolor{stringliteral}{"\(\backslash\)t"} << sqsumNorm(vd)  << \textcolor{stringliteral}{"\(\backslash\)t"} << sqsumNorm(vf.cast<\textcolor{keywordtype}{long}
+       \textcolor{keywordtype}{double}>()) << \textcolor{stringliteral}{"\(\backslash\)t"} << sqsumNorm(vd.cast<\textcolor{keywordtype}{long} \textcolor{keywordtype}{double}>()) << \textcolor{stringliteral}{"\(\backslash\)n"};
+00275   std::cout << \textcolor{stringliteral}{"hypotNorm\(\backslash\)t"}  << hypotNorm(vf)  << \textcolor{stringliteral}{"\(\backslash\)t"} << hypotNorm(vd)  << \textcolor{stringliteral}{"\(\backslash\)t"} << hypotNorm(vf.cast<\textcolor{keywordtype}{long}
+       \textcolor{keywordtype}{double}>()) << \textcolor{stringliteral}{"\(\backslash\)t"} << hypotNorm(vd.cast<\textcolor{keywordtype}{long} \textcolor{keywordtype}{double}>()) << \textcolor{stringliteral}{"\(\backslash\)n"};
+00276   std::cout << \textcolor{stringliteral}{"blueNorm\(\backslash\)t"}   << blueNorm(vf)   << \textcolor{stringliteral}{"\(\backslash\)t"} << blueNorm(vd)   << \textcolor{stringliteral}{"\(\backslash\)t"} << blueNorm(vf.cast<\textcolor{keywordtype}{long} \textcolor{keywordtype}{
+      double}>()) << \textcolor{stringliteral}{"\(\backslash\)t"} << blueNorm(vd.cast<\textcolor{keywordtype}{long} \textcolor{keywordtype}{double}>()) << \textcolor{stringliteral}{"\(\backslash\)n"};
+00277   std::cout << \textcolor{stringliteral}{"pblueNorm\(\backslash\)t"}  << pblueNorm(vf)  << \textcolor{stringliteral}{"\(\backslash\)t"} << pblueNorm(vd)  << \textcolor{stringliteral}{"\(\backslash\)t"} << blueNorm(vf.cast<\textcolor{keywordtype}{long} \textcolor{keywordtype}{
+      double}>()) << \textcolor{stringliteral}{"\(\backslash\)t"} << blueNorm(vd.cast<\textcolor{keywordtype}{long} \textcolor{keywordtype}{double}>()) << \textcolor{stringliteral}{"\(\backslash\)n"};
+00278   std::cout << \textcolor{stringliteral}{"lapackNorm\(\backslash\)t"} << lapackNorm(vf) << \textcolor{stringliteral}{"\(\backslash\)t"} << lapackNorm(vd) << \textcolor{stringliteral}{"\(\backslash\)t"} << lapackNorm(vf.cast<\textcolor{keywordtype}{
+      long} \textcolor{keywordtype}{double}>()) << \textcolor{stringliteral}{"\(\backslash\)t"} << lapackNorm(vd.cast<\textcolor{keywordtype}{long} \textcolor{keywordtype}{double}>()) << \textcolor{stringliteral}{"\(\backslash\)n"};
+00279   std::cout << \textcolor{stringliteral}{"twopassNorm\(\backslash\)t"} << twopassNorm(vf) << \textcolor{stringliteral}{"\(\backslash\)t"} << twopassNorm(vd) << \textcolor{stringliteral}{"\(\backslash\)t"} << twopassNorm(vf.cast
+      <\textcolor{keywordtype}{long} \textcolor{keywordtype}{double}>()) << \textcolor{stringliteral}{"\(\backslash\)t"} << twopassNorm(vd.cast<\textcolor{keywordtype}{long} \textcolor{keywordtype}{double}>()) << \textcolor{stringliteral}{"\(\backslash\)n"};
+00280 \textcolor{comment}{//   std::cout << "bl2passNorm\(\backslash\)t" << bl2passNorm(vf) << "\(\backslash\)t" << bl2passNorm(vd) << "\(\backslash\)t" <<
+       bl2passNorm(vf.cast<long double>()) << "\(\backslash\)t" << bl2passNorm(vd.cast<long double>()) << "\(\backslash\)n";}
+00281 \}
+00282 
+00283 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char}** argv)
+00284 \{
+00285   \textcolor{keywordtype}{int} tries = 10;
+00286   \textcolor{keywordtype}{int} iters = 100000;
+00287   \textcolor{keywordtype}{double} y = 1.1345743233455785456788e12 * internal::random<double>();
+00288   VectorXf v = VectorXf::Ones(1024) * y;
+00289 
+00290 \textcolor{comment}{// return 0;}
+00291   \textcolor{keywordtype}{int} s = 10000;
+00292   \textcolor{keywordtype}{double} basef\_ok = 1.1345743233455785456788e15;
+00293   \textcolor{keywordtype}{double} based\_ok = 1.1345743233455785456788e95;
+00294 
+00295   \textcolor{keywordtype}{double} basef\_under = 1.1345743233455785456788e-27;
+00296   \textcolor{keywordtype}{double} based\_under = 1.1345743233455785456788e-303;
+00297 
+00298   \textcolor{keywordtype}{double} basef\_over = 1.1345743233455785456788e+27;
+00299   \textcolor{keywordtype}{double} based\_over = 1.1345743233455785456788e+302;
+00300 
+00301   std::cout.precision(20);
+00302 
+00303   std::cerr << \textcolor{stringliteral}{"\(\backslash\)nNo under/overflow:\(\backslash\)n"};
+00304   check\_accuracy(basef\_ok, based\_ok, s);
+00305 
+00306   std::cerr << \textcolor{stringliteral}{"\(\backslash\)nUnderflow:\(\backslash\)n"};
+00307   check\_accuracy(basef\_under, based\_under, s);
+00308 
+00309   std::cerr << \textcolor{stringliteral}{"\(\backslash\)nOverflow:\(\backslash\)n"};
+00310   check\_accuracy(basef\_over, based\_over, s);
+00311 
+00312   std::cerr << \textcolor{stringliteral}{"\(\backslash\)nVarying (over):\(\backslash\)n"};
+00313   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k=0; k<1; ++k)
+00314   \{
+00315     check\_accuracy\_var(20,27,190,302,s);
+00316     std::cout << \textcolor{stringliteral}{"\(\backslash\)n"};
+00317   \}
+00318 
+00319   std::cerr << \textcolor{stringliteral}{"\(\backslash\)nVarying (under):\(\backslash\)n"};
+00320   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k=0; k<1; ++k)
+00321   \{
+00322     check\_accuracy\_var(-27,20,-302,-190,s);
+00323     std::cout << \textcolor{stringliteral}{"\(\backslash\)n"};
+00324   \}
+00325 
+00326   y = 1;
+00327   std::cout.precision(4);
+00328   \textcolor{keywordtype}{int} s1 = 1024*1024*32;
+00329   std::cerr << \textcolor{stringliteral}{"Performance (out of cache, "} << s1 << \textcolor{stringliteral}{"):\(\backslash\)n"};
+00330   \{
+00331     \textcolor{keywordtype}{int} iters = 1;
+00332     VectorXf vf = VectorXf::Random(s1) * y;
+00333     VectorXd vd = VectorXd::Random(s1) * y;
+00334     VectorXcf vcf = VectorXcf::Random(s1) * y;
+00335     BENCH\_PERF(sqsumNorm);
+00336     BENCH\_PERF(stableNorm);
+00337     BENCH\_PERF(blueNorm);
+00338     BENCH\_PERF(pblueNorm);
+00339     BENCH\_PERF(lapackNorm);
+00340     BENCH\_PERF(hypotNorm);
+00341     BENCH\_PERF(twopassNorm);
+00342     BENCH\_PERF(bl2passNorm);
+00343   \}
+00344 
+00345   std::cerr << \textcolor{stringliteral}{"\(\backslash\)nPerformance (in cache, "} << 512 << \textcolor{stringliteral}{"):\(\backslash\)n"};
+00346   \{
+00347     \textcolor{keywordtype}{int} iters = 100000;
+00348     VectorXf vf = VectorXf::Random(512) * y;
+00349     VectorXd vd = VectorXd::Random(512) * y;
+00350     VectorXcf vcf = VectorXcf::Random(512) * y;
+00351     BENCH\_PERF(sqsumNorm);
+00352     BENCH\_PERF(stableNorm);
+00353     BENCH\_PERF(blueNorm);
+00354     BENCH\_PERF(pblueNorm);
+00355     BENCH\_PERF(lapackNorm);
+00356     BENCH\_PERF(hypotNorm);
+00357     BENCH\_PERF(twopassNorm);
+00358     BENCH\_PERF(bl2passNorm);
+00359   \}
+00360 \}
+\end{DoxyCode}

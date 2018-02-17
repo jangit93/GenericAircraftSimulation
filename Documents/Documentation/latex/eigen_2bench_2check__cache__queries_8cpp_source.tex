@@ -1,0 +1,106 @@
+\hypertarget{eigen_2bench_2check__cache__queries_8cpp_source}{}\section{eigen/bench/check\+\_\+cache\+\_\+queries.cpp}
+\label{eigen_2bench_2check__cache__queries_8cpp_source}\index{check\+\_\+cache\+\_\+queries.\+cpp@{check\+\_\+cache\+\_\+queries.\+cpp}}
+
+\begin{DoxyCode}
+00001 
+00002 \textcolor{preprocessor}{#define EIGEN\_INTERNAL\_DEBUG\_CACHE\_QUERY}
+00003 \textcolor{preprocessor}{#include <iostream>}
+00004 \textcolor{preprocessor}{#include "../Eigen/Core"}
+00005 
+00006 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00007 \textcolor{keyword}{using namespace }\hyperlink{namespacestd}{std};
+00008 
+00009 \textcolor{preprocessor}{#define DUMP\_CPUID(CODE) \{\(\backslash\)}
+00010 \textcolor{preprocessor}{  int abcd[4]; \(\backslash\)}
+00011 \textcolor{preprocessor}{  abcd[0] = abcd[1] = abcd[2] = abcd[3] = 0;\(\backslash\)}
+00012 \textcolor{preprocessor}{  EIGEN\_CPUID(abcd, CODE, 0); \(\backslash\)}
+00013 \textcolor{preprocessor}{  std::cout << "The code " << CODE << " gives " \(\backslash\)}
+00014 \textcolor{preprocessor}{              << (int*)(abcd[0]) << " " << (int*)(abcd[1]) << " " \(\backslash\)}
+00015 \textcolor{preprocessor}{              << (int*)(abcd[2]) << " " << (int*)(abcd[3]) << " " << std::endl; \(\backslash\)}
+00016 \textcolor{preprocessor}{  \}}
+00017   
+00018 \textcolor{keywordtype}{int} main()
+00019 \{
+00020   cout << \textcolor{stringliteral}{"Eigen's L1    = "} << internal::queryL1CacheSize() << endl;
+00021   cout << \textcolor{stringliteral}{"Eigen's L2/L3 = "} << internal::queryTopLevelCacheSize() << endl;
+00022   \textcolor{keywordtype}{int} l1, l2, l3;
+00023   internal::queryCacheSizes(l1, l2, l3);
+00024   cout << \textcolor{stringliteral}{"Eigen's L1, L2, L3       = "} << l1 << \textcolor{stringliteral}{" "} << l2 << \textcolor{stringliteral}{" "} << l3 << endl;
+00025   
+00026 \textcolor{preprocessor}{  #ifdef EIGEN\_CPUID}
+00027 
+00028   \textcolor{keywordtype}{int} abcd[4];
+00029   \textcolor{keywordtype}{int} \textcolor{keywordtype}{string}[8];
+00030   \textcolor{keywordtype}{char}* string\_char = (\textcolor{keywordtype}{char}*)(\textcolor{keywordtype}{string});
+00031 
+00032   \textcolor{comment}{// vendor ID}
+00033   EIGEN\_CPUID(abcd,0x0,0);
+00034   \textcolor{keywordtype}{string}[0] = abcd[1];
+00035   \textcolor{keywordtype}{string}[1] = abcd[3];
+00036   \textcolor{keywordtype}{string}[2] = abcd[2];
+00037   \textcolor{keywordtype}{string}[3] = 0;
+00038   cout << endl;
+00039   cout << \textcolor{stringliteral}{"vendor id = "} << string\_char << endl;
+00040   cout << endl;
+00041   \textcolor{keywordtype}{int} max\_funcs = abcd[0];
+00042 
+00043   internal::queryCacheSizes\_intel\_codes(l1, l2, l3);
+00044   cout << \textcolor{stringliteral}{"Eigen's intel codes L1, L2, L3 = "} << l1 << \textcolor{stringliteral}{" "} << l2 << \textcolor{stringliteral}{" "} << l3 << endl;
+00045   \textcolor{keywordflow}{if}(max\_funcs>=4)
+00046   \{
+00047     internal::queryCacheSizes\_intel\_direct(l1, l2, l3);
+00048     cout << \textcolor{stringliteral}{"Eigen's intel direct L1, L2, L3 = "} << l1 << \textcolor{stringliteral}{" "} << l2 << \textcolor{stringliteral}{" "} << l3 << endl;
+00049   \}
+00050   internal::queryCacheSizes\_amd(l1, l2, l3);
+00051   cout << \textcolor{stringliteral}{"Eigen's amd L1, L2, L3         = "} << l1 << \textcolor{stringliteral}{" "} << l2 << \textcolor{stringliteral}{" "} << l3 << endl;
+00052   cout << endl;
+00053   
+00054   \textcolor{comment}{// dump Intel direct method}
+00055   \textcolor{keywordflow}{if}(max\_funcs>=4)
+00056   \{
+00057     l1 = l2 = l3 = 0;
+00058     \textcolor{keywordtype}{int} cache\_id = 0;
+00059     \textcolor{keywordtype}{int} cache\_type = 0;
+00060     \textcolor{keywordflow}{do} \{
+00061       abcd[0] = abcd[1] = abcd[2] = abcd[3] = 0;
+00062       EIGEN\_CPUID(abcd,0x4,cache\_id);
+00063       cache\_type  = (abcd[0] & 0x0F) >> 0;
+00064       \textcolor{keywordtype}{int} cache\_level = (abcd[0] & 0xE0) >> 5;  \textcolor{comment}{// A[7:5]}
+00065       \textcolor{keywordtype}{int} ways        = (abcd[1] & 0xFFC00000) >> 22; \textcolor{comment}{// B[31:22]}
+00066       \textcolor{keywordtype}{int} partitions  = (abcd[1] & 0x003FF000) >> 12; \textcolor{comment}{// B[21:12]}
+00067       \textcolor{keywordtype}{int} line\_size   = (abcd[1] & 0x00000FFF) >>  0; \textcolor{comment}{// B[11:0]}
+00068       \textcolor{keywordtype}{int} sets        = (abcd[2]);                    \textcolor{comment}{// C[31:0]}
+00069       \textcolor{keywordtype}{int} cache\_size = (ways+1) * (partitions+1) * (line\_size+1) * (sets+1);
+00070       
+00071       cout << \textcolor{stringliteral}{"cache["} << cache\_id << \textcolor{stringliteral}{"].type       = "} << cache\_type << \textcolor{stringliteral}{"\(\backslash\)n"};
+00072       cout << \textcolor{stringliteral}{"cache["} << cache\_id << \textcolor{stringliteral}{"].level      = "} << cache\_level << \textcolor{stringliteral}{"\(\backslash\)n"};
+00073       cout << \textcolor{stringliteral}{"cache["} << cache\_id << \textcolor{stringliteral}{"].ways       = "} << ways << \textcolor{stringliteral}{"\(\backslash\)n"};
+00074       cout << \textcolor{stringliteral}{"cache["} << cache\_id << \textcolor{stringliteral}{"].partitions = "} << partitions << \textcolor{stringliteral}{"\(\backslash\)n"};
+00075       cout << \textcolor{stringliteral}{"cache["} << cache\_id << \textcolor{stringliteral}{"].line\_size  = "} << line\_size << \textcolor{stringliteral}{"\(\backslash\)n"};
+00076       cout << \textcolor{stringliteral}{"cache["} << cache\_id << \textcolor{stringliteral}{"].sets       = "} << sets << \textcolor{stringliteral}{"\(\backslash\)n"};
+00077       cout << \textcolor{stringliteral}{"cache["} << cache\_id << \textcolor{stringliteral}{"].size       = "} << cache\_size << \textcolor{stringliteral}{"\(\backslash\)n"};
+00078       
+00079       cache\_id++;
+00080     \} \textcolor{keywordflow}{while}(cache\_type>0 && cache\_id<16);
+00081   \}
+00082   
+00083   \textcolor{comment}{// dump everything}
+00084   std::cout << endl <<\textcolor{stringliteral}{"Raw dump:"} << endl;
+00085   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<max\_funcs; ++i)
+00086     DUMP\_CPUID(i);
+00087 
+00088   DUMP\_CPUID(0x80000000);
+00089   DUMP\_CPUID(0x80000001);
+00090   DUMP\_CPUID(0x80000002);
+00091   DUMP\_CPUID(0x80000003);
+00092   DUMP\_CPUID(0x80000004);
+00093   DUMP\_CPUID(0x80000005);
+00094   DUMP\_CPUID(0x80000006);
+00095   DUMP\_CPUID(0x80000007);
+00096   DUMP\_CPUID(0x80000008);
+00097 \textcolor{preprocessor}{  #else}
+00098   cout << \textcolor{stringliteral}{"EIGEN\_CPUID is not defined"} << endl;
+00099 \textcolor{preprocessor}{  #endif}
+00100   \textcolor{keywordflow}{return} 0;
+00101 \}
+\end{DoxyCode}

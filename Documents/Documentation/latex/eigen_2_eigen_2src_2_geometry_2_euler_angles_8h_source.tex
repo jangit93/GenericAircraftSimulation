@@ -1,0 +1,100 @@
+\hypertarget{eigen_2_eigen_2src_2_geometry_2_euler_angles_8h_source}{}\section{eigen/\+Eigen/src/\+Geometry/\+Euler\+Angles.h}
+\label{eigen_2_eigen_2src_2_geometry_2_euler_angles_8h_source}\index{Euler\+Angles.\+h@{Euler\+Angles.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_EULERANGLES\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_EULERANGLES\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00014 
+00035 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00036 EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} Matrix<typename MatrixBase<Derived>::Scalar,3,1>
+\Hypertarget{eigen_2_eigen_2src_2_geometry_2_euler_angles_8h_source_l00037}\hyperlink{group___geometry___module_ga24e8dc29689f0075ba5b1f90c02b76dc}{00037} \hyperlink{group___geometry___module_ga24e8dc29689f0075ba5b1f90c02b76dc}{MatrixBase<Derived>::eulerAngles}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} a0, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} a1, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} a2)\textcolor{keyword}{ const}
+00038 \textcolor{keyword}{}\{
+00039   EIGEN\_USING\_STD\_MATH(atan2)
+00040   EIGEN\_USING\_STD\_MATH(sin)
+00041   EIGEN\_USING\_STD\_MATH(cos)
+00042   \textcolor{comment}{/* Implemented from Graphics Gems IV */}
+00043   EIGEN\_STATIC\_ASSERT\_MATRIX\_SPECIFIC\_SIZE(Derived,3,3)
+00044 
+00045   \hyperlink{group___core___module}{Matrix<Scalar,3,1>} res;
+00046   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<typename Derived::Scalar,2,1>} Vector2;
+00047 
+00048   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} odd = ((a0+1)%3 == a1) ? 0 : 1;
+00049   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i = a0;
+00050   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j = (a0 + 1 + odd)%3;
+00051   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k = (a0 + 2 - odd)%3;
+00052   
+00053   \textcolor{keywordflow}{if} (a0==a2)
+00054   \{
+00055     res[0] = atan2(coeff(j,i), coeff(k,i));
+00056     \textcolor{keywordflow}{if}((odd && res[0]<\hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar}(0)) || ((!odd) && res[0]>\hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar}(0)))
+00057     \{
+00058       \textcolor{keywordflow}{if}(res[0] > \hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar}(0)) \{
+00059         res[0] -= \hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar}(EIGEN\_PI);
+00060       \}
+00061       \textcolor{keywordflow}{else} \{
+00062         res[0] += \hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar}(EIGEN\_PI);
+00063       \}
+00064       \hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar} s2 = Vector2(coeff(j,i), coeff(k,i)).norm();
+00065       res[1] = -atan2(s2, coeff(i,i));
+00066     \}
+00067     \textcolor{keywordflow}{else}
+00068     \{
+00069       \hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar} s2 = Vector2(coeff(j,i), coeff(k,i)).norm();
+00070       res[1] = atan2(s2, coeff(i,i));
+00071     \}
+00072     
+00073     \textcolor{comment}{// With a=(0,1,0), we have i=0; j=1; k=2, and after computing the first two angles,}
+00074     \textcolor{comment}{// we can compute their respective rotation, and apply its inverse to M. Since the result must}
+00075     \textcolor{comment}{// be a rotation around x, we have:}
+00076     \textcolor{comment}{//}
+00077     \textcolor{comment}{//  c2  s1.s2 c1.s2                   1  0   0 }
+00078     \textcolor{comment}{//  0   c1    -s1       *    M    =   0  c3  s3}
+00079     \textcolor{comment}{//  -s2 s1.c2 c1.c2                   0 -s3  c3}
+00080     \textcolor{comment}{//}
+00081     \textcolor{comment}{//  Thus:  m11.c1 - m21.s1 = c3  &   m12.c1 - m22.s1 = s3}
+00082     
+00083     \hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar} s1 = sin(res[0]);
+00084     \hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar} c1 = cos(res[0]);
+00085     res[2] = atan2(c1*coeff(j,k)-s1*coeff(k,k), c1*coeff(j,j) - s1 * coeff(k,j));
+00086   \} 
+00087   \textcolor{keywordflow}{else}
+00088   \{
+00089     res[0] = atan2(coeff(j,k), coeff(k,k));
+00090     \hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar} c2 = Vector2(coeff(i,i), coeff(i,j)).norm();
+00091     \textcolor{keywordflow}{if}((odd && res[0]<\hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar}(0)) || ((!odd) && res[0]>\hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar}(0))) \{
+00092       \textcolor{keywordflow}{if}(res[0] > \hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar}(0)) \{
+00093         res[0] -= \hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar}(EIGEN\_PI);
+00094       \}
+00095       \textcolor{keywordflow}{else} \{
+00096         res[0] += \hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar}(EIGEN\_PI);
+00097       \}
+00098       res[1] = atan2(-coeff(i,k), -c2);
+00099     \}
+00100     \textcolor{keywordflow}{else}
+00101       res[1] = atan2(-coeff(i,k), c2);
+00102     \hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar} s1 = sin(res[0]);
+00103     \hyperlink{group___core___module_a5feed465b3a8e60c47e73ecce83e39a2}{Scalar} c1 = cos(res[0]);
+00104     res[2] = atan2(s1*coeff(k,i)-c1*coeff(j,i), c1*coeff(j,j) - s1 * coeff(k,j));
+00105   \}
+00106   \textcolor{keywordflow}{if} (!odd)
+00107     res = -res;
+00108   
+00109   \textcolor{keywordflow}{return} res;
+00110 \}
+00111 
+00112 \} \textcolor{comment}{// end namespace Eigen}
+00113 
+00114 \textcolor{preprocessor}{#endif // EIGEN\_EULERANGLES\_H}
+\end{DoxyCode}

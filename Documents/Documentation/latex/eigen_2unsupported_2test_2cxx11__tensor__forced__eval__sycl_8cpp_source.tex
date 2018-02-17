@@ -1,0 +1,80 @@
+\hypertarget{eigen_2unsupported_2test_2cxx11__tensor__forced__eval__sycl_8cpp_source}{}\section{eigen/unsupported/test/cxx11\+\_\+tensor\+\_\+forced\+\_\+eval\+\_\+sycl.cpp}
+\label{eigen_2unsupported_2test_2cxx11__tensor__forced__eval__sycl_8cpp_source}\index{cxx11\+\_\+tensor\+\_\+forced\+\_\+eval\+\_\+sycl.\+cpp@{cxx11\+\_\+tensor\+\_\+forced\+\_\+eval\+\_\+sycl.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2016}
+00005 \textcolor{comment}{// Mehdi Goli    Codeplay Software Ltd.}
+00006 \textcolor{comment}{// Ralph Potter  Codeplay Software Ltd.}
+00007 \textcolor{comment}{// Luke Iwanski  Codeplay Software Ltd.}
+00008 \textcolor{comment}{// Contact: <eigen@codeplay.com>}
+00009 \textcolor{comment}{//}
+00010 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00011 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00012 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00013 
+00014 \textcolor{preprocessor}{#define EIGEN\_TEST\_NO\_LONGDOUBLE}
+00015 \textcolor{preprocessor}{#define EIGEN\_TEST\_NO\_COMPLEX}
+00016 \textcolor{preprocessor}{#define EIGEN\_TEST\_FUNC cxx11\_tensor\_forced\_eval\_sycl}
+00017 \textcolor{preprocessor}{#define EIGEN\_DEFAULT\_DENSE\_INDEX\_TYPE int}
+00018 \textcolor{preprocessor}{#define EIGEN\_USE\_SYCL}
+00019 
+00020 \textcolor{preprocessor}{#include "main.h"}
+00021 \textcolor{preprocessor}{#include <unsupported/Eigen/CXX11/Tensor>}
+00022 
+00023 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor};
+00024 
+00025 \textcolor{keywordtype}{void} test\_forced\_eval\_sycl(\textcolor{keyword}{const} Eigen::SyclDevice &sycl\_device) \{
+00026 
+00027   \textcolor{keywordtype}{int} sizeDim1 = 100;
+00028   \textcolor{keywordtype}{int} sizeDim2 = 200;
+00029   \textcolor{keywordtype}{int} sizeDim3 = 200;
+00030   \hyperlink{class_eigen_1_1array}{Eigen::array<int, 3>} tensorRange = \{\{sizeDim1, sizeDim2, sizeDim3\}\};
+00031   \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor<float, 3>} in1(tensorRange);
+00032   \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor<float, 3>} in2(tensorRange);
+00033   \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor<float, 3>} out(tensorRange);
+00034 
+00035   \textcolor{keywordtype}{float} * gpu\_in1\_data  = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}*\textcolor{keyword}{>}(sycl\_device.allocate(in1.dimensions().TotalSize()*\textcolor{keyword}{sizeof}(
+      float)));
+00036   \textcolor{keywordtype}{float} * gpu\_in2\_data  = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}*\textcolor{keyword}{>}(sycl\_device.allocate(in2.dimensions().TotalSize()*\textcolor{keyword}{sizeof}(
+      float)));
+00037   \textcolor{keywordtype}{float} * gpu\_out\_data =  \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}*\textcolor{keyword}{>}(sycl\_device.allocate(out.dimensions().TotalSize()*\textcolor{keyword}{sizeof}(
+      float)));
+00038 
+00039   in1 = in1.random() + in1.constant(10.0f);
+00040   in2 = in2.random() + in2.constant(10.0f);
+00041 
+00042   \textcolor{comment}{// creating TensorMap from tensor}
+00043   \hyperlink{class_eigen_1_1_tensor_map}{Eigen::TensorMap<Eigen::Tensor<float, 3>}> gpu\_in1(gpu\_in1\_data, 
+      tensorRange);
+00044   \hyperlink{class_eigen_1_1_tensor_map}{Eigen::TensorMap<Eigen::Tensor<float, 3>}> gpu\_in2(gpu\_in2\_data, 
+      tensorRange);
+00045   \hyperlink{class_eigen_1_1_tensor_map}{Eigen::TensorMap<Eigen::Tensor<float, 3>}> gpu\_out(gpu\_out\_data, 
+      tensorRange);
+00046   sycl\_device.memcpyHostToDevice(gpu\_in1\_data, in1.data(),(in1.dimensions().TotalSize())*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));
+00047   sycl\_device.memcpyHostToDevice(gpu\_in2\_data, in2.data(),(in1.dimensions().TotalSize())*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));
+00049   gpu\_out.device(sycl\_device) =(gpu\_in1 + gpu\_in2).eval() * gpu\_in2;
+00050   sycl\_device.memcpyDeviceToHost(out.data(), gpu\_out\_data,(out.dimensions().TotalSize())*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));
+00051   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < sizeDim1; ++i) \{
+00052     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < sizeDim2; ++j) \{
+00053       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < sizeDim3; ++k) \{
+00054         VERIFY\_IS\_APPROX(out(i, j, k),
+00055                          (in1(i, j, k) + in2(i, j, k)) * in2(i, j, k));
+00056       \}
+00057     \}
+00058   \}
+00059   printf(\textcolor{stringliteral}{"(a+b)*b Test Passed\(\backslash\)n"});
+00060   sycl\_device.deallocate(gpu\_in1\_data);
+00061   sycl\_device.deallocate(gpu\_in2\_data);
+00062   sycl\_device.deallocate(gpu\_out\_data);
+00063 
+00064 \}
+00065 
+00066 \textcolor{keywordtype}{void} test\_cxx11\_tensor\_forced\_eval\_sycl() \{
+00067   cl::sycl::gpu\_selector s;
+00068   Eigen::SyclDevice sycl\_device(s);
+00069   CALL\_SUBTEST(test\_forced\_eval\_sycl(sycl\_device));
+00070 \}
+\end{DoxyCode}

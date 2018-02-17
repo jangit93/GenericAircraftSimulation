@@ -1,0 +1,218 @@
+\hypertarget{eigen_2test_2sparse_8h_source}{}\section{eigen/test/sparse.h}
+\label{eigen_2test_2sparse_8h_source}\index{sparse.\+h@{sparse.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2011 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_TESTSPARSE\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_TESTSPARSE\_H}
+00012 
+00013 \textcolor{preprocessor}{#define EIGEN\_YES\_I\_KNOW\_SPARSE\_MODULE\_IS\_NOT\_STABLE\_YET}
+00014 
+00015 \textcolor{preprocessor}{#include "main.h"}
+00016 
+00017 \textcolor{preprocessor}{#if EIGEN\_GNUC\_AT\_LEAST(4,0) && !defined \_\_ICC && !defined(\_\_clang\_\_)}
+00018 
+00019 \textcolor{preprocessor}{#ifdef min}
+00020 \textcolor{preprocessor}{#undef min}
+00021 \textcolor{preprocessor}{#endif}
+00022 
+00023 \textcolor{preprocessor}{#ifdef max}
+00024 \textcolor{preprocessor}{#undef max}
+00025 \textcolor{preprocessor}{#endif}
+00026 
+00027 \textcolor{preprocessor}{#include <tr1/unordered\_map>}
+00028 \textcolor{preprocessor}{#define EIGEN\_UNORDERED\_MAP\_SUPPORT}
+00029 \textcolor{keyword}{namespace }\hyperlink{namespacestd}{std} \{
+00030   \textcolor{keyword}{using} std::tr1::unordered\_map;
+00031 \}
+00032 \textcolor{preprocessor}{#endif}
+00033 
+00034 \textcolor{preprocessor}{#ifdef EIGEN\_GOOGLEHASH\_SUPPORT}
+00035 \textcolor{preprocessor}{  #include <google/sparse\_hash\_map>}
+00036 \textcolor{preprocessor}{#endif}
+00037 
+00038 \textcolor{preprocessor}{#include <Eigen/Cholesky>}
+00039 \textcolor{preprocessor}{#include <Eigen/LU>}
+00040 \textcolor{preprocessor}{#include <Eigen/Sparse>}
+00041 
+00042 \textcolor{keyword}{enum} \{
+00043   ForceNonZeroDiag = 1,
+00044   MakeLowerTriangular = 2,
+00045   MakeUpperTriangular = 4,
+00046   ForceRealDiag = 8
+00047 \};
+00048 
+00049 \textcolor{comment}{/* Initializes both a sparse and dense matrix with same random values,}
+00050 \textcolor{comment}{ * and a ratio of \(\backslash\)a density non zero entries.}
+00051 \textcolor{comment}{ * \(\backslash\)param flags is a union of ForceNonZeroDiag, MakeLowerTriangular and MakeUpperTriangular}
+00052 \textcolor{comment}{ *        allowing to control the shape of the matrix.}
+00053 \textcolor{comment}{ * \(\backslash\)param zeroCoords and nonzeroCoords allows to get the coordinate lists of the non zero,}
+00054 \textcolor{comment}{ *        and zero coefficients respectively.}
+00055 \textcolor{comment}{ */}
+00056 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar,\textcolor{keywordtype}{int} Opt1,\textcolor{keywordtype}{int} Opt2,\textcolor{keyword}{typename} StorageIndex> \textcolor{keywordtype}{void}
+00057 initSparse(\textcolor{keywordtype}{double} density,
+00058            \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Dynamic,Dynamic,Opt1>}& refMat,
+00059            \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix}{SparseMatrix<Scalar,Opt2,StorageIndex>}& sparseMat,
+00060            \textcolor{keywordtype}{int} flags = 0,
+00061            std::vector<\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<StorageIndex,2,1>} >* zeroCoords = 0,
+00062            std::vector<\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<StorageIndex,2,1>} >* nonzeroCoords = 0)
+00063 \{
+00064   \textcolor{keyword}{enum} \{ IsRowMajor = \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix}{SparseMatrix<Scalar,Opt2,StorageIndex>::IsRowMajor}
+       \};
+00065   sparseMat.\hyperlink{group___sparse_core___module_ad3c7416090f913e8685523cb3ab7c2f7}{setZero}();
+00066   \textcolor{comment}{//sparseMat.reserve(int(refMat.rows()*refMat.cols()*density));}
+00067   sparseMat.\hyperlink{group___sparse_core___module_a1518e58ac49bed0e2385b722a034f7d3}{reserve}(VectorXi::Constant(IsRowMajor ? refMat.rows() : refMat.cols(), int((1.5*density)
+      *(IsRowMajor?refMat.cols():refMat.rows()))));
+00068   
+00069   \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j=0; j<sparseMat.\hyperlink{group___sparse_core___module_a4e5f706cfae14d2eaec1ea1e234905f1}{outerSize}(); j++)
+00070   \{
+00071     \textcolor{comment}{//sparseMat.startVec(j);}
+00072     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=0; i<sparseMat.\hyperlink{group___sparse_core___module_a0f42824d4a06ee1d1f6afbc4551c5896}{innerSize}(); i++)
+00073     \{
+00074       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} ai(i), aj(j);
+00075       \textcolor{keywordflow}{if}(IsRowMajor)
+00076         \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(ai,aj);
+00077       Scalar v = (internal::random<double>(0,1) < density) ? internal::random<Scalar>() : Scalar(0);
+00078       \textcolor{keywordflow}{if} ((flags&ForceNonZeroDiag) && (i==j))
+00079       \{
+00080         \textcolor{comment}{// FIXME: the following is too conservative}
+00081         v = internal::random<Scalar>()*Scalar(3.);
+00082         v = v*v;
+00083         \textcolor{keywordflow}{if}(numext::real(v)>0) v += Scalar(5);
+00084         \textcolor{keywordflow}{else}                  v -= Scalar(5);
+00085       \}
+00086       \textcolor{keywordflow}{if} ((flags & MakeLowerTriangular) && aj>ai)
+00087         v = Scalar(0);
+00088       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ((flags & MakeUpperTriangular) && aj<ai)
+00089         v = Scalar(0);
+00090 
+00091       \textcolor{keywordflow}{if} ((flags&ForceRealDiag) && (i==j))
+00092         v = numext::real(v);
+00093 
+00094       \textcolor{keywordflow}{if} (v!=Scalar(0))
+00095       \{
+00096         \textcolor{comment}{//sparseMat.insertBackByOuterInner(j,i) = v;}
+00097         sparseMat.insertByOuterInner(j,i) = v;
+00098         \textcolor{keywordflow}{if} (nonzeroCoords)
+00099           nonzeroCoords->push\_back(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<StorageIndex,2,1>} (ai,aj));
+00100       \}
+00101       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (zeroCoords)
+00102       \{
+00103         zeroCoords->push\_back(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<StorageIndex,2,1>} (ai,aj));
+00104       \}
+00105       refMat(ai,aj) = v;
+00106     \}
+00107   \}
+00108   \textcolor{comment}{//sparseMat.finalize();}
+00109 \}
+00110 
+00111 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar,\textcolor{keywordtype}{int} Opt1,\textcolor{keywordtype}{int} Opt2,\textcolor{keyword}{typename} Index> \textcolor{keywordtype}{void}
+00112 initSparse(\textcolor{keywordtype}{double} density,
+00113            \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Dynamic,Dynamic, Opt1>}& refMat,
+00114            \hyperlink{class_eigen_1_1_dynamic_sparse_matrix}{DynamicSparseMatrix<Scalar, Opt2, Index>}& sparseMat,
+00115            \textcolor{keywordtype}{int} flags = 0,
+00116            std::vector<\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Index,2,1>} >* zeroCoords = 0,
+00117            std::vector<\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Index,2,1>} >* nonzeroCoords = 0)
+00118 \{
+00119   \textcolor{keyword}{enum} \{ IsRowMajor = \hyperlink{class_eigen_1_1_dynamic_sparse_matrix}{DynamicSparseMatrix<Scalar,Opt2,Index>::IsRowMajor}
+       \};
+00120   sparseMat.setZero();
+00121   sparseMat.reserve(\textcolor{keywordtype}{int}(refMat.rows()*refMat.cols()*density));
+00122   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j=0; j<sparseMat.outerSize(); j++)
+00123   \{
+00124     sparseMat.\hyperlink{class_eigen_1_1_dynamic_sparse_matrix_a294b998a50cc01859425e5e7c23d6108}{startVec}(j); \textcolor{comment}{// not needed for DynamicSparseMatrix}
+00125     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<sparseMat.innerSize(); i++)
+00126     \{
+00127       \textcolor{keywordtype}{int} ai(i), aj(j);
+00128       \textcolor{keywordflow}{if}(IsRowMajor)
+00129         \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(ai,aj);
+00130       Scalar v = (internal::random<double>(0,1) < density) ? internal::random<Scalar>() : Scalar(0);
+00131       \textcolor{keywordflow}{if} ((flags&ForceNonZeroDiag) && (i==j))
+00132       \{
+00133         v = internal::random<Scalar>()*Scalar(3.);
+00134         v = v*v + Scalar(5.);
+00135       \}
+00136       \textcolor{keywordflow}{if} ((flags & MakeLowerTriangular) && aj>ai)
+00137         v = Scalar(0);
+00138       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ((flags & MakeUpperTriangular) && aj<ai)
+00139         v = Scalar(0);
+00140 
+00141       \textcolor{keywordflow}{if} ((flags&ForceRealDiag) && (i==j))
+00142         v = numext::real(v);
+00143 
+00144       \textcolor{keywordflow}{if} (v!=Scalar(0))
+00145       \{
+00146         sparseMat.\hyperlink{class_eigen_1_1_dynamic_sparse_matrix_ac97c2463058ae55d7f0ef21c851eb5f3}{insertBackByOuterInner}(j,i) = v;
+00147         \textcolor{keywordflow}{if} (nonzeroCoords)
+00148           nonzeroCoords->push\_back(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Index,2,1>} (ai,aj));
+00149       \}
+00150       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (zeroCoords)
+00151       \{
+00152         zeroCoords->push\_back(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Index,2,1>} (ai,aj));
+00153       \}
+00154       refMat(ai,aj) = v;
+00155     \}
+00156   \}
+00157   sparseMat.\hyperlink{class_eigen_1_1_dynamic_sparse_matrix_aa0abc0e4565143f103f0d7373bd4a125}{finalize}();
+00158 \}
+00159 
+00160 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar,\textcolor{keywordtype}{int} Options,\textcolor{keyword}{typename} Index> \textcolor{keywordtype}{void}
+00161 initSparse(\textcolor{keywordtype}{double} density,
+00162            \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,1>}& refVec,
+00163            \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_vector}{SparseVector<Scalar,Options,Index>}& sparseVec,
+00164            std::vector<int>* zeroCoords = 0,
+00165            std::vector<int>* nonzeroCoords = 0)
+00166 \{
+00167   sparseVec.reserve(\textcolor{keywordtype}{int}(refVec.size()*density));
+00168   sparseVec.setZero();
+00169   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<refVec.size(); i++)
+00170   \{
+00171     Scalar v = (internal::random<double>(0,1) < density) ? internal::random<Scalar>() : Scalar(0);
+00172     \textcolor{keywordflow}{if} (v!=Scalar(0))
+00173     \{
+00174       sparseVec.insertBack(i) = v;
+00175       \textcolor{keywordflow}{if} (nonzeroCoords)
+00176         nonzeroCoords->push\_back(i);
+00177     \}
+00178     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (zeroCoords)
+00179         zeroCoords->push\_back(i);
+00180     refVec[i] = v;
+00181   \}
+00182 \}
+00183 
+00184 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar,\textcolor{keywordtype}{int} Options,\textcolor{keyword}{typename} Index> \textcolor{keywordtype}{void}
+00185 initSparse(\textcolor{keywordtype}{double} density,
+00186            \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,1,Dynamic>}& refVec,
+00187            \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_vector}{SparseVector<Scalar,Options,Index>}& sparseVec,
+00188            std::vector<int>* zeroCoords = 0,
+00189            std::vector<int>* nonzeroCoords = 0)
+00190 \{
+00191   sparseVec.reserve(\textcolor{keywordtype}{int}(refVec.size()*density));
+00192   sparseVec.setZero();
+00193   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<refVec.size(); i++)
+00194   \{
+00195     Scalar v = (internal::random<double>(0,1) < density) ? internal::random<Scalar>() : Scalar(0);
+00196     \textcolor{keywordflow}{if} (v!=Scalar(0))
+00197     \{
+00198       sparseVec.insertBack(i) = v;
+00199       \textcolor{keywordflow}{if} (nonzeroCoords)
+00200         nonzeroCoords->push\_back(i);
+00201     \}
+00202     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (zeroCoords)
+00203         zeroCoords->push\_back(i);
+00204     refVec[i] = v;
+00205   \}
+00206 \}
+00207 
+00208 
+00209 \textcolor{preprocessor}{#include <unsupported/Eigen/SparseExtra>}
+00210 \textcolor{preprocessor}{#endif // EIGEN\_TESTSPARSE\_H}
+\end{DoxyCode}

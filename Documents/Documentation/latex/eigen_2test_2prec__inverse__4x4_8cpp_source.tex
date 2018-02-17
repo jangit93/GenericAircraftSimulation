@@ -1,0 +1,93 @@
+\hypertarget{eigen_2test_2prec__inverse__4x4_8cpp_source}{}\section{eigen/test/prec\+\_\+inverse\+\_\+4x4.cpp}
+\label{eigen_2test_2prec__inverse__4x4_8cpp_source}\index{prec\+\_\+inverse\+\_\+4x4.\+cpp@{prec\+\_\+inverse\+\_\+4x4.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2009 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 \textcolor{preprocessor}{#include <Eigen/LU>}
+00012 \textcolor{preprocessor}{#include <algorithm>}
+00013 
+00014 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} inverse\_permutation\_4x4()
+00015 \{
+00016   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00017   Vector4i indices(0,1,2,3);
+00018   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < 24; ++i)
+00019   \{
+00020     MatrixType m = \hyperlink{group___core___module_class_eigen_1_1_permutation_matrix}{PermutationMatrix<4>}(indices);
+00021     MatrixType inv = m.\hyperlink{group___core___module_adb9af427f317202366c2832876064eb3}{inverse}();
+00022     \textcolor{keywordtype}{double} error = double( (m*inv-MatrixType::Identity()).norm() / 
+      \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::epsilon}() );
+00023     EIGEN\_DEBUG\_VAR(error)
+00024     VERIFY(error == 0.0);
+00025     std::next\_permutation(indices.data(),indices.data()+4);
+00026   \}
+00027 \}
+00028 
+00029 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} inverse\_general\_4x4(\textcolor{keywordtype}{int} repeat)
+00030 \{
+00031   \textcolor{keyword}{using} std::abs;
+00032   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00033   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00034   \textcolor{keywordtype}{double} error\_sum = 0., error\_max = 0.;
+00035   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < repeat; ++i)
+00036   \{
+00037     MatrixType m;
+00038     RealScalar absdet;
+00039     \textcolor{keywordflow}{do} \{
+00040       m = MatrixType::Random();
+00041       absdet = abs(m.determinant());
+00042     \} \textcolor{keywordflow}{while}(absdet < \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::epsilon}());
+00043     MatrixType inv = m.\hyperlink{group___core___module_adb9af427f317202366c2832876064eb3}{inverse}();
+00044     \textcolor{keywordtype}{double} error = double( (m*inv-MatrixType::Identity()).norm() * absdet / 
+      \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::epsilon}() );
+00045     error\_sum += error;
+00046     error\_max = (std::max)(error\_max, error);
+00047   \}
+00048   std::cerr << \textcolor{stringliteral}{"inverse\_general\_4x4, Scalar = "} << type\_name<Scalar>() << std::endl;
+00049   \textcolor{keywordtype}{double} error\_avg = error\_sum / repeat;
+00050   EIGEN\_DEBUG\_VAR(error\_avg);
+00051   EIGEN\_DEBUG\_VAR(error\_max);
+00052    \textcolor{comment}{// FIXME that 1.25 used to be a 1.0 until the NumTraits changes on 28 April 2010, what's going wrong??}
+00053    \textcolor{comment}{// FIXME that 1.25 used to be 1.2 until we tested gcc 4.1 on 30 June 2010 and got 1.21.}
+00054   VERIFY(error\_avg < (\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsComplex} ? 8.0 : 1.25));
+00055   VERIFY(error\_max < (\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsComplex} ? 64.0 : 20.0));
+00056 
+00057   \{
+00058     \textcolor{keywordtype}{int} s = 5;\textcolor{comment}{//internal::random<int>(4,10);}
+00059     \textcolor{keywordtype}{int} i = 0;\textcolor{comment}{//internal::random<int>(0,s-4);}
+00060     \textcolor{keywordtype}{int} j = 0;\textcolor{comment}{//internal::random<int>(0,s-4);}
+00061     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,5,5>} mat(s,s);
+00062     mat.setRandom();
+00063     MatrixType submat = mat.template block<4,4>(i,j);
+00064     MatrixType mat\_inv = mat.template block<4,4>(i,j).inverse();
+00065     VERIFY\_IS\_APPROX(mat\_inv, submat.inverse());
+00066     mat.template block<4,4>(i,j) = submat.inverse();
+00067     VERIFY\_IS\_APPROX(mat\_inv, (mat.template block<4,4>(i,j)));
+00068   \}
+00069 \}
+00070 
+00071 \textcolor{keywordtype}{void} test\_prec\_inverse\_4x4()
+00072 \{
+00073   CALL\_SUBTEST\_1((inverse\_permutation\_4x4<Matrix4f>()));
+00074   CALL\_SUBTEST\_1(( inverse\_general\_4x4<Matrix4f>(200000 * g\_repeat) ));
+00075   CALL\_SUBTEST\_1(( inverse\_general\_4x4<\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,4,4,RowMajor>} >(200000 * 
+      g\_repeat) ));
+00076 
+00077   CALL\_SUBTEST\_2((inverse\_permutation\_4x4<\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,4,4,RowMajor>} >()));
+00078   CALL\_SUBTEST\_2(( inverse\_general\_4x4<\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,4,4,ColMajor>} >(200000 * 
+      g\_repeat) ));
+00079   CALL\_SUBTEST\_2(( inverse\_general\_4x4<\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,4,4,RowMajor>} >(200000 * 
+      g\_repeat) ));
+00080 
+00081   CALL\_SUBTEST\_3((inverse\_permutation\_4x4<Matrix4cf>()));
+00082   CALL\_SUBTEST\_3((inverse\_general\_4x4<Matrix4cf>(50000 * g\_repeat)));
+00083 \}
+\end{DoxyCode}

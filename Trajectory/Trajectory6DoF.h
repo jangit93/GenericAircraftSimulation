@@ -15,6 +15,8 @@
 #include"Engine.h"
 #include"Aerodynamic.h"
 #include"Airframe.h"
+#include"Autopilot.h"
+#include"Guidance.h"
 #include<iostream>
 
 class Trajectory6Dof : public Trajectory3Dof
@@ -23,26 +25,53 @@ public:
 	Trajectory6Dof();
 
 	~Trajectory6Dof();
-	/*
-	void initTrajectory(AerodynamicStruct & AeroData,
-		AirframeStruct & AirframeData,
-		ThrustStruct & ThrustData,
-		AircraftStruct &AircraftData,
-		AutopilotStruct & AutopilotData,
-		GuidanceStruct & GuidanceData);
 
-	void updateTrajectory(Float64 FlightTime,
-		AtmosphereStruct & AtmoData,
-		AerodynamicStruct & AeroData,
-		AirframeStruct & AirframeData,
-		ThrustStruct & ThrustData,
-		AutopilotStruct & AutopilotData,
-		GuidanceStruct & GuidanceData);
-*/
+
+	virtual void initTrajectory(Float64 FlightTime, 
+								AerodynamicStruct & AeroData,
+								AirframeStruct & AirframeData,
+								ThrustStruct & ThrustData,
+								AircraftStruct &AircraftData,
+								GuidanceStruct & GuidanceData,
+								NavigationStruct &NavData,
+								ActuatorStruct &ActuatorData,
+								IMUStruct &IMUData);
+	
+	 void initTrajectory6Dof(Float64 FlightTime,
+								AerodynamicStruct & AeroData,
+								AirframeStruct & AirframeData,
+								ThrustStruct & ThrustData,
+								AircraftStruct &AircraftData,
+								GuidanceStruct & GuidanceData,
+								NavigationStruct &NavData);
+	
+	virtual void updateTrajectory(Float64 FlightTime,
+						AtmosphereStruct & AtmoData,
+						AerodynamicStruct & AeroData,
+						AirframeStruct & AirframeData,
+						ThrustStruct & ThrustData,
+						GuidanceStruct & GuidanceData,
+						NavigationStruct &NavData,
+						ActuatorStruct &ActuatorData,
+						IMUStruct &IMUData);
+
+	void updateTrajectory6Dof(Float64 FlightTime,
+							AtmosphereStruct & AtmoData,
+							AerodynamicStruct & AeroData,
+							AirframeStruct & AirframeData,
+							ThrustStruct & ThrustData,
+							GuidanceStruct & GuidanceData,
+							NavigationStruct &NavData);
+
+
+
+
+
+
 private:
-	//Engine * engine;
-	//Aerodynamics *aerodynamics;
-	//Airframe     *airframe;
+	Autopilot * autopilot;
+	Guidance  *guidance;
+	Airframe     *airframe;
 	
 };
 

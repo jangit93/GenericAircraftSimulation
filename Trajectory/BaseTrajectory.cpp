@@ -8,12 +8,15 @@ BaseTrajectory::~BaseTrajectory()
 {
 }
 
-void BaseTrajectory::initTrajectory(AerodynamicStruct & AeroData,
+void BaseTrajectory::initTrajectory(Float64 FlightTime, 
+									AerodynamicStruct & AeroData,
 									AirframeStruct & AirframeData,
 									ThrustStruct & ThrustData,
 									AircraftStruct &AircraftData,
-									AutopilotStruct & AutopilotData,
-									GuidanceStruct & GuidanceData)
+									GuidanceStruct & GuidanceData,
+									NavigationStruct &NavData,
+									ActuatorStruct &ActuatorData,
+									IMUStruct &IMUData)
 {
 
 }
@@ -22,9 +25,11 @@ void BaseTrajectory::updateTrajectory(Float64 FlightTime,
 									  AtmosphereStruct & AtmoData, 
 									  AerodynamicStruct & AeroData,	
 									  AirframeStruct & AirframeData, 
-									  ThrustStruct & ThrustData, 
-									  AutopilotStruct & AutopilotData, 
-									  GuidanceStruct & GuidanceData)
+									  ThrustStruct & ThrustData,
+									  GuidanceStruct & GuidanceData,
+										NavigationStruct &NavData,
+										ActuatorStruct &ActuatorData,
+										IMUStruct &IMUData)
 {
 
 }

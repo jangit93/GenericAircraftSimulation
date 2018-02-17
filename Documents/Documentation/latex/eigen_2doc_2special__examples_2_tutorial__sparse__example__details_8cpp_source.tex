@@ -1,0 +1,51 @@
+\hypertarget{eigen_2doc_2special__examples_2_tutorial__sparse__example__details_8cpp_source}{}\section{eigen/doc/special\+\_\+examples/\+Tutorial\+\_\+sparse\+\_\+example\+\_\+details.cpp}
+\label{eigen_2doc_2special__examples_2_tutorial__sparse__example__details_8cpp_source}\index{Tutorial\+\_\+sparse\+\_\+example\+\_\+details.\+cpp@{Tutorial\+\_\+sparse\+\_\+example\+\_\+details.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{preprocessor}{#include <Eigen/Sparse>}
+00002 \textcolor{preprocessor}{#include <vector>}
+00003 \textcolor{preprocessor}{#include <QImage>}
+00004 
+00005 \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module}{Eigen::SparseMatrix<double>} \hyperlink{group___sparse_core___module}{SpMat}; \textcolor{comment}{// declares a column-major
+       sparse matrix type of double}
+00006 \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module}{Eigen::Triplet<double>} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T};
+00007 
+00008 \textcolor{keywordtype}{void} insertCoefficient(\textcolor{keywordtype}{int} \textcolor{keywordtype}{id}, \textcolor{keywordtype}{int} i, \textcolor{keywordtype}{int} j, \textcolor{keywordtype}{double} w, std::vector<T>& coeffs,
+00009                        Eigen::VectorXd& b, \textcolor{keyword}{const} Eigen::VectorXd& boundary)
+00010 \{
+00011   \textcolor{keywordtype}{int} n = int(boundary.size());
+00012   \textcolor{keywordtype}{int} id1 = i+j*n;
+00013 
+00014         \textcolor{keywordflow}{if}(i==-1 || i==n) b(\textcolor{keywordtype}{id}) -= w * boundary(j); \textcolor{comment}{// constrained coefficient}
+00015   \textcolor{keywordflow}{else}  \textcolor{keywordflow}{if}(j==-1 || j==n) b(\textcolor{keywordtype}{id}) -= w * boundary(i); \textcolor{comment}{// constrained coefficient}
+00016   \textcolor{keywordflow}{else}  coeffs.push\_back(\hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}(\textcolor{keywordtype}{id},id1,w));              \textcolor{comment}{// unknown coefficient}
+00017 \}
+00018 
+00019 \textcolor{keywordtype}{void} buildProblem(std::vector<T>& coefficients, Eigen::VectorXd& b, \textcolor{keywordtype}{int} n)
+00020 \{
+00021   b.setZero();
+00022   Eigen::ArrayXd boundary = Eigen::ArrayXd::LinSpaced(n, 0,M\_PI).sin().pow(2);
+00023   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j=0; j<n; ++j)
+00024   \{
+00025     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<n; ++i)
+00026     \{
+00027       \textcolor{keywordtype}{int} \textcolor{keywordtype}{id} = i+j*n;
+00028       insertCoefficient(\textcolor{keywordtype}{id}, i-1,j, -1, coefficients, b, boundary);
+00029       insertCoefficient(\textcolor{keywordtype}{id}, i+1,j, -1, coefficients, b, boundary);
+00030       insertCoefficient(\textcolor{keywordtype}{id}, i,j-1, -1, coefficients, b, boundary);
+00031       insertCoefficient(\textcolor{keywordtype}{id}, i,j+1, -1, coefficients, b, boundary);
+00032       insertCoefficient(\textcolor{keywordtype}{id}, i,j,    4, coefficients, b, boundary);
+00033     \}
+00034   \}
+00035 \}
+00036 
+00037 \textcolor{keywordtype}{void} saveAsBitmap(\textcolor{keyword}{const} Eigen::VectorXd& x, \textcolor{keywordtype}{int} n, \textcolor{keyword}{const} \textcolor{keywordtype}{char}* filename)
+00038 \{
+00039   \hyperlink{group___core___module_class_eigen_1_1_array}{Eigen::Array<unsigned char,Eigen::Dynamic,Eigen::Dynamic>}
+       bits = (x*255).cast<unsigned char>();
+00040   QImage img(bits.\hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}(), n,n,QImage::Format\_Indexed8);
+00041   img.setColorCount(256);
+00042   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0;i<256;i++) img.setColor(i,qRgb(i,i,i));
+00043   img.save(filename);
+00044 \}
+\end{DoxyCode}

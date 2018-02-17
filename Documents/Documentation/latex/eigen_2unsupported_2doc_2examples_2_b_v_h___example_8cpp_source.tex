@@ -1,0 +1,64 @@
+\hypertarget{eigen_2unsupported_2doc_2examples_2_b_v_h___example_8cpp_source}{}\section{eigen/unsupported/doc/examples/\+B\+V\+H\+\_\+\+Example.cpp}
+\label{eigen_2unsupported_2doc_2examples_2_b_v_h___example_8cpp_source}\index{B\+V\+H\+\_\+\+Example.\+cpp@{B\+V\+H\+\_\+\+Example.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{preprocessor}{#include <Eigen/StdVector>}
+00002 \textcolor{preprocessor}{#include <unsupported/Eigen/BVH>}
+00003 \textcolor{preprocessor}{#include <iostream>}
+00004 
+00005 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00006 \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_aligned_box}{AlignedBox<double, 2>} \hyperlink{group___geometry___module_class_eigen_1_1_aligned_box}{Box2d};
+00007 
+00008 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00009   \hyperlink{group___geometry___module_class_eigen_1_1_aligned_box}{Box2d} bounding\_box(\textcolor{keyword}{const} Vector2d &v) \{ \textcolor{keywordflow}{return} \hyperlink{group___geometry___module_class_eigen_1_1_aligned_box}{Box2d}(v, v); \} \textcolor{comment}{//compute the bounding box of a
+       single point}
+00010 \}
+00011 
+\Hypertarget{eigen_2unsupported_2doc_2examples_2_b_v_h___example_8cpp_source_l00012}\hyperlink{struct_point_point_minimizer}{00012} \textcolor{keyword}{struct }\hyperlink{struct_point_point_minimizer}{PointPointMinimizer} \textcolor{comment}{//how to compute squared distances between points and
+       rectangles}
+00013 \{
+00014   \hyperlink{struct_point_point_minimizer}{PointPointMinimizer}() : calls(0) \{\}
+00015   \textcolor{keyword}{typedef} \textcolor{keywordtype}{double} Scalar;
+00016 
+00017   \textcolor{keywordtype}{double} minimumOnVolumeVolume(\textcolor{keyword}{const} \hyperlink{group___geometry___module_class_eigen_1_1_aligned_box}{Box2d} &r1, \textcolor{keyword}{const} \hyperlink{group___geometry___module_class_eigen_1_1_aligned_box}{Box2d} &r2) \{ ++calls; \textcolor{keywordflow}{return} r1.
+      \hyperlink{group___geometry___module_aa6d9ffc81bd77da631fef6559f45cf13}{squaredExteriorDistance}(r2); \}
+00018   \textcolor{keywordtype}{double} minimumOnVolumeObject(\textcolor{keyword}{const} \hyperlink{group___geometry___module_class_eigen_1_1_aligned_box}{Box2d} &r, \textcolor{keyword}{const} Vector2d &v) \{ ++calls; \textcolor{keywordflow}{return} r.
+      \hyperlink{group___geometry___module_aa6d9ffc81bd77da631fef6559f45cf13}{squaredExteriorDistance}(v); \}
+00019   \textcolor{keywordtype}{double} minimumOnObjectVolume(\textcolor{keyword}{const} Vector2d &v, \textcolor{keyword}{const} \hyperlink{group___geometry___module_class_eigen_1_1_aligned_box}{Box2d} &r) \{ ++calls; \textcolor{keywordflow}{return} r.
+      \hyperlink{group___geometry___module_aa6d9ffc81bd77da631fef6559f45cf13}{squaredExteriorDistance}(v); \}
+00020   \textcolor{keywordtype}{double} minimumOnObjectObject(\textcolor{keyword}{const} Vector2d &v1, \textcolor{keyword}{const} Vector2d &v2) \{ ++calls; \textcolor{keywordflow}{return} (v1 - v2).
+      squaredNorm(); \}
+00021 
+00022   \textcolor{keywordtype}{int} calls;
+00023 \};
+00024 
+00025 \textcolor{keywordtype}{int} main()
+00026 \{
+00027   \textcolor{keyword}{typedef} std::vector<Vector2d, aligned\_allocator<Vector2d> > StdVectorOfVector2d;
+00028   StdVectorOfVector2d redPoints, bluePoints;
+00029   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < 100; ++i) \{ \textcolor{comment}{//initialize random set of red points and blue points}
+00030     redPoints.push\_back(Vector2d::Random());
+00031     bluePoints.push\_back(Vector2d::Random());
+00032   \}
+00033 
+00034   \hyperlink{struct_point_point_minimizer}{PointPointMinimizer} minimizer;
+00035   \textcolor{keywordtype}{double} minDistSq = std::numeric\_limits<double>::max();
+00036 
+00037   \textcolor{comment}{//brute force to find closest red-blue pair}
+00038   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < (int)redPoints.size(); ++i)
+00039     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j = 0; j < (int)bluePoints.size(); ++j)
+00040       minDistSq = std::min(minDistSq, minimizer.minimumOnObjectObject(redPoints[i], bluePoints[j]));
+00041   std::cout << \textcolor{stringliteral}{"Brute force distance = "} << sqrt(minDistSq) << \textcolor{stringliteral}{", calls = "} << minimizer.calls << std::endl
+      ;
+00042 
+00043   \textcolor{comment}{//using BVH to find closest red-blue pair}
+00044   minimizer.calls = 0;
+00045   \hyperlink{class_eigen_1_1_kd_b_v_h}{KdBVH<double, 2, Vector2d>} redTree(redPoints.begin(), redPoints.end()), 
+      blueTree(bluePoints.begin(), bluePoints.end()); \textcolor{comment}{//construct the trees}
+00046   minDistSq = \hyperlink{namespace_eigen_adcbe73ac1482eacab0e18ee32c25508e}{BVMinimize}(redTree, blueTree, minimizer); \textcolor{comment}{//actual BVH minimization call}
+00047   std::cout << \textcolor{stringliteral}{"BVH distance         = "} << sqrt(minDistSq) << \textcolor{stringliteral}{", calls = "} << minimizer.calls << std::endl
+      ;
+00048 
+00049   \textcolor{keywordflow}{return} 0;
+00050 \}
+\end{DoxyCode}

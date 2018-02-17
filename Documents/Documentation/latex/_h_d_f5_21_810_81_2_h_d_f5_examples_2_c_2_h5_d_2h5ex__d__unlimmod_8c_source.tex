@@ -1,0 +1,224 @@
+\hypertarget{_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_d_2h5ex__d__unlimmod_8c_source}{}\section{H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+C/\+H5\+D/h5ex\+\_\+d\+\_\+unlimmod.c}
+\label{_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_d_2h5ex__d__unlimmod_8c_source}\index{h5ex\+\_\+d\+\_\+unlimmod.\+c@{h5ex\+\_\+d\+\_\+unlimmod.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/************************************************************}
+00002 \textcolor{comment}{}
+00003 \textcolor{comment}{  This example shows how to create and extend an unlimited}
+00004 \textcolor{comment}{  dataset.  The program first writes integers to a dataset}
+00005 \textcolor{comment}{  with dataspace dimensions of DIM0xDIM1, then closes the}
+00006 \textcolor{comment}{  file.  Next, it reopens the file, reads back the data,}
+00007 \textcolor{comment}{  outputs it to the screen, extends the dataset, and writes}
+00008 \textcolor{comment}{  new data to the entire extended dataset.  Finally it}
+00009 \textcolor{comment}{  reopens the file again, reads back the data, and utputs it}
+00010 \textcolor{comment}{  to the screen.}
+00011 \textcolor{comment}{}
+00012 \textcolor{comment}{  This file is intended for use with HDF5 Library version 1.8}
+00013 \textcolor{comment}{}
+00014 \textcolor{comment}{ ************************************************************/}
+00015 
+00016 \textcolor{preprocessor}{#include "hdf5.h"}
+00017 \textcolor{preprocessor}{#include <stdio.h>}
+00018 \textcolor{preprocessor}{#include <stdlib.h>}
+00019 
+00020 \textcolor{preprocessor}{#define FILE            "h5ex\_d\_unlimmod.h5"}
+00021 \textcolor{preprocessor}{#define DATASET         "DS1"}
+00022 \textcolor{preprocessor}{#define DIM0            4}
+00023 \textcolor{preprocessor}{#define DIM1            7}
+00024 \textcolor{preprocessor}{#define EDIM0           6}
+00025 \textcolor{preprocessor}{#define EDIM1           10}
+00026 \textcolor{preprocessor}{#define CHUNK0          4}
+00027 \textcolor{preprocessor}{#define CHUNK1          4}
+00028 
+00029 \textcolor{keywordtype}{int}
+00030 main (\textcolor{keywordtype}{void})
+00031 \{
+00032     hid\_t           \hyperlink{structfile}{file}, space, dset, dcpl;    \textcolor{comment}{/* Handles */}
+00033     herr\_t          status;
+00034     hsize\_t         dims[2] = \{DIM0, DIM1\},
+00035                     extdims[2] = \{EDIM0, EDIM1\},
+00036                     maxdims[2],
+00037                     chunk[2] = \{CHUNK0, CHUNK1\};
+00038     \textcolor{keywordtype}{int}             wdata[DIM0][DIM1],          \textcolor{comment}{/* Write buffer */}
+00039                     wdata2[EDIM0][EDIM1],       \textcolor{comment}{/* Write buffer for}
+00040 \textcolor{comment}{                                                   extension */}
+00041                     **rdata,                    \textcolor{comment}{/* Read buffer */}
+00042                     ndims,
+00043                     i, j;
+00044 
+00045     \textcolor{comment}{/*}
+00046 \textcolor{comment}{     * Initialize data.}
+00047 \textcolor{comment}{     */}
+00048     \textcolor{keywordflow}{for} (i=0; i<DIM0; i++)
+00049         \textcolor{keywordflow}{for} (j=0; j<DIM1; j++)
+00050             wdata[i][j] = i * j - j;
+00051 
+00052     \textcolor{comment}{/*}
+00053 \textcolor{comment}{     * Create a new file using the default properties.}
+00054 \textcolor{comment}{     */}
+00055     file = H5Fcreate (FILE, H5F\_ACC\_TRUNC, H5P\_DEFAULT, H5P\_DEFAULT);
+00056 
+00057     \textcolor{comment}{/*}
+00058 \textcolor{comment}{     * Create dataspace with unlimited dimensions.}
+00059 \textcolor{comment}{     */}
+00060     maxdims[0] = H5S\_UNLIMITED;
+00061     maxdims[1] = H5S\_UNLIMITED;
+00062     space = H5Screate\_simple (2, dims, maxdims);
+00063 
+00064     \textcolor{comment}{/*}
+00065 \textcolor{comment}{     * Create the dataset creation property list, and set the chunk}
+00066 \textcolor{comment}{     * size.}
+00067 \textcolor{comment}{     */}
+00068     dcpl = H5Pcreate (H5P\_DATASET\_CREATE);
+00069     status = H5Pset\_chunk (dcpl, 2, chunk);
+00070 
+00071     \textcolor{comment}{/*}
+00072 \textcolor{comment}{     * Create the unlimited dataset.}
+00073 \textcolor{comment}{     */}
+00074     dset = H5Dcreate (file, DATASET, H5T\_STD\_I32LE, space, H5P\_DEFAULT, dcpl,
+00075                 H5P\_DEFAULT);
+00076 
+00077     \textcolor{comment}{/*}
+00078 \textcolor{comment}{     * Write the data to the dataset.}
+00079 \textcolor{comment}{     */}
+00080     status = H5Dwrite (dset, H5T\_NATIVE\_INT, H5S\_ALL, H5S\_ALL, H5P\_DEFAULT,
+00081                 wdata[0]);
+00082 
+00083     \textcolor{comment}{/*}
+00084 \textcolor{comment}{     * Close and release resources.}
+00085 \textcolor{comment}{     */}
+00086     status = H5Pclose (dcpl);
+00087     status = H5Dclose (dset);
+00088     status = H5Sclose (space);
+00089     status = H5Fclose (file);
+00090 
+00091 
+00092     \textcolor{comment}{/*}
+00093 \textcolor{comment}{     * In this next section we read back the data, extend the dataset,}
+00094 \textcolor{comment}{     * and write new data to the entire dataset.}
+00095 \textcolor{comment}{     */}
+00096 
+00097     \textcolor{comment}{/*}
+00098 \textcolor{comment}{     * Open file and dataset using the default properties.}
+00099 \textcolor{comment}{     */}
+00100     file = H5Fopen (FILE, H5F\_ACC\_RDWR, H5P\_DEFAULT);
+00101     dset = H5Dopen (file, DATASET, H5P\_DEFAULT);
+00102 
+00103     \textcolor{comment}{/*}
+00104 \textcolor{comment}{     * Get dataspace and allocate memory for read buffer.  This is a}
+00105 \textcolor{comment}{     * two dimensional dataset so the dynamic allocation must be done}
+00106 \textcolor{comment}{     * in steps.}
+00107 \textcolor{comment}{     */}
+00108     space = H5Dget\_space (dset);
+00109     ndims = H5Sget\_simple\_extent\_dims (space, dims, NULL);
+00110 
+00111     \textcolor{comment}{/*}
+00112 \textcolor{comment}{     * Allocate array of pointers to rows.}
+00113 \textcolor{comment}{     */}
+00114     rdata = (\textcolor{keywordtype}{int} **) malloc (dims[0] * \textcolor{keyword}{sizeof} (\textcolor{keywordtype}{int} *));
+00115 
+00116     \textcolor{comment}{/*}
+00117 \textcolor{comment}{     * Allocate space for integer data.}
+00118 \textcolor{comment}{     */}
+00119     rdata[0] = (\textcolor{keywordtype}{int} *) malloc (dims[0] * dims[1] * \textcolor{keyword}{sizeof} (\textcolor{keywordtype}{int}));
+00120 
+00121     \textcolor{comment}{/*}
+00122 \textcolor{comment}{     * Set the rest of the pointers to rows to the correct addresses.}
+00123 \textcolor{comment}{     */}
+00124     \textcolor{keywordflow}{for} (i=1; i<dims[0]; i++)
+00125         rdata[i] = rdata[0] + i * dims[1];
+00126 
+00127     \textcolor{comment}{/*}
+00128 \textcolor{comment}{     * Read the data using the default properties.}
+00129 \textcolor{comment}{     */}
+00130     status = H5Dread (dset, H5T\_NATIVE\_INT, H5S\_ALL, H5S\_ALL, H5P\_DEFAULT,
+00131                 rdata[0]);
+00132 
+00133     \textcolor{comment}{/*}
+00134 \textcolor{comment}{     * Output the data to the screen.}
+00135 \textcolor{comment}{     */}
+00136     printf (\textcolor{stringliteral}{"Dataset before extension:\(\backslash\)n"});
+00137     \textcolor{keywordflow}{for} (i=0; i<dims[0]; i++) \{
+00138         printf (\textcolor{stringliteral}{" ["});
+00139         \textcolor{keywordflow}{for} (j=0; j<dims[1]; j++)
+00140             printf (\textcolor{stringliteral}{" %3d"}, rdata[i][j]);
+00141         printf (\textcolor{stringliteral}{"]\(\backslash\)n"});
+00142     \}
+00143 
+00144     \textcolor{comment}{/*}
+00145 \textcolor{comment}{     * Extend the dataset.}
+00146 \textcolor{comment}{     */}
+00147     status = H5Dset\_extent (dset, extdims);
+00148 
+00149     \textcolor{comment}{/*}
+00150 \textcolor{comment}{     * Initialize data for writing to the extended dataset.}
+00151 \textcolor{comment}{     */}
+00152     \textcolor{keywordflow}{for} (i=0; i<EDIM0; i++)
+00153         \textcolor{keywordflow}{for} (j=0; j<EDIM1; j++)
+00154             wdata2[i][j] = j;
+00155 
+00156     \textcolor{comment}{/*}
+00157 \textcolor{comment}{     * Write the data to the extended dataset.}
+00158 \textcolor{comment}{     */}
+00159     status = H5Dwrite (dset, H5T\_NATIVE\_INT, H5S\_ALL, H5S\_ALL, H5P\_DEFAULT,
+00160                 wdata2[0]);
+00161 
+00162     \textcolor{comment}{/*}
+00163 \textcolor{comment}{     * Close and release resources.}
+00164 \textcolor{comment}{     */}
+00165     free (rdata[0]);
+00166     free(rdata);
+00167     status = H5Dclose (dset);
+00168     status = H5Sclose (space);
+00169     status = H5Fclose (file);
+00170 
+00171 
+00172     \textcolor{comment}{/*}
+00173 \textcolor{comment}{     * Now we simply read back the data and output it to the screen.}
+00174 \textcolor{comment}{     */}
+00175 
+00176     \textcolor{comment}{/*}
+00177 \textcolor{comment}{     * Open file and dataset using the default properties.}
+00178 \textcolor{comment}{     */}
+00179     file = H5Fopen (FILE, H5F\_ACC\_RDONLY, H5P\_DEFAULT);
+00180     dset = H5Dopen (file, DATASET, H5P\_DEFAULT);
+00181 
+00182     \textcolor{comment}{/*}
+00183 \textcolor{comment}{     * Get dataspace and allocate memory for the read buffer as before.}
+00184 \textcolor{comment}{     */}
+00185     space = H5Dget\_space (dset);
+00186     ndims = H5Sget\_simple\_extent\_dims (space, dims, NULL);
+00187     rdata = (\textcolor{keywordtype}{int} **) malloc (dims[0] * \textcolor{keyword}{sizeof} (\textcolor{keywordtype}{int} *));
+00188     rdata[0] = (\textcolor{keywordtype}{int} *) malloc (dims[0] * dims[1] * \textcolor{keyword}{sizeof} (\textcolor{keywordtype}{int}));
+00189     \textcolor{keywordflow}{for} (i=1; i<dims[0]; i++)
+00190         rdata[i] = rdata[0] + i * dims[1];
+00191 
+00192     \textcolor{comment}{/*}
+00193 \textcolor{comment}{     * Read the data using the default properties.}
+00194 \textcolor{comment}{     */}
+00195     status = H5Dread (dset, H5T\_NATIVE\_INT, H5S\_ALL, H5S\_ALL, H5P\_DEFAULT,
+00196                 rdata[0]);
+00197 
+00198     \textcolor{comment}{/*}
+00199 \textcolor{comment}{     * Output the data to the screen.}
+00200 \textcolor{comment}{     */}
+00201     printf (\textcolor{stringliteral}{"\(\backslash\)nDataset after extension:\(\backslash\)n"});
+00202     \textcolor{keywordflow}{for} (i=0; i<dims[0]; i++) \{
+00203         printf (\textcolor{stringliteral}{" ["});
+00204         \textcolor{keywordflow}{for} (j=0; j<dims[1]; j++)
+00205             printf (\textcolor{stringliteral}{" %3d"}, rdata[i][j]);
+00206         printf (\textcolor{stringliteral}{"]\(\backslash\)n"});
+00207     \}
+00208 
+00209     \textcolor{comment}{/*}
+00210 \textcolor{comment}{     * Close and release resources.}
+00211 \textcolor{comment}{     */}
+00212     free (rdata[0]);
+00213     free(rdata);
+00214     status = H5Dclose (dset);
+00215     status = H5Sclose (space);
+00216     status = H5Fclose (file);
+00217 
+00218     \textcolor{keywordflow}{return} 0;
+00219 \}
+\end{DoxyCode}

@@ -1,0 +1,523 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2bench_2tensors_2tensor__benchmarks_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/bench/tensors/tensor\+\_\+benchmarks.h}
+\label{matio_2visual__studio_2test_2eigen_2bench_2tensors_2tensor__benchmarks_8h_source}\index{tensor\+\_\+benchmarks.\+h@{tensor\+\_\+benchmarks.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{preprocessor}{#ifndef THIRD\_PARTY\_EIGEN3\_TENSOR\_BENCHMARKS\_H\_}
+00002 \textcolor{preprocessor}{#define THIRD\_PARTY\_EIGEN3\_TENSOR\_BENCHMARKS\_H\_}
+00003 
+00004 \textcolor{keyword}{typedef} \textcolor{keywordtype}{int} TensorIndex;
+00005 \textcolor{preprocessor}{#define EIGEN\_DEFAULT\_DENSE\_INDEX\_TYPE int}
+00006 
+00007 \textcolor{preprocessor}{#include "unsupported/Eigen/CXX11/Tensor"}
+00008 \textcolor{preprocessor}{#include "benchmark.h"}
+00009 
+00010 \textcolor{preprocessor}{#define BENCHMARK\_RANGE(bench, lo, hi) \(\backslash\)}
+00011 \textcolor{preprocessor}{  BENCHMARK(bench)->Range(lo, hi)}
+00012 
+00013 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor};
+00014 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor_map}{Eigen::TensorMap};
+00015 
+00016 \textcolor{comment}{// TODO(bsteiner): also templatize on the input type since we have users}
+00017 \textcolor{comment}{// for int8 as well as floats.}
+00018 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Device, \textcolor{keyword}{typename} T> \textcolor{keyword}{class }\hyperlink{class_benchmark_suite}{BenchmarkSuite} \{
+00019  \textcolor{keyword}{public}:
+00020   \hyperlink{class_benchmark_suite}{BenchmarkSuite}(\textcolor{keyword}{const} Device& device, \textcolor{keywordtype}{size\_t} m, \textcolor{keywordtype}{size\_t} k, \textcolor{keywordtype}{size\_t} n)
+00021       : m\_(m), k\_(k), n\_(n), device\_(device) \{
+00022     initialize();
+00023   \}
+00024 
+00025   \hyperlink{class_benchmark_suite}{BenchmarkSuite}(\textcolor{keyword}{const} Device& device, \textcolor{keywordtype}{size\_t} m)
+00026       : m\_(m), k\_(m), n\_(m), device\_(device) \{
+00027     initialize();
+00028   \}
+00029 
+00030   ~\hyperlink{class_benchmark_suite}{BenchmarkSuite}() \{
+00031     device\_.deallocate(a\_);
+00032     device\_.deallocate(b\_);
+00033     device\_.deallocate(c\_);
+00034   \}
+00035 
+00036   \textcolor{keywordtype}{void} memcpy(\textcolor{keywordtype}{int} num\_iters) \{
+00037     eigen\_assert(m\_ == k\_ && k\_ == n\_);
+00038     StartBenchmarkTiming();
+00039     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00040       device\_.memcpy(c\_, a\_, m\_ * m\_ * \textcolor{keyword}{sizeof}(\hyperlink{group___sparse_core___module}{T}));
+00041     \}
+00042     \textcolor{comment}{// Record the number of values copied per second}
+00043     finalizeBenchmark(static\_cast<int64\_t>(m\_) * m\_ * num\_iters);
+00044   \}
+00045 
+00046   \textcolor{keywordtype}{void} typeCasting(\textcolor{keywordtype}{int} num\_iters) \{
+00047     eigen\_assert(m\_ == n\_);
+00048     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} sizes;
+00049     \textcolor{keywordflow}{if} (\textcolor{keyword}{sizeof}(\hyperlink{group___sparse_core___module}{T}) >= \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int})) \{
+00050       sizes[0] = m\_;
+00051       sizes[1] = k\_;
+00052     \} \textcolor{keywordflow}{else} \{
+00053       sizes[0] = m\_ * \textcolor{keyword}{sizeof}(\hyperlink{group___sparse_core___module}{T}) / \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int});
+00054       sizes[1] = k\_ * \textcolor{keyword}{sizeof}(\hyperlink{group___sparse_core___module}{T}) / \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int});
+00055     \}
+00056     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<int, 2, 0, TensorIndex>}, 
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}((\textcolor{keywordtype}{int}*)a\_, sizes);
+00057     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2, 0, TensorIndex>}, 
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}(b\_, sizes);
+00058 
+00059     StartBenchmarkTiming();
+00060     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00061       \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.device(device\_) = \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.template cast<T>();
+00062     \}
+00063     \textcolor{comment}{// Record the number of values copied per second}
+00064     finalizeBenchmark(static\_cast<int64\_t>(m\_) * k\_ * num\_iters);
+00065   \}
+00066 
+00067   \textcolor{keywordtype}{void} random(\textcolor{keywordtype}{int} num\_iters) \{
+00068     eigen\_assert(m\_ == k\_ && k\_ == n\_);
+00069     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} sizes;
+00070     sizes[0] = m\_;
+00071     sizes[1] = m\_;
+00072     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module}{C}(c\_, sizes);
+00073 
+00074     StartBenchmarkTiming();
+00075     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00076       \hyperlink{group___core___module}{C}.device(device\_) = \hyperlink{group___core___module}{C}.random();
+00077     \}
+00078     \textcolor{comment}{// Record the number of random numbers generated per second}
+00079     finalizeBenchmark(static\_cast<int64\_t>(m\_) * m\_ * num\_iters);
+00080   \}
+00081 
+00082   \textcolor{keywordtype}{void} slicing(\textcolor{keywordtype}{int} num\_iters) \{
+00083     eigen\_assert(m\_ == k\_ && k\_ == n\_);
+00084     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} sizes;
+00085     sizes[0] = m\_;
+00086     sizes[1] = m\_;
+00087     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}(a\_, sizes);
+00088     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}(b\_, sizes);
+00089     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module}{C}(c\_, sizes);
+00090 
+00091     \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_d_sizes}{Eigen::DSizes<TensorIndex, 2>} quarter\_sizes(m\_/2, m\_/2);
+00092     \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_d_sizes}{Eigen::DSizes<TensorIndex, 2>} first\_quadrant(0, 0);
+00093     \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_d_sizes}{Eigen::DSizes<TensorIndex, 2>} second\_quadrant(0, m\_/2);
+00094     \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_d_sizes}{Eigen::DSizes<TensorIndex, 2>} third\_quadrant(m\_/2, 0);
+00095     \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_d_sizes}{Eigen::DSizes<TensorIndex, 2>} fourth\_quadrant(m\_/2, m\_/2);
+00096 
+00097     StartBenchmarkTiming();
+00098     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00099       \hyperlink{group___core___module}{C}.slice(first\_quadrant, quarter\_sizes).device(device\_) =
+00100           \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.slice(first\_quadrant, quarter\_sizes);
+00101       \hyperlink{group___core___module}{C}.slice(second\_quadrant, quarter\_sizes).device(device\_) =
+00102           \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.slice(second\_quadrant, quarter\_sizes);
+00103       \hyperlink{group___core___module}{C}.slice(third\_quadrant, quarter\_sizes).device(device\_) =
+00104           \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.slice(third\_quadrant, quarter\_sizes);
+00105       \hyperlink{group___core___module}{C}.slice(fourth\_quadrant, quarter\_sizes).device(device\_) =
+00106           \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.slice(fourth\_quadrant, quarter\_sizes);
+00107     \}
+00108     \textcolor{comment}{// Record the number of values copied from the rhs slice to the lhs slice}
+00109     \textcolor{comment}{// each second}
+00110     finalizeBenchmark(static\_cast<int64\_t>(m\_) * m\_ * num\_iters);
+00111   \}
+00112 
+00113   \textcolor{keywordtype}{void} rowChip(\textcolor{keywordtype}{int} num\_iters) \{
+00114     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} input\_size;
+00115     input\_size[0] = k\_;
+00116     input\_size[1] = n\_;
+00117     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2, 0, TensorIndex>}, 
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}(b\_, input\_size);
+00118     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 1>} output\_size;
+00119     output\_size[0] = n\_;
+00120     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 1, 0, TensorIndex>}, 
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> \hyperlink{group___core___module}{C}(c\_, output\_size);
+00121 
+00122     StartBenchmarkTiming();
+00123     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00124       \hyperlink{group___core___module}{C}.device(device\_) = \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.chip(iter % k\_, 0);
+00125     \}
+00126     \textcolor{comment}{// Record the number of values copied from the rhs chip to the lhs.}
+00127     finalizeBenchmark(static\_cast<int64\_t>(n\_) * num\_iters);
+00128   \}
+00129 
+00130   \textcolor{keywordtype}{void} colChip(\textcolor{keywordtype}{int} num\_iters) \{
+00131     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} input\_size;
+00132     input\_size[0] = k\_;
+00133     input\_size[1] = n\_;
+00134     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2, 0, TensorIndex>}, 
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}(b\_, input\_size);
+00135     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 1>} output\_size;
+00136     output\_size[0] = n\_;
+00137     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 1, 0, TensorIndex>}, 
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> \hyperlink{group___core___module}{C}(c\_, output\_size);
+00138 
+00139     StartBenchmarkTiming();
+00140     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00141       \hyperlink{group___core___module}{C}.device(device\_) = \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.chip(iter % n\_, 1);
+00142     \}
+00143     \textcolor{comment}{// Record the number of values copied from the rhs chip to the lhs.}
+00144     finalizeBenchmark(static\_cast<int64\_t>(n\_) * num\_iters);
+00145   \}
+00146 
+00147   \textcolor{keywordtype}{void} shuffling(\textcolor{keywordtype}{int} num\_iters) \{
+00148     eigen\_assert(m\_ == n\_);
+00149     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} size\_a;
+00150     size\_a[0] = m\_;
+00151     size\_a[1] = k\_;
+00152     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}(a\_, size\_a);
+00153     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} size\_b;
+00154     size\_b[0] = k\_;
+00155     size\_b[1] = m\_;
+00156     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}(b\_, size\_b);
+00157 
+00158     \hyperlink{class_eigen_1_1array}{Eigen::array<int, 2>} shuffle;
+00159     shuffle[0] = 1;
+00160     shuffle[1] = 0;
+00161 
+00162     StartBenchmarkTiming();
+00163     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00164       \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.device(device\_) = \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.shuffle(shuffle);
+00165     \}
+00166     \textcolor{comment}{// Record the number of values shuffled from A and copied to B each second}
+00167     finalizeBenchmark(static\_cast<int64\_t>(m\_) * k\_ * num\_iters);
+00168   \}
+00169 
+00170  \textcolor{keywordtype}{void} padding(\textcolor{keywordtype}{int} num\_iters) \{
+00171     eigen\_assert(m\_ == k\_);
+00172     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} size\_a;
+00173     size\_a[0] = m\_;
+00174     size\_a[1] = k\_-3;
+00175     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}(a\_, size\_a);
+00176     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} size\_b;
+00177     size\_b[0] = k\_;
+00178     size\_b[1] = m\_;
+00179     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}(b\_, size\_b);
+00180 
+00181 \textcolor{preprocessor}{#if defined(EIGEN\_HAS\_INDEX\_LIST)}
+00182     Eigen::IndexPairList<Eigen::type2indexpair<0, 0>,
+00183                          Eigen::type2indexpair<2, 1> > paddings;
+00184 \textcolor{preprocessor}{#else}
+00185     \hyperlink{class_eigen_1_1array}{Eigen::array<Eigen::IndexPair<TensorIndex>}, 2> paddings;
+00186     paddings[0] = \hyperlink{struct_eigen_1_1_index_pair}{Eigen::IndexPair<TensorIndex>}(0, 0);
+00187     paddings[1] = \hyperlink{struct_eigen_1_1_index_pair}{Eigen::IndexPair<TensorIndex>}(2, 1);
+00188 \textcolor{preprocessor}{#endif}
+00189 
+00190     StartBenchmarkTiming();
+00191     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00192       \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.device(device\_) = \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.pad(paddings);
+00193     \}
+00194     \textcolor{comment}{// Record the number of values copied from the padded tensor A each second}
+00195     finalizeBenchmark(static\_cast<int64\_t>(m\_) * k\_ * num\_iters);
+00196   \}
+00197 
+00198  \textcolor{keywordtype}{void} striding(\textcolor{keywordtype}{int} num\_iters) \{
+00199     eigen\_assert(m\_ == k\_);
+00200     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} size\_a;
+00201     size\_a[0] = m\_;
+00202     size\_a[1] = k\_;
+00203     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}(a\_, size\_a);
+00204     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} size\_b;
+00205     size\_b[0] = m\_;
+00206     size\_b[1] = k\_/2;
+00207     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}(b\_, size\_b);
+00208 
+00209 \textcolor{preprocessor}{#ifndef EIGEN\_HAS\_INDEX\_LIST}
+00210     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} strides;
+00211     strides[0] = 1;
+00212     strides[1] = 2;
+00213 \textcolor{preprocessor}{#else}
+00214     \textcolor{comment}{// Take advantage of cxx11 to give the compiler information it can use to}
+00215     \textcolor{comment}{// optimize the code.}
+00216     Eigen::IndexList<Eigen::type2index<1>, Eigen::type2index<2> > strides;
+00217 \textcolor{preprocessor}{#endif}
+00218 
+00219     StartBenchmarkTiming();
+00220     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00221       \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.device(device\_) = \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.stride(strides);
+00222     \}
+00223     \textcolor{comment}{// Record the number of values copied from the padded tensor A each second}
+00224     finalizeBenchmark(static\_cast<int64\_t>(m\_) * k\_ * num\_iters);
+00225   \}
+00226 
+00227   \textcolor{keywordtype}{void} broadcasting(\textcolor{keywordtype}{int} num\_iters) \{
+00228     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} size\_a;
+00229     size\_a[0] = m\_;
+00230     size\_a[1] = 1;
+00231     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}(a\_, size\_a);
+00232     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} size\_c;
+00233     size\_c[0] = m\_;
+00234     size\_c[1] = n\_;
+00235     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module}{C}(c\_, size\_c);
+00236 
+00237 \textcolor{preprocessor}{#ifndef EIGEN\_HAS\_INDEX\_LIST}
+00238     \hyperlink{class_eigen_1_1array}{Eigen::array<int, 2>} broadcast;
+00239     broadcast[0] = 1;
+00240     broadcast[1] = n\_;
+00241 \textcolor{preprocessor}{#else}
+00242     \textcolor{comment}{// Take advantage of cxx11 to give the compiler information it can use to}
+00243     \textcolor{comment}{// optimize the code.}
+00244     Eigen::IndexList<Eigen::type2index<1>, \textcolor{keywordtype}{int}> broadcast;
+00245     broadcast.set(1, n\_);
+00246 \textcolor{preprocessor}{#endif}
+00247 
+00248     StartBenchmarkTiming();
+00249     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00250       \hyperlink{group___core___module}{C}.device(device\_) = \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.broadcast(broadcast);
+00251     \}
+00252     \textcolor{comment}{// Record the number of values broadcasted from A and copied to C each second}
+00253     finalizeBenchmark(static\_cast<int64\_t>(m\_) * n\_ * num\_iters);
+00254   \}
+00255 
+00256   \textcolor{keywordtype}{void} coeffWiseOp(\textcolor{keywordtype}{int} num\_iters) \{
+00257     eigen\_assert(m\_ == k\_ && k\_ == n\_);
+00258     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} sizes;
+00259     sizes[0] = m\_;
+00260     sizes[1] = m\_;
+00261     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}(a\_, sizes);
+00262     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}(b\_, sizes);
+00263     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module}{C}(c\_, sizes);
+00264 
+00265     StartBenchmarkTiming();
+00266     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00267       \hyperlink{group___core___module}{C}.device(device\_) = \hyperlink{group___core___module_class_eigen_1_1_matrix}{A} * \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.constant(static\_cast<T>(3.14)) + \hyperlink{group___core___module_class_eigen_1_1_matrix}{B} * \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.constant(static\_cast<T>(2.7));
+00268     \}
+00269     \textcolor{comment}{// Record the number of FLOP executed per second (2 multiplications and}
+00270     \textcolor{comment}{// 1 addition per value)}
+00271     finalizeBenchmark(static\_cast<int64\_t>(3) * m\_ * m\_ * num\_iters);
+00272   \}
+00273 
+00274   \textcolor{keywordtype}{void} algebraicFunc(\textcolor{keywordtype}{int} num\_iters) \{
+00275     eigen\_assert(m\_ == k\_ && k\_ == n\_);
+00276     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} sizes;
+00277     sizes[0] = m\_;
+00278     sizes[1] = m\_;
+00279     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}(a\_, sizes);
+00280     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}(b\_, sizes);
+00281     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module}{C}(c\_, sizes);
+00282 
+00283     StartBenchmarkTiming();
+00284     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00285       \hyperlink{group___core___module}{C}.device(device\_) = \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.rsqrt() + \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.sqrt() * \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.square();
+00286     \}
+00287     \textcolor{comment}{// Record the number of FLOP executed per second (assuming one operation}
+00288     \textcolor{comment}{// per value)}
+00289     finalizeBenchmark(static\_cast<int64\_t>(m\_) * m\_ * num\_iters);
+00290   \}
+00291 
+00292   \textcolor{keywordtype}{void} transcendentalFunc(\textcolor{keywordtype}{int} num\_iters) \{
+00293     eigen\_assert(m\_ == k\_ && k\_ == n\_);
+00294     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} sizes;
+00295     sizes[0] = m\_;
+00296     sizes[1] = m\_;
+00297     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}(a\_, sizes);
+00298     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}(b\_, sizes);
+00299     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module}{C}(c\_, sizes);
+00300 
+00301     StartBenchmarkTiming();
+00302     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00303       \hyperlink{group___core___module}{C}.device(device\_) = \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.exp() + \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.log();
+00304     \}
+00305     \textcolor{comment}{// Record the number of FLOP executed per second (assuming one operation}
+00306     \textcolor{comment}{// per value)}
+00307     finalizeBenchmark(static\_cast<int64\_t>(m\_) * m\_ * num\_iters);
+00308   \}
+00309 
+00310  \textcolor{comment}{// Row reduction}
+00311   \textcolor{keywordtype}{void} rowReduction(\textcolor{keywordtype}{int} num\_iters) \{
+00312     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} input\_size;
+00313     input\_size[0] = k\_;
+00314     input\_size[1] = n\_;
+00315     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2, 0, TensorIndex>}, 
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}(b\_, input\_size);
+00316     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 1>} output\_size;
+00317     output\_size[0] = n\_;
+00318     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 1, 0, TensorIndex>}, 
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> \hyperlink{group___core___module}{C}(c\_, output\_size);
+00319 
+00320 \textcolor{preprocessor}{#ifndef EIGEN\_HAS\_INDEX\_LIST}
+00321     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 1>} sum\_along\_dim;
+00322     sum\_along\_dim[0] = 0;
+00323 \textcolor{preprocessor}{#else}
+00324     \textcolor{comment}{// Take advantage of cxx11 to give the compiler information it can use to}
+00325     \textcolor{comment}{// optimize the code.}
+00326     Eigen::IndexList<Eigen::type2index<0>> sum\_along\_dim;
+00327 \textcolor{preprocessor}{#endif}
+00328 
+00329     StartBenchmarkTiming();
+00330     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00331       \hyperlink{group___core___module}{C}.device(device\_) = \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.sum(sum\_along\_dim);
+00332     \}
+00333     \textcolor{comment}{// Record the number of FLOP executed per second (assuming one operation}
+00334     \textcolor{comment}{// per value)}
+00335     finalizeBenchmark(static\_cast<int64\_t>(k\_) * n\_ * num\_iters);
+00336   \}
+00337 
+00338   \textcolor{comment}{// Column reduction}
+00339   \textcolor{keywordtype}{void} colReduction(\textcolor{keywordtype}{int} num\_iters) \{
+00340     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} input\_size;
+00341     input\_size[0] = k\_;
+00342     input\_size[1] = n\_;
+00343     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2, 0, TensorIndex>}, 
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}(
+00344         b\_, input\_size);
+00345     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 1>} output\_size;
+00346     output\_size[0] = k\_;
+00347     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 1, 0, TensorIndex>}, 
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> \hyperlink{group___core___module}{C}(
+00348         c\_, output\_size);
+00349 
+00350 \textcolor{preprocessor}{#ifndef EIGEN\_HAS\_INDEX\_LIST}
+00351     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 1>} sum\_along\_dim;
+00352     sum\_along\_dim[0] = 1;
+00353 \textcolor{preprocessor}{#else}
+00354     \textcolor{comment}{// Take advantage of cxx11 to give the compiler information it can use to}
+00355     \textcolor{comment}{// optimize the code.}
+00356     Eigen::IndexList<Eigen::type2index<1>> sum\_along\_dim;
+00357 \textcolor{preprocessor}{#endif}
+00358 
+00359     StartBenchmarkTiming();
+00360     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00361       \hyperlink{group___core___module}{C}.device(device\_) = \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.sum(sum\_along\_dim);
+00362     \}
+00363     \textcolor{comment}{// Record the number of FLOP executed per second (assuming one operation}
+00364     \textcolor{comment}{// per value)}
+00365     finalizeBenchmark(static\_cast<int64\_t>(k\_) * n\_ * num\_iters);
+00366   \}
+00367 
+00368   \textcolor{comment}{// Full reduction}
+00369   \textcolor{keywordtype}{void} fullReduction(\textcolor{keywordtype}{int} num\_iters) \{
+00370     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} input\_size;
+00371     input\_size[0] = k\_;
+00372     input\_size[1] = n\_;
+00373     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2, 0, TensorIndex>}, 
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}(
+00374         b\_, input\_size);
+00375     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 0>} output\_size;
+00376     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 0, 0, TensorIndex>}, 
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> \hyperlink{group___core___module}{C}(
+00377         c\_, output\_size);
+00378 
+00379     StartBenchmarkTiming();
+00380     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00381       \hyperlink{group___core___module}{C}.device(device\_) = \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.sum();
+00382     \}
+00383     \textcolor{comment}{// Record the number of FLOP executed per second (assuming one operation}
+00384     \textcolor{comment}{// per value)}
+00385     finalizeBenchmark(static\_cast<int64\_t>(k\_) * n\_ * num\_iters);
+00386   \}
+00387 
+00388   \textcolor{comment}{// do a contraction which is equivalent to a matrix multiplication}
+00389   \textcolor{keywordtype}{void} contraction(\textcolor{keywordtype}{int} num\_iters) \{
+00390     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} sizeA;
+00391     sizeA[0] = m\_;
+00392     sizeA[1] = k\_;
+00393     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} sizeB;
+00394     sizeB[0] = k\_;
+00395     sizeB[1] = n\_;
+00396     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} sizeC;
+00397     sizeC[0] = m\_;
+00398     sizeC[1] = n\_;
+00399 
+00400     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}(a\_, sizeA);
+00401     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}(b\_, sizeB);
+00402     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module}{C}(c\_, sizeC);
+00403 
+00404     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1_tensor}{Tensor<T, 2>::DimensionPair} DimPair;
+00405     \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 1>} dims;
+00406     dims[0] = DimPair(1, 0);
+00407 
+00408     StartBenchmarkTiming();
+00409     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00410       \hyperlink{group___core___module}{C}.device(device\_) = \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.contract(\hyperlink{group___core___module_class_eigen_1_1_matrix}{B}, dims);
+00411     \}
+00412     \textcolor{comment}{// Record the number of FLOP executed per second (size\_ multiplications and}
+00413     \textcolor{comment}{// additions for each value in the resulting tensor)}
+00414     finalizeBenchmark(static\_cast<int64\_t>(2) * m\_ * n\_ * k\_ * num\_iters);
+00415   \}
+00416 
+00417   \textcolor{keywordtype}{void} convolution(\textcolor{keywordtype}{int} num\_iters, \textcolor{keywordtype}{int} kernel\_x, \textcolor{keywordtype}{int} kernel\_y) \{
+00418     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} input\_sizes;
+00419     input\_sizes[0] = m\_;
+00420     input\_sizes[1] = n\_;
+00421     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}(a\_, input\_sizes);
+00422     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} kernel\_sizes;
+00423     kernel\_sizes[0] = kernel\_x;
+00424     kernel\_sizes[1] = kernel\_y;
+00425     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}(b\_, kernel\_sizes);
+00426     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} result\_sizes;
+00427     result\_sizes[0] = m\_ - kernel\_x + 1;
+00428     result\_sizes[1] = n\_ - kernel\_y + 1;
+00429     \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<T, 2>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Eigen::Aligned}> 
+      \hyperlink{group___core___module}{C}(c\_, result\_sizes);
+00430     \hyperlink{class_eigen_1_1array}{Eigen::array<TensorIndex, 2>} dims;
+00431     dims[0] = 0;
+00432     dims[1] = 1;
+00433 
+00434     StartBenchmarkTiming();
+00435     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} iter = 0; iter < num\_iters; ++iter) \{
+00436       \hyperlink{group___core___module}{C}.device(device\_) = \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.convolve(\hyperlink{group___core___module_class_eigen_1_1_matrix}{B}, dims);
+00437     \}
+00438     \textcolor{comment}{// Record the number of FLOP executed per second (kernel\_size}
+00439     \textcolor{comment}{// multiplications and additions for each value in the resulting tensor)}
+00440     finalizeBenchmark(static\_cast<int64\_t>(2) *
+00441         (m\_ - kernel\_x + 1) * (n\_ - kernel\_y + 1) * kernel\_x * kernel\_y * num\_iters);
+00442   \}
+00443 
+00444  \textcolor{keyword}{private}:
+00445   \textcolor{keywordtype}{void} initialize() \{
+00446     a\_ = (\hyperlink{group___sparse_core___module}{T} *) device\_.allocate(m\_ * k\_ * \textcolor{keyword}{sizeof}(\hyperlink{group___sparse_core___module}{T}));
+00447     b\_ = (\hyperlink{group___sparse_core___module}{T} *) device\_.allocate(k\_ * n\_ * \textcolor{keyword}{sizeof}(\hyperlink{group___sparse_core___module}{T}));
+00448     c\_ = (\hyperlink{group___sparse_core___module}{T} *) device\_.allocate(m\_ * n\_ * \textcolor{keyword}{sizeof}(\hyperlink{group___sparse_core___module}{T}));
+00449 
+00450     \textcolor{comment}{// Initialize the content of the memory pools to prevent asan from}
+00451     \textcolor{comment}{// complaining.}
+00452     device\_.memset(a\_, 12, m\_ * k\_ * \textcolor{keyword}{sizeof}(\hyperlink{group___sparse_core___module}{T}));
+00453     device\_.memset(b\_, 23, k\_ * n\_ * \textcolor{keyword}{sizeof}(\hyperlink{group___sparse_core___module}{T}));
+00454     device\_.memset(c\_, 31, m\_ * n\_ * \textcolor{keyword}{sizeof}(\hyperlink{group___sparse_core___module}{T}));
+00455 
+00456     \textcolor{comment}{//BenchmarkUseRealTime();}
+00457   \}
+00458 
+00459   \textcolor{keyword}{inline} \textcolor{keywordtype}{void} finalizeBenchmark(int64\_t num\_items) \{
+00460 \textcolor{preprocessor}{#if defined(EIGEN\_USE\_GPU) && defined(\_\_CUDACC\_\_)}
+00461     \textcolor{keywordflow}{if} (\hyperlink{struct_eigen_1_1internal_1_1is__same}{Eigen::internal::is\_same<Device, Eigen::GpuDevice>::value}
+      ) \{
+00462       device\_.synchronize();
+00463     \}
+00464 \textcolor{preprocessor}{#endif}
+00465     StopBenchmarkTiming();
+00466     SetBenchmarkFlopsProcessed(num\_items);
+00467   \}
+00468 
+00469 
+00470   TensorIndex m\_;
+00471   TensorIndex k\_;
+00472   TensorIndex n\_;
+00473   \hyperlink{group___sparse_core___module}{T}* a\_;
+00474   \hyperlink{group___sparse_core___module}{T}* b\_;
+00475   \hyperlink{group___sparse_core___module}{T}* c\_;
+00476   Device device\_;
+00477 \};
+00478 \textcolor{preprocessor}{#endif  // THIRD\_PARTY\_EIGEN3\_TENSOR\_BENCHMARKS\_H\_}
+\end{DoxyCode}

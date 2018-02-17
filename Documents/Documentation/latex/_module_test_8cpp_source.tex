@@ -3,38 +3,245 @@
 
 \begin{DoxyCode}
 00001 \textcolor{preprocessor}{#include"Atmosphere.h"}
-00002 \textcolor{preprocessor}{#include"DataLogger.h"}
-00003 
-00004 \textcolor{keywordtype}{void} AtmosphereTest()
-00005 \{
-00006     \hyperlink{group___atmosphere_class_atmopshere}{Atmopshere} *Atmo = \textcolor{keyword}{new} \hyperlink{group___atmosphere_class_atmopshere}{Atmopshere};
-00007     AtmosphereStruct Atmos;
-00008 
-00009     \hyperlink{group___tools_ga3f1431cb9f76da10f59246d1d743dc2c}{Float64} Altitude;
-00010     \hyperlink{group___tools_class_data_logger}{DataLogger} logAtmoTestData(\textcolor{stringliteral}{"AtmosphereTestData.txt"}, 25, \textcolor{stringliteral}{" "});
-00011 
-00012     logAtmoTestData.add(\textcolor{stringliteral}{"Altitude"}, Altitude);
-00013     logAtmoTestData.add(\textcolor{stringliteral}{"Rho"}, Atmos.rho);
-00014     logAtmoTestData.add(\textcolor{stringliteral}{"Temperture"}, Atmos.Temperature);
-00015     logAtmoTestData.add(\textcolor{stringliteral}{"Pressure"}, Atmos.Pressure);
-00016     logAtmoTestData.add(\textcolor{stringliteral}{"SpeedOfSound"}, Atmos.speedOfSound);
-00017 
-00018     logAtmoTestData.printHeader();
+00002 \textcolor{preprocessor}{#include"Autopilot.h"}
+00003 \textcolor{preprocessor}{#include"StateController.h"}
+00004 \textcolor{preprocessor}{#include"FindNeighbor.h"}
+00005 \textcolor{preprocessor}{#include"Aerodynamic.h"}
+00006 \textcolor{preprocessor}{#include"DataLogger.h"}
+00007 \textcolor{preprocessor}{#include"readInData.h"}
+00008 \textcolor{preprocessor}{#include"MatFileReader.h"}
+00009 \textcolor{preprocessor}{#include"Guidance.h"}
+00010 \textcolor{preprocessor}{#include"Transformation.h"}
+00011 \textcolor{preprocessor}{#include"GPS.h"}
+00012 \textcolor{preprocessor}{#include"IMU.h"}
+00013 \textcolor{preprocessor}{#include"Navigation.h"}
+00014 \textcolor{preprocessor}{#include<iostream>}
+00015 \textcolor{preprocessor}{#include<omp.h>}
+00016 
+00017 \textcolor{keywordtype}{void} AtmosphereTest()
+00018 \{
 00019 
-00020     Atmo->\hyperlink{group___atmosphere_a6e1d5763fbb6631784c99ee3c88911bd}{initAtmosphere}();
-00021     \textcolor{keywordflow}{for} (Altitude = 0; Altitude < 10000; Altitude++) \{
-00022         Atmo->\hyperlink{group___atmosphere_a2bd97471d32725d6196ee6816ea36c99}{updateAtmosphere}(Altitude, Atmos);
-00023         logAtmoTestData.print();
-00024     \}
-00025 
-00026     std::cout << \textcolor{stringliteral}{"Atmosphere Test beendet"} << std::endl;
-00027 \};
-00028 \textcolor{keywordtype}{int} main()
-00029 \{
-00030     
-00031     AtmosphereTest();
+00020     \hyperlink{group___atmosphere_class_atmopshere}{Atmopshere} *Atmo = \textcolor{keyword}{new} \hyperlink{group___atmosphere_class_atmopshere}{Atmopshere};
+00021     AtmosphereStruct Atmos;
+00022 
+00023     \hyperlink{group___tools_ga3f1431cb9f76da10f59246d1d743dc2c}{Float64} Altitude;
+00024 
+00025     \hyperlink{group___tools_class_data_logger}{DataLogger} logAtmoTestData(\textcolor{stringliteral}{"AtmosphereTestData.txt"}, 25, \textcolor{stringliteral}{" "});
+00026 
+00027     logAtmoTestData.add(\textcolor{stringliteral}{"Altitude"}, Altitude);
+00028     logAtmoTestData.add(\textcolor{stringliteral}{"Rho"}, Atmos.rho);
+00029     logAtmoTestData.add(\textcolor{stringliteral}{"Temperture"}, Atmos.Temperature);
+00030     logAtmoTestData.add(\textcolor{stringliteral}{"Pressure"}, Atmos.Pressure);
+00031     logAtmoTestData.add(\textcolor{stringliteral}{"SpeedOfSound"}, Atmos.speedOfSound);
 00032 
-00033     system(\textcolor{stringliteral}{"pause"});
-00034 \}
-00035 
+00033     logAtmoTestData.printHeader();
+00034 
+00035     Atmo->\hyperlink{group___atmosphere_a6e1d5763fbb6631784c99ee3c88911bd}{initAtmosphere}();
+00036     \textcolor{keywordflow}{for} (Altitude = 0; Altitude < 10000; Altitude++) \{
+00037         Atmo->\hyperlink{group___atmosphere_a2bd97471d32725d6196ee6816ea36c99}{updateAtmosphere}(Altitude, Atmos);
+00038         logAtmoTestData.print();
+00039     \}
+00040 
+00041     std::cout << \textcolor{stringliteral}{"Atmosphere Test done"} << std::endl;
+00042 \};
+00043 
+00044 \textcolor{keywordtype}{void} AerodynamicTest()
+00045 \{
+00046 
+00047     \hyperlink{group___tools_class_data_logger}{DataLogger} logAeroTestData(\textcolor{stringliteral}{"AerodynamicTestData.txt"}, 25, \textcolor{stringliteral}{" "});
+00048 
+00049     \hyperlink{group___aerodynamic_class_aerodynamics}{Aerodynamics} * Aero = \textcolor{keyword}{new} \hyperlink{group___aerodynamic_class_aerodynamics}{Aerodynamics};
+00050     \hyperlink{group___atmosphere_class_atmopshere}{Atmopshere} * Atmo = \textcolor{keyword}{new} \hyperlink{group___atmosphere_class_atmopshere}{Atmopshere};
+00051     \hyperlink{classread_in_data}{readInData} * readIn = \textcolor{keyword}{new} \hyperlink{classread_in_data}{readInData};
+00052     \hyperlink{class_transformation}{Transformation} * transformation = \textcolor{keyword}{new} \hyperlink{class_transformation}{Transformation};
+00053 
+00054     AerodynamicStruct  AeroData;
+00055     AircraftStruct     AircraftData;
+00056     AtmosphereStruct   AtmoData;
+00057     AirframeStruct  AirframeData;
+00058     ThrustStruct  ThrustData;
+00059 
+00060     \hyperlink{group___tools_ga3f1431cb9f76da10f59246d1d743dc2c}{Float64} Altitude = 0.0;
+00061     \hyperlink{group___tools_ga3f1431cb9f76da10f59246d1d743dc2c}{Float64} FlightTime = 0.0;
+00062 
+00063     \hyperlink{group___tools_ga3f1431cb9f76da10f59246d1d743dc2c}{Float64} psi = 0.0;
+00064     \hyperlink{group___tools_ga3f1431cb9f76da10f59246d1d743dc2c}{Float64} theta = 0.0;
+00065     \hyperlink{group___tools_ga3f1431cb9f76da10f59246d1d743dc2c}{Float64} phi = 0.0;
+00066 
+00067     AirframeData.rotRatesBody(0) = 0;
+00068     AirframeData.rotRatesBody(1) = 0;
+00069     AirframeData.rotRatesBody(2) = 0;
+00070 
+00071     AirframeData.Eta = 0;
+00072     AirframeData.Xi = 0;
+00073     AirframeData.Zeta = 0;
+00074 
+00075     AirframeData.matNEDToBody = transformation->MatNedToBody(phi, theta, psi);
+00076     AirframeData.matBodyToNED = AirframeData.matNEDToBody.inverse();
+00077 
+00078 
+00079     Eigen::Matrix3d matAeroToBody;
+00080 
+00081     \textcolor{comment}{// import data}
+00082     AircraftData.mass       = readIn->\hyperlink{classread_in_data_a9ae979e74958b43424cb6cf4a22043d7}{readInParameter}(\textcolor{stringliteral}{"mass"}, \textcolor{stringliteral}{"Aircraft.txt"});
+00083     AircraftData.wingarea   = readIn->\hyperlink{classread_in_data_a9ae979e74958b43424cb6cf4a22043d7}{readInParameter}(\textcolor{stringliteral}{"wing\_area"}, \textcolor{stringliteral}{"Aircraft.txt"});
+00084     AircraftData.wingspan   = readIn->\hyperlink{classread_in_data_a9ae979e74958b43424cb6cf4a22043d7}{readInParameter}(\textcolor{stringliteral}{"wing\_span"}, \textcolor{stringliteral}{"Aircraft.txt"});
+00085     AircraftData.MAC        = readIn->\hyperlink{classread_in_data_a9ae979e74958b43424cb6cf4a22043d7}{readInParameter}(\textcolor{stringliteral}{"MAC"}, \textcolor{stringliteral}{"Aircraft.txt"});
+00086 
+00087     readIn->\hyperlink{classread_in_data_ad67d566fd837f6d721db279144d484e0}{setPath}(\textcolor{stringliteral}{"../Input/Aerodynamics/"});
+00088     Eigen::VectorXd AoA     = readIn->\hyperlink{classread_in_data_ab57aff38529234593d786ecace301cf7}{readInVector}(\textcolor{stringliteral}{"AoA.txt"});
+00089     Eigen::VectorXd Mach    = readIn->\hyperlink{classread_in_data_ab57aff38529234593d786ecace301cf7}{readInVector}(\textcolor{stringliteral}{"Ma.txt"});
+00090     Eigen::VectorXd Eta     = readIn->\hyperlink{classread_in_data_ab57aff38529234593d786ecace301cf7}{readInVector}(\textcolor{stringliteral}{"Eta.txt"});
+00091 
+00092     Aero->\hyperlink{group___aerodynamic_aa4fee96e5b485cac47b3bc2127a6d4e2}{initAerodynamic}(AeroData,AircraftData);
+00093     Atmo->\hyperlink{group___atmosphere_a6e1d5763fbb6631784c99ee3c88911bd}{initAtmosphere}();
+00094 
+00095     \hyperlink{group___tools_ga3f1431cb9f76da10f59246d1d743dc2c}{Float64} alpha;
+00096     \hyperlink{group___tools_ga3f1431cb9f76da10f59246d1d743dc2c}{Float64} beta = 0.0;
+00097     Eigen::Vector3d Velocity;
+00098 
+00099     std::ptrdiff\_t i;
+00100 
+00101     \textcolor{comment}{// Define Output}
+00102     \textcolor{keywordtype}{int} a = AoA.size();
+00103     \textcolor{keywordtype}{int} b = Mach.size();
+00104     \textcolor{keywordtype}{int} c = Eta.maxCoeff(&i)/5+1;
+00105     logAeroTestData.add(\textcolor{stringliteral}{"AoA size"}, a);
+00106     logAeroTestData.add(\textcolor{stringliteral}{"Mach size"}, b);
+00107     logAeroTestData.add(\textcolor{stringliteral}{"Eta size"}, c);
+00108     
+00109     
+00110     logAeroTestData.add(\textcolor{stringliteral}{"CA"}, AeroData.CA);
+00111     logAeroTestData.add(\textcolor{stringliteral}{"CM"}, AeroData.CM);
+00112     logAeroTestData.add(\textcolor{stringliteral}{"CW"}, AeroData.CW);
+00113     logAeroTestData.add(\textcolor{stringliteral}{"CZ"}, AeroData.CZ);
+00114     logAeroTestData.add(\textcolor{stringliteral}{"CX"}, AeroData.CX);
+00115     logAeroTestData.add(\textcolor{stringliteral}{"AoA [Deg]"}, AeroData.AoA);
+00116     logAeroTestData.add(\textcolor{stringliteral}{"Mach [-]"}, AeroData.Mach);
+00117     logAeroTestData.add(\textcolor{stringliteral}{"Eta [Deg]"}, AirframeData.Eta);
+00118 
+00119     logAeroTestData.printHeader();
+00120 
+00121     \textcolor{comment}{// constant altitude}
+00122     Atmo->\hyperlink{group___atmosphere_a2bd97471d32725d6196ee6816ea36c99}{updateAtmosphere}(Altitude, AtmoData);
+00123 
+00124     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} eta = 0; eta <= Eta.maxCoeff(&i); eta = eta + 5)
+00125     \{
+00126         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} CounterMach = 0; CounterMach < Mach.size(); CounterMach++) \{
+00127 
+00128             Velocity(0) = Mach(CounterMach)*AtmoData.speedOfSound;
+00129             Velocity(1) = 0;
+00130             Velocity(2) = 0;
+00131 
+00132             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} CounterAlpha = 0; CounterAlpha < AoA.size(); CounterAlpha++) \{
+00133 
+00134 
+00135                 AirframeData.Eta = eta * PI / 180;
+00136 
+00137                 alpha = AoA(CounterAlpha)*PI / 180;
+00138 
+00139                 matAeroToBody = transformation->MatAeroToBody(alpha, beta);
+00140 
+00141                 AirframeData.velBody = matAeroToBody * Velocity;
+00142 
+00143                 AirframeData.velNED = AirframeData.matBodyToNED*AirframeData.velBody;
+00144 
+00145                 Aero->\hyperlink{group___aerodynamic_adf6047b063022ff3b689e269d2b35863}{updateAerodynamic}(FlightTime,
+00146                     AtmoData,
+00147                     AeroData,
+00148                     AirframeData,
+00149                     ThrustData);
+00150 
+00151                 logAeroTestData.print();
+00152             \}\textcolor{comment}{// end Eta loop}
+00153 
+00154 
+00155         \}\textcolor{comment}{// end AoA Loop}
+00156     \}\textcolor{comment}{// end Mach Loop}
+00157     
+00158     std::cout << \textcolor{stringliteral}{"Aerodynamic Test done"} << std::endl;
+00159 \};
+00160 
+00161 \textcolor{keywordtype}{void} GuidanceTest()
+00162 \{
+00163     AerodynamicStruct  AeroData;
+00164     AircraftStruct     AircraftData;
+00165     AtmosphereStruct   AtmoData;
+00166     AirframeStruct  AirframeData;
+00167     ThrustStruct  ThrustData;
+00168     GuidanceStruct GuidanceData;
+00169 
+00170     \hyperlink{class_guidance}{Guidance} *guidanceTest = \textcolor{keyword}{new} \hyperlink{class_guidance}{Guidance};
+00171 
+00172     guidanceTest->initGuidance();
+00173 
+00174     guidanceTest->updateGuidance(0.0,
+00175                                 AeroData,
+00176                                 ThrustData,
+00177                                 AircraftData,
+00178                                 AirframeData,
+00179                                 AtmoData, 
+00180                                 GuidanceData);
+00181 
+00182 \}
+00183 
+00184 
+00185 \textcolor{keywordtype}{int} main()
+00186 \{
+00187     std::cout << \textcolor{stringliteral}{"----------Module Test----------"} << std::endl;
+00188     AirframeStruct  AirframeData;
+00189     \hyperlink{class_find_neighbor}{FindNeighbor} findNeighbor;
+00190     \hyperlink{class_mat_file_reader}{MatFileReader} test(\textcolor{stringliteral}{"../Autopilot.mat"});
+00191 
+00192     \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} MatFileData = test.getMatFileInfo(\textcolor{stringliteral}{"AutopilotData"});
+00193     \textcolor{keywordtype}{int} Fields = MatFileData.\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0] * MatFileData.\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[1];
+00194 
+00195     AutopilotStruct Autopilotdata;
+00196 
+00197     \textcolor{keywordtype}{int} start, stride, edge, copy\_field = 0;
+00198     start = 0;
+00199     stride = 0;
+00200     edge = 9;
+00201 
+00202 
+00203     Autopilotdata.Alt = std::get<2>(test.readMatFileStructure(\textcolor{stringliteral}{"Alt"}, start, stride, edge, copy\_field));
+00204     Autopilotdata.Vel = std::get<2>(test.readMatFileStructure(\textcolor{stringliteral}{"Vel"}, start, stride, edge, copy\_field));
+00205     Autopilotdata.x\_bar = std::get<1>(test.readMatFileStructure(\textcolor{stringliteral}{"x\_bar"}, start, stride, edge, copy\_field));
+00206     Autopilotdata.u\_bar = std::get<1>(test.readMatFileStructure(\textcolor{stringliteral}{"u\_bar"}, start, stride, edge, copy\_field));
+00207 
+00208     AirframeData.Eta = Autopilotdata.u\_bar(1);
+00209     AirframeData.posNED(2) = -Autopilotdata.Alt;
+00210     AirframeData.velNED << Autopilotdata.Vel, 0, 0;
+00211     AirframeData.StickPosition = Autopilotdata.u\_bar(3);
+00212     AirframeData.EulerAngles(1) = Autopilotdata.x\_bar(1);
+00213     findNeighbor.initFindNeighbor();
+00214     findNeighbor.BlendingParameters(AirframeData);
+00215 
+00216 
+00217     \textcolor{comment}{//AtmosphereTest();}
+00218 
+00219 
+00220     AerodynamicTest();
+00221     \textcolor{comment}{//GuidanceTest();}
+00222     \textcolor{comment}{//AirframeStruct AirframeData;}
+00223     NavigationStruct NavData;
+00224     IMUStruct IMUData;
+00225     GuidanceStruct GuidanceData;
+00226 
+00227 
+00228     \hyperlink{class_i_m_u}{IMU} imutest;
+00229     imutest.initIMU();
+00230     imutest.updateIMU(0,AirframeData,IMUData);
+00231 
+00232     \hyperlink{class_g_p_s}{GPS} gpstest;
+00233     gpstest.initGPS();
+00234     gpstest.updateGPS(0,NavData);
+00235     
+00236     \hyperlink{class_navigation}{Navigation} testNav;
+00237     testNav.initNavigation();
+00238     testNav.updateNavigation(0, NavData, GuidanceData);
+00239 
+00240     system(\textcolor{stringliteral}{"pause"});
+00241 \}
+00242 
 \end{DoxyCode}

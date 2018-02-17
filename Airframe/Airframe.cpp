@@ -47,6 +47,10 @@ void Airframe::initAirframe(AircraftStruct & AircraftData,
 	AirframeData.velBody.setZero();
 	AirframeData.velNED.setZero();
 	AirframeData.rotRatesBody.setZero();
+
+	AirframeData.Xi = 0.0;
+	AirframeData.Eta = 0.0;
+	AirframeData.Zeta = 0.0;
 	
 }
 
@@ -73,16 +77,12 @@ void Airframe::updateRotational(AerodynamicStruct & AeroData,
 								ThrustStruct & ThrustData,
 								AirframeStruct &AirframeData)
 {
-	p = AirframeData.rotRatesBody(0);
-	q = AirframeData.rotRatesBody(1);
-	r = AirframeData.rotRatesBody(2);
-
-	rotRates << p, q, r;
+	
 	TotalMoment = AeroData.AeroMoments + ThrustData.ThrustMoments;
 
-	Vec_rotTensor << q*r*(AirframeData.intertiaTensor(2, 2) - AirframeData.intertiaTensor(1, 1)) - p*q*AirframeData.intertiaTensor(0, 2),
-		r*p*(AirframeData.intertiaTensor(0, 0) - AirframeData.intertiaTensor(2, 2)) + (p*p - r*r)*AirframeData.intertiaTensor(0, 2),
-		p*q*(AirframeData.intertiaTensor(1, 1) - AirframeData.intertiaTensor(0, 0)) + q*r*AirframeData.intertiaTensor(0, 2);
+	Vec_rotTensor << AirframeData.rotRatesBody(1)*AirframeData.rotRatesBody(2)*(AirframeData.intertiaTensor(2, 2) - AirframeData.intertiaTensor(1, 1)) - AirframeData.rotRatesBody(0)*AirframeData.rotRatesBody(1)*AirframeData.intertiaTensor(0, 2),
+		AirframeData.rotRatesBody(2)*AirframeData.rotRatesBody(0)*(AirframeData.intertiaTensor(0, 0) - AirframeData.intertiaTensor(2, 2)) + (AirframeData.rotRatesBody(0)*AirframeData.rotRatesBody(0) - AirframeData.rotRatesBody(2)*AirframeData.rotRatesBody(2))*AirframeData.intertiaTensor(0, 2),
+		AirframeData.rotRatesBody(0)*AirframeData.rotRatesBody(1)*(AirframeData.intertiaTensor(1, 1) - AirframeData.intertiaTensor(0, 0)) + AirframeData.rotRatesBody(1)*AirframeData.rotRatesBody(2)*AirframeData.intertiaTensor(0, 2);
 
 	AirframeData.accRotBody = AirframeData.intertiaTensor.inverse()*(TotalMoment - Vec_rotTensor);
 
@@ -90,6 +90,6 @@ void Airframe::updateRotational(AerodynamicStruct & AeroData,
 				0, cos(phi), -sin(phi),
 				0, sin(phi) / cos(theta), cos(phi) / cos(theta);
 
-	AirframeData.Eulerdot = Eulerdot *rotRates;
+	AirframeData.Eulerdot = Eulerdot *AirframeData.rotRatesBody;
 
 }

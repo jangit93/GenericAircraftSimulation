@@ -1,0 +1,182 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2sparse_l_m_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/sparse\+LM.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2sparse_l_m_8cpp_source}\index{sparse\+L\+M.\+cpp@{sparse\+L\+M.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2012 Desire Nuentsa <desire.nuentsa\_wakam@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2012 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 \textcolor{preprocessor}{#include <iostream>}
+00011 \textcolor{preprocessor}{#include <fstream>}
+00012 \textcolor{preprocessor}{#include <iomanip>}
+00013 
+00014 \textcolor{preprocessor}{#include "main.h"}
+00015 \textcolor{preprocessor}{#include <Eigen/LevenbergMarquardt>}
+00016 
+00017 \textcolor{keyword}{using namespace }\hyperlink{namespacestd}{std};
+00018 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00019 
+00020 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar>
+00021 \textcolor{keyword}{struct }\hyperlink{structsparse_gaussian_test}{sparseGaussianTest} : \hyperlink{struct_eigen_1_1_sparse_functor}{SparseFunctor}<Scalar, int>
+00022 \{
+00023   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,1>} \hyperlink{struct_vector_type}{VectorType};
+00024   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1_sparse_functor}{SparseFunctor<Scalar,int>} Base;
+00025   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Base::JacobianType JacobianType;
+00026   \hyperlink{structsparse_gaussian_test}{sparseGaussianTest}(\textcolor{keywordtype}{int} inputs, \textcolor{keywordtype}{int} values) : \hyperlink{struct_eigen_1_1_sparse_functor}{SparseFunctor}<Scalar,int>(
+      inputs,values)
+00027   \{ \}
+00028   
+00029   VectorType model(\textcolor{keyword}{const} VectorType& uv, VectorType& x)
+00030   \{
+00031     VectorType y; \textcolor{comment}{//Change this to use expression template}
+00032     \textcolor{keywordtype}{int} m = Base::values(); 
+00033     \textcolor{keywordtype}{int} n = Base::inputs();
+00034     eigen\_assert(uv.size()%2 == 0);
+00035     eigen\_assert(uv.size() == n);
+00036     eigen\_assert(x.size() == m);
+00037     y.setZero(m);
+00038     \textcolor{keywordtype}{int} \hyperlink{struct_eigen_1_1half}{half} = n/2;
+00039     \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<const VectorType>} u(uv, 0, half);
+00040     \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<const VectorType>} v(uv, half, half);
+00041     Scalar coeff;
+00042     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < m; j++)
+00043     \{
+00044       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < half; i++) 
+00045       \{
+00046         coeff = (x(j)-i)/v(i);
+00047         coeff *= coeff;
+00048         \textcolor{keywordflow}{if} (coeff < 1. && coeff > 0.)
+00049           y(j) += u(i)*std::pow((1-coeff), 2);
+00050       \}
+00051     \}
+00052     \textcolor{keywordflow}{return} y;
+00053   \}
+00054   \textcolor{keywordtype}{void} initPoints(VectorType& uv\_ref, VectorType& x)
+00055   \{
+00056     m\_x = x;
+00057     m\_y = this->model(uv\_ref,x);
+00058   \}
+00059   \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorType& uv, VectorType& fvec)
+00060   \{
+00061     \textcolor{keywordtype}{int} m = Base::values(); 
+00062     \textcolor{keywordtype}{int} n = Base::inputs();
+00063     eigen\_assert(uv.size()%2 == 0);
+00064     eigen\_assert(uv.size() == n);
+00065     \textcolor{keywordtype}{int} half = n/2;
+00066     \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<const VectorType>} u(uv, 0, half);
+00067     \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<const VectorType>} v(uv, half, half);
+00068     fvec = m\_y;
+00069     Scalar coeff;
+00070     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < m; j++)
+00071     \{
+00072       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < half; i++)
+00073       \{
+00074         coeff = (m\_x(j)-i)/v(i);
+00075         coeff *= coeff;
+00076         \textcolor{keywordflow}{if} (coeff < 1. && coeff > 0.)
+00077           fvec(j) -= u(i)*std::pow((1-coeff), 2);
+00078       \}
+00079     \}
+00080     \textcolor{keywordflow}{return} 0;
+00081   \}
+00082   
+00083   \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorType& uv, JacobianType& fjac)
+00084   \{
+00085     \textcolor{keywordtype}{int} m = Base::values(); 
+00086     \textcolor{keywordtype}{int} n = Base::inputs();
+00087     eigen\_assert(n == uv.size());
+00088     eigen\_assert(fjac.rows() == m);
+00089     eigen\_assert(fjac.cols() == n);
+00090     \textcolor{keywordtype}{int} half = n/2;
+00091     \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<const VectorType>} u(uv, 0, half);
+00092     \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<const VectorType>} v(uv, half, half);
+00093     Scalar coeff;
+00094     
+00095     \textcolor{comment}{//Derivatives with respect to u}
+00096     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} col = 0; col < half; col++)
+00097     \{
+00098       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} row = 0; row < m; row++)
+00099       \{
+00100         coeff = (m\_x(row)-col)/v(col);
+00101           coeff = coeff*coeff;
+00102         \textcolor{keywordflow}{if}(coeff < 1. && coeff > 0.)
+00103         \{
+00104           fjac.coeffRef(row,col) = -(1-coeff)*(1-coeff);
+00105         \}
+00106       \}
+00107     \}
+00108     \textcolor{comment}{//Derivatives with respect to v}
+00109     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} col = 0; col < half; col++)
+00110     \{
+00111       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} row = 0; row < m; row++)
+00112       \{
+00113         coeff = (m\_x(row)-col)/v(col);
+00114         coeff = coeff*coeff;
+00115         \textcolor{keywordflow}{if}(coeff < 1. && coeff > 0.)
+00116         \{
+00117           fjac.coeffRef(row,col+half) = -4 * (u(col)/v(col))*coeff*(1-coeff);
+00118         \}
+00119       \}
+00120     \}
+00121     \textcolor{keywordflow}{return} 0;
+00122   \}
+00123   
+00124   VectorType m\_x, m\_y; \textcolor{comment}{//Data points}
+00125 \};
+00126 
+00127 
+00128 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00129 \textcolor{keywordtype}{void} test\_sparseLM\_T()
+00130 \{
+00131   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<T,Dynamic,1>} VectorType;
+00132   
+00133   \textcolor{keywordtype}{int} inputs = 10;
+00134   \textcolor{keywordtype}{int} values = 2000;
+00135   \hyperlink{structsparse_gaussian_test}{sparseGaussianTest<T>} sparse\_gaussian(inputs, values);
+00136   VectorType uv(inputs),uv\_ref(inputs);
+00137   VectorType x(values);
+00138   \textcolor{comment}{// Generate the reference solution }
+00139   uv\_ref << -2, 1, 4 ,8, 6, 1.8, 1.2, 1.1, 1.9 , 3;
+00140   \textcolor{comment}{//Generate the reference data points}
+00141   x.setRandom();
+00142   x = 10*x;
+00143   x.array() += 10;
+00144   sparse\_gaussian.initPoints(uv\_ref, x);
+00145   
+00146   
+00147   \textcolor{comment}{// Generate the initial parameters }
+00148   \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<VectorType>} u(uv, 0, inputs/2); 
+00149   \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<VectorType>} v(uv, inputs/2, inputs/2);
+00150   v.setOnes();
+00151   \textcolor{comment}{//Generate u or Solve for u from v}
+00152   u.setOnes();
+00153   
+00154   \textcolor{comment}{// Solve the optimization problem}
+00155   \hyperlink{class_eigen_1_1_levenberg_marquardt}{LevenbergMarquardt<sparseGaussianTest<T>} > lm(sparse\_gaussian);
+00156   \textcolor{keywordtype}{int} info;
+00157 \textcolor{comment}{//   info = lm.minimize(uv);}
+00158   
+00159   VERIFY\_IS\_EQUAL(info,1);
+00160     \textcolor{comment}{// Do a step by step solution and save the residual }
+00161   \textcolor{keywordtype}{int} maxiter = 200;
+00162   \textcolor{keywordtype}{int} iter = 0;
+00163   MatrixXd Err(values, maxiter);
+00164   MatrixXd Mod(values, maxiter);
+00165   LevenbergMarquardtSpace::Status status; 
+00166   status = lm.minimizeInit(uv);
+00167   \textcolor{keywordflow}{if} (status==LevenbergMarquardtSpace::ImproperInputParameters)
+00168       return ;
+00169 
+00170 \}
+00171 \textcolor{keywordtype}{void} test\_sparseLM()
+00172 \{
+00173   CALL\_SUBTEST\_1(test\_sparseLM\_T<double>());
+00174   
+00175   \textcolor{comment}{// CALL\_SUBTEST\_2(test\_sparseLM\_T<std::complex<double>());}
+00176 \}
+\end{DoxyCode}

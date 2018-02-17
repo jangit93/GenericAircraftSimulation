@@ -1,0 +1,223 @@
+\hypertarget{eigen_2unsupported_2test_2polynomialsolver_8cpp_source}{}\section{eigen/unsupported/test/polynomialsolver.cpp}
+\label{eigen_2unsupported_2test_2polynomialsolver_8cpp_source}\index{polynomialsolver.\+cpp@{polynomialsolver.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2010 Manuel Yguel <manuel.yguel@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 \textcolor{preprocessor}{#include <unsupported/Eigen/Polynomials>}
+00012 \textcolor{preprocessor}{#include <iostream>}
+00013 \textcolor{preprocessor}{#include <algorithm>}
+00014 
+00015 \textcolor{keyword}{using namespace }\hyperlink{namespacestd}{std};
+00016 
+00017 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00018 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00019 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Size>
+\Hypertarget{eigen_2unsupported_2test_2polynomialsolver_8cpp_source_l00020}\hyperlink{struct_eigen_1_1internal_1_1increment__if__fixed__size}{00020} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1increment__if__fixed__size}{increment\_if\_fixed\_size}
+00021 \{
+00022   \textcolor{keyword}{enum} \{
+00023     ret = (Size == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) ? \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} : Size+1
+00024   \};
+00025 \};
+00026 \}
+00027 \}
+00028 
+00029 
+00030 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Deg, \textcolor{keyword}{typename} POLYNOMIAL, \textcolor{keyword}{typename} SOLVER>
+00031 \textcolor{keywordtype}{bool} aux\_evalSolver( \textcolor{keyword}{const} POLYNOMIAL& pols, SOLVER& psolve )
+00032 \{
+00033   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} POLYNOMIAL::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00034   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} POLYNOMIAL::Scalar Scalar;
+00035 
+00036   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} SOLVER::RootsType    RootsType;
+00037   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Deg,1>}          EvalRootsType;
+00038 
+00039   \textcolor{keyword}{const} Index deg = pols.size()-1;
+00040 
+00041   \textcolor{comment}{// Test template constructor from coefficient vector}
+00042   SOLVER solve\_constr (pols);
+00043 
+00044   psolve.compute( pols );
+00045   \textcolor{keyword}{const} RootsType& roots( psolve.roots() );
+00046   EvalRootsType evr( deg );
+00047   \textcolor{keywordflow}{for}( \textcolor{keywordtype}{int} i=0; i<roots.size(); ++i )\{
+00048     evr[i] = std::abs( \hyperlink{namespace_eigen_adb64ffddaa9e83634e3ab0e3fd3664f5}{poly\_eval}( pols, roots[i] ) ); \}
+00049 
+00050   \textcolor{keywordtype}{bool} evalToZero = evr.isZero( test\_precision<Scalar>() );
+00051   \textcolor{keywordflow}{if}( !evalToZero )
+00052   \{
+00053     cerr << \textcolor{stringliteral}{"WRONG root: "} << endl;
+00054     cerr << \textcolor{stringliteral}{"Polynomial: "} << pols.transpose() << endl;
+00055     cerr << \textcolor{stringliteral}{"Roots found: "} << roots.transpose() << endl;
+00056     cerr << \textcolor{stringliteral}{"Abs value of the polynomial at the roots: "} << evr.transpose() << endl;
+00057     cerr << endl;
+00058   \}
+00059 
+00060   std::vector<Scalar> rootModuli( roots.size() );
+00061   \hyperlink{group___core___module_class_eigen_1_1_map}{Map< EvalRootsType >} aux( &rootModuli[0], roots.size() );
+00062   aux = roots.array().abs();
+00063   std::sort( rootModuli.begin(), rootModuli.end() );
+00064   \textcolor{keywordtype}{bool} distinctModuli=\textcolor{keyword}{true};
+00065   \textcolor{keywordflow}{for}( \textcolor{keywordtype}{size\_t} i=1; i<rootModuli.size() && distinctModuli; ++i )
+00066   \{
+00067     \textcolor{keywordflow}{if}( internal::isApprox( rootModuli[i], rootModuli[i-1] ) )\{
+00068       distinctModuli = \textcolor{keyword}{false}; \}
+00069   \}
+00070   VERIFY( evalToZero || !distinctModuli );
+00071 
+00072   \textcolor{keywordflow}{return} distinctModuli;
+00073 \}
+00074 
+00075 
+00076 
+00077 
+00078 
+00079 
+00080 
+00081 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Deg, \textcolor{keyword}{typename} POLYNOMIAL>
+00082 \textcolor{keywordtype}{void} evalSolver( \textcolor{keyword}{const} POLYNOMIAL& pols )
+00083 \{
+00084   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} POLYNOMIAL::Scalar Scalar;
+00085 
+00086   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_polynomial_solver}{PolynomialSolver<Scalar, Deg >}              PolynomialSolverType;
+00087 
+00088   PolynomialSolverType psolve;
+00089   aux\_evalSolver<Deg, POLYNOMIAL, PolynomialSolverType>( pols, psolve );
+00090 \}
+00091 
+00092 
+00093 
+00094 
+00095 \textcolor{keyword}{template}< \textcolor{keywordtype}{int} Deg, \textcolor{keyword}{typename} POLYNOMIAL, \textcolor{keyword}{typename} ROOTS, \textcolor{keyword}{typename} REAL\_ROOTS >
+00096 \textcolor{keywordtype}{void} evalSolverSugarFunction( \textcolor{keyword}{const} POLYNOMIAL& pols, \textcolor{keyword}{const} ROOTS& roots, \textcolor{keyword}{const} REAL\_ROOTS& real\_roots )
+00097 \{
+00098   \textcolor{keyword}{using} std::sqrt;
+00099   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} POLYNOMIAL::Scalar Scalar;
+00100 
+00101   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_polynomial_solver}{PolynomialSolver<Scalar, Deg >}              PolynomialSolverType;
+00102 
+00103   PolynomialSolverType psolve;
+00104   \textcolor{keywordflow}{if}( aux\_evalSolver<Deg, POLYNOMIAL, PolynomialSolverType>( pols, psolve ) )
+00105   \{
+00106     \textcolor{comment}{//It is supposed that}
+00107     \textcolor{comment}{// 1) the roots found are correct}
+00108     \textcolor{comment}{// 2) the roots have distinct moduli}
+00109 
+00110     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} POLYNOMIAL::Scalar                 Scalar;
+00111     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} REAL\_ROOTS::Scalar                 Real;
+00112 
+00113     \textcolor{comment}{//Test realRoots}
+00114     std::vector< Real > calc\_realRoots;
+00115     psolve.\hyperlink{class_eigen_1_1_polynomial_solver_base_a4ea3b29499623832a0ad7b2b3ab05597}{realRoots}( calc\_realRoots );
+00116     VERIFY( calc\_realRoots.size() == (size\_t)real\_roots.size() );
+00117 
+00118     \textcolor{keyword}{const} Scalar psPrec = sqrt( test\_precision<Scalar>() );
+00119 
+00120     \textcolor{keywordflow}{for}( \textcolor{keywordtype}{size\_t} i=0; i<calc\_realRoots.size(); ++i )
+00121     \{
+00122       \textcolor{keywordtype}{bool} found = \textcolor{keyword}{false};
+00123       \textcolor{keywordflow}{for}( \textcolor{keywordtype}{size\_t} j=0; j<calc\_realRoots.size()&& !found; ++j )
+00124       \{
+00125         \textcolor{keywordflow}{if}( internal::isApprox( calc\_realRoots[i], real\_roots[j], psPrec ) )\{
+00126           found = \textcolor{keyword}{true}; \}
+00127       \}
+00128       VERIFY( found );
+00129     \}
+00130 
+00131     \textcolor{comment}{//Test greatestRoot}
+00132     VERIFY( internal::isApprox( roots.array().abs().maxCoeff(),
+00133           abs( psolve.greatestRoot() ), psPrec ) );
+00134 
+00135     \textcolor{comment}{//Test smallestRoot}
+00136     VERIFY( internal::isApprox( roots.array().abs().minCoeff(),
+00137           abs( psolve.smallestRoot() ), psPrec ) );
+00138 
+00139     \textcolor{keywordtype}{bool} hasRealRoot;
+00140     \textcolor{comment}{//Test absGreatestRealRoot}
+00141     Real r = psolve.absGreatestRealRoot( hasRealRoot );
+00142     VERIFY( hasRealRoot == (real\_roots.size() > 0 ) );
+00143     \textcolor{keywordflow}{if}( hasRealRoot )\{
+00144       VERIFY( internal::isApprox( real\_roots.array().abs().maxCoeff(), abs(r), psPrec ) );  \}
+00145 
+00146     \textcolor{comment}{//Test absSmallestRealRoot}
+00147     r = psolve.absSmallestRealRoot( hasRealRoot );
+00148     VERIFY( hasRealRoot == (real\_roots.size() > 0 ) );
+00149     \textcolor{keywordflow}{if}( hasRealRoot )\{
+00150       VERIFY( internal::isApprox( real\_roots.array().abs().minCoeff(), abs( r ), psPrec ) ); \}
+00151 
+00152     \textcolor{comment}{//Test greatestRealRoot}
+00153     r = psolve.greatestRealRoot( hasRealRoot );
+00154     VERIFY( hasRealRoot == (real\_roots.size() > 0 ) );
+00155     \textcolor{keywordflow}{if}( hasRealRoot )\{
+00156       VERIFY( internal::isApprox( real\_roots.array().maxCoeff(), r, psPrec ) ); \}
+00157 
+00158     \textcolor{comment}{//Test smallestRealRoot}
+00159     r = psolve.smallestRealRoot( hasRealRoot );
+00160     VERIFY( hasRealRoot == (real\_roots.size() > 0 ) );
+00161     \textcolor{keywordflow}{if}( hasRealRoot )\{
+00162     VERIFY( internal::isApprox( real\_roots.array().minCoeff(), r, psPrec ) ); \}
+00163   \}
+00164 \}
+00165 
+00166 
+00167 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} \_Deg>
+00168 \textcolor{keywordtype}{void} polynomialsolver(\textcolor{keywordtype}{int} deg)
+00169 \{
+00170   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1increment__if__fixed__size}{internal::increment\_if\_fixed\_size<\_Deg>}            Dim;
+00171   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<\_Scalar,Dim::ret,1>}                  PolynomialType;
+00172   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<\_Scalar,\_Deg,1>}                      EvalRootsType;
+00173 
+00174   cout << \textcolor{stringliteral}{"Standard cases"} << endl;
+00175   PolynomialType pols = PolynomialType::Random(deg+1);
+00176   evalSolver<\_Deg,PolynomialType>( pols );
+00177 
+00178   cout << \textcolor{stringliteral}{"Hard cases"} << endl;
+00179   \_Scalar multipleRoot = internal::random<\_Scalar>();
+00180   EvalRootsType allRoots = EvalRootsType::Constant(deg,multipleRoot);
+00181   \hyperlink{namespace_eigen_afbc3648f7ef67db3d5d04454fc1257fd}{roots\_to\_monicPolynomial}( allRoots, pols );
+00182   evalSolver<\_Deg,PolynomialType>( pols );
+00183 
+00184   cout << \textcolor{stringliteral}{"Test sugar"} << endl;
+00185   EvalRootsType realRoots = EvalRootsType::Random(deg);
+00186   \hyperlink{namespace_eigen_afbc3648f7ef67db3d5d04454fc1257fd}{roots\_to\_monicPolynomial}( realRoots, pols );
+00187   evalSolverSugarFunction<\_Deg>(
+00188       pols,
+00189       realRoots.template cast <
+00190                     std::complex<
+00191                          \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{NumTraits<\_Scalar>::Real}
+00192                          >
+00193                     >(),
+00194       realRoots );
+00195 \}
+00196 
+00197 \textcolor{keywordtype}{void} test\_polynomialsolver()
+00198 \{
+00199   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++)
+00200   \{
+00201     CALL\_SUBTEST\_1( (polynomialsolver<float,1>(1)) );
+00202     CALL\_SUBTEST\_2( (polynomialsolver<double,2>(2)) );
+00203     CALL\_SUBTEST\_3( (polynomialsolver<double,3>(3)) );
+00204     CALL\_SUBTEST\_4( (polynomialsolver<float,4>(4)) );
+00205     CALL\_SUBTEST\_5( (polynomialsolver<double,5>(5)) );
+00206     CALL\_SUBTEST\_6( (polynomialsolver<float,6>(6)) );
+00207     CALL\_SUBTEST\_7( (polynomialsolver<float,7>(7)) );
+00208     CALL\_SUBTEST\_8( (polynomialsolver<double,8>(8)) );
+00209 
+00210     CALL\_SUBTEST\_9( (polynomialsolver<float,Dynamic>(
+00211             internal::random<int>(9,13)
+00212             )) );
+00213     CALL\_SUBTEST\_10((polynomialsolver<double,Dynamic>(
+00214             internal::random<int>(9,13)
+00215             )) );
+00216     CALL\_SUBTEST\_11((polynomialsolver<float,Dynamic>(1)) );
+00217   \}
+00218 \}
+\end{DoxyCode}

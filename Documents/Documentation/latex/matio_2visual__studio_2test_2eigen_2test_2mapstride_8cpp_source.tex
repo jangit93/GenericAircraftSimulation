@@ -1,0 +1,202 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2mapstride_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/mapstride.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2mapstride_8cpp_source}\index{mapstride.\+cpp@{mapstride.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2010 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Alignment,\textcolor{keyword}{typename} VectorType> \textcolor{keywordtype}{void} map\_class\_vector(\textcolor{keyword}{const} 
+      \hyperlink{struct_vector_type}{VectorType}& m)
+00013 \{
+00014   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} VectorType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00015   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} VectorType::Scalar Scalar;
+00016 
+00017   Index size = m.size();
+00018 
+00019   \hyperlink{struct_vector_type}{VectorType} v = VectorType::Random(size);
+00020 
+00021   Index arraysize = 3*size;
+00022   
+00023   Scalar* a\_array = internal::aligned\_new<Scalar>(arraysize+1);
+00024   Scalar* \hyperlink{class_eigen_1_1array}{array} = a\_array;
+00025   \textcolor{keywordflow}{if}(Alignment!=\hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Aligned})
+00026     array = (Scalar*)(internal::IntPtr(a\_array) + (internal::packet\_traits<Scalar>::AlignedOnScalar?\textcolor{keyword}{sizeof}(
+      Scalar):\textcolor{keyword}{sizeof}(\textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real})));
+00027 
+00028   \{
+00029     \hyperlink{group___core___module_class_eigen_1_1_map}{Map<VectorType, Alignment, InnerStride<3>} > map(array, size);
+00030     map = v;
+00031     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < size; ++i)
+00032     \{
+00033       VERIFY(array[3*i] == v[i]);
+00034       VERIFY(map[i] == v[i]);
+00035     \}
+00036   \}
+00037 
+00038   \{
+00039     \hyperlink{group___core___module_class_eigen_1_1_map}{Map<VectorType, Unaligned, InnerStride<Dynamic>} > map(
+      array, size, \hyperlink{class_eigen_1_1_inner_stride}{InnerStride<Dynamic>}(2));
+00040     map = v;
+00041     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < size; ++i)
+00042     \{
+00043       VERIFY(array[2*i] == v[i]);
+00044       VERIFY(map[i] == v[i]);
+00045     \}
+00046   \}
+00047 
+00048   internal::aligned\_delete(a\_array, arraysize+1);
+00049 \}
+00050 
+00051 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Alignment,\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} map\_class\_matrix(\textcolor{keyword}{const} MatrixType& \_m)
+00052 \{
+00053   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index Index;
+00054   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00055 
+00056   Index rows = \_m.rows(), cols = \_m.cols();
+00057 
+00058   MatrixType m = MatrixType::Random(rows,cols);
+00059   Scalar s1 = internal::random<Scalar>();
+00060 
+00061   Index arraysize = 2*(rows+4)*(cols+4);
+00062 
+00063   Scalar* a\_array1 = internal::aligned\_new<Scalar>(arraysize+1);
+00064   Scalar* array1 = a\_array1;
+00065   \textcolor{keywordflow}{if}(Alignment!=\hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Aligned})
+00066     array1 = (Scalar*)(internal::IntPtr(a\_array1) + (internal::packet\_traits<Scalar>::AlignedOnScalar?\textcolor{keyword}{
+      sizeof}(Scalar):\textcolor{keyword}{sizeof}(\textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real})));
+00067 
+00068   Scalar a\_array2[256];
+00069   Scalar* array2 = a\_array2;
+00070   \textcolor{keywordflow}{if}(Alignment!=\hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Aligned})
+00071     array2 = (Scalar*)(internal::IntPtr(a\_array2) + (internal::packet\_traits<Scalar>::AlignedOnScalar?\textcolor{keyword}{
+      sizeof}(Scalar):\textcolor{keyword}{sizeof}(\textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real})));
+00072   \textcolor{keywordflow}{else}
+00073     array2 = (Scalar*)(((internal::UIntPtr(a\_array2)+EIGEN\_MAX\_ALIGN\_BYTES-1)/EIGEN\_MAX\_ALIGN\_BYTES)*
+      EIGEN\_MAX\_ALIGN\_BYTES);
+00074   Index maxsize2 = a\_array2 - array2 + 256;
+00075   
+00076   \textcolor{comment}{// test no inner stride and some dynamic outer stride}
+00077   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} k=0; k<2; ++k)
+00078   \{
+00079     \textcolor{keywordflow}{if}(k==1 && (m.innerSize()+1)*m.outerSize() > maxsize2)
+00080       \textcolor{keywordflow}{break};
+00081     Scalar* array = (k==0 ? array1 : array2);
+00082     
+00083     \hyperlink{group___core___module_class_eigen_1_1_map}{Map<MatrixType, Alignment, OuterStride<Dynamic>} > map(
+      array, rows, cols, \hyperlink{class_eigen_1_1_outer_stride}{OuterStride<Dynamic>}(m.innerSize()+1));
+00084     map = m;
+00085     VERIFY(map.outerStride() == map.innerSize()+1);
+00086     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < m.outerSize(); ++i)
+00087       \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j = 0; j < m.innerSize(); ++j)
+00088       \{
+00089         VERIFY(array[map.outerStride()*i+j] == m.coeffByOuterInner(i,j));
+00090         VERIFY(map.coeffByOuterInner(i,j) == m.coeffByOuterInner(i,j));
+00091       \}
+00092     VERIFY\_IS\_APPROX(s1*map,s1*m);
+00093     map *= s1;
+00094     VERIFY\_IS\_APPROX(map,s1*m);
+00095   \}
+00096 
+00097   \textcolor{comment}{// test no inner stride and an outer stride of +4. This is quite important as for fixed-size matrices,}
+00098   \textcolor{comment}{// this allows to hit the special case where it's vectorizable.}
+00099   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} k=0; k<2; ++k)
+00100   \{
+00101     \textcolor{keywordflow}{if}(k==1 && (m.innerSize()+4)*m.outerSize() > maxsize2)
+00102       \textcolor{keywordflow}{break};
+00103     Scalar* array = (k==0 ? array1 : array2);
+00104     
+00105     \textcolor{keyword}{enum} \{
+00106       InnerSize = MatrixType::InnerSizeAtCompileTime,
+00107       OuterStrideAtCompileTime = InnerSize==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} ? \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} : InnerSize+4
+00108     \};
+00109     \hyperlink{group___core___module_class_eigen_1_1_map}{Map<MatrixType, Alignment, OuterStride<OuterStrideAtCompileTime>}
+       >
+00110       map(array, rows, cols, \hyperlink{class_eigen_1_1_outer_stride}{OuterStride<OuterStrideAtCompileTime>}(m.
+      innerSize()+4));
+00111     map = m;
+00112     VERIFY(map.outerStride() == map.innerSize()+4);
+00113     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < m.outerSize(); ++i)
+00114       \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j = 0; j < m.innerSize(); ++j)
+00115       \{
+00116         VERIFY(array[map.outerStride()*i+j] == m.coeffByOuterInner(i,j));
+00117         VERIFY(map.coeffByOuterInner(i,j) == m.coeffByOuterInner(i,j));
+00118       \}
+00119     VERIFY\_IS\_APPROX(s1*map,s1*m);
+00120     map *= s1;
+00121     VERIFY\_IS\_APPROX(map,s1*m);
+00122   \}
+00123 
+00124   \textcolor{comment}{// test both inner stride and outer stride}
+00125   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} k=0; k<2; ++k)
+00126   \{
+00127     \textcolor{keywordflow}{if}(k==1 && (2*m.innerSize()+1)*(m.outerSize()*2) > maxsize2)
+00128       \textcolor{keywordflow}{break};
+00129     Scalar* array = (k==0 ? array1 : array2);
+00130     
+00131     \hyperlink{group___core___module_class_eigen_1_1_map}{Map<MatrixType, Alignment, Stride<Dynamic,Dynamic>} > 
+      map(array, rows, cols, \hyperlink{group___core___module_class_eigen_1_1_stride}{Stride<Dynamic,Dynamic>}(2*m.innerSize()+1, 2));
+00132     map = m;
+00133     VERIFY(map.outerStride() == 2*map.innerSize()+1);
+00134     VERIFY(map.innerStride() == 2);
+00135     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < m.outerSize(); ++i)
+00136       \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j = 0; j < m.innerSize(); ++j)
+00137       \{
+00138         VERIFY(array[map.outerStride()*i+map.innerStride()*j] == m.coeffByOuterInner(i,j));
+00139         VERIFY(map.coeffByOuterInner(i,j) == m.coeffByOuterInner(i,j));
+00140       \}
+00141     VERIFY\_IS\_APPROX(s1*map,s1*m);
+00142     map *= s1;
+00143     VERIFY\_IS\_APPROX(map,s1*m);
+00144   \}
+00145 
+00146   internal::aligned\_delete(a\_array1, arraysize+1);
+00147 \}
+00148 
+00149 \textcolor{keywordtype}{void} test\_mapstride()
+00150 \{
+00151   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00152     \textcolor{keywordtype}{int} maxn = 30;
+00153     CALL\_SUBTEST\_1( map\_class\_vector<Aligned>(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 1, 1>}()) );
+00154     CALL\_SUBTEST\_1( map\_class\_vector<Unaligned>(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 1, 1>}()) );
+00155     CALL\_SUBTEST\_2( map\_class\_vector<Aligned>(Vector4d()) );
+00156     CALL\_SUBTEST\_2( map\_class\_vector<Unaligned>(Vector4d()) );
+00157     CALL\_SUBTEST\_3( map\_class\_vector<Aligned>(RowVector4f()) );
+00158     CALL\_SUBTEST\_3( map\_class\_vector<Unaligned>(RowVector4f()) );
+00159     CALL\_SUBTEST\_4( map\_class\_vector<Aligned>(VectorXcf(internal::random<int>(1,maxn))) );
+00160     CALL\_SUBTEST\_4( map\_class\_vector<Unaligned>(VectorXcf(internal::random<int>(1,maxn))) );
+00161     CALL\_SUBTEST\_5( map\_class\_vector<Aligned>(VectorXi(internal::random<int>(1,maxn))) );
+00162     CALL\_SUBTEST\_5( map\_class\_vector<Unaligned>(VectorXi(internal::random<int>(1,maxn))) );
+00163 
+00164     CALL\_SUBTEST\_1( map\_class\_matrix<Aligned>(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 1, 1>}()) );
+00165     CALL\_SUBTEST\_1( map\_class\_matrix<Unaligned>(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 1, 1>}()) );
+00166     CALL\_SUBTEST\_2( map\_class\_matrix<Aligned>(Matrix4d()) );
+00167     CALL\_SUBTEST\_2( map\_class\_matrix<Unaligned>(Matrix4d()) );
+00168     CALL\_SUBTEST\_3( map\_class\_matrix<Aligned>(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,3,5>}()) );
+00169     CALL\_SUBTEST\_3( map\_class\_matrix<Unaligned>(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,3,5>}()) );
+00170     CALL\_SUBTEST\_3( map\_class\_matrix<Aligned>(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,4,8>}()) );
+00171     CALL\_SUBTEST\_3( map\_class\_matrix<Unaligned>(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,4,8>}()) );
+00172     CALL\_SUBTEST\_4( map\_class\_matrix<Aligned>(MatrixXcf(internal::random<int>(1,maxn),internal::random<int>
+      (1,maxn))) );
+00173     CALL\_SUBTEST\_4( map\_class\_matrix<Unaligned>(MatrixXcf(internal::random<int>(1,maxn),
+      internal::random<int>(1,maxn))) );
+00174     CALL\_SUBTEST\_5( map\_class\_matrix<Aligned>(MatrixXi(internal::random<int>(1,maxn),internal::random<int>(
+      1,maxn))) );
+00175     CALL\_SUBTEST\_5( map\_class\_matrix<Unaligned>(MatrixXi(internal::random<int>(1,maxn),
+      internal::random<int>(1,maxn))) );
+00176     CALL\_SUBTEST\_6( map\_class\_matrix<Aligned>(MatrixXcd(internal::random<int>(1,maxn),internal::random<int>
+      (1,maxn))) );
+00177     CALL\_SUBTEST\_6( map\_class\_matrix<Unaligned>(MatrixXcd(internal::random<int>(1,maxn),
+      internal::random<int>(1,maxn))) );
+00178     
+00179     TEST\_SET\_BUT\_UNUSED\_VARIABLE(maxn);
+00180   \}
+00181 \}
+\end{DoxyCode}

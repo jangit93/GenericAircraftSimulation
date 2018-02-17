@@ -1,0 +1,166 @@
+\hypertarget{eigen_2_eigen_2src_2_sparse_l_u_2_sparse_l_u__column__dfs_8h_source}{}\section{eigen/\+Eigen/src/\+Sparse\+L\+U/\+Sparse\+L\+U\+\_\+column\+\_\+dfs.h}
+\label{eigen_2_eigen_2src_2_sparse_l_u_2_sparse_l_u__column__dfs_8h_source}\index{Sparse\+L\+U\+\_\+column\+\_\+dfs.\+h@{Sparse\+L\+U\+\_\+column\+\_\+dfs.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2012 Désiré Nuentsa-Wakam <desire.nuentsa\_wakam@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{comment}{/* }
+00011 \textcolor{comment}{ }
+00012 \textcolor{comment}{ * NOTE: This file is the modified version of [s,d,c,z]column\_dfs.c file in SuperLU }
+00013 \textcolor{comment}{ }
+00014 \textcolor{comment}{ * -- SuperLU routine (version 2.0) --}
+00015 \textcolor{comment}{ * Univ. of California Berkeley, Xerox Palo Alto Research Center,}
+00016 \textcolor{comment}{ * and Lawrence Berkeley National Lab.}
+00017 \textcolor{comment}{ * November 15, 1997}
+00018 \textcolor{comment}{ *}
+00019 \textcolor{comment}{ * Copyright (c) 1994 by Xerox Corporation.  All rights reserved.}
+00020 \textcolor{comment}{ *}
+00021 \textcolor{comment}{ * THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY}
+00022 \textcolor{comment}{ * EXPRESSED OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.}
+00023 \textcolor{comment}{ *}
+00024 \textcolor{comment}{ * Permission is hereby granted to use or copy this program for any}
+00025 \textcolor{comment}{ * purpose, provided the above notices are retained on all copies.}
+00026 \textcolor{comment}{ * Permission to modify the code and to distribute modified code is}
+00027 \textcolor{comment}{ * granted, provided the above notices are retained, and a notice that}
+00028 \textcolor{comment}{ * the code was modified is included with the above copyright notice.}
+00029 \textcolor{comment}{ */}
+00030 \textcolor{preprocessor}{#ifndef SPARSELU\_COLUMN\_DFS\_H}
+00031 \textcolor{preprocessor}{#define SPARSELU\_COLUMN\_DFS\_H}
+00032 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_l_u_2_sparse_l_u__column__dfs_8h_source_l00033}\hyperlink{class_sparse_l_u_impl}{00033} \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} StorageIndex> \textcolor{keyword}{class }\hyperlink{class_sparse_l_u_impl}{SparseLUImpl};
+00034 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00035 
+00036 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00037 
+00038 \textcolor{keyword}{template}<\textcolor{keyword}{typename} IndexVector, \textcolor{keyword}{typename} ScalarVector>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_l_u_2_sparse_l_u__column__dfs_8h_source_l00039}\hyperlink{struct_eigen_1_1internal_1_1column__dfs__traits}{00039} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1column__dfs__traits}{column\_dfs\_traits} : \hyperlink{class_eigen_1_1internal_1_1no__assignment__operator}{no\_assignment\_operator}
+00040 \{
+00041   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ScalarVector::Scalar Scalar;
+00042   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} IndexVector::Scalar StorageIndex;
+00043   \hyperlink{struct_eigen_1_1internal_1_1column__dfs__traits}{column\_dfs\_traits}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} jcol, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& jsuper, \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1_l_u___global_l_u__t}{SparseLUImpl<Scalar, StorageIndex>::GlobalLU\_t}& glu, 
+      \hyperlink{group___sparse_l_u___module_class_eigen_1_1internal_1_1_sparse_l_u_impl}{SparseLUImpl<Scalar, StorageIndex>}& luImpl)
+00044    : m\_jcol(jcol), m\_jsuper\_ref(jsuper), m\_glu(glu), m\_luImpl(luImpl)
+00045  \{\}
+00046   \textcolor{keywordtype}{bool} update\_segrep(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{comment}{/*krep*/}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{comment}{/*jj*/})
+00047   \{
+00048     \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00049   \}
+00050   \textcolor{keywordtype}{void} mem\_expand(IndexVector& lsub, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& nextl, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} chmark)
+00051   \{
+00052     \textcolor{keywordflow}{if} (nextl >= m\_glu.nzlmax)
+00053       m\_luImpl.memXpand(lsub, m\_glu.nzlmax, nextl, LSUB, m\_glu.num\_expansions); 
+00054     \textcolor{keywordflow}{if} (chmark != (m\_jcol-1)) m\_jsuper\_ref = emptyIdxLU;
+00055   \}
+00056   \textcolor{keyword}{enum} \{ ExpandMem = \textcolor{keyword}{true} \};
+00057   
+00058   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_jcol;
+00059   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& m\_jsuper\_ref;
+00060   \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1_l_u___global_l_u__t}{SparseLUImpl<Scalar, StorageIndex>::GlobalLU\_t}& 
+      m\_glu;
+00061   \hyperlink{group___sparse_l_u___module_class_eigen_1_1internal_1_1_sparse_l_u_impl}{SparseLUImpl<Scalar, StorageIndex>}& m\_luImpl;
+00062 \};
+00063 
+00064 
+00092 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} StorageIndex>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_l_u_2_sparse_l_u__column__dfs_8h_source_l00093}\hyperlink{group___sparse_l_u___module_a6f543ae02eb6467e9bcc1e5cec8ccdd2}{00093} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \hyperlink{group___sparse_l_u___module_a6f543ae02eb6467e9bcc1e5cec8ccdd2}{SparseLUImpl<Scalar,StorageIndex>::column\_dfs}(\textcolor{keyword}{const}
+       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m, \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} jcol, \hyperlink{group___core___module_class_eigen_1_1_matrix}{IndexVector}& perm\_r, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} maxsuper, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& nseg,
+00094                                                     \hyperlink{group___core___module_class_eigen_1_1_ref}{BlockIndexVector} lsub\_col, 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{IndexVector}& segrep, \hyperlink{group___core___module_class_eigen_1_1_ref}{BlockIndexVector} repfnz, 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{IndexVector}& xprune,
+00095                                                     \hyperlink{group___core___module_class_eigen_1_1_matrix}{IndexVector}& marker, 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{IndexVector}& parent, \hyperlink{group___core___module_class_eigen_1_1_matrix}{IndexVector}& xplore, \hyperlink{struct_eigen_1_1internal_1_1_l_u___global_l_u__t}{GlobalLU\_t}& glu)
+00096 \{
+00097   
+00098   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} jsuper = glu.supno(jcol); 
+00099   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} nextl = glu.xlsub(jcol); 
+00100   \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<IndexVector>} marker2(marker, 2*m, m); 
+00101   
+00102   
+00103   \hyperlink{struct_eigen_1_1internal_1_1column__dfs__traits}{column\_dfs\_traits<IndexVector, ScalarVector>} 
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{traits}(jcol, jsuper, glu, *\textcolor{keyword}{this});
+00104   
+00105   \textcolor{comment}{// For each nonzero in A(*,jcol) do dfs }
+00106   \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k = 0; ((k < m) ? lsub\_col[k] != emptyIdxLU : \textcolor{keyword}{false}) ; k++)
+00107   \{
+00108     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} krow = lsub\_col(k); 
+00109     lsub\_col(k) = emptyIdxLU; 
+00110     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} kmark = marker2(krow); 
+00111     
+00112     \textcolor{comment}{// krow was visited before, go to the next nonz; }
+00113     \textcolor{keywordflow}{if} (kmark == jcol) \textcolor{keywordflow}{continue};
+00114     
+00115     dfs\_kernel(StorageIndex(jcol), perm\_r, nseg, glu.lsub, segrep, repfnz, xprune, marker2, parent,
+00116                    xplore, glu, nextl, krow, traits);
+00117   \} \textcolor{comment}{// for each nonzero ... }
+00118   
+00119   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} fsupc;
+00120   StorageIndex nsuper = glu.supno(jcol);
+00121   StorageIndex jcolp1 = StorageIndex(jcol) + 1;
+00122   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} jcolm1 = jcol - 1;
+00123   
+00124   \textcolor{comment}{// check to see if j belongs in the same supernode as j-1}
+00125   \textcolor{keywordflow}{if} ( jcol == 0 )
+00126   \{ \textcolor{comment}{// Do nothing for column 0 }
+00127     nsuper = glu.supno(0) = 0 ;
+00128   \}
+00129   \textcolor{keywordflow}{else} 
+00130   \{
+00131     fsupc = glu.xsup(nsuper); 
+00132     StorageIndex jptr = glu.xlsub(jcol); \textcolor{comment}{// Not yet compressed}
+00133     StorageIndex jm1ptr = glu.xlsub(jcolm1); 
+00134     
+00135     \textcolor{comment}{// Use supernodes of type T2 : see SuperLU paper}
+00136     \textcolor{keywordflow}{if} ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = emptyIdxLU;
+00137     
+00138     \textcolor{comment}{// Make sure the number of columns in a supernode doesn't}
+00139     \textcolor{comment}{// exceed threshold}
+00140     \textcolor{keywordflow}{if} ( (jcol - fsupc) >= maxsuper) jsuper = emptyIdxLU; 
+00141     
+00142     \textcolor{comment}{/* If jcol starts a new supernode, reclaim storage space in}
+00143 \textcolor{comment}{     * glu.lsub from previous supernode. Note we only store }
+00144 \textcolor{comment}{     * the subscript set of the first and last columns of }
+00145 \textcolor{comment}{     * a supernode. (first for num values, last for pruning)}
+00146 \textcolor{comment}{     */}
+00147     \textcolor{keywordflow}{if} (jsuper == emptyIdxLU)
+00148     \{ \textcolor{comment}{// starts a new supernode }
+00149       \textcolor{keywordflow}{if} ( (fsupc < jcolm1-1) ) 
+00150       \{ \textcolor{comment}{// >= 3 columns in nsuper}
+00151         StorageIndex ito = glu.xlsub(fsupc+1);
+00152         glu.xlsub(jcolm1) = ito; 
+00153         StorageIndex istop = ito + jptr - jm1ptr; 
+00154         xprune(jcolm1) = istop; \textcolor{comment}{// intialize xprune(jcol-1)}
+00155         glu.xlsub(jcol) = istop; 
+00156         
+00157         \textcolor{keywordflow}{for} (StorageIndex ifrom = jm1ptr; ifrom < nextl; ++ifrom, ++ito)
+00158           glu.lsub(ito) = glu.lsub(ifrom); 
+00159         nextl = ito;  \textcolor{comment}{// = istop + length(jcol)}
+00160       \}
+00161       nsuper++; 
+00162       glu.supno(jcol) = nsuper; 
+00163     \} \textcolor{comment}{// if a new supernode }
+00164   \} \textcolor{comment}{// end else:  jcol > 0}
+00165   
+00166   \textcolor{comment}{// Tidy up the pointers before exit}
+00167   glu.xsup(nsuper+1) = jcolp1; 
+00168   glu.supno(jcolp1) = nsuper; 
+00169   xprune(jcol) = StorageIndex(nextl);  \textcolor{comment}{// Intialize upper bound for pruning}
+00170   glu.xlsub(jcolp1) = StorageIndex(nextl); 
+00171   
+00172   \textcolor{keywordflow}{return} 0; 
+00173 \}
+00174 
+00175 \} \textcolor{comment}{// end namespace internal}
+00176 
+00177 \} \textcolor{comment}{// end namespace Eigen}
+00178 
+00179 \textcolor{preprocessor}{#endif}
+\end{DoxyCode}

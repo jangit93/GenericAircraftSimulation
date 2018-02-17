@@ -1,0 +1,137 @@
+\hypertarget{matvar__cell_8c_source}{}\section{matvar\+\_\+cell.\+c}
+\label{matvar__cell_8c_source}\index{matvar\+\_\+cell.\+c@{matvar\+\_\+cell.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/*}
+00002 \textcolor{comment}{ * Copyright (c) 2012-2018, Christopher C. Hulbert}
+00003 \textcolor{comment}{ * All rights reserved.}
+00004 \textcolor{comment}{ *}
+00005 \textcolor{comment}{ * Redistribution and use in source and binary forms, with or without}
+00006 \textcolor{comment}{ * modification, are permitted provided that the following conditions are met:}
+00007 \textcolor{comment}{ *}
+00008 \textcolor{comment}{ * 1. Redistributions of source code must retain the above copyright notice, this}
+00009 \textcolor{comment}{ *    list of conditions and the following disclaimer.}
+00010 \textcolor{comment}{ *}
+00011 \textcolor{comment}{ * 2. Redistributions in binary form must reproduce the above copyright notice,}
+00012 \textcolor{comment}{ *    this list of conditions and the following disclaimer in the documentation}
+00013 \textcolor{comment}{ *    and/or other materials provided with the distribution.}
+00014 \textcolor{comment}{ *}
+00015 \textcolor{comment}{ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"}
+00016 \textcolor{comment}{ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE}
+00017 \textcolor{comment}{ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE}
+00018 \textcolor{comment}{ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE}
+00019 \textcolor{comment}{ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL}
+00020 \textcolor{comment}{ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR}
+00021 \textcolor{comment}{ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER}
+00022 \textcolor{comment}{ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,}
+00023 \textcolor{comment}{ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}
+00024 \textcolor{comment}{ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}
+00025 \textcolor{comment}{ */}
+00026 
+00027 \textcolor{preprocessor}{#include <stdlib.h>}
+00028 \textcolor{preprocessor}{#include <string.h>}
+00029 \textcolor{preprocessor}{#include "matio\_private.h"}
+00030 
+00040 \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *
+\Hypertarget{matvar__cell_8c_source_l00041}\hyperlink{group___m_a_t_gac1e15063439c0bd3eb0c986514c742dc}{00041} \hyperlink{group___m_a_t_gac1e15063439c0bd3eb0c986514c742dc}{Mat\_VarGetCell}(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keywordtype}{int} index)
+00042 \{
+00043     \textcolor{keywordtype}{int}       nmemb = 1, i;
+00044     \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *cell = NULL;
+00045 
+00046     \textcolor{keywordflow}{if} ( matvar == NULL )
+00047         \textcolor{keywordflow}{return} NULL;
+00048 
+00049     \textcolor{keywordflow}{for} ( i = 0; i < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; i++ )
+00050         nmemb *= matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[i];
+00051 
+00052     if ( index < nmemb )
+00053         cell = *((\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} + index);
+00054 
+00055     \textcolor{keywordflow}{return} cell;
+00056 \}
+00057 
+00077 \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **
+\Hypertarget{matvar__cell_8c_source_l00078}\hyperlink{group___m_a_t_ga0732b0a6c40975b036068b9a14422d45}{00078} \hyperlink{group___m_a_t_ga0732b0a6c40975b036068b9a14422d45}{Mat\_VarGetCells}(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keywordtype}{int} *start,\textcolor{keywordtype}{int} *stride,\textcolor{keywordtype}{int} *edge)
+00079 \{
+00080     \textcolor{keywordtype}{int} i, j, N, I;
+00081     \textcolor{keywordtype}{size\_t} idx[10] = \{0,\}, cnt[10] = \{0,\}, dimp[10] = \{0,\};
+00082     \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **cells;
+00083 
+00084     \textcolor{keywordflow}{if} ( (matvar == NULL) || (start == NULL) || (stride == NULL) ||
+00085         (edge == NULL) ) \{
+00086         \textcolor{keywordflow}{return} NULL;
+00087     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} > 9 ) \{
+00088         \textcolor{keywordflow}{return} NULL;
+00089     \}
+00090 
+00091     dimp[0] = matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0];
+00092     N = edge[0];
+00093     I = start[0];
+00094     idx[0] = start[0];
+00095     \textcolor{keywordflow}{for} ( i = 1; i < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; i++ ) \{
+00096         idx[i]  = start[i];
+00097         dimp[i] = dimp[i-1]*matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[i];
+00098         N *= edge[i];
+00099         I += start[i]*dimp[i-1];
+00100     \}
+00101     cells = (\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t}**)malloc(N*\textcolor{keyword}{sizeof}(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *));
+00102     \textcolor{keywordflow}{for} ( i = 0; i < N; i+=edge[0] ) \{
+00103         \textcolor{keywordflow}{for} ( j = 0; j < edge[0]; j++ ) \{
+00104             cells[i+j] = *((\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} + I);
+00105             I += stride[0];
+00106         \}
+00107         idx[0] = start[0];
+00108         I = idx[0];
+00109         cnt[1]++;
+00110         idx[1] += stride[1];
+00111         \textcolor{keywordflow}{for} ( j = 1; j < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; j++ ) \{
+00112             \textcolor{keywordflow}{if} ( cnt[j] == edge[j] ) \{
+00113                 cnt[j] = 0;
+00114                 idx[j] = start[j];
+00115                 cnt[j+1]++;
+00116                 idx[j+1] += stride[j+1];
+00117             \}
+00118             I += idx[j]*dimp[j-1];
+00119         \}
+00120     \}
+00121     \textcolor{keywordflow}{return} cells;
+00122 \}
+00123 
+00138 \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **
+\Hypertarget{matvar__cell_8c_source_l00139}\hyperlink{group___m_a_t_ga004987d665654409f74eaf8e82bb1380}{00139} \hyperlink{group___m_a_t_ga004987d665654409f74eaf8e82bb1380}{Mat\_VarGetCellsLinear}(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keywordtype}{int} start,\textcolor{keywordtype}{int} stride,\textcolor{keywordtype}{int} edge)
+00140 \{
+00141     \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **cells = NULL;
+00142 
+00143     \textcolor{keywordflow}{if} ( matvar != NULL ) \{
+00144         \textcolor{keywordtype}{int} i, I;
+00145         cells = (\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t}**)malloc(edge*\textcolor{keyword}{sizeof}(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *));
+00146         I = start;
+00147         \textcolor{keywordflow}{for} ( i = 0; i < edge; i++ ) \{
+00148             cells[i] = *((\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} + I);
+00149             I += stride;
+00150         \}
+00151     \}
+00152     \textcolor{keywordflow}{return} cells;
+00153 \}
+00154 
+00165 \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *
+\Hypertarget{matvar__cell_8c_source_l00166}\hyperlink{group___m_a_t_ga1b2c36f27ba592206c22c584a30a3c5c}{00166} \hyperlink{group___m_a_t_ga1b2c36f27ba592206c22c584a30a3c5c}{Mat\_VarSetCell}(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keywordtype}{int} index,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *cell)
+00167 \{
+00168     \textcolor{keywordtype}{int} nmemb = 1, i;
+00169     \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **cells, *old\_cell = NULL;
+00170 
+00171     \textcolor{keywordflow}{if} ( matvar == NULL || matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} < 1 )
+00172         \textcolor{keywordflow}{return} NULL;
+00173 
+00174     \textcolor{keywordflow}{for} ( i = 0; i < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; i++ )
+00175         nmemb *= matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[i];
+00176 
+00177     cells = (\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t}**)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data};
+00178     \textcolor{keywordflow}{if} ( index < nmemb ) \{
+00179         old\_cell = cells[index];
+00180         cells[index] = cell;
+00181     \}
+00182 
+00183     \textcolor{keywordflow}{return} old\_cell;
+00184 \}
+\end{DoxyCode}

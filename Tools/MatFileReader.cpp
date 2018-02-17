@@ -74,6 +74,12 @@ std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Float64,Eigen::RowVectorXd> MatFile
 					else if (dim[0] == 1 && dim[1] == 1) {
 						value = xData[0];
 					}
+					else if (dim[0] == 1 && dim[0] < dim[1]) {
+						row_vector.resize(dim[1]);
+						for (int i = 0; i < dim[1] ; ++i) {
+							row_vector(i) = xData[i];
+						}
+					}	
 					else {
 						vector.resize(std::max(dim[0], dim[1]));
 						for (int i = 0; i < std::max(dim[0], dim[1]); ++i) {

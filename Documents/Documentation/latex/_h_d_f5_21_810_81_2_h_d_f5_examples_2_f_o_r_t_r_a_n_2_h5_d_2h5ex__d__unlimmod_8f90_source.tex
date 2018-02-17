@@ -1,0 +1,180 @@
+\hypertarget{_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_d_2h5ex__d__unlimmod_8f90_source}{}\section{H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+F\+O\+R\+T\+R\+A\+N/\+H5\+D/h5ex\+\_\+d\+\_\+unlimmod.f90}
+\label{_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_d_2h5ex__d__unlimmod_8f90_source}\index{h5ex\+\_\+d\+\_\+unlimmod.\+f90@{h5ex\+\_\+d\+\_\+unlimmod.\+f90}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{!************************************************************}
+00002 \textcolor{comment}{!}
+00003 \textcolor{comment}{!  This example shows how to create and extend an unlimited}
+00004 \textcolor{comment}{!  dataset.  The program first writes integers to a dataset}
+00005 \textcolor{comment}{!  with dataspace dimensions of DIM0xDIM1, then closes the}
+00006 \textcolor{comment}{!  file.  Next, it reopens the file, reads back the data,}
+00007 \textcolor{comment}{!  outputs it to the screen, extends the dataset, and writes}
+00008 \textcolor{comment}{!  new data to the entire extended dataset.  Finally it}
+00009 \textcolor{comment}{!  reopens the file again, reads back the data, and outputs it}
+00010 \textcolor{comment}{!  to the screen.}
+00011 \textcolor{comment}{!}
+00012 \textcolor{comment}{!  This file is intended for use with HDF5 Library version 1.8}
+00013 \textcolor{comment}{!}
+00014 \textcolor{comment}{!************************************************************}
+00015 \textcolor{keyword}{PROGRAM} main
+00016 
+00017   \textcolor{keywordtype}{USE }hdf5
+00018   \textcolor{keywordtype}{IMPLICIT NONE}
+00019 
+00020   \textcolor{keywordtype}{CHARACTER(LEN=18)}, \textcolor{keywordtype}{PARAMETER} :: filename = \textcolor{stringliteral}{"h5ex\_d\_unlimmod.h5"}
+00021   \textcolor{keywordtype}{CHARACTER(LEN=3)} , \textcolor{keywordtype}{PARAMETER} :: dataset  = \textcolor{stringliteral}{"DS1"}
+00022   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: dim0     = 4
+00023   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: dim1     = 7
+00024   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: edim0    = 6
+00025   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: edim1    = 10
+00026   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: chunk0   = 4
+00027   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: chunk1   = 4
+00028 
+00029   \textcolor{keywordtype}{INTEGER(HID\_T)}  :: \hyperlink{structfile}{file}, space, dset, dcpl \textcolor{comment}{! Handles}
+00030   \textcolor{keywordtype}{INTEGER}         :: hdferr
+00031   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:2)} :: dims = (/dim0, dim1/)
+00032   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:2)} :: chunk =(/chunk0, chunk1/)
+00033   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:2)} :: extdims =(/edim0, edim1/)
+00034   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:2)} :: maxdims
+00035 
+00036   \textcolor{keywordtype}{INTEGER}, \textcolor{keywordtype}{DIMENSION(1:dim0, 1:dim1)}, \textcolor{keywordtype}{TARGET} :: wdata \textcolor{comment}{! Write buffer}
+00037   \textcolor{keywordtype}{INTEGER}, \textcolor{keywordtype}{DIMENSION(1:edim0, 1:edim1)}, \textcolor{keywordtype}{TARGET} :: wdata2 \textcolor{comment}{! Write buffer for extension}
+00038   \textcolor{keywordtype}{INTEGER} :: i, j
+00039   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:2)} :: ndims
+00040   \textcolor{keywordtype}{INTEGER}, \textcolor{keywordtype}{ALLOCATABLE}, \textcolor{keywordtype}{DIMENSION(:,:)}, \textcolor{keywordtype}{TARGET} :: rdata    \textcolor{comment}{! Read buffer}
+00041   \textcolor{comment}{!}
+00042   \textcolor{comment}{! Initialize FORTRAN interface.}
+00043   \textcolor{comment}{!}
+00044   \textcolor{keyword}{CALL }h5open\_f(hdferr)
+00045   \textcolor{comment}{!}
+00046   \textcolor{comment}{! Initialize data.}
+00047   \textcolor{comment}{!}
+00048   \textcolor{keywordflow}{DO} i = 1, dim0
+00049      \textcolor{keywordflow}{DO} j = 1, dim1
+00050         wdata(i,j) = (i-2)*(j-1)
+00051 \textcolor{keywordflow}{     ENDDO}
+00052 \textcolor{keywordflow}{  ENDDO}
+00053   \textcolor{comment}{!}
+00054   \textcolor{comment}{! Create a new file using the default properties.}
+00055   \textcolor{comment}{!}
+00056   \textcolor{keyword}{CALL }h5fcreate\_f(filename, h5f\_acc\_trunc\_f, \hyperlink{structfile}{file}, hdferr)
+00057   \textcolor{comment}{!}
+00058   \textcolor{comment}{! Create dataspace with unlimited dimensions.}
+00059   \textcolor{comment}{!}
+00060   maxdims = (/h5s\_unlimited\_f, h5s\_unlimited\_f/)
+00061   \textcolor{keyword}{CALL }h5screate\_simple\_f(2, dims, space, hdferr, maxdims)
+00062   \textcolor{comment}{!}
+00063   \textcolor{comment}{! Create the dataset creation property list, and set the chunk}
+00064   \textcolor{comment}{! size.}
+00065   \textcolor{comment}{!}
+00066   \textcolor{keyword}{CALL }h5pcreate\_f(h5p\_dataset\_create\_f, dcpl, hdferr)
+00067   \textcolor{keyword}{CALL }h5pset\_chunk\_f(dcpl, 2, chunk, hdferr)
+00068   \textcolor{comment}{!}
+00069   \textcolor{comment}{! Create the unlimited dataset.}
+00070   \textcolor{comment}{!}
+00071   \textcolor{keyword}{CALL }h5dcreate\_f(\hyperlink{structfile}{file}, dataset, h5t\_std\_i32le, space, dset, hdferr, dcpl)
+00072   \textcolor{comment}{!}
+00073   \textcolor{comment}{! Write the data to the dataset.}
+00074   \textcolor{comment}{!}
+00075   \textcolor{keyword}{CALL }h5dwrite\_f(dset, h5t\_native\_integer, wdata, dims, hdferr)
+00076   \textcolor{comment}{!}
+00077   \textcolor{comment}{! Close and release resources.}
+00078   \textcolor{comment}{!}
+00079   \textcolor{keyword}{CALL }h5pclose\_f(dcpl , hdferr)
+00080   \textcolor{keyword}{CALL }h5dclose\_f(dset , hdferr)
+00081   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)
+00082   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file} , hdferr)
+00083   \textcolor{comment}{!}
+00084   \textcolor{comment}{! In this next section we read back the data, extend the dataset,}
+00085   \textcolor{comment}{! and write new data to the entire dataset.}
+00086   \textcolor{comment}{!}
+00087   \textcolor{comment}{!}
+00088   \textcolor{comment}{! Open file and dataset using the default properties.}
+00089   \textcolor{comment}{!}
+00090   \textcolor{keyword}{CALL }h5fopen\_f(filename, h5f\_acc\_rdwr\_f, \hyperlink{structfile}{file}, hdferr)
+00091   \textcolor{keyword}{CALL }h5dopen\_f (\hyperlink{structfile}{file}, dataset, dset, hdferr)
+00092   \textcolor{comment}{!}
+00093   \textcolor{comment}{! Get dataspace and allocate memory for read buffer.  This is a}
+00094   \textcolor{comment}{! two dimensional dataset so the dynamic allocation must be done}
+00095   \textcolor{comment}{! in steps.}
+00096   \textcolor{comment}{!}
+00097   \textcolor{keyword}{CALL }h5dget\_space\_f(dset, space, hdferr)
+00098   \textcolor{keyword}{CALL }h5sget\_simple\_extent\_dims\_f(space, dims, ndims, hdferr)
+00099   \textcolor{comment}{!}
+00100   \textcolor{comment}{! Allocate buffer for reading}
+00101   \textcolor{comment}{!}
+00102   \textcolor{keyword}{ALLOCATE}(rdata(1:dims(1),1:dims(2)))
+00103   \textcolor{comment}{!}
+00104   \textcolor{comment}{! Read the data using the default properties.}
+00105   \textcolor{comment}{!}
+00106   \textcolor{keyword}{CALL }h5dread\_f(dset, h5t\_native\_integer, rdata, dims, hdferr)
+00107   \textcolor{comment}{!}
+00108   \textcolor{comment}{! Output the data to the screen.}
+00109   \textcolor{comment}{!}
+00110   \textcolor{keyword}{WRITE}(*, \textcolor{stringliteral}{'(/,"Dataset before extension:")'})
+00111   \textcolor{keywordflow}{DO} i=1, dim0
+00112      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" [")'}, advance=\textcolor{stringliteral}{'NO'})
+00113      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(80i3)'}, advance=\textcolor{stringliteral}{'NO'}) rdata(i,:)
+00114      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" ]")'})
+00115 \textcolor{keywordflow}{  ENDDO}
+00116   \textcolor{comment}{!}
+00117   \textcolor{comment}{! Extend the dataset.}
+00118   \textcolor{comment}{!}
+00119   \textcolor{keyword}{CALL }h5dset\_extent\_f(dset, extdims, hdferr)
+00120   \textcolor{comment}{!}
+00121   \textcolor{comment}{! Initialize data for writing to the extended dataset.}
+00122   \textcolor{comment}{!}
+00123   \textcolor{keywordflow}{DO} i = 1, edim0
+00124      \textcolor{keywordflow}{DO} j = 1, edim1
+00125         wdata2(i,j) = j-1
+00126 \textcolor{keywordflow}{     ENDDO}
+00127 \textcolor{keywordflow}{  ENDDO}
+00128   \textcolor{comment}{!}
+00129   \textcolor{comment}{! Write the data to the extended dataset.}
+00130   \textcolor{comment}{!}
+00131   \textcolor{keyword}{CALL }h5dwrite\_f(dset, h5t\_native\_integer, wdata2, extdims, hdferr)
+00132   \textcolor{comment}{!}
+00133   \textcolor{comment}{! Close and release resources.}
+00134   \textcolor{comment}{!}
+00135   \textcolor{keyword}{DEALLOCATE}(rdata)
+00136   \textcolor{keyword}{CALL }h5dclose\_f(dset , hdferr)
+00137   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)
+00138   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file} , hdferr)
+00139   \textcolor{comment}{!}
+00140   \textcolor{comment}{! Now we simply read back the data and output it to the screen.}
+00141   \textcolor{comment}{!}
+00142   \textcolor{comment}{!}
+00143   \textcolor{comment}{! Open file and dataset using the default properties.}
+00144   \textcolor{comment}{!}
+00145   \textcolor{keyword}{CALL }h5fopen\_f(filename, h5f\_acc\_rdonly\_f, \hyperlink{structfile}{file}, hdferr)
+00146   \textcolor{keyword}{CALL }h5dopen\_f (\hyperlink{structfile}{file}, dataset, dset, hdferr)
+00147   \textcolor{comment}{!}
+00148   \textcolor{comment}{! Get dataspace and allocate memory for the read buffer as before.}
+00149   \textcolor{comment}{!}
+00150   \textcolor{keyword}{CALL }h5dget\_space\_f(dset, space, hdferr)
+00151   \textcolor{keyword}{CALL }h5sget\_simple\_extent\_dims\_f(space, dims, ndims, hdferr)
+00152   
+00153   \textcolor{keyword}{ALLOCATE}( rdata(1:extdims(1),1:extdims(2)) )
+00154   \textcolor{comment}{!}
+00155   \textcolor{comment}{! Read the data using the default properties.}
+00156   \textcolor{comment}{!}
+00157   \textcolor{keyword}{CALL }h5dread\_f(dset, h5t\_native\_integer, rdata, dims, hdferr)
+00158   \textcolor{comment}{!}
+00159   \textcolor{comment}{! Output the data to the screen.}
+00160   \textcolor{comment}{!}
+00161   \textcolor{keyword}{WRITE}(*, \textcolor{stringliteral}{'(/,"Dataset after extension:")'})
+00162   \textcolor{keywordflow}{DO} i=1, dims(1)
+00163      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" [")'}, advance=\textcolor{stringliteral}{'NO'})
+00164      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(80i3)'}, advance=\textcolor{stringliteral}{'NO'}) rdata(i,:)
+00165      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" ]")'})
+00166 \textcolor{keywordflow}{  ENDDO}
+00167   \textcolor{comment}{!}
+00168   \textcolor{comment}{! Close and release resources.}
+00169   \textcolor{comment}{!}
+00170   \textcolor{keyword}{DEALLOCATE}(rdata)
+00171   \textcolor{keyword}{CALL }h5dclose\_f(dset , hdferr)
+00172   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)
+00173   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file} , hdferr)
+00174 
+00175 \textcolor{keyword}{END PROGRAM }main
+\end{DoxyCode}

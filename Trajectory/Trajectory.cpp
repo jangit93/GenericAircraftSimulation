@@ -1,6 +1,6 @@
 #include "Trajectory.h"
 
-Trajectory::Trajectory()
+Trajectory::Trajectory(SimDPreference &SimPref)
 {
 	int a = 2;
 	selectTrajectory(a);
@@ -16,12 +16,12 @@ void Trajectory::selectTrajectory(int type)
 	switch (type)
 	{
 	case 1:
-		std::cout << "Trajectory: Trajectory 3Dof" << std::endl;
+		std::cout << "Trajectory:\t"<< "3 Degrees of Freedom" << std::endl;
 		traj = new Trajectory3Dof;
 		break;
 
 	case 2:
-		std::cout << "Trajectory: Trajectory 6Dof" << std::endl;
+		std::cout << "Trajectory:\t"<<"6 Degrees of Freedom" << std::endl;
 		traj = new Trajectory6Dof;
 		break;
 
@@ -34,32 +34,39 @@ void Trajectory::updateTrajectory(Float64 FlightTime,
 								  AtmosphereStruct & AtmoData, 
 								  AerodynamicStruct & AeroData, 
 								  AirframeStruct & AirframeData, 
-								  ThrustStruct & ThrustData, 
-								  AutopilotStruct & AutopilotData,
-								  GuidanceStruct & GuidanceData)
+								  ThrustStruct & ThrustData,
+								  GuidanceStruct & GuidanceData,
+									NavigationStruct &NavData,
+									ActuatorStruct &ActuatorData,
+									IMUStruct &IMUData)
 {
 	traj->updateTrajectory(FlightTime,
 						   AtmoData,
 						   AeroData, 
 						   AirframeData, 
 						   ThrustData,
-						   AutopilotData,
-						   GuidanceData);
+						   GuidanceData,NavData,ActuatorData,IMUData);
 }
 
-void Trajectory::initTrajectory(AerodynamicStruct & AeroData, 
+void Trajectory::initTrajectory(Float64 FlightTime, 
+								AerodynamicStruct & AeroData,
 								AirframeStruct & AirframeData, 
 								ThrustStruct & ThrustData, 
-								AircraftStruct & AircraftData, 
-								AutopilotStruct & AutopilotData, 
-								GuidanceStruct & GuidanceData)
+								AircraftStruct & AircraftData,
+								GuidanceStruct & GuidanceData,
+								NavigationStruct &NavData,
+								ActuatorStruct &ActuatorData,
+								IMUStruct &IMUData)
 {
-	traj->initTrajectory(AeroData,
+	traj->initTrajectory(FlightTime,
+						AeroData,
 						AirframeData,
 						ThrustData,
 						AircraftData,
-						AutopilotData,
-						GuidanceData);
+						GuidanceData,
+						NavData,
+						ActuatorData,
+						IMUData);
 }
 
 

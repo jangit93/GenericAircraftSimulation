@@ -1,0 +1,215 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_thread_pool_2_run_queue_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/\+C\+X\+X11/src/\+Thread\+Pool/\+Run\+Queue.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_thread_pool_2_run_queue_8h_source}\index{Run\+Queue.\+h@{Run\+Queue.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2016 Dmitry Vyukov <dvyukov@google.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_CXX11\_THREADPOOL\_RUNQUEUE\_H\_}
+00011 \textcolor{preprocessor}{#define EIGEN\_CXX11\_THREADPOOL\_RUNQUEUE\_H\_}
+00012 
+00013 
+00014 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00015 
+00016 \textcolor{comment}{// RunQueue is a fixed-size, partially non-blocking deque or Work items.}
+00017 \textcolor{comment}{// Operations on front of the queue must be done by a single thread (owner),}
+00018 \textcolor{comment}{// operations on back of the queue can be done by multiple threads concurrently.}
+00019 \textcolor{comment}{//}
+00020 \textcolor{comment}{// Algorithm outline:}
+00021 \textcolor{comment}{// All remote threads operating on the queue back are serialized by a mutex.}
+00022 \textcolor{comment}{// This ensures that at most two threads access state: owner and one remote}
+00023 \textcolor{comment}{// thread (Size aside). The algorithm ensures that the occupied region of the}
+00024 \textcolor{comment}{// underlying array is logically continuous (can wraparound, but no stray}
+00025 \textcolor{comment}{// occupied elements). Owner operates on one end of this region, remote thread}
+00026 \textcolor{comment}{// operates on the other end. Synchronization between these threads}
+00027 \textcolor{comment}{// (potential consumption of the last element and take up of the last empty}
+00028 \textcolor{comment}{// element) happens by means of state variable in each element. States are:}
+00029 \textcolor{comment}{// empty, busy (in process of insertion of removal) and ready. Threads claim}
+00030 \textcolor{comment}{// elements (empty->busy and ready->busy transitions) by means of a CAS}
+00031 \textcolor{comment}{// operation. The finishing transition (busy->empty and busy->ready) are done}
+00032 \textcolor{comment}{// with plain store as the element is exclusively owned by the current thread.}
+00033 \textcolor{comment}{//}
+00034 \textcolor{comment}{// Note: we could permit only pointers as elements, then we would not need}
+00035 \textcolor{comment}{// separate state variable as null/non-null pointer value would serve as state,}
+00036 \textcolor{comment}{// but that would require malloc/free per operation for large, complex values}
+00037 \textcolor{comment}{// (and this is designed to store std::function<()>).}
+00038 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Work, \textcolor{keywordtype}{unsigned} kSize>
+00039 \textcolor{keyword}{class }RunQueue \{
+00040  \textcolor{keyword}{public}:
+00041   RunQueue() : front\_(0), back\_(0) \{
+00042     \textcolor{comment}{// require power-of-two for fast masking}
+00043     eigen\_assert((kSize & (kSize - 1)) == 0);
+00044     eigen\_assert(kSize > 2);            \textcolor{comment}{// why would you do this?}
+00045     eigen\_assert(kSize <= (64 << 10));  \textcolor{comment}{// leave enough space for counter}
+00046     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{unsigned} i = 0; i < kSize; i++)
+00047       array\_[i].\hyperlink{structstate}{state}.store(kEmpty, std::memory\_order\_relaxed);
+00048   \}
+00049 
+00050   ~RunQueue() \{ eigen\_assert(Size() == 0); \}
+00051 
+00052   \textcolor{comment}{// PushFront inserts w at the beginning of the queue.}
+00053   \textcolor{comment}{// If queue is full returns w, otherwise returns default-constructed Work.}
+00054   Work PushFront(Work w) \{
+00055     \textcolor{keywordtype}{unsigned} front = front\_.load(std::memory\_order\_relaxed);
+00056     Elem* e = &array\_[front & kMask];
+00057     uint8\_t s = e->state.load(std::memory\_order\_relaxed);
+00058     \textcolor{keywordflow}{if} (s != kEmpty ||
+00059         !e->state.compare\_exchange\_strong(s, kBusy, std::memory\_order\_acquire))
+00060       \textcolor{keywordflow}{return} w;
+00061     front\_.store(front + 1 + (kSize << 1), std::memory\_order\_relaxed);
+00062     e->w = std::move(w);
+00063     e->state.store(kReady, std::memory\_order\_release);
+00064     \textcolor{keywordflow}{return} Work();
+00065   \}
+00066 
+00067   \textcolor{comment}{// PopFront removes and returns the first element in the queue.}
+00068   \textcolor{comment}{// If the queue was empty returns default-constructed Work.}
+00069   Work PopFront() \{
+00070     \textcolor{keywordtype}{unsigned} front = front\_.load(std::memory\_order\_relaxed);
+00071     Elem* e = &array\_[(front - 1) & kMask];
+00072     uint8\_t s = e->state.load(std::memory\_order\_relaxed);
+00073     \textcolor{keywordflow}{if} (s != kReady ||
+00074         !e->state.compare\_exchange\_strong(s, kBusy, std::memory\_order\_acquire))
+00075       \textcolor{keywordflow}{return} Work();
+00076     Work w = std::move(e->w);
+00077     e->state.store(kEmpty, std::memory\_order\_release);
+00078     front = ((front - 1) & kMask2) | (front & ~kMask2);
+00079     front\_.store(front, std::memory\_order\_relaxed);
+00080     \textcolor{keywordflow}{return} w;
+00081   \}
+00082 
+00083   \textcolor{comment}{// PushBack adds w at the end of the queue.}
+00084   \textcolor{comment}{// If queue is full returns w, otherwise returns default-constructed Work.}
+00085   Work PushBack(Work w) \{
+00086     std::unique\_lock<std::mutex> lock(mutex\_);
+00087     \textcolor{keywordtype}{unsigned} back = back\_.load(std::memory\_order\_relaxed);
+00088     Elem* e = &array\_[(back - 1) & kMask];
+00089     uint8\_t s = e->state.load(std::memory\_order\_relaxed);
+00090     \textcolor{keywordflow}{if} (s != kEmpty ||
+00091         !e->state.compare\_exchange\_strong(s, kBusy, std::memory\_order\_acquire))
+00092       \textcolor{keywordflow}{return} w;
+00093     back = ((back - 1) & kMask2) | (back & ~kMask2);
+00094     back\_.store(back, std::memory\_order\_relaxed);
+00095     e->w = std::move(w);
+00096     e->state.store(kReady, std::memory\_order\_release);
+00097     \textcolor{keywordflow}{return} Work();
+00098   \}
+00099 
+00100   \textcolor{comment}{// PopBack removes and returns the last elements in the queue.}
+00101   \textcolor{comment}{// Can fail spuriously.}
+00102   Work PopBack() \{
+00103     \textcolor{keywordflow}{if} (Empty()) \textcolor{keywordflow}{return} Work();
+00104     std::unique\_lock<std::mutex> lock(mutex\_, std::try\_to\_lock);
+00105     \textcolor{keywordflow}{if} (!lock) \textcolor{keywordflow}{return} Work();
+00106     \textcolor{keywordtype}{unsigned} back = back\_.load(std::memory\_order\_relaxed);
+00107     Elem* e = &array\_[back & kMask];
+00108     uint8\_t s = e->state.load(std::memory\_order\_relaxed);
+00109     \textcolor{keywordflow}{if} (s != kReady ||
+00110         !e->state.compare\_exchange\_strong(s, kBusy, std::memory\_order\_acquire))
+00111       \textcolor{keywordflow}{return} Work();
+00112     Work w = std::move(e->w);
+00113     e->state.store(kEmpty, std::memory\_order\_release);
+00114     back\_.store(back + 1 + (kSize << 1), std::memory\_order\_relaxed);
+00115     \textcolor{keywordflow}{return} w;
+00116   \}
+00117 
+00118   \textcolor{comment}{// PopBackHalf removes and returns half last elements in the queue.}
+00119   \textcolor{comment}{// Returns number of elements removed. But can also fail spuriously.}
+00120   \textcolor{keywordtype}{unsigned} PopBackHalf(std::vector<Work>* result) \{
+00121     \textcolor{keywordflow}{if} (Empty()) \textcolor{keywordflow}{return} 0;
+00122     std::unique\_lock<std::mutex> lock(mutex\_, std::try\_to\_lock);
+00123     \textcolor{keywordflow}{if} (!lock) \textcolor{keywordflow}{return} 0;
+00124     \textcolor{keywordtype}{unsigned} back = back\_.load(std::memory\_order\_relaxed);
+00125     \textcolor{keywordtype}{unsigned} size = Size();
+00126     \textcolor{keywordtype}{unsigned} mid = back;
+00127     \textcolor{keywordflow}{if} (size > 1) mid = back + (size - 1) / 2;
+00128     \textcolor{keywordtype}{unsigned} n = 0;
+00129     \textcolor{keywordtype}{unsigned} start = 0;
+00130     \textcolor{keywordflow}{for} (; \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(mid - back) >= 0; mid--) \{
+00131       Elem* e = &array\_[mid & kMask];
+00132       uint8\_t s = e->state.load(std::memory\_order\_relaxed);
+00133       \textcolor{keywordflow}{if} (n == 0) \{
+00134         \textcolor{keywordflow}{if} (s != kReady ||
+00135             !e->state.compare\_exchange\_strong(s, kBusy,
+00136                                               std::memory\_order\_acquire))
+00137           \textcolor{keywordflow}{continue};
+00138         start = mid;
+00139       \} \textcolor{keywordflow}{else} \{
+00140         \textcolor{comment}{// Note: no need to store temporal kBusy, we exclusively own these}
+00141         \textcolor{comment}{// elements.}
+00142         eigen\_assert(s == kReady);
+00143       \}
+00144       result->push\_back(std::move(e->w));
+00145       e->state.store(kEmpty, std::memory\_order\_release);
+00146       n++;
+00147     \}
+00148     \textcolor{keywordflow}{if} (n != 0)
+00149       back\_.store(start + 1 + (kSize << 1), std::memory\_order\_relaxed);
+00150     \textcolor{keywordflow}{return} n;
+00151   \}
+00152 
+00153   \textcolor{comment}{// Size returns current queue size.}
+00154   \textcolor{comment}{// Can be called by any thread at any time.}
+00155   \textcolor{keywordtype}{unsigned} Size()\textcolor{keyword}{ const }\{
+00156     \textcolor{comment}{// Emptiness plays critical role in thread pool blocking. So we go to great}
+00157     \textcolor{comment}{// effort to not produce false positives (claim non-empty queue as empty).}
+00158     \textcolor{keywordflow}{for} (;;) \{
+00159       \textcolor{comment}{// Capture a consistent snapshot of front/tail.}
+00160       \textcolor{keywordtype}{unsigned} front = front\_.load(std::memory\_order\_acquire);
+00161       \textcolor{keywordtype}{unsigned} back = back\_.load(std::memory\_order\_acquire);
+00162       \textcolor{keywordtype}{unsigned} front1 = front\_.load(std::memory\_order\_relaxed);
+00163       \textcolor{keywordflow}{if} (front != front1) \textcolor{keywordflow}{continue};
+00164       \textcolor{keywordtype}{int} size = (front & kMask2) - (back & kMask2);
+00165       \textcolor{comment}{// Fix overflow.}
+00166       \textcolor{keywordflow}{if} (size < 0) size += 2 * kSize;
+00167       \textcolor{comment}{// Order of modification in push/pop is crafted to make the queue look}
+00168       \textcolor{comment}{// larger than it is during concurrent modifications. E.g. pop can}
+00169       \textcolor{comment}{// decrement size before the corresponding push has incremented it.}
+00170       \textcolor{comment}{// So the computed size can be up to kSize + 1, fix it.}
+00171       \textcolor{keywordflow}{if} (size > static\_cast<int>(kSize)) size = kSize;
+00172       \textcolor{keywordflow}{return} size;
+00173     \}
+00174   \}
+00175 
+00176   \textcolor{comment}{// Empty tests whether container is empty.}
+00177   \textcolor{comment}{// Can be called by any thread at any time.}
+00178   \textcolor{keywordtype}{bool} Empty()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} Size() == 0; \}
+00179 
+00180  \textcolor{keyword}{private}:
+00181   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} kMask = kSize - 1;
+00182   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} kMask2 = (kSize << 1) - 1;
+00183   \textcolor{keyword}{struct }Elem \{
+00184     std::atomic<uint8\_t> \hyperlink{structstate}{state};
+00185     Work w;
+00186   \};
+00187   \textcolor{keyword}{enum} \{
+00188     kEmpty,
+00189     kBusy,
+00190     kReady,
+00191   \};
+00192   std::mutex mutex\_;
+00193   \textcolor{comment}{// Low log(kSize) + 1 bits in front\_ and back\_ contain rolling index of}
+00194   \textcolor{comment}{// front/back, repsectively. The remaining bits contain modification counters}
+00195   \textcolor{comment}{// that are incremented on Push operations. This allows us to (1) distinguish}
+00196   \textcolor{comment}{// between empty and full conditions (if we would use log(kSize) bits for}
+00197   \textcolor{comment}{// position, these conditions would be indistinguishable); (2) obtain}
+00198   \textcolor{comment}{// consistent snapshot of front\_/back\_ for Size operation using the}
+00199   \textcolor{comment}{// modification counters.}
+00200   std::atomic<unsigned> front\_;
+00201   std::atomic<unsigned> back\_;
+00202   Elem array\_[kSize];
+00203 
+00204   RunQueue(\textcolor{keyword}{const} RunQueue&) = \textcolor{keyword}{delete};
+00205   \textcolor{keywordtype}{void} operator=(\textcolor{keyword}{const} RunQueue&) = \textcolor{keyword}{delete};
+00206 \};
+00207 
+00208 \}  \textcolor{comment}{// namespace Eigen}
+00209 
+00210 \textcolor{preprocessor}{#endif  // EIGEN\_CXX11\_THREADPOOL\_RUNQUEUE\_H\_}
+\end{DoxyCode}

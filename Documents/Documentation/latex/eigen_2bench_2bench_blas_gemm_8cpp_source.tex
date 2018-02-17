@@ -1,0 +1,237 @@
+\hypertarget{eigen_2bench_2bench_blas_gemm_8cpp_source}{}\section{eigen/bench/bench\+Blas\+Gemm.cpp}
+\label{eigen_2bench_2bench_blas_gemm_8cpp_source}\index{bench\+Blas\+Gemm.\+cpp@{bench\+Blas\+Gemm.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// g++ -O3 -DNDEBUG -I.. -L /usr/lib64/atlas/ benchBlasGemm.cpp -o benchBlasGemm -lrt -lcblas}
+00002 \textcolor{comment}{// possible options:}
+00003 \textcolor{comment}{//    -DEIGEN\_DONT\_VECTORIZE}
+00004 \textcolor{comment}{//    -msse2}
+00005 
+00006 \textcolor{comment}{// #define EIGEN\_DEFAULT\_TO\_ROW\_MAJOR}
+00007 \textcolor{preprocessor}{#define \_FLOAT}
+00008 
+00009 \textcolor{preprocessor}{#include <iostream>}
+00010 
+00011 \textcolor{preprocessor}{#include <Eigen/Core>}
+00012 \textcolor{preprocessor}{#include "BenchTimer.h"}
+00013 
+00014 \textcolor{comment}{// include the BLAS headers}
+00015 \textcolor{keyword}{extern} \textcolor{stringliteral}{"C"} \{
+00016 \textcolor{preprocessor}{#include <cblas.h>}
+00017 \}
+00018 \textcolor{preprocessor}{#include <string>}
+00019 
+00020 \textcolor{preprocessor}{#ifdef \_FLOAT}
+00021 \textcolor{keyword}{typedef} \textcolor{keywordtype}{float} Scalar;
+00022 \textcolor{preprocessor}{#define CBLAS\_GEMM cblas\_sgemm}
+00023 \textcolor{preprocessor}{#else}
+00024 \textcolor{keyword}{typedef} \textcolor{keywordtype}{double} Scalar;
+00025 \textcolor{preprocessor}{#define CBLAS\_GEMM cblas\_dgemm}
+00026 \textcolor{preprocessor}{#endif}
+00027 
+00028 
+00029 \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>}
+       \hyperlink{group___core___module_class_eigen_1_1_matrix}{MyMatrix};
+00030 \textcolor{keywordtype}{void} bench\_eigengemm(\hyperlink{group___core___module_class_eigen_1_1_matrix}{MyMatrix}& mc, \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix}{MyMatrix}& ma, \textcolor{keyword}{const} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{MyMatrix}& mb, \textcolor{keywordtype}{int} nbloops);
+00031 \textcolor{keywordtype}{void} check\_product(\textcolor{keywordtype}{int} \hyperlink{group___core___module_class_eigen_1_1_matrix}{M}, \textcolor{keywordtype}{int} N, \textcolor{keywordtype}{int} K);
+00032 \textcolor{keywordtype}{void} check\_product(\textcolor{keywordtype}{void});
+00033 
+00034 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])
+00035 \{
+00036   \textcolor{comment}{// disable SSE exceptions}
+00037 \textcolor{preprocessor}{  #ifdef \_\_GNUC\_\_}
+00038   \{
+00039     \textcolor{keywordtype}{int} aux;
+00040     \textcolor{keyword}{asm}(
+00041     \textcolor{stringliteral}{"stmxcsr   %[aux]           \(\backslash\)n\(\backslash\)t"}
+00042     \textcolor{stringliteral}{"orl       $32832, %[aux]   \(\backslash\)n\(\backslash\)t"}
+00043     \textcolor{stringliteral}{"ldmxcsr   %[aux]           \(\backslash\)n\(\backslash\)t"}
+00044     : : [aux] \textcolor{stringliteral}{"m"} (aux));
+00045   \}
+00046 \textcolor{preprocessor}{  #endif}
+00047 
+00048   \textcolor{keywordtype}{int} nbtries=1, nbloops=1, \hyperlink{group___core___module_class_eigen_1_1_matrix}{M}, N, K;
+00049 
+00050   \textcolor{keywordflow}{if} (argc==2)
+00051   \{
+00052     \textcolor{keywordflow}{if} (std::string(argv[1])==\textcolor{stringliteral}{"check"})
+00053       check\_product();
+00054     \textcolor{keywordflow}{else}
+00055       \hyperlink{group___core___module_class_eigen_1_1_matrix}{M} = N = K = atoi(argv[1]);
+00056   \}
+00057   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ((argc==3) && (std::string(argv[1])==\textcolor{stringliteral}{"auto"}))
+00058   \{
+00059     \hyperlink{group___core___module_class_eigen_1_1_matrix}{M} = N = K = atoi(argv[2]);
+00060     nbloops = 1000000000/(\hyperlink{group___core___module_class_eigen_1_1_matrix}{M}*\hyperlink{group___core___module_class_eigen_1_1_matrix}{M}*\hyperlink{group___core___module_class_eigen_1_1_matrix}{M});
+00061     \textcolor{keywordflow}{if} (nbloops<1)
+00062       nbloops = 1;
+00063     nbtries = 6;
+00064   \}
+00065   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc==4)
+00066   \{
+00067     \hyperlink{group___core___module_class_eigen_1_1_matrix}{M} = N = K = atoi(argv[1]);
+00068     nbloops = atoi(argv[2]);
+00069     nbtries = atoi(argv[3]);
+00070   \}
+00071   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc==6)
+00072   \{
+00073     \hyperlink{group___core___module_class_eigen_1_1_matrix}{M} = atoi(argv[1]);
+00074     N = atoi(argv[2]);
+00075     K = atoi(argv[3]);
+00076     nbloops = atoi(argv[4]);
+00077     nbtries = atoi(argv[5]);
+00078   \}
+00079   \textcolor{keywordflow}{else}
+00080   \{
+00081     std::cout << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" size  \(\backslash\)n"};
+00082     std::cout << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" auto size\(\backslash\)n"};
+00083     std::cout << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" size nbloops nbtries\(\backslash\)n"};
+00084     std::cout << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" M N K nbloops nbtries\(\backslash\)n"};
+00085     std::cout << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" check\(\backslash\)n"};
+00086     std::cout << \textcolor{stringliteral}{"Options:\(\backslash\)n"};
+00087     std::cout << \textcolor{stringliteral}{"    size       unique size of the 2 matrices (integer)\(\backslash\)n"};
+00088     std::cout << \textcolor{stringliteral}{"    auto       automatically set the number of repetitions and tries\(\backslash\)n"};
+00089     std::cout << \textcolor{stringliteral}{"    nbloops    number of times the GEMM routines is executed\(\backslash\)n"};
+00090     std::cout << \textcolor{stringliteral}{"    nbtries    number of times the loop is benched (return the best try)\(\backslash\)n"};
+00091     std::cout << \textcolor{stringliteral}{"    M N K      sizes of the matrices: MxN  =  MxK * KxN (integers)\(\backslash\)n"};
+00092     std::cout << \textcolor{stringliteral}{"    check      check eigen product using cblas as a reference\(\backslash\)n"};
+00093     exit(1);
+00094   \}
+00095 
+00096   \textcolor{keywordtype}{double} nbmad = double(\hyperlink{group___core___module_class_eigen_1_1_matrix}{M}) * double(N) * double(K) * double(nbloops);
+00097 
+00098   \textcolor{keywordflow}{if} (!(std::string(argv[1])==\textcolor{stringliteral}{"auto"}))
+00099     std::cout << \hyperlink{group___core___module_class_eigen_1_1_matrix}{M} << \textcolor{stringliteral}{" x "} << N << \textcolor{stringliteral}{" x "} << K << \textcolor{stringliteral}{"\(\backslash\)n"};
+00100 
+00101   Scalar alpha, beta;
+00102   \hyperlink{group___core___module_class_eigen_1_1_matrix}{MyMatrix} ma(\hyperlink{group___core___module_class_eigen_1_1_matrix}{M},K), mb(K,N), mc(\hyperlink{group___core___module_class_eigen_1_1_matrix}{M},N);
+00103   ma = MyMatrix::Random(\hyperlink{group___core___module_class_eigen_1_1_matrix}{M},K);
+00104   mb = MyMatrix::Random(K,N);
+00105   mc = MyMatrix::Random(\hyperlink{group___core___module_class_eigen_1_1_matrix}{M},N);
+00106 
+00107   \hyperlink{class_eigen_1_1_bench_timer}{Eigen::BenchTimer} timer;
+00108 
+00109   \textcolor{comment}{// we simply compute c += a*b, so:}
+00110   alpha = 1;
+00111   beta = 1;
+00112 
+00113   \textcolor{comment}{// bench cblas}
+00114   \textcolor{comment}{// ROWS\_A, COLS\_B, COLS\_A, 1.0,  A, COLS\_A, B, COLS\_B, 0.0, C, COLS\_B);}
+00115   \textcolor{keywordflow}{if} (!(std::string(argv[1])==\textcolor{stringliteral}{"auto"}))
+00116   \{
+00117     timer.reset();
+00118     \textcolor{keywordflow}{for} (uint k=0 ; k<nbtries ; ++k)
+00119     \{
+00120         timer.start();
+00121         \textcolor{keywordflow}{for} (uint j=0 ; j<nbloops ; ++j)
+00122               #ifdef EIGEN\_DEFAULT\_TO\_ROW\_MAJOR
+00123               CBLAS\_GEMM(CblasRowMajor, CblasNoTrans, CblasNoTrans, \hyperlink{group___core___module_class_eigen_1_1_matrix}{M}, N, K, alpha, ma.
+      \hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}(), K, mb.data(), N, beta, mc.\hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}(), N);
+00124 \textcolor{preprocessor}{              #else}
+00125               CBLAS\_GEMM(CblasColMajor, CblasNoTrans, CblasNoTrans, \hyperlink{group___core___module_class_eigen_1_1_matrix}{M}, N, K, alpha, ma.
+      \hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}(), \hyperlink{group___core___module_class_eigen_1_1_matrix}{M}, mb.\hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}(), K, beta, mc.data(), \hyperlink{group___core___module_class_eigen_1_1_matrix}{M});
+00126 \textcolor{preprocessor}{              #endif}
+00127         timer.stop();
+00128     \}
+00129     \textcolor{keywordflow}{if} (!(std::string(argv[1])==\textcolor{stringliteral}{"auto"}))
+00130       std::cout << \textcolor{stringliteral}{"cblas: "} << timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{" ("} << 1e-3*floor(1e-6*nbmad/timer.
+      \hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()) << \textcolor{stringliteral}{" GFlops/s)\(\backslash\)n"};
+00131     \textcolor{keywordflow}{else}
+00132         std::cout << \hyperlink{group___core___module_class_eigen_1_1_matrix}{M} << \textcolor{stringliteral}{" : "} << timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{" ; "} << 1e-3*floor(1e-6*nbmad/timer.
+      \hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()) << \textcolor{stringliteral}{"\(\backslash\)n"};
+00133   \}
+00134 
+00135   \textcolor{comment}{// clear}
+00136   ma = MyMatrix::Random(\hyperlink{group___core___module_class_eigen_1_1_matrix}{M},K);
+00137   mb = MyMatrix::Random(K,N);
+00138   mc = MyMatrix::Random(\hyperlink{group___core___module_class_eigen_1_1_matrix}{M},N);
+00139 
+00140   \textcolor{comment}{// eigen}
+00141 \textcolor{comment}{//   if (!(std::string(argv[1])=="auto"))}
+00142   \{
+00143       timer.reset();
+00144       \textcolor{keywordflow}{for} (uint k=0 ; k<nbtries ; ++k)
+00145       \{
+00146           timer.start();
+00147           bench\_eigengemm(mc, ma, mb, nbloops);
+00148           timer.stop();
+00149       \}
+00150       \textcolor{keywordflow}{if} (!(std::string(argv[1])==\textcolor{stringliteral}{"auto"}))
+00151         std::cout << \textcolor{stringliteral}{"eigen : "} << timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{" ("} << 1e-3*floor(1e-6*nbmad/timer.
+      \hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()) << \textcolor{stringliteral}{" GFlops/s)\(\backslash\)n"};
+00152       \textcolor{keywordflow}{else}
+00153         std::cout << \hyperlink{group___core___module_class_eigen_1_1_matrix}{M} << \textcolor{stringliteral}{" : "} << timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{" ; "} << 1e-3*floor(1e-6*nbmad/timer.
+      \hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()) << \textcolor{stringliteral}{"\(\backslash\)n"};
+00154   \}
+00155 
+00156   std::cout << \textcolor{stringliteral}{"l1: "} << \hyperlink{namespace_eigen_a2669f89ff38296a38e6d973552eb4e33}{Eigen::l1CacheSize}() << std::endl;
+00157   std::cout << \textcolor{stringliteral}{"l2: "} << \hyperlink{namespace_eigen_a2cfc0330ba567d63a496be1cac8427ae}{Eigen::l2CacheSize}() << std::endl;
+00158   
+00159 
+00160   \textcolor{keywordflow}{return} 0;
+00161 \}
+00162 
+00163 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00164 
+00165 \textcolor{keywordtype}{void} bench\_eigengemm(\hyperlink{group___core___module_class_eigen_1_1_matrix}{MyMatrix}& mc, \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix}{MyMatrix}& ma, \textcolor{keyword}{const} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{MyMatrix}& mb, \textcolor{keywordtype}{int} nbloops)
+00166 \{
+00167   \textcolor{keywordflow}{for} (uint j=0 ; j<nbloops ; ++j)
+00168       mc.noalias() += ma * mb;
+00169 \}
+00170 
+00171 \textcolor{preprocessor}{#define MYVERIFY(A,M) if (!(A)) \{ \(\backslash\)}
+00172 \textcolor{preprocessor}{    std::cout << "FAIL: " << M << "\(\backslash\)n"; \(\backslash\)}
+00173 \textcolor{preprocessor}{  \}}
+00174 \textcolor{keywordtype}{void} check\_product(\textcolor{keywordtype}{int} \hyperlink{group___core___module_class_eigen_1_1_matrix}{M}, \textcolor{keywordtype}{int} N, \textcolor{keywordtype}{int} K)
+00175 \{
+00176   \hyperlink{group___core___module_class_eigen_1_1_matrix}{MyMatrix} ma(M,K), mb(K,N), mc(M,N), maT(K,M), mbT(N,K), meigen(M,N), mref(M,N);
+00177   ma = MyMatrix::Random(M,K);
+00178   mb = MyMatrix::Random(K,N);
+00179   maT = ma.transpose();
+00180   mbT = mb.transpose();
+00181   mc = MyMatrix::Random(M,N);
+00182 
+00183   MyMatrix::Scalar eps = 1e-4;
+00184 
+00185   meigen = mref = mc;
+00186   CBLAS\_GEMM(CblasColMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1, ma.\hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}(), M, mb.
+      \hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}(), K, 1, mref.data(), M);
+00187   meigen += ma * mb;
+00188   MYVERIFY(meigen.isApprox(mref, eps),\textcolor{stringliteral}{". * ."});
+00189 
+00190   meigen = mref = mc;
+00191   CBLAS\_GEMM(CblasColMajor, CblasTrans, CblasNoTrans, M, N, K, 1, maT.data(), K, mb.data(), K, 1, mref.data
+      (), M);
+00192   meigen += maT.transpose() * mb;
+00193   MYVERIFY(meigen.isApprox(mref, eps),\textcolor{stringliteral}{"T * ."});
+00194 
+00195   meigen = mref = mc;
+00196   CBLAS\_GEMM(CblasColMajor, CblasTrans, CblasTrans, M, N, K, 1, maT.data(), K, mbT.data(), N, 1, mref.data(
+      ), M);
+00197   meigen += (maT.transpose()) * (mbT.transpose());
+00198   MYVERIFY(meigen.isApprox(mref, eps),\textcolor{stringliteral}{"T * T"});
+00199 
+00200   meigen = mref = mc;
+00201   CBLAS\_GEMM(CblasColMajor, CblasNoTrans, CblasTrans, M, N, K, 1, ma.\hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}(), M, mbT.data(), N, 1, mref.
+      data(), M);
+00202   meigen += ma * mbT.transpose();
+00203   MYVERIFY(meigen.isApprox(mref, eps),\textcolor{stringliteral}{". * T"});
+00204 \}
+00205 
+00206 \textcolor{keywordtype}{void} check\_product(\textcolor{keywordtype}{void})
+00207 \{
+00208   \textcolor{keywordtype}{int} M, N, K;
+00209   \textcolor{keywordflow}{for} (uint i=0; i<1000; ++i)
+00210   \{
+00211     M = internal::random<int>(1,64);
+00212     N = internal::random<int>(1,768);
+00213     K = internal::random<int>(1,768);
+00214     M = (0 + M) * 1;
+00215     std::cout << M << \textcolor{stringliteral}{" x "} << N << \textcolor{stringliteral}{" x "} << K << \textcolor{stringliteral}{"\(\backslash\)n"};
+00216     check\_product(M, N, K);
+00217   \}
+00218 \}
+00219 
+\end{DoxyCode}

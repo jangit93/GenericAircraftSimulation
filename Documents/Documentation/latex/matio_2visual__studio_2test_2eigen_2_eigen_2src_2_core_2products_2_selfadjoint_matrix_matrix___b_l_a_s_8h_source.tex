@@ -1,0 +1,292 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2products_2_selfadjoint_matrix_matrix___b_l_a_s_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Core/products/\+Selfadjoint\+Matrix\+Matrix\+\_\+\+B\+L\+AS.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2products_2_selfadjoint_matrix_matrix___b_l_a_s_8h_source}\index{Selfadjoint\+Matrix\+Matrix\+\_\+\+B\+L\+A\+S.\+h@{Selfadjoint\+Matrix\+Matrix\+\_\+\+B\+L\+A\+S.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/*}
+00002 \textcolor{comment}{ Copyright (c) 2011, Intel Corporation. All rights reserved.}
+00003 \textcolor{comment}{}
+00004 \textcolor{comment}{ Redistribution and use in source and binary forms, with or without modification,}
+00005 \textcolor{comment}{ are permitted provided that the following conditions are met:}
+00006 \textcolor{comment}{}
+00007 \textcolor{comment}{ * Redistributions of source code must retain the above copyright notice, this}
+00008 \textcolor{comment}{   list of conditions and the following disclaimer.}
+00009 \textcolor{comment}{ * Redistributions in binary form must reproduce the above copyright notice,}
+00010 \textcolor{comment}{   this list of conditions and the following disclaimer in the documentation}
+00011 \textcolor{comment}{   and/or other materials provided with the distribution.}
+00012 \textcolor{comment}{ * Neither the name of Intel Corporation nor the names of its contributors may}
+00013 \textcolor{comment}{   be used to endorse or promote products derived from this software without}
+00014 \textcolor{comment}{   specific prior written permission.}
+00015 \textcolor{comment}{}
+00016 \textcolor{comment}{ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND}
+00017 \textcolor{comment}{ ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED}
+00018 \textcolor{comment}{ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE}
+00019 \textcolor{comment}{ DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR}
+00020 \textcolor{comment}{ ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES}
+00021 \textcolor{comment}{ (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;}
+00022 \textcolor{comment}{ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON}
+00023 \textcolor{comment}{ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}
+00024 \textcolor{comment}{ (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS}
+00025 \textcolor{comment}{ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}
+00026 \textcolor{comment}{//}
+00027 \textcolor{comment}{ ********************************************************************************}
+00028 \textcolor{comment}{ *   Content : Eigen bindings to BLAS F77}
+00029 \textcolor{comment}{ *   Self adjoint matrix * matrix product functionality based on ?SYMM/?HEMM.}
+00030 \textcolor{comment}{ ********************************************************************************}
+00031 \textcolor{comment}{*/}
+00032 
+00033 \textcolor{preprocessor}{#ifndef EIGEN\_SELFADJOINT\_MATRIX\_MATRIX\_BLAS\_H}
+00034 \textcolor{preprocessor}{#define EIGEN\_SELFADJOINT\_MATRIX\_MATRIX\_BLAS\_H}
+00035 
+00036 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00037 
+00038 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00039 
+00040 
+00041 \textcolor{comment}{/* Optimized selfadjoint matrix * matrix (?SYMM/?HEMM) product */}
+00042 
+00043 \textcolor{preprocessor}{#define EIGEN\_BLAS\_SYMM\_L(EIGTYPE, BLASTYPE, EIGPREFIX, BLASPREFIX) \(\backslash\)}
+00044 \textcolor{preprocessor}{template <typename Index, \(\backslash\)}
+00045 \textcolor{preprocessor}{          int LhsStorageOrder, bool ConjugateLhs, \(\backslash\)}
+00046 \textcolor{preprocessor}{          int RhsStorageOrder, bool ConjugateRhs> \(\backslash\)}
+00047 \textcolor{preprocessor}{struct
+       product\_selfadjoint\_matrix<EIGTYPE,Index,LhsStorageOrder,true,ConjugateLhs,RhsStorageOrder,false,ConjugateRhs,ColMajor> \(\backslash\)}
+00048 \textcolor{preprocessor}{\{\(\backslash\)}
+00049 \textcolor{preprocessor}{\(\backslash\)}
+00050 \textcolor{preprocessor}{  static void run( \(\backslash\)}
+00051 \textcolor{preprocessor}{    Index rows, Index cols, \(\backslash\)}
+00052 \textcolor{preprocessor}{    const EIGTYPE* \_lhs, Index lhsStride, \(\backslash\)}
+00053 \textcolor{preprocessor}{    const EIGTYPE* \_rhs, Index rhsStride, \(\backslash\)}
+00054 \textcolor{preprocessor}{    EIGTYPE* res,        Index resStride, \(\backslash\)}
+00055 \textcolor{preprocessor}{    EIGTYPE alpha, level3\_blocking<EIGTYPE, EIGTYPE>& }\textcolor{comment}{/*blocking*/}\textcolor{preprocessor}{) \(\backslash\)}
+00056 \textcolor{preprocessor}{  \{ \(\backslash\)}
+00057 \textcolor{preprocessor}{    char side='L', uplo='L'; \(\backslash\)}
+00058 \textcolor{preprocessor}{    BlasIndex m, n, lda, ldb, ldc; \(\backslash\)}
+00059 \textcolor{preprocessor}{    const EIGTYPE *a, *b; \(\backslash\)}
+00060 \textcolor{preprocessor}{    EIGTYPE beta(1); \(\backslash\)}
+00061 \textcolor{preprocessor}{    MatrixX##EIGPREFIX b\_tmp; \(\backslash\)}
+00062 \textcolor{preprocessor}{\(\backslash\)}
+00063 \textcolor{preprocessor}{}\textcolor{comment}{/* Set transpose options */}\textcolor{preprocessor}{ \(\backslash\)}
+00064 \textcolor{preprocessor}{}\textcolor{comment}{/* Set m, n, k */}\textcolor{preprocessor}{ \(\backslash\)}
+00065 \textcolor{preprocessor}{    m = convert\_index<BlasIndex>(rows);  \(\backslash\)}
+00066 \textcolor{preprocessor}{    n = convert\_index<BlasIndex>(cols);  \(\backslash\)}
+00067 \textcolor{preprocessor}{\(\backslash\)}
+00068 \textcolor{preprocessor}{}\textcolor{comment}{/* Set lda, ldb, ldc */}\textcolor{preprocessor}{ \(\backslash\)}
+00069 \textcolor{preprocessor}{    lda = convert\_index<BlasIndex>(lhsStride); \(\backslash\)}
+00070 \textcolor{preprocessor}{    ldb = convert\_index<BlasIndex>(rhsStride); \(\backslash\)}
+00071 \textcolor{preprocessor}{    ldc = convert\_index<BlasIndex>(resStride); \(\backslash\)}
+00072 \textcolor{preprocessor}{\(\backslash\)}
+00073 \textcolor{preprocessor}{}\textcolor{comment}{/* Set a, b, c */}\textcolor{preprocessor}{ \(\backslash\)}
+00074 \textcolor{preprocessor}{    if (LhsStorageOrder==RowMajor) uplo='U'; \(\backslash\)}
+00075 \textcolor{preprocessor}{    a = \_lhs; \(\backslash\)}
+00076 \textcolor{preprocessor}{\(\backslash\)}
+00077 \textcolor{preprocessor}{    if (RhsStorageOrder==RowMajor) \{ \(\backslash\)}
+00078 \textcolor{preprocessor}{      Map<const MatrixX##EIGPREFIX, 0, OuterStride<> > rhs(\_rhs,n,m,OuterStride<>(rhsStride)); \(\backslash\)}
+00079 \textcolor{preprocessor}{      b\_tmp = rhs.adjoint(); \(\backslash\)}
+00080 \textcolor{preprocessor}{      b = b\_tmp.data(); \(\backslash\)}
+00081 \textcolor{preprocessor}{      ldb = convert\_index<BlasIndex>(b\_tmp.outerStride()); \(\backslash\)}
+00082 \textcolor{preprocessor}{    \} else b = \_rhs; \(\backslash\)}
+00083 \textcolor{preprocessor}{\(\backslash\)}
+00084 \textcolor{preprocessor}{    BLASPREFIX##symm\_(&side, &uplo, &m, &n, &numext::real\_ref(alpha), (const BLASTYPE*)a, &lda, (const
+       BLASTYPE*)b, &ldb, &numext::real\_ref(beta), (BLASTYPE*)res, &ldc); \(\backslash\)}
+00085 \textcolor{preprocessor}{\(\backslash\)}
+00086 \textcolor{preprocessor}{  \} \(\backslash\)}
+00087 \textcolor{preprocessor}{\};}
+00088 
+00089 
+00090 \textcolor{preprocessor}{#define EIGEN\_BLAS\_HEMM\_L(EIGTYPE, BLASTYPE, EIGPREFIX, BLASPREFIX) \(\backslash\)}
+00091 \textcolor{preprocessor}{template <typename Index, \(\backslash\)}
+00092 \textcolor{preprocessor}{          int LhsStorageOrder, bool ConjugateLhs, \(\backslash\)}
+00093 \textcolor{preprocessor}{          int RhsStorageOrder, bool ConjugateRhs> \(\backslash\)}
+00094 \textcolor{preprocessor}{struct
+       product\_selfadjoint\_matrix<EIGTYPE,Index,LhsStorageOrder,true,ConjugateLhs,RhsStorageOrder,false,ConjugateRhs,ColMajor> \(\backslash\)}
+00095 \textcolor{preprocessor}{\{\(\backslash\)}
+00096 \textcolor{preprocessor}{  static void run( \(\backslash\)}
+00097 \textcolor{preprocessor}{    Index rows, Index cols, \(\backslash\)}
+00098 \textcolor{preprocessor}{    const EIGTYPE* \_lhs, Index lhsStride, \(\backslash\)}
+00099 \textcolor{preprocessor}{    const EIGTYPE* \_rhs, Index rhsStride, \(\backslash\)}
+00100 \textcolor{preprocessor}{    EIGTYPE* res,        Index resStride, \(\backslash\)}
+00101 \textcolor{preprocessor}{    EIGTYPE alpha, level3\_blocking<EIGTYPE, EIGTYPE>& }\textcolor{comment}{/*blocking*/}\textcolor{preprocessor}{) \(\backslash\)}
+00102 \textcolor{preprocessor}{  \{ \(\backslash\)}
+00103 \textcolor{preprocessor}{    char side='L', uplo='L'; \(\backslash\)}
+00104 \textcolor{preprocessor}{    BlasIndex m, n, lda, ldb, ldc; \(\backslash\)}
+00105 \textcolor{preprocessor}{    const EIGTYPE *a, *b; \(\backslash\)}
+00106 \textcolor{preprocessor}{    EIGTYPE beta(1); \(\backslash\)}
+00107 \textcolor{preprocessor}{    MatrixX##EIGPREFIX b\_tmp; \(\backslash\)}
+00108 \textcolor{preprocessor}{    Matrix<EIGTYPE, Dynamic, Dynamic, LhsStorageOrder> a\_tmp; \(\backslash\)}
+00109 \textcolor{preprocessor}{\(\backslash\)}
+00110 \textcolor{preprocessor}{}\textcolor{comment}{/* Set transpose options */}\textcolor{preprocessor}{ \(\backslash\)}
+00111 \textcolor{preprocessor}{}\textcolor{comment}{/* Set m, n, k */}\textcolor{preprocessor}{ \(\backslash\)}
+00112 \textcolor{preprocessor}{    m = convert\_index<BlasIndex>(rows); \(\backslash\)}
+00113 \textcolor{preprocessor}{    n = convert\_index<BlasIndex>(cols); \(\backslash\)}
+00114 \textcolor{preprocessor}{\(\backslash\)}
+00115 \textcolor{preprocessor}{}\textcolor{comment}{/* Set lda, ldb, ldc */}\textcolor{preprocessor}{ \(\backslash\)}
+00116 \textcolor{preprocessor}{    lda = convert\_index<BlasIndex>(lhsStride); \(\backslash\)}
+00117 \textcolor{preprocessor}{    ldb = convert\_index<BlasIndex>(rhsStride); \(\backslash\)}
+00118 \textcolor{preprocessor}{    ldc = convert\_index<BlasIndex>(resStride); \(\backslash\)}
+00119 \textcolor{preprocessor}{\(\backslash\)}
+00120 \textcolor{preprocessor}{}\textcolor{comment}{/* Set a, b, c */}\textcolor{preprocessor}{ \(\backslash\)}
+00121 \textcolor{preprocessor}{    if (((LhsStorageOrder==ColMajor) && ConjugateLhs) || ((LhsStorageOrder==RowMajor) && (!ConjugateLhs)))
+       \{ \(\backslash\)}
+00122 \textcolor{preprocessor}{      Map<const Matrix<EIGTYPE, Dynamic, Dynamic, LhsStorageOrder>, 0, OuterStride<> >
+       lhs(\_lhs,m,m,OuterStride<>(lhsStride)); \(\backslash\)}
+00123 \textcolor{preprocessor}{      a\_tmp = lhs.conjugate(); \(\backslash\)}
+00124 \textcolor{preprocessor}{      a = a\_tmp.data(); \(\backslash\)}
+00125 \textcolor{preprocessor}{      lda = convert\_index<BlasIndex>(a\_tmp.outerStride()); \(\backslash\)}
+00126 \textcolor{preprocessor}{    \} else a = \_lhs; \(\backslash\)}
+00127 \textcolor{preprocessor}{    if (LhsStorageOrder==RowMajor) uplo='U'; \(\backslash\)}
+00128 \textcolor{preprocessor}{\(\backslash\)}
+00129 \textcolor{preprocessor}{    if (RhsStorageOrder==ColMajor && (!ConjugateRhs)) \{ \(\backslash\)}
+00130 \textcolor{preprocessor}{       b = \_rhs; \} \(\backslash\)}
+00131 \textcolor{preprocessor}{    else \{ \(\backslash\)}
+00132 \textcolor{preprocessor}{      if (RhsStorageOrder==ColMajor && ConjugateRhs) \{ \(\backslash\)}
+00133 \textcolor{preprocessor}{        Map<const MatrixX##EIGPREFIX, 0, OuterStride<> > rhs(\_rhs,m,n,OuterStride<>(rhsStride)); \(\backslash\)}
+00134 \textcolor{preprocessor}{        b\_tmp = rhs.conjugate(); \(\backslash\)}
+00135 \textcolor{preprocessor}{      \} else \(\backslash\)}
+00136 \textcolor{preprocessor}{      if (ConjugateRhs) \{ \(\backslash\)}
+00137 \textcolor{preprocessor}{        Map<const MatrixX##EIGPREFIX, 0, OuterStride<> > rhs(\_rhs,n,m,OuterStride<>(rhsStride)); \(\backslash\)}
+00138 \textcolor{preprocessor}{        b\_tmp = rhs.adjoint(); \(\backslash\)}
+00139 \textcolor{preprocessor}{      \} else \{ \(\backslash\)}
+00140 \textcolor{preprocessor}{        Map<const MatrixX##EIGPREFIX, 0, OuterStride<> > rhs(\_rhs,n,m,OuterStride<>(rhsStride)); \(\backslash\)}
+00141 \textcolor{preprocessor}{        b\_tmp = rhs.transpose(); \(\backslash\)}
+00142 \textcolor{preprocessor}{      \} \(\backslash\)}
+00143 \textcolor{preprocessor}{      b = b\_tmp.data(); \(\backslash\)}
+00144 \textcolor{preprocessor}{      ldb = convert\_index<BlasIndex>(b\_tmp.outerStride()); \(\backslash\)}
+00145 \textcolor{preprocessor}{    \} \(\backslash\)}
+00146 \textcolor{preprocessor}{\(\backslash\)}
+00147 \textcolor{preprocessor}{    BLASPREFIX##hemm\_(&side, &uplo, &m, &n, &numext::real\_ref(alpha), (const BLASTYPE*)a, &lda, (const
+       BLASTYPE*)b, &ldb, &numext::real\_ref(beta), (BLASTYPE*)res, &ldc); \(\backslash\)}
+00148 \textcolor{preprocessor}{\(\backslash\)}
+00149 \textcolor{preprocessor}{  \} \(\backslash\)}
+00150 \textcolor{preprocessor}{\};}
+00151 
+00152 EIGEN\_BLAS\_SYMM\_L(\textcolor{keywordtype}{double}, \textcolor{keywordtype}{double}, d, d)
+00153 EIGEN\_BLAS\_SYMM\_L(\textcolor{keywordtype}{float}, \textcolor{keywordtype}{float}, f, s)
+00154 EIGEN\_BLAS\_HEMM\_L(dcomplex, \textcolor{keywordtype}{double}, cd, z)
+00155 EIGEN\_BLAS\_HEMM\_L(scomplex, \textcolor{keywordtype}{float}, cf, c)
+00156 
+00157 
+00158 \textcolor{comment}{/* Optimized matrix * selfadjoint matrix (?SYMM/?HEMM) product */}
+00159 
+00160 \textcolor{preprocessor}{#define EIGEN\_BLAS\_SYMM\_R(EIGTYPE, BLASTYPE, EIGPREFIX, BLASPREFIX) \(\backslash\)}
+00161 \textcolor{preprocessor}{template <typename Index, \(\backslash\)}
+00162 \textcolor{preprocessor}{          int LhsStorageOrder, bool ConjugateLhs, \(\backslash\)}
+00163 \textcolor{preprocessor}{          int RhsStorageOrder, bool ConjugateRhs> \(\backslash\)}
+00164 \textcolor{preprocessor}{struct
+       product\_selfadjoint\_matrix<EIGTYPE,Index,LhsStorageOrder,false,ConjugateLhs,RhsStorageOrder,true,ConjugateRhs,ColMajor> \(\backslash\)}
+00165 \textcolor{preprocessor}{\{\(\backslash\)}
+00166 \textcolor{preprocessor}{\(\backslash\)}
+00167 \textcolor{preprocessor}{  static void run( \(\backslash\)}
+00168 \textcolor{preprocessor}{    Index rows, Index cols, \(\backslash\)}
+00169 \textcolor{preprocessor}{    const EIGTYPE* \_lhs, Index lhsStride, \(\backslash\)}
+00170 \textcolor{preprocessor}{    const EIGTYPE* \_rhs, Index rhsStride, \(\backslash\)}
+00171 \textcolor{preprocessor}{    EIGTYPE* res,        Index resStride, \(\backslash\)}
+00172 \textcolor{preprocessor}{    EIGTYPE alpha, level3\_blocking<EIGTYPE, EIGTYPE>& }\textcolor{comment}{/*blocking*/}\textcolor{preprocessor}{) \(\backslash\)}
+00173 \textcolor{preprocessor}{  \{ \(\backslash\)}
+00174 \textcolor{preprocessor}{    char side='R', uplo='L'; \(\backslash\)}
+00175 \textcolor{preprocessor}{    BlasIndex m, n, lda, ldb, ldc; \(\backslash\)}
+00176 \textcolor{preprocessor}{    const EIGTYPE *a, *b; \(\backslash\)}
+00177 \textcolor{preprocessor}{    EIGTYPE beta(1); \(\backslash\)}
+00178 \textcolor{preprocessor}{    MatrixX##EIGPREFIX b\_tmp; \(\backslash\)}
+00179 \textcolor{preprocessor}{\(\backslash\)}
+00180 \textcolor{preprocessor}{}\textcolor{comment}{/* Set m, n, k */}\textcolor{preprocessor}{ \(\backslash\)}
+00181 \textcolor{preprocessor}{    m = convert\_index<BlasIndex>(rows);  \(\backslash\)}
+00182 \textcolor{preprocessor}{    n = convert\_index<BlasIndex>(cols);  \(\backslash\)}
+00183 \textcolor{preprocessor}{\(\backslash\)}
+00184 \textcolor{preprocessor}{}\textcolor{comment}{/* Set lda, ldb, ldc */}\textcolor{preprocessor}{ \(\backslash\)}
+00185 \textcolor{preprocessor}{    lda = convert\_index<BlasIndex>(rhsStride); \(\backslash\)}
+00186 \textcolor{preprocessor}{    ldb = convert\_index<BlasIndex>(lhsStride); \(\backslash\)}
+00187 \textcolor{preprocessor}{    ldc = convert\_index<BlasIndex>(resStride); \(\backslash\)}
+00188 \textcolor{preprocessor}{\(\backslash\)}
+00189 \textcolor{preprocessor}{}\textcolor{comment}{/* Set a, b, c */}\textcolor{preprocessor}{ \(\backslash\)}
+00190 \textcolor{preprocessor}{    if (RhsStorageOrder==RowMajor) uplo='U'; \(\backslash\)}
+00191 \textcolor{preprocessor}{    a = \_rhs; \(\backslash\)}
+00192 \textcolor{preprocessor}{\(\backslash\)}
+00193 \textcolor{preprocessor}{    if (LhsStorageOrder==RowMajor) \{ \(\backslash\)}
+00194 \textcolor{preprocessor}{      Map<const MatrixX##EIGPREFIX, 0, OuterStride<> > lhs(\_lhs,n,m,OuterStride<>(rhsStride)); \(\backslash\)}
+00195 \textcolor{preprocessor}{      b\_tmp = lhs.adjoint(); \(\backslash\)}
+00196 \textcolor{preprocessor}{      b = b\_tmp.data(); \(\backslash\)}
+00197 \textcolor{preprocessor}{      ldb = convert\_index<BlasIndex>(b\_tmp.outerStride()); \(\backslash\)}
+00198 \textcolor{preprocessor}{    \} else b = \_lhs; \(\backslash\)}
+00199 \textcolor{preprocessor}{\(\backslash\)}
+00200 \textcolor{preprocessor}{    BLASPREFIX##symm\_(&side, &uplo, &m, &n, &numext::real\_ref(alpha), (const BLASTYPE*)a, &lda, (const
+       BLASTYPE*)b, &ldb, &numext::real\_ref(beta), (BLASTYPE*)res, &ldc); \(\backslash\)}
+00201 \textcolor{preprocessor}{\(\backslash\)}
+00202 \textcolor{preprocessor}{  \} \(\backslash\)}
+00203 \textcolor{preprocessor}{\};}
+00204 
+00205 
+00206 \textcolor{preprocessor}{#define EIGEN\_BLAS\_HEMM\_R(EIGTYPE, BLASTYPE, EIGPREFIX, BLASPREFIX) \(\backslash\)}
+00207 \textcolor{preprocessor}{template <typename Index, \(\backslash\)}
+00208 \textcolor{preprocessor}{          int LhsStorageOrder, bool ConjugateLhs, \(\backslash\)}
+00209 \textcolor{preprocessor}{          int RhsStorageOrder, bool ConjugateRhs> \(\backslash\)}
+00210 \textcolor{preprocessor}{struct
+       product\_selfadjoint\_matrix<EIGTYPE,Index,LhsStorageOrder,false,ConjugateLhs,RhsStorageOrder,true,ConjugateRhs,ColMajor> \(\backslash\)}
+00211 \textcolor{preprocessor}{\{\(\backslash\)}
+00212 \textcolor{preprocessor}{  static void run( \(\backslash\)}
+00213 \textcolor{preprocessor}{    Index rows, Index cols, \(\backslash\)}
+00214 \textcolor{preprocessor}{    const EIGTYPE* \_lhs, Index lhsStride, \(\backslash\)}
+00215 \textcolor{preprocessor}{    const EIGTYPE* \_rhs, Index rhsStride, \(\backslash\)}
+00216 \textcolor{preprocessor}{    EIGTYPE* res,        Index resStride, \(\backslash\)}
+00217 \textcolor{preprocessor}{    EIGTYPE alpha, level3\_blocking<EIGTYPE, EIGTYPE>& }\textcolor{comment}{/*blocking*/}\textcolor{preprocessor}{) \(\backslash\)}
+00218 \textcolor{preprocessor}{  \{ \(\backslash\)}
+00219 \textcolor{preprocessor}{    char side='R', uplo='L'; \(\backslash\)}
+00220 \textcolor{preprocessor}{    BlasIndex m, n, lda, ldb, ldc; \(\backslash\)}
+00221 \textcolor{preprocessor}{    const EIGTYPE *a, *b; \(\backslash\)}
+00222 \textcolor{preprocessor}{    EIGTYPE beta(1); \(\backslash\)}
+00223 \textcolor{preprocessor}{    MatrixX##EIGPREFIX b\_tmp; \(\backslash\)}
+00224 \textcolor{preprocessor}{    Matrix<EIGTYPE, Dynamic, Dynamic, RhsStorageOrder> a\_tmp; \(\backslash\)}
+00225 \textcolor{preprocessor}{\(\backslash\)}
+00226 \textcolor{preprocessor}{}\textcolor{comment}{/* Set m, n, k */}\textcolor{preprocessor}{ \(\backslash\)}
+00227 \textcolor{preprocessor}{    m = convert\_index<BlasIndex>(rows); \(\backslash\)}
+00228 \textcolor{preprocessor}{    n = convert\_index<BlasIndex>(cols); \(\backslash\)}
+00229 \textcolor{preprocessor}{\(\backslash\)}
+00230 \textcolor{preprocessor}{}\textcolor{comment}{/* Set lda, ldb, ldc */}\textcolor{preprocessor}{ \(\backslash\)}
+00231 \textcolor{preprocessor}{    lda = convert\_index<BlasIndex>(rhsStride); \(\backslash\)}
+00232 \textcolor{preprocessor}{    ldb = convert\_index<BlasIndex>(lhsStride); \(\backslash\)}
+00233 \textcolor{preprocessor}{    ldc = convert\_index<BlasIndex>(resStride); \(\backslash\)}
+00234 \textcolor{preprocessor}{\(\backslash\)}
+00235 \textcolor{preprocessor}{}\textcolor{comment}{/* Set a, b, c */}\textcolor{preprocessor}{ \(\backslash\)}
+00236 \textcolor{preprocessor}{    if (((RhsStorageOrder==ColMajor) && ConjugateRhs) || ((RhsStorageOrder==RowMajor) && (!ConjugateRhs)))
+       \{ \(\backslash\)}
+00237 \textcolor{preprocessor}{      Map<const Matrix<EIGTYPE, Dynamic, Dynamic, RhsStorageOrder>, 0, OuterStride<> >
+       rhs(\_rhs,n,n,OuterStride<>(rhsStride)); \(\backslash\)}
+00238 \textcolor{preprocessor}{      a\_tmp = rhs.conjugate(); \(\backslash\)}
+00239 \textcolor{preprocessor}{      a = a\_tmp.data(); \(\backslash\)}
+00240 \textcolor{preprocessor}{      lda = convert\_index<BlasIndex>(a\_tmp.outerStride()); \(\backslash\)}
+00241 \textcolor{preprocessor}{    \} else a = \_rhs; \(\backslash\)}
+00242 \textcolor{preprocessor}{    if (RhsStorageOrder==RowMajor) uplo='U'; \(\backslash\)}
+00243 \textcolor{preprocessor}{\(\backslash\)}
+00244 \textcolor{preprocessor}{    if (LhsStorageOrder==ColMajor && (!ConjugateLhs)) \{ \(\backslash\)}
+00245 \textcolor{preprocessor}{       b = \_lhs; \} \(\backslash\)}
+00246 \textcolor{preprocessor}{    else \{ \(\backslash\)}
+00247 \textcolor{preprocessor}{      if (LhsStorageOrder==ColMajor && ConjugateLhs) \{ \(\backslash\)}
+00248 \textcolor{preprocessor}{        Map<const MatrixX##EIGPREFIX, 0, OuterStride<> > lhs(\_lhs,m,n,OuterStride<>(lhsStride)); \(\backslash\)}
+00249 \textcolor{preprocessor}{        b\_tmp = lhs.conjugate(); \(\backslash\)}
+00250 \textcolor{preprocessor}{      \} else \(\backslash\)}
+00251 \textcolor{preprocessor}{      if (ConjugateLhs) \{ \(\backslash\)}
+00252 \textcolor{preprocessor}{        Map<const MatrixX##EIGPREFIX, 0, OuterStride<> > lhs(\_lhs,n,m,OuterStride<>(lhsStride)); \(\backslash\)}
+00253 \textcolor{preprocessor}{        b\_tmp = lhs.adjoint(); \(\backslash\)}
+00254 \textcolor{preprocessor}{      \} else \{ \(\backslash\)}
+00255 \textcolor{preprocessor}{        Map<const MatrixX##EIGPREFIX, 0, OuterStride<> > lhs(\_lhs,n,m,OuterStride<>(lhsStride)); \(\backslash\)}
+00256 \textcolor{preprocessor}{        b\_tmp = lhs.transpose(); \(\backslash\)}
+00257 \textcolor{preprocessor}{      \} \(\backslash\)}
+00258 \textcolor{preprocessor}{      b = b\_tmp.data(); \(\backslash\)}
+00259 \textcolor{preprocessor}{      ldb = convert\_index<BlasIndex>(b\_tmp.outerStride()); \(\backslash\)}
+00260 \textcolor{preprocessor}{    \} \(\backslash\)}
+00261 \textcolor{preprocessor}{\(\backslash\)}
+00262 \textcolor{preprocessor}{    BLASPREFIX##hemm\_(&side, &uplo, &m, &n, &numext::real\_ref(alpha), (const BLASTYPE*)a, &lda, (const
+       BLASTYPE*)b, &ldb, &numext::real\_ref(beta), (BLASTYPE*)res, &ldc); \(\backslash\)}
+00263 \textcolor{preprocessor}{  \} \(\backslash\)}
+00264 \textcolor{preprocessor}{\};}
+00265 
+00266 EIGEN\_BLAS\_SYMM\_R(\textcolor{keywordtype}{double}, \textcolor{keywordtype}{double}, d, d)
+00267 EIGEN\_BLAS\_SYMM\_R(\textcolor{keywordtype}{float}, \textcolor{keywordtype}{float}, f, s)
+00268 EIGEN\_BLAS\_HEMM\_R(dcomplex, \textcolor{keywordtype}{double}, cd, z)
+00269 EIGEN\_BLAS\_HEMM\_R(scomplex, \textcolor{keywordtype}{float}, cf, c)
+00270 
+00271 \} \textcolor{comment}{// end namespace internal}
+00272 
+00273 \} \textcolor{comment}{// end namespace Eigen}
+00274 
+00275 \textcolor{preprocessor}{#endif // EIGEN\_SELFADJOINT\_MATRIX\_MATRIX\_BLAS\_H}
+\end{DoxyCode}

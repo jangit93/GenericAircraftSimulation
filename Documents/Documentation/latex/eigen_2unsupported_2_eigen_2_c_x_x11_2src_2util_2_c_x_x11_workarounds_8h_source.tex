@@ -1,0 +1,98 @@
+\hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2util_2_c_x_x11_workarounds_8h_source}{}\section{eigen/unsupported/\+Eigen/\+C\+X\+X11/src/util/\+C\+X\+X11\+Workarounds.h}
+\label{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2util_2_c_x_x11_workarounds_8h_source}\index{C\+X\+X11\+Workarounds.\+h@{C\+X\+X11\+Workarounds.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2013 Christian Seiler <christian@iwakd.de>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_CXX11WORKAROUNDS\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_CXX11WORKAROUNDS\_H}
+00012 
+00013 \textcolor{comment}{/* COMPATIBILITY CHECKS}
+00014 \textcolor{comment}{ * (so users of compilers that are too old get some realistic error messages)}
+00015 \textcolor{comment}{ */}
+00016 \textcolor{preprocessor}{#if defined(\_\_INTEL\_COMPILER) && (\_\_INTEL\_COMPILER < 1310)}
+00017 \textcolor{preprocessor}{#error Intel Compiler only supports required C++ features since version 13.1.}
+00018 \textcolor{comment}{// note that most stuff in principle works with 13.0 but when combining}
+00019 \textcolor{comment}{// some features, at some point 13.0 will just fail with an internal assertion}
+00020 \textcolor{preprocessor}{#elif defined(\_\_GNUC\_\_) && !defined(\_\_clang\_\_) && !defined(\_\_INTEL\_COMPILER) && (\_\_GNUC\_\_ < 4 || (\_\_GNUC\_\_
+       == 4 && \_\_GNUC\_MINOR\_\_ < 6))}
+00021 \textcolor{comment}{// G++ < 4.6 by default will continue processing the source files - even if we use #error to make}
+00022 \textcolor{comment}{// it error out. For this reason, we use the pragma to make sure G++ aborts at the first error}
+00023 \textcolor{comment}{// it sees. Unfortunately, that is still not our #error directive, but at least the output is}
+00024 \textcolor{comment}{// short enough the user has a chance to see that the compiler version is not sufficient for}
+00025 \textcolor{comment}{// the funky template mojo we use.}
+00026 \textcolor{preprocessor}{#pragma GCC diagnostic error "-Wfatal-errors"}
+00027 \textcolor{preprocessor}{#error GNU C++ Compiler (g++) only supports required C++ features since version 4.6.}
+00028 \textcolor{preprocessor}{#endif}
+00029 
+00030 \textcolor{comment}{/* Check that the compiler at least claims to support C++11. It might not be sufficient}
+00031 \textcolor{comment}{ * because the compiler may not implement it correctly, but at least we'll know.}
+00032 \textcolor{comment}{ * On the other hand, visual studio still doesn't claim to support C++11 although it's}
+00033 \textcolor{comment}{ * compliant enugh for our purpose.}
+00034 \textcolor{comment}{ */}
+00035 \textcolor{preprocessor}{#if (\_\_cplusplus <= 199711L) && (EIGEN\_COMP\_MSVC < 1900)}
+00036 \textcolor{preprocessor}{#if defined(\_\_GNUC\_\_) && !defined(\_\_clang\_\_) && !defined(\_\_INTEL\_COMPILER)}
+00037 \textcolor{preprocessor}{#pragma GCC diagnostic error "-Wfatal-errors"}
+00038 \textcolor{preprocessor}{#endif}
+00039 \textcolor{preprocessor}{#error This library needs at least a C++11 compliant compiler. If you use g++/clang, please enable the
+       -std=c++11 compiler flag. (-std=c++0x on older versions.)}
+00040 \textcolor{preprocessor}{#endif}
+00041 
+00042 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00043 
+00044 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00045 
+00046 \textcolor{comment}{/* std::get is only constexpr in C++14, not yet in C++11}
+00047 \textcolor{comment}{ */}
+00048 
+00049 
+00050 \textcolor{keyword}{template}<std::\textcolor{keywordtype}{size\_t} I, \textcolor{keyword}{class} T> constexpr \textcolor{keyword}{inline} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}&       array\_get(std::vector<T>&       a) \{ \textcolor{keywordflow}{return} a[I
+      ]; \}
+00051 \textcolor{keyword}{template}<std::\textcolor{keywordtype}{size\_t} I, \textcolor{keyword}{class} T> constexpr \textcolor{keyword}{inline} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}&&      array\_get(std::vector<T>&&      a) \{ \textcolor{keywordflow}{return} a[I
+      ]; \}
+00052 \textcolor{keyword}{template}<std::\textcolor{keywordtype}{size\_t} I, \textcolor{keyword}{class} T> constexpr \textcolor{keyword}{inline} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} \textcolor{keyword}{const}& array\_get(std::vector<T> \textcolor{keyword}{const}& a) \{ \textcolor{keywordflow}{return} a[I
+      ]; \}
+00053 
+00054 \textcolor{comment}{/* Suppose you have a template of the form}
+00055 \textcolor{comment}{ * template<typename T> struct X;}
+00056 \textcolor{comment}{ * And you want to specialize it in such a way:}
+00057 \textcolor{comment}{ *    template<typename S1, typename... SN> struct X<Foo<S1, SN...>> \{ ::: \};}
+00058 \textcolor{comment}{ *    template<>                            struct X<Foo<>>          \{ ::: \};}
+00059 \textcolor{comment}{ * This will work in Intel's compiler 13.0, but only to some extent in g++ 4.6, since}
+00060 \textcolor{comment}{ * g++ can only match templates called with parameter packs if the number of template}
+00061 \textcolor{comment}{ * arguments is not a fixed size (so inside the first specialization, referencing}
+00062 \textcolor{comment}{ * X<Foo<Sn...>> will fail in g++). On the other hand, g++ will accept the following:}
+00063 \textcolor{comment}{ *    template<typename S...> struct X<Foo<S...>> \{ ::: \}:}
+00064 \textcolor{comment}{ * as an additional (!) specialization, which will then only match the empty case.}
+00065 \textcolor{comment}{ * But Intel's compiler 13.0 won't accept that, it will only accept the empty syntax,}
+00066 \textcolor{comment}{ * so we have to create a workaround for this.}
+00067 \textcolor{comment}{ */}
+00068 \textcolor{preprocessor}{#if defined(\_\_GNUC\_\_) && !defined(\_\_INTEL\_COMPILER)}
+00069 \textcolor{preprocessor}{#define EIGEN\_TPL\_PP\_SPEC\_HACK\_DEF(mt, n)    mt... n}
+00070 \textcolor{preprocessor}{#define EIGEN\_TPL\_PP\_SPEC\_HACK\_DEFC(mt, n)   , EIGEN\_TPL\_PP\_SPEC\_HACK\_DEF(mt, n)}
+00071 \textcolor{preprocessor}{#define EIGEN\_TPL\_PP\_SPEC\_HACK\_USE(n)        n...}
+00072 \textcolor{preprocessor}{#define EIGEN\_TPL\_PP\_SPEC\_HACK\_USEC(n)       , n...}
+00073 \textcolor{preprocessor}{#else}
+00074 \textcolor{preprocessor}{#define EIGEN\_TPL\_PP\_SPEC\_HACK\_DEF(mt, n)}
+00075 \textcolor{preprocessor}{#define EIGEN\_TPL\_PP\_SPEC\_HACK\_DEFC(mt, n)}
+00076 \textcolor{preprocessor}{#define EIGEN\_TPL\_PP\_SPEC\_HACK\_USE(n)}
+00077 \textcolor{preprocessor}{#define EIGEN\_TPL\_PP\_SPEC\_HACK\_USEC(n)}
+00078 \textcolor{preprocessor}{#endif}
+00079 
+00080 \} \textcolor{comment}{// end namespace internal}
+00081 
+00082 \} \textcolor{comment}{// end namespace Eigen}
+00083 
+00084 \textcolor{preprocessor}{#endif // EIGEN\_CXX11WORKAROUNDS\_H}
+00085 
+00086 \textcolor{comment}{/*}
+00087 \textcolor{comment}{ * kate: space-indent on; indent-width 2; mixedindent off; indent-mode cstyle;}
+00088 \textcolor{comment}{ */}
+\end{DoxyCode}

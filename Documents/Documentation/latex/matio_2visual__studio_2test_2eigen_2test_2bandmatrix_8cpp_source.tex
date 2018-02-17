@@ -1,0 +1,76 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2bandmatrix_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/bandmatrix.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2bandmatrix_8cpp_source}\index{bandmatrix.\+cpp@{bandmatrix.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is triangularView of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} bandmatrix(\textcolor{keyword}{const} MatrixType& \_m)
+00013 \{
+00014   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00015   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00016   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,Dynamic>} DenseMatrixType;
+00017 
+00018   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows = \_m.rows();
+00019   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols = \_m.cols();
+00020   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} supers = \_m.supers();
+00021   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} subs = \_m.subs();
+00022 
+00023   MatrixType m(rows,cols,supers,subs);
+00024 
+00025   DenseMatrixType dm1(rows,cols);
+00026   dm1.setZero();
+00027 
+00028   m.diagonal().setConstant(123);
+00029   dm1.diagonal().setConstant(123);
+00030   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=1; i<=m.supers();++i)
+00031   \{
+00032     m.diagonal(i).setConstant(static\_cast<RealScalar>(i));
+00033     dm1.diagonal(i).setConstant(static\_cast<RealScalar>(i));
+00034   \}
+00035   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=1; i<=m.subs();++i)
+00036   \{
+00037     m.diagonal(-i).setConstant(-static\_cast<RealScalar>(i));
+00038     dm1.diagonal(-i).setConstant(-static\_cast<RealScalar>(i));
+00039   \}
+00040   \textcolor{comment}{//std::cerr << m.m\_data << "\(\backslash\)n\(\backslash\)n" << m.toDense() << "\(\backslash\)n\(\backslash\)n" << dm1 << "\(\backslash\)n\(\backslash\)n\(\backslash\)n\(\backslash\)n";}
+00041   VERIFY\_IS\_APPROX(dm1,m.toDenseMatrix());
+00042 
+00043   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<cols; ++i)
+00044   \{
+00045     m.col(i).setConstant(static\_cast<RealScalar>(i+1));
+00046     dm1.col(i).setConstant(static\_cast<RealScalar>(i+1));
+00047   \}
+00048   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} d = (std::min)(rows,cols);
+00049   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} a = std::max<Index>(0,cols-d-supers);
+00050   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} b = std::max<Index>(0,rows-d-subs);
+00051   \textcolor{keywordflow}{if}(a>0) dm1.block(0,d+supers,rows,a).setZero();
+00052   dm1.block(0,supers+1,cols-supers-1-a,cols-supers-1-a).template triangularView<Upper>().setZero();
+00053   dm1.block(subs+1,0,rows-subs-1-b,rows-subs-1-b).template triangularView<Lower>().setZero();
+00054   \textcolor{keywordflow}{if}(b>0) dm1.block(d+subs,0,b,cols).setZero();
+00055   \textcolor{comment}{//std::cerr << m.m\_data << "\(\backslash\)n\(\backslash\)n" << m.toDense() << "\(\backslash\)n\(\backslash\)n" << dm1 << "\(\backslash\)n\(\backslash\)n";}
+00056   VERIFY\_IS\_APPROX(dm1,m.toDenseMatrix());
+00057 
+00058 \}
+00059 
+00060 \textcolor{keyword}{using} \hyperlink{group___core___module_class_eigen_1_1internal_1_1_band_matrix}{Eigen::internal::BandMatrix};
+00061 
+00062 \textcolor{keywordtype}{void} test\_bandmatrix()
+00063 \{
+00064   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < 10*g\_repeat ; i++) \{
+00065     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows = internal::random<Index>(1,10);
+00066     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols = internal::random<Index>(1,10);
+00067     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} sups = internal::random<Index>(0,cols-1);
+00068     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} subs = internal::random<Index>(0,rows-1);
+00069     CALL\_SUBTEST(bandmatrix(\hyperlink{group___core___module_class_eigen_1_1internal_1_1_band_matrix}{BandMatrix<float>}(rows,cols,sups,subs)) );
+00070   \}
+00071 \}
+\end{DoxyCode}

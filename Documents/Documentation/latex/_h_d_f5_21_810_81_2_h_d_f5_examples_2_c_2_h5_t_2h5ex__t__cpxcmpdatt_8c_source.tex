@@ -1,0 +1,369 @@
+\hypertarget{_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_t_2h5ex__t__cpxcmpdatt_8c_source}{}\section{H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+C/\+H5\+T/h5ex\+\_\+t\+\_\+cpxcmpdatt.c}
+\label{_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_t_2h5ex__t__cpxcmpdatt_8c_source}\index{h5ex\+\_\+t\+\_\+cpxcmpdatt.\+c@{h5ex\+\_\+t\+\_\+cpxcmpdatt.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/************************************************************}
+00002 \textcolor{comment}{}
+00003 \textcolor{comment}{  This example shows how to read and write a complex}
+00004 \textcolor{comment}{  compound datatype to an attribute.  The program first}
+00005 \textcolor{comment}{  writes complex compound structures to an attribute with a}
+00006 \textcolor{comment}{  dataspace of DIM0, then closes the file.  Next, it reopens}
+00007 \textcolor{comment}{  the file, reads back selected fields in the structure, and}
+00008 \textcolor{comment}{  outputs them to the screen.}
+00009 \textcolor{comment}{}
+00010 \textcolor{comment}{  Unlike the other datatype examples, in this example we}
+00011 \textcolor{comment}{  save to the file using native datatypes to simplify the}
+00012 \textcolor{comment}{  type definitions here.  To save using standard types you}
+00013 \textcolor{comment}{  must manually calculate the sizes and offsets of compound}
+00014 \textcolor{comment}{  types as shown in h5ex\_t\_cmpd.c, and convert enumerated}
+00015 \textcolor{comment}{  values as shown in h5ex\_t\_enum.c.}
+00016 \textcolor{comment}{}
+00017 \textcolor{comment}{  The datatype defined here consists of a compound}
+00018 \textcolor{comment}{  containing a variable-length list of compound types, as}
+00019 \textcolor{comment}{  well as a variable-length string, enumeration, double}
+00020 \textcolor{comment}{  array, object reference and region reference.  The nested}
+00021 \textcolor{comment}{  compound type contains an int, variable-length string and}
+00022 \textcolor{comment}{  two doubles.}
+00023 \textcolor{comment}{}
+00024 \textcolor{comment}{  This file is intended for use with HDF5 Library version 1.8}
+00025 \textcolor{comment}{}
+00026 \textcolor{comment}{ ************************************************************/}
+00027 
+00028 \textcolor{preprocessor}{#include "hdf5.h"}
+00029 \textcolor{preprocessor}{#include <stdio.h>}
+00030 \textcolor{preprocessor}{#include <stdlib.h>}
+00031 
+00032 \textcolor{preprocessor}{#define FILE            "h5ex\_t\_cpxcmpdatt.h5"}
+00033 \textcolor{preprocessor}{#define DATASET         "DS1"}
+00034 \textcolor{preprocessor}{#define ATTRIBUTE       "A1"}
+00035 \textcolor{preprocessor}{#define DIM0            2}
+00036 
+00037 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\{
+00038     \textcolor{keywordtype}{int}     serial\_no;
+00039     \textcolor{keywordtype}{char}    *location;
+00040     \textcolor{keywordtype}{double}  temperature;
+00041     \textcolor{keywordtype}{double}  pressure;
+00042 \} \hyperlink{structsensor__t}{sensor\_t};                                 \textcolor{comment}{/* Nested compound type */}
+00043 
+00044 \textcolor{keyword}{typedef} \textcolor{keyword}{enum} \{
+00045     RED,
+00046     GREEN,
+00047     BLUE
+00048 \} color\_t  ;                                \textcolor{comment}{/* Enumerated type */}
+00049 
+00050 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\{
+00051     \hyperlink{structhvl__t}{hvl\_t}               sensors;
+00052     \textcolor{keywordtype}{char}                *name;
+00053     color\_t             color;
+00054     \textcolor{keywordtype}{double}              location[3];
+00055     hobj\_ref\_t          group;
+00056     hdset\_reg\_ref\_t     surveyed\_areas;
+00057 \} \hyperlink{structvehicle__t}{vehicle\_t};                                \textcolor{comment}{/* Main compound type */}
+00058 
+00059 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\{
+00060     \hyperlink{structhvl__t}{hvl\_t}       sensors;
+00061     \textcolor{keywordtype}{char}        *name;
+00062 \} \hyperlink{structrvehicle__t}{rvehicle\_t};                               \textcolor{comment}{/* Read type */}
+00063 
+00064 \textcolor{keywordtype}{int}
+00065 main (\textcolor{keywordtype}{void})
+00066 \{
+00067     hid\_t       \hyperlink{structfile}{file}, vehicletype, colortype, sensortype, sensorstype, loctype,
+00068                 strtype, rvehicletype, rsensortype, rsensorstype, space, dset,
+00069                 group, attr;
+00070                                             \textcolor{comment}{/* Handles */}
+00071     herr\_t      status;
+00072     hsize\_t     dims[1] = \{DIM0\},
+00073                 adims[1] = \{3\},
+00074                 adims2[2] = \{32, 32\},
+00075                 start[2] = \{8, 26\},
+00076                 count[2] = \{4, 3\},
+00077                 coords[3][2] = \{ \{3, 2\},
+00078                                  \{3, 3\},
+00079                                  \{4, 4\} \};
+00080     \hyperlink{structvehicle__t}{vehicle\_t}   wdata[2];                   \textcolor{comment}{/* Write buffer */}
+00081     \hyperlink{structrvehicle__t}{rvehicle\_t}  *rdata;                     \textcolor{comment}{/* Read buffer */}
+00082     color\_t     val;
+00083     \hyperlink{structsensor__t}{sensor\_t}    *ptr;
+00084     \textcolor{keywordtype}{double}      wdata2[32][32];
+00085     \textcolor{keywordtype}{int}         ndims,
+00086                 i, j;
+00087 
+00088     \textcolor{comment}{/*}
+00089 \textcolor{comment}{     * Create a new file using the default properties.}
+00090 \textcolor{comment}{     */}
+00091     file = H5Fcreate (FILE, H5F\_ACC\_TRUNC, H5P\_DEFAULT, H5P\_DEFAULT);
+00092 
+00093     \textcolor{comment}{/*}
+00094 \textcolor{comment}{     * Create dataset to use for region references.}
+00095 \textcolor{comment}{     */}
+00096     \textcolor{keywordflow}{for} (i=0; i<32; i++)
+00097         \textcolor{keywordflow}{for} (j=0; j<32; j++)
+00098             wdata2[i][j]= 70. + 0.1 * (i - 16.) + 0.1 * (j - 16.);
+00099     space = H5Screate\_simple (2, adims2, NULL);
+00100     dset = H5Dcreate (file, \textcolor{stringliteral}{"Ambient\_Temperature"}, H5T\_NATIVE\_DOUBLE, space,
+00101                 H5P\_DEFAULT, H5P\_DEFAULT, H5P\_DEFAULT);
+00102     status = H5Dwrite (dset, H5T\_NATIVE\_DOUBLE, H5S\_ALL, H5S\_ALL, H5P\_DEFAULT,
+00103                 wdata2[0]);
+00104     status = H5Dclose (dset);
+00105 
+00106     \textcolor{comment}{/*}
+00107 \textcolor{comment}{     * Create groups to use for object references.}
+00108 \textcolor{comment}{     */}
+00109     group = H5Gcreate (file, \textcolor{stringliteral}{"Land\_Vehicles"}, H5P\_DEFAULT, H5P\_DEFAULT,
+00110                 H5P\_DEFAULT);
+00111     status = H5Gclose (group);
+00112     group = H5Gcreate (file, \textcolor{stringliteral}{"Air\_Vehicles"}, H5P\_DEFAULT, H5P\_DEFAULT,
+00113                 H5P\_DEFAULT);
+00114     status = H5Gclose (group);
+00115 
+00116     \textcolor{comment}{/*}
+00117 \textcolor{comment}{     * Initialize variable-length compound in the first data element.}
+00118 \textcolor{comment}{     */}
+00119     wdata[0].sensors.len = 4;
+00120     ptr = (\hyperlink{structsensor__t}{sensor\_t} *) malloc (wdata[0].sensors.len * sizeof (\hyperlink{structsensor__t}{sensor\_t}));
+00121     ptr[0].serial\_no = 1153;
+00122     ptr[0].location = \textcolor{stringliteral}{"Exterior (static)"};
+00123     ptr[0].temperature = 53.23;
+00124     ptr[0].pressure = 24.57;
+00125     ptr[1].serial\_no = 1184;
+00126     ptr[1].location = \textcolor{stringliteral}{"Intake"};
+00127     ptr[1].temperature = 55.12;
+00128     ptr[1].pressure = 22.95;
+00129     ptr[2].serial\_no = 1027;
+00130     ptr[2].location = \textcolor{stringliteral}{"Intake manifold"};
+00131     ptr[2].temperature = 103.55;
+00132     ptr[2].pressure = 31.23;
+00133     ptr[3].serial\_no = 1313;
+00134     ptr[3].location = \textcolor{stringliteral}{"Exhaust manifold"};
+00135     ptr[3].temperature = 1252.89;
+00136     ptr[3].pressure = 84.11;
+00137     wdata[0].sensors.p = (\textcolor{keywordtype}{void} *) ptr;
+00138 
+00139     \textcolor{comment}{/*}
+00140 \textcolor{comment}{     * Initialize other fields in the first data element.}
+00141 \textcolor{comment}{     */}
+00142     wdata[0].name = \textcolor{stringliteral}{"Airplane"};
+00143     wdata[0].color = GREEN;
+00144     wdata[0].location[0] = -103234.21;
+00145     wdata[0].location[1] = 422638.78;
+00146     wdata[0].location[2] = 5996.43;
+00147     status = H5Rcreate (&wdata[0].group, file, \textcolor{stringliteral}{"Air\_Vehicles"}, H5R\_OBJECT, -1);
+00148     status = H5Sselect\_elements (space, H5S\_SELECT\_SET, 3, coords[0]);
+00149     status = H5Rcreate (&wdata[0].surveyed\_areas, file, \textcolor{stringliteral}{"Ambient\_Temperature"},
+00150                 H5R\_DATASET\_REGION, space);
+00151 
+00152     \textcolor{comment}{/*}
+00153 \textcolor{comment}{     * Initialize variable-length compound in the second data element.}
+00154 \textcolor{comment}{     */}
+00155     wdata[1].sensors.len = 1;
+00156     ptr = (\hyperlink{structsensor__t}{sensor\_t} *) malloc (wdata[1].sensors.len * sizeof (\hyperlink{structsensor__t}{sensor\_t}));
+00157     ptr[0].serial\_no = 3244;
+00158     ptr[0].location = \textcolor{stringliteral}{"Roof"};
+00159     ptr[0].temperature = 83.82;
+00160     ptr[0].pressure = 29.92;
+00161     wdata[1].sensors.p = (\textcolor{keywordtype}{void} *) ptr;
+00162 
+00163     \textcolor{comment}{/*}
+00164 \textcolor{comment}{     * Initialize other fields in the second data element.}
+00165 \textcolor{comment}{     */}
+00166     wdata[1].name = \textcolor{stringliteral}{"Automobile"};
+00167     wdata[1].color = RED;
+00168     wdata[1].location[0] = 326734.36;
+00169     wdata[1].location[1] = 221568.23;
+00170     wdata[1].location[2] = 432.36;
+00171     status = H5Rcreate (&wdata[1].group, file, \textcolor{stringliteral}{"Land\_Vehicles"}, H5R\_OBJECT, -1);
+00172     status = H5Sselect\_hyperslab (space, H5S\_SELECT\_SET, start, NULL, count,
+00173                 NULL);
+00174     status = H5Rcreate (&wdata[1].surveyed\_areas, file, \textcolor{stringliteral}{"Ambient\_Temperature"},
+00175                 H5R\_DATASET\_REGION, space);
+00176 
+00177     status = H5Sclose (space);
+00178 
+00179     \textcolor{comment}{/*}
+00180 \textcolor{comment}{     * Create variable-length string datatype.}
+00181 \textcolor{comment}{     */}
+00182     strtype = H5Tcopy (H5T\_C\_S1);
+00183     status = H5Tset\_size (strtype, H5T\_VARIABLE);
+00184 
+00185     \textcolor{comment}{/*}
+00186 \textcolor{comment}{     * Create the nested compound datatype.}
+00187 \textcolor{comment}{     */}
+00188     sensortype = H5Tcreate (H5T\_COMPOUND, \textcolor{keyword}{sizeof} (\hyperlink{structsensor__t}{sensor\_t}));
+00189     status = H5Tinsert (sensortype, \textcolor{stringliteral}{"Serial number"},
+00190                 HOFFSET (\hyperlink{structsensor__t}{sensor\_t}, serial\_no), H5T\_NATIVE\_INT);
+00191     status = H5Tinsert (sensortype, \textcolor{stringliteral}{"Location"}, HOFFSET (\hyperlink{structsensor__t}{sensor\_t}, location),
+00192                 strtype);
+00193     status = H5Tinsert (sensortype, \textcolor{stringliteral}{"Temperature (F)"},
+00194                 HOFFSET (\hyperlink{structsensor__t}{sensor\_t}, temperature), H5T\_NATIVE\_DOUBLE);
+00195     status = H5Tinsert (sensortype, \textcolor{stringliteral}{"Pressure (inHg)"},
+00196                 HOFFSET (\hyperlink{structsensor__t}{sensor\_t}, pressure), H5T\_NATIVE\_DOUBLE);
+00197 
+00198     \textcolor{comment}{/*}
+00199 \textcolor{comment}{     * Create the variable-length datatype.}
+00200 \textcolor{comment}{     */}
+00201     sensorstype = H5Tvlen\_create (sensortype);
+00202 
+00203     \textcolor{comment}{/*}
+00204 \textcolor{comment}{     * Create the enumerated datatype.}
+00205 \textcolor{comment}{     */}
+00206     colortype = H5Tenum\_create (H5T\_NATIVE\_INT);
+00207     val = (color\_t) RED;
+00208     status = H5Tenum\_insert (colortype, \textcolor{stringliteral}{"Red"}, &val);
+00209     val = (color\_t) GREEN;
+00210     status = H5Tenum\_insert (colortype, \textcolor{stringliteral}{"Green"}, &val);
+00211     val = (color\_t) BLUE;
+00212     status = H5Tenum\_insert (colortype, \textcolor{stringliteral}{"Blue"}, &val);
+00213 
+00214     \textcolor{comment}{/*}
+00215 \textcolor{comment}{     * Create the array datatype.}
+00216 \textcolor{comment}{     */}
+00217     loctype = H5Tarray\_create (H5T\_NATIVE\_DOUBLE, 1, adims);
+00218 
+00219     \textcolor{comment}{/*}
+00220 \textcolor{comment}{     * Create the main compound datatype.}
+00221 \textcolor{comment}{     */}
+00222     vehicletype = H5Tcreate (H5T\_COMPOUND, \textcolor{keyword}{sizeof} (\hyperlink{structvehicle__t}{vehicle\_t}));
+00223     status = H5Tinsert (vehicletype, \textcolor{stringliteral}{"Sensors"}, HOFFSET (\hyperlink{structvehicle__t}{vehicle\_t}, sensors),
+00224                 sensorstype);
+00225     status = H5Tinsert (vehicletype, \textcolor{stringliteral}{"Name"}, HOFFSET (\hyperlink{structvehicle__t}{vehicle\_t}, name),
+00226                 strtype);
+00227     status = H5Tinsert (vehicletype, \textcolor{stringliteral}{"Color"}, HOFFSET (\hyperlink{structvehicle__t}{vehicle\_t}, color),
+00228                 colortype);
+00229     status = H5Tinsert (vehicletype, \textcolor{stringliteral}{"Location"}, HOFFSET (\hyperlink{structvehicle__t}{vehicle\_t}, location),
+00230                 loctype);
+00231     status = H5Tinsert (vehicletype, \textcolor{stringliteral}{"Group"}, HOFFSET (\hyperlink{structvehicle__t}{vehicle\_t}, group),
+00232                 H5T\_STD\_REF\_OBJ);
+00233     status = H5Tinsert (vehicletype, \textcolor{stringliteral}{"Surveyed areas"},
+00234                 HOFFSET (\hyperlink{structvehicle__t}{vehicle\_t}, surveyed\_areas), H5T\_STD\_REF\_DSETREG);
+00235 
+00236     \textcolor{comment}{/*}
+00237 \textcolor{comment}{     * Create dataset with a null dataspace. to serve as the parent for}
+00238 \textcolor{comment}{     * the attribute.}
+00239 \textcolor{comment}{     */}
+00240     space = H5Screate (H5S\_NULL);
+00241     dset = H5Dcreate (file, DATASET, H5T\_STD\_I32LE, space, H5P\_DEFAULT,
+00242                 H5P\_DEFAULT, H5P\_DEFAULT);
+00243     status = H5Sclose (space);
+00244 
+00245     \textcolor{comment}{/*}
+00246 \textcolor{comment}{     * Create dataspace.  Setting maximum size to NULL sets the maximum}
+00247 \textcolor{comment}{     * size to be the current size.}
+00248 \textcolor{comment}{     */}
+00249     space = H5Screate\_simple (1, dims, NULL);
+00250 
+00251     \textcolor{comment}{/*}
+00252 \textcolor{comment}{     * Create the attribute and write the compound data to it.}
+00253 \textcolor{comment}{     */}
+00254     attr = H5Acreate (dset, ATTRIBUTE, vehicletype, space, H5P\_DEFAULT,
+00255                 H5P\_DEFAULT);
+00256     status = H5Awrite (attr, vehicletype, wdata);
+00257 
+00258 
+00259     \textcolor{comment}{/*}
+00260 \textcolor{comment}{     * Close and release resources.  Note that we cannot use}
+00261 \textcolor{comment}{     * H5Dvlen\_reclaim as it would attempt to free() the string}
+00262 \textcolor{comment}{     * constants used to initialize the name fields in wdata.  We must}
+00263 \textcolor{comment}{     * therefore manually free() only the data previously allocated}
+00264 \textcolor{comment}{     * through malloc().}
+00265 \textcolor{comment}{     */}
+00266     \textcolor{keywordflow}{for} (i=0; i<dims[0]; i++)
+00267         free (wdata[i].sensors.p);
+00268     status = H5Aclose (attr);
+00269     status = H5Dclose (dset);
+00270     status = H5Sclose (space);
+00271     status = H5Tclose (strtype);
+00272     status = H5Tclose (sensortype);
+00273     status = H5Tclose (sensorstype);
+00274     status = H5Tclose (colortype);
+00275     status = H5Tclose (loctype);
+00276     status = H5Tclose (vehicletype);
+00277     status = H5Fclose (file);
+00278 
+00279     \textcolor{comment}{/*}
+00280 \textcolor{comment}{     * Now we begin the read section of this example.  Here we assume}
+00281 \textcolor{comment}{     * the attribute has the same name and rank, but can have any size.}
+00282 \textcolor{comment}{     * Therefore we must allocate a new array to read in data using}
+00283 \textcolor{comment}{     * malloc().  We will only read back the variable length strings.}
+00284 \textcolor{comment}{     */}
+00285 
+00286     \textcolor{comment}{/*}
+00287 \textcolor{comment}{     * Open file, dataset, and attribute.}
+00288 \textcolor{comment}{     */}
+00289     file = H5Fopen (FILE, H5F\_ACC\_RDONLY, H5P\_DEFAULT);
+00290     dset = H5Dopen (file, DATASET, H5P\_DEFAULT);
+00291     attr = H5Aopen (dset, ATTRIBUTE, H5P\_DEFAULT);
+00292 
+00293     \textcolor{comment}{/*}
+00294 \textcolor{comment}{     * Create variable-length string datatype.}
+00295 \textcolor{comment}{     */}
+00296     strtype = H5Tcopy (H5T\_C\_S1);
+00297     status = H5Tset\_size (strtype, H5T\_VARIABLE);
+00298 
+00299     \textcolor{comment}{/*}
+00300 \textcolor{comment}{     * Create the nested compound datatype for reading.  Even though it}
+00301 \textcolor{comment}{     * has only one field, it must still be defined as a compound type}
+00302 \textcolor{comment}{     * so the library can match the correct field in the file type.}
+00303 \textcolor{comment}{     * This matching is done by name.  However, we do not need to}
+00304 \textcolor{comment}{     * define a structure for the read buffer as we can simply treat it}
+00305 \textcolor{comment}{     * as a char *.}
+00306 \textcolor{comment}{     */}
+00307     rsensortype = H5Tcreate (H5T\_COMPOUND, \textcolor{keyword}{sizeof} (\textcolor{keywordtype}{char} *));
+00308     status = H5Tinsert (rsensortype, \textcolor{stringliteral}{"Location"}, 0, strtype);
+00309 
+00310     \textcolor{comment}{/*}
+00311 \textcolor{comment}{     * Create the variable-length datatype for reading.}
+00312 \textcolor{comment}{     */}
+00313     rsensorstype = H5Tvlen\_create (rsensortype);
+00314 
+00315     \textcolor{comment}{/*}
+00316 \textcolor{comment}{     * Create the main compound datatype for reading.}
+00317 \textcolor{comment}{     */}
+00318     rvehicletype = H5Tcreate (H5T\_COMPOUND, \textcolor{keyword}{sizeof} (\hyperlink{structrvehicle__t}{rvehicle\_t}));
+00319     status = H5Tinsert (rvehicletype, \textcolor{stringliteral}{"Sensors"}, HOFFSET (\hyperlink{structrvehicle__t}{rvehicle\_t}, sensors),
+00320                 rsensorstype);
+00321     status = H5Tinsert (rvehicletype, \textcolor{stringliteral}{"Name"}, HOFFSET (\hyperlink{structrvehicle__t}{rvehicle\_t}, name),
+00322                 strtype);
+00323 
+00324     \textcolor{comment}{/*}
+00325 \textcolor{comment}{     * Get dataspace and allocate memory for read buffer.}
+00326 \textcolor{comment}{     */}
+00327     space = H5Aget\_space (attr);
+00328     ndims = H5Sget\_simple\_extent\_dims (space, dims, NULL);
+00329     rdata = (\hyperlink{structrvehicle__t}{rvehicle\_t} *) malloc (dims[0] * \textcolor{keyword}{sizeof} (\hyperlink{structrvehicle__t}{rvehicle\_t}));
+00330 
+00331     \textcolor{comment}{/*}
+00332 \textcolor{comment}{     * Read the data.}
+00333 \textcolor{comment}{     */}
+00334     status = H5Aread (attr, rvehicletype, rdata);
+00335 
+00336     \textcolor{comment}{/*}
+00337 \textcolor{comment}{     * Output the data to the screen.}
+00338 \textcolor{comment}{     */}
+00339     \textcolor{keywordflow}{for} (i=0; i<dims[0]; i++) \{
+00340         printf (\textcolor{stringliteral}{"%s[%d]:\(\backslash\)n"}, ATTRIBUTE, i);
+00341         printf (\textcolor{stringliteral}{"   Vehicle name :\(\backslash\)n      %s\(\backslash\)n"}, rdata[i].name);
+00342         printf (\textcolor{stringliteral}{"   Sensor locations :\(\backslash\)n"});
+00343         \textcolor{keywordflow}{for} (j=0; j<rdata[i].sensors.len; j++)
+00344             printf (\textcolor{stringliteral}{"      %s\(\backslash\)n"}, ( (\textcolor{keywordtype}{char} **) rdata[i].sensors.p )[j] );
+00345     \}
+00346 
+00347     \textcolor{comment}{/*}
+00348 \textcolor{comment}{     * Close and release resources.  H5Dvlen\_reclaim will automatically}
+00349 \textcolor{comment}{     * traverse the structure and free any vlen data (including}
+00350 \textcolor{comment}{     * strings).}
+00351 \textcolor{comment}{     */}
+00352     status = H5Dvlen\_reclaim (rvehicletype, space, H5P\_DEFAULT, rdata);
+00353     free (rdata);
+00354     status = H5Aclose (attr);
+00355     status = H5Dclose (dset);
+00356     status = H5Sclose (space);
+00357     status = H5Tclose (strtype);
+00358     status = H5Tclose (rsensortype);
+00359     status = H5Tclose (rsensorstype);
+00360     status = H5Tclose (rvehicletype);
+00361     status = H5Fclose (file);
+00362 
+00363     \textcolor{keywordflow}{return} 0;
+00364 \}
+\end{DoxyCode}

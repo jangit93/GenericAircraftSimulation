@@ -1,0 +1,459 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_geometry_2_homogeneous_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Geometry/\+Homogeneous.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_geometry_2_homogeneous_8h_source}\index{Homogeneous.\+h@{Homogeneous.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2009-2010 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_HOMOGENEOUS\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_HOMOGENEOUS\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00014 
+00030 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00031 
+00032 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType,\textcolor{keywordtype}{int} Direction>
+00033 \textcolor{keyword}{struct }traits<Homogeneous<MatrixType,Direction> >
+00034  : traits<MatrixType>
+00035 \{
+00036   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} traits<MatrixType>::StorageKind StorageKind;
+00037   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ref\_selector<MatrixType>::type MatrixTypeNested;
+00038   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_reference<MatrixTypeNested>::type \_MatrixTypeNested;
+00039   \textcolor{keyword}{enum} \{
+00040     RowsPlusOne = (MatrixType::RowsAtCompileTime != \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) ?
+00041                   \textcolor{keywordtype}{int}(MatrixType::RowsAtCompileTime) + 1 : \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00042     ColsPlusOne = (MatrixType::ColsAtCompileTime != \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) ?
+00043                   \textcolor{keywordtype}{int}(MatrixType::ColsAtCompileTime) + 1 : \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00044     RowsAtCompileTime = Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}  ?  RowsPlusOne : MatrixType::RowsAtCompileTime,
+00045     ColsAtCompileTime = Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal} ? ColsPlusOne : MatrixType::ColsAtCompileTime,
+00046     MaxRowsAtCompileTime = RowsAtCompileTime,
+00047     MaxColsAtCompileTime = ColsAtCompileTime,
+00048     TmpFlags = \_MatrixTypeNested::Flags & HereditaryBits,
+00049     Flags = ColsAtCompileTime==1 ? (TmpFlags & ~\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit})
+00050           : RowsAtCompileTime==1 ? (TmpFlags | \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit})
+00051           : TmpFlags
+00052   \};
+00053 \};
+00054 
+00055 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType,\textcolor{keyword}{typename} Lhs> \textcolor{keyword}{struct }homogeneous\_left\_product\_impl;
+00056 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType,\textcolor{keyword}{typename} Rhs> \textcolor{keyword}{struct }homogeneous\_right\_product\_impl;
+00057 
+00058 \} \textcolor{comment}{// end namespace internal}
+00059 
+00060 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType,\textcolor{keywordtype}{int} \_Direction> \textcolor{keyword}{class }Homogeneous
+00061   : \textcolor{keyword}{public} MatrixBase<Homogeneous<MatrixType,\_Direction> >, internal::no\_assignment\_operator
+00062 \{
+00063   \textcolor{keyword}{public}:
+00064 
+00065     \textcolor{keyword}{typedef} MatrixType NestedExpression;
+00066     \textcolor{keyword}{enum} \{ Direction = \_Direction \};
+00067 
+00068     \textcolor{keyword}{typedef} MatrixBase<Homogeneous> Base;
+00069     EIGEN\_DENSE\_PUBLIC\_INTERFACE(Homogeneous)
+00070 
+00071     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{explicit} \textcolor{keyword}{inline} Homogeneous(\textcolor{keyword}{const} MatrixType& matrix)
+00072       : m\_matrix(matrix)
+00073     \{\}
+00074 
+00075     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix.rows() + (int(Direction)==
+      \hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}   ? 1 : 0); \}
+00076     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix.cols() + (int(Direction)==
+      \hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal} ? 1 : 0); \}
+00077     
+00078     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} NestedExpression& nestedExpression()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix; \}
+00079 
+00080     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs>
+00081     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keyword}{const} Product<Homogeneous,Rhs>
+00082     operator* (\textcolor{keyword}{const} MatrixBase<Rhs>& rhs)\textcolor{keyword}{ const}
+00083 \textcolor{keyword}{    }\{
+00084       eigen\_assert(\textcolor{keywordtype}{int}(Direction)==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal});
+00085       \textcolor{keywordflow}{return} Product<Homogeneous,Rhs>(*\textcolor{keyword}{this},rhs.derived());
+00086     \}
+00087 
+00088     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs> \textcolor{keyword}{friend}
+00089     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keyword}{const} Product<Lhs,Homogeneous>
+00090     operator* (\textcolor{keyword}{const} MatrixBase<Lhs>& lhs, \textcolor{keyword}{const} Homogeneous& rhs)
+00091     \{
+00092       eigen\_assert(\textcolor{keywordtype}{int}(Direction)==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical});
+00093       \textcolor{keywordflow}{return} Product<Lhs,Homogeneous>(lhs.derived(),rhs);
+00094     \}
+00095 
+00096     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{int} Dim, \textcolor{keywordtype}{int} Mode, \textcolor{keywordtype}{int} Options> \textcolor{keyword}{friend}
+00097     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keyword}{const} Product<Transform<Scalar,Dim,Mode,Options>, Homogeneous >
+00098     operator* (\textcolor{keyword}{const} Transform<Scalar,Dim,Mode,Options>& lhs, \textcolor{keyword}{const} Homogeneous& rhs)
+00099     \{
+00100       eigen\_assert(\textcolor{keywordtype}{int}(Direction)==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical});
+00101       \textcolor{keywordflow}{return} Product<Transform<Scalar,Dim,Mode,Options>, Homogeneous>(lhs,rhs);
+00102     \}
+00103 
+00104     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Func>
+00105     EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{typename} internal::result\_of<Func(Scalar,Scalar)>::type
+00106     redux(\textcolor{keyword}{const} Func& \hyperlink{structfunc}{func})\textcolor{keyword}{ const}
+00107 \textcolor{keyword}{    }\{
+00108       \textcolor{keywordflow}{return} func(m\_matrix.redux(func), Scalar(1));
+00109     \}
+00110 
+00111   \textcolor{keyword}{protected}:
+00112     \textcolor{keyword}{typename} MatrixType::Nested m\_matrix;
+00113 \};
+00114 
+00128 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00129 EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keyword}{typename} MatrixBase<Derived>::HomogeneousReturnType
+00130 \hyperlink{group___geometry___module_ga8cd24704519bf35e1724e1915d477a35}{MatrixBase<Derived>::homogeneous}()\textcolor{keyword}{ const}
+00131 \textcolor{keyword}{}\{
+00132   EIGEN\_STATIC\_ASSERT\_VECTOR\_ONLY(Derived);
+00133   \textcolor{keywordflow}{return} HomogeneousReturnType(derived());
+00134 \}
+00135 
+00146 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ExpressionType, \textcolor{keywordtype}{int} Direction>
+00147 EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} Homogeneous<ExpressionType,Direction>
+00148 \hyperlink{group___geometry___module_ga7ae337c185a1de2343f12be4577c75fc}{VectorwiseOp<ExpressionType,Direction>::homogeneous}()\textcolor{keyword}{
+       const}
+00149 \textcolor{keyword}{}\{
+00150   \textcolor{keywordflow}{return} HomogeneousReturnType(\_expression());
+00151 \}
+00152 
+00170 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00171 EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keyword}{const} \textcolor{keyword}{typename} MatrixBase<Derived>::HNormalizedReturnType
+00172 \hyperlink{group___geometry___module_gad7e913733107a9a1b61bff95ec9c03dd}{MatrixBase<Derived>::hnormalized}()\textcolor{keyword}{ const}
+00173 \textcolor{keyword}{}\{
+00174   EIGEN\_STATIC\_ASSERT\_VECTOR\_ONLY(Derived);
+00175   \textcolor{keywordflow}{return} ConstStartMinusOne(derived(),0,0,
+00176     ColsAtCompileTime==1?size()-1:1,
+00177     ColsAtCompileTime==1?1:size()-1) / coeff(size()-1);
+00178 \}
+00179 
+00194 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ExpressionType, \textcolor{keywordtype}{int} Direction>
+00195 EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keyword}{const} \textcolor{keyword}{typename} VectorwiseOp<ExpressionType,Direction>::HNormalizedReturnType
+00196 \hyperlink{group___geometry___module_ga8d3b6f7178b905b0e4418fd4900c4463}{VectorwiseOp<ExpressionType,Direction>::hnormalized}()\textcolor{keyword}{
+       const}
+00197 \textcolor{keyword}{}\{
+00198   \textcolor{keywordflow}{return} HNormalized\_Block(\_expression(),0,0,
+00199       Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}   ? \_expression().rows()-1 : \_expression().rows(),
+00200       Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal} ? \_expression().cols()-1 : \_expression().cols()).cwiseQuotient(
+00201       Replicate<HNormalized\_Factors,
+00202                 Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}   ? HNormalized\_SizeMinusOne : 1,
+00203                 Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal} ? HNormalized\_SizeMinusOne : 1>
+00204         (HNormalized\_Factors(\_expression(),
+00205           Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}    ? \_expression().rows()-1:0,
+00206           Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal}  ? \_expression().cols()-1:0,
+00207           Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}    ? 1 : \_expression().rows(),
+00208           Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal}  ? 1 : \_expression().cols()),
+00209          Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}   ? \_expression().rows()-1 : 1,
+00210          Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal} ? \_expression().cols()-1 : 1));
+00211 \}
+00212 
+00213 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00214 
+00215 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixOrTransformType>
+00216 \textcolor{keyword}{struct }take\_matrix\_for\_product
+00217 \{
+00218   \textcolor{keyword}{typedef} MatrixOrTransformType type;
+00219   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} \textcolor{keyword}{const} type& run(\textcolor{keyword}{const} type &x) \{ \textcolor{keywordflow}{return} x; \}
+00220 \};
+00221 
+00222 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{int} Dim, \textcolor{keywordtype}{int} Mode,\textcolor{keywordtype}{int} Options>
+00223 \textcolor{keyword}{struct }take\_matrix\_for\_product<Transform<Scalar, Dim, Mode, Options> >
+00224 \{
+00225   \textcolor{keyword}{typedef} Transform<Scalar, Dim, Mode, Options> TransformType;
+00226   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::add\_const<typename TransformType::ConstAffinePart>::type type;
+00227   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} type run (\textcolor{keyword}{const} TransformType& x) \{ \textcolor{keywordflow}{return} x.affine(); \}
+00228 \};
+00229 
+00230 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{int} Dim, \textcolor{keywordtype}{int} Options>
+00231 \textcolor{keyword}{struct }take\_matrix\_for\_product<Transform<Scalar, Dim, \hyperlink{group__enums_ggaee59a86102f150923b0cac6d4ff05107aead6a2de12a17aaa4f5c523215dfccad}{Projective}, Options> >
+00232 \{
+00233   \textcolor{keyword}{typedef} Transform<Scalar, Dim, Projective, Options> TransformType;
+00234   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} TransformType::MatrixType type;
+00235   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} \textcolor{keyword}{const} type& run (\textcolor{keyword}{const} TransformType& x) \{ \textcolor{keywordflow}{return} x.matrix(); \}
+00236 \};
+00237 
+00238 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType,\textcolor{keyword}{typename} Lhs>
+00239 \textcolor{keyword}{struct }traits<homogeneous\_left\_product\_impl<Homogeneous<MatrixType,\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}>,Lhs> >
+00240 \{
+00241   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} take\_matrix\_for\_product<Lhs>::type LhsMatrixType;
+00242   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_all<MatrixType>::type MatrixTypeCleaned;
+00243   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_all<LhsMatrixType>::type LhsMatrixTypeCleaned;
+00244   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} make\_proper\_matrix\_type<
+00245                  \textcolor{keyword}{typename} traits<MatrixTypeCleaned>::Scalar,
+00246                  LhsMatrixTypeCleaned::RowsAtCompileTime,
+00247                  MatrixTypeCleaned::ColsAtCompileTime,
+00248                  MatrixTypeCleaned::PlainObject::Options,
+00249                  LhsMatrixTypeCleaned::MaxRowsAtCompileTime,
+00250                  MatrixTypeCleaned::MaxColsAtCompileTime>::type ReturnType;
+00251 \};
+00252 
+00253 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType,\textcolor{keyword}{typename} Lhs>
+00254 \textcolor{keyword}{struct }homogeneous\_left\_product\_impl<Homogeneous<MatrixType,\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}>,Lhs>
+00255   : \textcolor{keyword}{public} ReturnByValue<homogeneous\_left\_product\_impl<Homogeneous<MatrixType,Vertical>,Lhs> >
+00256 \{
+00257   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} traits<homogeneous\_left\_product\_impl>::LhsMatrixType LhsMatrixType;
+00258   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_all<LhsMatrixType>::type LhsMatrixTypeCleaned;
+00259   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_all<typename LhsMatrixTypeCleaned::Nested>::type LhsMatrixTypeNested;
+00260   EIGEN\_DEVICE\_FUNC homogeneous\_left\_product\_impl(\textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} MatrixType& rhs)
+00261     : m\_lhs(take\_matrix\_for\_product<Lhs>::run(lhs)),
+00262       m\_rhs(rhs)
+00263   \{\}
+00264 
+00265   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_lhs.rows(); \}
+00266   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_rhs.cols(); \}
+00267 
+00268   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest> EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} evalTo(Dest& dst)\textcolor{keyword}{ const}
+00269 \textcolor{keyword}{  }\{
+00270     \textcolor{comment}{// FIXME investigate how to allow lazy evaluation of this product when possible}
+00271     dst = Block<\textcolor{keyword}{const} LhsMatrixTypeNested,
+00272               LhsMatrixTypeNested::RowsAtCompileTime,
+00273               LhsMatrixTypeNested::ColsAtCompileTime==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}?\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}:
+      LhsMatrixTypeNested::ColsAtCompileTime-1>
+00274             (m\_lhs,0,0,m\_lhs.rows(),m\_lhs.cols()-1) * m\_rhs;
+00275     dst += m\_lhs.col(m\_lhs.cols()-1).rowwise()
+00276             .template replicate<MatrixType::ColsAtCompileTime>(m\_rhs.cols());
+00277   \}
+00278 
+00279   \textcolor{keyword}{typename} LhsMatrixTypeCleaned::Nested m\_lhs;
+00280   \textcolor{keyword}{typename} MatrixType::Nested m\_rhs;
+00281 \};
+00282 
+00283 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType,\textcolor{keyword}{typename} Rhs>
+00284 \textcolor{keyword}{struct }traits<homogeneous\_right\_product\_impl<Homogeneous<MatrixType,\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal}>,Rhs> >
+00285 \{
+00286   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} make\_proper\_matrix\_type<typename traits<MatrixType>::Scalar,
+00287                  MatrixType::RowsAtCompileTime,
+00288                  Rhs::ColsAtCompileTime,
+00289                  MatrixType::PlainObject::Options,
+00290                  MatrixType::MaxRowsAtCompileTime,
+00291                  Rhs::MaxColsAtCompileTime>::type ReturnType;
+00292 \};
+00293 
+00294 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType,\textcolor{keyword}{typename} Rhs>
+00295 \textcolor{keyword}{struct }homogeneous\_right\_product\_impl<Homogeneous<MatrixType,\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal}>,Rhs>
+00296   : \textcolor{keyword}{public} ReturnByValue<homogeneous\_right\_product\_impl<Homogeneous<MatrixType,Horizontal>,Rhs> >
+00297 \{
+00298   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_all<typename Rhs::Nested>::type RhsNested;
+00299   EIGEN\_DEVICE\_FUNC homogeneous\_right\_product\_impl(\textcolor{keyword}{const} MatrixType& lhs, \textcolor{keyword}{const} Rhs& rhs)
+00300     : m\_lhs(lhs), m\_rhs(rhs)
+00301   \{\}
+00302 
+00303   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_lhs.rows(); \}
+00304   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_rhs.cols(); \}
+00305 
+00306   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest> EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} evalTo(Dest& dst)\textcolor{keyword}{ const}
+00307 \textcolor{keyword}{  }\{
+00308     \textcolor{comment}{// FIXME investigate how to allow lazy evaluation of this product when possible}
+00309     dst = m\_lhs * Block<\textcolor{keyword}{const} RhsNested,
+00310                         RhsNested::RowsAtCompileTime==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}?\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}:
+      RhsNested::RowsAtCompileTime-1,
+00311                         RhsNested::ColsAtCompileTime>
+00312             (m\_rhs,0,0,m\_rhs.rows()-1,m\_rhs.cols());
+00313     dst += m\_rhs.row(m\_rhs.rows()-1).colwise()
+00314             .template replicate<MatrixType::RowsAtCompileTime>(m\_lhs.rows());
+00315   \}
+00316 
+00317   \textcolor{keyword}{typename} MatrixType::Nested m\_lhs;
+00318   \textcolor{keyword}{typename} Rhs::Nested m\_rhs;
+00319 \};
+00320 
+00321 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ArgType,\textcolor{keywordtype}{int} Direction>
+00322 \textcolor{keyword}{struct }evaluator\_traits<Homogeneous<ArgType,Direction> >
+00323 \{
+00324   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} storage\_kind\_to\_evaluator\_kind<typename ArgType::StorageKind>::Kind Kind;
+00325   \textcolor{keyword}{typedef} HomogeneousShape Shape;  
+00326 \};
+00327 
+00328 \textcolor{keyword}{template}<> \textcolor{keyword}{struct }AssignmentKind<DenseShape,HomogeneousShape> \{ \textcolor{keyword}{typedef} Dense2Dense Kind; \};
+00329 
+00330 
+00331 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ArgType,\textcolor{keywordtype}{int} Direction>
+00332 \textcolor{keyword}{struct }unary\_evaluator<Homogeneous<ArgType,Direction>, IndexBased>
+00333   : evaluator<typename Homogeneous<ArgType,Direction>::PlainObject >
+00334 \{
+00335   \textcolor{keyword}{typedef} Homogeneous<ArgType,Direction> XprType;
+00336   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::PlainObject PlainObject;
+00337   \textcolor{keyword}{typedef} evaluator<PlainObject> Base;
+00338 
+00339   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{explicit} unary\_evaluator(\textcolor{keyword}{const} XprType& op)
+00340     : Base(), m\_temp(op)
+00341   \{
+00342     ::new (static\_cast<Base*>(\textcolor{keyword}{this})) Base(m\_temp);
+00343   \}
+00344 
+00345 protected:
+00346   PlainObject m\_temp;
+00347 \};
+00348 
+00349 \textcolor{comment}{// dense = homogeneous}
+00350 template< typename DstXprType, typename ArgType, typename Scalar>
+00351 struct Assignment<DstXprType, Homogeneous<ArgType,\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}>, \hyperlink{namespaceinternal}{internal}::assign\_op<Scalar,
+      typename ArgType::Scalar>, Dense2Dense>
+00352 \{
+00353   \textcolor{keyword}{typedef} Homogeneous<ArgType,Vertical> SrcXprType;
+00354   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} 
+      internal::assign\_op<Scalar,typename ArgType::Scalar> &)
+00355   \{
+00356     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} dstRows = src.rows();
+00357     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} dstCols = src.cols();
+00358     \textcolor{keywordflow}{if}((dst.rows()!=dstRows) || (dst.cols()!=dstCols))
+00359       dst.resize(dstRows, dstCols);
+00360 
+00361     dst.template topRows<ArgType::RowsAtCompileTime>(src.nestedExpression().rows()) = src.nestedExpression(
+      );
+00362     dst.row(dst.rows()-1).setOnes();
+00363   \}
+00364 \};
+00365 
+00366 \textcolor{comment}{// dense = homogeneous}
+00367 \textcolor{keyword}{template}< \textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} ArgType, \textcolor{keyword}{typename} Scalar>
+00368 \textcolor{keyword}{struct }Assignment<DstXprType, Homogeneous<ArgType,\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal}>, 
+      \hyperlink{namespaceinternal}{internal}::assign\_op<Scalar,typename ArgType::Scalar>, Dense2Dense>
+00369 \{
+00370   \textcolor{keyword}{typedef} Homogeneous<ArgType,Horizontal> SrcXprType;
+00371   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} 
+      internal::assign\_op<Scalar,typename ArgType::Scalar> &)
+00372   \{
+00373     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} dstRows = src.rows();
+00374     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} dstCols = src.cols();
+00375     \textcolor{keywordflow}{if}((dst.rows()!=dstRows) || (dst.cols()!=dstCols))
+00376       dst.resize(dstRows, dstCols);
+00377 
+00378     dst.template leftCols<ArgType::ColsAtCompileTime>(src.nestedExpression().cols()) = src.nestedExpression
+      ();
+00379     dst.col(dst.cols()-1).setOnes();
+00380   \}
+00381 \};
+00382 
+00383 \textcolor{keyword}{template}<\textcolor{keyword}{typename} LhsArg, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductTag>
+00384 \textcolor{keyword}{struct }generic\_product\_impl<Homogeneous<LhsArg,\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal}>, Rhs, HomogeneousShape, DenseShape, 
+      ProductTag>
+00385 \{
+00386   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00387   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} \textcolor{keywordtype}{void} evalTo(Dest& dst, \textcolor{keyword}{const} Homogeneous<LhsArg,Horizontal>& lhs, \textcolor{keyword}{const} Rhs& rhs
+      )
+00388   \{
+00389     homogeneous\_right\_product\_impl<Homogeneous<LhsArg,Horizontal>, Rhs>(lhs.nestedExpression(), rhs).evalTo
+      (dst);
+00390   \}
+00391 \};
+00392 
+00393 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs,\textcolor{keyword}{typename} Rhs>
+00394 \textcolor{keyword}{struct }homogeneous\_right\_product\_refactoring\_helper
+00395 \{
+00396   \textcolor{keyword}{enum} \{
+00397     Dim  = Lhs::ColsAtCompileTime,
+00398     Rows = Lhs::RowsAtCompileTime
+00399   \};
+00400   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Rhs::template ConstNRowsBlockXpr<Dim>::Type          LinearBlockConst;
+00401   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_const<LinearBlockConst>::type                 LinearBlock;
+00402   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Rhs::ConstRowXpr                                     ConstantColumn;
+00403   \textcolor{keyword}{typedef} Replicate<const ConstantColumn,Rows,1>                        ConstantBlock;
+00404   \textcolor{keyword}{typedef} Product<Lhs,LinearBlock,LazyProduct>                          LinearProduct;
+00405   \textcolor{keyword}{typedef} CwiseBinaryOp<internal::scalar\_sum\_op<typename Lhs::Scalar,typename Rhs::Scalar>, \textcolor{keyword}{const} 
+      LinearProduct, \textcolor{keyword}{const} ConstantBlock> Xpr;
+00406 \};
+00407 
+00408 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductTag>
+00409 \textcolor{keyword}{struct }product\_evaluator<Product<Lhs, Rhs, LazyProduct>, ProductTag, HomogeneousShape, DenseShape>
+00410  : \textcolor{keyword}{public} evaluator<typename homogeneous\_right\_product\_refactoring\_helper<typename Lhs::NestedExpression,Rh
+      s>::Xpr>
+00411 \{
+00412   \textcolor{keyword}{typedef} Product<Lhs, Rhs, LazyProduct> XprType;
+00413   \textcolor{keyword}{typedef} homogeneous\_right\_product\_refactoring\_helper<typename Lhs::NestedExpression,Rhs> helper;
+00414   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} helper::ConstantBlock ConstantBlock;
+00415   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} helper::Xpr RefactoredXpr;
+00416   \textcolor{keyword}{typedef} evaluator<RefactoredXpr> Base;
+00417   
+00418   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{explicit} product\_evaluator(\textcolor{keyword}{const} XprType& xpr)
+00419     : Base(  xpr.lhs().nestedExpression() .lazyProduct(  xpr.rhs().template topRows<helper::Dim>(xpr.lhs().
+      nestedExpression().cols()) )
+00420             + ConstantBlock(xpr.rhs().row(xpr.rhs().rows()-1),xpr.lhs().rows(), 1) )
+00421   \{\}
+00422 \};
+00423 
+00424 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} RhsArg, \textcolor{keywordtype}{int} ProductTag>
+00425 \textcolor{keyword}{struct }generic\_product\_impl<Lhs, Homogeneous<RhsArg,Vertical>, DenseShape, HomogeneousShape, ProductTag>
+00426 \{
+00427   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00428   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} \textcolor{keywordtype}{void} evalTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Homogeneous<RhsArg,Vertical>& rhs)
+00429   \{
+00430     homogeneous\_left\_product\_impl<Homogeneous<RhsArg,Vertical>, Lhs>(lhs, rhs.nestedExpression()).evalTo(
+      dst);
+00431   \}
+00432 \};
+00433 
+00434 \textcolor{comment}{// TODO: the following specialization is to address a regression from 3.2 to 3.3}
+00435 \textcolor{comment}{// In the future, this path should be optimized.}
+00436 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} RhsArg, \textcolor{keywordtype}{int} ProductTag>
+00437 \textcolor{keyword}{struct }generic\_product\_impl<Lhs, Homogeneous<RhsArg,Vertical>, TriangularShape, HomogeneousShape, 
+      ProductTag>
+00438 \{
+00439   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00440   \textcolor{keyword}{static} \textcolor{keywordtype}{void} evalTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Homogeneous<RhsArg,Vertical>& rhs)
+00441   \{
+00442     dst.noalias() = lhs * rhs.eval();
+00443   \}
+00444 \};
+00445 
+00446 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs,\textcolor{keyword}{typename} Rhs>
+00447 \textcolor{keyword}{struct }homogeneous\_left\_product\_refactoring\_helper
+00448 \{
+00449   \textcolor{keyword}{enum} \{
+00450     Dim = Rhs::RowsAtCompileTime,
+00451     Cols = Rhs::ColsAtCompileTime
+00452   \};
+00453   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Lhs::template ConstNColsBlockXpr<Dim>::Type          LinearBlockConst;
+00454   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_const<LinearBlockConst>::type                 LinearBlock;
+00455   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Lhs::ConstColXpr                                     ConstantColumn;
+00456   \textcolor{keyword}{typedef} Replicate<const ConstantColumn,1,Cols>                        ConstantBlock;
+00457   \textcolor{keyword}{typedef} Product<LinearBlock,Rhs,LazyProduct>                          LinearProduct;
+00458   \textcolor{keyword}{typedef} CwiseBinaryOp<internal::scalar\_sum\_op<typename Lhs::Scalar,typename Rhs::Scalar>, \textcolor{keyword}{const} 
+      LinearProduct, \textcolor{keyword}{const} ConstantBlock> Xpr;
+00459 \};
+00460 
+00461 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductTag>
+00462 \textcolor{keyword}{struct }product\_evaluator<Product<Lhs, Rhs, LazyProduct>, ProductTag, DenseShape, HomogeneousShape>
+00463  : \textcolor{keyword}{public} evaluator<typename homogeneous\_left\_product\_refactoring\_helper<Lhs,typename Rhs::NestedExpression
+      >::Xpr>
+00464 \{
+00465   \textcolor{keyword}{typedef} Product<Lhs, Rhs, LazyProduct> XprType;
+00466   \textcolor{keyword}{typedef} homogeneous\_left\_product\_refactoring\_helper<Lhs,typename Rhs::NestedExpression> helper;
+00467   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} helper::ConstantBlock ConstantBlock;
+00468   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} helper::Xpr RefactoredXpr;
+00469   \textcolor{keyword}{typedef} evaluator<RefactoredXpr> Base;
+00470   
+00471   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{explicit} product\_evaluator(\textcolor{keyword}{const} XprType& xpr)
+00472     : Base(   xpr.lhs().template leftCols<helper::Dim>(xpr.rhs().nestedExpression().rows()) .lazyProduct( 
+      xpr.rhs().nestedExpression() )
+00473             + ConstantBlock(xpr.lhs().col(xpr.lhs().cols()-1),1,xpr.rhs().cols()) )
+00474   \{\}
+00475 \};
+00476 
+00477 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{int} Dim, \textcolor{keywordtype}{int} Mode,\textcolor{keywordtype}{int} Options, \textcolor{keyword}{typename} RhsArg, \textcolor{keywordtype}{int} ProductTag>
+00478 \textcolor{keyword}{struct }generic\_product\_impl<Transform<Scalar,Dim,Mode,Options>, Homogeneous<RhsArg,Vertical>, DenseShape, 
+      HomogeneousShape, ProductTag>
+00479 \{
+00480   \textcolor{keyword}{typedef} Transform<Scalar,Dim,Mode,Options> TransformType;
+00481   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00482   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} \textcolor{keywordtype}{void} evalTo(Dest& dst, \textcolor{keyword}{const} TransformType& lhs, \textcolor{keyword}{const} 
+      Homogeneous<RhsArg,Vertical>& rhs)
+00483   \{
+00484     homogeneous\_left\_product\_impl<Homogeneous<RhsArg,Vertical>, TransformType>(lhs, rhs.nestedExpression())
+      .evalTo(dst);
+00485   \}
+00486 \};
+00487 
+00488 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ExpressionType, \textcolor{keywordtype}{int} S\textcolor{keywordtype}{id}e, \textcolor{keywordtype}{bool} Transposed>
+00489 \textcolor{keyword}{struct }permutation\_matrix\_product<ExpressionType, Side, Transposed, HomogeneousShape>
+00490   : \textcolor{keyword}{public} permutation\_matrix\_product<ExpressionType, Side, Transposed, DenseShape>
+00491 \{\};
+00492 
+00493 \} \textcolor{comment}{// end namespace internal}
+00494 
+00495 \} \textcolor{comment}{// end namespace Eigen}
+00496 
+00497 \textcolor{preprocessor}{#endif // EIGEN\_HOMOGENEOUS\_H}
+\end{DoxyCode}

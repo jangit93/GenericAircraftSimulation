@@ -8,7 +8,7 @@ BaseAerodynamic::~BaseAerodynamic()
 {
 }
 
-void BaseAerodynamic::updateAerodynamic(Float64 FlightTime, 
+void BaseAerodynamic::updateAerodynamic(Float64 &FlightTime, 
 										AtmosphereStruct & AtmoData, 
 										AerodynamicStruct & AeroData, 
 										AirframeStruct & AirframeData, 
@@ -19,9 +19,13 @@ void BaseAerodynamic::updateAerodynamic(Float64 FlightTime,
 
 
 
-void BaseAerodynamic::initAerodynamic(AerodynamicStruct & AeroData, AircraftStruct & AircraftData)
+void BaseAerodynamic::initAerodynamic(Float64 &FlightTime, AerodynamicStruct & AeroData, AircraftStruct & AircraftData)
 {
 	std::cout << "Base Aerodynamic Init" << std::endl;
+}
+
+void BaseAerodynamic::LogAeroData()
+{
 }
 
 

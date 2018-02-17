@@ -1,0 +1,79 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2doc_2examples_2nullary__indexing_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/doc/examples/nullary\+\_\+indexing.cpp}
+\label{matio_2visual__studio_2test_2eigen_2doc_2examples_2nullary__indexing_8cpp_source}\index{nullary\+\_\+indexing.\+cpp@{nullary\+\_\+indexing.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{preprocessor}{#include <Eigen/Core>}
+00002 \textcolor{preprocessor}{#include <iostream>}
+00003 
+00004 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00005 
+00006 \textcolor{comment}{// [functor]}
+00007 \textcolor{keyword}{template}<\textcolor{keyword}{class} ArgType, \textcolor{keyword}{class} RowIndexType, \textcolor{keyword}{class} ColIndexType>
+00008 \textcolor{keyword}{class }\hyperlink{classindexing__functor}{indexing\_functor} \{
+00009   \textcolor{keyword}{const} ArgType &m\_arg;
+00010   \textcolor{keyword}{const} RowIndexType &m\_rowIndices;
+00011   \textcolor{keyword}{const} ColIndexType &m\_colIndices;
+00012 \textcolor{keyword}{public}:
+00013   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix}<\textcolor{keyword}{typename} ArgType::Scalar,
+00014                  RowIndexType::SizeAtCompileTime,
+00015                  ColIndexType::SizeAtCompileTime,
+00016                  ArgType::Flags&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}?\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}:\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor},
+00017                  RowIndexType::MaxSizeAtCompileTime,
+00018                  ColIndexType::MaxSizeAtCompileTime> MatrixType;
+00019 
+00020   \hyperlink{classindexing__functor}{indexing\_functor}(\textcolor{keyword}{const} ArgType& arg, \textcolor{keyword}{const} RowIndexType& row\_indices, \textcolor{keyword}{const} ColIndexType&
+       col\_indices)
+00021     : m\_arg(arg), m\_rowIndices(row\_indices), m\_colIndices(col\_indices)
+00022   \{\}
+00023 
+00024   \textcolor{keyword}{const} \textcolor{keyword}{typename} ArgType::Scalar& operator() (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col)\textcolor{keyword}{ const }\{
+00025     \textcolor{keywordflow}{return} m\_arg(m\_rowIndices[row], m\_colIndices[col]);
+00026   \}
+00027 \};
+00028 \textcolor{comment}{// [functor]}
+00029 
+00030 \textcolor{comment}{// [function]}
+00031 \textcolor{keyword}{template} <\textcolor{keyword}{class} ArgType, \textcolor{keyword}{class} RowIndexType, \textcolor{keyword}{class} ColIndexType>
+00032 \hyperlink{group___core___module_class_eigen_1_1_cwise_nullary_op}{CwiseNullaryOp<indexing\_functor<ArgType,RowIndexType,ColIndexType>}
+      , \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_matrix}{indexing\_functor<ArgType,RowIndexType,ColIndexType>::MatrixType}
+      >
+00033 indexing(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{Eigen::MatrixBase<ArgType>}& arg, \textcolor{keyword}{const} RowIndexType& row\_indices, \textcolor{keyword}{
+      const} ColIndexType& col\_indices)
+00034 \{
+00035   \textcolor{keyword}{typedef} \hyperlink{classindexing__functor}{indexing\_functor<ArgType,RowIndexType,ColIndexType>}
+       Func;
+00036   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Func::MatrixType MatrixType;
+00037   \textcolor{keywordflow}{return} MatrixType::NullaryExpr(row\_indices.size(), col\_indices.size(), Func(arg.derived(), row\_indices, 
+      col\_indices));
+00038 \}
+00039 \textcolor{comment}{// [function]}
+00040 
+00041 
+00042 \textcolor{keywordtype}{int} main()
+00043 \{
+00044   std::cout << \textcolor{stringliteral}{"[main1]\(\backslash\)n"};
+00045   Eigen::MatrixXi \hyperlink{group___core___module_class_eigen_1_1_matrix}{A} = Eigen::MatrixXi::Random(4,4);
+00046   Array3i ri(1,2,1);
+00047   ArrayXi ci(6); ci << 3,2,1,0,0,2;
+00048   Eigen::MatrixXi \hyperlink{group___core___module_class_eigen_1_1_matrix}{B} = indexing(A, ri, ci);
+00049   std::cout << \textcolor{stringliteral}{"A ="} << std::endl;
+00050   std::cout << A << std::endl << std::endl;
+00051   std::cout << \textcolor{stringliteral}{"A(["} << ri.transpose() << \textcolor{stringliteral}{"], ["} << ci.transpose() << \textcolor{stringliteral}{"]) ="} << std::endl;
+00052   std::cout << B << std::endl;
+00053   std::cout << \textcolor{stringliteral}{"[main1]\(\backslash\)n"};
+00054 
+00055   std::cout << \textcolor{stringliteral}{"[main2]\(\backslash\)n"};
+00056   B =  indexing(A, ri+1, ci);
+00057   std::cout << \textcolor{stringliteral}{"A(ri+1,ci) ="} << std::endl;
+00058   std::cout << B << std::endl << std::endl;
+00059 \textcolor{preprocessor}{#if \_\_cplusplus >= 201103L}
+00060   B =  indexing(A, ArrayXi::LinSpaced(13,0,12).unaryExpr([](\textcolor{keywordtype}{int} x)\{\textcolor{keywordflow}{return} x%4;\}), ArrayXi::LinSpaced(4,0,3)
+      );
+00061   std::cout << \textcolor{stringliteral}{"A(ArrayXi::LinSpaced(13,0,12).unaryExpr([](int x)\{return x%4;\}), ArrayXi::LinSpaced(4,0,3))
+       ="} << std::endl;
+00062   std::cout << B << std::endl << std::endl;
+00063 \textcolor{preprocessor}{#endif}
+00064   std::cout << \textcolor{stringliteral}{"[main2]\(\backslash\)n"};
+00065 \}
+00066 
+\end{DoxyCode}

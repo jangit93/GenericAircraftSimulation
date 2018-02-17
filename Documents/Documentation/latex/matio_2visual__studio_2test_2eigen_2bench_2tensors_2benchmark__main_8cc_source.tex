@@ -1,0 +1,242 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2bench_2tensors_2benchmark__main_8cc_source}{}\section{matio/visual\+\_\+studio/test/eigen/bench/tensors/benchmark\+\_\+main.cc}
+\label{matio_2visual__studio_2test_2eigen_2bench_2tensors_2benchmark__main_8cc_source}\index{benchmark\+\_\+main.\+cc@{benchmark\+\_\+main.\+cc}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/*}
+00002 \textcolor{comment}{ * Copyright (C) 2012 The Android Open Source Project}
+00003 \textcolor{comment}{ *}
+00004 \textcolor{comment}{ * Licensed under the Apache License, Version 2.0 (the "License");}
+00005 \textcolor{comment}{ * you may not use this file except in compliance with the License.}
+00006 \textcolor{comment}{ * You may obtain a copy of the License at}
+00007 \textcolor{comment}{ *}
+00008 \textcolor{comment}{ *      http://www.apache.org/licenses/LICENSE-2.0}
+00009 \textcolor{comment}{ *}
+00010 \textcolor{comment}{ * Unless required by applicable law or agreed to in writing, software}
+00011 \textcolor{comment}{ * distributed under the License is distributed on an "AS IS" BASIS,}
+00012 \textcolor{comment}{ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.}
+00013 \textcolor{comment}{ * See the License for the specific language governing permissions and}
+00014 \textcolor{comment}{ * limitations under the License.}
+00015 \textcolor{comment}{ */}
+00016 \textcolor{preprocessor}{#include "benchmark.h"}
+00017 \textcolor{preprocessor}{#include <regex.h>}
+00018 \textcolor{preprocessor}{#include <stdio.h>}
+00019 \textcolor{preprocessor}{#include <stdlib.h>}
+00020 \textcolor{preprocessor}{#include <string.h>}
+00021 \textcolor{preprocessor}{#include <string>}
+00022 \textcolor{preprocessor}{#include <inttypes.h>}
+00023 \textcolor{preprocessor}{#include <time.h>}
+00024 \textcolor{preprocessor}{#include <map>}
+00025 
+00026 \textcolor{keyword}{static} int64\_t g\_flops\_processed;
+00027 \textcolor{keyword}{static} int64\_t g\_benchmark\_total\_time\_ns;
+00028 \textcolor{keyword}{static} int64\_t g\_benchmark\_start\_time\_ns;
+00029 \textcolor{keyword}{typedef} std::map<std::string, ::testing::Benchmark*> BenchmarkMap;
+00030 \textcolor{keyword}{typedef} BenchmarkMap::iterator BenchmarkMapIt;
+00031 
+00032 BenchmarkMap& gBenchmarks() \{
+00033   \textcolor{keyword}{static} BenchmarkMap g\_benchmarks;
+00034   \textcolor{keywordflow}{return} g\_benchmarks;
+00035 \}
+00036 
+00037 \textcolor{keyword}{static} \textcolor{keywordtype}{int} g\_name\_column\_width = 20;
+00038 
+00039 \textcolor{keyword}{static} \textcolor{keywordtype}{int} Round(\textcolor{keywordtype}{int} n) \{
+00040   \textcolor{keywordtype}{int} base = 1;
+00041   \textcolor{keywordflow}{while} (base*10 < n) \{
+00042     base *= 10;
+00043   \}
+00044   \textcolor{keywordflow}{if} (n < 2*base) \{
+00045     \textcolor{keywordflow}{return} 2*base;
+00046   \}
+00047   \textcolor{keywordflow}{if} (n < 5*base) \{
+00048     \textcolor{keywordflow}{return} 5*base;
+00049   \}
+00050   \textcolor{keywordflow}{return} 10*base;
+00051 \}
+00052 
+00053 \textcolor{preprocessor}{#ifdef \_\_APPLE\_\_}
+00054 \textcolor{preprocessor}{  #include <mach/mach\_time.h>}
+00055   \textcolor{keyword}{static} mach\_timebase\_info\_data\_t g\_time\_info;
+00056   \textcolor{keyword}{static} \textcolor{keywordtype}{void} \_\_attribute\_\_((constructor)) init\_info() \{
+00057     mach\_timebase\_info(&g\_time\_info);
+00058   \}
+00059 \textcolor{preprocessor}{#endif}
+00060 
+00061 \textcolor{keyword}{static} int64\_t NanoTime() \{
+00062 \textcolor{preprocessor}{#if defined(\_\_APPLE\_\_)}
+00063   uint64\_t t = mach\_absolute\_time();
+00064   \textcolor{keywordflow}{return} t * g\_time\_info.numer / g\_time\_info.denom;
+00065 \textcolor{preprocessor}{#else}
+00066   \textcolor{keyword}{struct }timespec t;
+00067   t.tv\_sec = t.tv\_nsec = 0;
+00068   clock\_gettime(CLOCK\_MONOTONIC, &t);
+00069   \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}int64\_t\textcolor{keyword}{>}(t.tv\_sec) * 1000000000LL + t.tv\_nsec;
+00070 #endif
+00071 \}
+00072 
+00073 \textcolor{keyword}{namespace }\hyperlink{namespacetesting}{testing} \{
+00074 Benchmark* Benchmark::Arg(\textcolor{keywordtype}{int} arg) \{
+00075   args\_.push\_back(arg);
+00076   \textcolor{keywordflow}{return} \textcolor{keyword}{this};
+00077 \}
+00078 
+00079 Benchmark* Benchmark::Range(\textcolor{keywordtype}{int} lo, \textcolor{keywordtype}{int} hi) \{
+00080   \textcolor{keyword}{const} \textcolor{keywordtype}{int} kRangeMultiplier = 8;
+00081   \textcolor{keywordflow}{if} (hi < lo) \{
+00082     \textcolor{keywordtype}{int} temp = hi;
+00083     hi = lo;
+00084     lo = temp;
+00085   \}
+00086   \textcolor{keywordflow}{while} (lo < hi) \{
+00087     args\_.push\_back(lo);
+00088     lo *= kRangeMultiplier;
+00089   \}
+00090   \textcolor{comment}{// We always run the hi number.}
+00091   args\_.push\_back(hi);
+00092   \textcolor{keywordflow}{return} \textcolor{keyword}{this};
+00093 \}
+00094 
+00095 \textcolor{keyword}{const} \textcolor{keywordtype}{char}* Benchmark::Name() \{
+00096   \textcolor{keywordflow}{return} name\_;
+00097 \}
+00098 \textcolor{keywordtype}{bool} Benchmark::ShouldRun(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char}* argv[]) \{
+00099   \textcolor{keywordflow}{if} (argc == 1) \{
+00100     \textcolor{keywordflow}{return} \textcolor{keyword}{true};  \textcolor{comment}{// With no arguments, we run all benchmarks.}
+00101   \}
+00102   \textcolor{comment}{// Otherwise, we interpret each argument as a regular expression and}
+00103   \textcolor{comment}{// see if any of our benchmarks match.}
+00104   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 1; i < argc; i++) \{
+00105     regex\_t re;
+00106     \textcolor{keywordflow}{if} (regcomp(&re, argv[i], 0) != 0) \{
+00107       fprintf(stderr, \textcolor{stringliteral}{"couldn't compile \(\backslash\)"%s\(\backslash\)" as a regular expression!\(\backslash\)n"}, argv[i]);
+00108       exit(EXIT\_FAILURE);
+00109     \}
+00110     \textcolor{keywordtype}{int} match = regexec(&re, name\_, 0, NULL, 0);
+00111     regfree(&re);
+00112     \textcolor{keywordflow}{if} (match != REG\_NOMATCH) \{
+00113       \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00114     \}
+00115   \}
+00116   \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00117 \}
+00118 \textcolor{keywordtype}{void} Benchmark::Register(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* name, \textcolor{keywordtype}{void} (*fn)(\textcolor{keywordtype}{int}), \textcolor{keywordtype}{void} (*fn\_range)(\textcolor{keywordtype}{int}, \textcolor{keywordtype}{int})) \{
+00119   name\_ = name;
+00120   fn\_ = fn;
+00121   fn\_range\_ = fn\_range;
+00122   \textcolor{keywordflow}{if} (fn\_ == NULL && fn\_range\_ == NULL) \{
+00123     fprintf(stderr, \textcolor{stringliteral}{"%s: missing function\(\backslash\)n"}, name\_);
+00124     exit(EXIT\_FAILURE);
+00125   \}
+00126   gBenchmarks().insert(std::make\_pair(name, \textcolor{keyword}{this}));
+00127 \}
+00128 \textcolor{keywordtype}{void} Benchmark::Run() \{
+00129   \textcolor{keywordflow}{if} (fn\_ != NULL) \{
+00130     RunWithArg(0);
+00131   \} \textcolor{keywordflow}{else} \{
+00132     \textcolor{keywordflow}{if} (args\_.empty()) \{
+00133       fprintf(stderr, \textcolor{stringliteral}{"%s: no args!\(\backslash\)n"}, name\_);
+00134       exit(EXIT\_FAILURE);
+00135     \}
+00136     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < args\_.size(); ++i) \{
+00137       RunWithArg(args\_[i]);
+00138     \}
+00139   \}
+00140 \}
+00141 \textcolor{keywordtype}{void} Benchmark::RunRepeatedlyWithArg(\textcolor{keywordtype}{int} iterations, \textcolor{keywordtype}{int} arg) \{
+00142   g\_flops\_processed = 0;
+00143   g\_benchmark\_total\_time\_ns = 0;
+00144   g\_benchmark\_start\_time\_ns = NanoTime();
+00145   \textcolor{keywordflow}{if} (fn\_ != NULL) \{
+00146     fn\_(iterations);
+00147   \} \textcolor{keywordflow}{else} \{
+00148     fn\_range\_(iterations, arg);
+00149   \}
+00150   \textcolor{keywordflow}{if} (g\_benchmark\_start\_time\_ns != 0) \{
+00151     g\_benchmark\_total\_time\_ns += NanoTime() - g\_benchmark\_start\_time\_ns;
+00152   \}
+00153 \}
+00154 \textcolor{keywordtype}{void} Benchmark::RunWithArg(\textcolor{keywordtype}{int} arg) \{
+00155   \textcolor{comment}{// run once in case it's expensive}
+00156   \textcolor{keywordtype}{int} iterations = 1;
+00157   RunRepeatedlyWithArg(iterations, arg);
+00158   \textcolor{keywordflow}{while} (g\_benchmark\_total\_time\_ns < 1e9 && iterations < 1e9) \{
+00159     \textcolor{keywordtype}{int} last = iterations;
+00160     \textcolor{keywordflow}{if} (g\_benchmark\_total\_time\_ns/iterations == 0) \{
+00161       iterations = 1e9;
+00162     \} \textcolor{keywordflow}{else} \{
+00163       iterations = 1e9 / (g\_benchmark\_total\_time\_ns/iterations);
+00164     \}
+00165     iterations = std::max(last + 1, std::min(iterations + iterations/2, 100*last));
+00166     iterations = Round(iterations);
+00167     RunRepeatedlyWithArg(iterations, arg);
+00168   \}
+00169   \textcolor{keywordtype}{char} throughput[100];
+00170   throughput[0] = \textcolor{charliteral}{'\(\backslash\)0'};
+00171   \textcolor{keywordflow}{if} (g\_benchmark\_total\_time\_ns > 0 && g\_flops\_processed > 0) \{
+00172     \textcolor{keywordtype}{double} mflops\_processed = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(g\_flops\_processed)/1e6;
+00173     \textcolor{keywordtype}{double} seconds = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(g\_benchmark\_total\_time\_ns)/1e9;
+00174     snprintf(throughput, \textcolor{keyword}{sizeof}(throughput), \textcolor{stringliteral}{" %8.2f MFlops/s"}, mflops\_processed/seconds);
+00175   \}
+00176   \textcolor{keywordtype}{char} full\_name[100];
+00177   \textcolor{keywordflow}{if} (fn\_range\_ != NULL) \{
+00178     \textcolor{keywordflow}{if} (arg >= (1<<20)) \{
+00179       snprintf(full\_name, \textcolor{keyword}{sizeof}(full\_name), \textcolor{stringliteral}{"%s/%dM"}, name\_, arg/(1<<20));
+00180     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (arg >= (1<<10)) \{
+00181       snprintf(full\_name, \textcolor{keyword}{sizeof}(full\_name), \textcolor{stringliteral}{"%s/%dK"}, name\_, arg/(1<<10));
+00182     \} \textcolor{keywordflow}{else} \{
+00183       snprintf(full\_name, \textcolor{keyword}{sizeof}(full\_name), \textcolor{stringliteral}{"%s/%d"}, name\_, arg);
+00184     \}
+00185   \} \textcolor{keywordflow}{else} \{
+00186     snprintf(full\_name, \textcolor{keyword}{sizeof}(full\_name), \textcolor{stringliteral}{"%s"}, name\_);
+00187   \}
+00188   printf(\textcolor{stringliteral}{"%-*s %10d %10"} PRId64 \textcolor{stringliteral}{"%s\(\backslash\)n"}, g\_name\_column\_width, full\_name,
+00189          iterations, g\_benchmark\_total\_time\_ns/iterations, throughput);
+00190   fflush(stdout);
+00191 \}
+00192 \}  \textcolor{comment}{// namespace testing}
+00193 \textcolor{keywordtype}{void} SetBenchmarkFlopsProcessed(int64\_t x) \{
+00194   g\_flops\_processed = x;
+00195 \}
+00196 \textcolor{keywordtype}{void} StopBenchmarkTiming() \{
+00197   \textcolor{keywordflow}{if} (g\_benchmark\_start\_time\_ns != 0) \{
+00198     g\_benchmark\_total\_time\_ns += NanoTime() - g\_benchmark\_start\_time\_ns;
+00199   \}
+00200   g\_benchmark\_start\_time\_ns = 0;
+00201 \}
+00202 \textcolor{keywordtype}{void} StartBenchmarkTiming() \{
+00203   \textcolor{keywordflow}{if} (g\_benchmark\_start\_time\_ns == 0) \{
+00204     g\_benchmark\_start\_time\_ns = NanoTime();
+00205   \}
+00206 \}
+00207 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char}* argv[]) \{
+00208   \textcolor{keywordflow}{if} (gBenchmarks().empty()) \{
+00209     fprintf(stderr, \textcolor{stringliteral}{"No benchmarks registered!\(\backslash\)n"});
+00210     exit(EXIT\_FAILURE);
+00211   \}
+00212   \textcolor{keywordflow}{for} (BenchmarkMapIt it = gBenchmarks().begin(); it != gBenchmarks().end(); ++it) \{
+00213     \textcolor{keywordtype}{int} name\_width = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(strlen(it->second->Name()));
+00214     g\_name\_column\_width = std::max(g\_name\_column\_width, name\_width);
+00215   \}
+00216   \textcolor{keywordtype}{bool} need\_header = \textcolor{keyword}{true};
+00217   \textcolor{keywordflow}{for} (BenchmarkMapIt it = gBenchmarks().begin(); it != gBenchmarks().end(); ++it) \{
+00218     \hyperlink{classtesting_1_1_benchmark}{::testing::Benchmark}* b = it->second;
+00219     \textcolor{keywordflow}{if} (b->ShouldRun(argc, argv)) \{
+00220       \textcolor{keywordflow}{if} (need\_header) \{
+00221         printf(\textcolor{stringliteral}{"%-*s %10s %10s\(\backslash\)n"}, g\_name\_column\_width, \textcolor{stringliteral}{""}, \textcolor{stringliteral}{"iterations"}, \textcolor{stringliteral}{"ns/op"});
+00222         fflush(stdout);
+00223         need\_header = \textcolor{keyword}{false};
+00224       \}
+00225       b->Run();
+00226     \}
+00227   \}
+00228   \textcolor{keywordflow}{if} (need\_header) \{
+00229     fprintf(stderr, \textcolor{stringliteral}{"No matching benchmarks!\(\backslash\)n"});
+00230     fprintf(stderr, \textcolor{stringliteral}{"Available benchmarks:\(\backslash\)n"});
+00231     \textcolor{keywordflow}{for} (BenchmarkMapIt it = gBenchmarks().begin(); it != gBenchmarks().end(); ++it) \{
+00232       fprintf(stderr, \textcolor{stringliteral}{"  %s\(\backslash\)n"}, it->second->Name());
+00233     \}
+00234     exit(EXIT\_FAILURE);
+00235   \}
+00236   \textcolor{keywordflow}{return} 0;
+00237 \}
+\end{DoxyCode}

@@ -16,19 +16,20 @@ void Aerodynamics::selectAerodynamicType(int type)
 	switch (type)
 	{
 	case 1:
-		std::cout << "Aerodynamic: DATCOM Aerodynamic" << std::endl;
+		std::cout << "Aerodynamic:\t" << "DATCOM Aerodynamic" << std::endl;
 		aerodynamic = new DATCOMAerodymamic;
 		break;
 	}
 }
 
-void Aerodynamics::initAerodynamic(AerodynamicStruct & AeroData, AircraftStruct & AircraftData)
+void Aerodynamics::initAerodynamic(Float64 &FlightTime, AerodynamicStruct & AeroData,
+								   AircraftStruct & AircraftData)
 {
-	aerodynamic->initAerodynamic(AeroData, 
+	aerodynamic->initAerodynamic(FlightTime, AeroData,
 								 AircraftData);
 }
 
-void Aerodynamics::updateAerodynamic(Float64 FlightTime, 
+void Aerodynamics::updateAerodynamic(Float64 &FlightTime, 
 									AtmosphereStruct & AtmoData, 
 									AerodynamicStruct & AeroData, 
 									AirframeStruct & AirframeData, 
@@ -40,4 +41,9 @@ void Aerodynamics::updateAerodynamic(Float64 FlightTime,
 									AeroData,
 									AirframeData,
 									ThrustData);
+}
+
+void Aerodynamics::LogAeroData()
+{
+	aerodynamic->LogAeroData();
 }

@@ -1,0 +1,242 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2bench_2btl_2generic__bench_2btl_8hh_source}{}\section{matio/visual\+\_\+studio/test/eigen/bench/btl/generic\+\_\+bench/btl.hh}
+\label{matio_2visual__studio_2test_2eigen_2bench_2btl_2generic__bench_2btl_8hh_source}\index{btl.\+hh@{btl.\+hh}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{//=====================================================}
+00002 \textcolor{comment}{// File   :  btl.hh}
+00003 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00004 \textcolor{comment}{//=====================================================}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This program is free software; you can redistribute it and/or}
+00007 \textcolor{comment}{// modify it under the terms of the GNU General Public License}
+00008 \textcolor{comment}{// as published by the Free Software Foundation; either version 2}
+00009 \textcolor{comment}{// of the License, or (at your option) any later version.}
+00010 \textcolor{comment}{//}
+00011 \textcolor{comment}{// This program is distributed in the hope that it will be useful,}
+00012 \textcolor{comment}{// but WITHOUT ANY WARRANTY; without even the implied warranty of}
+00013 \textcolor{comment}{// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the}
+00014 \textcolor{comment}{// GNU General Public License for more details.}
+00015 \textcolor{comment}{// You should have received a copy of the GNU General Public License}
+00016 \textcolor{comment}{// along with this program; if not, write to the Free Software}
+00017 \textcolor{comment}{// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.}
+00018 \textcolor{comment}{//}
+00019 \textcolor{preprocessor}{#ifndef BTL\_HH}
+00020 \textcolor{preprocessor}{#define BTL\_HH}
+00021 
+00022 \textcolor{preprocessor}{#include "bench\_parameter.hh"}
+00023 \textcolor{preprocessor}{#include <iostream>}
+00024 \textcolor{preprocessor}{#include <algorithm>}
+00025 \textcolor{preprocessor}{#include <vector>}
+00026 \textcolor{preprocessor}{#include <string>}
+00027 \textcolor{preprocessor}{#include "utilities.h"}
+00028 
+00029 \textcolor{preprocessor}{#if (defined \_\_GNUC\_\_)}
+00030 \textcolor{preprocessor}{#define BTL\_ALWAYS\_INLINE \_\_attribute\_\_((always\_inline)) inline}
+00031 \textcolor{preprocessor}{#else}
+00032 \textcolor{preprocessor}{#define BTL\_ALWAYS\_INLINE inline}
+00033 \textcolor{preprocessor}{#endif}
+00034 
+00035 \textcolor{preprocessor}{#if (defined \_\_GNUC\_\_)}
+00036 \textcolor{preprocessor}{#define BTL\_DONT\_INLINE \_\_attribute\_\_((noinline))}
+00037 \textcolor{preprocessor}{#else}
+00038 \textcolor{preprocessor}{#define BTL\_DONT\_INLINE}
+00039 \textcolor{preprocessor}{#endif}
+00040 
+00041 \textcolor{preprocessor}{#if (defined \_\_GNUC\_\_)}
+00042 \textcolor{preprocessor}{#define BTL\_ASM\_COMMENT(X)  asm("#" X)}
+00043 \textcolor{preprocessor}{#else}
+00044 \textcolor{preprocessor}{#define BTL\_ASM\_COMMENT(X)}
+00045 \textcolor{preprocessor}{#endif}
+00046 
+00047 \textcolor{preprocessor}{#ifdef \_\_SSE\_\_}
+00048 \textcolor{preprocessor}{#include "xmmintrin.h"}
+00049 \textcolor{comment}{// This enables flush to zero (FTZ) and denormals are zero (DAZ) modes:}
+00050 \textcolor{preprocessor}{#define BTL\_DISABLE\_SSE\_EXCEPTIONS()  \{ \_mm\_setcsr(\_mm\_getcsr() | 0x8040); \}}
+00051 \textcolor{preprocessor}{#else}
+00052 \textcolor{preprocessor}{#define BTL\_DISABLE\_SSE\_EXCEPTIONS()}
+00053 \textcolor{preprocessor}{#endif}
+00054 
+00057 \textcolor{keyword}{class }\hyperlink{class_btl_string}{BtlString} : \textcolor{keyword}{public} std::string
+00058 \{
+00059 \textcolor{keyword}{public}:
+00060     \hyperlink{class_btl_string}{BtlString}() : \hyperlink{namespacestd}{std}::string() \{\}
+00061     \hyperlink{class_btl_string}{BtlString}(\textcolor{keyword}{const} \hyperlink{class_btl_string}{BtlString}& str) : \hyperlink{namespacestd}{std}::string(static\_cast<const 
+      \hyperlink{namespacestd}{std}::string&>(str)) \{\}
+00062     \hyperlink{class_btl_string}{BtlString}(\textcolor{keyword}{const} std::string& str) : \hyperlink{namespacestd}{std}::string(str) \{\}
+00063     \hyperlink{class_btl_string}{BtlString}(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* str) : \hyperlink{namespacestd}{std}::string(str) \{\}
+00064 
+00065     \textcolor{keyword}{operator} \textcolor{keyword}{const} \textcolor{keywordtype}{char}* () \textcolor{keyword}{const} \{ \textcolor{keywordflow}{return} c\_str(); \}
+00066 
+00067     \textcolor{keywordtype}{void} trim( \textcolor{keywordtype}{bool} left = \textcolor{keyword}{true}, \textcolor{keywordtype}{bool} right = \textcolor{keyword}{true} )
+00068     \{
+00069         \textcolor{keywordtype}{int} lspaces, rspaces, len = length(), i;
+00070         lspaces = rspaces = 0;
+00071 
+00072         \textcolor{keywordflow}{if} ( left )
+00073             \textcolor{keywordflow}{for} (i=0; i<len && (at(i)==\textcolor{charliteral}{' '}||at(i)==\textcolor{charliteral}{'\(\backslash\)t'}||at(i)==\textcolor{charliteral}{'\(\backslash\)r'}||at(i)==\textcolor{charliteral}{'\(\backslash\)n'}); ++lspaces,++i);
+00074 
+00075         \textcolor{keywordflow}{if} ( right && lspaces < len )
+00076             \textcolor{keywordflow}{for}(i=len-1; i>=0 && (at(i)==\textcolor{charliteral}{' '}||at(i)==\textcolor{charliteral}{'\(\backslash\)t'}||at(i)==\textcolor{charliteral}{'\(\backslash\)r'}||at(i)==\textcolor{charliteral}{'\(\backslash\)n'}); rspaces++,i--);
+00077 
+00078         *\textcolor{keyword}{this} = substr(lspaces, len-lspaces-rspaces);
+00079     \}
+00080 
+00081     std::vector<BtlString> split( \textcolor{keyword}{const} \hyperlink{class_btl_string}{BtlString}& delims = \textcolor{stringliteral}{"\(\backslash\)t\(\backslash\)n "})\textcolor{keyword}{ const}
+00082 \textcolor{keyword}{    }\{
+00083         std::vector<BtlString> ret;
+00084         \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} numSplits = 0;
+00085         \textcolor{keywordtype}{size\_t} start, pos;
+00086         start = 0;
+00087         \textcolor{keywordflow}{do}
+00088         \{
+00089             pos = find\_first\_of(delims, start);
+00090             \textcolor{keywordflow}{if} (pos == start)
+00091             \{
+00092                 ret.push\_back(\textcolor{stringliteral}{""});
+00093                 start = pos + 1;
+00094             \}
+00095             \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (pos == npos)
+00096                 ret.push\_back( substr(start) );
+00097             \textcolor{keywordflow}{else}
+00098             \{
+00099                 ret.push\_back( substr(start, pos - start) );
+00100                 start = pos + 1;
+00101             \}
+00102             \textcolor{comment}{//start = find\_first\_not\_of(delims, start);}
+00103             ++numSplits;
+00104         \} \textcolor{keywordflow}{while} (pos != npos);
+00105         \textcolor{keywordflow}{return} ret;
+00106     \}
+00107 
+00108     \textcolor{keywordtype}{bool} endsWith(\textcolor{keyword}{const} \hyperlink{class_btl_string}{BtlString}& str)\textcolor{keyword}{ const}
+00109 \textcolor{keyword}{    }\{
+00110         \textcolor{keywordflow}{if}(str.size()>this->size())
+00111             \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00112         \textcolor{keywordflow}{return} this->substr(this->size()-str.size(),str.size()) == str;
+00113     \}
+00114     \textcolor{keywordtype}{bool} contains(\textcolor{keyword}{const} \hyperlink{class_btl_string}{BtlString}& str)\textcolor{keyword}{ const}
+00115 \textcolor{keyword}{    }\{
+00116         \textcolor{keywordflow}{return} this->find(str)<this->size();
+00117     \}
+00118     \textcolor{keywordtype}{bool} beginsWith(\textcolor{keyword}{const} \hyperlink{class_btl_string}{BtlString}& str)\textcolor{keyword}{ const}
+00119 \textcolor{keyword}{    }\{
+00120         \textcolor{keywordflow}{if}(str.size()>this->size())
+00121             \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00122         \textcolor{keywordflow}{return} this->substr(0,str.size()) == str;
+00123     \}
+00124 
+00125     \hyperlink{class_btl_string}{BtlString} toLowerCase( \textcolor{keywordtype}{void} )
+00126     \{
+00127         std::transform(begin(), end(), begin(), \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}(*)(\textcolor{keywordtype}{int})\textcolor{keyword}{>}(::tolower) );
+00128         \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00129     \}
+00130     \hyperlink{class_btl_string}{BtlString} toUpperCase( \textcolor{keywordtype}{void} )
+00131     \{
+00132         std::transform(begin(), end(), begin(), \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}(*)(\textcolor{keywordtype}{int})\textcolor{keyword}{>}(::toupper) );
+00133         \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00134     \}
+00135 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2bench_2btl_2generic__bench_2btl_8hh_source_l00138}\hyperlink{class_btl_string_afdc2da5f185fa7585b1363b2dd6b36cb}{00138}     \textcolor{keywordtype}{bool} \hyperlink{class_btl_string_afdc2da5f185fa7585b1363b2dd6b36cb}{isEquiv}(\textcolor{keyword}{const} \hyperlink{class_btl_string}{BtlString}& str)\textcolor{keyword}{ const}
+00139 \textcolor{keyword}{    }\{
+00140         \hyperlink{class_btl_string}{BtlString} str0 = *\textcolor{keyword}{this};
+00141         str0.toLowerCase();
+00142         \hyperlink{class_btl_string}{BtlString} str1 = str;
+00143         str1.toLowerCase();
+00144         \textcolor{keywordflow}{return} str0 == str1;
+00145     \}
+00146 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2bench_2btl_2generic__bench_2btl_8hh_source_l00150}\hyperlink{class_btl_string_a111377f6625fffeed8f02992fd164730}{00150}     \textcolor{keywordtype}{void} \hyperlink{class_btl_string_a111377f6625fffeed8f02992fd164730}{decomposePathAndFile}(\hyperlink{class_btl_string}{BtlString}& path, 
+      \hyperlink{class_btl_string}{BtlString}& filename)\textcolor{keyword}{ const}
+00151 \textcolor{keyword}{    }\{
+00152         std::vector<BtlString> elements = this->split(\textcolor{stringliteral}{"/\(\backslash\)\(\backslash\)"});
+00153         path = \textcolor{stringliteral}{""};
+00154         filename = elements.back();
+00155         elements.pop\_back();
+00156         \textcolor{keywordflow}{if} (this->at(0)==\textcolor{charliteral}{'/'})
+00157             path = \textcolor{stringliteral}{"/"};
+00158         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} i=0 ; i<elements.size() ; ++i)
+00159             path += elements[i] + \textcolor{stringliteral}{"/"};
+00160     \}
+00161 \};
+00162 
+00163 \textcolor{keyword}{class }\hyperlink{class_btl_config}{BtlConfig}
+00164 \{
+00165 \textcolor{keyword}{public}:
+00166   \hyperlink{class_btl_config}{BtlConfig}()
+00167     : overwriteResults(\textcolor{keyword}{false}), checkResults(\textcolor{keyword}{true}), realclock(\textcolor{keyword}{false}), tries(DEFAULT\_NB\_TRIES)
+00168   \{
+00169     \textcolor{keywordtype}{char} * \_config;
+00170     \_config = getenv (\textcolor{stringliteral}{"BTL\_CONFIG"});
+00171     \textcolor{keywordflow}{if} (\_config!=NULL)
+00172     \{
+00173       std::vector<BtlString> \hyperlink{structconfig__s}{config} = \hyperlink{class_btl_string}{BtlString}(\_config).split(\textcolor{stringliteral}{" \(\backslash\)t\(\backslash\)n"});
+00174       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} i = 0; i<config.size(); i++)
+00175       \{
+00176         \textcolor{keywordflow}{if} (config[i].beginsWith(\textcolor{stringliteral}{"-a"}))
+00177         \{
+00178           \textcolor{keywordflow}{if} (i+1==config.size())
+00179           \{
+00180             std::cerr << \textcolor{stringliteral}{"error processing option: "} << config[i] << \textcolor{stringliteral}{"\(\backslash\)n"};
+00181             exit(2);
+00182           \}
+00183           Instance.m\_selectedActionNames = config[i+1].split(\textcolor{stringliteral}{":"});
+00184 
+00185           i += 1;
+00186         \}
+00187         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (config[i].beginsWith(\textcolor{stringliteral}{"-t"}))
+00188         \{
+00189           \textcolor{keywordflow}{if} (i+1==config.size())
+00190           \{
+00191             std::cerr << \textcolor{stringliteral}{"error processing option: "} << config[i] << \textcolor{stringliteral}{"\(\backslash\)n"};
+00192             exit(2);
+00193           \}
+00194           Instance.tries = atoi(config[i+1].c\_str());
+00195 
+00196           i += 1;
+00197         \}
+00198         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (config[i].beginsWith(\textcolor{stringliteral}{"--overwrite"}))
+00199         \{
+00200           Instance.overwriteResults = \textcolor{keyword}{true};
+00201         \}
+00202         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (config[i].beginsWith(\textcolor{stringliteral}{"--nocheck"}))
+00203         \{
+00204           Instance.checkResults = \textcolor{keyword}{false};
+00205         \}
+00206         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (config[i].beginsWith(\textcolor{stringliteral}{"--real"}))
+00207         \{
+00208           Instance.realclock = \textcolor{keyword}{true};
+00209         \}
+00210       \}
+00211     \}
+00212 
+00213     BTL\_DISABLE\_SSE\_EXCEPTIONS();
+00214   \}
+00215 
+00216   BTL\_DONT\_INLINE \textcolor{keyword}{static} \textcolor{keywordtype}{bool} skipAction(\textcolor{keyword}{const} std::string& \_name)
+00217   \{
+00218     \textcolor{keywordflow}{if} (Instance.m\_selectedActionNames.empty())
+00219       \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00220 
+00221     \hyperlink{class_btl_string}{BtlString} name(\_name);
+00222     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} i=0; i<Instance.m\_selectedActionNames.size(); ++i)
+00223       \textcolor{keywordflow}{if} (name.contains(Instance.m\_selectedActionNames[i]))
+00224         \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00225 
+00226     \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00227   \}
+00228 
+00229   \textcolor{keyword}{static} \hyperlink{class_btl_config}{BtlConfig} Instance;
+00230   \textcolor{keywordtype}{bool} overwriteResults;
+00231   \textcolor{keywordtype}{bool} checkResults;
+00232   \textcolor{keywordtype}{bool} realclock;
+00233   \textcolor{keywordtype}{int} tries;
+00234 
+00235 \textcolor{keyword}{protected}:
+00236   std::vector<BtlString> m\_selectedActionNames;
+00237 \};
+00238 
+00239 \textcolor{preprocessor}{#define BTL\_MAIN \(\backslash\)}
+00240 \textcolor{preprocessor}{  BtlConfig BtlConfig::Instance}
+00241 
+00242 \textcolor{preprocessor}{#endif // BTL\_HH}
+\end{DoxyCode}

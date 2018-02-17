@@ -1,0 +1,122 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_t_2h5ex__t__opaque___f03_8f90_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+F\+O\+R\+T\+R\+A\+N/\+H5\+T/h5ex\+\_\+t\+\_\+opaque\+\_\+\+F03.f90}
+\label{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_t_2h5ex__t__opaque___f03_8f90_source}\index{h5ex\+\_\+t\+\_\+opaque\+\_\+\+F03.\+f90@{h5ex\+\_\+t\+\_\+opaque\+\_\+\+F03.\+f90}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{!************************************************************}
+00002 \textcolor{comment}{!}
+00003 \textcolor{comment}{!  This example shows how to read and write opaque datatypes}
+00004 \textcolor{comment}{!  to a dataset.  The program first writes opaque data to a}
+00005 \textcolor{comment}{!  dataset with a dataspace of DIM0, then closes the file.}
+00006 \textcolor{comment}{!  Next, it reopens the file, reads back the data, and}
+00007 \textcolor{comment}{!  outputs it to the screen.}
+00008 \textcolor{comment}{!}
+00009 \textcolor{comment}{!  This file is intended for use with HDF5 Library version 1.8}
+00010 \textcolor{comment}{!  with --enable-fortran2003}
+00011 \textcolor{comment}{!}
+00012 \textcolor{comment}{!************************************************************}
+00013 \textcolor{keyword}{PROGRAM} main
+00014 
+00015   \textcolor{keywordtype}{USE }hdf5
+00016   \textcolor{keywordtype}{USE }iso\_c\_binding
+00017 
+00018   \textcolor{keywordtype}{IMPLICIT NONE}
+00019   \textcolor{keywordtype}{CHARACTER(LEN=20)}, \textcolor{keywordtype}{PARAMETER} :: filename  = \textcolor{stringliteral}{"h5ex\_t\_opaque\_F03.h5"}
+00020   \textcolor{keywordtype}{CHARACTER(LEN=3)} , \textcolor{keywordtype}{PARAMETER} :: dataset   = \textcolor{stringliteral}{"DS1"}
+00021   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: dim0      = 4
+00022   \textcolor{keywordtype}{INTEGER(SIZE\_T)}  , \textcolor{keywordtype}{PARAMETER} :: size      = 7
+00023   \textcolor{keywordtype}{INTEGER(HID\_T)}  :: \hyperlink{structfile}{file}, space, dtype, dset \textcolor{comment}{! Handles}
+00024   \textcolor{keywordtype}{INTEGER} :: hdferr
+00025   \textcolor{keywordtype}{INTEGER(size\_t)} :: len
+00026   \textcolor{keywordtype}{INTEGER(hsize\_t)},   \textcolor{keywordtype}{DIMENSION(1:1)} :: dims = (/dim0/)
+00027 
+00028   \textcolor{keywordtype}{CHARACTER(LEN=size)}, \textcolor{keywordtype}{DIMENSION(1:dim0)}, \textcolor{keywordtype}{TARGET} :: wdata \textcolor{comment}{! Write buffer}
+00029   \textcolor{keywordtype}{CHARACTER(LEN=size)}, \textcolor{keywordtype}{DIMENSION(:)}, \textcolor{keywordtype}{ALLOCATABLE}, \textcolor{keywordtype}{TARGET} :: rdata \textcolor{comment}{! Read buffer}
+00030   \textcolor{keywordtype}{CHARACTER(LEN=size-1)} :: str = \textcolor{stringliteral}{"OPAQUE"}
+00031   \textcolor{keywordtype}{CHARACTER(LEN=80)} :: tag
+00032   \textcolor{keywordtype}{INTEGER} :: taglen
+00033   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:1)} :: maxdims
+00034   \textcolor{keywordtype}{INTEGER} :: i
+00035   \textcolor{keywordtype}{CHARACTER(LEN=1)} :: ichr
+00036   \textcolor{keywordtype}{TYPE}(c\_ptr) :: f\_ptr
+00037   \textcolor{comment}{!}
+00038   \textcolor{comment}{! Initialize FORTRAN interface.}
+00039   \textcolor{comment}{!}
+00040   \textcolor{keyword}{CALL }h5open\_f(hdferr)
+00041   \textcolor{comment}{!}
+00042   \textcolor{comment}{! Initialize data.}
+00043   \textcolor{comment}{!}
+00044   \textcolor{keywordflow}{DO} i = 1, dim0
+00045      \textcolor{keyword}{WRITE}(ichr,\textcolor{stringliteral}{'(I1)'}) i-1 
+00046      wdata(i) = str//ichr
+00047 \textcolor{keywordflow}{  ENDDO}
+00048   \textcolor{comment}{!}
+00049   \textcolor{comment}{! Create a new file using the default properties.}
+00050   \textcolor{comment}{!}
+00051   \textcolor{keyword}{CALL }h5fcreate\_f(filename, h5f\_acc\_trunc\_f, \hyperlink{structfile}{file}, hdferr)
+00052   \textcolor{comment}{!}
+00053   \textcolor{comment}{! Create opaque datatype and set the tag to something appropriate.}
+00054   \textcolor{comment}{! For this example we will write and view the data as a character}
+00055   \textcolor{comment}{! array.}
+00056   \textcolor{comment}{!}
+00057   \textcolor{keyword}{CALL }h5tcreate\_f(h5t\_opaque\_f, \textcolor{keyword}{size}, dtype, hdferr)
+00058   \textcolor{keyword}{CALL }h5tset\_tag\_f(dtype,\textcolor{stringliteral}{"Character array"},hdferr)
+00059   \textcolor{comment}{!}
+00060   \textcolor{comment}{! Create dataspace.  Setting maximum size to be the current size.}
+00061   \textcolor{comment}{!}
+00062   \textcolor{keyword}{CALL }h5screate\_simple\_f(1, dims, space, hdferr)
+00063   \textcolor{comment}{!}
+00064   \textcolor{comment}{! Create the dataset and write the opaque data to it.}
+00065   \textcolor{comment}{!}
+00066   \textcolor{keyword}{CALL }h5dcreate\_f(\hyperlink{structfile}{file}, dataset, dtype, space, dset, hdferr)
+00067   f\_ptr = c\_loc(wdata(1))
+00068   \textcolor{keyword}{CALL }h5dwrite\_f(dset, dtype, f\_ptr, hdferr)
+00069   \textcolor{comment}{!}
+00070   \textcolor{comment}{! Close and release resources.}
+00071   \textcolor{comment}{!}
+00072   \textcolor{keyword}{CALL }h5dclose\_f(dset, hdferr)
+00073   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)
+00074   \textcolor{keyword}{CALL }h5tclose\_f(dtype, hdferr)
+00075   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file}, hdferr)
+00076   \textcolor{comment}{!}
+00077   \textcolor{comment}{! Now we begin the read section of this example.}
+00078   \textcolor{comment}{!}
+00079   \textcolor{comment}{! Open file and dataset.}
+00080   \textcolor{comment}{!}
+00081   \textcolor{keyword}{CALL }h5fopen\_f(filename, h5f\_acc\_rdonly\_f, \hyperlink{structfile}{file}, hdferr)
+00082   \textcolor{keyword}{CALL }h5dopen\_f(\hyperlink{structfile}{file}, dataset, dset, hdferr)
+00083   \textcolor{comment}{!}
+00084   \textcolor{comment}{! Get datatype and properties for the datatype.}
+00085   \textcolor{comment}{!}
+00086   \textcolor{keyword}{CALL }h5dget\_type\_f(dset, dtype, hdferr)
+00087   \textcolor{keyword}{CALL }h5tget\_size\_f(dtype, len, hdferr)
+00088   \textcolor{keyword}{CALL }h5tget\_tag\_f(dtype, tag, taglen, hdferr)
+00089   \textcolor{comment}{!}
+00090   \textcolor{comment}{! Get dataspace and allocate memory for read buffer.}
+00091   \textcolor{comment}{!}
+00092   \textcolor{keyword}{CALL }h5dget\_space\_f(dset, space, hdferr)
+00093   \textcolor{keyword}{CALL }h5sget\_simple\_extent\_dims\_f(space, dims, maxdims, hdferr)
+00094   \textcolor{keyword}{ALLOCATE}(rdata(1:dims(1)))
+00095   \textcolor{comment}{!}
+00096   \textcolor{comment}{! Read the data.}
+00097   \textcolor{comment}{!}
+00098   f\_ptr = c\_loc(rdata(1))
+00099   \textcolor{keyword}{CALL }h5dread\_f(dset, dtype, f\_ptr, hdferr)
+00100   \textcolor{comment}{!}
+00101   \textcolor{comment}{! Output the data to the screen.}
+00102   \textcolor{comment}{!}
+00103   \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'("Datatype tag for ",A," is: ",A)'}) dataset, \textcolor{stringliteral}{'"'}//tag(1:taglen)//\textcolor{stringliteral}{'"'}
+00104   \textcolor{comment}{!}
+00105   \textcolor{keywordflow}{DO} i = 1, dims(1)
+00106      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(A,"[",i1,"]: ",A)'}) dataset,i-1,rdata(i)
+00107 \textcolor{keywordflow}{  ENDDO}
+00108   \textcolor{comment}{!}
+00109   \textcolor{comment}{! Close and release resources.}
+00110   \textcolor{comment}{!}
+00111   \textcolor{keyword}{DEALLOCATE}(rdata)
+00112   \textcolor{keyword}{CALL }h5dclose\_f(dset, hdferr)
+00113   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)
+00114   \textcolor{keyword}{CALL }h5tclose\_f(dtype, hdferr)
+00115   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file}, hdferr)
+00116   \textcolor{comment}{!}
+00117 \textcolor{keyword}{END PROGRAM }main
+\end{DoxyCode}

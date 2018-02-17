@@ -1,0 +1,148 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2blas_2level1__cplx__impl_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/blas/level1\+\_\+cplx\+\_\+impl.h}
+\label{matio_2visual__studio_2test_2eigen_2blas_2level1__cplx__impl_8h_source}\index{level1\+\_\+cplx\+\_\+impl.\+h@{level1\+\_\+cplx\+\_\+impl.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2009-2010 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "common.h"}
+00011 
+00012 \textcolor{keyword}{struct }\hyperlink{structscalar__norm1__op}{scalar\_norm1\_op} \{
+00013   \textcolor{keyword}{typedef} RealScalar result\_type;
+00014   EIGEN\_EMPTY\_STRUCT\_CTOR(\hyperlink{structscalar__norm1__op}{scalar\_norm1\_op})
+00015   \textcolor{keyword}{inline} RealScalar operator() (\textcolor{keyword}{const} Scalar& a)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} numext::norm1(a); \}
+00016 \};
+00017 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00018   \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00019     \textcolor{keyword}{template}<> \textcolor{keyword}{struct }functor\_traits<\hyperlink{structscalar__norm1__op}{scalar\_norm1\_op} >
+00020     \{
+00021       \textcolor{keyword}{enum} \{ Cost = 3 * \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost}, PacketAccess = 0 \};
+00022     \};
+00023   \}
+00024 \}
+00025 
+00026 \textcolor{comment}{// computes the sum of magnitudes of all vector elements or, for a complex vector x, the sum}
+00027 \textcolor{comment}{// res = |Rex1| + |Imx1| + |Rex2| + |Imx2| + ... + |Rexn| + |Imxn|, where x is a vector of order n}
+00028 RealScalar EIGEN\_CAT(EIGEN\_CAT(REAL\_SCALAR\_SUFFIX,SCALAR\_SUFFIX),asum\_)(\textcolor{keywordtype}{int} *n, RealScalar *px, \textcolor{keywordtype}{int} *incx)
+00029 \{
+00030 \textcolor{comment}{//   std::cerr << "\_\_asum " << *n << " " << *incx << "\(\backslash\)n";}
+00031   Complex* x = \textcolor{keyword}{reinterpret\_cast<}Complex*\textcolor{keyword}{>}(px);
+00032 
+00033   \textcolor{keywordflow}{if}(*n<=0) \textcolor{keywordflow}{return} 0;
+00034 
+00035   \textcolor{keywordflow}{if}(*incx==1)  \textcolor{keywordflow}{return} make\_vector(x,*n).unaryExpr<\hyperlink{structscalar__norm1__op}{scalar\_norm1\_op}>().sum();
+00036   \textcolor{keywordflow}{else}          \textcolor{keywordflow}{return} make\_vector(x,*n,std::abs(*incx)).unaryExpr<
+      \hyperlink{structscalar__norm1__op}{scalar\_norm1\_op}>().sum();
+00037 \}
+00038 
+00039 \textcolor{comment}{// computes a dot product of a conjugated vector with another vector.}
+00040 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(dotcw)(\textcolor{keywordtype}{int} *n, RealScalar *px, \textcolor{keywordtype}{int} *incx, RealScalar *py, \textcolor{keywordtype}{int} *incy, RealScalar* pres)
+00041 \{
+00042 \textcolor{comment}{//   std::cerr << "\_dotc " << *n << " " << *incx << " " << *incy << "\(\backslash\)n";}
+00043   Scalar* res = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pres);
+00044 
+00045   \textcolor{keywordflow}{if}(*n<=0)
+00046   \{
+00047     *res = Scalar(0);
+00048     \textcolor{keywordflow}{return} 0;
+00049   \}
+00050 
+00051   Scalar* x = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(px);
+00052   Scalar* y = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(py);
+00053 
+00054   \textcolor{keywordflow}{if}(*incx==1 && *incy==1)    *res = (make\_vector(x,*n).dot(make\_vector(y,*n)));
+00055   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incx>0 && *incy>0) *res = (make\_vector(x,*n,*incx).dot(make\_vector(y,*n,*incy)));
+00056   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incx<0 && *incy>0) *res = (make\_vector(x,*n,-*incx).reverse().dot(make\_vector(y,*n,*incy)));
+00057   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incx>0 && *incy<0) *res = (make\_vector(x,*n,*incx).dot(make\_vector(y,*n,-*incy).reverse()));
+00058   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incx<0 && *incy<0) *res = (make\_vector(x,*n,-*incx).reverse().dot(make\_vector(y,*n,-*incy).
+      reverse()));
+00059   \textcolor{keywordflow}{return} 0;
+00060 \}
+00061 
+00062 \textcolor{comment}{// computes a vector-vector dot product without complex conjugation.}
+00063 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(dotuw)(\textcolor{keywordtype}{int} *n, RealScalar *px, \textcolor{keywordtype}{int} *incx, RealScalar *py, \textcolor{keywordtype}{int} *incy, RealScalar* pres)
+00064 \{
+00065   Scalar* res = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pres);
+00066 
+00067   \textcolor{keywordflow}{if}(*n<=0)
+00068   \{
+00069     *res = Scalar(0);
+00070     \textcolor{keywordflow}{return} 0;
+00071   \}
+00072 
+00073   Scalar* x = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(px);
+00074   Scalar* y = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(py);
+00075 
+00076   \textcolor{keywordflow}{if}(*incx==1 && *incy==1)    *res = (make\_vector(x,*n).cwiseProduct(make\_vector(y,*n))).sum();
+00077   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incx>0 && *incy>0) *res = (make\_vector(x,*n,*incx).cwiseProduct(make\_vector(y,*n,*incy))).sum();
+00078   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incx<0 && *incy>0) *res = (make\_vector(x,*n,-*incx).reverse().cwiseProduct(make\_vector(y,*n,*
+      incy))).sum();
+00079   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incx>0 && *incy<0) *res = (make\_vector(x,*n,*incx).cwiseProduct(make\_vector(y,*n,-*incy).reverse
+      ())).sum();
+00080   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incx<0 && *incy<0) *res = (make\_vector(x,*n,-*incx).reverse().cwiseProduct(make\_vector(y,*n,-*
+      incy).reverse())).sum();
+00081   \textcolor{keywordflow}{return} 0;
+00082 \}
+00083 
+00084 RealScalar EIGEN\_CAT(EIGEN\_CAT(REAL\_SCALAR\_SUFFIX,SCALAR\_SUFFIX),nrm2\_)(\textcolor{keywordtype}{int} *n, RealScalar *px, \textcolor{keywordtype}{int} *incx)
+00085 \{
+00086 \textcolor{comment}{//   std::cerr << "\_\_nrm2 " << *n << " " << *incx << "\(\backslash\)n";}
+00087   \textcolor{keywordflow}{if}(*n<=0) \textcolor{keywordflow}{return} 0;
+00088 
+00089   Scalar* x = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(px);
+00090 
+00091   \textcolor{keywordflow}{if}(*incx==1)
+00092     \textcolor{keywordflow}{return} make\_vector(x,*n).stableNorm();
+00093 
+00094   \textcolor{keywordflow}{return} make\_vector(x,*n,*incx).stableNorm();
+00095 \}
+00096 
+00097 \textcolor{keywordtype}{int} EIGEN\_CAT(EIGEN\_CAT(SCALAR\_SUFFIX,REAL\_SCALAR\_SUFFIX),rot\_)(\textcolor{keywordtype}{int} *n, RealScalar *px, \textcolor{keywordtype}{int} *incx, 
+      RealScalar *py, \textcolor{keywordtype}{int} *incy, RealScalar *pc, RealScalar *ps)
+00098 \{
+00099   \textcolor{keywordflow}{if}(*n<=0) \textcolor{keywordflow}{return} 0;
+00100 
+00101   Scalar* x = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(px);
+00102   Scalar* y = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(py);
+00103   RealScalar c = *pc;
+00104   RealScalar s = *ps;
+00105 
+00106   \hyperlink{group___core___module_class_eigen_1_1_map}{StridedVectorType} vx(make\_vector(x,*n,std::abs(*incx)));
+00107   \hyperlink{group___core___module_class_eigen_1_1_map}{StridedVectorType} vy(make\_vector(y,*n,std::abs(*incy)));
+00108 
+00109   \hyperlink{group___core___module_class_eigen_1_1_reverse}{Reverse<StridedVectorType>} rvx(vx);
+00110   \hyperlink{group___core___module_class_eigen_1_1_reverse}{Reverse<StridedVectorType>} rvy(vy);
+00111 
+00112   \textcolor{comment}{// TODO implement mixed real-scalar rotations}
+00113        \textcolor{keywordflow}{if}(*incx<0 && *incy>0) internal::apply\_rotation\_in\_the\_plane(rvx, vy, 
+      \hyperlink{group___jacobi___module_class_eigen_1_1_jacobi_rotation}{JacobiRotation<Scalar>}(c,s));
+00114   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incx>0 && *incy<0) internal::apply\_rotation\_in\_the\_plane(vx, rvy, 
+      \hyperlink{group___jacobi___module_class_eigen_1_1_jacobi_rotation}{JacobiRotation<Scalar>}(c,s));
+00115   \textcolor{keywordflow}{else}                        internal::apply\_rotation\_in\_the\_plane(vx, vy,  
+      \hyperlink{group___jacobi___module_class_eigen_1_1_jacobi_rotation}{JacobiRotation<Scalar>}(c,s));
+00116 
+00117   \textcolor{keywordflow}{return} 0;
+00118 \}
+00119 
+00120 \textcolor{keywordtype}{int} EIGEN\_CAT(EIGEN\_CAT(SCALAR\_SUFFIX,REAL\_SCALAR\_SUFFIX),scal\_)(\textcolor{keywordtype}{int} *n, RealScalar *palpha, RealScalar *px
+      , \textcolor{keywordtype}{int} *incx)
+00121 \{
+00122   \textcolor{keywordflow}{if}(*n<=0) \textcolor{keywordflow}{return} 0;
+00123 
+00124   Scalar* x = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(px);
+00125   RealScalar alpha = *palpha;
+00126 
+00127 \textcolor{comment}{//   std::cerr << "\_\_scal " << *n << " " << alpha << " " << *incx << "\(\backslash\)n";}
+00128 
+00129   \textcolor{keywordflow}{if}(*incx==1)  make\_vector(x,*n) *= alpha;
+00130   \textcolor{keywordflow}{else}          make\_vector(x,*n,std::abs(*incx)) *= alpha;
+00131 
+00132   \textcolor{keywordflow}{return} 0;
+00133 \}
+\end{DoxyCode}

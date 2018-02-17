@@ -1,0 +1,129 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_t_2h5ex__t__vlstring___f03_8f90_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+F\+O\+R\+T\+R\+A\+N/\+H5\+T/h5ex\+\_\+t\+\_\+vlstring\+\_\+\+F03.f90}
+\label{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_t_2h5ex__t__vlstring___f03_8f90_source}\index{h5ex\+\_\+t\+\_\+vlstring\+\_\+\+F03.\+f90@{h5ex\+\_\+t\+\_\+vlstring\+\_\+\+F03.\+f90}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{!************************************************************}
+00002 \textcolor{comment}{!}
+00003 \textcolor{comment}{!  This example shows how to read and write variable-length}
+00004 \textcolor{comment}{!  string datatypes to a dataset using h5dread\_f and}
+00005 \textcolor{comment}{!  h5dwrite\_f, and F2003 intrinsics C\_LOC and C\_F\_POINTER.  }
+00006 \textcolor{comment}{!  The program first writes variable-length strings to a dataset }
+00007 \textcolor{comment}{!  with a dataspace of DIM0, then closes the file.  Next, it }
+00008 \textcolor{comment}{!  reopens the file, reads back the data, and outputs it to }
+00009 \textcolor{comment}{!  the screen.}
+00010 \textcolor{comment}{!}
+00011 \textcolor{comment}{!  This file is intended for use with HDF5 Library version 1.8}
+00012 \textcolor{comment}{!  and --enable-fortran2003}
+00013 \textcolor{comment}{!}
+00014 \textcolor{comment}{!************************************************************}
+00015 
+00016 \textcolor{keyword}{PROGRAM} main
+00017 
+00018   \textcolor{keywordtype}{USE }hdf5
+00019   \textcolor{keywordtype}{USE }iso\_c\_binding
+00020   
+00021   \textcolor{keywordtype}{IMPLICIT NONE}
+00022 
+00023   \textcolor{keywordtype}{CHARACTER(LEN=20)}, \textcolor{keywordtype}{PARAMETER} :: filename = \textcolor{stringliteral}{"h5ex\_vlstring\_F03.h5"}
+00024   \textcolor{keywordtype}{CHARACTER(LEN=3)} , \textcolor{keywordtype}{PARAMETER} :: dataset  = \textcolor{stringliteral}{"DS1"}
+00025 
+00026   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{PARAMETER} :: dim0 = 4
+00027   \textcolor{keywordtype}{INTEGER(SIZE\_T)} , \textcolor{keywordtype}{PARAMETER} :: sdim = 7
+00028   \textcolor{keywordtype}{INTEGER(HID\_T)}  :: \hyperlink{structfile}{file}, filetype, space, dset \textcolor{comment}{! Handles}
+00029   \textcolor{keywordtype}{INTEGER} :: hdferr
+00030   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:1)} :: dims = (/dim0/)
+00031   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:2)} :: maxdims
+00032   
+00033   \textcolor{keywordtype}{TYPE}(c\_ptr), \textcolor{keywordtype}{DIMENSION(1:dim0)}, \textcolor{keywordtype}{TARGET} :: wdata
+00034   \textcolor{keywordtype}{CHARACTER(len=8, KIND=c\_char)}, \textcolor{keywordtype}{DIMENSION(1)}, \textcolor{keywordtype}{TARGET}  :: a = \textcolor{stringliteral}{"Parting"}//c\_null\_char
+00035   \textcolor{keywordtype}{CHARACTER(len=8, KIND=c\_char)}, \textcolor{keywordtype}{DIMENSION(1)}, \textcolor{keywordtype}{TARGET}  :: b = \textcolor{stringliteral}{"is\_such"}//c\_null\_char
+00036   \textcolor{keywordtype}{CHARACTER(len=6, KIND=c\_char)}, \textcolor{keywordtype}{DIMENSION(1)}, \textcolor{keywordtype}{TARGET}  :: c = \textcolor{stringliteral}{"sweet"}//c\_null\_char
+00037   \textcolor{keywordtype}{CHARACTER(len=8, KIND=c\_char)}, \textcolor{keywordtype}{DIMENSION(1)}, \textcolor{keywordtype}{TARGET}  :: d = \textcolor{stringliteral}{"sorrow."}//c\_null\_char
+00038   \textcolor{keywordtype}{TYPE}(c\_ptr), \textcolor{keywordtype}{DIMENSION(:)}, \textcolor{keywordtype}{ALLOCATABLE}, \textcolor{keywordtype}{TARGET} :: rdata \textcolor{comment}{! Read buffer}
+00039   \textcolor{keywordtype}{CHARACTER(len = 8, kind=c\_char)},  \textcolor{keywordtype}{POINTER} :: data \textcolor{comment}{! A pointer to a Fortran string}
+00040   \textcolor{keywordtype}{TYPE}(c\_ptr) :: f\_ptr
+00041   \textcolor{keywordtype}{INTEGER} :: i, len
+00042 
+00043   \textcolor{comment}{! Initialize array of C pointers}
+00044   wdata(1) = c\_loc(a(1))     
+00045   wdata(2) = c\_loc(b(1))     
+00046   wdata(3) = c\_loc(c(1))     
+00047   wdata(4) = c\_loc(d(1))     
+00048   \textcolor{comment}{!}
+00049   \textcolor{comment}{! Initialize FORTRAN interface.}
+00050   \textcolor{comment}{!}
+00051   \textcolor{keyword}{CALL }h5open\_f(hdferr)
+00052   \textcolor{comment}{!}
+00053   \textcolor{comment}{! Create a new file using the default properties.}
+00054   \textcolor{comment}{!}
+00055   \textcolor{keyword}{CALL }h5fcreate\_f(filename, h5f\_acc\_trunc\_f, \hyperlink{structfile}{file}, hdferr)
+00056   \textcolor{comment}{!}
+00057   \textcolor{comment}{! Create file and memory datatypes.  For this example we will save}
+00058   \textcolor{comment}{! the strings as C variable length strings, H5T\_STRING is defined}
+00059   \textcolor{comment}{! as a variable length string.}
+00060   \textcolor{comment}{!}
+00061   \textcolor{keyword}{CALL }h5tcopy\_f(h5t\_string, filetype, hdferr)
+00062   \textcolor{comment}{!}
+00063   \textcolor{comment}{! Create dataspace.}
+00064   \textcolor{comment}{!}
+00065   \textcolor{keyword}{CALL }h5screate\_simple\_f(1, dims, space, hdferr)
+00066   \textcolor{comment}{!}
+00067   \textcolor{comment}{! Create the dataset and write the variable-length string data to}
+00068   \textcolor{comment}{! it.}
+00069   \textcolor{comment}{!}
+00070   \textcolor{keyword}{CALL }h5dcreate\_f(\hyperlink{structfile}{file}, dataset, filetype, space, dset, hdferr)
+00071 
+00072   f\_ptr = c\_loc(wdata(1))
+00073   \textcolor{keyword}{CALL }h5dwrite\_f(dset, filetype, f\_ptr, hdferr )
+00074   \textcolor{comment}{!}
+00075   \textcolor{comment}{! Close and release resources.}
+00076   \textcolor{comment}{!}
+00077   \textcolor{keyword}{CALL }h5dclose\_f(dset , hdferr)
+00078   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)
+00079   \textcolor{keyword}{CALL }h5tclose\_f(filetype, hdferr)
+00080   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file} , hdferr)
+00081   \textcolor{comment}{!}
+00082   \textcolor{comment}{! Now we begin the read section of this example.}
+00083   \textcolor{comment}{!}
+00084   \textcolor{comment}{!}
+00085   \textcolor{comment}{! Open file and dataset.}
+00086   \textcolor{comment}{!}
+00087   \textcolor{keyword}{CALL }h5fopen\_f(filename, h5f\_acc\_rdonly\_f, \hyperlink{structfile}{file}, hdferr)
+00088   \textcolor{keyword}{CALL }h5dopen\_f(\hyperlink{structfile}{file}, dataset, dset, hdferr)
+00089   \textcolor{comment}{!}
+00090   \textcolor{comment}{! Get the datatype.}
+00091   \textcolor{comment}{!}
+00092   \textcolor{keyword}{CALL }h5dget\_type\_f(dset, filetype, hdferr)
+00093   \textcolor{comment}{!}
+00094   \textcolor{comment}{! Get dataspace and allocate memory for read buffer.}
+00095   \textcolor{comment}{!}
+00096   \textcolor{keyword}{CALL }h5dget\_space\_f(dset, space, hdferr)
+00097   \textcolor{keyword}{CALL }h5sget\_simple\_extent\_dims\_f(space, dims, maxdims, hdferr)
+00098 
+00099   \textcolor{keyword}{ALLOCATE}(rdata(1:dims(1)))
+00100   \textcolor{comment}{!}
+00101   \textcolor{comment}{! Read the data.}
+00102   \textcolor{comment}{!}
+00103   f\_ptr = c\_loc(rdata(1))
+00104   \textcolor{keyword}{CALL }h5dread\_f(dset, h5t\_string, f\_ptr, hdferr)
+00105   \textcolor{comment}{!}
+00106   \textcolor{comment}{! Output the data to the screen.}
+00107   \textcolor{comment}{!}
+00108   \textcolor{keywordflow}{DO} i = 1, dims(1)
+00109      \textcolor{keyword}{CALL }c\_f\_pointer(rdata(i), data)
+00110      len = 0
+00111      \textcolor{keywordflow}{DO}
+00112         \textcolor{keywordflow}{IF}(\textcolor{keyword}{DATA}(len+1:len+1).EQ.c\_null\_char.OR.len.GE.8) \textcolor{keywordflow}{EXIT}
+00113         len = len + 1
+00114 \textcolor{keywordflow}{     ENDDO}
+00115      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(A,"(",I0,"): ",A)'}) dataset, i, \textcolor{keyword}{data}(1:len)
+00116 \textcolor{keywordflow}{  END DO}
+00117 
+00118   \textcolor{keyword}{DEALLOCATE}(rdata)
+00119   \textcolor{keyword}{CALL }h5dclose\_f(dset , hdferr)
+00120   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)
+00121   \textcolor{keyword}{CALL }h5tclose\_f(filetype, hdferr)
+00122   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file} , hdferr)
+00123 
+00124 \textcolor{keyword}{END PROGRAM }main
+\end{DoxyCode}

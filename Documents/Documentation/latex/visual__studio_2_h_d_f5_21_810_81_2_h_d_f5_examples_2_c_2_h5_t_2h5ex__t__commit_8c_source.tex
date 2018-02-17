@@ -1,0 +1,124 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_t_2h5ex__t__commit_8c_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+C/\+H5\+T/h5ex\+\_\+t\+\_\+commit.c}
+\label{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_t_2h5ex__t__commit_8c_source}\index{h5ex\+\_\+t\+\_\+commit.\+c@{h5ex\+\_\+t\+\_\+commit.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/************************************************************}
+00002 \textcolor{comment}{}
+00003 \textcolor{comment}{  This example shows how to commit a named datatype to a}
+00004 \textcolor{comment}{  file, and read back that datatype.  The program first}
+00005 \textcolor{comment}{  defines a compound datatype, commits it to a file, then}
+00006 \textcolor{comment}{  closes the file.  Next, it reopens the file, opens the}
+00007 \textcolor{comment}{  datatype, and outputs the names of its fields to the}
+00008 \textcolor{comment}{  screen.}
+00009 \textcolor{comment}{}
+00010 \textcolor{comment}{  This file is intended for use with HDF5 Library version 1.8}
+00011 \textcolor{comment}{}
+00012 \textcolor{comment}{ ************************************************************/}
+00013 
+00014 \textcolor{preprocessor}{#include "hdf5.h"}
+00015 \textcolor{preprocessor}{#include <stdio.h>}
+00016 \textcolor{preprocessor}{#include <stdlib.h>}
+00017 
+00018 \textcolor{preprocessor}{#define FILE            "h5ex\_t\_commit.h5"}
+00019 \textcolor{preprocessor}{#define DATATYPE        "Sensor\_Type"}
+00020 
+00021 \textcolor{keywordtype}{int}
+00022 main (\textcolor{keywordtype}{void})
+00023 \{
+00024     hid\_t           \hyperlink{structfile}{file}, filetype, strtype;
+00025                                             \textcolor{comment}{/* Handles */}
+00026     herr\_t          status;
+00027     H5T\_class\_t     typeclass;
+00028     \textcolor{keywordtype}{char}            *name;
+00029     \textcolor{keywordtype}{int}             nmembs,
+00030                     i;
+00031 
+00032     \textcolor{comment}{/*}
+00033 \textcolor{comment}{     * Create a new file using the default properties.}
+00034 \textcolor{comment}{     */}
+00035     file = H5Fcreate (FILE, H5F\_ACC\_TRUNC, H5P\_DEFAULT, H5P\_DEFAULT);
+00036 
+00037     \textcolor{comment}{/*}
+00038 \textcolor{comment}{     * Create variable-length string datatype.}
+00039 \textcolor{comment}{     */}
+00040     strtype = H5Tcopy (H5T\_C\_S1);
+00041     status = H5Tset\_size (strtype, H5T\_VARIABLE);
+00042 
+00043     \textcolor{comment}{/*}
+00044 \textcolor{comment}{     * Create the compound datatype.  Because the standard types we are}
+00045 \textcolor{comment}{     * using may have different sizes than the corresponding native}
+00046 \textcolor{comment}{     * types, we must manually calculate the offset of each member.}
+00047 \textcolor{comment}{     */}
+00048     filetype = H5Tcreate (H5T\_COMPOUND, 8 + \textcolor{keyword}{sizeof} (\textcolor{keywordtype}{char} *) + 8 + 8);
+00049     status = H5Tinsert (filetype, \textcolor{stringliteral}{"Serial number"}, 0, H5T\_STD\_I64BE);
+00050     status = H5Tinsert (filetype, \textcolor{stringliteral}{"Location"}, 8, strtype);
+00051     status = H5Tinsert (filetype, \textcolor{stringliteral}{"Temperature (F)"}, 8 + \textcolor{keyword}{sizeof} (\textcolor{keywordtype}{char} *),
+00052                 H5T\_IEEE\_F64BE);
+00053     status = H5Tinsert (filetype, \textcolor{stringliteral}{"Pressure (inHg)"}, 8 + \textcolor{keyword}{sizeof} (\textcolor{keywordtype}{char} *) + 8,
+00054                 H5T\_IEEE\_F64BE);
+00055 
+00056     \textcolor{comment}{/*}
+00057 \textcolor{comment}{     * Commit the compound datatype to the file, creating a named}
+00058 \textcolor{comment}{     * datatype.}
+00059 \textcolor{comment}{     */}
+00060     status = H5Tcommit (file, DATATYPE, filetype, H5P\_DEFAULT,
+00061                 H5P\_DEFAULT, H5P\_DEFAULT);
+00062 
+00063     \textcolor{comment}{/*}
+00064 \textcolor{comment}{     * Close and release resources.}
+00065 \textcolor{comment}{     */}
+00066     status = H5Tclose (filetype);
+00067     status = H5Tclose (strtype);
+00068     status = H5Fclose (file);
+00069 
+00070 
+00071     \textcolor{comment}{/*}
+00072 \textcolor{comment}{     * Now we begin the read section of this example.}
+00073 \textcolor{comment}{     */}
+00074 
+00075     \textcolor{comment}{/*}
+00076 \textcolor{comment}{     * Open file.}
+00077 \textcolor{comment}{     */}
+00078     file = H5Fopen (FILE, H5F\_ACC\_RDONLY, H5P\_DEFAULT);
+00079 
+00080     \textcolor{comment}{/*}
+00081 \textcolor{comment}{     * Open the named datatype.}
+00082 \textcolor{comment}{     */}
+00083     filetype = H5Topen (file, DATATYPE, H5P\_DEFAULT);
+00084 
+00085     \textcolor{comment}{/*}
+00086 \textcolor{comment}{     * Output the data to the screen.}
+00087 \textcolor{comment}{     */}
+00088     printf (\textcolor{stringliteral}{"Named datatype: %s:\(\backslash\)n"}, DATATYPE);
+00089     \textcolor{comment}{/*}
+00090 \textcolor{comment}{     * Get datatype class.  If it isn't compound, we won't print}
+00091 \textcolor{comment}{     * anything.}
+00092 \textcolor{comment}{     */}
+00093     typeclass = H5Tget\_class (filetype);
+00094     \textcolor{keywordflow}{if} (typeclass == H5T\_COMPOUND) \{
+00095         printf (\textcolor{stringliteral}{"   Class: H5T\_COMPOUND\(\backslash\)n"});
+00096         nmembs = H5Tget\_nmembers (filetype);
+00097         \textcolor{comment}{/*}
+00098 \textcolor{comment}{         * Iterate over compound datatype members.}
+00099 \textcolor{comment}{         */}
+00100         \textcolor{keywordflow}{for} (i=0; i<nmembs; i++) \{
+00101             \textcolor{comment}{/*}
+00102 \textcolor{comment}{             * Get the member name and print it.  Note that}
+00103 \textcolor{comment}{             * H5Tget\_member\_name allocates space for the string in}
+00104 \textcolor{comment}{             * name, so we must H5free\_memory() it after use.}
+00105 \textcolor{comment}{             */}
+00106             name = H5Tget\_member\_name (filetype, i);
+00107             printf (\textcolor{stringliteral}{"   %s\(\backslash\)n"}, name);
+00108             H5free\_memory (name);
+00109         \}
+00110     \}
+00111 
+00112     \textcolor{comment}{/*}
+00113 \textcolor{comment}{     * Close and release resources.}
+00114 \textcolor{comment}{     */}
+00115     status = H5Tclose (filetype);
+00116     status = H5Fclose (file);
+00117 
+00118     \textcolor{keywordflow}{return} 0;
+00119 \}
+\end{DoxyCode}

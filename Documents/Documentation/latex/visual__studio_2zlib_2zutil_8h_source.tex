@@ -1,0 +1,276 @@
+\hypertarget{visual__studio_2zlib_2zutil_8h_source}{}\section{visual\+\_\+studio/zlib/zutil.h}
+\label{visual__studio_2zlib_2zutil_8h_source}\index{zutil.\+h@{zutil.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* zutil.h -- internal interface and configuration of the compression library}
+00002 \textcolor{comment}{ * Copyright (C) 1995-2016 Jean-loup Gailly, Mark Adler}
+00003 \textcolor{comment}{ * For conditions of distribution and use, see copyright notice in zlib.h}
+00004 \textcolor{comment}{ */}
+00005 
+00006 \textcolor{comment}{/* WARNING: this file should *not* be used by applications. It is}
+00007 \textcolor{comment}{   part of the implementation of the compression library and is}
+00008 \textcolor{comment}{   subject to change. Applications should only use zlib.h.}
+00009 \textcolor{comment}{ */}
+00010 
+00011 \textcolor{comment}{/* @(#) $Id$ */}
+00012 
+00013 \textcolor{preprocessor}{#ifndef ZUTIL\_H}
+00014 \textcolor{preprocessor}{#define ZUTIL\_H}
+00015 
+00016 \textcolor{preprocessor}{#ifdef HAVE\_HIDDEN}
+00017 \textcolor{preprocessor}{#  define ZLIB\_INTERNAL \_\_attribute\_\_((visibility ("hidden")))}
+00018 \textcolor{preprocessor}{#else}
+00019 \textcolor{preprocessor}{#  define ZLIB\_INTERNAL}
+00020 \textcolor{preprocessor}{#endif}
+00021 
+00022 \textcolor{preprocessor}{#include "zlib.h"}
+00023 
+00024 \textcolor{preprocessor}{#if defined(STDC) && !defined(Z\_SOLO)}
+00025 \textcolor{preprocessor}{#  if !(defined(\_WIN32\_WCE) && defined(\_MSC\_VER))}
+00026 \textcolor{preprocessor}{#    include <stddef.h>}
+00027 \textcolor{preprocessor}{#  endif}
+00028 \textcolor{preprocessor}{#  include <string.h>}
+00029 \textcolor{preprocessor}{#  include <stdlib.h>}
+00030 \textcolor{preprocessor}{#endif}
+00031 
+00032 \textcolor{preprocessor}{#ifdef Z\_SOLO}
+00033    \textcolor{keyword}{typedef} \textcolor{keywordtype}{long} ptrdiff\_t;  \textcolor{comment}{/* guess -- will be caught if guess is wrong */}
+00034 \textcolor{preprocessor}{#endif}
+00035 
+00036 \textcolor{preprocessor}{#ifndef local}
+00037 \textcolor{preprocessor}{#  define local static}
+00038 \textcolor{preprocessor}{#endif}
+00039 \textcolor{comment}{/* since "static" is used to mean two completely different things in C, we}
+00040 \textcolor{comment}{   define "local" for the non-static meaning of "static", for readability}
+00041 \textcolor{comment}{   (compile with -Dlocal if your debugger can't find static symbols) */}
+00042 
+00043 \textcolor{keyword}{typedef} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}  uch;
+00044 \textcolor{keyword}{typedef} uch FAR uchf;
+00045 \textcolor{keyword}{typedef} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{short} ush;
+00046 \textcolor{keyword}{typedef} ush FAR ushf;
+00047 \textcolor{keyword}{typedef} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long}  ulg;
+00048 
+00049 \textcolor{keyword}{extern} z\_const \textcolor{keywordtype}{char} * \textcolor{keyword}{const} z\_errmsg[10]; \textcolor{comment}{/* indexed by 2-zlib\_error */}
+00050 \textcolor{comment}{/* (size given to avoid silly warnings with Visual C++) */}
+00051 
+00052 \textcolor{preprocessor}{#define ERR\_MSG(err) z\_errmsg[Z\_NEED\_DICT-(err)]}
+00053 
+00054 \textcolor{preprocessor}{#define ERR\_RETURN(strm,err) \(\backslash\)}
+00055 \textcolor{preprocessor}{  return (strm->msg = ERR\_MSG(err), (err))}
+00056 \textcolor{comment}{/* To be used only when the state is known to be valid */}
+00057 
+00058         \textcolor{comment}{/* common constants */}
+00059 
+00060 \textcolor{preprocessor}{#ifndef DEF\_WBITS}
+00061 \textcolor{preprocessor}{#  define DEF\_WBITS MAX\_WBITS}
+00062 \textcolor{preprocessor}{#endif}
+00063 \textcolor{comment}{/* default windowBits for decompression. MAX\_WBITS is for compression only */}
+00064 
+00065 \textcolor{preprocessor}{#if MAX\_MEM\_LEVEL >= 8}
+00066 \textcolor{preprocessor}{#  define DEF\_MEM\_LEVEL 8}
+00067 \textcolor{preprocessor}{#else}
+00068 \textcolor{preprocessor}{#  define DEF\_MEM\_LEVEL  MAX\_MEM\_LEVEL}
+00069 \textcolor{preprocessor}{#endif}
+00070 \textcolor{comment}{/* default memLevel */}
+00071 
+00072 \textcolor{preprocessor}{#define STORED\_BLOCK 0}
+00073 \textcolor{preprocessor}{#define STATIC\_TREES 1}
+00074 \textcolor{preprocessor}{#define DYN\_TREES    2}
+00075 \textcolor{comment}{/* The three kinds of block type */}
+00076 
+00077 \textcolor{preprocessor}{#define MIN\_MATCH  3}
+00078 \textcolor{preprocessor}{#define MAX\_MATCH  258}
+00079 \textcolor{comment}{/* The minimum and maximum match lengths */}
+00080 
+00081 \textcolor{preprocessor}{#define PRESET\_DICT 0x20 }\textcolor{comment}{/* preset dictionary flag in zlib header */}\textcolor{preprocessor}{}
+00082 
+00083         \textcolor{comment}{/* target dependencies */}
+00084 
+00085 \textcolor{preprocessor}{#if defined(MSDOS) || (defined(WINDOWS) && !defined(WIN32))}
+00086 \textcolor{preprocessor}{#  define OS\_CODE  0x00}
+00087 \textcolor{preprocessor}{#  ifndef Z\_SOLO}
+00088 \textcolor{preprocessor}{#    if defined(\_\_TURBOC\_\_) || defined(\_\_BORLANDC\_\_)}
+00089 \textcolor{preprocessor}{#      if (\_\_STDC\_\_ == 1) && (defined(\_\_LARGE\_\_) || defined(\_\_COMPACT\_\_))}
+00090          \textcolor{comment}{/* Allow compilation with ANSI keywords only enabled */}
+00091          \textcolor{keywordtype}{void} \_Cdecl farfree( \textcolor{keywordtype}{void} *block );
+00092          \textcolor{keywordtype}{void} *\_Cdecl farmalloc( \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} nbytes );
+00093 \textcolor{preprocessor}{#      else}
+00094 \textcolor{preprocessor}{#        include <alloc.h>}
+00095 \textcolor{preprocessor}{#      endif}
+00096 \textcolor{preprocessor}{#    else }\textcolor{comment}{/* MSC or DJGPP */}\textcolor{preprocessor}{}
+00097 \textcolor{preprocessor}{#      include <malloc.h>}
+00098 \textcolor{preprocessor}{#    endif}
+00099 \textcolor{preprocessor}{#  endif}
+00100 \textcolor{preprocessor}{#endif}
+00101 
+00102 \textcolor{preprocessor}{#ifdef AMIGA}
+00103 \textcolor{preprocessor}{#  define OS\_CODE  1}
+00104 \textcolor{preprocessor}{#endif}
+00105 
+00106 \textcolor{preprocessor}{#if defined(VAXC) || defined(VMS)}
+00107 \textcolor{preprocessor}{#  define OS\_CODE  2}
+00108 \textcolor{preprocessor}{#  define F\_OPEN(name, mode) \(\backslash\)}
+00109 \textcolor{preprocessor}{     fopen((name), (mode), "mbc=60", "ctx=stm", "rfm=fix", "mrs=512")}
+00110 \textcolor{preprocessor}{#endif}
+00111 
+00112 \textcolor{preprocessor}{#ifdef \_\_370\_\_}
+00113 \textcolor{preprocessor}{#  if \_\_TARGET\_LIB\_\_ < 0x20000000}
+00114 \textcolor{preprocessor}{#    define OS\_CODE 4}
+00115 \textcolor{preprocessor}{#  elif \_\_TARGET\_LIB\_\_ < 0x40000000}
+00116 \textcolor{preprocessor}{#    define OS\_CODE 11}
+00117 \textcolor{preprocessor}{#  else}
+00118 \textcolor{preprocessor}{#    define OS\_CODE 8}
+00119 \textcolor{preprocessor}{#  endif}
+00120 \textcolor{preprocessor}{#endif}
+00121 
+00122 \textcolor{preprocessor}{#if defined(ATARI) || defined(atarist)}
+00123 \textcolor{preprocessor}{#  define OS\_CODE  5}
+00124 \textcolor{preprocessor}{#endif}
+00125 
+00126 \textcolor{preprocessor}{#ifdef OS2}
+00127 \textcolor{preprocessor}{#  define OS\_CODE  6}
+00128 \textcolor{preprocessor}{#  if defined(M\_I86) && !defined(Z\_SOLO)}
+00129 \textcolor{preprocessor}{#    include <malloc.h>}
+00130 \textcolor{preprocessor}{#  endif}
+00131 \textcolor{preprocessor}{#endif}
+00132 
+00133 \textcolor{preprocessor}{#if defined(MACOS) || defined(TARGET\_OS\_MAC)}
+00134 \textcolor{preprocessor}{#  define OS\_CODE  7}
+00135 \textcolor{preprocessor}{#  ifndef Z\_SOLO}
+00136 \textcolor{preprocessor}{#    if defined(\_\_MWERKS\_\_) && \_\_dest\_os != \_\_be\_os && \_\_dest\_os != \_\_win32\_os}
+00137 \textcolor{preprocessor}{#      include <unix.h>} \textcolor{comment}{/* for fdopen */}
+00138 \textcolor{preprocessor}{#    else}
+00139 \textcolor{preprocessor}{#      ifndef fdopen}
+00140 \textcolor{preprocessor}{#        define fdopen(fd,mode) NULL }\textcolor{comment}{/* No fdopen() */}\textcolor{preprocessor}{}
+00141 \textcolor{preprocessor}{#      endif}
+00142 \textcolor{preprocessor}{#    endif}
+00143 \textcolor{preprocessor}{#  endif}
+00144 \textcolor{preprocessor}{#endif}
+00145 
+00146 \textcolor{preprocessor}{#ifdef \_\_acorn}
+00147 \textcolor{preprocessor}{#  define OS\_CODE 13}
+00148 \textcolor{preprocessor}{#endif}
+00149 
+00150 \textcolor{preprocessor}{#if defined(WIN32) && !defined(\_\_CYGWIN\_\_)}
+00151 \textcolor{preprocessor}{#  define OS\_CODE  10}
+00152 \textcolor{preprocessor}{#endif}
+00153 
+00154 \textcolor{preprocessor}{#ifdef \_BEOS\_}
+00155 \textcolor{preprocessor}{#  define OS\_CODE  16}
+00156 \textcolor{preprocessor}{#endif}
+00157 
+00158 \textcolor{preprocessor}{#ifdef \_\_TOS\_OS400\_\_}
+00159 \textcolor{preprocessor}{#  define OS\_CODE 18}
+00160 \textcolor{preprocessor}{#endif}
+00161 
+00162 \textcolor{preprocessor}{#ifdef \_\_APPLE\_\_}
+00163 \textcolor{preprocessor}{#  define OS\_CODE 19}
+00164 \textcolor{preprocessor}{#endif}
+00165 
+00166 \textcolor{preprocessor}{#if defined(\_BEOS\_) || defined(RISCOS)}
+00167 \textcolor{preprocessor}{#  define fdopen(fd,mode) NULL }\textcolor{comment}{/* No fdopen() */}\textcolor{preprocessor}{}
+00168 \textcolor{preprocessor}{#endif}
+00169 
+00170 \textcolor{preprocessor}{#if (defined(\_MSC\_VER) && (\_MSC\_VER > 600)) && !defined \_\_INTERIX}
+00171 \textcolor{preprocessor}{#  if defined(\_WIN32\_WCE)}
+00172 \textcolor{preprocessor}{#    define fdopen(fd,mode) NULL }\textcolor{comment}{/* No fdopen() */}\textcolor{preprocessor}{}
+00173 \textcolor{preprocessor}{#    ifndef \_PTRDIFF\_T\_DEFINED}
+00174        \textcolor{keyword}{typedef} \textcolor{keywordtype}{int} ptrdiff\_t;
+00175 \textcolor{preprocessor}{#      define \_PTRDIFF\_T\_DEFINED}
+00176 \textcolor{preprocessor}{#    endif}
+00177 \textcolor{preprocessor}{#  else}
+00178 \textcolor{preprocessor}{#    define fdopen(fd,type)  \_fdopen(fd,type)}
+00179 \textcolor{preprocessor}{#  endif}
+00180 \textcolor{preprocessor}{#endif}
+00181 
+00182 \textcolor{preprocessor}{#if defined(\_\_BORLANDC\_\_) && !defined(MSDOS)}
+00183 \textcolor{preprocessor}{  #pragma warn -8004}
+00184 \textcolor{preprocessor}{  #pragma warn -8008}
+00185 \textcolor{preprocessor}{  #pragma warn -8066}
+00186 \textcolor{preprocessor}{#endif}
+00187 
+00188 \textcolor{comment}{/* provide prototypes for these when building zlib without LFS */}
+00189 \textcolor{preprocessor}{#if !defined(\_WIN32) && \(\backslash\)}
+00190 \textcolor{preprocessor}{    (!defined(\_LARGEFILE64\_SOURCE) || \_LFS64\_LARGEFILE-0 == 0)}
+00191     ZEXTERN uLong ZEXPORT adler32\_combine64 OF((uLong, uLong, z\_off\_t));
+00192     ZEXTERN uLong ZEXPORT crc32\_combine64 OF((uLong, uLong, z\_off\_t));
+00193 \textcolor{preprocessor}{#endif}
+00194 
+00195         \textcolor{comment}{/* common defaults */}
+00196 
+00197 \textcolor{preprocessor}{#ifndef OS\_CODE}
+00198 \textcolor{preprocessor}{#  define OS\_CODE  3     }\textcolor{comment}{/* assume Unix */}\textcolor{preprocessor}{}
+00199 \textcolor{preprocessor}{#endif}
+00200 
+00201 \textcolor{preprocessor}{#ifndef F\_OPEN}
+00202 \textcolor{preprocessor}{#  define F\_OPEN(name, mode) fopen((name), (mode))}
+00203 \textcolor{preprocessor}{#endif}
+00204 
+00205          \textcolor{comment}{/* functions */}
+00206 
+00207 \textcolor{preprocessor}{#if defined(pyr) || defined(Z\_SOLO)}
+00208 \textcolor{preprocessor}{#  define NO\_MEMCPY}
+00209 \textcolor{preprocessor}{#endif}
+00210 \textcolor{preprocessor}{#if defined(SMALL\_MEDIUM) && !defined(\_MSC\_VER) && !defined(\_\_SC\_\_)}
+00211  \textcolor{comment}{/* Use our own functions for small and medium model with MSC <= 5.0.}
+00212 \textcolor{comment}{  * You may have to use the same strategy for Borland C (untested).}
+00213 \textcolor{comment}{  * The \_\_SC\_\_ check is for Symantec.}
+00214 \textcolor{comment}{  */}
+00215 \textcolor{preprocessor}{#  define NO\_MEMCPY}
+00216 \textcolor{preprocessor}{#endif}
+00217 \textcolor{preprocessor}{#if defined(STDC) && !defined(HAVE\_MEMCPY) && !defined(NO\_MEMCPY)}
+00218 \textcolor{preprocessor}{#  define HAVE\_MEMCPY}
+00219 \textcolor{preprocessor}{#endif}
+00220 \textcolor{preprocessor}{#ifdef HAVE\_MEMCPY}
+00221 \textcolor{preprocessor}{#  ifdef SMALL\_MEDIUM }\textcolor{comment}{/* MSDOS small or medium model */}\textcolor{preprocessor}{}
+00222 \textcolor{preprocessor}{#    define zmemcpy \_fmemcpy}
+00223 \textcolor{preprocessor}{#    define zmemcmp \_fmemcmp}
+00224 \textcolor{preprocessor}{#    define zmemzero(dest, len) \_fmemset(dest, 0, len)}
+00225 \textcolor{preprocessor}{#  else}
+00226 \textcolor{preprocessor}{#    define zmemcpy memcpy}
+00227 \textcolor{preprocessor}{#    define zmemcmp memcmp}
+00228 \textcolor{preprocessor}{#    define zmemzero(dest, len) memset(dest, 0, len)}
+00229 \textcolor{preprocessor}{#  endif}
+00230 \textcolor{preprocessor}{#else}
+00231    \textcolor{keywordtype}{void} ZLIB\_INTERNAL zmemcpy OF((Bytef* dest, \textcolor{keyword}{const} Bytef* source, uInt len));
+00232    \textcolor{keywordtype}{int} ZLIB\_INTERNAL zmemcmp OF((\textcolor{keyword}{const} Bytef* s1, \textcolor{keyword}{const} Bytef* s2, uInt len));
+00233    \textcolor{keywordtype}{void} ZLIB\_INTERNAL zmemzero OF((Bytef* dest, uInt len));
+00234 \textcolor{preprocessor}{#endif}
+00235 
+00236 \textcolor{comment}{/* Diagnostic functions */}
+00237 \textcolor{preprocessor}{#ifdef ZLIB\_DEBUG}
+00238 \textcolor{preprocessor}{#  include <stdio.h>}
+00239    \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZLIB\_INTERNAL z\_verbose;
+00240    \textcolor{keyword}{extern} \textcolor{keywordtype}{void} ZLIB\_INTERNAL z\_error OF((\textcolor{keywordtype}{char} *m));
+00241 \textcolor{preprocessor}{#  define Assert(cond,msg) \{if(!(cond)) z\_error(msg);\}}
+00242 \textcolor{preprocessor}{#  define Trace(x) \{if (z\_verbose>=0) fprintf x ;\}}
+00243 \textcolor{preprocessor}{#  define Tracev(x) \{if (z\_verbose>0) fprintf x ;\}}
+00244 \textcolor{preprocessor}{#  define Tracevv(x) \{if (z\_verbose>1) fprintf x ;\}}
+00245 \textcolor{preprocessor}{#  define Tracec(c,x) \{if (z\_verbose>0 && (c)) fprintf x ;\}}
+00246 \textcolor{preprocessor}{#  define Tracecv(c,x) \{if (z\_verbose>1 && (c)) fprintf x ;\}}
+00247 \textcolor{preprocessor}{#else}
+00248 \textcolor{preprocessor}{#  define Assert(cond,msg)}
+00249 \textcolor{preprocessor}{#  define Trace(x)}
+00250 \textcolor{preprocessor}{#  define Tracev(x)}
+00251 \textcolor{preprocessor}{#  define Tracevv(x)}
+00252 \textcolor{preprocessor}{#  define Tracec(c,x)}
+00253 \textcolor{preprocessor}{#  define Tracecv(c,x)}
+00254 \textcolor{preprocessor}{#endif}
+00255 
+00256 \textcolor{preprocessor}{#ifndef Z\_SOLO}
+00257    voidpf ZLIB\_INTERNAL zcalloc OF((voidpf opaque, \textcolor{keywordtype}{unsigned} items,
+00258                                     \textcolor{keywordtype}{unsigned} size));
+00259    \textcolor{keywordtype}{void} ZLIB\_INTERNAL zcfree  OF((voidpf opaque, voidpf ptr));
+00260 \textcolor{preprocessor}{#endif}
+00261 
+00262 \textcolor{preprocessor}{#define ZALLOC(strm, items, size) \(\backslash\)}
+00263 \textcolor{preprocessor}{           (*((strm)->zalloc))((strm)->opaque, (items), (size))}
+00264 \textcolor{preprocessor}{#define ZFREE(strm, addr)  (*((strm)->zfree))((strm)->opaque, (voidpf)(addr))}
+00265 \textcolor{preprocessor}{#define TRY\_FREE(s, p) \{if (p) ZFREE(s, p);\}}
+00266 
+00267 \textcolor{comment}{/* Reverse the bytes in a 32-bit value */}
+00268 \textcolor{preprocessor}{#define ZSWAP32(q) ((((q) >> 24) & 0xff) + (((q) >> 8) & 0xff00) + \(\backslash\)}
+00269 \textcolor{preprocessor}{                    (((q) & 0xff00) << 8) + (((q) & 0xff) << 24))}
+00270 
+00271 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* ZUTIL\_H */}\textcolor{preprocessor}{}
+\end{DoxyCode}

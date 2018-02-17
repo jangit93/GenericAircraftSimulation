@@ -1,0 +1,176 @@
+\hypertarget{eigen_2_eigen_2src_2_geometry_2arch_2_geometry___s_s_e_8h_source}{}\section{eigen/\+Eigen/src/\+Geometry/arch/\+Geometry\+\_\+\+S\+SE.h}
+\label{eigen_2_eigen_2src_2_geometry_2arch_2_geometry___s_s_e_8h_source}\index{Geometry\+\_\+\+S\+S\+E.\+h@{Geometry\+\_\+\+S\+S\+E.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2009 Rohit Garg <rpg.314@gmail.com>}
+00005 \textcolor{comment}{// Copyright (C) 2009-2010 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_GEOMETRY\_SSE\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_GEOMETRY\_SSE\_H}
+00013 
+00014 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00015 
+00016 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00017 
+00018 \textcolor{keyword}{template}<\textcolor{keyword}{class} Derived, \textcolor{keyword}{class} OtherDerived>
+\Hypertarget{eigen_2_eigen_2src_2_geometry_2arch_2_geometry___s_s_e_8h_source_l00019}\hyperlink{struct_eigen_1_1internal_1_1quat__product_3_01_architecture_1_1_s_s_e_00_01_derived_00_01_other_derived_00_01float_01_4}{00019} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1quat__product}{quat\_product}<Architecture::SSE, Derived, OtherDerived, float>
+00020 \{
+00021   \textcolor{keyword}{enum} \{
+00022     AAlignment = \hyperlink{struct_eigen_1_1internal_1_1traits}{traits<Derived>::Alignment},
+00023     BAlignment = \hyperlink{struct_eigen_1_1internal_1_1traits}{traits<OtherDerived>::Alignment},
+00024     ResAlignment = \hyperlink{struct_eigen_1_1internal_1_1traits}{traits<Quaternion<float>} >::Alignment
+00025   \};
+00026   \textcolor{keyword}{static} \textcolor{keyword}{inline} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<float>} run(\textcolor{keyword}{const} 
+      \hyperlink{group___geometry___module_class_eigen_1_1_quaternion_base}{QuaternionBase<Derived>}& \_a, \textcolor{keyword}{const} 
+      \hyperlink{group___geometry___module_class_eigen_1_1_quaternion_base}{QuaternionBase<OtherDerived>}& \_b)
+00027   \{
+00028     \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<float>} res;
+00029     \textcolor{keyword}{const} \_\_m128 mask = \_mm\_setr\_ps(0.f,0.f,0.f,-0.f);
+00030     \_\_m128 a = \_a.\hyperlink{group___geometry___module_aa7bb3fc337ffa82b0ad795783eb8a2ce}{coeffs}().template packet<AAlignment>(0);
+00031     \_\_m128 b = \_b.\hyperlink{group___geometry___module_aa7bb3fc337ffa82b0ad795783eb8a2ce}{coeffs}().template packet<BAlignment>(0);
+00032     \_\_m128 s1 = \_mm\_mul\_ps(vec4f\_swizzle1(a,1,2,0,2),vec4f\_swizzle1(b,2,0,1,2));
+00033     \_\_m128 s2 = \_mm\_mul\_ps(vec4f\_swizzle1(a,3,3,3,1),vec4f\_swizzle1(b,0,1,2,1));
+00034     pstoret<float,Packet4f,ResAlignment>(
+00035               &res.\hyperlink{group___geometry___module_a782b9d83caa9bbe84d6e0b822f2dbea9}{x}(),
+00036               \_mm\_add\_ps(\_mm\_sub\_ps(\_mm\_mul\_ps(a,vec4f\_swizzle1(b,3,3,3,3)),
+00037                                     \_mm\_mul\_ps(vec4f\_swizzle1(a,2,0,1,0),
+00038                                                vec4f\_swizzle1(b,1,2,0,0))),
+00039                          \_mm\_xor\_ps(mask,\_mm\_add\_ps(s1,s2))));
+00040     
+00041     \textcolor{keywordflow}{return} res;
+00042   \}
+00043 \};
+00044 
+00045 \textcolor{keyword}{template}<\textcolor{keyword}{class} Derived>
+\Hypertarget{eigen_2_eigen_2src_2_geometry_2arch_2_geometry___s_s_e_8h_source_l00046}\hyperlink{struct_eigen_1_1internal_1_1quat__conj_3_01_architecture_1_1_s_s_e_00_01_derived_00_01float_01_4}{00046} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1quat__conj}{quat\_conj}<Architecture::SSE, Derived, float>
+00047 \{
+00048   \textcolor{keyword}{enum} \{
+00049     ResAlignment = \hyperlink{struct_eigen_1_1internal_1_1traits}{traits<Quaternion<float>} >::Alignment
+00050   \};
+00051   \textcolor{keyword}{static} \textcolor{keyword}{inline} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<float>} run(\textcolor{keyword}{const} 
+      \hyperlink{group___geometry___module_class_eigen_1_1_quaternion_base}{QuaternionBase<Derived>}& q)
+00052   \{
+00053     \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<float>} res;
+00054     \textcolor{keyword}{const} \_\_m128 mask = \_mm\_setr\_ps(-0.f,-0.f,-0.f,0.f);
+00055     pstoret<float,Packet4f,ResAlignment>(&res.\hyperlink{group___geometry___module_a782b9d83caa9bbe84d6e0b822f2dbea9}{x}(), \_mm\_xor\_ps(mask, q.\hyperlink{group___geometry___module_aa7bb3fc337ffa82b0ad795783eb8a2ce}{coeffs}().template 
+      packet<traits<Derived>::Alignment>(0)));
+00056     \textcolor{keywordflow}{return} res;
+00057   \}
+00058 \};
+00059 
+00060 
+00061 \textcolor{keyword}{template}<\textcolor{keyword}{typename} VectorLhs,\textcolor{keyword}{typename} VectorRhs>
+\Hypertarget{eigen_2_eigen_2src_2_geometry_2arch_2_geometry___s_s_e_8h_source_l00062}\hyperlink{struct_eigen_1_1internal_1_1cross3__impl_3_01_architecture_1_1_s_s_e_00_01_vector_lhs_00_01_vect981fca9d3c0a247b027e5ff23e43a093}{00062} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1cross3__impl}{cross3\_impl}<Architecture::SSE,VectorLhs,VectorRhs,float,true>
+00063 \{
+00064   \textcolor{keyword}{enum} \{
+00065     ResAlignment = \hyperlink{struct_eigen_1_1internal_1_1traits}{traits<typename plain\_matrix\_type<VectorLhs>::type}
+      >::Alignment
+00066   \};
+00067   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1plain__matrix__type}{plain\_matrix\_type<VectorLhs>::type}
+00068   run(\textcolor{keyword}{const} VectorLhs& lhs, \textcolor{keyword}{const} VectorRhs& rhs)
+00069   \{
+00070     \_\_m128 a = lhs.template packet<traits<VectorLhs>::Alignment>(0);
+00071     \_\_m128 b = rhs.template packet<traits<VectorRhs>::Alignment>(0);
+00072     \_\_m128 mul1=\_mm\_mul\_ps(vec4f\_swizzle1(a,1,2,0,3),vec4f\_swizzle1(b,2,0,1,3));
+00073     \_\_m128 mul2=\_mm\_mul\_ps(vec4f\_swizzle1(a,2,0,1,3),vec4f\_swizzle1(b,1,2,0,3));
+00074     \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1plain__matrix__type}{plain\_matrix\_type<VectorLhs>::type} res;
+00075     pstoret<float,Packet4f,ResAlignment>(&res.x(),\_mm\_sub\_ps(mul1,mul2));
+00076     \textcolor{keywordflow}{return} res;
+00077   \}
+00078 \};
+00079 
+00080 
+00081 
+00082 
+00083 \textcolor{keyword}{template}<\textcolor{keyword}{class} Derived, \textcolor{keyword}{class} OtherDerived>
+\Hypertarget{eigen_2_eigen_2src_2_geometry_2arch_2_geometry___s_s_e_8h_source_l00084}\hyperlink{struct_eigen_1_1internal_1_1quat__product_3_01_architecture_1_1_s_s_e_00_01_derived_00_01_other_derived_00_01double_01_4}{00084} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1quat__product}{quat\_product}<Architecture::SSE, Derived, OtherDerived, double>
+00085 \{
+00086   \textcolor{keyword}{enum} \{
+00087     BAlignment = \hyperlink{struct_eigen_1_1internal_1_1traits}{traits<OtherDerived>::Alignment},
+00088     ResAlignment = \hyperlink{struct_eigen_1_1internal_1_1traits}{traits<Quaternion<double>} >::Alignment
+00089   \};
+00090 
+00091   \textcolor{keyword}{static} \textcolor{keyword}{inline} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<double>} run(\textcolor{keyword}{const} 
+      \hyperlink{group___geometry___module_class_eigen_1_1_quaternion_base}{QuaternionBase<Derived>}& \_a, \textcolor{keyword}{const} 
+      \hyperlink{group___geometry___module_class_eigen_1_1_quaternion_base}{QuaternionBase<OtherDerived>}& \_b)
+00092   \{
+00093   \textcolor{keyword}{const} Packet2d mask = \_mm\_castsi128\_pd(\_mm\_set\_epi32(0x0,0x0,0x80000000,0x0));
+00094 
+00095   \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<double>} res;
+00096 
+00097   \textcolor{keyword}{const} \textcolor{keywordtype}{double}* a = \_a.\hyperlink{group___geometry___module_aa7bb3fc337ffa82b0ad795783eb8a2ce}{coeffs}().data();
+00098   Packet2d b\_xy = \_b.\hyperlink{group___geometry___module_aa7bb3fc337ffa82b0ad795783eb8a2ce}{coeffs}().template packet<BAlignment>(0);
+00099   Packet2d b\_zw = \_b.\hyperlink{group___geometry___module_aa7bb3fc337ffa82b0ad795783eb8a2ce}{coeffs}().template packet<BAlignment>(2);
+00100   Packet2d a\_xx = pset1<Packet2d>(a[0]);
+00101   Packet2d a\_yy = pset1<Packet2d>(a[1]);
+00102   Packet2d a\_zz = pset1<Packet2d>(a[2]);
+00103   Packet2d a\_ww = pset1<Packet2d>(a[3]);
+00104 
+00105   \textcolor{comment}{// two temporaries:}
+00106   Packet2d t1, t2;
+00107 
+00108   \textcolor{comment}{/*}
+00109 \textcolor{comment}{   * t1 = ww*xy + yy*zw}
+00110 \textcolor{comment}{   * t2 = zz*xy - xx*zw}
+00111 \textcolor{comment}{   * res.xy = t1 +/- swap(t2)}
+00112 \textcolor{comment}{   */}
+00113   t1 = padd(pmul(a\_ww, b\_xy), pmul(a\_yy, b\_zw));
+00114   t2 = psub(pmul(a\_zz, b\_xy), pmul(a\_xx, b\_zw));
+00115 \textcolor{preprocessor}{#ifdef EIGEN\_VECTORIZE\_SSE3}
+00116   EIGEN\_UNUSED\_VARIABLE(mask)
+00117   pstoret<double,Packet2d,ResAlignment>(&res.\hyperlink{group___geometry___module_a782b9d83caa9bbe84d6e0b822f2dbea9}{x}(), \_mm\_addsub\_pd(t1, preverse(t2)));
+00118 \textcolor{preprocessor}{#else}
+00119   pstoret<double,Packet2d,ResAlignment>(&res.\hyperlink{group___geometry___module_a782b9d83caa9bbe84d6e0b822f2dbea9}{x}(), padd(t1, pxor(mask,preverse(t2))));
+00120 \textcolor{preprocessor}{#endif}
+00121   
+00122   \textcolor{comment}{/*}
+00123 \textcolor{comment}{   * t1 = ww*zw - yy*xy}
+00124 \textcolor{comment}{   * t2 = zz*zw + xx*xy}
+00125 \textcolor{comment}{   * res.zw = t1 -/+ swap(t2) = swap( swap(t1) +/- t2)}
+00126 \textcolor{comment}{   */}
+00127   t1 = psub(pmul(a\_ww, b\_zw), pmul(a\_yy, b\_xy));
+00128   t2 = padd(pmul(a\_zz, b\_zw), pmul(a\_xx, b\_xy));
+00129 \textcolor{preprocessor}{#ifdef EIGEN\_VECTORIZE\_SSE3}
+00130   EIGEN\_UNUSED\_VARIABLE(mask)
+00131   pstoret<double,Packet2d,ResAlignment>(&res.\hyperlink{group___geometry___module_abb82ebd1b6ac5e6c4442201ede65449b}{z}(), preverse(\_mm\_addsub\_pd(preverse(t1), t2)));
+00132 \textcolor{preprocessor}{#else}
+00133   pstoret<double,Packet2d,ResAlignment>(&res.\hyperlink{group___geometry___module_abb82ebd1b6ac5e6c4442201ede65449b}{z}(), psub(t1, pxor(mask,preverse(t2))));
+00134 \textcolor{preprocessor}{#endif}
+00135 
+00136   \textcolor{keywordflow}{return} res;
+00137 \}
+00138 \};
+00139 
+00140 \textcolor{keyword}{template}<\textcolor{keyword}{class} Derived>
+\Hypertarget{eigen_2_eigen_2src_2_geometry_2arch_2_geometry___s_s_e_8h_source_l00141}\hyperlink{struct_eigen_1_1internal_1_1quat__conj_3_01_architecture_1_1_s_s_e_00_01_derived_00_01double_01_4}{00141} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1quat__conj}{quat\_conj}<Architecture::SSE, Derived, double>
+00142 \{
+00143   \textcolor{keyword}{enum} \{
+00144     ResAlignment = \hyperlink{struct_eigen_1_1internal_1_1traits}{traits<Quaternion<double>} >::Alignment
+00145   \};
+00146   \textcolor{keyword}{static} \textcolor{keyword}{inline} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<double>} run(\textcolor{keyword}{const} 
+      \hyperlink{group___geometry___module_class_eigen_1_1_quaternion_base}{QuaternionBase<Derived>}& q)
+00147   \{
+00148     \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<double>} res;
+00149     \textcolor{keyword}{const} \_\_m128d mask0 = \_mm\_setr\_pd(-0.,-0.);
+00150     \textcolor{keyword}{const} \_\_m128d mask2 = \_mm\_setr\_pd(-0.,0.);
+00151     pstoret<double,Packet2d,ResAlignment>(&res.\hyperlink{group___geometry___module_a782b9d83caa9bbe84d6e0b822f2dbea9}{x}(), \_mm\_xor\_pd(mask0, q.\hyperlink{group___geometry___module_aa7bb3fc337ffa82b0ad795783eb8a2ce}{coeffs}().template 
+      packet<traits<Derived>::Alignment>(0)));
+00152     pstoret<double,Packet2d,ResAlignment>(&res.\hyperlink{group___geometry___module_abb82ebd1b6ac5e6c4442201ede65449b}{z}(), \_mm\_xor\_pd(mask2, q.\hyperlink{group___geometry___module_aa7bb3fc337ffa82b0ad795783eb8a2ce}{coeffs}().template 
+      packet<traits<Derived>::Alignment>(2)));
+00153     \textcolor{keywordflow}{return} res;
+00154   \}
+00155 \};
+00156 
+00157 \} \textcolor{comment}{// end namespace internal}
+00158 
+00159 \} \textcolor{comment}{// end namespace Eigen}
+00160 
+00161 \textcolor{preprocessor}{#endif // EIGEN\_GEOMETRY\_SSE\_H}
+\end{DoxyCode}

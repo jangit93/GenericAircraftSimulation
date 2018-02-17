@@ -3,13 +3,15 @@
 DATCOMAerodymamic::DATCOMAerodymamic()
 {
 	readIn = new readInData;
+	
+	logAeroData = new DataLogger("AerodynamicData.txt", 25, " ");
 }
 
 DATCOMAerodymamic::~DATCOMAerodymamic()
 {
 }
 
-void DATCOMAerodymamic::initAerodynamic(AerodynamicStruct & AeroData,
+void DATCOMAerodymamic::initAerodynamic(Float64 &FlightTime, AerodynamicStruct & AeroData,
 											  AircraftStruct & AircraftData)
 {
 
@@ -58,10 +60,10 @@ void DATCOMAerodymamic::initAerodynamic(AerodynamicStruct & AeroData,
 	S = AircraftData.wingarea;
 	l_nu = AircraftData.MAC;
 
-
+	initLogAeroData(FlightTime,AeroData);
 }
 
-void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
+void DATCOMAerodymamic::updateAerodynamic(Float64 &FlightTime,
 										AtmosphereStruct & AtmoData,
 										AerodynamicStruct & AeroData,
 										AirframeStruct & AirframeData,
@@ -148,8 +150,9 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
 	C_Z = -C_W * sin(alpha) * cos(beta) - C_Q  *sin(alpha) * sin(beta) - C_A * cos(alpha);
 
 	// Guidanc daten noch ergänzen
+	Float64 alpha0 = 0;
 	ca_alpha = Interpolation.linearInterpolation2D(AoA, Mach, CAalpha, Alpha, Ma);
-	ca_0 = Interpolation.linearInterpolation2D(AoA, Mach, CA, 0, Ma);
+	ca_0 = Interpolation.linearInterpolation2D(AoA, Mach, CA, alpha0, Ma);
 	c_zdalpha = -C_W - ca_alpha;
 
 	// Kräfte und Momente
@@ -176,3 +179,22 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
 
 
 }
+
+void DATCOMAerodymamic::initLogAeroData(Float64 &FlightTime,AerodynamicStruct & AeroData)
+{
+	
+	logAeroData->add("Time [s]", FlightTime);
+	logAeroData->add("CA", AeroData.CA);
+	logAeroData->add("CM", AeroData.CM);
+	logAeroData->add("CW", AeroData.CW);
+	logAeroData->add("CZ", AeroData.CZ);
+	logAeroData->add("CX", AeroData.CX);
+
+	logAeroData->printHeader();
+}
+
+void DATCOMAerodymamic::LogAeroData()
+{
+	logAeroData->print();
+}
+

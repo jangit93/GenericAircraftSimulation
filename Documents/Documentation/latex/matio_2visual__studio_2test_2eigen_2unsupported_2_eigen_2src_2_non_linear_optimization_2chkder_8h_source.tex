@@ -1,0 +1,71 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_non_linear_optimization_2chkder_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/src/\+Non\+Linear\+Optimization/chkder.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_non_linear_optimization_2chkder_8h_source}\index{chkder.\+h@{chkder.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{preprocessor}{#define chkder\_log10e 0.43429448190325182765}
+00002 \textcolor{preprocessor}{#define chkder\_factor 100.}
+00003 
+00004 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00005 
+00006 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00007 
+00008 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00009 \textcolor{keywordtype}{void} chkder(
+00010         \textcolor{keyword}{const} \hyperlink{group___core___module}{Matrix< Scalar, Dynamic, 1 >}  &x,
+00011         \textcolor{keyword}{const} \hyperlink{group___core___module}{Matrix< Scalar, Dynamic, 1 >}  &fvec,
+00012         \textcolor{keyword}{const} \hyperlink{group___core___module}{Matrix< Scalar, Dynamic, Dynamic >} &fjac,
+00013         \hyperlink{group___core___module}{Matrix< Scalar, Dynamic, 1 >}  &xp,
+00014         \textcolor{keyword}{const} \hyperlink{group___core___module}{Matrix< Scalar, Dynamic, 1 >}  &fvecp,
+00015         \textcolor{keywordtype}{int} mode,
+00016         \hyperlink{group___core___module}{Matrix< Scalar, Dynamic, 1 >}  &err
+00017         )
+00018 \{
+00019     \textcolor{keyword}{using} std::sqrt;
+00020     \textcolor{keyword}{using} std::abs;
+00021     \textcolor{keyword}{using} std::log;
+00022     
+00023     \textcolor{keyword}{typedef} DenseIndex \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00024 
+00025     \textcolor{keyword}{const} Scalar eps = sqrt(NumTraits<Scalar>::epsilon());
+00026     \textcolor{keyword}{const} Scalar epsf = chkder\_factor * NumTraits<Scalar>::epsilon();
+00027     \textcolor{keyword}{const} Scalar epslog = chkder\_log10e * \hyperlink{structlog}{log}(eps);
+00028     Scalar temp;
+00029 
+00030     \textcolor{keyword}{const} Index m = fvec.size(), n = x.size();
+00031 
+00032     \textcolor{keywordflow}{if} (mode != 2) \{
+00033         \textcolor{comment}{/* mode = 1. */}
+00034         xp.\hyperlink{class_eigen_1_1_plain_object_base_a99d9054ee2d5a40c6e00ded0265e9cea}{resize}(n);
+00035         \textcolor{keywordflow}{for} (Index j = 0; j < n; ++j) \{
+00036             temp = eps * abs(x[j]);
+00037             \textcolor{keywordflow}{if} (temp == 0.)
+00038                 temp = eps;
+00039             xp[j] = x[j] + temp;
+00040         \}
+00041     \}
+00042     \textcolor{keywordflow}{else} \{
+00043         \textcolor{comment}{/* mode = 2. */}
+00044         err.\hyperlink{class_eigen_1_1_plain_object_base_ac21ad5f989f320e46958b75ac8d9a1da}{setZero}(m); 
+00045         \textcolor{keywordflow}{for} (Index j = 0; j < n; ++j) \{
+00046             temp = abs(x[j]);
+00047             \textcolor{keywordflow}{if} (temp == 0.)
+00048                 temp = 1.;
+00049             err += temp * fjac.col(j);
+00050         \}
+00051         \textcolor{keywordflow}{for} (Index i = 0; i < m; ++i) \{
+00052             temp = 1.;
+00053             \textcolor{keywordflow}{if} (fvec[i] != 0. && fvecp[i] != 0. && abs(fvecp[i] - fvec[i]) >= epsf * abs(fvec[i]))
+00054                 temp = eps * abs((fvecp[i] - fvec[i]) / eps - err[i]) / (abs(fvec[i]) + abs(fvecp[i]));
+00055             err[i] = 1.;
+00056             \textcolor{keywordflow}{if} (temp > NumTraits<Scalar>::epsilon() && temp < eps)
+00057                 err[i] = (chkder\_log10e * \hyperlink{structlog}{log}(temp) - epslog) / epslog;
+00058             \textcolor{keywordflow}{if} (temp >= eps)
+00059                 err[i] = 0.;
+00060         \}
+00061     \}
+00062 \}
+00063 
+00064 \} \textcolor{comment}{// end namespace internal}
+00065 
+00066 \} \textcolor{comment}{// end namespace Eigen}
+\end{DoxyCode}

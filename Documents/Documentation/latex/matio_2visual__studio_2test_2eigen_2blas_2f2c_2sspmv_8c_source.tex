@@ -1,0 +1,321 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2blas_2f2c_2sspmv_8c_source}{}\section{matio/visual\+\_\+studio/test/eigen/blas/f2c/sspmv.c}
+\label{matio_2visual__studio_2test_2eigen_2blas_2f2c_2sspmv_8c_source}\index{sspmv.\+c@{sspmv.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* sspmv.f -- translated by f2c (version 20100827).}
+00002 \textcolor{comment}{   You must link the resulting object file with libf2c:}
+00003 \textcolor{comment}{    on Microsoft Windows system, link with libf2c.lib;}
+00004 \textcolor{comment}{    on Linux or Unix systems, link with .../path/to/libf2c.a -lm}
+00005 \textcolor{comment}{    or, if you install libf2c.a in a standard place, with -lf2c -lm}
+00006 \textcolor{comment}{    -- in that order, at the end of the command line, as in}
+00007 \textcolor{comment}{        cc *.o -lf2c -lm}
+00008 \textcolor{comment}{    Source for libf2c is in /netlib/f2c/libf2c.zip, e.g.,}
+00009 \textcolor{comment}{}
+00010 \textcolor{comment}{        http://www.netlib.org/f2c/libf2c.zip}
+00011 \textcolor{comment}{*/}
+00012 
+00013 \textcolor{preprocessor}{#include "datatypes.h"}
+00014 
+00015 \textcolor{comment}{/* Subroutine */} \textcolor{keywordtype}{int} sspmv\_(\textcolor{keywordtype}{char} *uplo, integer *n, real *alpha, real *ap, 
+00016     real *x, integer *incx, real *beta, real *y, integer *incy, ftnlen 
+00017     uplo\_len)
+00018 \{
+00019     \textcolor{comment}{/* System generated locals */}
+00020     integer i\_\_1, i\_\_2;
+00021 
+00022     \textcolor{comment}{/* Local variables */}
+00023     integer i\_\_, j, k, kk, ix, iy, jx, jy, kx, ky, info;
+00024     real temp1, temp2;
+00025     \textcolor{keyword}{extern} logical lsame\_(\textcolor{keywordtype}{char} *, \textcolor{keywordtype}{char} *, ftnlen, ftnlen);
+00026     \textcolor{keyword}{extern} \textcolor{comment}{/* Subroutine */} \textcolor{keywordtype}{int} xerbla\_(\textcolor{keywordtype}{char} *, integer *, ftnlen);
+00027 
+00028 \textcolor{comment}{/*     .. Scalar Arguments .. */}
+00029 \textcolor{comment}{/*     .. */}
+00030 \textcolor{comment}{/*     .. Array Arguments .. */}
+00031 \textcolor{comment}{/*     .. */}
+00032 
+00033 \textcolor{comment}{/*  Purpose */}
+00034 \textcolor{comment}{/*  ======= */}
+00035 
+00036 \textcolor{comment}{/*  SSPMV  performs the matrix-vector operation */}
+00037 
+00038 \textcolor{comment}{/*     y := alpha*A*x + beta*y, */}
+00039 
+00040 \textcolor{comment}{/*  where alpha and beta are scalars, x and y are n element vectors and */}
+00041 \textcolor{comment}{/*  A is an n by n symmetric matrix, supplied in packed form. */}
+00042 
+00043 \textcolor{comment}{/*  Arguments */}
+00044 \textcolor{comment}{/*  ========== */}
+00045 
+00046 \textcolor{comment}{/*  UPLO   - CHARACTER*1. */}
+00047 \textcolor{comment}{/*           On entry, UPLO specifies whether the upper or lower */}
+00048 \textcolor{comment}{/*           triangular part of the matrix A is supplied in the packed */}
+00049 \textcolor{comment}{/*           array AP as follows: */}
+00050 
+00051 \textcolor{comment}{/*              UPLO = 'U' or 'u'   The upper triangular part of A is */}
+00052 \textcolor{comment}{/*                                  supplied in AP. */}
+00053 
+00054 \textcolor{comment}{/*              UPLO = 'L' or 'l'   The lower triangular part of A is */}
+00055 \textcolor{comment}{/*                                  supplied in AP. */}
+00056 
+00057 \textcolor{comment}{/*           Unchanged on exit. */}
+00058 
+00059 \textcolor{comment}{/*  N      - INTEGER. */}
+00060 \textcolor{comment}{/*           On entry, N specifies the order of the matrix A. */}
+00061 \textcolor{comment}{/*           N must be at least zero. */}
+00062 \textcolor{comment}{/*           Unchanged on exit. */}
+00063 
+00064 \textcolor{comment}{/*  ALPHA  - REAL            . */}
+00065 \textcolor{comment}{/*           On entry, ALPHA specifies the scalar alpha. */}
+00066 \textcolor{comment}{/*           Unchanged on exit. */}
+00067 
+00068 \textcolor{comment}{/*  AP     - REAL             array of DIMENSION at least */}
+00069 \textcolor{comment}{/*           ( ( n*( n + 1 ) )/2 ). */}
+00070 \textcolor{comment}{/*           Before entry with UPLO = 'U' or 'u', the array AP must */}
+00071 \textcolor{comment}{/*           contain the upper triangular part of the symmetric matrix */}
+00072 \textcolor{comment}{/*           packed sequentially, column by column, so that AP( 1 ) */}
+00073 \textcolor{comment}{/*           contains a( 1, 1 ), AP( 2 ) and AP( 3 ) contain a( 1, 2 ) */}
+00074 \textcolor{comment}{/*           and a( 2, 2 ) respectively, and so on. */}
+00075 \textcolor{comment}{/*           Before entry with UPLO = 'L' or 'l', the array AP must */}
+00076 \textcolor{comment}{/*           contain the lower triangular part of the symmetric matrix */}
+00077 \textcolor{comment}{/*           packed sequentially, column by column, so that AP( 1 ) */}
+00078 \textcolor{comment}{/*           contains a( 1, 1 ), AP( 2 ) and AP( 3 ) contain a( 2, 1 ) */}
+00079 \textcolor{comment}{/*           and a( 3, 1 ) respectively, and so on. */}
+00080 \textcolor{comment}{/*           Unchanged on exit. */}
+00081 
+00082 \textcolor{comment}{/*  X      - REAL             array of dimension at least */}
+00083 \textcolor{comment}{/*           ( 1 + ( n - 1 )*abs( INCX ) ). */}
+00084 \textcolor{comment}{/*           Before entry, the incremented array X must contain the n */}
+00085 \textcolor{comment}{/*           element vector x. */}
+00086 \textcolor{comment}{/*           Unchanged on exit. */}
+00087 
+00088 \textcolor{comment}{/*  INCX   - INTEGER. */}
+00089 \textcolor{comment}{/*           On entry, INCX specifies the increment for the elements of */}
+00090 \textcolor{comment}{/*           X. INCX must not be zero. */}
+00091 \textcolor{comment}{/*           Unchanged on exit. */}
+00092 
+00093 \textcolor{comment}{/*  BETA   - REAL            . */}
+00094 \textcolor{comment}{/*           On entry, BETA specifies the scalar beta. When BETA is */}
+00095 \textcolor{comment}{/*           supplied as zero then Y need not be set on input. */}
+00096 \textcolor{comment}{/*           Unchanged on exit. */}
+00097 
+00098 \textcolor{comment}{/*  Y      - REAL             array of dimension at least */}
+00099 \textcolor{comment}{/*           ( 1 + ( n - 1 )*abs( INCY ) ). */}
+00100 \textcolor{comment}{/*           Before entry, the incremented array Y must contain the n */}
+00101 \textcolor{comment}{/*           element vector y. On exit, Y is overwritten by the updated */}
+00102 \textcolor{comment}{/*           vector y. */}
+00103 
+00104 \textcolor{comment}{/*  INCY   - INTEGER. */}
+00105 \textcolor{comment}{/*           On entry, INCY specifies the increment for the elements of */}
+00106 \textcolor{comment}{/*           Y. INCY must not be zero. */}
+00107 \textcolor{comment}{/*           Unchanged on exit. */}
+00108 
+00109 \textcolor{comment}{/*  Further Details */}
+00110 \textcolor{comment}{/*  =============== */}
+00111 
+00112 \textcolor{comment}{/*  Level 2 Blas routine. */}
+00113 
+00114 \textcolor{comment}{/*  -- Written on 22-October-1986. */}
+00115 \textcolor{comment}{/*     Jack Dongarra, Argonne National Lab. */}
+00116 \textcolor{comment}{/*     Jeremy Du Croz, Nag Central Office. */}
+00117 \textcolor{comment}{/*     Sven Hammarling, Nag Central Office. */}
+00118 \textcolor{comment}{/*     Richard Hanson, Sandia National Labs. */}
+00119 
+00120 \textcolor{comment}{/*  ===================================================================== */}
+00121 
+00122 \textcolor{comment}{/*     .. Parameters .. */}
+00123 \textcolor{comment}{/*     .. */}
+00124 \textcolor{comment}{/*     .. Local Scalars .. */}
+00125 \textcolor{comment}{/*     .. */}
+00126 \textcolor{comment}{/*     .. External Functions .. */}
+00127 \textcolor{comment}{/*     .. */}
+00128 \textcolor{comment}{/*     .. External Subroutines .. */}
+00129 \textcolor{comment}{/*     .. */}
+00130 
+00131 \textcolor{comment}{/*     Test the input parameters. */}
+00132 
+00133     \textcolor{comment}{/* Parameter adjustments */}
+00134     --y;
+00135     --x;
+00136     --ap;
+00137 
+00138     \textcolor{comment}{/* Function Body */}
+00139     info = 0;
+00140     \textcolor{keywordflow}{if} (! lsame\_(uplo, \textcolor{stringliteral}{"U"}, (ftnlen)1, (ftnlen)1) && ! lsame\_(uplo, \textcolor{stringliteral}{"L"}, (
+00141         ftnlen)1, (ftnlen)1)) \{
+00142     info = 1;
+00143     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*n < 0) \{
+00144     info = 2;
+00145     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*incx == 0) \{
+00146     info = 6;
+00147     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*incy == 0) \{
+00148     info = 9;
+00149     \}
+00150     \textcolor{keywordflow}{if} (info != 0) \{
+00151     xerbla\_(\textcolor{stringliteral}{"SSPMV "}, &info, (ftnlen)6);
+00152     \textcolor{keywordflow}{return} 0;
+00153     \}
+00154 
+00155 \textcolor{comment}{/*     Quick return if possible. */}
+00156 
+00157     \textcolor{keywordflow}{if} (*n == 0 || (*alpha == 0.f && *beta == 1.f)) \{
+00158     \textcolor{keywordflow}{return} 0;
+00159     \}
+00160 
+00161 \textcolor{comment}{/*     Set up the start points in  X  and  Y. */}
+00162 
+00163     \textcolor{keywordflow}{if} (*incx > 0) \{
+00164     kx = 1;
+00165     \} \textcolor{keywordflow}{else} \{
+00166     kx = 1 - (*n - 1) * *incx;
+00167     \}
+00168     \textcolor{keywordflow}{if} (*incy > 0) \{
+00169     ky = 1;
+00170     \} \textcolor{keywordflow}{else} \{
+00171     ky = 1 - (*n - 1) * *incy;
+00172     \}
+00173 
+00174 \textcolor{comment}{/*     Start the operations. In this version the elements of the array AP */}
+00175 \textcolor{comment}{/*     are accessed sequentially with one pass through AP. */}
+00176 
+00177 \textcolor{comment}{/*     First form  y := beta*y. */}
+00178 
+00179     \textcolor{keywordflow}{if} (*beta != 1.f) \{
+00180     \textcolor{keywordflow}{if} (*incy == 1) \{
+00181         \textcolor{keywordflow}{if} (*beta == 0.f) \{
+00182         i\_\_1 = *n;
+00183         \textcolor{keywordflow}{for} (i\_\_ = 1; i\_\_ <= i\_\_1; ++i\_\_) \{
+00184             y[i\_\_] = 0.f;
+00185 \textcolor{comment}{/* L10: */}
+00186         \}
+00187         \} \textcolor{keywordflow}{else} \{
+00188         i\_\_1 = *n;
+00189         \textcolor{keywordflow}{for} (i\_\_ = 1; i\_\_ <= i\_\_1; ++i\_\_) \{
+00190             y[i\_\_] = *beta * y[i\_\_];
+00191 \textcolor{comment}{/* L20: */}
+00192         \}
+00193         \}
+00194     \} \textcolor{keywordflow}{else} \{
+00195         iy = ky;
+00196         \textcolor{keywordflow}{if} (*beta == 0.f) \{
+00197         i\_\_1 = *n;
+00198         \textcolor{keywordflow}{for} (i\_\_ = 1; i\_\_ <= i\_\_1; ++i\_\_) \{
+00199             y[iy] = 0.f;
+00200             iy += *incy;
+00201 \textcolor{comment}{/* L30: */}
+00202         \}
+00203         \} \textcolor{keywordflow}{else} \{
+00204         i\_\_1 = *n;
+00205         \textcolor{keywordflow}{for} (i\_\_ = 1; i\_\_ <= i\_\_1; ++i\_\_) \{
+00206             y[iy] = *beta * y[iy];
+00207             iy += *incy;
+00208 \textcolor{comment}{/* L40: */}
+00209         \}
+00210         \}
+00211     \}
+00212     \}
+00213     \textcolor{keywordflow}{if} (*alpha == 0.f) \{
+00214     \textcolor{keywordflow}{return} 0;
+00215     \}
+00216     kk = 1;
+00217     \textcolor{keywordflow}{if} (lsame\_(uplo, \textcolor{stringliteral}{"U"}, (ftnlen)1, (ftnlen)1)) \{
+00218 
+00219 \textcolor{comment}{/*        Form  y  when AP contains the upper triangle. */}
+00220 
+00221     \textcolor{keywordflow}{if} (*incx == 1 && *incy == 1) \{
+00222         i\_\_1 = *n;
+00223         \textcolor{keywordflow}{for} (j = 1; j <= i\_\_1; ++j) \{
+00224         temp1 = *alpha * x[j];
+00225         temp2 = 0.f;
+00226         k = kk;
+00227         i\_\_2 = j - 1;
+00228         \textcolor{keywordflow}{for} (i\_\_ = 1; i\_\_ <= i\_\_2; ++i\_\_) \{
+00229             y[i\_\_] += temp1 * ap[k];
+00230             temp2 += ap[k] * x[i\_\_];
+00231             ++k;
+00232 \textcolor{comment}{/* L50: */}
+00233         \}
+00234         y[j] = y[j] + temp1 * ap[kk + j - 1] + *alpha * temp2;
+00235         kk += j;
+00236 \textcolor{comment}{/* L60: */}
+00237         \}
+00238     \} \textcolor{keywordflow}{else} \{
+00239         jx = kx;
+00240         jy = ky;
+00241         i\_\_1 = *n;
+00242         \textcolor{keywordflow}{for} (j = 1; j <= i\_\_1; ++j) \{
+00243         temp1 = *alpha * x[jx];
+00244         temp2 = 0.f;
+00245         ix = kx;
+00246         iy = ky;
+00247         i\_\_2 = kk + j - 2;
+00248         \textcolor{keywordflow}{for} (k = kk; k <= i\_\_2; ++k) \{
+00249             y[iy] += temp1 * ap[k];
+00250             temp2 += ap[k] * x[ix];
+00251             ix += *incx;
+00252             iy += *incy;
+00253 \textcolor{comment}{/* L70: */}
+00254         \}
+00255         y[jy] = y[jy] + temp1 * ap[kk + j - 1] + *alpha * temp2;
+00256         jx += *incx;
+00257         jy += *incy;
+00258         kk += j;
+00259 \textcolor{comment}{/* L80: */}
+00260         \}
+00261     \}
+00262     \} \textcolor{keywordflow}{else} \{
+00263 
+00264 \textcolor{comment}{/*        Form  y  when AP contains the lower triangle. */}
+00265 
+00266     \textcolor{keywordflow}{if} (*incx == 1 && *incy == 1) \{
+00267         i\_\_1 = *n;
+00268         \textcolor{keywordflow}{for} (j = 1; j <= i\_\_1; ++j) \{
+00269         temp1 = *alpha * x[j];
+00270         temp2 = 0.f;
+00271         y[j] += temp1 * ap[kk];
+00272         k = kk + 1;
+00273         i\_\_2 = *n;
+00274         \textcolor{keywordflow}{for} (i\_\_ = j + 1; i\_\_ <= i\_\_2; ++i\_\_) \{
+00275             y[i\_\_] += temp1 * ap[k];
+00276             temp2 += ap[k] * x[i\_\_];
+00277             ++k;
+00278 \textcolor{comment}{/* L90: */}
+00279         \}
+00280         y[j] += *alpha * temp2;
+00281         kk += *n - j + 1;
+00282 \textcolor{comment}{/* L100: */}
+00283         \}
+00284     \} \textcolor{keywordflow}{else} \{
+00285         jx = kx;
+00286         jy = ky;
+00287         i\_\_1 = *n;
+00288         \textcolor{keywordflow}{for} (j = 1; j <= i\_\_1; ++j) \{
+00289         temp1 = *alpha * x[jx];
+00290         temp2 = 0.f;
+00291         y[jy] += temp1 * ap[kk];
+00292         ix = jx;
+00293         iy = jy;
+00294         i\_\_2 = kk + *n - j;
+00295         \textcolor{keywordflow}{for} (k = kk + 1; k <= i\_\_2; ++k) \{
+00296             ix += *incx;
+00297             iy += *incy;
+00298             y[iy] += temp1 * ap[k];
+00299             temp2 += ap[k] * x[ix];
+00300 \textcolor{comment}{/* L110: */}
+00301         \}
+00302         y[jy] += *alpha * temp2;
+00303         jx += *incx;
+00304         jy += *incy;
+00305         kk += *n - j + 1;
+00306 \textcolor{comment}{/* L120: */}
+00307         \}
+00308     \}
+00309     \}
+00310 
+00311     \textcolor{keywordflow}{return} 0;
+00312 
+00313 \textcolor{comment}{/*     End of SSPMV . */}
+00314 
+00315 \} \textcolor{comment}{/* sspmv\_ */}
+00316 
+\end{DoxyCode}

@@ -1,0 +1,1186 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_product_evaluators_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Core/\+Product\+Evaluators.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_product_evaluators_8h_source}\index{Product\+Evaluators.\+h@{Product\+Evaluators.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2006-2008 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{// Copyright (C) 2008-2010 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00006 \textcolor{comment}{// Copyright (C) 2011 Jitse Niesen <jitse@maths.leeds.ac.uk>}
+00007 \textcolor{comment}{//}
+00008 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00009 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00010 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00011 
+00012 
+00013 \textcolor{preprocessor}{#ifndef EIGEN\_PRODUCTEVALUATORS\_H}
+00014 \textcolor{preprocessor}{#define EIGEN\_PRODUCTEVALUATORS\_H}
+00015 
+00016 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00017   
+00018 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00019 
+00028 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Options>
+00029 \textcolor{keyword}{struct }evaluator<Product<Lhs, Rhs, Options> > 
+00030  : \textcolor{keyword}{public} product\_evaluator<Product<Lhs, Rhs, Options> >
+00031 \{
+00032   \textcolor{keyword}{typedef} Product<Lhs, Rhs, Options> XprType;
+00033   \textcolor{keyword}{typedef} product\_evaluator<XprType> Base;
+00034   
+00035   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{explicit} evaluator(\textcolor{keyword}{const} XprType& xpr) : Base(xpr) \{\}
+00036 \};
+00037  
+00038 \textcolor{comment}{// Catch "scalar * ( A * B )" and transform it to "(A*scalar) * B"}
+00039 \textcolor{comment}{// TODO we should apply that rule only if that's really helpful}
+00040 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Scalar1, \textcolor{keyword}{typename} Scalar2, \textcolor{keyword}{typename} Plain1>
+00041 \textcolor{keyword}{struct }evaluator\_assume\_aliasing<CwiseBinaryOp<\hyperlink{namespaceinternal}{internal}::scalar\_product\_op<Scalar1,Scalar2>,
+00042                                                const CwiseNullaryOp<internal::scalar\_constant\_op<Scalar1>, 
+      Plain1>,
+00043                                                const Product<Lhs, Rhs, DefaultProduct> > >
+00044 \{
+00045   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} value = \textcolor{keyword}{true};
+00046 \};
+00047 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Scalar1, \textcolor{keyword}{typename} Scalar2, \textcolor{keyword}{typename} Plain1>
+00048 \textcolor{keyword}{struct }evaluator<CwiseBinaryOp<\hyperlink{namespaceinternal}{internal}::scalar\_product\_op<Scalar1,Scalar2>,
+00049                                const CwiseNullaryOp<internal::scalar\_constant\_op<Scalar1>, Plain1>,
+00050                                const Product<Lhs, Rhs, DefaultProduct> > >
+00051  : \textcolor{keyword}{public} evaluator<Product<EIGEN\_SCALAR\_BINARYOP\_EXPR\_RETURN\_TYPE(Scalar1,Lhs,product), Rhs, DefaultProduc
+      t> >
+00052 \{
+00053   \textcolor{keyword}{typedef} CwiseBinaryOp<internal::scalar\_product\_op<Scalar1,Scalar2>,
+00054                                \textcolor{keyword}{const} CwiseNullaryOp<internal::scalar\_constant\_op<Scalar1>, Plain1>,
+00055                                \textcolor{keyword}{const} Product<Lhs, Rhs, DefaultProduct> > XprType;
+00056   \textcolor{keyword}{typedef} evaluator<Product<EIGEN\_SCALAR\_BINARYOP\_EXPR\_RETURN\_TYPE(Scalar1,Lhs,product), Rhs,
+       DefaultProduct> > Base;
+00057 
+00058   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{explicit} evaluator(\textcolor{keyword}{const} XprType& xpr)
+00059     : Base(xpr.lhs().functor().m\_other * xpr.rhs().lhs() * xpr.rhs().rhs())
+00060   \{\}
+00061 \};
+00062 
+00063 
+00064 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} DiagIndex>
+00065 \textcolor{keyword}{struct }evaluator<Diagonal<const Product<Lhs, Rhs, DefaultProduct>, DiagIndex> > 
+00066  : \textcolor{keyword}{public} evaluator<Diagonal<const Product<Lhs, Rhs, LazyProduct>, DiagIndex> >
+00067 \{
+00068   \textcolor{keyword}{typedef} Diagonal<const Product<Lhs, Rhs, DefaultProduct>, DiagIndex> XprType;
+00069   \textcolor{keyword}{typedef} evaluator<Diagonal<const Product<Lhs, Rhs, LazyProduct>, DiagIndex> > Base;
+00070   
+00071   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{explicit} evaluator(\textcolor{keyword}{const} XprType& xpr)
+00072     : Base(Diagonal<const Product<Lhs, Rhs, LazyProduct>, DiagIndex>(
+00073         Product<Lhs, Rhs, LazyProduct>(xpr.nestedExpression().lhs(), xpr.nestedExpression().rhs()),
+00074         xpr.index() ))
+00075   \{\}
+00076 \};
+00077 
+00078 
+00079 \textcolor{comment}{// Helper class to perform a matrix product with the destination at hand.}
+00080 \textcolor{comment}{// Depending on the sizes of the factors, there are different evaluation strategies}
+00081 \textcolor{comment}{// as controlled by internal::product\_type.}
+00082 \textcolor{keyword}{template}< \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs,
+00083           \textcolor{keyword}{typename} LhsShape = \textcolor{keyword}{typename} evaluator\_traits<Lhs>::Shape,
+00084           \textcolor{keyword}{typename} RhsShape = \textcolor{keyword}{typename} evaluator\_traits<Rhs>::Shape,
+00085           \textcolor{keywordtype}{int} ProductType = internal::product\_type<Lhs,Rhs>::value>
+00086 \textcolor{keyword}{struct }generic\_product\_impl;
+00087 
+00088 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs>
+00089 \textcolor{keyword}{struct }evaluator\_assume\_aliasing<Product<Lhs, Rhs, DefaultProduct> > \{
+00090   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} value = \textcolor{keyword}{true};
+00091 \};
+00092 
+00093 \textcolor{comment}{// This is the default evaluator implementation for products:}
+00094 \textcolor{comment}{// It creates a temporary and call generic\_product\_impl}
+00095 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Options, \textcolor{keywordtype}{int} ProductTag, \textcolor{keyword}{typename} LhsShape, \textcolor{keyword}{typename} RhsShape>
+00096 \textcolor{keyword}{struct }product\_evaluator<Product<Lhs, Rhs, Options>, ProductTag, LhsShape, RhsShape>
+00097   : \textcolor{keyword}{public} evaluator<typename Product<Lhs, Rhs, Options>::PlainObject>
+00098 \{
+00099   \textcolor{keyword}{typedef} Product<Lhs, Rhs, Options> XprType;
+00100   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::PlainObject PlainObject;
+00101   \textcolor{keyword}{typedef} evaluator<PlainObject> Base;
+00102   \textcolor{keyword}{enum} \{
+00103     Flags = Base::Flags | \hyperlink{group__flags_gaa34e83bae46a8eeae4e69ebe3aaecbed}{EvalBeforeNestingBit}
+00104   \};
+00105 
+00106   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00107   \textcolor{keyword}{explicit} product\_evaluator(\textcolor{keyword}{const} XprType& xpr)
+00108     : m\_result(xpr.rows(), xpr.cols())
+00109   \{
+00110     ::new (static\_cast<Base*>(\textcolor{keyword}{this})) Base(m\_result);
+00111     
+00112 \textcolor{comment}{// FIXME shall we handle nested\_eval here?,}
+00113 \textcolor{comment}{// if so, then we must take care at removing the call to nested\_eval in the specializations (e.g., in
+       permutation\_matrix\_product, transposition\_matrix\_product, etc.)}
+00114 \textcolor{comment}{//     typedef typename internal::nested\_eval<Lhs,Rhs::ColsAtCompileTime>::type LhsNested;}
+00115 \textcolor{comment}{//     typedef typename internal::nested\_eval<Rhs,Lhs::RowsAtCompileTime>::type RhsNested;}
+00116 \textcolor{comment}{//     typedef typename internal::remove\_all<LhsNested>::type LhsNestedCleaned;}
+00117 \textcolor{comment}{//     typedef typename internal::remove\_all<RhsNested>::type RhsNestedCleaned;}
+00118 \textcolor{comment}{//     }
+00119 \textcolor{comment}{//     const LhsNested lhs(xpr.lhs());}
+00120 \textcolor{comment}{//     const RhsNested rhs(xpr.rhs());}
+00121 \textcolor{comment}{//   }
+00122 \textcolor{comment}{//     generic\_product\_impl<LhsNestedCleaned, RhsNestedCleaned>::evalTo(m\_result, lhs, rhs);}
+00123 
+00124     generic\_product\_impl<Lhs, Rhs, LhsShape, RhsShape, ProductTag>::evalTo(m\_result, xpr.lhs(), xpr.rhs());
+00125   \}
+00126   
+00127 protected:  
+00128   PlainObject m\_result;
+00129 \};
+00130 
+00131 \textcolor{comment}{// The following three shortcuts are enabled only if the scalar types match excatly.}
+00132 \textcolor{comment}{// TODO: we could enable them for different scalar types when the product is not vectorized.}
+00133 
+00134 \textcolor{comment}{// Dense = Product}
+00135 template< typename DstXprType, typename Lhs, typename Rhs, \textcolor{keywordtype}{int} Options, typename Scalar>
+00136 struct Assignment<DstXprType, Product<Lhs,Rhs,Options>, \hyperlink{namespaceinternal}{internal}::assign\_op<Scalar,Scalar>, 
+      Dense2Dense,
+00137   typename enable\_if<(Options==DefaultProduct || Options==AliasFreeProduct)>::type>
+00138 \{
+00139   \textcolor{keyword}{typedef} Product<Lhs,Rhs,Options> SrcXprType;
+00140   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE
+00141   \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} internal::assign\_op<Scalar,Scalar> &)
+00142   \{
+00143     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} dstRows = src.rows();
+00144     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} dstCols = src.cols();
+00145     \textcolor{keywordflow}{if}((dst.rows()!=dstRows) || (dst.cols()!=dstCols))
+00146       dst.resize(dstRows, dstCols);
+00147     \textcolor{comment}{// FIXME shall we handle nested\_eval here?}
+00148     generic\_product\_impl<Lhs, Rhs>::evalTo(dst, src.lhs(), src.rhs());
+00149   \}
+00150 \};
+00151 
+00152 \textcolor{comment}{// Dense += Product}
+00153 \textcolor{keyword}{template}< \textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Options, \textcolor{keyword}{typename} Scalar>
+00154 \textcolor{keyword}{struct }Assignment<DstXprType, Product<Lhs,Rhs,Options>, \hyperlink{namespaceinternal}{internal}::add\_assign\_op<Scalar,Scalar>, 
+      Dense2Dense,
+00155   typename enable\_if<(Options==DefaultProduct || Options==AliasFreeProduct)>::type>
+00156 \{
+00157   \textcolor{keyword}{typedef} Product<Lhs,Rhs,Options> SrcXprType;
+00158   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE
+00159   \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} internal::add\_assign\_op<Scalar,Scalar> &)
+00160   \{
+00161     eigen\_assert(dst.rows() == src.rows() && dst.cols() == src.cols());
+00162     \textcolor{comment}{// FIXME shall we handle nested\_eval here?}
+00163     generic\_product\_impl<Lhs, Rhs>::addTo(dst, src.lhs(), src.rhs());
+00164   \}
+00165 \};
+00166 
+00167 \textcolor{comment}{// Dense -= Product}
+00168 \textcolor{keyword}{template}< \textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Options, \textcolor{keyword}{typename} Scalar>
+00169 \textcolor{keyword}{struct }Assignment<DstXprType, Product<Lhs,Rhs,Options>, \hyperlink{namespaceinternal}{internal}::sub\_assign\_op<Scalar,Scalar>, 
+      Dense2Dense,
+00170   typename enable\_if<(Options==DefaultProduct || Options==AliasFreeProduct)>::type>
+00171 \{
+00172   \textcolor{keyword}{typedef} Product<Lhs,Rhs,Options> SrcXprType;
+00173   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE
+00174   \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} internal::sub\_assign\_op<Scalar,Scalar> &)
+00175   \{
+00176     eigen\_assert(dst.rows() == src.rows() && dst.cols() == src.cols());
+00177     \textcolor{comment}{// FIXME shall we handle nested\_eval here?}
+00178     generic\_product\_impl<Lhs, Rhs>::subTo(dst, src.lhs(), src.rhs());
+00179   \}
+00180 \};
+00181 
+00182 
+00183 \textcolor{comment}{// Dense ?= scalar * Product}
+00184 \textcolor{comment}{// TODO we should apply that rule if that's really helpful}
+00185 \textcolor{comment}{// for instance, this is not good for inner products}
+00186 \textcolor{keyword}{template}< \textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} AssignFunc, \textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} S
+      calarBis, \textcolor{keyword}{typename} Plain>
+00187 \textcolor{keyword}{struct }Assignment<DstXprType, CwiseBinaryOp<\hyperlink{namespaceinternal}{internal}::scalar\_product\_op<ScalarBis,Scalar>, const 
+      CwiseNullaryOp<internal::scalar\_constant\_op<ScalarBis>,Plain>,
+00188                                            const Product<Lhs,Rhs,DefaultProduct> >, AssignFunc, Dense2Dense
+      >
+00189 \{
+00190   \textcolor{keyword}{typedef} CwiseBinaryOp<internal::scalar\_product\_op<ScalarBis,Scalar>,
+00191                         \textcolor{keyword}{const} CwiseNullaryOp<internal::scalar\_constant\_op<ScalarBis>,Plain>,
+00192                         \textcolor{keyword}{const} Product<Lhs,Rhs,DefaultProduct> > SrcXprType;
+00193   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE
+00194   \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} AssignFunc& \hyperlink{structfunc}{func})
+00195   \{
+00196     call\_assignment\_no\_alias(dst, (src.lhs().functor().m\_other * src.rhs().lhs())*src.rhs().rhs(), func);
+00197   \}
+00198 \};
+00199 
+00200 \textcolor{comment}{//----------------------------------------}
+00201 \textcolor{comment}{// Catch "Dense ?= xpr + Product<>" expression to save one temporary}
+00202 \textcolor{comment}{// FIXME we could probably enable these rules for any product, i.e., not only Dense and DefaultProduct}
+00203 
+00204 \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherXpr, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs>
+00205 \textcolor{keyword}{struct }evaluator\_assume\_aliasing<CwiseBinaryOp<\hyperlink{namespaceinternal}{internal}::scalar\_sum\_op<typename OtherXpr::Scalar,ty
+      pename Product<Lhs,Rhs,DefaultProduct>::Scalar>, const OtherXpr,
+00206                                                const Product<Lhs,Rhs,DefaultProduct> >, DenseShape > \{
+00207   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} value = \textcolor{keyword}{true};
+00208 \};
+00209 
+00210 \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherXpr, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs>
+00211 \textcolor{keyword}{struct }evaluator\_assume\_aliasing<CwiseBinaryOp<\hyperlink{namespaceinternal}{internal}::scalar\_difference\_op<typename OtherXpr::Sc
+      alar,typename Product<Lhs,Rhs,DefaultProduct>::Scalar>, const OtherXpr,
+00212                                                const Product<Lhs,Rhs,DefaultProduct> >, DenseShape > \{
+00213   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} value = \textcolor{keyword}{true};
+00214 \};
+00215 
+00216 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} OtherXpr, \textcolor{keyword}{typename} ProductType, \textcolor{keyword}{typename} Func1, \textcolor{keyword}{typename} Func2>
+00217 \textcolor{keyword}{struct }assignment\_from\_xpr\_op\_product
+00218 \{
+00219   \textcolor{keyword}{template}<\textcolor{keyword}{typename} SrcXprType, \textcolor{keyword}{typename} InitialFunc>
+00220   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE
+00221   \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} InitialFunc& \textcolor{comment}{/*func*/})
+00222   \{
+00223     call\_assignment\_no\_alias(dst, src.lhs(), Func1());
+00224     call\_assignment\_no\_alias(dst, src.rhs(), Func2());
+00225   \}
+00226 \};
+00227 
+00228 \textcolor{preprocessor}{#define EIGEN\_CATCH\_ASSIGN\_XPR\_OP\_PRODUCT(ASSIGN\_OP,BINOP,ASSIGN\_OP2) \(\backslash\)}
+00229 \textcolor{preprocessor}{  template< typename DstXprType, typename OtherXpr, typename Lhs, typename Rhs, typename DstScalar,
+       typename SrcScalar, typename OtherScalar,typename ProdScalar> \(\backslash\)}
+00230 \textcolor{preprocessor}{  struct Assignment<DstXprType, CwiseBinaryOp<internal::BINOP<OtherScalar,ProdScalar>, const OtherXpr, \(\backslash\)}
+00231 \textcolor{preprocessor}{                                            const Product<Lhs,Rhs,DefaultProduct> >,
+       internal::ASSIGN\_OP<DstScalar,SrcScalar>, Dense2Dense> \(\backslash\)}
+00232 \textcolor{preprocessor}{    : assignment\_from\_xpr\_op\_product<DstXprType, OtherXpr, Product<Lhs,Rhs,DefaultProduct>,
+       internal::ASSIGN\_OP<DstScalar,OtherScalar>, internal::ASSIGN\_OP2<DstScalar,ProdScalar> > \(\backslash\)}
+00233 \textcolor{preprocessor}{  \{\}}
+00234 
+00235 EIGEN\_CATCH\_ASSIGN\_XPR\_OP\_PRODUCT(assign\_op,    scalar\_sum\_op,add\_assign\_op);
+00236 EIGEN\_CATCH\_ASSIGN\_XPR\_OP\_PRODUCT(add\_assign\_op,scalar\_sum\_op,add\_assign\_op);
+00237 EIGEN\_CATCH\_ASSIGN\_XPR\_OP\_PRODUCT(sub\_assign\_op,scalar\_sum\_op,sub\_assign\_op);
+00238 
+00239 EIGEN\_CATCH\_ASSIGN\_XPR\_OP\_PRODUCT(assign\_op,    scalar\_difference\_op,sub\_assign\_op);
+00240 EIGEN\_CATCH\_ASSIGN\_XPR\_OP\_PRODUCT(add\_assign\_op,scalar\_difference\_op,sub\_assign\_op);
+00241 EIGEN\_CATCH\_ASSIGN\_XPR\_OP\_PRODUCT(sub\_assign\_op,scalar\_difference\_op,add\_assign\_op);
+00242 
+00243 \textcolor{comment}{//----------------------------------------}
+00244 
+00245 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs>
+00246 \textcolor{keyword}{struct }generic\_product\_impl<Lhs,Rhs,DenseShape,DenseShape,InnerProduct>
+00247 \{
+00248   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst>
+00249   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} evalTo(Dst& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+00250   \{
+00251     dst.coeffRef(0,0) = (lhs.transpose().cwiseProduct(rhs)).sum();
+00252   \}
+00253   
+00254   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst>
+00255   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} addTo(Dst& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+00256   \{
+00257     dst.coeffRef(0,0) += (lhs.transpose().cwiseProduct(rhs)).sum();
+00258   \}
+00259   
+00260   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst>
+00261   \textcolor{keyword}{static} \textcolor{keywordtype}{void} subTo(Dst& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+00262   \{ dst.coeffRef(0,0) -= (lhs.transpose().cwiseProduct(rhs)).sum(); \}
+00263 \};
+00264 
+00265 
+00266 \textcolor{comment}{/***********************************************************************}
+00267 \textcolor{comment}{*  Implementation of outer dense * dense vector product}
+00268 \textcolor{comment}{***********************************************************************/}
+00269 
+00270 \textcolor{comment}{// Column major result}
+00271 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Func>
+00272 \textcolor{keywordtype}{void} outer\_product\_selector\_run(Dst& dst, \textcolor{keyword}{const} Lhs &lhs, \textcolor{keyword}{const} Rhs &rhs, \textcolor{keyword}{const} Func& func, \textcolor{keyword}{const} 
+      false\_type&)
+00273 \{
+00274   evaluator<Rhs> rhsEval(rhs);
+00275   \textcolor{keyword}{typename} nested\_eval<Lhs,Rhs::SizeAtCompileTime>::type actual\_lhs(lhs);
+00276   \textcolor{comment}{// FIXME if cols is large enough, then it might be useful to make sure that lhs is sequentially stored}
+00277   \textcolor{comment}{// FIXME not very good if rhs is real and lhs complex while alpha is real too}
+00278   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols = dst.cols();
+00279   \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j=0; j<cols; ++j)
+00280     func(dst.col(j), rhsEval.coeff(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(0),j) * actual\_lhs);
+00281 \}
+00282 
+00283 \textcolor{comment}{// Row major result}
+00284 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Func>
+00285 \textcolor{keywordtype}{void} outer\_product\_selector\_run(Dst& dst, \textcolor{keyword}{const} Lhs &lhs, \textcolor{keyword}{const} Rhs &rhs, \textcolor{keyword}{const} Func& func, \textcolor{keyword}{const} true\_type
+      &)
+00286 \{
+00287   evaluator<Lhs> lhsEval(lhs);
+00288   \textcolor{keyword}{typename} nested\_eval<Rhs,Lhs::SizeAtCompileTime>::type actual\_rhs(rhs);
+00289   \textcolor{comment}{// FIXME if rows is large enough, then it might be useful to make sure that rhs is sequentially stored}
+00290   \textcolor{comment}{// FIXME not very good if lhs is real and rhs complex while alpha is real too}
+00291   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows = dst.rows();
+00292   \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=0; i<rows; ++i)
+00293     func(dst.row(i), lhsEval.coeff(i,\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(0)) * actual\_rhs);
+00294 \}
+00295 
+00296 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs>
+00297 \textcolor{keyword}{struct }generic\_product\_impl<Lhs,Rhs,DenseShape,DenseShape,OuterProduct>
+00298 \{
+00299   \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> \textcolor{keyword}{struct }is\_row\_major : internal::conditional<(int(T::Flags)&RowMajorBit), internal::t
+      rue\_type, internal::false\_type>::type \{\};
+00300   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Product<Lhs,Rhs>::Scalar Scalar;
+00301   
+00302   \textcolor{comment}{// TODO it would be nice to be able to exploit our *\_assign\_op functors for that purpose}
+00303   \textcolor{keyword}{struct }set  \{ \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst, \textcolor{keyword}{typename} Src> \textcolor{keywordtype}{void} operator()(\textcolor{keyword}{const} Dst& dst, \textcolor{keyword}{const} Src& src)\textcolor{keyword}{ const }
+      \{ dst.const\_cast\_derived()  = src; \} \};
+00304   \textcolor{keyword}{struct }add  \{ \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst, \textcolor{keyword}{typename} Src> \textcolor{keywordtype}{void} operator()(\textcolor{keyword}{const} Dst& dst, \textcolor{keyword}{const} Src& src)\textcolor{keyword}{ const }
+      \{ dst.const\_cast\_derived() += src; \} \};
+00305   \textcolor{keyword}{struct }sub  \{ \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst, \textcolor{keyword}{typename} Src> \textcolor{keywordtype}{void} operator()(\textcolor{keyword}{const} Dst& dst, \textcolor{keyword}{const} Src& src)\textcolor{keyword}{ const }
+      \{ dst.const\_cast\_derived() -= src; \} \};
+00306   \textcolor{keyword}{struct }adds \{
+00307     Scalar m\_scale;
+00308     \textcolor{keyword}{explicit} adds(\textcolor{keyword}{const} Scalar& s) : m\_scale(s) \{\}
+00309     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst, \textcolor{keyword}{typename} Src> \textcolor{keywordtype}{void} operator()(\textcolor{keyword}{const} Dst& dst, \textcolor{keyword}{const} Src& src)\textcolor{keyword}{ const }\{
+00310       dst.const\_cast\_derived() += m\_scale * src;
+00311     \}
+00312   \};
+00313   
+00314   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst>
+00315   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} evalTo(Dst& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+00316   \{
+00317     internal::outer\_product\_selector\_run(dst, lhs, rhs, \textcolor{keyword}{set}(), is\_row\_major<Dst>());
+00318   \}
+00319   
+00320   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst>
+00321   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} addTo(Dst& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+00322   \{
+00323     internal::outer\_product\_selector\_run(dst, lhs, rhs, add(), is\_row\_major<Dst>());
+00324   \}
+00325   
+00326   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst>
+00327   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} subTo(Dst& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+00328   \{
+00329     internal::outer\_product\_selector\_run(dst, lhs, rhs, sub(), is\_row\_major<Dst>());
+00330   \}
+00331   
+00332   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst>
+00333   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} scaleAndAddTo(Dst& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, \textcolor{keyword}{const} Scalar& alpha)
+00334   \{
+00335     internal::outer\_product\_selector\_run(dst, lhs, rhs, adds(alpha), is\_row\_major<Dst>());
+00336   \}
+00337   
+00338 \};
+00339 
+00340 
+00341 \textcolor{comment}{// This base class provides default implementations for evalTo, addTo, subTo, in terms of scaleAndAddTo}
+00342 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Derived>
+00343 \textcolor{keyword}{struct }generic\_product\_impl\_base
+00344 \{
+00345   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Product<Lhs,Rhs>::Scalar Scalar;
+00346   
+00347   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst>
+00348   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} evalTo(Dst& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+00349   \{ dst.setZero(); scaleAndAddTo(dst, lhs, rhs, Scalar(1)); \}
+00350 
+00351   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst>
+00352   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} addTo(Dst& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+00353   \{ scaleAndAddTo(dst,lhs, rhs, Scalar(1)); \}
+00354 
+00355   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst>
+00356   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} subTo(Dst& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+00357   \{ scaleAndAddTo(dst, lhs, rhs, Scalar(-1)); \}
+00358   
+00359   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst>
+00360   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} scaleAndAddTo(Dst& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, \textcolor{keyword}{const} Scalar& 
+      alpha)
+00361   \{ Derived::scaleAndAddTo(dst,lhs,rhs,alpha); \}
+00362 
+00363 \};
+00364 
+00365 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs>
+00366 \textcolor{keyword}{struct }generic\_product\_impl<Lhs,Rhs,DenseShape,DenseShape,GemvProduct>
+00367   : generic\_product\_impl\_base<Lhs,Rhs,generic\_product\_impl<Lhs,Rhs,DenseShape,DenseShape,GemvProduct> >
+00368 \{
+00369   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} nested\_eval<Lhs,1>::type LhsNested;
+00370   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} nested\_eval<Rhs,1>::type RhsNested;
+00371   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Product<Lhs,Rhs>::Scalar Scalar;
+00372   \textcolor{keyword}{enum} \{ Side = Lhs::IsVectorAtCompileTime ? \hyperlink{group__enums_ggac22de43beeac7a78b384f99bed5cee0ba129609b3bdf23b071f5f86cf2f995ec4}{OnTheLeft} : \hyperlink{group__enums_ggac22de43beeac7a78b384f99bed5cee0ba99dc75d8e00b6c3a5bdc31940f47492b}{OnTheRight} \};
+00373   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_all<typename
+       internal::conditional<int(Side)==OnTheRight,LhsNested,RhsNested>::type>::type MatrixType;
+00374 
+00375   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00376   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} scaleAndAddTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, \textcolor{keyword}{const} Scalar& 
+      alpha)
+00377   \{
+00378     LhsNested actual\_lhs(lhs);
+00379     RhsNested actual\_rhs(rhs);
+00380     internal::gemv\_dense\_selector<Side,
+00381                             (int(MatrixType::Flags)&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}) ? 
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor} : \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor},
+00382                             \textcolor{keywordtype}{bool}(internal::blas\_traits<MatrixType>::HasUsableDirectAccess)
+00383                            >::run(actual\_lhs, actual\_rhs, dst, alpha);
+00384   \}
+00385 \};
+00386 
+00387 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs>
+00388 \textcolor{keyword}{struct }generic\_product\_impl<Lhs,Rhs,DenseShape,DenseShape,CoeffBasedProductMode> 
+00389 \{
+00390   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Product<Lhs,Rhs>::Scalar Scalar;
+00391   
+00392   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst>
+00393   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} evalTo(Dst& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+00394   \{
+00395     \textcolor{comment}{// Same as: dst.noalias() = lhs.lazyProduct(rhs);}
+00396     \textcolor{comment}{// but easier on the compiler side}
+00397     call\_assignment\_no\_alias(dst, lhs.lazyProduct(rhs), internal::assign\_op<typename Dst::Scalar,Scalar>())
+      ;
+00398   \}
+00399   
+00400   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst>
+00401   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} addTo(Dst& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+00402   \{
+00403     \textcolor{comment}{// dst.noalias() += lhs.lazyProduct(rhs);}
+00404     call\_assignment\_no\_alias(dst, lhs.lazyProduct(rhs), internal::add\_assign\_op<typename
+       Dst::Scalar,Scalar>());
+00405   \}
+00406   
+00407   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dst>
+00408   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} subTo(Dst& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+00409   \{
+00410     \textcolor{comment}{// dst.noalias() -= lhs.lazyProduct(rhs);}
+00411     call\_assignment\_no\_alias(dst, lhs.lazyProduct(rhs), internal::sub\_assign\_op<typename
+       Dst::Scalar,Scalar>());
+00412   \}
+00413   
+00414 \textcolor{comment}{//   template<typename Dst>}
+00415 \textcolor{comment}{//   static inline void scaleAndAddTo(Dst& dst, const Lhs& lhs, const Rhs& rhs, const Scalar& alpha)}
+00416 \textcolor{comment}{//   \{ dst.noalias() += alpha * lhs.lazyProduct(rhs); \}}
+00417 \};
+00418 
+00419 \textcolor{comment}{// This specialization enforces the use of a coefficient-based evaluation strategy}
+00420 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs>
+00421 \textcolor{keyword}{struct }generic\_product\_impl<Lhs,Rhs,DenseShape,DenseShape,LazyCoeffBasedProductMode>
+00422   : generic\_product\_impl<Lhs,Rhs,DenseShape,DenseShape,CoeffBasedProductMode> \{\};
+00423 
+00424 \textcolor{comment}{// Case 2: Evaluate coeff by coeff}
+00425 \textcolor{comment}{//}
+00426 \textcolor{comment}{// This is mostly taken from CoeffBasedProduct.h}
+00427 \textcolor{comment}{// The main difference is that we add an extra argument to the etor\_product\_*\_impl::run() function}
+00428 \textcolor{comment}{// for the inner dimension of the product, because evaluator object do not know their size.}
+00429 
+00430 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Traversal, \textcolor{keywordtype}{int} UnrollingIndex, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} RetScalar>
+00431 \textcolor{keyword}{struct }etor\_product\_coeff\_impl;
+00432 
+00433 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} StorageOrder, \textcolor{keywordtype}{int} UnrollingIndex, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Packet, \textcolor{keywordtype}{int} LoadMode>
+00434 \textcolor{keyword}{struct }etor\_product\_packet\_impl;
+00435 
+00436 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductTag>
+00437 \textcolor{keyword}{struct }product\_evaluator<Product<Lhs, Rhs, LazyProduct>, ProductTag, DenseShape, DenseShape>
+00438     : evaluator\_base<Product<Lhs, Rhs, LazyProduct> >
+00439 \{
+00440   \textcolor{keyword}{typedef} Product<Lhs, Rhs, LazyProduct> XprType;
+00441   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Scalar Scalar;
+00442   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::CoeffReturnType CoeffReturnType;
+00443 
+00444   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00445   \textcolor{keyword}{explicit} product\_evaluator(\textcolor{keyword}{const} XprType& xpr)
+00446     : m\_lhs(xpr.lhs()),
+00447       m\_rhs(xpr.rhs()),
+00448       m\_lhsImpl(m\_lhs),     \textcolor{comment}{// FIXME the creation of the evaluator objects should result in a no-op, but
+       check that!}
+00449       m\_rhsImpl(m\_rhs),     \textcolor{comment}{//       Moreover, they are only useful for the packet path, so we could
+       completely disable them when not needed,}
+00450                             \textcolor{comment}{//       or perhaps declare them on the fly on the packet method... We have
+       experiment to check what's best.}
+00451       m\_innerDim(xpr.lhs().cols())
+00452   \{
+00453     EIGEN\_INTERNAL\_CHECK\_COST\_VALUE(NumTraits<Scalar>::MulCost);
+00454     EIGEN\_INTERNAL\_CHECK\_COST\_VALUE(NumTraits<Scalar>::AddCost);
+00455     EIGEN\_INTERNAL\_CHECK\_COST\_VALUE(CoeffReadCost);
+00456 \textcolor{preprocessor}{#if 0}
+00457     std::cerr << \textcolor{stringliteral}{"LhsOuterStrideBytes=  "} << LhsOuterStrideBytes << \textcolor{stringliteral}{"\(\backslash\)n"};
+00458     std::cerr << \textcolor{stringliteral}{"RhsOuterStrideBytes=  "} << RhsOuterStrideBytes << \textcolor{stringliteral}{"\(\backslash\)n"};
+00459     std::cerr << \textcolor{stringliteral}{"LhsAlignment=         "} << LhsAlignment << \textcolor{stringliteral}{"\(\backslash\)n"};
+00460     std::cerr << \textcolor{stringliteral}{"RhsAlignment=         "} << RhsAlignment << \textcolor{stringliteral}{"\(\backslash\)n"};
+00461     std::cerr << \textcolor{stringliteral}{"CanVectorizeLhs=      "} << CanVectorizeLhs << \textcolor{stringliteral}{"\(\backslash\)n"};
+00462     std::cerr << \textcolor{stringliteral}{"CanVectorizeRhs=      "} << CanVectorizeRhs << \textcolor{stringliteral}{"\(\backslash\)n"};
+00463     std::cerr << \textcolor{stringliteral}{"CanVectorizeInner=    "} << CanVectorizeInner << \textcolor{stringliteral}{"\(\backslash\)n"};
+00464     std::cerr << \textcolor{stringliteral}{"EvalToRowMajor=       "} << EvalToRowMajor << \textcolor{stringliteral}{"\(\backslash\)n"};
+00465     std::cerr << \textcolor{stringliteral}{"Alignment=            "} << Alignment << \textcolor{stringliteral}{"\(\backslash\)n"};
+00466     std::cerr << \textcolor{stringliteral}{"Flags=                "} << Flags << \textcolor{stringliteral}{"\(\backslash\)n"};
+00467 \textcolor{preprocessor}{#endif}
+00468   \}
+00469 
+00470   \textcolor{comment}{// Everything below here is taken from CoeffBasedProduct.h}
+00471 
+00472   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::nested\_eval<Lhs,Rhs::ColsAtCompileTime>::type LhsNested;
+00473   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::nested\_eval<Rhs,Lhs::RowsAtCompileTime>::type RhsNested;
+00474   
+00475   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_all<LhsNested>::type LhsNestedCleaned;
+00476   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_all<RhsNested>::type RhsNestedCleaned;
+00477 
+00478   \textcolor{keyword}{typedef} evaluator<LhsNestedCleaned> LhsEtorType;
+00479   \textcolor{keyword}{typedef} evaluator<RhsNestedCleaned> RhsEtorType;
+00480 
+00481   \textcolor{keyword}{enum} \{
+00482     RowsAtCompileTime = LhsNestedCleaned::RowsAtCompileTime,
+00483     ColsAtCompileTime = RhsNestedCleaned::ColsAtCompileTime,
+00484     InnerSize = EIGEN\_SIZE\_MIN\_PREFER\_FIXED(LhsNestedCleaned::ColsAtCompileTime, 
+      RhsNestedCleaned::RowsAtCompileTime),
+00485     MaxRowsAtCompileTime = LhsNestedCleaned::MaxRowsAtCompileTime,
+00486     MaxColsAtCompileTime = RhsNestedCleaned::MaxColsAtCompileTime
+00487   \};
+00488 
+00489   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} find\_best\_packet<Scalar,RowsAtCompileTime>::type LhsVecPacketType;
+00490   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} find\_best\_packet<Scalar,ColsAtCompileTime>::type RhsVecPacketType;
+00491 
+00492   \textcolor{keyword}{enum} \{
+00493       
+00494     LhsCoeffReadCost = LhsEtorType::CoeffReadCost,
+00495     RhsCoeffReadCost = RhsEtorType::CoeffReadCost,
+00496     CoeffReadCost = InnerSize==0 ? NumTraits<Scalar>::ReadCost
+00497                   : InnerSize == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} ? \hyperlink{namespace_eigen_a3163430a1c13173faffde69016b48aaf}{HugeCost}
+00498                   : InnerSize * (NumTraits<Scalar>::MulCost + LhsCoeffReadCost + RhsCoeffReadCost)
+00499                     + (InnerSize - 1) * NumTraits<Scalar>::AddCost,
+00500 
+00501     Unroll = CoeffReadCost <= EIGEN\_UNROLLING\_LIMIT,
+00502     
+00503     LhsFlags = LhsEtorType::Flags,
+00504     RhsFlags = RhsEtorType::Flags,
+00505     
+00506     LhsRowMajor = LhsFlags & \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit},
+00507     RhsRowMajor = RhsFlags & \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit},
+00508 
+00509     LhsVecPacketSize = unpacket\_traits<LhsVecPacketType>::size,
+00510     RhsVecPacketSize = unpacket\_traits<RhsVecPacketType>::size,
+00511 
+00512     \textcolor{comment}{// Here, we don't care about alignment larger than the usable packet size.}
+00513     LhsAlignment = EIGEN\_PLAIN\_ENUM\_MIN(LhsEtorType::Alignment,LhsVecPacketSize*\textcolor{keywordtype}{int}(\textcolor{keyword}{sizeof}(\textcolor{keyword}{typename} 
+      LhsNestedCleaned::Scalar))),
+00514     RhsAlignment = EIGEN\_PLAIN\_ENUM\_MIN(RhsEtorType::Alignment,RhsVecPacketSize*\textcolor{keywordtype}{int}(\textcolor{keyword}{sizeof}(\textcolor{keyword}{typename} 
+      RhsNestedCleaned::Scalar))),
+00515       
+00516     SameType = is\_same<typename LhsNestedCleaned::Scalar,typename RhsNestedCleaned::Scalar>::value,
+00517 
+00518     CanVectorizeRhs = bool(RhsRowMajor) && (RhsFlags & \hyperlink{group__flags_ga1a306a438e1ab074e8be59512e887b9f}{PacketAccessBit}) && (
+      ColsAtCompileTime!=1),
+00519     CanVectorizeLhs = (!LhsRowMajor) && (LhsFlags & \hyperlink{group__flags_ga1a306a438e1ab074e8be59512e887b9f}{PacketAccessBit}) && (RowsAtCompileTime!=
+      1),
+00520 
+00521     EvalToRowMajor = (MaxRowsAtCompileTime==1&&MaxColsAtCompileTime!=1) ? 1
+00522                     : (MaxColsAtCompileTime==1&&MaxRowsAtCompileTime!=1) ? 0
+00523                     : (\textcolor{keywordtype}{bool}(RhsRowMajor) && !CanVectorizeLhs),
+00524 
+00525     Flags = ((\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int})(LhsFlags | RhsFlags) & HereditaryBits & ~RowMajorBit)
+00526           | (EvalToRowMajor ? \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit} : 0)
+00527           \textcolor{comment}{// TODO enable vectorization for mixed types}
+00528           | (SameType && (CanVectorizeLhs || CanVectorizeRhs) ? \hyperlink{group__flags_ga1a306a438e1ab074e8be59512e887b9f}{PacketAccessBit} : 0)
+00529           | (XprType::IsVectorAtCompileTime ? \hyperlink{group__flags_ga4b983a15d57cd55806df618ac544d09e}{LinearAccessBit} : 0),
+00530           
+00531     LhsOuterStrideBytes = int(LhsNestedCleaned::OuterStrideAtCompileTime) * int(\textcolor{keyword}{sizeof}(\textcolor{keyword}{typename} 
+      LhsNestedCleaned::Scalar)),
+00532     RhsOuterStrideBytes = int(RhsNestedCleaned::OuterStrideAtCompileTime) * int(\textcolor{keyword}{sizeof}(\textcolor{keyword}{typename} 
+      RhsNestedCleaned::Scalar)),
+00533 
+00534     Alignment = bool(CanVectorizeLhs) ? (LhsOuterStrideBytes<=0 || (int(LhsOuterStrideBytes) % 
+      EIGEN\_PLAIN\_ENUM\_MAX(1,LhsAlignment))!=0 ? 0 : LhsAlignment)
+00535               : bool(CanVectorizeRhs) ? (RhsOuterStrideBytes<=0 || (int(RhsOuterStrideBytes) % 
+      EIGEN\_PLAIN\_ENUM\_MAX(1,RhsAlignment))!=0 ? 0 : RhsAlignment)
+00536               : 0,
+00537 
+00538     \textcolor{comment}{/* CanVectorizeInner deserves special explanation. It does not affect the product flags. It is not used
+       outside}
+00539 \textcolor{comment}{     * of Product. If the Product itself is not a packet-access expression, there is still a chance that
+       the inner}
+00540 \textcolor{comment}{     * loop of the product might be vectorized. This is the meaning of CanVectorizeInner. Since it doesn't
+       affect}
+00541 \textcolor{comment}{     * the Flags, it is safe to make this value depend on ActualPacketAccessBit, that doesn't affect the
+       ABI.}
+00542 \textcolor{comment}{     */}
+00543     CanVectorizeInner =    SameType
+00544                         && LhsRowMajor
+00545                         && (!RhsRowMajor)
+00546                         && (LhsFlags & RhsFlags & ActualPacketAccessBit)
+00547                         && (InnerSize % packet\_traits<Scalar>::size == 0)
+00548   \};
+00549   
+00550   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{const} CoeffReturnType coeff(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col)\textcolor{keyword}{ const}
+00551 \textcolor{keyword}{  }\{
+00552     \textcolor{keywordflow}{return} (m\_lhs.row(row).transpose().cwiseProduct( m\_rhs.col(col) )).sum();
+00553   \}
+00554 
+00555   \textcolor{comment}{/* Allow index-based non-packet access. It is impossible though to allow index-based packed access,}
+00556 \textcolor{comment}{   * which is why we don't set the LinearAccessBit.}
+00557 \textcolor{comment}{   * TODO: this seems possible when the result is a vector}
+00558 \textcolor{comment}{   */}
+00559   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} CoeffReturnType coeff(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} index)\textcolor{keyword}{ const}
+00560 \textcolor{keyword}{  }\{
+00561     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row = (RowsAtCompileTime == 1 || MaxRowsAtCompileTime==1) ? 0 : index;
+00562     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col = (RowsAtCompileTime == 1 || MaxRowsAtCompileTime==1) ? index : 0;
+00563     \textcolor{keywordflow}{return} (m\_lhs.row(row).transpose().cwiseProduct( m\_rhs.col(col) )).sum();
+00564   \}
+00565 
+00566   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode, \textcolor{keyword}{typename} PacketType>
+00567   \textcolor{keyword}{const} PacketType packet(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col)\textcolor{keyword}{ const}
+00568 \textcolor{keyword}{  }\{
+00569     PacketType res;
+00570     \textcolor{keyword}{typedef} etor\_product\_packet\_impl<bool(\textcolor{keywordtype}{int}(Flags)&RowMajorBit) ? \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor} : 
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor},
+00571                                      Unroll ? int(InnerSize) : \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00572                                      LhsEtorType, RhsEtorType, PacketType, LoadMode> PacketImpl;
+00573     PacketImpl::run(row, col, m\_lhsImpl, m\_rhsImpl, m\_innerDim, res);
+00574     \textcolor{keywordflow}{return} res;
+00575   \}
+00576 
+00577   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode, \textcolor{keyword}{typename} PacketType>
+00578   \textcolor{keyword}{const} PacketType packet(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} index)\textcolor{keyword}{ const}
+00579 \textcolor{keyword}{  }\{
+00580     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row = (RowsAtCompileTime == 1 || MaxRowsAtCompileTime==1) ? 0 : index;
+00581     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col = (RowsAtCompileTime == 1 || MaxRowsAtCompileTime==1) ? index : 0;
+00582     \textcolor{keywordflow}{return} packet<LoadMode,PacketType>(row,col);
+00583   \}
+00584 
+00585 \textcolor{keyword}{protected}:
+00586   \textcolor{keyword}{typename} internal::add\_const\_on\_value\_type<LhsNested>::type m\_lhs;
+00587   \textcolor{keyword}{typename} internal::add\_const\_on\_value\_type<RhsNested>::type m\_rhs;
+00588   
+00589   LhsEtorType m\_lhsImpl;
+00590   RhsEtorType m\_rhsImpl;
+00591 
+00592   \textcolor{comment}{// TODO: Get rid of m\_innerDim if known at compile time}
+00593   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_innerDim;
+00594 \};
+00595 
+00596 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs>
+00597 \textcolor{keyword}{struct }product\_evaluator<Product<Lhs, Rhs, DefaultProduct>, LazyCoeffBasedProductMode, DenseShape, 
+      DenseShape>
+00598   : product\_evaluator<Product<Lhs, Rhs, LazyProduct>, CoeffBasedProductMode, DenseShape, DenseShape>
+00599 \{
+00600   \textcolor{keyword}{typedef} Product<Lhs, Rhs, DefaultProduct> XprType;
+00601   \textcolor{keyword}{typedef} Product<Lhs, Rhs, LazyProduct> BaseProduct;
+00602   \textcolor{keyword}{typedef} product\_evaluator<BaseProduct, CoeffBasedProductMode, DenseShape, DenseShape> Base;
+00603   \textcolor{keyword}{enum} \{
+00604     Flags = Base::Flags | \hyperlink{group__flags_gaa34e83bae46a8eeae4e69ebe3aaecbed}{EvalBeforeNestingBit}
+00605   \};
+00606   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{explicit} product\_evaluator(\textcolor{keyword}{const} XprType& xpr)
+00607     : Base(BaseProduct(xpr.lhs(),xpr.rhs()))
+00608   \{\}
+00609 \};
+00610 
+00611 \textcolor{comment}{/****************************************}
+00612 \textcolor{comment}{*** Coeff based product, Packet path  ***}
+00613 \textcolor{comment}{****************************************/}
+00614 
+00615 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} UnrollingIndex, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Packet, \textcolor{keywordtype}{int} LoadMode>
+00616 \textcolor{keyword}{struct }etor\_product\_packet\_impl<\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}, UnrollingIndex, Lhs, Rhs, Packet, LoadMode>
+00617 \{
+00618   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} run(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} innerDim, Packet &res)
+00619   \{
+00620     etor\_product\_packet\_impl<RowMajor, UnrollingIndex-1, Lhs, Rhs, Packet, LoadMode>::run(row, col, lhs, 
+      rhs, innerDim, res);
+00621     res =  pmadd(pset1<Packet>(lhs.coeff(row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(UnrollingIndex-1))), rhs.template 
+      packet<LoadMode,Packet>(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(UnrollingIndex-1), col), res);
+00622   \}
+00623 \};
+00624 
+00625 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} UnrollingIndex, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Packet, \textcolor{keywordtype}{int} LoadMode>
+00626 \textcolor{keyword}{struct }etor\_product\_packet\_impl<\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}, UnrollingIndex, Lhs, Rhs, Packet, LoadMode>
+00627 \{
+00628   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} run(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} innerDim, Packet &res)
+00629   \{
+00630     etor\_product\_packet\_impl<ColMajor, UnrollingIndex-1, Lhs, Rhs, Packet, LoadMode>::run(row, col, lhs, 
+      rhs, innerDim, res);
+00631     res =  pmadd(lhs.template packet<LoadMode,Packet>(row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(UnrollingIndex-1)), pset1<Packet>(rhs
+      .coeff(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(UnrollingIndex-1), col)), res);
+00632   \}
+00633 \};
+00634 
+00635 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Packet, \textcolor{keywordtype}{int} LoadMode>
+00636 \textcolor{keyword}{struct }etor\_product\_packet\_impl<\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}, 1, Lhs, Rhs, Packet, LoadMode>
+00637 \{
+00638   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} run(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{comment}{/*innerDim*/}, Packet &res)
+00639   \{
+00640     res = pmul(pset1<Packet>(lhs.coeff(row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(0))),rhs.template packet<LoadMode,Packet>(
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(0), col));
+00641   \}
+00642 \};
+00643 
+00644 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Packet, \textcolor{keywordtype}{int} LoadMode>
+00645 \textcolor{keyword}{struct }etor\_product\_packet\_impl<\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}, 1, Lhs, Rhs, Packet, LoadMode>
+00646 \{
+00647   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} run(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{comment}{/*innerDim*/}, Packet &res)
+00648   \{
+00649     res = pmul(lhs.template packet<LoadMode,Packet>(row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(0)), pset1<Packet>(rhs.coeff(
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(0), col)));
+00650   \}
+00651 \};
+00652 
+00653 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Packet, \textcolor{keywordtype}{int} LoadMode>
+00654 \textcolor{keyword}{struct }etor\_product\_packet\_impl<\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}, 0, Lhs, Rhs, Packet, LoadMode>
+00655 \{
+00656   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} run(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{comment}{/*row*/}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{comment}{/*col*/}, \textcolor{keyword}{const} Lhs& \textcolor{comment}{/*lhs*/}, \textcolor{keyword}{const} Rhs
+      & \textcolor{comment}{/*rhs*/}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{comment}{/*innerDim*/}, Packet &res)
+00657   \{
+00658     res = pset1<Packet>(\textcolor{keyword}{typename} unpacket\_traits<Packet>::type(0));
+00659   \}
+00660 \};
+00661 
+00662 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Packet, \textcolor{keywordtype}{int} LoadMode>
+00663 \textcolor{keyword}{struct }etor\_product\_packet\_impl<\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}, 0, Lhs, Rhs, Packet, LoadMode>
+00664 \{
+00665   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} run(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{comment}{/*row*/}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{comment}{/*col*/}, \textcolor{keyword}{const} Lhs& \textcolor{comment}{/*lhs*/}, \textcolor{keyword}{const} Rhs
+      & \textcolor{comment}{/*rhs*/}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{comment}{/*innerDim*/}, Packet &res)
+00666   \{
+00667     res = pset1<Packet>(\textcolor{keyword}{typename} unpacket\_traits<Packet>::type(0));
+00668   \}
+00669 \};
+00670 
+00671 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Packet, \textcolor{keywordtype}{int} LoadMode>
+00672 \textcolor{keyword}{struct }etor\_product\_packet\_impl<\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}, \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}, Lhs, Rhs, Packet, LoadMode>
+00673 \{
+00674   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} run(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} innerDim, Packet& res)
+00675   \{
+00676     res = pset1<Packet>(\textcolor{keyword}{typename} unpacket\_traits<Packet>::type(0));
+00677     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i = 0; i < innerDim; ++i)
+00678       res =  pmadd(pset1<Packet>(lhs.coeff(row, i)), rhs.template packet<LoadMode,Packet>(i, col), res);
+00679   \}
+00680 \};
+00681 
+00682 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Packet, \textcolor{keywordtype}{int} LoadMode>
+00683 \textcolor{keyword}{struct }etor\_product\_packet\_impl<\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}, \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}, Lhs, Rhs, Packet, LoadMode>
+00684 \{
+00685   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} run(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} innerDim, Packet& res)
+00686   \{
+00687     res = pset1<Packet>(\textcolor{keyword}{typename} unpacket\_traits<Packet>::type(0));
+00688     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i = 0; i < innerDim; ++i)
+00689       res =  pmadd(lhs.template packet<LoadMode,Packet>(row, i), pset1<Packet>(rhs.coeff(i, col)), res);
+00690   \}
+00691 \};
+00692 
+00693 
+00694 \textcolor{comment}{/***************************************************************************}
+00695 \textcolor{comment}{* Triangular products}
+00696 \textcolor{comment}{***************************************************************************/}
+00697 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Mode, \textcolor{keywordtype}{bool} LhsIsTriangular,
+00698          \textcolor{keyword}{typename} Lhs, \textcolor{keywordtype}{bool} LhsIsVector,
+00699          \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{bool} RhsIsVector>
+00700 \textcolor{keyword}{struct }triangular\_product\_impl;
+00701 
+00702 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductTag>
+00703 \textcolor{keyword}{struct }generic\_product\_impl<Lhs,Rhs,TriangularShape,DenseShape,ProductTag>
+00704   : generic\_product\_impl\_base<Lhs,Rhs,generic\_product\_impl<Lhs,Rhs,TriangularShape,DenseShape,ProductTag> >
+00705 \{
+00706   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Product<Lhs,Rhs>::Scalar Scalar;
+00707   
+00708   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00709   \textcolor{keyword}{static} \textcolor{keywordtype}{void} scaleAndAddTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, \textcolor{keyword}{const} Scalar& alpha)
+00710   \{
+00711     triangular\_product\_impl<Lhs::Mode,true,typename Lhs::MatrixType,false,Rhs, Rhs::ColsAtCompileTime==1>
+00712         ::run(dst, lhs.nestedExpression(), rhs, alpha);
+00713   \}
+00714 \};
+00715 
+00716 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductTag>
+00717 \textcolor{keyword}{struct }generic\_product\_impl<Lhs,Rhs,DenseShape,TriangularShape,ProductTag>
+00718 : generic\_product\_impl\_base<Lhs,Rhs,generic\_product\_impl<Lhs,Rhs,DenseShape,TriangularShape,ProductTag> >
+00719 \{
+00720   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Product<Lhs,Rhs>::Scalar Scalar;
+00721   
+00722   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00723   \textcolor{keyword}{static} \textcolor{keywordtype}{void} scaleAndAddTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, \textcolor{keyword}{const} Scalar& alpha)
+00724   \{
+00725     triangular\_product\_impl<Rhs::Mode,false,Lhs,Lhs::RowsAtCompileTime==1, typename Rhs::MatrixType,
+       false>::run(dst, lhs, rhs.nestedExpression(), alpha);
+00726   \}
+00727 \};
+00728 
+00729 
+00730 \textcolor{comment}{/***************************************************************************}
+00731 \textcolor{comment}{* SelfAdjoint products}
+00732 \textcolor{comment}{***************************************************************************/}
+00733 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Lhs, \textcolor{keywordtype}{int} LhsMode, \textcolor{keywordtype}{bool} LhsIsVector,
+00734           \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} RhsMode, \textcolor{keywordtype}{bool} RhsIsVector>
+00735 \textcolor{keyword}{struct }selfadjoint\_product\_impl;
+00736 
+00737 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductTag>
+00738 \textcolor{keyword}{struct }generic\_product\_impl<Lhs,Rhs,SelfAdjointShape,DenseShape,ProductTag>
+00739   : generic\_product\_impl\_base<Lhs,Rhs,generic\_product\_impl<Lhs,Rhs,SelfAdjointShape,DenseShape,ProductTag> 
+      >
+00740 \{
+00741   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Product<Lhs,Rhs>::Scalar Scalar;
+00742   
+00743   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00744   \textcolor{keyword}{static} \textcolor{keywordtype}{void} scaleAndAddTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, \textcolor{keyword}{const} Scalar& alpha)
+00745   \{
+00746     selfadjoint\_product\_impl<typename
+       Lhs::MatrixType,Lhs::Mode,false,Rhs,0,Rhs::IsVectorAtCompileTime>::run(dst, lhs.nestedExpression(), rhs, alpha);
+00747   \}
+00748 \};
+00749 
+00750 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductTag>
+00751 \textcolor{keyword}{struct }generic\_product\_impl<Lhs,Rhs,DenseShape,SelfAdjointShape,ProductTag>
+00752 : generic\_product\_impl\_base<Lhs,Rhs,generic\_product\_impl<Lhs,Rhs,DenseShape,SelfAdjointShape,ProductTag> >
+00753 \{
+00754   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Product<Lhs,Rhs>::Scalar Scalar;
+00755   
+00756   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00757   \textcolor{keyword}{static} \textcolor{keywordtype}{void} scaleAndAddTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, \textcolor{keyword}{const} Scalar& alpha)
+00758   \{
+00759     selfadjoint\_product\_impl<Lhs,0,Lhs::IsVectorAtCompileTime,typename
+       Rhs::MatrixType,Rhs::Mode,false>::run(dst, lhs, rhs.nestedExpression(), alpha);
+00760   \}
+00761 \};
+00762 
+00763 
+00764 \textcolor{comment}{/***************************************************************************}
+00765 \textcolor{comment}{* Diagonal products}
+00766 \textcolor{comment}{***************************************************************************/}
+00767   
+00768 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} DiagonalType, \textcolor{keyword}{typename} Derived, \textcolor{keywordtype}{int} ProductOrder>
+00769 \textcolor{keyword}{struct }diagonal\_product\_evaluator\_base
+00770   : evaluator\_base<Derived>
+00771 \{
+00772    \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ScalarBinaryOpTraits<typename MatrixType::Scalar, typename
+       DiagonalType::Scalar>::ReturnType Scalar;
+00773 \textcolor{keyword}{public}:
+00774   \textcolor{keyword}{enum} \{
+00775     CoeffReadCost = NumTraits<Scalar>::MulCost + evaluator<MatrixType>::CoeffReadCost + 
+      evaluator<DiagonalType>::CoeffReadCost,
+00776     
+00777     MatrixFlags = evaluator<MatrixType>::Flags,
+00778     DiagFlags = evaluator<DiagonalType>::Flags,
+00779     \_StorageOrder = MatrixFlags & RowMajorBit ? \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor} : \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor},
+00780     \_ScalarAccessOnDiag =  !((int(\_StorageOrder) == \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor} && int(ProductOrder) == 
+      \hyperlink{group__enums_ggac22de43beeac7a78b384f99bed5cee0ba129609b3bdf23b071f5f86cf2f995ec4}{OnTheLeft})
+00781                            ||(\textcolor{keywordtype}{int}(\_StorageOrder) == \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor} && int(ProductOrder) == 
+      \hyperlink{group__enums_ggac22de43beeac7a78b384f99bed5cee0ba99dc75d8e00b6c3a5bdc31940f47492b}{OnTheRight})),
+00782     \_SameTypes = is\_same<typename MatrixType::Scalar, typename DiagonalType::Scalar>::value,
+00783     \textcolor{comment}{// FIXME currently we need same types, but in the future the next rule should be the one}
+00784     \textcolor{comment}{//\_Vectorizable = bool(int(MatrixFlags)&PacketAccessBit) && ((!\_PacketOnDiag) || (\_SameTypes &&
+       bool(int(DiagFlags)&PacketAccessBit))),}
+00785     \_Vectorizable = bool(\textcolor{keywordtype}{int}(MatrixFlags)&PacketAccessBit) && \_SameTypes && (\_ScalarAccessOnDiag || (bool(\textcolor{keywordtype}{
+      int}(DiagFlags)&PacketAccessBit))),
+00786     \_LinearAccessMask = (MatrixType::RowsAtCompileTime==1 || MatrixType::ColsAtCompileTime==1) ? 
+      LinearAccessBit : 0,
+00787     Flags = ((HereditaryBits|\_LinearAccessMask) & (\textcolor{keywordtype}{unsigned} int)(MatrixFlags)) | (\_Vectorizable ? 
+      PacketAccessBit : 0),
+00788     Alignment = evaluator<MatrixType>::Alignment
+00789   \};
+00790   
+00791   diagonal\_product\_evaluator\_base(\textcolor{keyword}{const} MatrixType &mat, \textcolor{keyword}{const} DiagonalType &diag)
+00792     : m\_diagImpl(diag), m\_matImpl(mat)
+00793   \{
+00794     EIGEN\_INTERNAL\_CHECK\_COST\_VALUE(NumTraits<Scalar>::MulCost);
+00795     EIGEN\_INTERNAL\_CHECK\_COST\_VALUE(CoeffReadCost);
+00796   \}
+00797   
+00798   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{const} Scalar coeff(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} idx)\textcolor{keyword}{ const}
+00799 \textcolor{keyword}{  }\{
+00800     \textcolor{keywordflow}{return} m\_diagImpl.coeff(idx) * m\_matImpl.coeff(idx);
+00801   \}
+00802   
+00803 \textcolor{keyword}{protected}:
+00804   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode,\textcolor{keyword}{typename} PacketType>
+00805   EIGEN\_STRONG\_INLINE PacketType packet\_impl(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{keywordtype}{id}, internal::true\_type)\textcolor{keyword}{ const}
+00806 \textcolor{keyword}{  }\{
+00807     \textcolor{keywordflow}{return} internal::pmul(m\_matImpl.template packet<LoadMode,PacketType>(row, col),
+00808                           internal::pset1<PacketType>(m\_diagImpl.coeff(\textcolor{keywordtype}{id})));
+00809   \}
+00810   
+00811   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode,\textcolor{keyword}{typename} PacketType>
+00812   EIGEN\_STRONG\_INLINE PacketType packet\_impl(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{keywordtype}{id}, internal::false\_type)\textcolor{keyword}{ const}
+00813 \textcolor{keyword}{  }\{
+00814     \textcolor{keyword}{enum} \{
+00815       InnerSize = (MatrixType::Flags & \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}) ? MatrixType::ColsAtCompileTime : 
+      MatrixType::RowsAtCompileTime,
+00816       DiagonalPacketLoadMode = EIGEN\_PLAIN\_ENUM\_MIN(LoadMode,((InnerSize%16) == 0) ? int(
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1af8e2bf74b04c02199f62c5e3c06dbfcc}{Aligned16}) : int(evaluator<DiagonalType>::Alignment)) \textcolor{comment}{// FIXME hardcoded 16!!}
+00817     \};
+00818     \textcolor{keywordflow}{return} internal::pmul(m\_matImpl.template packet<LoadMode,PacketType>(row, col),
+00819                           m\_diagImpl.template packet<DiagonalPacketLoadMode,PacketType>(\textcolor{keywordtype}{id}));
+00820   \}
+00821   
+00822   evaluator<DiagonalType> m\_diagImpl;
+00823   evaluator<MatrixType>   m\_matImpl;
+00824 \};
+00825 
+00826 \textcolor{comment}{// diagonal * dense}
+00827 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductKind, \textcolor{keywordtype}{int} ProductTag>
+00828 \textcolor{keyword}{struct }product\_evaluator<Product<Lhs, Rhs, ProductKind>, ProductTag, DiagonalShape, DenseShape>
+00829   : diagonal\_product\_evaluator\_base<Rhs, typename Lhs::DiagonalVectorType, Product<Lhs, Rhs, LazyProduct>, 
+      OnTheLeft>
+00830 \{
+00831   \textcolor{keyword}{typedef} diagonal\_product\_evaluator\_base<Rhs, typename Lhs::DiagonalVectorType, Product<Lhs, Rhs,
+       LazyProduct>, \hyperlink{group__enums_ggac22de43beeac7a78b384f99bed5cee0ba129609b3bdf23b071f5f86cf2f995ec4}{OnTheLeft}> Base;
+00832   \textcolor{keyword}{using} Base::m\_diagImpl;
+00833   \textcolor{keyword}{using} Base::m\_matImpl;
+00834   \textcolor{keyword}{using} Base::coeff;
+00835   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Base::Scalar Scalar;
+00836   
+00837   \textcolor{keyword}{typedef} Product<Lhs, Rhs, ProductKind> XprType;
+00838   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::PlainObject PlainObject;
+00839   
+00840   \textcolor{keyword}{enum} \{
+00841     StorageOrder = int(Rhs::Flags) & RowMajorBit ? \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor} : \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}
+00842   \};
+00843 
+00844   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{explicit} product\_evaluator(\textcolor{keyword}{const} XprType& xpr)
+00845     : Base(xpr.rhs(), xpr.lhs().diagonal())
+00846   \{
+00847   \}
+00848   
+00849   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{const} Scalar coeff(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col)\textcolor{keyword}{ const}
+00850 \textcolor{keyword}{  }\{
+00851     \textcolor{keywordflow}{return} m\_diagImpl.coeff(row) * m\_matImpl.coeff(row, col);
+00852   \}
+00853   
+00854 \textcolor{preprocessor}{#ifndef \_\_CUDACC\_\_}
+00855   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode,\textcolor{keyword}{typename} PacketType>
+00856   EIGEN\_STRONG\_INLINE PacketType packet(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col)\textcolor{keyword}{ const}
+00857 \textcolor{keyword}{  }\{
+00858     \textcolor{comment}{// FIXME: NVCC used to complain about the template keyword, but we have to check whether this is still
+       the case.}
+00859     \textcolor{comment}{// See also similar calls below.}
+00860     \textcolor{keywordflow}{return} this->\textcolor{keyword}{template} packet\_impl<LoadMode,PacketType>(row,col, row,
+00861                                  \textcolor{keyword}{typename} internal::conditional<int(StorageOrder)==RowMajor,
+       internal::true\_type, internal::false\_type>::type());
+00862   \}
+00863   
+00864   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode,\textcolor{keyword}{typename} PacketType>
+00865   EIGEN\_STRONG\_INLINE PacketType packet(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} idx)\textcolor{keyword}{ const}
+00866 \textcolor{keyword}{  }\{
+00867     \textcolor{keywordflow}{return} packet<LoadMode,PacketType>(int(StorageOrder)==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}?idx:0,int(StorageOrder)==
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}?0:idx);
+00868   \}
+00869 \textcolor{preprocessor}{#endif}
+00870 \};
+00871 
+00872 \textcolor{comment}{// dense * diagonal}
+00873 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductKind, \textcolor{keywordtype}{int} ProductTag>
+00874 \textcolor{keyword}{struct }product\_evaluator<Product<Lhs, Rhs, ProductKind>, ProductTag, DenseShape, DiagonalShape>
+00875   : diagonal\_product\_evaluator\_base<Lhs, typename Rhs::DiagonalVectorType, Product<Lhs, Rhs, LazyProduct>, 
+      \hyperlink{group__enums_ggac22de43beeac7a78b384f99bed5cee0ba99dc75d8e00b6c3a5bdc31940f47492b}{OnTheRight}>
+00876 \{
+00877   \textcolor{keyword}{typedef} diagonal\_product\_evaluator\_base<Lhs, typename Rhs::DiagonalVectorType, Product<Lhs, Rhs,
+       LazyProduct>, \hyperlink{group__enums_ggac22de43beeac7a78b384f99bed5cee0ba99dc75d8e00b6c3a5bdc31940f47492b}{OnTheRight}> Base;
+00878   \textcolor{keyword}{using} Base::m\_diagImpl;
+00879   \textcolor{keyword}{using} Base::m\_matImpl;
+00880   \textcolor{keyword}{using} Base::coeff;
+00881   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Base::Scalar Scalar;
+00882   
+00883   \textcolor{keyword}{typedef} Product<Lhs, Rhs, ProductKind> XprType;
+00884   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::PlainObject PlainObject;
+00885   
+00886   \textcolor{keyword}{enum} \{ StorageOrder = int(Lhs::Flags) & RowMajorBit ? \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor} : 
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor} \};
+00887 
+00888   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{explicit} product\_evaluator(\textcolor{keyword}{const} XprType& xpr)
+00889     : Base(xpr.lhs(), xpr.rhs().diagonal())
+00890   \{
+00891   \}
+00892   
+00893   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{const} Scalar coeff(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col)\textcolor{keyword}{ const}
+00894 \textcolor{keyword}{  }\{
+00895     \textcolor{keywordflow}{return} m\_matImpl.coeff(row, col) * m\_diagImpl.coeff(col);
+00896   \}
+00897   
+00898 \textcolor{preprocessor}{#ifndef \_\_CUDACC\_\_}
+00899   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode,\textcolor{keyword}{typename} PacketType>
+00900   EIGEN\_STRONG\_INLINE PacketType packet(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col)\textcolor{keyword}{ const}
+00901 \textcolor{keyword}{  }\{
+00902     \textcolor{keywordflow}{return} this->\textcolor{keyword}{template} packet\_impl<LoadMode,PacketType>(row,col, col,
+00903                                  \textcolor{keyword}{typename} internal::conditional<int(StorageOrder)==ColMajor,
+       internal::true\_type, internal::false\_type>::type());
+00904   \}
+00905   
+00906   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode,\textcolor{keyword}{typename} PacketType>
+00907   EIGEN\_STRONG\_INLINE PacketType packet(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} idx)\textcolor{keyword}{ const}
+00908 \textcolor{keyword}{  }\{
+00909     \textcolor{keywordflow}{return} packet<LoadMode,PacketType>(int(StorageOrder)==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}?idx:0,int(StorageOrder)==
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}?0:idx);
+00910   \}
+00911 \textcolor{preprocessor}{#endif}
+00912 \};
+00913 
+00914 \textcolor{comment}{/***************************************************************************}
+00915 \textcolor{comment}{* Products with permutation matrices}
+00916 \textcolor{comment}{***************************************************************************/}
+00917 
+00923 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ExpressionType, \textcolor{keywordtype}{int} S\textcolor{keywordtype}{id}e, \textcolor{keywordtype}{bool} Transposed, \textcolor{keyword}{typename} ExpressionShape>
+00924 \textcolor{keyword}{struct }permutation\_matrix\_product;
+00925 
+00926 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ExpressionType, \textcolor{keywordtype}{int} S\textcolor{keywordtype}{id}e, \textcolor{keywordtype}{bool} Transposed>
+00927 \textcolor{keyword}{struct }permutation\_matrix\_product<ExpressionType, Side, Transposed, DenseShape>
+00928 \{
+00929     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} nested\_eval<ExpressionType, 1>::type MatrixType;
+00930     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_all<MatrixType>::type MatrixTypeCleaned;
+00931 
+00932     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest, \textcolor{keyword}{typename} PermutationType>
+00933     \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} run(Dest& dst, \textcolor{keyword}{const} PermutationType& perm, \textcolor{keyword}{const} ExpressionType& xpr)
+00934     \{
+00935       MatrixType mat(xpr);
+00936       \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} n = Side==\hyperlink{group__enums_ggac22de43beeac7a78b384f99bed5cee0ba129609b3bdf23b071f5f86cf2f995ec4}{OnTheLeft} ? mat.rows() : mat.cols();
+00937       \textcolor{comment}{// FIXME we need an is\_same for expression that is not sensitive to constness. For instance}
+00938       \textcolor{comment}{// is\_same\_xpr<Block<const Matrix>, Block<Matrix> >::value should be true.}
+00939       \textcolor{comment}{//if(is\_same<MatrixTypeCleaned,Dest>::value && extract\_data(dst) == extract\_data(mat))}
+00940       \textcolor{keywordflow}{if}(is\_same\_dense(dst, mat))
+00941       \{
+00942         \textcolor{comment}{// apply the permutation inplace}
+00943         Matrix<bool,PermutationType::RowsAtCompileTime,1,0,PermutationType::MaxRowsAtCompileTime> mask(perm
+      .size());
+00944         mask.fill(\textcolor{keyword}{false});
+00945         \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} r = 0;
+00946         \textcolor{keywordflow}{while}(r < perm.size())
+00947         \{
+00948           \textcolor{comment}{// search for the next seed}
+00949           \textcolor{keywordflow}{while}(r<perm.size() && mask[r]) r++;
+00950           \textcolor{keywordflow}{if}(r>=perm.size())
+00951             \textcolor{keywordflow}{break};
+00952           \textcolor{comment}{// we got one, let's follow it until we are back to the seed}
+00953           \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k0 = r++;
+00954           \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} kPrev = k0;
+00955           mask.coeffRef(k0) = \textcolor{keyword}{true};
+00956           \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=perm.indices().coeff(k0); k!=k0; k=perm.indices().coeff(k))
+00957           \{
+00958                   Block<Dest, Side==OnTheLeft ? 1 : Dest::RowsAtCompileTime, Side==OnTheRight ? 1 :
+       Dest::ColsAtCompileTime>(dst, k)
+00959             .\hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(Block<Dest, Side==OnTheLeft ? 1 : Dest::RowsAtCompileTime, Side==OnTheRight ? 1 :
+       Dest::ColsAtCompileTime>
+00960                        (dst,((Side==\hyperlink{group__enums_ggac22de43beeac7a78b384f99bed5cee0ba129609b3bdf23b071f5f86cf2f995ec4}{OnTheLeft}) ^ Transposed) ? k0 : kPrev));
+00961 
+00962             mask.coeffRef(k) = \textcolor{keyword}{true};
+00963             kPrev = k;
+00964           \}
+00965         \}
+00966       \}
+00967       \textcolor{keywordflow}{else}
+00968       \{
+00969         \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i = 0; i < n; ++i)
+00970         \{
+00971           Block<Dest, Side==OnTheLeft ? 1 : Dest::RowsAtCompileTime, Side==OnTheRight ? 1 :
+       Dest::ColsAtCompileTime>
+00972                (dst, ((Side==\hyperlink{group__enums_ggac22de43beeac7a78b384f99bed5cee0ba129609b3bdf23b071f5f86cf2f995ec4}{OnTheLeft}) ^ Transposed) ? perm.indices().coeff(i) : i)
+00973 
+00974           =
+00975 
+00976           Block<const MatrixTypeCleaned,Side==OnTheLeft ? 1 :
+       MatrixTypeCleaned::RowsAtCompileTime,Side==OnTheRight ? 1 : MatrixTypeCleaned::ColsAtCompileTime>
+00977                (mat, ((Side==\hyperlink{group__enums_ggac22de43beeac7a78b384f99bed5cee0ba99dc75d8e00b6c3a5bdc31940f47492b}{OnTheRight}) ^ Transposed) ? perm.indices().coeff(i) : i);
+00978         \}
+00979       \}
+00980     \}
+00981 \};
+00982 
+00983 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductTag, \textcolor{keyword}{typename} MatrixShape>
+00984 \textcolor{keyword}{struct }generic\_product\_impl<Lhs, Rhs, PermutationShape, MatrixShape, ProductTag>
+00985 \{
+00986   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00987   \textcolor{keyword}{static} \textcolor{keywordtype}{void} evalTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+00988   \{
+00989     permutation\_matrix\_product<Rhs, OnTheLeft, false, MatrixShape>::run(dst, lhs, rhs);
+00990   \}
+00991 \};
+00992 
+00993 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductTag, \textcolor{keyword}{typename} MatrixShape>
+00994 \textcolor{keyword}{struct }generic\_product\_impl<Lhs, Rhs, MatrixShape, PermutationShape, ProductTag>
+00995 \{
+00996   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00997   \textcolor{keyword}{static} \textcolor{keywordtype}{void} evalTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+00998   \{
+00999     permutation\_matrix\_product<Lhs, OnTheRight, false, MatrixShape>::run(dst, rhs, lhs);
+01000   \}
+01001 \};
+01002 
+01003 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductTag, \textcolor{keyword}{typename} MatrixShape>
+01004 \textcolor{keyword}{struct }generic\_product\_impl<Inverse<Lhs>, Rhs, PermutationShape, MatrixShape, ProductTag>
+01005 \{
+01006   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+01007   \textcolor{keyword}{static} \textcolor{keywordtype}{void} evalTo(Dest& dst, \textcolor{keyword}{const} Inverse<Lhs>& lhs, \textcolor{keyword}{const} Rhs& rhs)
+01008   \{
+01009     permutation\_matrix\_product<Rhs, OnTheLeft, true, MatrixShape>::run(dst, lhs.nestedExpression(), rhs);
+01010   \}
+01011 \};
+01012 
+01013 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductTag, \textcolor{keyword}{typename} MatrixShape>
+01014 \textcolor{keyword}{struct }generic\_product\_impl<Lhs, Inverse<Rhs>, MatrixShape, PermutationShape, ProductTag>
+01015 \{
+01016   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+01017   \textcolor{keyword}{static} \textcolor{keywordtype}{void} evalTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Inverse<Rhs>& rhs)
+01018   \{
+01019     permutation\_matrix\_product<Lhs, OnTheRight, true, MatrixShape>::run(dst, rhs.nestedExpression(), lhs);
+01020   \}
+01021 \};
+01022 
+01023 
+01024 \textcolor{comment}{/***************************************************************************}
+01025 \textcolor{comment}{* Products with transpositions matrices}
+01026 \textcolor{comment}{***************************************************************************/}
+01027 
+01028 \textcolor{comment}{// FIXME could we unify Transpositions and Permutation into a single "shape"??}
+01029 
+01034 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ExpressionType, \textcolor{keywordtype}{int} S\textcolor{keywordtype}{id}e, \textcolor{keywordtype}{bool} Transposed, \textcolor{keyword}{typename} ExpressionShape>
+01035 \textcolor{keyword}{struct }transposition\_matrix\_product
+01036 \{
+01037   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} nested\_eval<ExpressionType, 1>::type MatrixType;
+01038   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_all<MatrixType>::type MatrixTypeCleaned;
+01039   
+01040   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest, \textcolor{keyword}{typename} TranspositionType>
+01041   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} run(Dest& dst, \textcolor{keyword}{const} TranspositionType& tr, \textcolor{keyword}{const} ExpressionType& xpr)
+01042   \{
+01043     MatrixType mat(xpr);
+01044     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} TranspositionType::StorageIndex StorageIndex;
+01045     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = tr.size();
+01046     StorageIndex j = 0;
+01047 
+01048     \textcolor{keywordflow}{if}(!is\_same\_dense(dst,mat))
+01049       dst = mat;
+01050 
+01051     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=(Transposed?size-1:0) ; Transposed?k>=0:k<size ; Transposed?--k:++k)
+01052       \textcolor{keywordflow}{if}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(j=tr.coeff(k))!=k)
+01053       \{
+01054         \textcolor{keywordflow}{if}(Side==\hyperlink{group__enums_ggac22de43beeac7a78b384f99bed5cee0ba129609b3bdf23b071f5f86cf2f995ec4}{OnTheLeft})        dst.row(k).swap(dst.row(j));
+01055         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(Side==\hyperlink{group__enums_ggac22de43beeac7a78b384f99bed5cee0ba99dc75d8e00b6c3a5bdc31940f47492b}{OnTheRight})  dst.col(k).swap(dst.col(j));
+01056       \}
+01057   \}
+01058 \};
+01059 
+01060 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductTag, \textcolor{keyword}{typename} MatrixShape>
+01061 \textcolor{keyword}{struct }generic\_product\_impl<Lhs, Rhs, TranspositionsShape, MatrixShape, ProductTag>
+01062 \{
+01063   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+01064   \textcolor{keyword}{static} \textcolor{keywordtype}{void} evalTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+01065   \{
+01066     transposition\_matrix\_product<Rhs, OnTheLeft, false, MatrixShape>::run(dst, lhs, rhs);
+01067   \}
+01068 \};
+01069 
+01070 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductTag, \textcolor{keyword}{typename} MatrixShape>
+01071 \textcolor{keyword}{struct }generic\_product\_impl<Lhs, Rhs, MatrixShape, TranspositionsShape, ProductTag>
+01072 \{
+01073   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+01074   \textcolor{keyword}{static} \textcolor{keywordtype}{void} evalTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+01075   \{
+01076     transposition\_matrix\_product<Lhs, OnTheRight, false, MatrixShape>::run(dst, rhs, lhs);
+01077   \}
+01078 \};
+01079 
+01080 
+01081 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductTag, \textcolor{keyword}{typename} MatrixShape>
+01082 \textcolor{keyword}{struct }generic\_product\_impl<Transpose<Lhs>, Rhs, TranspositionsShape, MatrixShape, ProductTag>
+01083 \{
+01084   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+01085   \textcolor{keyword}{static} \textcolor{keywordtype}{void} evalTo(Dest& dst, \textcolor{keyword}{const} Transpose<Lhs>& lhs, \textcolor{keyword}{const} Rhs& rhs)
+01086   \{
+01087     transposition\_matrix\_product<Rhs, OnTheLeft, true, MatrixShape>::run(dst, lhs.nestedExpression(), rhs);
+01088   \}
+01089 \};
+01090 
+01091 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductTag, \textcolor{keyword}{typename} MatrixShape>
+01092 \textcolor{keyword}{struct }generic\_product\_impl<Lhs, Transpose<Rhs>, MatrixShape, TranspositionsShape, ProductTag>
+01093 \{
+01094   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+01095   \textcolor{keyword}{static} \textcolor{keywordtype}{void} evalTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Transpose<Rhs>& rhs)
+01096   \{
+01097     transposition\_matrix\_product<Lhs, OnTheRight, true, MatrixShape>::run(dst, rhs.nestedExpression(), lhs)
+      ;
+01098   \}
+01099 \};
+01100 
+01101 \} \textcolor{comment}{// end namespace internal}
+01102 
+01103 \} \textcolor{comment}{// end namespace Eigen}
+01104 
+01105 \textcolor{preprocessor}{#endif // EIGEN\_PRODUCT\_EVALUATORS\_H}
+\end{DoxyCode}

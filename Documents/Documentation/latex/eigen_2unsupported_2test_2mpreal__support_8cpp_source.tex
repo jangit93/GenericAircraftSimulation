@@ -1,0 +1,74 @@
+\hypertarget{eigen_2unsupported_2test_2mpreal__support_8cpp_source}{}\section{eigen/unsupported/test/mpreal\+\_\+support.cpp}
+\label{eigen_2unsupported_2test_2mpreal__support_8cpp_source}\index{mpreal\+\_\+support.\+cpp@{mpreal\+\_\+support.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{preprocessor}{#include "main.h"}
+00002 \textcolor{preprocessor}{#include <Eigen/MPRealSupport>}
+00003 \textcolor{preprocessor}{#include <Eigen/LU>}
+00004 \textcolor{preprocessor}{#include <Eigen/Eigenvalues>}
+00005 \textcolor{preprocessor}{#include <sstream>}
+00006 
+00007 \textcolor{keyword}{using namespace }\hyperlink{namespacempfr}{mpfr};
+00008 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00009 
+00010 \textcolor{keywordtype}{void} test\_mpreal\_support()
+00011 \{
+00012   \textcolor{comment}{// set precision to 256 bits (double has only 53 bits)}
+00013   mpreal::set\_default\_prec(256);
+00014   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<mpreal,Eigen::Dynamic,Eigen::Dynamic>} 
+      MatrixXmp;
+00015   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<std::complex<mpreal>},\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Eigen::Dynamic},
+      Eigen::Dynamic> MatrixXcmp;
+00016 
+00017   std::cerr << \textcolor{stringliteral}{"epsilon =         "} << \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<mpreal>::epsilon}() << \textcolor{stringliteral}{"\(\backslash\)n"};
+00018   std::cerr << \textcolor{stringliteral}{"dummy\_precision = "} << \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<mpreal>::dummy\_precision}
+      () << \textcolor{stringliteral}{"\(\backslash\)n"};
+00019   std::cerr << \textcolor{stringliteral}{"highest =         "} << \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<mpreal>::highest}() << \textcolor{stringliteral}{"\(\backslash\)n"};
+00020   std::cerr << \textcolor{stringliteral}{"lowest =          "} << \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<mpreal>::lowest}() << \textcolor{stringliteral}{"\(\backslash\)n"};
+00021   std::cerr << \textcolor{stringliteral}{"digits10 =        "} << \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<mpreal>::digits10}() << \textcolor{stringliteral}{"\(\backslash\)n"};
+00022 
+00023   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00024     \textcolor{keywordtype}{int} s = Eigen::internal::random<int>(1,100);
+00025     MatrixXmp \hyperlink{group___core___module_class_eigen_1_1_matrix}{A} = MatrixXmp::Random(s,s);
+00026     MatrixXmp \hyperlink{group___core___module_class_eigen_1_1_matrix}{B} = MatrixXmp::Random(s,s);
+00027     MatrixXmp S = A.adjoint() * A;
+00028     MatrixXmp X;
+00029     MatrixXcmp Ac = MatrixXcmp::Random(s,s);
+00030     MatrixXcmp Bc = MatrixXcmp::Random(s,s);
+00031     MatrixXcmp Sc = Ac.adjoint() * Ac;
+00032     MatrixXcmp Xc;
+00033     
+00034     \textcolor{comment}{// Basic stuffs}
+00035     VERIFY\_IS\_APPROX(A.real(), A);
+00036     VERIFY(Eigen::internal::isApprox(A.array().abs2().sum(), A.squaredNorm()));
+00037     VERIFY\_IS\_APPROX(A.array().exp(),         exp(A.array()));
+00038     VERIFY\_IS\_APPROX(A.array().abs2().sqrt(), A.array().abs());
+00039     VERIFY\_IS\_APPROX(A.array().sin(),         sin(A.array()));
+00040     VERIFY\_IS\_APPROX(A.array().cos(),         cos(A.array()));
+00041 
+00042     \textcolor{comment}{// Cholesky}
+00043     X = S.selfadjointView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>().llt().solve(B);
+00044     VERIFY\_IS\_APPROX((S.selfadjointView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>()*X).eval(),B);
+00045 
+00046     Xc = Sc.selfadjointView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>().llt().solve(Bc);
+00047     VERIFY\_IS\_APPROX((Sc.selfadjointView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>()*Xc).eval(),Bc);
+00048     
+00049     \textcolor{comment}{// partial LU}
+00050     X = A.lu().solve(B);
+00051     VERIFY\_IS\_APPROX((A*X).eval(),B);
+00052 
+00053     \textcolor{comment}{// symmetric eigenvalues}
+00054     \hyperlink{group___eigenvalues___module_class_eigen_1_1_self_adjoint_eigen_solver}{SelfAdjointEigenSolver<MatrixXmp>} eig(S);
+00055     VERIFY\_IS\_EQUAL(eig.info(), \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00056     VERIFY( (S.selfadjointView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>() * eig.eigenvectors()).isApprox(eig.eigenvectors() * eig.
+      eigenvalues().asDiagonal(), \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<mpreal>::dummy\_precision}()*1e3) );
+00057   \}
+00058   
+00059   \{
+00060     MatrixXmp A(8,3); A.setRandom();
+00061     \textcolor{comment}{// test output (interesting things happen in this code)}
+00062     std::stringstream stream;
+00063     stream << A;
+00064   \}
+00065 \}
+\end{DoxyCode}

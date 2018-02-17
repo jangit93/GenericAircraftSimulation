@@ -1,0 +1,229 @@
+\hypertarget{visual__studio_2zlib_2contrib_2minizip_2ioapi_8h_source}{}\section{visual\+\_\+studio/zlib/contrib/minizip/ioapi.h}
+\label{visual__studio_2zlib_2contrib_2minizip_2ioapi_8h_source}\index{ioapi.\+h@{ioapi.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* ioapi.h -- IO base function header for compress/uncompress .zip}
+00002 \textcolor{comment}{   part of the MiniZip project - ( http://www.winimage.com/zLibDll/minizip.html )}
+00003 \textcolor{comment}{}
+00004 \textcolor{comment}{         Copyright (C) 1998-2010 Gilles Vollant (minizip) ( http://www.winimage.com/zLibDll/minizip.html )}
+00005 \textcolor{comment}{}
+00006 \textcolor{comment}{         Modifications for Zip64 support}
+00007 \textcolor{comment}{         Copyright (C) 2009-2010 Mathias Svensson ( http://result42.com )}
+00008 \textcolor{comment}{}
+00009 \textcolor{comment}{         For more info read MiniZip\_info.txt}
+00010 \textcolor{comment}{}
+00011 \textcolor{comment}{         Changes}
+00012 \textcolor{comment}{}
+00013 \textcolor{comment}{    Oct-2009 - Defined ZPOS64\_T to fpos\_t on windows and u\_int64\_t on linux. (might need to find a better
+       why for this)}
+00014 \textcolor{comment}{    Oct-2009 - Change to fseeko64, ftello64 and fopen64 so large files would work on linux.}
+00015 \textcolor{comment}{               More if/def section may be needed to support other platforms}
+00016 \textcolor{comment}{    Oct-2009 - Defined fxxxx64 calls to normal fopen/ftell/fseek so they would compile on windows.}
+00017 \textcolor{comment}{                          (but you should use iowin32.c for windows instead)}
+00018 \textcolor{comment}{}
+00019 \textcolor{comment}{*/}
+00020 
+00021 \textcolor{preprocessor}{#ifndef \_ZLIBIOAPI64\_H}
+00022 \textcolor{preprocessor}{#define \_ZLIBIOAPI64\_H}
+00023 
+00024 \textcolor{preprocessor}{#if (!defined(\_WIN32)) && (!defined(WIN32)) && (!defined(\_\_APPLE\_\_))}
+00025 
+00026   \textcolor{comment}{// Linux needs this to support file operation on files larger then 4+GB}
+00027   \textcolor{comment}{// But might need better if/def to select just the platforms that needs them.}
+00028 
+00029 \textcolor{preprocessor}{        #ifndef \_\_USE\_FILE\_OFFSET64}
+00030 \textcolor{preprocessor}{                #define \_\_USE\_FILE\_OFFSET64}
+00031 \textcolor{preprocessor}{        #endif}
+00032 \textcolor{preprocessor}{        #ifndef \_\_USE\_LARGEFILE64}
+00033 \textcolor{preprocessor}{                #define \_\_USE\_LARGEFILE64}
+00034 \textcolor{preprocessor}{        #endif}
+00035 \textcolor{preprocessor}{        #ifndef \_LARGEFILE64\_SOURCE}
+00036 \textcolor{preprocessor}{                #define \_LARGEFILE64\_SOURCE}
+00037 \textcolor{preprocessor}{        #endif}
+00038 \textcolor{preprocessor}{        #ifndef \_FILE\_OFFSET\_BIT}
+00039 \textcolor{preprocessor}{                #define \_FILE\_OFFSET\_BIT 64}
+00040 \textcolor{preprocessor}{        #endif}
+00041 
+00042 \textcolor{preprocessor}{#endif}
+00043 
+00044 \textcolor{preprocessor}{#include <stdio.h>}
+00045 \textcolor{preprocessor}{#include <stdlib.h>}
+00046 \textcolor{preprocessor}{#include "zlib.h"}
+00047 
+00048 \textcolor{preprocessor}{#if defined(USE\_FILE32API)}
+00049 \textcolor{preprocessor}{#define fopen64 fopen}
+00050 \textcolor{preprocessor}{#define ftello64 ftell}
+00051 \textcolor{preprocessor}{#define fseeko64 fseek}
+00052 \textcolor{preprocessor}{#else}
+00053 \textcolor{preprocessor}{#ifdef \_\_FreeBSD\_\_}
+00054 \textcolor{preprocessor}{#define fopen64 fopen}
+00055 \textcolor{preprocessor}{#define ftello64 ftello}
+00056 \textcolor{preprocessor}{#define fseeko64 fseeko}
+00057 \textcolor{preprocessor}{#endif}
+00058 \textcolor{preprocessor}{#ifdef \_MSC\_VER}
+00059 \textcolor{preprocessor}{ #define fopen64 fopen}
+00060 \textcolor{preprocessor}{ #if (\_MSC\_VER >= 1400) && (!(defined(NO\_MSCVER\_FILE64\_FUNC)))}
+00061 \textcolor{preprocessor}{  #define ftello64 \_ftelli64}
+00062 \textcolor{preprocessor}{  #define fseeko64 \_fseeki64}
+00063 \textcolor{preprocessor}{ #else // old MSC}
+00064 \textcolor{preprocessor}{  #define ftello64 ftell}
+00065 \textcolor{preprocessor}{  #define fseeko64 fseek}
+00066 \textcolor{preprocessor}{ #endif}
+00067 \textcolor{preprocessor}{#endif}
+00068 \textcolor{preprocessor}{#endif}
+00069 
+00070 \textcolor{comment}{/*}
+00071 \textcolor{comment}{#ifndef ZPOS64\_T}
+00072 \textcolor{comment}{  #ifdef \_WIN32}
+00073 \textcolor{comment}{                #define ZPOS64\_T fpos\_t}
+00074 \textcolor{comment}{  #else}
+00075 \textcolor{comment}{    #include <stdint.h>}
+00076 \textcolor{comment}{    #define ZPOS64\_T uint64\_t}
+00077 \textcolor{comment}{  #endif}
+00078 \textcolor{comment}{#endif}
+00079 \textcolor{comment}{*/}
+00080 
+00081 \textcolor{preprocessor}{#ifdef HAVE\_MINIZIP64\_CONF\_H}
+00082 \textcolor{preprocessor}{#include "mz64conf.h"}
+00083 \textcolor{preprocessor}{#endif}
+00084 
+00085 \textcolor{comment}{/* a type choosen by DEFINE */}
+00086 \textcolor{preprocessor}{#ifdef HAVE\_64BIT\_INT\_CUSTOM}
+00087 \textcolor{keyword}{typedef}  64BIT\_INT\_CUSTOM\_TYPE ZPOS64\_T;
+00088 \textcolor{preprocessor}{#else}
+00089 \textcolor{preprocessor}{#ifdef HAS\_STDINT\_H}
+00090 \textcolor{preprocessor}{#include "stdint.h"}
+00091 \textcolor{keyword}{typedef} uint64\_t ZPOS64\_T;
+00092 \textcolor{preprocessor}{#else}
+00093 
+00094 \textcolor{comment}{/* Maximum unsigned 32-bit value used as placeholder for zip64 */}
+00095 \textcolor{preprocessor}{#define MAXU32 0xffffffff}
+00096 
+00097 \textcolor{preprocessor}{#if defined(\_MSC\_VER) || defined(\_\_BORLANDC\_\_)}
+00098 \textcolor{keyword}{typedef} \textcolor{keywordtype}{unsigned} \_\_int64 ZPOS64\_T;
+00099 \textcolor{preprocessor}{#else}
+00100 \textcolor{keyword}{typedef} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} \textcolor{keywordtype}{long} \textcolor{keywordtype}{int} ZPOS64\_T;
+00101 \textcolor{preprocessor}{#endif}
+00102 \textcolor{preprocessor}{#endif}
+00103 \textcolor{preprocessor}{#endif}
+00104 
+00105 
+00106 
+00107 \textcolor{preprocessor}{#ifdef \_\_cplusplus}
+00108 \textcolor{keyword}{extern} \textcolor{stringliteral}{"C"} \{
+00109 \textcolor{preprocessor}{#endif}
+00110 
+00111 
+00112 \textcolor{preprocessor}{#define ZLIB\_FILEFUNC\_SEEK\_CUR (1)}
+00113 \textcolor{preprocessor}{#define ZLIB\_FILEFUNC\_SEEK\_END (2)}
+00114 \textcolor{preprocessor}{#define ZLIB\_FILEFUNC\_SEEK\_SET (0)}
+00115 
+00116 \textcolor{preprocessor}{#define ZLIB\_FILEFUNC\_MODE\_READ      (1)}
+00117 \textcolor{preprocessor}{#define ZLIB\_FILEFUNC\_MODE\_WRITE     (2)}
+00118 \textcolor{preprocessor}{#define ZLIB\_FILEFUNC\_MODE\_READWRITEFILTER (3)}
+00119 
+00120 \textcolor{preprocessor}{#define ZLIB\_FILEFUNC\_MODE\_EXISTING (4)}
+00121 \textcolor{preprocessor}{#define ZLIB\_FILEFUNC\_MODE\_CREATE   (8)}
+00122 
+00123 
+00124 \textcolor{preprocessor}{#ifndef ZCALLBACK}
+00125 \textcolor{preprocessor}{ #if (defined(WIN32) || defined(\_WIN32) || defined (WINDOWS) || defined (\_WINDOWS)) && defined(CALLBACK) &&
+       defined (USEWINDOWS\_CALLBACK)}
+00126 \textcolor{preprocessor}{   #define ZCALLBACK CALLBACK}
+00127 \textcolor{preprocessor}{ #else}
+00128 \textcolor{preprocessor}{   #define ZCALLBACK}
+00129 \textcolor{preprocessor}{ #endif}
+00130 \textcolor{preprocessor}{#endif}
+00131 
+00132 
+00133 
+00134 
+00135 \textcolor{keyword}{typedef} voidpf   (ZCALLBACK *open\_file\_func)      OF((voidpf opaque, \textcolor{keyword}{const} \textcolor{keywordtype}{char}* filename, \textcolor{keywordtype}{int} mode));
+00136 \textcolor{keyword}{typedef} uLong    (ZCALLBACK *read\_file\_func)      OF((voidpf opaque, voidpf stream, \textcolor{keywordtype}{void}* buf, uLong size))
+      ;
+00137 \textcolor{keyword}{typedef} uLong    (ZCALLBACK *write\_file\_func)     OF((voidpf opaque, voidpf stream, \textcolor{keyword}{const} \textcolor{keywordtype}{void}* buf, uLong 
+      size));
+00138 \textcolor{keyword}{typedef} int      (ZCALLBACK *close\_file\_func)     OF((voidpf opaque, voidpf stream));
+00139 \textcolor{keyword}{typedef} int      (ZCALLBACK *testerror\_file\_func) OF((voidpf opaque, voidpf stream));
+00140 
+00141 \textcolor{keyword}{typedef} long     (ZCALLBACK *tell\_file\_func)      OF((voidpf opaque, voidpf stream));
+00142 \textcolor{keyword}{typedef} long     (ZCALLBACK *seek\_file\_func)      OF((voidpf opaque, voidpf stream, uLong offset, \textcolor{keywordtype}{int} 
+      origin));
+00143 
+00144 
+00145 \textcolor{comment}{/* here is the "old" 32 bits structure structure */}
+\Hypertarget{visual__studio_2zlib_2contrib_2minizip_2ioapi_8h_source_l00146}\hyperlink{structzlib__filefunc__def__s}{00146} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structzlib__filefunc__def__s}{zlib\_filefunc\_def\_s}
+00147 \{
+00148     open\_file\_func      zopen\_file;
+00149     read\_file\_func      zread\_file;
+00150     write\_file\_func     zwrite\_file;
+00151     tell\_file\_func      ztell\_file;
+00152     seek\_file\_func      zseek\_file;
+00153     close\_file\_func     zclose\_file;
+00154     testerror\_file\_func zerror\_file;
+00155     voidpf              opaque;
+00156 \} \hyperlink{structzlib__filefunc__def__s}{zlib\_filefunc\_def};
+00157 
+00158 \textcolor{keyword}{typedef} ZPOS64\_T (ZCALLBACK *tell64\_file\_func)    OF((voidpf opaque, voidpf stream));
+00159 \textcolor{keyword}{typedef} long     (ZCALLBACK *seek64\_file\_func)    OF((voidpf opaque, voidpf stream, ZPOS64\_T offset, \textcolor{keywordtype}{int} 
+      origin));
+00160 \textcolor{keyword}{typedef} voidpf   (ZCALLBACK *open64\_file\_func)    OF((voidpf opaque, \textcolor{keyword}{const} \textcolor{keywordtype}{void}* filename, \textcolor{keywordtype}{int} mode));
+00161 
+\Hypertarget{visual__studio_2zlib_2contrib_2minizip_2ioapi_8h_source_l00162}\hyperlink{structzlib__filefunc64__def__s}{00162} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structzlib__filefunc64__def__s}{zlib\_filefunc64\_def\_s}
+00163 \{
+00164     open64\_file\_func    zopen64\_file;
+00165     read\_file\_func      zread\_file;
+00166     write\_file\_func     zwrite\_file;
+00167     tell64\_file\_func    ztell64\_file;
+00168     seek64\_file\_func    zseek64\_file;
+00169     close\_file\_func     zclose\_file;
+00170     testerror\_file\_func zerror\_file;
+00171     voidpf              opaque;
+00172 \} \hyperlink{structzlib__filefunc64__def__s}{zlib\_filefunc64\_def};
+00173 
+00174 \textcolor{keywordtype}{void} fill\_fopen64\_filefunc OF((\hyperlink{structzlib__filefunc64__def__s}{zlib\_filefunc64\_def}* pzlib\_filefunc\_def));
+00175 \textcolor{keywordtype}{void} fill\_fopen\_filefunc OF((\hyperlink{structzlib__filefunc__def__s}{zlib\_filefunc\_def}* pzlib\_filefunc\_def));
+00176 
+00177 \textcolor{comment}{/* now internal definition, only for zip.c and unzip.h */}
+\Hypertarget{visual__studio_2zlib_2contrib_2minizip_2ioapi_8h_source_l00178}\hyperlink{structzlib__filefunc64__32__def__s}{00178} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def\_s}
+00179 \{
+00180     \hyperlink{structzlib__filefunc64__def__s}{zlib\_filefunc64\_def} zfile\_func64;
+00181     open\_file\_func      zopen32\_file;
+00182     tell\_file\_func      ztell32\_file;
+00183     seek\_file\_func      zseek32\_file;
+00184 \} \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def};
+00185 
+00186 
+00187 \textcolor{preprocessor}{#define ZREAD64(filefunc,filestream,buf,size)     ((*((filefunc).zfile\_func64.zread\_file))  
+       ((filefunc).zfile\_func64.opaque,filestream,buf,size))}
+00188 \textcolor{preprocessor}{#define ZWRITE64(filefunc,filestream,buf,size)    ((*((filefunc).zfile\_func64.zwrite\_file)) 
+       ((filefunc).zfile\_func64.opaque,filestream,buf,size))}
+00189 \textcolor{comment}{//#define ZTELL64(filefunc,filestream)            ((*((filefunc).ztell64\_file))
+       ((filefunc).opaque,filestream))}
+00190 \textcolor{comment}{//#define ZSEEK64(filefunc,filestream,pos,mode)   ((*((filefunc).zseek64\_file))
+       ((filefunc).opaque,filestream,pos,mode))}
+00191 \textcolor{preprocessor}{#define ZCLOSE64(filefunc,filestream)             ((*((filefunc).zfile\_func64.zclose\_file)) 
+       ((filefunc).zfile\_func64.opaque,filestream))}
+00192 \textcolor{preprocessor}{#define ZERROR64(filefunc,filestream)             ((*((filefunc).zfile\_func64.zerror\_file)) 
+       ((filefunc).zfile\_func64.opaque,filestream))}
+00193 
+00194 voidpf call\_zopen64 OF((\textcolor{keyword}{const} \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* pfilefunc,\textcolor{keyword}{const} \textcolor{keywordtype}{void}*filename,\textcolor{keywordtype}{
+      int} mode));
+00195 \textcolor{keywordtype}{long}    call\_zseek64 OF((\textcolor{keyword}{const} \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* pfilefunc,voidpf filestream, 
+      ZPOS64\_T offset, \textcolor{keywordtype}{int} origin));
+00196 ZPOS64\_T call\_ztell64 OF((\textcolor{keyword}{const} \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* pfilefunc,voidpf filestream))
+      ;
+00197 
+00198 \textcolor{keywordtype}{void}    fill\_zlib\_filefunc64\_32\_def\_from\_filefunc32(\hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* 
+      p\_filefunc64\_32,\textcolor{keyword}{const} \hyperlink{structzlib__filefunc__def__s}{zlib\_filefunc\_def}* p\_filefunc32);
+00199 
+00200 \textcolor{preprocessor}{#define ZOPEN64(filefunc,filename,mode)         (call\_zopen64((&(filefunc)),(filename),(mode)))}
+00201 \textcolor{preprocessor}{#define ZTELL64(filefunc,filestream)            (call\_ztell64((&(filefunc)),(filestream)))}
+00202 \textcolor{preprocessor}{#define ZSEEK64(filefunc,filestream,pos,mode)   (call\_zseek64((&(filefunc)),(filestream),(pos),(mode)))}
+00203 
+00204 \textcolor{preprocessor}{#ifdef \_\_cplusplus}
+00205 \}
+00206 \textcolor{preprocessor}{#endif}
+00207 
+00208 \textcolor{preprocessor}{#endif}
+\end{DoxyCode}

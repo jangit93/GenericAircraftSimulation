@@ -1,0 +1,513 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__reduction_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/test/cxx11\+\_\+tensor\+\_\+reduction.cpp}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__reduction_8cpp_source}\index{cxx11\+\_\+tensor\+\_\+reduction.\+cpp@{cxx11\+\_\+tensor\+\_\+reduction.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2014 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 \textcolor{preprocessor}{#include <limits>}
+00012 \textcolor{preprocessor}{#include <numeric>}
+00013 \textcolor{preprocessor}{#include <Eigen/CXX11/Tensor>}
+00014 
+00015 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor};
+00016 
+00017 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00018 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_trivial\_reductions() \{
+00019   \{
+00020     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} tensor;
+00021     tensor.setRandom();
+00022     array<ptrdiff\_t, 0> reduction\_axis;
+00023 
+00024     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} result = tensor.sum(reduction\_axis);
+00025     VERIFY\_IS\_EQUAL(result(), tensor());
+00026   \}
+00027 
+00028   \{
+00029     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, DataLayout>} tensor(7);
+00030     tensor.setRandom();
+00031     array<ptrdiff\_t, 0> reduction\_axis;
+00032 
+00033     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, DataLayout>} result = tensor.sum(reduction\_axis);
+00034     VERIFY\_IS\_EQUAL(result.dimension(0), 7);
+00035     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 7; ++i) \{
+00036       VERIFY\_IS\_EQUAL(result(i), tensor(i));
+00037     \}
+00038   \}
+00039 
+00040   \{
+00041     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} tensor(2, 3);
+00042     tensor.setRandom();
+00043     array<ptrdiff\_t, 0> reduction\_axis;
+00044 
+00045     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} result = tensor.sum(reduction\_axis);
+00046     VERIFY\_IS\_EQUAL(result.dimension(0), 2);
+00047     VERIFY\_IS\_EQUAL(result.dimension(1), 3);
+00048     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00049       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 3; ++j) \{
+00050         VERIFY\_IS\_EQUAL(result(i, j), tensor(i, j));
+00051       \}
+00052     \}
+00053   \}
+00054 \}
+00055 
+00056 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00057 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_simple\_reductions() \{
+00058   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} tensor(2, 3, 5, 7);
+00059   tensor.setRandom();
+00060   array<ptrdiff\_t, 2> reduction\_axis2;
+00061   reduction\_axis2[0] = 1;
+00062   reduction\_axis2[1] = 3;
+00063 
+00064   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} result = tensor.sum(reduction\_axis2);
+00065   VERIFY\_IS\_EQUAL(result.dimension(0), 2);
+00066   VERIFY\_IS\_EQUAL(result.dimension(1), 5);
+00067   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00068     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 5; ++j) \{
+00069       \textcolor{keywordtype}{float} sum = 0.0f;
+00070       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 3; ++k) \{
+00071         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 7; ++l) \{
+00072           sum += tensor(i, k, j, l);
+00073         \}
+00074       \}
+00075       VERIFY\_IS\_APPROX(result(i, j), sum);
+00076     \}
+00077   \}
+00078 
+00079   \{
+00080     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} sum1 = tensor.sum();
+00081     VERIFY\_IS\_EQUAL(sum1.rank(), 0);
+00082 
+00083     array<ptrdiff\_t, 4> reduction\_axis4;
+00084     reduction\_axis4[0] = 0;
+00085     reduction\_axis4[1] = 1;
+00086     reduction\_axis4[2] = 2;
+00087     reduction\_axis4[3] = 3;
+00088     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} sum2 = tensor.sum(reduction\_axis4);
+00089     VERIFY\_IS\_EQUAL(sum2.rank(), 0);
+00090 
+00091     VERIFY\_IS\_APPROX(sum1(), sum2());
+00092   \}
+00093 
+00094   reduction\_axis2[0] = 0;
+00095   reduction\_axis2[1] = 2;
+00096   result = tensor.prod(reduction\_axis2);
+00097   VERIFY\_IS\_EQUAL(result.dimension(0), 3);
+00098   VERIFY\_IS\_EQUAL(result.dimension(1), 7);
+00099   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 3; ++i) \{
+00100     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 7; ++j) \{
+00101       \textcolor{keywordtype}{float} prod = 1.0f;
+00102       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 2; ++k) \{
+00103         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 5; ++l) \{
+00104           prod *= tensor(k, i, l, j);
+00105         \}
+00106       \}
+00107       VERIFY\_IS\_APPROX(result(i, j), prod);
+00108     \}
+00109   \}
+00110 
+00111   \{
+00112     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} prod1 = tensor.prod();
+00113     VERIFY\_IS\_EQUAL(prod1.rank(), 0);
+00114 
+00115     array<ptrdiff\_t, 4> reduction\_axis4;
+00116     reduction\_axis4[0] = 0;
+00117     reduction\_axis4[1] = 1;
+00118     reduction\_axis4[2] = 2;
+00119     reduction\_axis4[3] = 3;
+00120     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} prod2 = tensor.prod(reduction\_axis4);
+00121     VERIFY\_IS\_EQUAL(prod2.rank(), 0);
+00122 
+00123     VERIFY\_IS\_APPROX(prod1(), prod2());
+00124   \}
+00125 
+00126   reduction\_axis2[0] = 0;
+00127   reduction\_axis2[1] = 2;
+00128   result = tensor.maximum(reduction\_axis2);
+00129   VERIFY\_IS\_EQUAL(result.dimension(0), 3);
+00130   VERIFY\_IS\_EQUAL(result.dimension(1), 7);
+00131   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 3; ++i) \{
+00132     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 7; ++j) \{
+00133       \textcolor{keywordtype}{float} max\_val = std::numeric\_limits<float>::lowest();
+00134       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 2; ++k) \{
+00135         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 5; ++l) \{
+00136           max\_val = (std::max)(max\_val, tensor(k, i, l, j));
+00137         \}
+00138       \}
+00139       VERIFY\_IS\_APPROX(result(i, j), max\_val);
+00140     \}
+00141   \}
+00142 
+00143   \{
+00144     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} max1 = tensor.maximum();
+00145     VERIFY\_IS\_EQUAL(max1.rank(), 0);
+00146 
+00147     array<ptrdiff\_t, 4> reduction\_axis4;
+00148     reduction\_axis4[0] = 0;
+00149     reduction\_axis4[1] = 1;
+00150     reduction\_axis4[2] = 2;
+00151     reduction\_axis4[3] = 3;
+00152     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} max2 = tensor.maximum(reduction\_axis4);
+00153     VERIFY\_IS\_EQUAL(max2.rank(), 0);
+00154 
+00155     VERIFY\_IS\_APPROX(max1(), max2());
+00156   \}
+00157 
+00158   reduction\_axis2[0] = 0;
+00159   reduction\_axis2[1] = 1;
+00160   result = tensor.minimum(reduction\_axis2);
+00161   VERIFY\_IS\_EQUAL(result.dimension(0), 5);
+00162   VERIFY\_IS\_EQUAL(result.dimension(1), 7);
+00163   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 5; ++i) \{
+00164     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 7; ++j) \{
+00165       \textcolor{keywordtype}{float} min\_val = (std::numeric\_limits<float>::max)();
+00166       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 2; ++k) \{
+00167         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 3; ++l) \{
+00168           min\_val = (std::min)(min\_val, tensor(k, l, i, j));
+00169         \}
+00170       \}
+00171       VERIFY\_IS\_APPROX(result(i, j), min\_val);
+00172     \}
+00173   \}
+00174 
+00175   \{
+00176     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} min1 = tensor.minimum();
+00177     VERIFY\_IS\_EQUAL(min1.rank(), 0);
+00178 
+00179     array<ptrdiff\_t, 4> reduction\_axis4;
+00180     reduction\_axis4[0] = 0;
+00181     reduction\_axis4[1] = 1;
+00182     reduction\_axis4[2] = 2;
+00183     reduction\_axis4[3] = 3;
+00184     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} min2 = tensor.minimum(reduction\_axis4);
+00185     VERIFY\_IS\_EQUAL(min2.rank(), 0);
+00186 
+00187     VERIFY\_IS\_APPROX(min1(), min2());
+00188   \}
+00189 
+00190   reduction\_axis2[0] = 0;
+00191   reduction\_axis2[1] = 1;
+00192   result = tensor.mean(reduction\_axis2);
+00193   VERIFY\_IS\_EQUAL(result.dimension(0), 5);
+00194   VERIFY\_IS\_EQUAL(result.dimension(1), 7);
+00195   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 5; ++i) \{
+00196     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 7; ++j) \{
+00197       \textcolor{keywordtype}{float} sum = 0.0f;
+00198       \textcolor{keywordtype}{int} count = 0;
+00199       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 2; ++k) \{
+00200         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 3; ++l) \{
+00201           sum += tensor(k, l, i, j);
+00202           ++count;
+00203         \}
+00204       \}
+00205       VERIFY\_IS\_APPROX(result(i, j), sum / count);
+00206     \}
+00207   \}
+00208 
+00209   \{
+00210     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} mean1 = tensor.mean();
+00211     VERIFY\_IS\_EQUAL(mean1.rank(), 0);
+00212 
+00213     array<ptrdiff\_t, 4> reduction\_axis4;
+00214     reduction\_axis4[0] = 0;
+00215     reduction\_axis4[1] = 1;
+00216     reduction\_axis4[2] = 2;
+00217     reduction\_axis4[3] = 3;
+00218     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} mean2 = tensor.mean(reduction\_axis4);
+00219     VERIFY\_IS\_EQUAL(mean2.rank(), 0);
+00220 
+00221     VERIFY\_IS\_APPROX(mean1(), mean2());
+00222   \}
+00223 
+00224   \{
+00225     \hyperlink{class_eigen_1_1_tensor}{Tensor<int, 1>} ints(10);
+00226     std::iota(ints.data(), ints.data() + ints.dimension(0), 0);
+00227 
+00228     TensorFixedSize<bool, Sizes<> > all;
+00229     all = ints.all();
+00230     VERIFY(!all());
+00231     all = (ints >= ints.constant(0)).all();
+00232     VERIFY(all());
+00233 
+00234     TensorFixedSize<bool, Sizes<> > any;
+00235     any = (ints > ints.constant(10)).any();
+00236     VERIFY(!any());
+00237     any = (ints < ints.constant(1)).any();
+00238     VERIFY(any());
+00239   \}
+00240 \}
+00241 
+00242 
+00243 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00244 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_reductions\_in\_expr() \{
+00245   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} tensor(2, 3, 5, 7);
+00246   tensor.setRandom();
+00247   array<ptrdiff\_t, 2> reduction\_axis2;
+00248   reduction\_axis2[0] = 1;
+00249   reduction\_axis2[1] = 3;
+00250 
+00251   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} result(2, 5);
+00252   result = result.constant(1.0f) - tensor.sum(reduction\_axis2);
+00253   VERIFY\_IS\_EQUAL(result.dimension(0), 2);
+00254   VERIFY\_IS\_EQUAL(result.dimension(1), 5);
+00255   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00256     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 5; ++j) \{
+00257       \textcolor{keywordtype}{float} sum = 0.0f;
+00258       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 3; ++k) \{
+00259         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 7; ++l) \{
+00260           sum += tensor(i, k, j, l);
+00261         \}
+00262       \}
+00263       VERIFY\_IS\_APPROX(result(i, j), 1.0f - sum);
+00264     \}
+00265   \}
+00266 \}
+00267 
+00268 
+00269 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00270 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_full\_reductions() \{
+00271   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} tensor(2, 3);
+00272   tensor.setRandom();
+00273   array<ptrdiff\_t, 2> reduction\_axis;
+00274   reduction\_axis[0] = 0;
+00275   reduction\_axis[1] = 1;
+00276 
+00277   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} result = tensor.sum(reduction\_axis);
+00278   VERIFY\_IS\_EQUAL(result.rank(), 0);
+00279 
+00280   \textcolor{keywordtype}{float} sum = 0.0f;
+00281   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00282     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 3; ++j) \{
+00283       sum += tensor(i, j);
+00284     \}
+00285   \}
+00286   VERIFY\_IS\_APPROX(result(0), sum);
+00287 
+00288   result = tensor.square().sum(reduction\_axis).sqrt();
+00289   VERIFY\_IS\_EQUAL(result.rank(), 0);
+00290 
+00291   sum = 0.0f;
+00292   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00293     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 3; ++j) \{
+00294       sum += tensor(i, j) * tensor(i, j);
+00295     \}
+00296   \}
+00297   VERIFY\_IS\_APPROX(result(), sqrtf(sum));
+00298 \}
+00299 
+00300 \textcolor{keyword}{struct }\hyperlink{struct_user_reducer}{UserReducer} \{
+00301   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} PacketAccess = \textcolor{keyword}{false};
+00302   \hyperlink{struct_user_reducer}{UserReducer}(\textcolor{keywordtype}{float} offset) : offset\_(offset) \{\}
+00303   \textcolor{keywordtype}{void} reduce(\textcolor{keyword}{const} \textcolor{keywordtype}{float} val, \textcolor{keywordtype}{float}* accum) \{ *accum += val * val; \}
+00304   \textcolor{keywordtype}{float} initialize()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} 0; \}
+00305   \textcolor{keywordtype}{float} finalize(\textcolor{keyword}{const} \textcolor{keywordtype}{float} accum)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} 1.0f / (accum + offset\_); \}
+00306 
+00307  \textcolor{keyword}{private}:
+00308   \textcolor{keyword}{const} \textcolor{keywordtype}{float} offset\_;
+00309 \};
+00310 
+00311 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00312 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_user\_defined\_reductions() \{
+00313   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} tensor(5, 7);
+00314   tensor.setRandom();
+00315   array<ptrdiff\_t, 1> reduction\_axis;
+00316   reduction\_axis[0] = 1;
+00317 
+00318   \hyperlink{struct_user_reducer}{UserReducer} reducer(10.0f);
+00319   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, DataLayout>} result = tensor.reduce(reduction\_axis, reducer);
+00320   VERIFY\_IS\_EQUAL(result.dimension(0), 5);
+00321   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 5; ++i) \{
+00322     \textcolor{keywordtype}{float} expected = 10.0f;
+00323     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 7; ++j) \{
+00324       expected += tensor(i, j) * tensor(i, j);
+00325     \}
+00326     expected = 1.0f / expected;
+00327     VERIFY\_IS\_APPROX(result(i), expected);
+00328   \}
+00329 \}
+00330 
+00331 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00332 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_tensor\_maps() \{
+00333   \textcolor{keywordtype}{int} inputs[2 * 3 * 5 * 7];
+00334   TensorMap<Tensor<int, 4, DataLayout> > tensor\_map(inputs, 2, 3, 5, 7);
+00335   TensorMap<Tensor<const int, 4, DataLayout> > tensor\_map\_const(inputs, 2, 3, 5,
+00336                                                                 7);
+00337   \textcolor{keyword}{const} TensorMap<Tensor<const int, 4, DataLayout> > tensor\_map\_const\_const(
+00338       inputs, 2, 3, 5, 7);
+00339 
+00340   tensor\_map.setRandom();
+00341   array<ptrdiff\_t, 2> reduction\_axis;
+00342   reduction\_axis[0] = 1;
+00343   reduction\_axis[1] = 3;
+00344 
+00345   \hyperlink{class_eigen_1_1_tensor}{Tensor<int, 2, DataLayout>} result = tensor\_map.sum(reduction\_axis);
+00346   \hyperlink{class_eigen_1_1_tensor}{Tensor<int, 2, DataLayout>} result2 = tensor\_map\_const.sum(reduction\_axis);
+00347   \hyperlink{class_eigen_1_1_tensor}{Tensor<int, 2, DataLayout>} result3 =
+00348       tensor\_map\_const\_const.sum(reduction\_axis);
+00349 
+00350   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00351     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 5; ++j) \{
+00352       \textcolor{keywordtype}{int} sum = 0;
+00353       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 3; ++k) \{
+00354         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 7; ++l) \{
+00355           sum += tensor\_map(i, k, j, l);
+00356         \}
+00357       \}
+00358       VERIFY\_IS\_EQUAL(result(i, j), sum);
+00359       VERIFY\_IS\_EQUAL(result2(i, j), sum);
+00360       VERIFY\_IS\_EQUAL(result3(i, j), sum);
+00361     \}
+00362   \}
+00363 \}
+00364 
+00365 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00366 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_static\_dims() \{
+00367   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} in(72, 53, 97, 113);
+00368   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} out(72, 97);
+00369   in.setRandom();
+00370 
+00371 \textcolor{preprocessor}{#if !EIGEN\_HAS\_CONSTEXPR }
+00372   array<int, 2> reduction\_axis;
+00373   reduction\_axis[0] = 1;
+00374   reduction\_axis[1] = 3;
+00375 \textcolor{preprocessor}{#else}
+00376   Eigen::IndexList<Eigen::type2index<1>, Eigen::type2index<3> > reduction\_axis;
+00377 \textcolor{preprocessor}{#endif}
+00378 
+00379   out = in.maximum(reduction\_axis);
+00380 
+00381   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 72; ++i) \{
+00382     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 97; ++j) \{
+00383       \textcolor{keywordtype}{float} expected = -1e10f;
+00384       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 53; ++k) \{
+00385         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 113; ++l) \{
+00386           expected = (std::max)(expected, in(i, k, j, l));
+00387         \}
+00388       \}
+00389       VERIFY\_IS\_APPROX(out(i, j), expected);
+00390     \}
+00391   \}
+00392 \}
+00393 
+00394 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00395 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_innermost\_last\_dims() \{
+00396   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} in(72, 53, 97, 113);
+00397   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} out(97, 113);
+00398   in.setRandom();
+00399 
+00400 \textcolor{comment}{// Reduce on the innermost dimensions.}
+00401 \textcolor{preprocessor}{#if !EIGEN\_HAS\_CONSTEXPR}
+00402   array<int, 2> reduction\_axis;
+00403   reduction\_axis[0] = 0;
+00404   reduction\_axis[1] = 1;
+00405 \textcolor{preprocessor}{#else}
+00406   \textcolor{comment}{// This triggers the use of packets for ColMajor.}
+00407   Eigen::IndexList<Eigen::type2index<0>, Eigen::type2index<1> > reduction\_axis;
+00408 \textcolor{preprocessor}{#endif}
+00409 
+00410   out = in.maximum(reduction\_axis);
+00411 
+00412   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 97; ++i) \{
+00413     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 113; ++j) \{
+00414       \textcolor{keywordtype}{float} expected = -1e10f;
+00415       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 53; ++k) \{
+00416         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 72; ++l) \{
+00417           expected = (std::max)(expected, in(l, k, i, j));
+00418         \}
+00419       \}
+00420       VERIFY\_IS\_APPROX(out(i, j), expected);
+00421     \}
+00422   \}
+00423 \}
+00424 
+00425 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00426 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_innermost\_first\_dims() \{
+00427   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} in(72, 53, 97, 113);
+00428   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} out(72, 53);
+00429   in.setRandom();
+00430 
+00431 \textcolor{comment}{// Reduce on the innermost dimensions.}
+00432 \textcolor{preprocessor}{#if !EIGEN\_HAS\_CONSTEXPR}
+00433   array<int, 2> reduction\_axis;
+00434   reduction\_axis[0] = 2;
+00435   reduction\_axis[1] = 3;
+00436 \textcolor{preprocessor}{#else}
+00437   \textcolor{comment}{// This triggers the use of packets for RowMajor.}
+00438   Eigen::IndexList<Eigen::type2index<2>, Eigen::type2index<3>> reduction\_axis;
+00439 \textcolor{preprocessor}{#endif}
+00440 
+00441   out = in.maximum(reduction\_axis);
+00442 
+00443   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 72; ++i) \{
+00444     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 53; ++j) \{
+00445       \textcolor{keywordtype}{float} expected = -1e10f;
+00446       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 97; ++k) \{
+00447         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 113; ++l) \{
+00448           expected = (std::max)(expected, in(i, j, k, l));
+00449         \}
+00450       \}
+00451       VERIFY\_IS\_APPROX(out(i, j), expected);
+00452     \}
+00453   \}
+00454 \}
+00455 
+00456 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00457 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_reduce\_middle\_dims() \{
+00458   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} in(72, 53, 97, 113);
+00459   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} out(72, 53);
+00460   in.setRandom();
+00461 
+00462 \textcolor{comment}{// Reduce on the innermost dimensions.}
+00463 \textcolor{preprocessor}{#if !EIGEN\_HAS\_CONSTEXPR}
+00464   array<int, 2> reduction\_axis;
+00465   reduction\_axis[0] = 1;
+00466   reduction\_axis[1] = 2;
+00467 \textcolor{preprocessor}{#else}
+00468   \textcolor{comment}{// This triggers the use of packets for RowMajor.}
+00469   Eigen::IndexList<Eigen::type2index<1>, Eigen::type2index<2>> reduction\_axis;
+00470 \textcolor{preprocessor}{#endif}
+00471 
+00472   out = in.maximum(reduction\_axis);
+00473 
+00474   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 72; ++i) \{
+00475     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 113; ++j) \{
+00476       \textcolor{keywordtype}{float} expected = -1e10f;
+00477       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 53; ++k) \{
+00478         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 97; ++l) \{
+00479           expected = (std::max)(expected, in(i, k, l, j));
+00480         \}
+00481       \}
+00482       VERIFY\_IS\_APPROX(out(i, j), expected);
+00483     \}
+00484   \}
+00485 \}
+00486 
+00487 \textcolor{keywordtype}{void} test\_cxx11\_tensor\_reduction() \{
+00488   CALL\_SUBTEST(test\_trivial\_reductions<ColMajor>());
+00489   CALL\_SUBTEST(test\_trivial\_reductions<RowMajor>());
+00490   CALL\_SUBTEST(test\_simple\_reductions<ColMajor>());
+00491   CALL\_SUBTEST(test\_simple\_reductions<RowMajor>());
+00492   CALL\_SUBTEST(test\_reductions\_in\_expr<ColMajor>());
+00493   CALL\_SUBTEST(test\_reductions\_in\_expr<RowMajor>());
+00494   CALL\_SUBTEST(test\_full\_reductions<ColMajor>());
+00495   CALL\_SUBTEST(test\_full\_reductions<RowMajor>());
+00496   CALL\_SUBTEST(test\_user\_defined\_reductions<ColMajor>());
+00497   CALL\_SUBTEST(test\_user\_defined\_reductions<RowMajor>());
+00498   CALL\_SUBTEST(test\_tensor\_maps<ColMajor>());
+00499   CALL\_SUBTEST(test\_tensor\_maps<RowMajor>());
+00500   CALL\_SUBTEST(test\_static\_dims<ColMajor>());
+00501   CALL\_SUBTEST(test\_static\_dims<RowMajor>());
+00502   CALL\_SUBTEST(test\_innermost\_last\_dims<ColMajor>());
+00503   CALL\_SUBTEST(test\_innermost\_last\_dims<RowMajor>());
+00504   CALL\_SUBTEST(test\_innermost\_first\_dims<ColMajor>());
+00505   CALL\_SUBTEST(test\_innermost\_first\_dims<RowMajor>());
+00506   CALL\_SUBTEST(test\_reduce\_middle\_dims<ColMajor>());
+00507   CALL\_SUBTEST(test\_reduce\_middle\_dims<RowMajor>());
+00508 \}
+\end{DoxyCode}

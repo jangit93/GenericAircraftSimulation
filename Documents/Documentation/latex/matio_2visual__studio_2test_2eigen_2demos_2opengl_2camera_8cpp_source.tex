@@ -1,0 +1,269 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2demos_2opengl_2camera_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/demos/opengl/camera.cpp}
+\label{matio_2visual__studio_2test_2eigen_2demos_2opengl_2camera_8cpp_source}\index{camera.\+cpp@{camera.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "camera.h"}
+00011 
+00012 \textcolor{preprocessor}{#include "gpuhelper.h"}
+00013 \textcolor{preprocessor}{#include <GL/glu.h>}
+00014 
+00015 \textcolor{preprocessor}{#include "Eigen/LU"}
+00016 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00017 
+00018 Camera::Camera()
+00019     : mViewIsUptodate(false), mProjIsUptodate(false)
+00020 \{
+00021     mViewMatrix.\hyperlink{group___geometry___module_a4f0c6b74994904b56b621cf3d9ac4a0f}{setIdentity}();
+00022     
+00023     mFovY = M\_PI/3.;
+00024     mNearDist = 1.;
+00025     mFarDist = 50000.;
+00026     
+00027     mVpX = 0;
+00028     mVpY = 0;
+00029 
+00030     setPosition(Vector3f::Constant(100.));
+00031     setTarget(Vector3f::Zero());
+00032 \}
+00033 
+00034 \hyperlink{class_camera}{Camera}& Camera::operator=(\textcolor{keyword}{const} \hyperlink{class_camera}{Camera}& other)
+00035 \{
+00036     mViewIsUptodate = \textcolor{keyword}{false};
+00037     mProjIsUptodate = \textcolor{keyword}{false};
+00038     
+00039     mVpX = other.mVpX;
+00040     mVpY = other.mVpY;
+00041     mVpWidth = other.mVpWidth;
+00042     mVpHeight = other.mVpHeight;
+00043 
+00044     mTarget = other.mTarget;
+00045     mFovY = other.mFovY;
+00046     mNearDist = other.mNearDist;
+00047     mFarDist = other.mFarDist;
+00048     
+00049     mViewMatrix = other.mViewMatrix;
+00050     mProjectionMatrix = other.mProjectionMatrix;
+00051 
+00052     \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00053 \}
+00054 
+00055 Camera::Camera(\textcolor{keyword}{const} \hyperlink{class_camera}{Camera}& other)
+00056 \{
+00057     *\textcolor{keyword}{this} = other;
+00058 \}
+00059 
+00060 Camera::~Camera()
+00061 \{
+00062 \}
+00063 
+00064 
+00065 \textcolor{keywordtype}{void} Camera::setViewport(uint offsetx, uint offsety, uint width, uint height)
+00066 \{
+00067     mVpX = offsetx;
+00068     mVpY = offsety;
+00069     mVpWidth = width;
+00070     mVpHeight = height;
+00071     
+00072     mProjIsUptodate = \textcolor{keyword}{false};
+00073 \}
+00074 
+00075 \textcolor{keywordtype}{void} Camera::setViewport(uint width, uint height)
+00076 \{
+00077     mVpWidth = width;
+00078     mVpHeight = height;
+00079     
+00080     mProjIsUptodate = \textcolor{keyword}{false};
+00081 \}
+00082 
+00083 \textcolor{keywordtype}{void} Camera::setFovY(\textcolor{keywordtype}{float} value)
+00084 \{
+00085     mFovY = value;
+00086     mProjIsUptodate = \textcolor{keyword}{false};
+00087 \}
+00088 
+00089 Vector3f Camera::direction(\textcolor{keywordtype}{void})\textcolor{keyword}{ const}
+00090 \textcolor{keyword}{}\{
+00091     \textcolor{keywordflow}{return} - (orientation() * Vector3f::UnitZ());
+00092 \}
+00093 Vector3f Camera::up(\textcolor{keywordtype}{void})\textcolor{keyword}{ const}
+00094 \textcolor{keyword}{}\{
+00095     \textcolor{keywordflow}{return} orientation() * Vector3f::UnitY();
+00096 \}
+00097 Vector3f Camera::right(\textcolor{keywordtype}{void})\textcolor{keyword}{ const}
+00098 \textcolor{keyword}{}\{
+00099     \textcolor{keywordflow}{return} orientation() * Vector3f::UnitX();
+00100 \}
+00101 
+00102 \textcolor{keywordtype}{void} Camera::setDirection(\textcolor{keyword}{const} Vector3f& newDirection)
+00103 \{
+00104     \textcolor{comment}{// TODO implement it computing the rotation between newDirection and current dir ?}
+00105     Vector3f up = this->up();
+00106     
+00107     Matrix3f camAxes;
+00108 
+00109     camAxes.col(2) = (-newDirection).normalized();
+00110     camAxes.col(0) = up.cross( camAxes.col(2) ).normalized();
+00111     camAxes.col(1) = camAxes.col(2).cross( camAxes.col(0) ).normalized();
+00112     setOrientation(\hyperlink{group___geometry___module_ga785b13a5a87f9bf55d4eba51ead2dcf0}{Quaternionf}(camAxes));
+00113     
+00114     mViewIsUptodate = \textcolor{keyword}{false};
+00115 \}
+00116 
+00117 \textcolor{keywordtype}{void} Camera::setTarget(\textcolor{keyword}{const} Vector3f& target)
+00118 \{
+00119     mTarget = target;
+00120     \textcolor{keywordflow}{if} (!mTarget.isApprox(position()))
+00121     \{
+00122         Vector3f newDirection = mTarget - position();
+00123         setDirection(newDirection.normalized());
+00124     \}
+00125 \}
+00126 
+00127 \textcolor{keywordtype}{void} Camera::setPosition(\textcolor{keyword}{const} Vector3f& p)
+00128 \{
+00129     mFrame.position = p;
+00130     mViewIsUptodate = \textcolor{keyword}{false};
+00131 \}
+00132 
+00133 \textcolor{keywordtype}{void} Camera::setOrientation(\textcolor{keyword}{const} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternionf}& q)
+00134 \{
+00135     mFrame.orientation = q;
+00136     mViewIsUptodate = \textcolor{keyword}{false};
+00137 \}
+00138 
+00139 \textcolor{keywordtype}{void} Camera::setFrame(\textcolor{keyword}{const} \hyperlink{class_frame}{Frame}& f)
+00140 \{
+00141   mFrame = f;
+00142   mViewIsUptodate = \textcolor{keyword}{false};
+00143 \}
+00144 
+00145 \textcolor{keywordtype}{void} Camera::rotateAroundTarget(\textcolor{keyword}{const} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternionf}& q)
+00146 \{
+00147     Matrix4f mrot, mt, mtm;
+00148     
+00149     \textcolor{comment}{// update the transform matrix}
+00150     updateViewMatrix();
+00151     Vector3f t = mViewMatrix * mTarget;
+00152 
+00153     mViewMatrix = \hyperlink{group___geometry___module_class_eigen_1_1_translation}{Translation3f}(t)
+00154                 * q
+00155                 * \hyperlink{group___geometry___module_class_eigen_1_1_translation}{Translation3f}(-t)
+00156                 * mViewMatrix;
+00157     
+00158     \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternionf} qa(mViewMatrix.linear());
+00159     qa = qa.\hyperlink{group___geometry___module_aa82dabadce488031c298a5a0a92cda14}{conjugate}();
+00160     setOrientation(qa);
+00161     setPosition(- (qa * mViewMatrix.translation()) );
+00162 
+00163     mViewIsUptodate = \textcolor{keyword}{true};
+00164 \}
+00165 
+00166 \textcolor{keywordtype}{void} Camera::localRotate(\textcolor{keyword}{const} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternionf}& q)
+00167 \{
+00168     \textcolor{keywordtype}{float} dist = (position() - mTarget).norm();
+00169     setOrientation(orientation() * q);
+00170     mTarget = position() + dist * direction();
+00171     mViewIsUptodate = \textcolor{keyword}{false};
+00172 \}
+00173 
+00174 \textcolor{keywordtype}{void} Camera::zoom(\textcolor{keywordtype}{float} d)
+00175 \{
+00176     \textcolor{keywordtype}{float} dist = (position() - mTarget).norm();
+00177     \textcolor{keywordflow}{if}(dist > d)
+00178     \{
+00179         setPosition(position() + direction() * d);
+00180         mViewIsUptodate = \textcolor{keyword}{false};
+00181     \}
+00182 \}
+00183 
+00184 \textcolor{keywordtype}{void} Camera::localTranslate(\textcolor{keyword}{const} Vector3f& t)
+00185 \{
+00186   Vector3f trans = orientation() * t;
+00187   setPosition( position() + trans );
+00188   setTarget( mTarget + trans );
+00189 
+00190   mViewIsUptodate = \textcolor{keyword}{false};
+00191 \}
+00192 
+00193 \textcolor{keywordtype}{void} Camera::updateViewMatrix(\textcolor{keywordtype}{void})\textcolor{keyword}{ const}
+00194 \textcolor{keyword}{}\{
+00195     \textcolor{keywordflow}{if}(!mViewIsUptodate)
+00196     \{
+00197         \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternionf} q = orientation().\hyperlink{group___geometry___module_aa82dabadce488031c298a5a0a92cda14}{conjugate}();
+00198         mViewMatrix.linear() = q.\hyperlink{group___geometry___module_a621c71eec9680bf77342b28a473b6874}{toRotationMatrix}();
+00199         mViewMatrix.translation() = - (mViewMatrix.linear() * position());
+00200 
+00201         mViewIsUptodate = \textcolor{keyword}{true};
+00202     \}
+00203 \}
+00204 
+00205 \textcolor{keyword}{const} \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Affine3f}& Camera::viewMatrix(\textcolor{keywordtype}{void})\textcolor{keyword}{ const}
+00206 \textcolor{keyword}{}\{
+00207   updateViewMatrix();
+00208   \textcolor{keywordflow}{return} mViewMatrix;
+00209 \}
+00210 
+00211 \textcolor{keywordtype}{void} Camera::updateProjectionMatrix(\textcolor{keywordtype}{void})\textcolor{keyword}{ const}
+00212 \textcolor{keyword}{}\{
+00213   \textcolor{keywordflow}{if}(!mProjIsUptodate)
+00214   \{
+00215     mProjectionMatrix.setIdentity();
+00216     \textcolor{keywordtype}{float} aspect = float(mVpWidth)/float(mVpHeight);
+00217     \textcolor{keywordtype}{float} theta = mFovY*0.5;
+00218     \textcolor{keywordtype}{float} range = mFarDist - mNearDist;
+00219     \textcolor{keywordtype}{float} invtan = 1./tan(theta);
+00220 
+00221     mProjectionMatrix(0,0) = invtan / aspect;
+00222     mProjectionMatrix(1,1) = invtan;
+00223     mProjectionMatrix(2,2) = -(mNearDist + mFarDist) / range;
+00224     mProjectionMatrix(3,2) = -1;
+00225     mProjectionMatrix(2,3) = -2 * mNearDist * mFarDist / range;
+00226     mProjectionMatrix(3,3) = 0;
+00227     
+00228     mProjIsUptodate = \textcolor{keyword}{true};
+00229   \}
+00230 \}
+00231 
+00232 \textcolor{keyword}{const} Matrix4f& Camera::projectionMatrix(\textcolor{keywordtype}{void})\textcolor{keyword}{ const}
+00233 \textcolor{keyword}{}\{
+00234   updateProjectionMatrix();
+00235   \textcolor{keywordflow}{return} mProjectionMatrix;
+00236 \}
+00237 
+00238 \textcolor{keywordtype}{void} \hyperlink{class_camera_a4872379b01876af2ffd8d2d871472ed1}{Camera::activateGL}(\textcolor{keywordtype}{void})
+00239 \{
+00240   glViewport(vpX(), vpY(), vpWidth(), vpHeight());
+00241   gpu.\hyperlink{class_gpu_helper_a31ac77373dc54409648558d79d5a8c3e}{loadMatrix}(projectionMatrix(),GL\_PROJECTION);
+00242   gpu.\hyperlink{class_gpu_helper_a31ac77373dc54409648558d79d5a8c3e}{loadMatrix}(viewMatrix().matrix(),GL\_MODELVIEW);
+00243 \}
+00244 
+00245 
+00246 Vector3f Camera::unProject(\textcolor{keyword}{const} Vector2f& uv, \textcolor{keywordtype}{float} depth)\textcolor{keyword}{ const}
+00247 \textcolor{keyword}{}\{
+00248     Matrix4f inv = mViewMatrix.inverse().matrix();
+00249     \textcolor{keywordflow}{return} unProject(uv, depth, inv);
+00250 \}
+00251 
+00252 Vector3f Camera::unProject(\textcolor{keyword}{const} Vector2f& uv, \textcolor{keywordtype}{float} depth, \textcolor{keyword}{const} Matrix4f& invModelview)\textcolor{keyword}{ const}
+00253 \textcolor{keyword}{}\{
+00254     updateViewMatrix();
+00255     updateProjectionMatrix();
+00256     
+00257     Vector3f a(2.*uv.x()/float(mVpWidth)-1., 2.*uv.y()/float(mVpHeight)-1., 1.);
+00258     a.x() *= depth/mProjectionMatrix(0,0);
+00259     a.y() *= depth/mProjectionMatrix(1,1);
+00260     a.z() = -depth;
+00261     \textcolor{comment}{// FIXME /\(\backslash\)/|}
+00262     Vector4f b = invModelview * Vector4f(a.x(), a.y(), a.z(), 1.);
+00263     \textcolor{keywordflow}{return} Vector3f(b.x(), b.y(), b.z());
+00264 \}
+\end{DoxyCode}

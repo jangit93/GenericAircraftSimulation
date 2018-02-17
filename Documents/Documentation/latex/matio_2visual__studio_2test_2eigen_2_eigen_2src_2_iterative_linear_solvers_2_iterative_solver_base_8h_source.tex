@@ -1,0 +1,337 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Iterative\+Linear\+Solvers/\+Iterative\+Solver\+Base.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source}\index{Iterative\+Solver\+Base.\+h@{Iterative\+Solver\+Base.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2011-2014 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_ITERATIVE\_SOLVER\_BASE\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_ITERATIVE\_SOLVER\_BASE\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016 
+00017 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00018 \textcolor{keyword}{struct }is\_ref\_compatible\_impl
+00019 \{
+00020 \textcolor{keyword}{private}:
+00021   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T0>
+00022   \textcolor{keyword}{struct }any\_conversion
+00023   \{
+00024     \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> any\_conversion(\textcolor{keyword}{const} \textcolor{keyword}{volatile} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}&);
+00025     \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> any\_conversion(\hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}&);
+00026   \};
+00027   \textcolor{keyword}{struct }yes \{\textcolor{keywordtype}{int} a[1];\};
+00028   \textcolor{keyword}{struct }no  \{\textcolor{keywordtype}{int} a[2];\};
+00029 
+00030   \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00031   \textcolor{keyword}{static} yes test(\textcolor{keyword}{const} Ref<const T>&, \textcolor{keywordtype}{int});
+00032   \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00033   \textcolor{keyword}{static} no  test(any\_conversion<T>, ...);
+00034 
+00035 \textcolor{keyword}{public}:
+00036   \textcolor{keyword}{static} MatrixType ms\_from;
+00037   \textcolor{keyword}{enum} \{ value = \textcolor{keyword}{sizeof}(test<MatrixType>(ms\_from, 0))==\textcolor{keyword}{sizeof}(yes) \};
+00038 \};
+00039 
+00040 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00041 \textcolor{keyword}{struct }is\_ref\_compatible
+00042 \{
+00043   \textcolor{keyword}{enum} \{ value = is\_ref\_compatible\_impl<typename remove\_all<MatrixType>::type>::value \};
+00044 \};
+00045 
+00046 template<typename MatrixType, bool MatrixFree = !internal::is\_ref\_compatible<MatrixType>::value>
+00047 \textcolor{keyword}{class }generic\_matrix\_wrapper;
+00048 
+00049 \textcolor{comment}{// We have an explicit matrix at hand, compatible with Ref<>}
+00050 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00051 \textcolor{keyword}{class }generic\_matrix\_wrapper<MatrixType,false>
+00052 \{
+00053 \textcolor{keyword}{public}:
+00054   \textcolor{keyword}{typedef} Ref<const MatrixType> ActualMatrixType;
+00055   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} UpLo> \textcolor{keyword}{struct }ConstSelfAdjointViewReturnType \{
+00056     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ActualMatrixType::template ConstSelfAdjointViewReturnType<UpLo>::Type Type;
+00057   \};
+00058 
+00059   \textcolor{keyword}{enum} \{
+00060     MatrixFree = \textcolor{keyword}{false}
+00061   \};
+00062 
+00063   generic\_matrix\_wrapper()
+00064     : m\_dummy(0,0), m\_matrix(m\_dummy)
+00065   \{\}
+00066 
+00067   \textcolor{keyword}{template}<\textcolor{keyword}{typename} InputType>
+00068   generic\_matrix\_wrapper(\textcolor{keyword}{const} InputType &mat)
+00069     : m\_matrix(mat)
+00070   \{\}
+00071 
+00072   \textcolor{keyword}{const} ActualMatrixType& matrix()\textcolor{keyword}{ const}
+00073 \textcolor{keyword}{  }\{
+00074     \textcolor{keywordflow}{return} m\_matrix;
+00075   \}
+00076 
+00077   \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixDerived>
+00078   \textcolor{keywordtype}{void} grab(\textcolor{keyword}{const} EigenBase<MatrixDerived> &mat)
+00079   \{
+00080     m\_matrix.~Ref<\textcolor{keyword}{const} MatrixType>();
+00081     ::new (&m\_matrix) Ref<const MatrixType>(mat.derived());
+00082   \}
+00083 
+00084   \textcolor{keywordtype}{void} grab(\textcolor{keyword}{const} Ref<const MatrixType> &mat)
+00085   \{
+00086     \textcolor{keywordflow}{if}(&(mat.derived()) != &m\_matrix)
+00087     \{
+00088       m\_matrix.~Ref<\textcolor{keyword}{const} MatrixType>();
+00089       ::new (&m\_matrix) Ref<const MatrixType>(mat);
+00090     \}
+00091   \}
+00092 
+00093 \textcolor{keyword}{protected}:
+00094   MatrixType m\_dummy; \textcolor{comment}{// used to default initialize the Ref<> object}
+00095   ActualMatrixType m\_matrix;
+00096 \};
+00097 
+00098 \textcolor{comment}{// MatrixType is not compatible with Ref<> -> matrix-free wrapper}
+00099 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00100 \textcolor{keyword}{class }generic\_matrix\_wrapper<MatrixType,true>
+00101 \{
+00102 \textcolor{keyword}{public}:
+00103   \textcolor{keyword}{typedef} MatrixType ActualMatrixType;
+00104   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} UpLo> \textcolor{keyword}{struct }ConstSelfAdjointViewReturnType
+00105   \{
+00106     \textcolor{keyword}{typedef} ActualMatrixType Type;
+00107   \};
+00108 
+00109   \textcolor{keyword}{enum} \{
+00110     MatrixFree = \textcolor{keyword}{true}
+00111   \};
+00112 
+00113   generic\_matrix\_wrapper()
+00114     : mp\_matrix(0)
+00115   \{\}
+00116 
+00117   generic\_matrix\_wrapper(\textcolor{keyword}{const} MatrixType &mat)
+00118     : mp\_matrix(&mat)
+00119   \{\}
+00120 
+00121   \textcolor{keyword}{const} ActualMatrixType& matrix()\textcolor{keyword}{ const}
+00122 \textcolor{keyword}{  }\{
+00123     \textcolor{keywordflow}{return} *mp\_matrix;
+00124   \}
+00125 
+00126   \textcolor{keywordtype}{void} grab(\textcolor{keyword}{const} MatrixType &mat)
+00127   \{
+00128     mp\_matrix = &mat;
+00129   \}
+00130 
+00131 \textcolor{keyword}{protected}:
+00132   \textcolor{keyword}{const} ActualMatrixType *mp\_matrix;
+00133 \};
+00134 
+00135 \}
+00136 
+00142 \textcolor{keyword}{template}< \textcolor{keyword}{typename} Derived>
+00143 \textcolor{keyword}{class }IterativeSolverBase : \textcolor{keyword}{public} SparseSolverBase<Derived>
+00144 \{
+00145 \textcolor{keyword}{protected}:
+00146   \textcolor{keyword}{typedef} SparseSolverBase<Derived> Base;
+00147   \textcolor{keyword}{using} Base::m\_isInitialized;
+00148   
+00149 \textcolor{keyword}{public}:
+00150   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::traits<Derived>::MatrixType MatrixType;
+00151   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::traits<Derived>::Preconditioner Preconditioner;
+00152   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00153   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::StorageIndex StorageIndex;
+00154   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00155 
+00156   \textcolor{keyword}{enum} \{
+00157     ColsAtCompileTime = MatrixType::ColsAtCompileTime,
+00158     MaxColsAtCompileTime = MatrixType::MaxColsAtCompileTime
+00159   \};
+00160 
+00161 \textcolor{keyword}{public}:
+00162 
+00163   \textcolor{keyword}{using} Base::derived;
+00164 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source_l00166}\hyperlink{group___iterative_linear_solvers___module_a0922f2be45082690d7734aa6732fc493}{00166}   \hyperlink{group___iterative_linear_solvers___module_a0922f2be45082690d7734aa6732fc493}{IterativeSolverBase}()
+00167   \{
+00168     \hyperlink{structinit}{init}();
+00169   \}
+00170 
+00181   \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixDerived>
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source_l00182}\hyperlink{group___iterative_linear_solvers___module_a3c68fe3cd929ea1ff8a0d4cbcd65ebad}{00182}   \textcolor{keyword}{explicit} \hyperlink{group___iterative_linear_solvers___module_a3c68fe3cd929ea1ff8a0d4cbcd65ebad}{IterativeSolverBase}(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<MatrixDerived>}& 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A})
+00183     : m\_matrixWrapper(A.derived())
+00184   \{
+00185     \hyperlink{structinit}{init}();
+00186     compute(matrix());
+00187   \}
+00188 
+00189   ~\hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_iterative_solver_base}{IterativeSolverBase}() \{\}
+00190   
+00196   \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixDerived>
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source_l00197}\hyperlink{group___iterative_linear_solvers___module_a3f684fb41019ca04d97ddc08a0d8be2e}{00197}   Derived& \hyperlink{group___iterative_linear_solvers___module_a3f684fb41019ca04d97ddc08a0d8be2e}{analyzePattern}(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<MatrixDerived>}& 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A})
+00198   \{
+00199     grab(A.\hyperlink{group___core___module_a324b16961a11d2ecfd2d1b7dd7946545}{derived}());
+00200     m\_preconditioner.analyzePattern(matrix());
+00201     m\_isInitialized = \textcolor{keyword}{true};
+00202     m\_analysisIsOk = \textcolor{keyword}{true};
+00203     m\_info = m\_preconditioner.info();
+00204     \textcolor{keywordflow}{return} derived();
+00205   \}
+00206   
+00216   \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixDerived>
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source_l00217}\hyperlink{group___iterative_linear_solvers___module_a1374b141721629983cd8276b4b87fc58}{00217}   Derived& \hyperlink{group___iterative_linear_solvers___module_a1374b141721629983cd8276b4b87fc58}{factorize}(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<MatrixDerived>}& 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A})
+00218   \{
+00219     eigen\_assert(m\_analysisIsOk && \textcolor{stringliteral}{"You must first call analyzePattern()"}); 
+00220     grab(A.\hyperlink{group___core___module_a324b16961a11d2ecfd2d1b7dd7946545}{derived}());
+00221     m\_preconditioner.factorize(matrix());
+00222     m\_factorizationIsOk = \textcolor{keyword}{true};
+00223     m\_info = m\_preconditioner.info();
+00224     \textcolor{keywordflow}{return} derived();
+00225   \}
+00226 
+00237   \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixDerived>
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source_l00238}\hyperlink{group___iterative_linear_solvers___module_a7dfa55c55e82d697bde227696a630914}{00238}   Derived& \hyperlink{group___iterative_linear_solvers___module_a7dfa55c55e82d697bde227696a630914}{compute}(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<MatrixDerived>}& 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A})
+00239   \{
+00240     grab(A.\hyperlink{group___core___module_a324b16961a11d2ecfd2d1b7dd7946545}{derived}());
+00241     m\_preconditioner.compute(matrix());
+00242     m\_isInitialized = \textcolor{keyword}{true};
+00243     m\_analysisIsOk = \textcolor{keyword}{true};
+00244     m\_factorizationIsOk = \textcolor{keyword}{true};
+00245     m\_info = m\_preconditioner.info();
+00246     \textcolor{keywordflow}{return} derived();
+00247   \}
+00248 
+00250   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} matrix().rows(); \}
+00251 
+00253   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} matrix().cols(); \}
+00254 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source_l00258}\hyperlink{group___iterative_linear_solvers___module_acb442c19b5858d6b9be813dd7d36cc62}{00258}   RealScalar \hyperlink{group___iterative_linear_solvers___module_acb442c19b5858d6b9be813dd7d36cc62}{tolerance}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_tolerance; \}
+00259   
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source_l00265}\hyperlink{group___iterative_linear_solvers___module_ac160a444af8998f93da9aa30e858470d}{00265}   Derived& \hyperlink{group___iterative_linear_solvers___module_ac160a444af8998f93da9aa30e858470d}{setTolerance}(\textcolor{keyword}{const} RealScalar& tolerance)
+00266   \{
+00267     m\_tolerance = tolerance;
+00268     \textcolor{keywordflow}{return} derived();
+00269   \}
+00270 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source_l00272}\hyperlink{group___iterative_linear_solvers___module_a5e88f2a323a2900205cf807af94f8051}{00272}   Preconditioner& \hyperlink{group___iterative_linear_solvers___module_a5e88f2a323a2900205cf807af94f8051}{preconditioner}() \{ \textcolor{keywordflow}{return} m\_preconditioner; \}
+00273   
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source_l00275}\hyperlink{group___iterative_linear_solvers___module_a709a056e17c49b5272e4971bc376cbe4}{00275}   \textcolor{keyword}{const} Preconditioner& \hyperlink{group___iterative_linear_solvers___module_a709a056e17c49b5272e4971bc376cbe4}{preconditioner}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_preconditioner; \}
+00276 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source_l00281}\hyperlink{group___iterative_linear_solvers___module_a168a74c8dceb6233b220031fdd756ba0}{00281}   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \hyperlink{group___iterative_linear_solvers___module_a168a74c8dceb6233b220031fdd756ba0}{maxIterations}()\textcolor{keyword}{ const}
+00282 \textcolor{keyword}{  }\{
+00283     \textcolor{keywordflow}{return} (m\_maxIterations<0) ? 2*matrix().cols() : m\_maxIterations;
+00284   \}
+00285   
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source_l00289}\hyperlink{group___iterative_linear_solvers___module_af83de7a7d31d9d4bd1fef6222b07335b}{00289}   Derived& \hyperlink{group___iterative_linear_solvers___module_af83de7a7d31d9d4bd1fef6222b07335b}{setMaxIterations}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} maxIters)
+00290   \{
+00291     m\_maxIterations = maxIters;
+00292     \textcolor{keywordflow}{return} derived();
+00293   \}
+00294 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source_l00296}\hyperlink{group___iterative_linear_solvers___module_ae778dd098bd5e6655625b20b1e9f15da}{00296}   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \hyperlink{group___iterative_linear_solvers___module_ae778dd098bd5e6655625b20b1e9f15da}{iterations}()\textcolor{keyword}{ const}
+00297 \textcolor{keyword}{  }\{
+00298     eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"ConjugateGradient is not initialized."});
+00299     \textcolor{keywordflow}{return} m\_iterations;
+00300   \}
+00301 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source_l00305}\hyperlink{group___iterative_linear_solvers___module_a117c241af3fb1141ad0916a3cf3157ec}{00305}   RealScalar \hyperlink{group___iterative_linear_solvers___module_a117c241af3fb1141ad0916a3cf3157ec}{error}()\textcolor{keyword}{ const}
+00306 \textcolor{keyword}{  }\{
+00307     eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"ConjugateGradient is not initialized."});
+00308     \textcolor{keywordflow}{return} m\_error;
+00309   \}
+00310 
+00316   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs,\textcolor{keyword}{typename} Guess>
+00317   \textcolor{keyword}{inline} \textcolor{keyword}{const} \hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_solve_with_guess}{SolveWithGuess<Derived, Rhs, Guess>}
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source_l00318}\hyperlink{group___iterative_linear_solvers___module_adcc18d1ab283786dcbb5a3f63f4b4bd8}{00318}   \hyperlink{group___iterative_linear_solvers___module_adcc18d1ab283786dcbb5a3f63f4b4bd8}{solveWithGuess}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Rhs>}& b, \textcolor{keyword}{const} Guess& x0)\textcolor{keyword}{ const}
+00319 \textcolor{keyword}{  }\{
+00320     eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"Solver is not initialized."});
+00321     eigen\_assert(derived().rows()==b.rows() && \textcolor{stringliteral}{"solve(): invalid number of rows of the right hand side
+       matrix b"});
+00322     \textcolor{keywordflow}{return} \hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_solve_with_guess}{SolveWithGuess<Derived, Rhs, Guess>}(derived(), b.derived(), 
+      x0);
+00323   \}
+00324 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_iterative_solver_base_8h_source_l00326}\hyperlink{group___iterative_linear_solvers___module_a0d6b459433a316b4f12d48e5c80d61fe}{00326}   \hyperlink{group__enums_ga85fad7b87587764e5cf6b513a9e0ee5e}{ComputationInfo} \hyperlink{group___iterative_linear_solvers___module_a0d6b459433a316b4f12d48e5c80d61fe}{info}()\textcolor{keyword}{ const}
+00327 \textcolor{keyword}{  }\{
+00328     eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"IterativeSolverBase is not initialized."});
+00329     \textcolor{keywordflow}{return} m\_info;
+00330   \}
+00331   
+00333   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} DestDerived>
+00334   \textcolor{keywordtype}{void} \_solve\_impl(\textcolor{keyword}{const} Rhs& b, \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix_base}{SparseMatrixBase<DestDerived>} &aDest)\textcolor{keyword}{ const}
+00335 \textcolor{keyword}{  }\{
+00336     eigen\_assert(rows()==b.rows());
+00337     
+00338     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rhsCols = b.cols();
+00339     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = b.rows();
+00340     DestDerived& dest(aDest.derived());
+00341     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} DestDerived::Scalar DestScalar;
+00342     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Eigen::Matrix<DestScalar,Dynamic,1>} tb(size);
+00343     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Eigen::Matrix<DestScalar,Dynamic,1>} tx(cols());
+00344     \textcolor{comment}{// We do not directly fill dest because sparse expressions have to be free of aliasing issue.}
+00345     \textcolor{comment}{// For non square least-square problems, b and dest might not have the same size whereas they might
+       alias each-other.}
+00346     \textcolor{keyword}{typename} DestDerived::PlainObject tmp(cols(),rhsCols);
+00347     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=0; k<rhsCols; ++k)
+00348     \{
+00349       tb = b.col(k);
+00350       tx = derived().solve(tb);
+00351       tmp.col(k) = tx.sparseView(0);
+00352     \}
+00353     dest.swap(tmp);
+00354   \}
+00355 
+00356 \textcolor{keyword}{protected}:
+00357   \textcolor{keywordtype}{void} \hyperlink{structinit}{init}()
+00358   \{
+00359     m\_isInitialized = \textcolor{keyword}{false};
+00360     m\_analysisIsOk = \textcolor{keyword}{false};
+00361     m\_factorizationIsOk = \textcolor{keyword}{false};
+00362     m\_maxIterations = -1;
+00363     m\_tolerance = \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::epsilon}();
+00364   \}
+00365 
+00366   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1internal_1_1generic__matrix__wrapper}{internal::generic\_matrix\_wrapper<MatrixType>} 
+      \hyperlink{class_eigen_1_1internal_1_1generic__matrix__wrapper}{MatrixWrapper};
+00367   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixWrapper::ActualMatrixType ActualMatrixType;
+00368 
+00369   \textcolor{keyword}{const} ActualMatrixType& matrix()\textcolor{keyword}{ const}
+00370 \textcolor{keyword}{  }\{
+00371     \textcolor{keywordflow}{return} m\_matrixWrapper.matrix();
+00372   \}
+00373   
+00374   \textcolor{keyword}{template}<\textcolor{keyword}{typename} InputType>
+00375   \textcolor{keywordtype}{void} grab(\textcolor{keyword}{const} InputType &\hyperlink{group___core___module_class_eigen_1_1_matrix}{A})
+00376   \{
+00377     m\_matrixWrapper.grab(A);
+00378   \}
+00379   
+00380   MatrixWrapper m\_matrixWrapper;
+00381   Preconditioner m\_preconditioner;
+00382 
+00383   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_maxIterations;
+00384   RealScalar m\_tolerance;
+00385   
+00386   \textcolor{keyword}{mutable} RealScalar m\_error;
+00387   \textcolor{keyword}{mutable} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_iterations;
+00388   \textcolor{keyword}{mutable} \hyperlink{group__enums_ga85fad7b87587764e5cf6b513a9e0ee5e}{ComputationInfo} m\_info;
+00389   \textcolor{keyword}{mutable} \textcolor{keywordtype}{bool} m\_analysisIsOk, m\_factorizationIsOk;
+00390 \};
+00391 
+00392 \} \textcolor{comment}{// end namespace Eigen}
+00393 
+00394 \textcolor{preprocessor}{#endif // EIGEN\_ITERATIVE\_SOLVER\_BASE\_H}
+\end{DoxyCode}

@@ -1,0 +1,226 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_sparse_core_2_sparse_sparse_product_with_pruning_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Sparse\+Core/\+Sparse\+Sparse\+Product\+With\+Pruning.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_sparse_core_2_sparse_sparse_product_with_pruning_8h_source}\index{Sparse\+Sparse\+Product\+With\+Pruning.\+h@{Sparse\+Sparse\+Product\+With\+Pruning.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2014 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_SPARSESPARSEPRODUCTWITHPRUNING\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_SPARSESPARSEPRODUCTWITHPRUNING\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016 
+00017 
+00018 \textcolor{comment}{// perform a pseudo in-place sparse * sparse product assuming all matrices are col major}
+00019 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} ResultType>
+00020 \textcolor{keyword}{static} \textcolor{keywordtype}{void} sparse\_sparse\_product\_with\_pruning\_impl(\textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, ResultType& res, \textcolor{keyword}{const} \textcolor{keyword}{
+      typename} ResultType::RealScalar& tolerance)
+00021 \{
+00022   \textcolor{comment}{// return sparse\_sparse\_product\_with\_pruning\_impl2(lhs,rhs,res);}
+00023 
+00024   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_all<Lhs>::type::Scalar Scalar;
+00025   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_all<Lhs>::type::StorageIndex StorageIndex;
+00026 
+00027   \textcolor{comment}{// make sure to call innerSize/outerSize since we fake the storage order.}
+00028   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows = lhs.innerSize();
+00029   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols = rhs.outerSize();
+00030   \textcolor{comment}{//Index size = lhs.outerSize();}
+00031   eigen\_assert(lhs.outerSize() == rhs.innerSize());
+00032 
+00033   \textcolor{comment}{// allocate a temporary buffer}
+00034   AmbiVector<Scalar,StorageIndex> tempVector(rows);
+00035 
+00036   \textcolor{comment}{// mimics a resizeByInnerOuter:}
+00037   \textcolor{keywordflow}{if}(ResultType::IsRowMajor)
+00038     res.resize(cols, rows);
+00039   \textcolor{keywordflow}{else}
+00040     res.resize(rows, cols);
+00041   
+00042   evaluator<Lhs> lhsEval(lhs);
+00043   evaluator<Rhs> rhsEval(rhs);
+00044   
+00045   \textcolor{comment}{// estimate the number of non zero entries}
+00046   \textcolor{comment}{// given a rhs column containing Y non zeros, we assume that the respective Y columns}
+00047   \textcolor{comment}{// of the lhs differs in average of one non zeros, thus the number of non zeros for}
+00048   \textcolor{comment}{// the product of a rhs column with the lhs is X+Y where X is the average number of non zero}
+00049   \textcolor{comment}{// per column of the lhs.}
+00050   \textcolor{comment}{// Therefore, we have nnz(lhs*rhs) = nnz(lhs) + nnz(rhs)}
+00051   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} estimated\_nnz\_prod = lhsEval.nonZerosEstimate() + rhsEval.nonZerosEstimate();
+00052 
+00053   res.reserve(estimated\_nnz\_prod);
+00054   \textcolor{keywordtype}{double} ratioColRes = double(estimated\_nnz\_prod)/(double(lhs.rows())*\textcolor{keywordtype}{double}(rhs.cols()));
+00055   \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j=0; j<cols; ++j)
+00056   \{
+00057     \textcolor{comment}{// FIXME:}
+00058     \textcolor{comment}{//double ratioColRes = (double(rhs.innerVector(j).nonZeros()) +
+       double(lhs.nonZeros())/double(lhs.cols()))/double(lhs.rows());}
+00059     \textcolor{comment}{// let's do a more accurate determination of the nnz ratio for the current column j of res}
+00060     tempVector.init(ratioColRes);
+00061     tempVector.setZero();
+00062     \textcolor{keywordflow}{for} (\textcolor{keyword}{typename} evaluator<Rhs>::InnerIterator rhsIt(rhsEval, j); rhsIt; ++rhsIt)
+00063     \{
+00064       \textcolor{comment}{// FIXME should be written like this: tmp += rhsIt.value() * lhs.col(rhsIt.index())}
+00065       tempVector.restart();
+00066       Scalar x = rhsIt.value();
+00067       \textcolor{keywordflow}{for} (\textcolor{keyword}{typename} evaluator<Lhs>::InnerIterator lhsIt(lhsEval, rhsIt.index()); lhsIt; ++lhsIt)
+00068       \{
+00069         tempVector.coeffRef(lhsIt.index()) += lhsIt.value() * x;
+00070       \}
+00071     \}
+00072     res.startVec(j);
+00073     \textcolor{keywordflow}{for} (\textcolor{keyword}{typename} AmbiVector<Scalar,StorageIndex>::Iterator it(tempVector,tolerance); it; ++it)
+00074       res.insertBackByOuterInner(j,it.index()) = it.value();
+00075   \}
+00076   res.finalize();
+00077 \}
+00078 
+00079 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} ResultType,
+00080   \textcolor{keywordtype}{int} LhsStorageOrder = traits<Lhs>::Flags&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit},
+00081   \textcolor{keywordtype}{int} RhsStorageOrder = traits<Rhs>::Flags&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit},
+00082   \textcolor{keywordtype}{int} ResStorageOrder = traits<ResultType>::Flags&RowMajorBit>
+00083 \textcolor{keyword}{struct }sparse\_sparse\_product\_with\_pruning\_selector;
+00084 
+00085 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} ResultType>
+00086 \textcolor{keyword}{struct }sparse\_sparse\_product\_with\_pruning\_selector<Lhs,Rhs,ResultType,\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor},
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor},\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}>
+00087 \{
+00088   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} traits<typename remove\_all<Lhs>::type>::Scalar Scalar;
+00089   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ResultType::RealScalar RealScalar;
+00090 
+00091   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, ResultType& res, \textcolor{keyword}{const} RealScalar& tolerance)
+00092   \{
+00093     \textcolor{keyword}{typename} remove\_all<ResultType>::type \_res(res.rows(), res.cols());
+00094     internal::sparse\_sparse\_product\_with\_pruning\_impl<Lhs,Rhs,ResultType>(lhs, rhs, \_res, tolerance);
+00095     res.swap(\_res);
+00096   \}
+00097 \};
+00098 
+00099 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} ResultType>
+00100 \textcolor{keyword}{struct }sparse\_sparse\_product\_with\_pruning\_selector<Lhs,Rhs,ResultType,\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor},
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor},\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}>
+00101 \{
+00102   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ResultType::RealScalar RealScalar;
+00103   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, ResultType& res, \textcolor{keyword}{const} RealScalar& tolerance)
+00104   \{
+00105     \textcolor{comment}{// we need a col-major matrix to hold the result}
+00106     \textcolor{keyword}{typedef} SparseMatrix<typename ResultType::Scalar,ColMajor,typename ResultType::StorageIndex> 
+      SparseTemporaryType;
+00107     SparseTemporaryType \_res(res.rows(), res.cols());
+00108     internal::sparse\_sparse\_product\_with\_pruning\_impl<Lhs,Rhs,SparseTemporaryType>(lhs, rhs, \_res, 
+      tolerance);
+00109     res = \_res;
+00110   \}
+00111 \};
+00112 
+00113 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} ResultType>
+00114 \textcolor{keyword}{struct }sparse\_sparse\_product\_with\_pruning\_selector<Lhs,Rhs,ResultType,\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor},
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor},\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}>
+00115 \{
+00116   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ResultType::RealScalar RealScalar;
+00117   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, ResultType& res, \textcolor{keyword}{const} RealScalar& tolerance)
+00118   \{
+00119     \textcolor{comment}{// let's transpose the product to get a column x column product}
+00120     \textcolor{keyword}{typename} remove\_all<ResultType>::type \_res(res.rows(), res.cols());
+00121     internal::sparse\_sparse\_product\_with\_pruning\_impl<Rhs,Lhs,ResultType>(rhs, lhs, \_res, tolerance);
+00122     res.swap(\_res);
+00123   \}
+00124 \};
+00125 
+00126 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} ResultType>
+00127 \textcolor{keyword}{struct }sparse\_sparse\_product\_with\_pruning\_selector<Lhs,Rhs,ResultType,\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor},
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor},\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}>
+00128 \{
+00129   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ResultType::RealScalar RealScalar;
+00130   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, ResultType& res, \textcolor{keyword}{const} RealScalar& tolerance)
+00131   \{
+00132     \textcolor{keyword}{typedef} SparseMatrix<typename ResultType::Scalar,ColMajor,typename Lhs::StorageIndex> ColMajorMatrixLhs
+      ;
+00133     \textcolor{keyword}{typedef} SparseMatrix<typename ResultType::Scalar,ColMajor,typename Lhs::StorageIndex> ColMajorMatrixRhs
+      ;
+00134     ColMajorMatrixLhs colLhs(lhs);
+00135     ColMajorMatrixRhs colRhs(rhs);
+00136     internal::sparse\_sparse\_product\_with\_pruning\_impl<ColMajorMatrixLhs,ColMajorMatrixRhs,ResultType>(
+      colLhs, colRhs, res, tolerance);
+00137 
+00138     \textcolor{comment}{// let's transpose the product to get a column x column product}
+00139 \textcolor{comment}{//     typedef SparseMatrix<typename ResultType::Scalar> SparseTemporaryType;}
+00140 \textcolor{comment}{//     SparseTemporaryType \_res(res.cols(), res.rows());}
+00141 \textcolor{comment}{//     sparse\_sparse\_product\_with\_pruning\_impl<Rhs,Lhs,SparseTemporaryType>(rhs, lhs, \_res);}
+00142 \textcolor{comment}{//     res = \_res.transpose();}
+00143   \}
+00144 \};
+00145 
+00146 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} ResultType>
+00147 \textcolor{keyword}{struct }sparse\_sparse\_product\_with\_pruning\_selector<Lhs,Rhs,ResultType,\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor},
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor},\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}>
+00148 \{
+00149   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ResultType::RealScalar RealScalar;
+00150   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, ResultType& res, \textcolor{keyword}{const} RealScalar& tolerance)
+00151   \{
+00152     \textcolor{keyword}{typedef} SparseMatrix<typename ResultType::Scalar,RowMajor,typename Lhs::StorageIndex> RowMajorMatrixLhs
+      ;
+00153     RowMajorMatrixLhs rowLhs(lhs);
+00154     sparse\_sparse\_product\_with\_pruning\_selector<RowMajorMatrixLhs,Rhs,ResultType,RowMajor,RowMajor>(rowLhs,
+      rhs,res,tolerance);
+00155   \}
+00156 \};
+00157 
+00158 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} ResultType>
+00159 \textcolor{keyword}{struct }sparse\_sparse\_product\_with\_pruning\_selector<Lhs,Rhs,ResultType,\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor},
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor},\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}>
+00160 \{
+00161   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ResultType::RealScalar RealScalar;
+00162   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, ResultType& res, \textcolor{keyword}{const} RealScalar& tolerance)
+00163   \{
+00164     \textcolor{keyword}{typedef} SparseMatrix<typename ResultType::Scalar,RowMajor,typename Lhs::StorageIndex> RowMajorMatrixRhs
+      ;
+00165     RowMajorMatrixRhs rowRhs(rhs);
+00166     
+      sparse\_sparse\_product\_with\_pruning\_selector<Lhs,RowMajorMatrixRhs,ResultType,RowMajor,RowMajor,RowMajor>(lhs,rowRhs,res,tolerance);
+00167   \}
+00168 \};
+00169 
+00170 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} ResultType>
+00171 \textcolor{keyword}{struct }sparse\_sparse\_product\_with\_pruning\_selector<Lhs,Rhs,ResultType,\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor},
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor},\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}>
+00172 \{
+00173   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ResultType::RealScalar RealScalar;
+00174   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, ResultType& res, \textcolor{keyword}{const} RealScalar& tolerance)
+00175   \{
+00176     \textcolor{keyword}{typedef} SparseMatrix<typename ResultType::Scalar,ColMajor,typename Lhs::StorageIndex> ColMajorMatrixRhs
+      ;
+00177     ColMajorMatrixRhs colRhs(rhs);
+00178     internal::sparse\_sparse\_product\_with\_pruning\_impl<Lhs,ColMajorMatrixRhs,ResultType>(lhs, colRhs, res, 
+      tolerance);
+00179   \}
+00180 \};
+00181 
+00182 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} ResultType>
+00183 \textcolor{keyword}{struct }sparse\_sparse\_product\_with\_pruning\_selector<Lhs,Rhs,ResultType,\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor},
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor},\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}>
+00184 \{
+00185   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ResultType::RealScalar RealScalar;
+00186   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, ResultType& res, \textcolor{keyword}{const} RealScalar& tolerance)
+00187   \{
+00188     \textcolor{keyword}{typedef} SparseMatrix<typename ResultType::Scalar,ColMajor,typename Lhs::StorageIndex> ColMajorMatrixLhs
+      ;
+00189     ColMajorMatrixLhs colLhs(lhs);
+00190     internal::sparse\_sparse\_product\_with\_pruning\_impl<ColMajorMatrixLhs,Rhs,ResultType>(colLhs, rhs, res, 
+      tolerance);
+00191   \}
+00192 \};
+00193 
+00194 \} \textcolor{comment}{// end namespace internal}
+00195 
+00196 \} \textcolor{comment}{// end namespace Eigen}
+00197 
+00198 \textcolor{preprocessor}{#endif // EIGEN\_SPARSESPARSEPRODUCTWITHPRUNING\_H}
+\end{DoxyCode}

@@ -1,0 +1,144 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2bench_2btl_2actions_2action__trisolve_8hh_source}{}\section{matio/visual\+\_\+studio/test/eigen/bench/btl/actions/action\+\_\+trisolve.hh}
+\label{matio_2visual__studio_2test_2eigen_2bench_2btl_2actions_2action__trisolve_8hh_source}\index{action\+\_\+trisolve.\+hh@{action\+\_\+trisolve.\+hh}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{//=====================================================}
+00002 \textcolor{comment}{// File   :  action\_trisolve.hh}
+00003 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00004 \textcolor{comment}{//=====================================================}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This program is free software; you can redistribute it and/or}
+00007 \textcolor{comment}{// modify it under the terms of the GNU General Public License}
+00008 \textcolor{comment}{// as published by the Free Software Foundation; either version 2}
+00009 \textcolor{comment}{// of the License, or (at your option) any later version.}
+00010 \textcolor{comment}{//}
+00011 \textcolor{comment}{// This program is distributed in the hope that it will be useful,}
+00012 \textcolor{comment}{// but WITHOUT ANY WARRANTY; without even the implied warranty of}
+00013 \textcolor{comment}{// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the}
+00014 \textcolor{comment}{// GNU General Public License for more details.}
+00015 \textcolor{comment}{// You should have received a copy of the GNU General Public License}
+00016 \textcolor{comment}{// along with this program; if not, write to the Free Software}
+00017 \textcolor{comment}{// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.}
+00018 \textcolor{comment}{//}
+00019 \textcolor{preprocessor}{#ifndef ACTION\_TRISOLVE}
+00020 \textcolor{preprocessor}{#define ACTION\_TRISOLVE}
+00021 \textcolor{preprocessor}{#include "utilities.h"}
+00022 \textcolor{preprocessor}{#include "STL\_interface.hh"}
+00023 \textcolor{preprocessor}{#include <string>}
+00024 \textcolor{preprocessor}{#include "init/init\_function.hh"}
+00025 \textcolor{preprocessor}{#include "init/init\_vector.hh"}
+00026 \textcolor{preprocessor}{#include "init/init\_matrix.hh"}
+00027 
+00028 \textcolor{keyword}{using namespace }\hyperlink{namespacestd}{std};
+00029 
+00030 \textcolor{keyword}{template}<\textcolor{keyword}{class} Interface>
+00031 \textcolor{keyword}{class }\hyperlink{class_action__trisolve}{Action\_trisolve} \{
+00032 
+00033 public :
+00034 
+00035   \textcolor{comment}{// Ctor}
+00036 
+00037   \hyperlink{class_action__trisolve}{Action\_trisolve}( \textcolor{keywordtype}{int} size ):\_size(size)
+00038   \{
+00039     MESSAGE(\textcolor{stringliteral}{"Action\_trisolve Ctor"});
+00040 
+00041     \textcolor{comment}{// STL vector initialization}
+00042     init\_matrix<pseudo\_random>(L\_stl,\_size);
+00043     init\_vector<pseudo\_random>(B\_stl,\_size);
+00044     init\_vector<null\_function>(X\_stl,\_size);
+00045     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<\_size; ++j)
+00046     \{
+00047       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<j; ++i)
+00048         L\_stl[j][i] = 0;
+00049       L\_stl[j][j] += 3;
+00050     \}
+00051 
+00052     init\_vector<null\_function>(resu\_stl,\_size);
+00053 
+00054     \textcolor{comment}{// generic matrix and vector initialization}
+00055     Interface::matrix\_from\_stl(L,L\_stl);
+00056     Interface::vector\_from\_stl(X,X\_stl);
+00057     Interface::vector\_from\_stl(B,B\_stl);
+00058 
+00059     \_cost = 0;
+00060     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<\_size; ++j)
+00061     \{
+00062       \_cost += 2*j + 1;
+00063     \}
+00064   \}
+00065 
+00066   \textcolor{comment}{// invalidate copy ctor}
+00067 
+00068   \hyperlink{class_action__trisolve}{Action\_trisolve}( \textcolor{keyword}{const}  \hyperlink{class_action__trisolve}{Action\_trisolve} & )
+00069   \{
+00070     INFOS(\textcolor{stringliteral}{"illegal call to Action\_trisolve Copy Ctor"});
+00071     exit(1);
+00072   \}
+00073 
+00074   \textcolor{comment}{// Dtor}
+00075 
+00076   ~\hyperlink{class_action__trisolve}{Action\_trisolve}( \textcolor{keywordtype}{void} )\{
+00077 
+00078     MESSAGE(\textcolor{stringliteral}{"Action\_trisolve Dtor"});
+00079 
+00080     \textcolor{comment}{// deallocation}
+00081     Interface::free\_matrix(L,\_size);
+00082     Interface::free\_vector(B);
+00083     Interface::free\_vector(X);
+00084   \}
+00085 
+00086   \textcolor{comment}{// action name}
+00087 
+00088   \textcolor{keyword}{static} \textcolor{keyword}{inline} std::string name( \textcolor{keywordtype}{void} )
+00089   \{
+00090     \textcolor{keywordflow}{return} \textcolor{stringliteral}{"trisolve\_vector\_"}+Interface::name();
+00091   \}
+00092 
+00093   \textcolor{keywordtype}{double} nb\_op\_base( \textcolor{keywordtype}{void} )\{
+00094     \textcolor{keywordflow}{return} \_cost;
+00095   \}
+00096 
+00097   \textcolor{keyword}{inline} \textcolor{keywordtype}{void} initialize( \textcolor{keywordtype}{void} )\{
+00098     \textcolor{comment}{//Interface::copy\_vector(X\_ref,X,\_size);}
+00099   \}
+00100 
+00101   \textcolor{keyword}{inline} \textcolor{keywordtype}{void} calculate( \textcolor{keywordtype}{void} ) \{
+00102       Interface::trisolve\_lower(L,B,X,\_size);
+00103   \}
+00104 
+00105   \textcolor{keywordtype}{void} check\_result()\{
+00106     \textcolor{keywordflow}{if} (\_size>128) \textcolor{keywordflow}{return};
+00107     \textcolor{comment}{// calculation check}
+00108     Interface::vector\_to\_stl(X,resu\_stl);
+00109 
+00110     \hyperlink{class_s_t_l__interface}{STL\_interface<typename Interface::real\_type>::trisolve\_lower}
+      (L\_stl,B\_stl,X\_stl,\_size);
+00111 
+00112     \textcolor{keyword}{typename} Interface::real\_type error=
+00113       \hyperlink{class_s_t_l__interface}{STL\_interface<typename Interface::real\_type>::norm\_diff}
+      (X\_stl,resu\_stl);
+00114 
+00115     \textcolor{keywordflow}{if} (error>1.e-4)\{
+00116       INFOS(\textcolor{stringliteral}{"WRONG CALCULATION...residual="} << error);
+00117       exit(2);
+00118     \} \textcolor{comment}{//else INFOS("CALCULATION OK...residual=" << error);}
+00119 
+00120   \}
+00121 
+00122 private :
+00123 
+00124   \textcolor{keyword}{typename} Interface::stl\_matrix L\_stl;
+00125   \textcolor{keyword}{typename} Interface::stl\_vector X\_stl;
+00126   \textcolor{keyword}{typename} Interface::stl\_vector B\_stl;
+00127   \textcolor{keyword}{typename} Interface::stl\_vector resu\_stl;
+00128 
+00129   \textcolor{keyword}{typename} Interface::gene\_matrix L;
+00130   \textcolor{keyword}{typename} Interface::gene\_vector X;
+00131   \textcolor{keyword}{typename} Interface::gene\_vector B;
+00132 
+00133   \textcolor{keywordtype}{int} \_size;
+00134   \textcolor{keywordtype}{double} \_cost;
+00135 \};
+00136 
+00137 \textcolor{preprocessor}{#endif}
+\end{DoxyCode}

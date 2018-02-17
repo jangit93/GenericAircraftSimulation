@@ -1,0 +1,130 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_ordering_methods_2_ordering_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Ordering\+Methods/\+Ordering.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_ordering_methods_2_ordering_8h_source}\index{Ordering.\+h@{Ordering.\+h}}
+
+\begin{DoxyCode}
+00001  
+00002 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00003 \textcolor{comment}{// for linear algebra.}
+00004 \textcolor{comment}{//}
+00005 \textcolor{comment}{// Copyright (C) 2012  Désiré Nuentsa-Wakam <desire.nuentsa\_wakam@inria.fr>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_ORDERING\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_ORDERING\_H}
+00013 
+00014 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00015   
+00016 \textcolor{preprocessor}{#include "Eigen\_Colamd.h"}
+00017 
+00018 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00019     
+00026 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> 
+00027 \textcolor{keywordtype}{void} ordering\_helper\_at\_plus\_a(\textcolor{keyword}{const} MatrixType& A, MatrixType& symmat)
+00028 \{
+00029   MatrixType C;
+00030   C = A.transpose(); \textcolor{comment}{// NOTE: Could be  costly}
+00031   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < C.rows(); i++) 
+00032   \{
+00033       \textcolor{keywordflow}{for} (\textcolor{keyword}{typename} MatrixType::InnerIterator it(C, i); it; ++it)
+00034         it.valueRef() = 0.0;
+00035   \}
+00036   symmat = C + A;
+00037 \}
+00038     
+00039 \}
+00040 
+00041 \textcolor{preprocessor}{#ifndef EIGEN\_MPL2\_ONLY}
+00042 
+00051 \textcolor{keyword}{template} <\textcolor{keyword}{typename} StorageIndex>
+00052 \textcolor{keyword}{class }AMDOrdering
+00053 \{
+00054   \textcolor{keyword}{public}:
+00055     \textcolor{keyword}{typedef} PermutationMatrix<Dynamic, Dynamic, StorageIndex> PermutationType;
+00056     
+00060     \textcolor{keyword}{template} <\textcolor{keyword}{typename} MatrixType>
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_ordering_methods_2_ordering_8h_source_l00061}\hyperlink{group___ordering_methods___module_afce433557abcba9e49fa81581a58fa51}{00061}     \textcolor{keywordtype}{void} \hyperlink{group___ordering_methods___module_afce433557abcba9e49fa81581a58fa51}{operator()}(\textcolor{keyword}{const} MatrixType& mat, PermutationType& perm)
+00062     \{
+00063       \textcolor{comment}{// Compute the symmetric pattern}
+00064       \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix}{SparseMatrix<typename MatrixType::Scalar, ColMajor, StorageIndex>}
+       symm;
+00065       internal::ordering\_helper\_at\_plus\_a(mat,symm); 
+00066     
+00067       \textcolor{comment}{// Call the AMD routine }
+00068       \textcolor{comment}{//m\_mat.prune(keep\_diag());}
+00069       internal::minimum\_degree\_ordering(symm, perm);
+00070     \}
+00071     
+00073     \textcolor{keyword}{template} <\textcolor{keyword}{typename} SrcType, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} SrcUpLo> 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_ordering_methods_2_ordering_8h_source_l00074}\hyperlink{group___ordering_methods___module_a7f3fd7224b084f0f5655c97ea8eb6466}{00074}     \textcolor{keywordtype}{void} \hyperlink{group___ordering_methods___module_a7f3fd7224b084f0f5655c97ea8eb6466}{operator()}(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_self_adjoint_view}{SparseSelfAdjointView<SrcType, SrcUpLo>}
+      & mat, PermutationType& perm)
+00075     \{ 
+00076       \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix}{SparseMatrix<typename SrcType::Scalar, ColMajor, StorageIndex>}
+       C; C = mat;
+00077       
+00078       \textcolor{comment}{// Call the AMD routine }
+00079       \textcolor{comment}{// m\_mat.prune(keep\_diag()); //Remove the diagonal elements }
+00080       internal::minimum\_degree\_ordering(C, perm);
+00081     \}
+00082 \};
+00083 
+00084 \textcolor{preprocessor}{#endif // EIGEN\_MPL2\_ONLY}
+00085 
+00094 \textcolor{keyword}{template} <\textcolor{keyword}{typename} StorageIndex>
+00095 \textcolor{keyword}{class }\hyperlink{group___ordering_methods___module_class_eigen_1_1_natural_ordering}{NaturalOrdering}
+00096 \{
+00097   \textcolor{keyword}{public}:
+00098     \textcolor{keyword}{typedef} \hyperlink{group___core___module}{PermutationMatrix<Dynamic, Dynamic, StorageIndex>}
+       \hyperlink{group___core___module}{PermutationType};
+00099     
+00101     \textcolor{keyword}{template} <\textcolor{keyword}{typename} MatrixType>
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_ordering_methods_2_ordering_8h_source_l00102}\hyperlink{group___ordering_methods___module_aa39e772105ed66da9e909f2a9385be37}{00102}     \textcolor{keywordtype}{void} \hyperlink{group___ordering_methods___module_aa39e772105ed66da9e909f2a9385be37}{operator()}(\textcolor{keyword}{const} MatrixType& \textcolor{comment}{/*mat*/}, PermutationType& perm)
+00103     \{
+00104       perm.\hyperlink{group___core___module_a0e0fda6e84d69e02432e4770359bb532}{resize}(0); 
+00105     \}
+00106     
+00107 \};
+00108 
+00117 \textcolor{keyword}{template}<\textcolor{keyword}{typename} StorageIndex>
+00118 \textcolor{keyword}{class }\hyperlink{group___ordering_methods___module_class_eigen_1_1_c_o_l_a_m_d_ordering}{COLAMDOrdering}
+00119 \{
+00120   \textcolor{keyword}{public}:
+00121     \textcolor{keyword}{typedef} \hyperlink{group___core___module}{PermutationMatrix<Dynamic, Dynamic, StorageIndex>}
+       \hyperlink{group___core___module}{PermutationType}; 
+00122     \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<StorageIndex, Dynamic, 1>} IndexVector;
+00123     
+00127     \textcolor{keyword}{template} <\textcolor{keyword}{typename} MatrixType>
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_ordering_methods_2_ordering_8h_source_l00128}\hyperlink{group___ordering_methods___module_a708cb20191dcd79856d922f262405946}{00128}     \textcolor{keywordtype}{void} operator() (\textcolor{keyword}{const} MatrixType& mat, PermutationType& perm)
+00129     \{
+00130       eigen\_assert(mat.isCompressed() && \textcolor{stringliteral}{"COLAMDOrdering requires a sparse matrix in compressed mode. Call
+       .makeCompressed() before passing it to COLAMDOrdering"});
+00131       
+00132       StorageIndex m = StorageIndex(mat.rows());
+00133       StorageIndex n = StorageIndex(mat.cols());
+00134       StorageIndex nnz = StorageIndex(mat.nonZeros());
+00135       \textcolor{comment}{// Get the recommended value of Alen to be used by colamd}
+00136       StorageIndex Alen = \hyperlink{namespace_eigen_1_1internal_a182742cb4291838dfc4cd1e5b2b95c65}{internal::colamd\_recommended}(nnz, m, n); 
+00137       \textcolor{comment}{// Set the default parameters}
+00138       \textcolor{keywordtype}{double} knobs [COLAMD\_KNOBS]; 
+00139       StorageIndex stats [COLAMD\_STATS];
+00140       internal::colamd\_set\_defaults(knobs);
+00141       
+00142       IndexVector p(n+1), A(Alen); 
+00143       \textcolor{keywordflow}{for}(StorageIndex i=0; i <= n; i++)   p(i) = mat.outerIndexPtr()[i];
+00144       \textcolor{keywordflow}{for}(StorageIndex i=0; i < nnz; i++)  A(i) = mat.innerIndexPtr()[i];
+00145       \textcolor{comment}{// Call Colamd routine to compute the ordering }
+00146       StorageIndex info = internal::colamd(m, n, Alen, A.\hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}(), p.data(), knobs, stats); 
+00147       EIGEN\_UNUSED\_VARIABLE(info);
+00148       eigen\_assert( info && \textcolor{stringliteral}{"COLAMD failed "} );
+00149       
+00150       perm.\hyperlink{group___core___module_a0e0fda6e84d69e02432e4770359bb532}{resize}(n);
+00151       \textcolor{keywordflow}{for} (StorageIndex i = 0; i < n; i++) perm.\hyperlink{group___core___module_a2f1ab379207fcd1ceb33941e25cf50c2}{indices}()(p(i)) = i;
+00152     \}
+00153 \};
+00154 
+00155 \} \textcolor{comment}{// end namespace Eigen}
+00156 
+00157 \textcolor{preprocessor}{#endif}
+\end{DoxyCode}

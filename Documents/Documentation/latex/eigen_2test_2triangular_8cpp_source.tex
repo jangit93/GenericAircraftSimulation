@@ -1,0 +1,265 @@
+\hypertarget{eigen_2test_2triangular_8cpp_source}{}\section{eigen/test/triangular.cpp}
+\label{eigen_2test_2triangular_8cpp_source}\index{triangular.\+cpp@{triangular.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is triangularView of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 
+00013 
+00014 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} triangular\_square(\textcolor{keyword}{const} MatrixType& m)
+00015 \{
+00016   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00017   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00018   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::RowsAtCompileTime, 1>} 
+      \hyperlink{struct_vector_type}{VectorType};
+00019 
+00020   RealScalar largerEps = 10*test\_precision<RealScalar>();
+00021 
+00022   \textcolor{keyword}{typename} MatrixType::Index rows = m.rows();
+00023   \textcolor{keyword}{typename} MatrixType::Index cols = m.cols();
+00024 
+00025   MatrixType m1 = MatrixType::Random(rows, cols),
+00026              m2 = MatrixType::Random(rows, cols),
+00027              m3(rows, cols),
+00028              m4(rows, cols),
+00029              r1(rows, cols),
+00030              r2(rows, cols);
+00031   VectorType v2 = VectorType::Random(rows);
+00032 
+00033   MatrixType m1up = m1.template triangularView<Upper>();
+00034   MatrixType m2up = m2.template triangularView<Upper>();
+00035 
+00036   \textcolor{keywordflow}{if} (rows*cols>1)
+00037   \{
+00038     VERIFY(m1up.isUpperTriangular());
+00039     VERIFY(m2up.transpose().isLowerTriangular());
+00040     VERIFY(!m2.isLowerTriangular());
+00041   \}
+00042 
+00043 \textcolor{comment}{//   VERIFY\_IS\_APPROX(m1up.transpose() * m2, m1.upper().transpose().lower() * m2);}
+00044 
+00045   \textcolor{comment}{// test overloaded operator+=}
+00046   r1.setZero();
+00047   r2.setZero();
+00048   r1.template triangularView<Upper>() +=  m1;
+00049   r2 += m1up;
+00050   VERIFY\_IS\_APPROX(r1,r2);
+00051 
+00052   \textcolor{comment}{// test overloaded operator=}
+00053   m1.setZero();
+00054   m1.template triangularView<Upper>() = m2.transpose() + m2;
+00055   m3 = m2.transpose() + m2;
+00056   VERIFY\_IS\_APPROX(m3.template triangularView<Lower>().transpose().toDenseMatrix(), m1);
+00057 
+00058   \textcolor{comment}{// test overloaded operator=}
+00059   m1.setZero();
+00060   m1.template triangularView<Lower>() = m2.transpose() + m2;
+00061   VERIFY\_IS\_APPROX(m3.template triangularView<Lower>().toDenseMatrix(), m1);
+00062 
+00063   VERIFY\_IS\_APPROX(m3.template triangularView<Lower>().conjugate().toDenseMatrix(),
+00064                    m3.conjugate().template triangularView<Lower>().toDenseMatrix());
+00065 
+00066   m1 = MatrixType::Random(rows, cols);
+00067   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<rows; ++i)
+00068     \textcolor{keywordflow}{while} (numext::abs2(m1(i,i))<RealScalar(1e-1)) m1(i,i) = internal::random<Scalar>();
+00069 
+00070   \hyperlink{group___core___module_class_eigen_1_1_transpose}{Transpose<MatrixType>} trm4(m4);
+00071   \textcolor{comment}{// test back and forward subsitution with a vector as the rhs}
+00072   m3 = m1.template triangularView<Upper>();
+00073   VERIFY(v2.isApprox(m3.adjoint() * (m1.adjoint().template triangularView<Lower>().solve(v2)), largerEps));
+00074   m3 = m1.template triangularView<Lower>();
+00075   VERIFY(v2.isApprox(m3.transpose() * (m1.transpose().template triangularView<Upper>().solve(v2)), 
+      largerEps));
+00076   m3 = m1.template triangularView<Upper>();
+00077   VERIFY(v2.isApprox(m3 * (m1.template triangularView<Upper>().solve(v2)), largerEps));
+00078   m3 = m1.template triangularView<Lower>();
+00079   VERIFY(v2.isApprox(m3.conjugate() * (m1.conjugate().template triangularView<Lower>().solve(v2)), 
+      largerEps));
+00080 
+00081   \textcolor{comment}{// test back and forward substitution with a matrix as the rhs}
+00082   m3 = m1.template triangularView<Upper>();
+00083   VERIFY(m2.isApprox(m3.adjoint() * (m1.adjoint().template triangularView<Lower>().solve(m2)), largerEps));
+00084   m3 = m1.template triangularView<Lower>();
+00085   VERIFY(m2.isApprox(m3.transpose() * (m1.transpose().template triangularView<Upper>().solve(m2)), 
+      largerEps));
+00086   m3 = m1.template triangularView<Upper>();
+00087   VERIFY(m2.isApprox(m3 * (m1.template triangularView<Upper>().solve(m2)), largerEps));
+00088   m3 = m1.template triangularView<Lower>();
+00089   VERIFY(m2.isApprox(m3.conjugate() * (m1.conjugate().template triangularView<Lower>().solve(m2)), 
+      largerEps));
+00090 
+00091   \textcolor{comment}{// check M * inv(L) using in place API}
+00092   m4 = m3;
+00093   m1.transpose().template triangularView<Eigen::Upper>().solveInPlace(trm4);
+00094   VERIFY\_IS\_APPROX(m4 * m1.template triangularView<Eigen::Lower>(), m3);
+00095 
+00096   \textcolor{comment}{// check M * inv(U) using in place API}
+00097   m3 = m1.template triangularView<Upper>();
+00098   m4 = m3;
+00099   m3.transpose().template triangularView<Eigen::Lower>().solveInPlace(trm4);
+00100   VERIFY\_IS\_APPROX(m4 * m1.template triangularView<Eigen::Upper>(), m3);
+00101 
+00102   \textcolor{comment}{// check solve with unit diagonal}
+00103   m3 = m1.template triangularView<UnitUpper>();
+00104   VERIFY(m2.isApprox(m3 * (m1.template triangularView<UnitUpper>().solve(m2)), largerEps));
+00105 
+00106 \textcolor{comment}{//   VERIFY((  m1.template triangularView<Upper>()}
+00107 \textcolor{comment}{//           * m2.template triangularView<Upper>()).isUpperTriangular());}
+00108 
+00109   \textcolor{comment}{// test swap}
+00110   m1.setOnes();
+00111   m2.setZero();
+00112   m2.template triangularView<Upper>().\hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(m1);
+00113   m3.setZero();
+00114   m3.template triangularView<Upper>().setOnes();
+00115   VERIFY\_IS\_APPROX(m2,m3);
+00116   
+00117   m1.setRandom();
+00118   m3 = m1.template triangularView<Upper>();
+00119   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::ColsAtCompileTime, Dynamic>}
+       m5(cols, internal::random<int>(1,20));  m5.setRandom();
+00120   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, Dynamic, MatrixType::RowsAtCompileTime>}
+       m6(internal::random<int>(1,20), rows);  m6.setRandom();
+00121   VERIFY\_IS\_APPROX(m1.template triangularView<Upper>() * m5, m3*m5);
+00122   VERIFY\_IS\_APPROX(m6*m1.template triangularView<Upper>(), m6*m3);
+00123 
+00124   m1up = m1.template triangularView<Upper>();
+00125   VERIFY\_IS\_APPROX(m1.template selfadjointView<Upper>().template triangularView<Upper>().toDenseMatrix(), 
+      m1up);
+00126   VERIFY\_IS\_APPROX(m1up.template selfadjointView<Upper>().template triangularView<Upper>().toDenseMatrix(),
+       m1up);
+00127   VERIFY\_IS\_APPROX(m1.template selfadjointView<Upper>().template triangularView<Lower>().toDenseMatrix(), 
+      m1up.adjoint());
+00128   VERIFY\_IS\_APPROX(m1up.template selfadjointView<Upper>().template triangularView<Lower>().toDenseMatrix(),
+       m1up.adjoint());
+00129 
+00130   VERIFY\_IS\_APPROX(m1.template selfadjointView<Upper>().diagonal(), m1.diagonal());
+00131 
+00132 \}
+00133 
+00134 
+00135 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} triangular\_rect(\textcolor{keyword}{const} MatrixType& m)
+00136 \{
+00137   \textcolor{keyword}{typedef} \textcolor{keyword}{const} \textcolor{keyword}{typename} MatrixType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00138   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00139   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00140   \textcolor{keyword}{enum} \{ Rows =  MatrixType::RowsAtCompileTime, Cols =  MatrixType::ColsAtCompileTime \};
+00141 
+00142   Index rows = m.rows();
+00143   Index cols = m.cols();
+00144 
+00145   MatrixType m1 = MatrixType::Random(rows, cols),
+00146              m2 = MatrixType::Random(rows, cols),
+00147              m3(rows, cols),
+00148              m4(rows, cols),
+00149              r1(rows, cols),
+00150              r2(rows, cols);
+00151 
+00152   MatrixType m1up = m1.template triangularView<Upper>();
+00153   MatrixType m2up = m2.template triangularView<Upper>();
+00154 
+00155   \textcolor{keywordflow}{if} (rows>1 && cols>1)
+00156   \{
+00157     VERIFY(m1up.isUpperTriangular());
+00158     VERIFY(m2up.transpose().isLowerTriangular());
+00159     VERIFY(!m2.isLowerTriangular());
+00160   \}
+00161 
+00162   \textcolor{comment}{// test overloaded operator+=}
+00163   r1.setZero();
+00164   r2.setZero();
+00165   r1.template triangularView<Upper>() +=  m1;
+00166   r2 += m1up;
+00167   VERIFY\_IS\_APPROX(r1,r2);
+00168 
+00169   \textcolor{comment}{// test overloaded operator=}
+00170   m1.setZero();
+00171   m1.template triangularView<Upper>() = 3 * m2;
+00172   m3 = 3 * m2;
+00173   VERIFY\_IS\_APPROX(m3.template triangularView<Upper>().toDenseMatrix(), m1);
+00174 
+00175 
+00176   m1.setZero();
+00177   m1.template triangularView<Lower>() = 3 * m2;
+00178   VERIFY\_IS\_APPROX(m3.template triangularView<Lower>().toDenseMatrix(), m1);
+00179 
+00180   m1.setZero();
+00181   m1.template triangularView<StrictlyUpper>() = 3 * m2;
+00182   VERIFY\_IS\_APPROX(m3.template triangularView<StrictlyUpper>().toDenseMatrix(), m1);
+00183 
+00184 
+00185   m1.setZero();
+00186   m1.template triangularView<StrictlyLower>() = 3 * m2;
+00187   VERIFY\_IS\_APPROX(m3.template triangularView<StrictlyLower>().toDenseMatrix(), m1);
+00188   m1.setRandom();
+00189   m2 = m1.template triangularView<Upper>();
+00190   VERIFY(m2.isUpperTriangular());
+00191   VERIFY(!m2.isLowerTriangular());
+00192   m2 = m1.template triangularView<StrictlyUpper>();
+00193   VERIFY(m2.isUpperTriangular());
+00194   VERIFY(m2.diagonal().isMuchSmallerThan(RealScalar(1)));
+00195   m2 = m1.template triangularView<UnitUpper>();
+00196   VERIFY(m2.isUpperTriangular());
+00197   m2.diagonal().array() -= Scalar(1);
+00198   VERIFY(m2.diagonal().isMuchSmallerThan(RealScalar(1)));
+00199   m2 = m1.template triangularView<Lower>();
+00200   VERIFY(m2.isLowerTriangular());
+00201   VERIFY(!m2.isUpperTriangular());
+00202   m2 = m1.template triangularView<StrictlyLower>();
+00203   VERIFY(m2.isLowerTriangular());
+00204   VERIFY(m2.diagonal().isMuchSmallerThan(RealScalar(1)));
+00205   m2 = m1.template triangularView<UnitLower>();
+00206   VERIFY(m2.isLowerTriangular());
+00207   m2.diagonal().array() -= Scalar(1);
+00208   VERIFY(m2.diagonal().isMuchSmallerThan(RealScalar(1)));
+00209   \textcolor{comment}{// test swap}
+00210   m1.setOnes();
+00211   m2.setZero();
+00212   m2.template triangularView<Upper>().\hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(m1);
+00213   m3.setZero();
+00214   m3.template triangularView<Upper>().setOnes();
+00215   VERIFY\_IS\_APPROX(m2,m3);
+00216 \}
+00217 
+00218 \textcolor{keywordtype}{void} bug\_159()
+00219 \{
+00220   Matrix3d m = Matrix3d::Random().triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>();
+00221   EIGEN\_UNUSED\_VARIABLE(m)
+00222 \}
+00223 
+00224 \textcolor{keywordtype}{void} test\_triangular()
+00225 \{
+00226   \textcolor{keywordtype}{int} maxsize = (std::min)(EIGEN\_TEST\_MAX\_SIZE,20);
+00227   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat ; i++)
+00228   \{
+00229     \textcolor{keywordtype}{int} r = internal::random<int>(2,maxsize); TEST\_SET\_BUT\_UNUSED\_VARIABLE(r)
+00230     \textcolor{keywordtype}{int} c = internal::random<int>(2,maxsize); TEST\_SET\_BUT\_UNUSED\_VARIABLE(c)
+00231 
+00232     CALL\_SUBTEST\_1( triangular\_square(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 1, 1>}()) );
+00233     CALL\_SUBTEST\_2( triangular\_square(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 2, 2>}()) );
+00234     CALL\_SUBTEST\_3( triangular\_square(Matrix3d()) );
+00235     CALL\_SUBTEST\_4( triangular\_square(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix}<std::complex<float>,8, 8>()) );
+00236     CALL\_SUBTEST\_5( triangular\_square(MatrixXcd(r,r)) );
+00237     CALL\_SUBTEST\_6( triangular\_square(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,Dynamic,Dynamic,RowMajor>}
+      (r, r)) );
+00238 
+00239     CALL\_SUBTEST\_7( triangular\_rect(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 4, 5>}()) );
+00240     CALL\_SUBTEST\_8( triangular\_rect(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double, 6, 2>}()) );
+00241     CALL\_SUBTEST\_9( triangular\_rect(MatrixXcf(r, c)) );
+00242     CALL\_SUBTEST\_5( triangular\_rect(MatrixXcd(r, c)) );
+00243     CALL\_SUBTEST\_6( triangular\_rect(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,Dynamic,Dynamic,RowMajor>}
+      (r, c)) );
+00244   \}
+00245   
+00246   CALL\_SUBTEST\_1( bug\_159() );
+00247 \}
+\end{DoxyCode}

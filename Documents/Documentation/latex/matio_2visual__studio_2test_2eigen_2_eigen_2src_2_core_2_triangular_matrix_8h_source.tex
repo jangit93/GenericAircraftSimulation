@@ -1,0 +1,925 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Core/\+Triangular\+Matrix.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source}\index{Triangular\+Matrix.\+h@{Triangular\+Matrix.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{// Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_TRIANGULARMATRIX\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_TRIANGULARMATRIX\_H}
+00013 
+00014 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00015 
+00016 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00017   
+00018 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} S\textcolor{keywordtype}{id}e, \textcolor{keyword}{typename} TriangularType, \textcolor{keyword}{typename} Rhs> \textcolor{keyword}{struct }triangular\_solve\_retval;
+00019   
+00020 \}
+00021 
+00027 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived> \textcolor{keyword}{class }TriangularBase : \textcolor{keyword}{public} EigenBase<Derived>
+00028 \{
+00029   \textcolor{keyword}{public}:
+00030 
+00031     \textcolor{keyword}{enum} \{
+00032       Mode = internal::traits<Derived>::Mode,
+00033       RowsAtCompileTime = internal::traits<Derived>::RowsAtCompileTime,
+00034       ColsAtCompileTime = internal::traits<Derived>::ColsAtCompileTime,
+00035       MaxRowsAtCompileTime = internal::traits<Derived>::MaxRowsAtCompileTime,
+00036       MaxColsAtCompileTime = internal::traits<Derived>::MaxColsAtCompileTime,
+00037       
+00038       SizeAtCompileTime = (internal::size\_at\_compile\_time<internal::traits<Derived>::RowsAtCompileTime,
+00039                                                    internal::traits<Derived>::ColsAtCompileTime>::ret),
+00044       MaxSizeAtCompileTime = (internal::size\_at\_compile\_time<
+      internal::traits<Derived>::MaxRowsAtCompileTime,
+00045                                                    internal::traits<Derived>::MaxColsAtCompileTime>::ret)
+00046         
+00047     \};
+00048     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::traits<Derived>::Scalar Scalar;
+00049     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::traits<Derived>::StorageKind StorageKind;
+00050     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::traits<Derived>::StorageIndex StorageIndex;
+00051     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::traits<Derived>::FullMatrixType DenseMatrixType;
+00052     \textcolor{keyword}{typedef} DenseMatrixType DenseType;
+00053     \textcolor{keyword}{typedef} Derived \textcolor{keyword}{const}& Nested;
+00054 
+00055     EIGEN\_DEVICE\_FUNC
+00056     \textcolor{keyword}{inline} TriangularBase() \{ eigen\_assert(!((Mode&\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdaddb72f888ac85d5a1c52333e54f9374b}{UnitDiag}) && (Mode&
+      \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda884ff7240392e85aa6e4b3c957e36483}{ZeroDiag}))); \}
+00057 
+00058     EIGEN\_DEVICE\_FUNC
+00059     \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} derived().rows(); \}
+00060     EIGEN\_DEVICE\_FUNC
+00061     \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} derived().cols(); \}
+00062     EIGEN\_DEVICE\_FUNC
+00063     \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} outerStride()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} derived().outerStride(); \}
+00064     EIGEN\_DEVICE\_FUNC
+00065     \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} innerStride()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} derived().innerStride(); \}
+00066     
+00067     \textcolor{comment}{// dummy resize function}
+00068     \textcolor{keywordtype}{void} resize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00069     \{
+00070       EIGEN\_UNUSED\_VARIABLE(rows);
+00071       EIGEN\_UNUSED\_VARIABLE(cols);
+00072       eigen\_assert(rows==this->rows() && cols==this->cols());
+00073     \}
+00074 
+00075     EIGEN\_DEVICE\_FUNC
+00076     \textcolor{keyword}{inline} Scalar coeff(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col)\textcolor{keyword}{ const  }\{ \textcolor{keywordflow}{return} derived().coeff(row,col); \}
+00077     EIGEN\_DEVICE\_FUNC
+00078     \textcolor{keyword}{inline} Scalar& coeffRef(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col) \{ \textcolor{keywordflow}{return} derived().coeffRef(row,col); \}
+00079 
+00082     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Other>
+00083     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00084}\hyperlink{group___core___module_ae93491f8454e133ff48202bf7c0c59e7}{00084}     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \hyperlink{group___core___module_ae93491f8454e133ff48202bf7c0c59e7}{copyCoeff}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} row, \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} col, Other& other)
+00085     \{
+00086       derived().coeffRef(row, col) = other.coeff(row, col);
+00087     \}
+00088 
+00089     EIGEN\_DEVICE\_FUNC
+00090     \textcolor{keyword}{inline} Scalar operator()(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} row, \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} col)\textcolor{keyword}{ const}
+00091 \textcolor{keyword}{    }\{
+00092       check\_coordinates(row, col);
+00093       \textcolor{keywordflow}{return} coeff(row,col);
+00094     \}
+00095     EIGEN\_DEVICE\_FUNC
+00096     \textcolor{keyword}{inline} Scalar& operator()(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} row, \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} col)
+00097     \{
+00098       check\_coordinates(row, col);
+00099       \textcolor{keywordflow}{return} coeffRef(row,col);
+00100     \}
+00101 
+00102 \textcolor{preprocessor}{    #ifndef EIGEN\_PARSED\_BY\_DOXYGEN}
+00103     EIGEN\_DEVICE\_FUNC
+00104     \textcolor{keyword}{inline} \textcolor{keyword}{const} Derived& derived()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} *\textcolor{keyword}{static\_cast<}\textcolor{keyword}{const }Derived*\textcolor{keyword}{>}(\textcolor{keyword}{this}); \}
+00105     EIGEN\_DEVICE\_FUNC
+00106     \textcolor{keyword}{inline} Derived& derived() \{ \textcolor{keywordflow}{return} *\textcolor{keyword}{static\_cast<}Derived*\textcolor{keyword}{>}(\textcolor{keyword}{this}); \}
+00107 \textcolor{preprocessor}{    #endif // not EIGEN\_PARSED\_BY\_DOXYGEN}
+00108 
+00109     \textcolor{keyword}{template}<\textcolor{keyword}{typename} DenseDerived>
+00110     EIGEN\_DEVICE\_FUNC
+00111     \textcolor{keywordtype}{void} evalTo(\hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<DenseDerived>} &other) \textcolor{keyword}{const};
+00112     \textcolor{keyword}{template}<\textcolor{keyword}{typename} DenseDerived>
+00113     EIGEN\_DEVICE\_FUNC
+00114     \textcolor{keywordtype}{void} evalToLazy(\hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<DenseDerived>} &other) \textcolor{keyword}{const};
+00115 
+00116     EIGEN\_DEVICE\_FUNC
+00117     DenseMatrixType toDenseMatrix()\textcolor{keyword}{ const}
+00118 \textcolor{keyword}{    }\{
+00119       DenseMatrixType res(rows(), cols());
+00120       evalToLazy(res);
+00121       \textcolor{keywordflow}{return} res;
+00122     \}
+00123 
+00124   \textcolor{keyword}{protected}:
+00125 
+00126     \textcolor{keywordtype}{void} check\_coordinates(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} row, \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} col)\textcolor{keyword}{ const}
+00127 \textcolor{keyword}{    }\{
+00128       EIGEN\_ONLY\_USED\_FOR\_DEBUG(row);
+00129       EIGEN\_ONLY\_USED\_FOR\_DEBUG(col);
+00130       eigen\_assert(col>=0 && col<cols() && row>=0 && row<rows());
+00131       \textcolor{keyword}{const} \textcolor{keywordtype}{int} mode = int(Mode) & ~\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda2491fc6765056421f504eb7e16083e8f}{SelfAdjoint};
+00132       EIGEN\_ONLY\_USED\_FOR\_DEBUG(mode);
+00133       eigen\_assert((mode==\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper} && col>=row)
+00134                 || (mode==\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower} && col<=row)
+00135                 || ((mode==\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdae38aad7d66fecfb213fce453edff4c7a}{StrictlyUpper} || mode==\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda8b0b63ff46dcd7377b59df14e0562fc1}{UnitUpper}) && col>row)
+00136                 || ((mode==\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda00aa79c8865ada1584c4d57bcd93299f}{StrictlyLower} || mode==\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda8155cfdfde9e75e7144dff0393d17181}{UnitLower}) && col<row));
+00137     \}
+00138 
+00139 \textcolor{preprocessor}{    #ifdef EIGEN\_INTERNAL\_DEBUGGING}
+00140     \textcolor{keywordtype}{void} check\_coordinates\_internal(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} row, \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} col)\textcolor{keyword}{ const}
+00141 \textcolor{keyword}{    }\{
+00142       check\_coordinates(row, col);
+00143     \}
+00144 \textcolor{preprocessor}{    #else}
+00145     \textcolor{keywordtype}{void} check\_coordinates\_internal(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} , \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} )\textcolor{keyword}{ const }\{\}
+00146 \textcolor{preprocessor}{    #endif}
+00147 
+00148 \};
+00149 
+00167 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00168 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} \_Mode>
+00169 \textcolor{keyword}{struct }traits<TriangularView<MatrixType, \_Mode> > : traits<MatrixType>
+00170 \{
+00171   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ref\_selector<MatrixType>::non\_const\_type MatrixTypeNested;
+00172   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_reference<MatrixTypeNested>::type MatrixTypeNestedNonRef;
+00173   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_all<MatrixTypeNested>::type MatrixTypeNestedCleaned;
+00174   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::PlainObject FullMatrixType;
+00175   \textcolor{keyword}{typedef} MatrixType ExpressionType;
+00176   \textcolor{keyword}{enum} \{
+00177     Mode = \_Mode,
+00178     FlagsLvalueBit = is\_lvalue<MatrixType>::value ? \hyperlink{group__flags_gae2c323957f20dfdc6cb8f44428eaec1a}{LvalueBit} : 0,
+00179     Flags = (MatrixTypeNestedCleaned::Flags & (HereditaryBits | FlagsLvalueBit) & (~(
+      \hyperlink{group__flags_ga1a306a438e1ab074e8be59512e887b9f}{PacketAccessBit} | \hyperlink{group__flags_gabf1e9d0516a933445a4c307ad8f14915}{DirectAccessBit} | 
+      \hyperlink{group__flags_ga4b983a15d57cd55806df618ac544d09e}{LinearAccessBit})))
+00180   \};
+00181 \};
+00182 \}
+00183 
+00184 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} \_Mode, \textcolor{keyword}{typename} StorageKind> \textcolor{keyword}{class }
+      \hyperlink{class_eigen_1_1_triangular_view_impl}{TriangularViewImpl};
+00185 
+00186 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} \_Mode> \textcolor{keyword}{class }\hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView}
+00187   : \textcolor{keyword}{public} \hyperlink{class_eigen_1_1_triangular_view_impl}{TriangularViewImpl}<\_MatrixType, \_Mode, typename internal::traits<\_MatrixType>:
+      :StorageKind >
+00188 \{
+00189   \textcolor{keyword}{public}:
+00190 
+00191     \textcolor{keyword}{typedef} 
+      \hyperlink{class_eigen_1_1_triangular_view_impl}{TriangularViewImpl<\_MatrixType, \_Mode, typename internal::traits<\_MatrixType>::StorageKind}
+       > Base;
+00192     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<TriangularView>::Scalar} 
+      Scalar;
+00193     \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00194 
+00195   \textcolor{keyword}{protected}:
+00196     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<TriangularView>::MatrixTypeNested}
+       MatrixTypeNested;
+00197     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<TriangularView>::MatrixTypeNestedNonRef}
+       MatrixTypeNestedNonRef;
+00198 
+00199     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} 
+      \hyperlink{group___sparse_core___module}{internal::remove\_all<typename MatrixType::ConjugateReturnType>::type}
+       MatrixConjugateReturnType;
+00200     
+00201   \textcolor{keyword}{public}:
+00202 
+00203     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<TriangularView>::StorageKind}
+       StorageKind;
+00204     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<TriangularView>::MatrixTypeNestedCleaned}
+       NestedExpression;
+00205 
+00206     \textcolor{keyword}{enum} \{
+00207       Mode = \_Mode,
+00208       Flags = \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<TriangularView>::Flags},
+00209       TransposeMode = (Mode & \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper} ? \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower} : 0)
+00210                     | (Mode & \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower} ? \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper} : 0)
+00211                     | (Mode & (\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdaddb72f888ac85d5a1c52333e54f9374b}{UnitDiag}))
+00212                     | (Mode & (\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda884ff7240392e85aa6e4b3c957e36483}{ZeroDiag})),
+00213       IsVectorAtCompileTime = \textcolor{keyword}{false}
+00214     \};
+00215 
+00216     EIGEN\_DEVICE\_FUNC
+00217     \textcolor{keyword}{explicit} \textcolor{keyword}{inline} \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView}(MatrixType& matrix) : m\_matrix(matrix)
+00218     \{\}
+00219     
+00220     \textcolor{keyword}{using} Base::operator=;
+00221     TriangularView& operator=(\textcolor{keyword}{const} TriangularView &other)
+00222     \{ \textcolor{keywordflow}{return} Base::operator=(other); \}
+00223 
+00225     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00226}\hyperlink{group___core___module_a34de9aa9961062ff65f24bbeaef4e693}{00226}     \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \hyperlink{group___core___module_a34de9aa9961062ff65f24bbeaef4e693}{rows}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix.rows(); \}
+00228     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00229}\hyperlink{group___core___module_ae0a22563fd472eca7aaf9bc5f29d2898}{00229}     \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \hyperlink{group___core___module_ae0a22563fd472eca7aaf9bc5f29d2898}{cols}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix.cols(); \}
+00230 
+00232     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00233}\hyperlink{group___core___module_a83b7cdd9d9ea543a3c893fc2e74d8fbb}{00233}     \textcolor{keyword}{const} NestedExpression& \hyperlink{group___core___module_a83b7cdd9d9ea543a3c893fc2e74d8fbb}{nestedExpression}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix; \}
+00234 
+00236     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00237}\hyperlink{group___core___module_a62e7446cc39a920b8b59eb02380abc4b}{00237}     NestedExpression& \hyperlink{group___core___module_a62e7446cc39a920b8b59eb02380abc4b}{nestedExpression}() \{ \textcolor{keywordflow}{return} m\_matrix; \}
+00238     
+00239     \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView<const MatrixConjugateReturnType,Mode>}
+       \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{ConjugateReturnType};
+00241     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00242}\hyperlink{group___core___module_ae89c798826157831a2b1142d57f04405}{00242}     \textcolor{keyword}{inline} \textcolor{keyword}{const} ConjugateReturnType \hyperlink{group___core___module_ae89c798826157831a2b1142d57f04405}{conjugate}()\textcolor{keyword}{ const}
+00243 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} ConjugateReturnType(m\_matrix.conjugate()); \}
+00244 
+00245     \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView<const typename MatrixType::AdjointReturnType,TransposeMode>}
+       \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{AdjointReturnType};
+00247     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00248}\hyperlink{group___core___module_ab36cd4a400b5a9944b87780ebd3bec43}{00248}     \textcolor{keyword}{inline} \textcolor{keyword}{const} AdjointReturnType \hyperlink{group___core___module_ab36cd4a400b5a9944b87780ebd3bec43}{adjoint}()\textcolor{keyword}{ const}
+00249 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} AdjointReturnType(m\_matrix.adjoint()); \}
+00250 
+00251     \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView<typename MatrixType::TransposeReturnType,TransposeMode>}
+       \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TransposeReturnType};
+00253     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00254}\hyperlink{group___core___module_a5336b45208d7e351aba7536aef153075}{00254}     \textcolor{keyword}{inline} TransposeReturnType \hyperlink{group___core___module_a5336b45208d7e351aba7536aef153075}{transpose}()
+00255     \{
+00256       EIGEN\_STATIC\_ASSERT\_LVALUE(MatrixType)
+00257       \textcolor{keyword}{typename} MatrixType::TransposeReturnType tmp(m\_matrix);
+00258       \textcolor{keywordflow}{return} TransposeReturnType(tmp);
+00259     \}
+00260     
+00261     \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView<const typename MatrixType::ConstTransposeReturnType,TransposeMode>}
+       \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{ConstTransposeReturnType};
+00263     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00264}\hyperlink{group___core___module_a202b574fc82f1433989c3ae35128451e}{00264}     \textcolor{keyword}{inline} \textcolor{keyword}{const} ConstTransposeReturnType \hyperlink{group___core___module_a202b574fc82f1433989c3ae35128451e}{transpose}()\textcolor{keyword}{ const}
+00265 \textcolor{keyword}{    }\{
+00266       \textcolor{keywordflow}{return} ConstTransposeReturnType(m\_matrix.transpose());
+00267     \}
+00268 
+00269     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Other>
+00270     EIGEN\_DEVICE\_FUNC
+00271     \textcolor{keyword}{inline} \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_solve}{Solve<TriangularView, Other>} 
+00272     solve(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Other>}& other)\textcolor{keyword}{ const}
+00273 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} \hyperlink{group___core___module_class_eigen_1_1_solve}{Solve<TriangularView, Other>}(*\textcolor{keyword}{this}, other.derived()); \}
+00274     
+00275   \textcolor{comment}{// workaround MSVC ICE}
+00276 \textcolor{preprocessor}{  #if EIGEN\_COMP\_MSVC}
+00277     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} S\textcolor{keywordtype}{id}e, \textcolor{keyword}{typename} Other>
+00278     EIGEN\_DEVICE\_FUNC
+00279     \textcolor{keyword}{inline} \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1internal_1_1triangular__solve__retval}{internal::triangular\_solve\_retval<Side,TriangularView, Other>}
+00280     solve(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Other>}& other)\textcolor{keyword}{ const}
+00281 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} Base::template solve<Side>(other); \}
+00282 \textcolor{preprocessor}{  #else}
+00283     \textcolor{keyword}{using} Base::solve;
+00284 \textcolor{preprocessor}{  #endif}
+00285 
+00290     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00291}\hyperlink{group___core___module_a1fe2e5e93164b2efb5124297b096fb10}{00291}     \hyperlink{group___core___module_class_eigen_1_1_self_adjoint_view}{SelfAdjointView<MatrixTypeNestedNonRef,Mode>} 
+      \hyperlink{group___core___module_a1fe2e5e93164b2efb5124297b096fb10}{selfadjointView}()
+00292     \{
+00293       EIGEN\_STATIC\_ASSERT((Mode&(\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdaddb72f888ac85d5a1c52333e54f9374b}{UnitDiag}|\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda884ff7240392e85aa6e4b3c957e36483}{ZeroDiag}))==0,PROGRAMMING\_ERROR);
+00294       \textcolor{keywordflow}{return} \hyperlink{group___core___module_class_eigen_1_1_self_adjoint_view}{SelfAdjointView<MatrixTypeNestedNonRef,Mode>}(
+      m\_matrix);
+00295     \}
+00296 
+00298     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00299}\hyperlink{group___core___module_ade4c489f8fb9f5e31d3c3a64e19c166a}{00299}     \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_self_adjoint_view}{SelfAdjointView<MatrixTypeNestedNonRef,Mode>} 
+      \hyperlink{group___core___module_ade4c489f8fb9f5e31d3c3a64e19c166a}{selfadjointView}()\textcolor{keyword}{ const}
+00300 \textcolor{keyword}{    }\{
+00301       EIGEN\_STATIC\_ASSERT((Mode&(\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdaddb72f888ac85d5a1c52333e54f9374b}{UnitDiag}|\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda884ff7240392e85aa6e4b3c957e36483}{ZeroDiag}))==0,PROGRAMMING\_ERROR);
+00302       \textcolor{keywordflow}{return} \hyperlink{group___core___module_class_eigen_1_1_self_adjoint_view}{SelfAdjointView<MatrixTypeNestedNonRef,Mode>}(
+      m\_matrix);
+00303     \}
+00304 
+00305 
+00308     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00309}\hyperlink{group___core___module_a39806fdec7a2a1a869e904c31ee8c67c}{00309}     Scalar \hyperlink{group___core___module_a39806fdec7a2a1a869e904c31ee8c67c}{determinant}()\textcolor{keyword}{ const}
+00310 \textcolor{keyword}{    }\{
+00311       \textcolor{keywordflow}{if} (Mode & \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdaddb72f888ac85d5a1c52333e54f9374b}{UnitDiag})
+00312         \textcolor{keywordflow}{return} 1;
+00313       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (Mode & \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda884ff7240392e85aa6e4b3c957e36483}{ZeroDiag})
+00314         \textcolor{keywordflow}{return} 0;
+00315       \textcolor{keywordflow}{else}
+00316         \textcolor{keywordflow}{return} m\_matrix.diagonal().prod();
+00317     \}
+00318       
+00319   \textcolor{keyword}{protected}:
+00320 
+00321     MatrixTypeNested m\_matrix;
+00322 \};
+00323 
+00333 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} \_Mode> \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_triangular_view_impl}{TriangularViewImpl}<\_MatrixType,
+      \_Mode,Dense>
+00334   : \textcolor{keyword}{public} \hyperlink{group___core___module_class_eigen_1_1_triangular_base}{TriangularBase}<TriangularView<\_MatrixType, \_Mode> >
+00335 \{
+00336   \textcolor{keyword}{public}:
+00337 
+00338     \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView<\_MatrixType, \_Mode>} TriangularViewType;
+00339     \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_triangular_base}{TriangularBase<TriangularViewType>} 
+      \hyperlink{class_eigen_1_1_triangular_view_impl}{Base};
+00340     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<TriangularViewType>::Scalar}
+       Scalar;
+00341 
+00342     \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00343     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::PlainObject DenseMatrixType;
+00344     \textcolor{keyword}{typedef} DenseMatrixType PlainObject;
+00345 
+00346   \textcolor{keyword}{public}:
+00347     \textcolor{keyword}{using} Base::evalToLazy;
+00348     \textcolor{keyword}{using} Base::derived;
+00349 
+00350     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<TriangularViewType>::StorageKind}
+       StorageKind;
+00351 
+00352     \textcolor{keyword}{enum} \{
+00353       Mode = \_Mode,
+00354       Flags = \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<TriangularViewType>::Flags}
+00355     \};
+00356 
+00359     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00360}\hyperlink{group___core___module_added5657459878085cb95d5052b1dd14}{00360}     \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} \hyperlink{group___core___module_added5657459878085cb95d5052b1dd14}{outerStride}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} derived().nestedExpression().outerStride(); \}
+00363     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00364}\hyperlink{group___core___module_aff17b6873e916ed22b8aadc14c2b1df9}{00364}     \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} \hyperlink{group___core___module_aff17b6873e916ed22b8aadc14c2b1df9}{innerStride}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} derived().nestedExpression().innerStride(); \}
+00365 
+00367     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Other>
+00368     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00369}\hyperlink{group___core___module_ab6fa10c605bc81813d6a4ab243bb54b1}{00369}     TriangularViewType&  \hyperlink{group___core___module_ab6fa10c605bc81813d6a4ab243bb54b1}{operator+=}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<Other>}& other) \{
+00370       internal::call\_assignment\_no\_alias(derived(), other.derived(), 
+      \hyperlink{struct_eigen_1_1internal_1_1add__assign__op}{internal::add\_assign\_op<Scalar,typename Other::Scalar>}
+      ());
+00371       \textcolor{keywordflow}{return} derived();
+00372     \}
+00374     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Other>
+00375     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00376}\hyperlink{group___core___module_a9cc4a65490e86eb0cc0d7f764782eeb6}{00376}     TriangularViewType&  \hyperlink{group___core___module_a9cc4a65490e86eb0cc0d7f764782eeb6}{operator-=}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<Other>}& other) \{
+00377       internal::call\_assignment\_no\_alias(derived(), other.derived(), 
+      \hyperlink{struct_eigen_1_1internal_1_1sub__assign__op}{internal::sub\_assign\_op<Scalar,typename Other::Scalar>}
+      ());
+00378       \textcolor{keywordflow}{return} derived();
+00379     \}
+00380     
+00382     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00383}\hyperlink{group___core___module_a70ea969ab731d87a0e73e2884ab8fbc4}{00383}     TriangularViewType&  \hyperlink{group___core___module_a70ea969ab731d87a0e73e2884ab8fbc4}{operator*=}(\textcolor{keyword}{const} \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<MatrixType>::Scalar}& other) \{ \textcolor{keywordflow}{return} *\textcolor{keyword}{this} = derived()
+      .\hyperlink{group___core___module_a83b7cdd9d9ea543a3c893fc2e74d8fbb}{nestedExpression}() * other; \}
+00385     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00386}\hyperlink{group___core___module_a3bcca994aae11aeef15acb734f9a1a3f}{00386}     TriangularViewType&  \hyperlink{group___core___module_a3bcca994aae11aeef15acb734f9a1a3f}{operator/=}(\textcolor{keyword}{const} \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<MatrixType>::Scalar}& other) \{ \textcolor{keywordflow}{return} *\textcolor{keyword}{this} = derived()
+      .\hyperlink{group___core___module_a83b7cdd9d9ea543a3c893fc2e74d8fbb}{nestedExpression}() / other; \}
+00387 
+00389     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00390}\hyperlink{group___core___module_ad4093c8ecb74b7eb0567d1161bcc9964}{00390}     \textcolor{keywordtype}{void} \hyperlink{group___core___module_ad4093c8ecb74b7eb0567d1161bcc9964}{fill}(\textcolor{keyword}{const} Scalar& value) \{ setConstant(value); \}
+00392     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00393}\hyperlink{group___core___module_aae1460a593106b7e22fad56ce2c3c957}{00393}     TriangularViewType& \hyperlink{group___core___module_aae1460a593106b7e22fad56ce2c3c957}{setConstant}(\textcolor{keyword}{const} Scalar& value)
+00394     \{ \textcolor{keywordflow}{return} *\textcolor{keyword}{this} = MatrixType::Constant(derived().rows(), derived().cols(), value); \}
+00396     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00397}\hyperlink{group___core___module_a27ea7bd66892206be3a0c7a1195fec14}{00397}     TriangularViewType& \hyperlink{group___core___module_a27ea7bd66892206be3a0c7a1195fec14}{setZero}() \{ \textcolor{keywordflow}{return} setConstant(Scalar(0)); \}
+00399     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00400}\hyperlink{group___core___module_a39d202f5efbf14179ca30435c9dc04b5}{00400}     TriangularViewType& \hyperlink{group___core___module_a39d202f5efbf14179ca30435c9dc04b5}{setOnes}() \{ \textcolor{keywordflow}{return} setConstant(Scalar(1)); \}
+00401 
+00405     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00406}\hyperlink{group___core___module_a906168fa5121cfe301bc801df50807ad}{00406}     \textcolor{keyword}{inline} Scalar \hyperlink{group___core___module_a906168fa5121cfe301bc801df50807ad}{coeff}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} row, \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} col)\textcolor{keyword}{ const}
+00407 \textcolor{keyword}{    }\{
+00408       Base::check\_coordinates\_internal(row, col);
+00409       \textcolor{keywordflow}{return} derived().nestedExpression().coeff(row, col);
+00410     \}
+00411 
+00415     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00416}\hyperlink{group___core___module_a451953e43fc2e9231f05e7926d0e9d98}{00416}     \textcolor{keyword}{inline} Scalar& \hyperlink{group___core___module_a451953e43fc2e9231f05e7926d0e9d98}{coeffRef}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} row, \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} col)
+00417     \{
+00418       EIGEN\_STATIC\_ASSERT\_LVALUE(TriangularViewType);
+00419       Base::check\_coordinates\_internal(row, col);
+00420       \textcolor{keywordflow}{return} derived().nestedExpression().coeffRef(row, col);
+00421     \}
+00422 
+00424     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00425     EIGEN\_DEVICE\_FUNC
+00426     TriangularViewType& operator=(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_triangular_base}{TriangularBase<OtherDerived>}& other);
+00427 
+00429     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00430     EIGEN\_DEVICE\_FUNC
+00431     TriangularViewType& operator=(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<OtherDerived>}& other);
+00432 
+00433 \textcolor{preprocessor}{#ifndef EIGEN\_PARSED\_BY\_DOXYGEN}
+00434     EIGEN\_DEVICE\_FUNC
+00435     TriangularViewType& operator=(\textcolor{keyword}{const} \hyperlink{class_eigen_1_1_triangular_view_impl}{TriangularViewImpl}& other)
+00436     \{ \textcolor{keywordflow}{return} *\textcolor{keyword}{this} = other.derived().nestedExpression(); \}
+00437 
+00439     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00440     EIGEN\_DEVICE\_FUNC
+00441     \textcolor{keywordtype}{void} lazyAssign(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_triangular_base}{TriangularBase<OtherDerived>}& other);
+00442 
+00444     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00445     EIGEN\_DEVICE\_FUNC
+00446     \textcolor{keywordtype}{void} lazyAssign(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<OtherDerived>}& other);
+00447 \textcolor{preprocessor}{#endif}
+00448 
+00450     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00451     EIGEN\_DEVICE\_FUNC
+00452     \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_product}{Product<TriangularViewType,OtherDerived>}
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00453}\hyperlink{group___core___module_a1e5b71b779607d4109ade17187a31b82}{00453}     \hyperlink{group___core___module_a1e5b71b779607d4109ade17187a31b82}{operator*}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<OtherDerived>}& rhs)\textcolor{keyword}{ const}
+00454 \textcolor{keyword}{    }\{
+00455       \textcolor{keywordflow}{return} \hyperlink{group___core___module_class_eigen_1_1_product}{Product<TriangularViewType,OtherDerived>}(derived(), 
+      rhs.derived());
+00456     \}
+00457 
+00459     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived> \textcolor{keyword}{friend}
+00460     EIGEN\_DEVICE\_FUNC
+00461     \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_product}{Product<OtherDerived,TriangularViewType>}
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00462}\hyperlink{group___core___module_a74022a74c156ec81e2e06d8f077e0eff}{00462}     \hyperlink{group___core___module_a74022a74c156ec81e2e06d8f077e0eff}{operator*}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<OtherDerived>}& lhs, \textcolor{keyword}{const} 
+      \hyperlink{class_eigen_1_1_triangular_view_impl}{TriangularViewImpl}& rhs)
+00463     \{
+00464       \textcolor{keywordflow}{return} \hyperlink{group___core___module_class_eigen_1_1_product}{Product<OtherDerived,TriangularViewType>}(lhs.derived()
+      ,rhs.derived());
+00465     \}
+00466 
+00490     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} S\textcolor{keywordtype}{id}e, \textcolor{keyword}{typename} Other>
+00491     EIGEN\_DEVICE\_FUNC
+00492     \textcolor{keyword}{inline} \textcolor{keyword}{const} 
+      \hyperlink{struct_eigen_1_1internal_1_1triangular__solve__retval}{internal::triangular\_solve\_retval<Side,TriangularViewType, Other>}
+00493     solve(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Other>}& other) \textcolor{keyword}{const};
+00494 
+00504     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} S\textcolor{keywordtype}{id}e, \textcolor{keyword}{typename} OtherDerived>
+00505     EIGEN\_DEVICE\_FUNC
+00506     \textcolor{keywordtype}{void} solveInPlace(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<OtherDerived>}& other) \textcolor{keyword}{const};
+00507 
+00508     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00509     EIGEN\_DEVICE\_FUNC
+00510     \textcolor{keywordtype}{void} solveInPlace(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<OtherDerived>}& other)\textcolor{keyword}{ const}
+00511 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} solveInPlace<OnTheLeft>(other); \}
+00512 
+00514     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00515     EIGEN\_DEVICE\_FUNC
+00516 \textcolor{preprocessor}{#ifdef EIGEN\_PARSED\_BY\_DOXYGEN}
+00517     \textcolor{keywordtype}{void} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(\hyperlink{group___core___module_class_eigen_1_1_triangular_base}{TriangularBase<OtherDerived>} &other)
+00518 \textcolor{preprocessor}{#else}
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00519}\hyperlink{group___core___module_a154127e98e3b30d829220c61eb3c12b1}{00519}     \textcolor{keywordtype}{void} \hyperlink{group___core___module_a154127e98e3b30d829220c61eb3c12b1}{swap}(\hyperlink{group___core___module_class_eigen_1_1_triangular_base}{TriangularBase<OtherDerived>} \textcolor{keyword}{const} & other)
+00520 \textcolor{preprocessor}{#endif}
+00521     \{
+00522       EIGEN\_STATIC\_ASSERT\_LVALUE(OtherDerived);
+00523       call\_assignment(derived(), other.const\_cast\_derived(), 
+      \hyperlink{struct_eigen_1_1internal_1_1swap__assign__op}{internal::swap\_assign\_op<Scalar>}());
+00524     \}
+00525 
+00528     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00529     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_triangular_matrix_8h_source_l00530}\hyperlink{group___core___module_a4723aa22f7e47d8d125079fe4f40f950}{00530}     \textcolor{keywordtype}{void} \hyperlink{group___core___module_a4723aa22f7e47d8d125079fe4f40f950}{swap}(\hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<OtherDerived>} \textcolor{keyword}{const} & other)
+00531     \{
+00532       EIGEN\_STATIC\_ASSERT\_LVALUE(OtherDerived);
+00533       call\_assignment(derived(), other.const\_cast\_derived(), 
+      \hyperlink{struct_eigen_1_1internal_1_1swap__assign__op}{internal::swap\_assign\_op<Scalar>}());
+00534     \}
+00535 
+00536     \textcolor{keyword}{template}<\textcolor{keyword}{typename} RhsType, \textcolor{keyword}{typename} DstType>
+00537     EIGEN\_DEVICE\_FUNC
+00538     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_solve\_impl(\textcolor{keyword}{const} RhsType &rhs, DstType &dst)\textcolor{keyword}{ const }\{
+00539       \textcolor{keywordflow}{if}(!internal::is\_same\_dense(dst,rhs))
+00540         dst = rhs;
+00541       this->solveInPlace(dst);
+00542     \}
+00543 
+00544     \textcolor{keyword}{template}<\textcolor{keyword}{typename} ProductType>
+00545     EIGEN\_DEVICE\_FUNC
+00546     EIGEN\_STRONG\_INLINE TriangularViewType& \_assignProduct(\textcolor{keyword}{const} ProductType& prod, \textcolor{keyword}{const} Scalar& alpha, \textcolor{keywordtype}{
+      bool} beta);
+00547 \};
+00548 
+00549 \textcolor{comment}{/***************************************************************************}
+00550 \textcolor{comment}{* Implementation of triangular evaluation/assignment}
+00551 \textcolor{comment}{***************************************************************************/}
+00552 
+00553 \textcolor{preprocessor}{#ifndef EIGEN\_PARSED\_BY\_DOXYGEN}
+00554 \textcolor{comment}{// FIXME should we keep that possibility}
+00555 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} Mode>
+00556 \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00557 \textcolor{keyword}{inline} \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView<MatrixType, Mode>}&
+00558 \hyperlink{class_eigen_1_1_triangular_view_impl}{TriangularViewImpl<MatrixType, Mode, Dense>::operator=}
+      (\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<OtherDerived>}& other)
+00559 \{
+00560   internal::call\_assignment\_no\_alias(derived(), other.derived(), 
+      \hyperlink{struct_eigen_1_1internal_1_1assign__op}{internal::assign\_op<Scalar,typename OtherDerived::Scalar>}
+      ());
+00561   \textcolor{keywordflow}{return} derived();
+00562 \}
+00563 
+00564 \textcolor{comment}{// FIXME should we keep that possibility}
+00565 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} Mode>
+00566 \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00567 \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_triangular_view_impl}{TriangularViewImpl<MatrixType, Mode, Dense>::lazyAssign}
+      (\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<OtherDerived>}& other)
+00568 \{
+00569   internal::call\_assignment\_no\_alias(derived(), other.template triangularView<Mode>());
+00570 \}
+00571 
+00572 
+00573 
+00574 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} Mode>
+00575 \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00576 \textcolor{keyword}{inline} \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView<MatrixType, Mode>}&
+00577 \hyperlink{class_eigen_1_1_triangular_view_impl}{TriangularViewImpl<MatrixType, Mode, Dense>::operator=}
+      (\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_triangular_base}{TriangularBase<OtherDerived>}& other)
+00578 \{
+00579   eigen\_assert(Mode == \textcolor{keywordtype}{int}(OtherDerived::Mode));
+00580   internal::call\_assignment(derived(), other.derived());
+00581   \textcolor{keywordflow}{return} derived();
+00582 \}
+00583 
+00584 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} Mode>
+00585 \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00586 \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_triangular_view_impl}{TriangularViewImpl<MatrixType, Mode, Dense>::lazyAssign}
+      (\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_triangular_base}{TriangularBase<OtherDerived>}& other)
+00587 \{
+00588   eigen\_assert(Mode == \textcolor{keywordtype}{int}(OtherDerived::Mode));
+00589   internal::call\_assignment\_no\_alias(derived(), other.derived());
+00590 \}
+00591 \textcolor{preprocessor}{#endif}
+00592 
+00593 \textcolor{comment}{/***************************************************************************}
+00594 \textcolor{comment}{* Implementation of TriangularBase methods}
+00595 \textcolor{comment}{***************************************************************************/}
+00596 
+00599 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00600 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DenseDerived>
+00601 \textcolor{keywordtype}{void} \hyperlink{group___core___module_class_eigen_1_1_triangular_base}{TriangularBase<Derived>::evalTo}(
+      \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<DenseDerived>} &other)\textcolor{keyword}{ const}
+00602 \textcolor{keyword}{}\{
+00603   evalToLazy(other.derived());
+00604 \}
+00605 
+00606 \textcolor{comment}{/***************************************************************************}
+00607 \textcolor{comment}{* Implementation of TriangularView methods}
+00608 \textcolor{comment}{***************************************************************************/}
+00609 
+00610 \textcolor{comment}{/***************************************************************************}
+00611 \textcolor{comment}{* Implementation of MatrixBase methods}
+00612 \textcolor{comment}{***************************************************************************/}
+00613 
+00625 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00626 \textcolor{keyword}{template}<\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} Mode>
+00627 \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Derived>::template} TriangularViewReturnType<Mode>::Type
+00628 \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Derived>::triangularView}()
+00629 \{
+00630   \textcolor{keywordflow}{return} \textcolor{keyword}{typename} TriangularViewReturnType<Mode>::Type(derived());
+00631 \}
+00632 
+00634 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00635 \textcolor{keyword}{template}<\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} Mode>
+00636 \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Derived>::template} 
+      ConstTriangularViewReturnType<Mode>::Type
+00637 \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Derived>::triangularView}()\textcolor{keyword}{ const}
+00638 \textcolor{keyword}{}\{
+00639   \textcolor{keywordflow}{return} \textcolor{keyword}{typename} ConstTriangularViewReturnType<Mode>::Type(derived());
+00640 \}
+00641 
+00647 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00648 \textcolor{keywordtype}{bool} \hyperlink{group___core___module_aae3ec1660bb4ac584220481c54ab4a64}{MatrixBase<Derived>::isUpperTriangular}(\textcolor{keyword}{const} RealScalar& prec)\textcolor{keyword}{
+       const}
+00649 \textcolor{keyword}{}\{
+00650   RealScalar maxAbsOnUpperPart = \textcolor{keyword}{static\_cast<}RealScalar\textcolor{keyword}{>}(-1);
+00651   \textcolor{keywordflow}{for}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} j = 0; j < cols(); ++j)
+00652   \{
+00653     \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} maxi = numext::mini(j, rows()-1);
+00654     \textcolor{keywordflow}{for}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} i = 0; i <= maxi; ++i)
+00655     \{
+00656       RealScalar absValue = numext::abs(coeff(i,j));
+00657       \textcolor{keywordflow}{if}(absValue > maxAbsOnUpperPart) maxAbsOnUpperPart = absValue;
+00658     \}
+00659   \}
+00660   RealScalar threshold = maxAbsOnUpperPart * prec;
+00661   \textcolor{keywordflow}{for}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} j = 0; j < cols(); ++j)
+00662     \textcolor{keywordflow}{for}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} i = j+1; i < rows(); ++i)
+00663       \textcolor{keywordflow}{if}(numext::abs(coeff(i, j)) > threshold) \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00664   \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00665 \}
+00666 
+00672 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00673 \textcolor{keywordtype}{bool} \hyperlink{group___core___module_a1e96c42d79a56f0a6ade30ce031e17eb}{MatrixBase<Derived>::isLowerTriangular}(\textcolor{keyword}{const} RealScalar& prec)\textcolor{keyword}{
+       const}
+00674 \textcolor{keyword}{}\{
+00675   RealScalar maxAbsOnLowerPart = \textcolor{keyword}{static\_cast<}RealScalar\textcolor{keyword}{>}(-1);
+00676   \textcolor{keywordflow}{for}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} j = 0; j < cols(); ++j)
+00677     \textcolor{keywordflow}{for}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} i = j; i < rows(); ++i)
+00678     \{
+00679       RealScalar absValue = numext::abs(coeff(i,j));
+00680       \textcolor{keywordflow}{if}(absValue > maxAbsOnLowerPart) maxAbsOnLowerPart = absValue;
+00681     \}
+00682   RealScalar threshold = maxAbsOnLowerPart * prec;
+00683   \textcolor{keywordflow}{for}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} j = 1; j < cols(); ++j)
+00684   \{
+00685     \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} maxi = numext::mini(j, rows()-1);
+00686     \textcolor{keywordflow}{for}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} i = 0; i < maxi; ++i)
+00687       \textcolor{keywordflow}{if}(numext::abs(coeff(i, j)) > threshold) \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00688   \}
+00689   \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00690 \}
+00691 
+00692 
+00693 \textcolor{comment}{/***************************************************************************}
+00694 \textcolor{comment}{****************************************************************************}
+00695 \textcolor{comment}{* Evaluators and Assignment of triangular expressions}
+00696 \textcolor{comment}{***************************************************************************}
+00697 \textcolor{comment}{***************************************************************************/}
+00698 
+00699 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00700 
+00701   
+00702 \textcolor{comment}{// TODO currently a triangular expression has the form TriangularView<.,.>}
+00703 \textcolor{comment}{//      in the future triangular-ness should be defined by the expression traits}
+00704 \textcolor{comment}{//      such that Transpose<TriangularView<.,.> > is valid. (currently TriangularBase::transpose() is
+       overloaded to make it work)}
+00705 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} Mode>
+00706 \textcolor{keyword}{struct }evaluator\_traits<TriangularView<MatrixType,Mode> >
+00707 \{
+00708   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} storage\_kind\_to\_evaluator\_kind<typename MatrixType::StorageKind>::Kind Kind;
+00709   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} glue\_shapes<typename evaluator\_traits<MatrixType>::Shape, 
+      \hyperlink{struct_eigen_1_1_triangular_shape}{TriangularShape}>::type Shape;
+00710 \};
+00711 
+00712 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} Mode>
+00713 \textcolor{keyword}{struct }unary\_evaluator<TriangularView<MatrixType,Mode>, IndexBased>
+00714  : evaluator<typename internal::remove\_all<MatrixType>::type>
+00715 \{
+00716   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView<MatrixType,Mode>} XprType;
+00717   \textcolor{keyword}{typedef} evaluator<typename internal::remove\_all<MatrixType>::type> Base;
+00718   unary\_evaluator(\textcolor{keyword}{const} XprType &xpr) : Base(xpr.nestedExpression()) \{\}
+00719 \};
+00720 
+00721 \textcolor{comment}{// Additional assignment kinds:}
+00722 \textcolor{keyword}{struct }Triangular2Triangular    \{\};
+00723 \textcolor{keyword}{struct }Triangular2Dense         \{\};
+00724 \textcolor{keyword}{struct }Dense2Triangular         \{\};
+00725 
+00726 
+00727 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Kernel, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} Mode, \textcolor{keywordtype}{int} UnrollCount, \textcolor{keywordtype}{bool} ClearOpposite> \textcolor{keyword}{struct }
+      triangular\_assignment\_loop;
+00728 
+00729  
+00735 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} UpLo, \textcolor{keywordtype}{int} Mode, \textcolor{keywordtype}{int} SetOpposite, \textcolor{keyword}{typename} DstEvaluatorTypeT, \textcolor{keyword}{typename} SrcEvaluatorTypeT, \textcolor{keyword}{
+      typename} Functor, \textcolor{keywordtype}{int} Version = Specialized>
+00736 \textcolor{keyword}{class }triangular\_dense\_assignment\_kernel : \textcolor{keyword}{public} generic\_dense\_assignment\_kernel<DstEvaluatorTypeT, SrcEva
+      luatorTypeT, Functor, Version>
+00737 \{
+00738 \textcolor{keyword}{protected}:
+00739   \textcolor{keyword}{typedef} generic\_dense\_assignment\_kernel<DstEvaluatorTypeT, SrcEvaluatorTypeT, Functor, Version> Base;
+00740   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Base::DstXprType DstXprType;
+00741   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Base::SrcXprType SrcXprType;
+00742   \textcolor{keyword}{using} Base::m\_dst;
+00743   \textcolor{keyword}{using} Base::m\_src;
+00744   \textcolor{keyword}{using} Base::m\_functor;
+00745 \textcolor{keyword}{public}:
+00746   
+00747   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Base::DstEvaluatorType DstEvaluatorType;
+00748   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Base::SrcEvaluatorType SrcEvaluatorType;
+00749   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Base::Scalar Scalar;
+00750   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Base::AssignmentTraits AssignmentTraits;
+00751   
+00752   
+00753   EIGEN\_DEVICE\_FUNC triangular\_dense\_assignment\_kernel(DstEvaluatorType &dst, \textcolor{keyword}{const} SrcEvaluatorType &src, \textcolor{keyword}{
+      const} \hyperlink{struct_functor}{Functor} &\hyperlink{structfunc}{func}, DstXprType& dstExpr)
+00754     : Base(dst, src, func, dstExpr)
+00755   \{\}
+00756   
+00757 \textcolor{preprocessor}{#ifdef EIGEN\_INTERNAL\_DEBUGGING}
+00758   EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} assignCoeff(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} row, \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} col)
+00759   \{
+00760     eigen\_internal\_assert(row!=col);
+00761     Base::assignCoeff(row,col);
+00762   \}
+00763 \textcolor{preprocessor}{#else}
+00764   \textcolor{keyword}{using} Base::assignCoeff;
+00765 \textcolor{preprocessor}{#endif}
+00766   
+00767   EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} assignDiagonalCoeff(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} \textcolor{keywordtype}{id})
+00768   \{
+00769          \textcolor{keywordflow}{if}(Mode==\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdaddb72f888ac85d5a1c52333e54f9374b}{UnitDiag} && SetOpposite) m\_functor.assignCoeff(m\_dst.coeffRef(\textcolor{keywordtype}{id},\textcolor{keywordtype}{id}), Scalar(1));
+00770     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(Mode==\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda884ff7240392e85aa6e4b3c957e36483}{ZeroDiag} && SetOpposite) m\_functor.assignCoeff(m\_dst.coeffRef(\textcolor{keywordtype}{id},\textcolor{keywordtype}{id}), Scalar(0));
+00771     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(Mode==0)                       Base::assignCoeff(\textcolor{keywordtype}{id},\textcolor{keywordtype}{id});
+00772   \}
+00773   
+00774   EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} assignOppositeCoeff(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} row, \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} col)
+00775   \{ 
+00776     eigen\_internal\_assert(row!=col);
+00777     \textcolor{keywordflow}{if}(SetOpposite)
+00778       m\_functor.assignCoeff(m\_dst.coeffRef(row,col), Scalar(0));
+00779   \}
+00780 \};
+00781 
+00782 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Mode, \textcolor{keywordtype}{bool} SetOpposite, \textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} SrcXprType, \textcolor{keyword}{typename} Functor>
+00783 EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00784 \textcolor{keywordtype}{void} call\_triangular\_assignment\_loop(DstXprType& dst, \textcolor{keyword}{const} SrcXprType& src, \textcolor{keyword}{const} 
+      \hyperlink{struct_functor}{Functor} &\hyperlink{structfunc}{func})
+00785 \{
+00786   \textcolor{keyword}{typedef} evaluator<DstXprType> DstEvaluatorType;
+00787   \textcolor{keyword}{typedef} evaluator<SrcXprType> SrcEvaluatorType;
+00788 
+00789   SrcEvaluatorType srcEvaluator(src);
+00790 
+00791   \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} dstRows = src.rows();
+00792   \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} dstCols = src.cols();
+00793   \textcolor{keywordflow}{if}((dst.rows()!=dstRows) || (dst.cols()!=dstCols))
+00794     dst.resize(dstRows, dstCols);
+00795   DstEvaluatorType dstEvaluator(dst);
+00796     
+00797   \textcolor{keyword}{typedef} triangular\_dense\_assignment\_kernel< Mode&(\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}|\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}),Mode&(
+      \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdaddb72f888ac85d5a1c52333e54f9374b}{UnitDiag}|\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda884ff7240392e85aa6e4b3c957e36483}{ZeroDiag}|\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda2491fc6765056421f504eb7e16083e8f}{SelfAdjoint}),SetOpposite,
+00798                                               DstEvaluatorType,SrcEvaluatorType,
+      \hyperlink{struct_functor}{Functor}> Kernel;
+00799   Kernel kernel(dstEvaluator, srcEvaluator, func, dst.const\_cast\_derived());
+00800   
+00801   \textcolor{keyword}{enum} \{
+00802       unroll = DstXprType::SizeAtCompileTime != \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}
+00803             && SrcEvaluatorType::CoeffReadCost < \hyperlink{namespace_eigen_a3163430a1c13173faffde69016b48aaf}{HugeCost}
+00804             && DstXprType::SizeAtCompileTime * (DstEvaluatorType::CoeffReadCost+
+      SrcEvaluatorType::CoeffReadCost) / 2 <= EIGEN\_UNROLLING\_LIMIT
+00805     \};
+00806   
+00807   triangular\_assignment\_loop<Kernel, Mode, unroll ? int(DstXprType::SizeAtCompileTime) : Dynamic,
+       SetOpposite>::run(kernel);
+00808 \}
+00809 
+00810 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Mode, \textcolor{keywordtype}{bool} SetOpposite, \textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} SrcXprType>
+00811 EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00812 \textcolor{keywordtype}{void} call\_triangular\_assignment\_loop(DstXprType& dst, \textcolor{keyword}{const} SrcXprType& src)
+00813 \{
+00814   call\_triangular\_assignment\_loop<Mode,SetOpposite>(dst, src, 
+      \hyperlink{struct_eigen_1_1internal_1_1assign__op}{internal::assign\_op<typename DstXprType::Scalar,typename SrcXprType::Scalar>}
+      ());
+00815 \}
+00816 
+00817 \textcolor{keyword}{template}<> \textcolor{keyword}{struct }AssignmentKind<TriangularShape,TriangularShape> \{ \textcolor{keyword}{typedef} Triangular2Triangular Kind; \};
+00818 \textcolor{keyword}{template}<> \textcolor{keyword}{struct }AssignmentKind<DenseShape,TriangularShape>      \{ \textcolor{keyword}{typedef} Triangular2Dense      Kind; \};
+00819 \textcolor{keyword}{template}<> \textcolor{keyword}{struct }AssignmentKind<TriangularShape,DenseShape>      \{ \textcolor{keyword}{typedef} Dense2Triangular      Kind; \};
+00820 
+00821 
+00822 \textcolor{keyword}{template}< \textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} SrcXprType, \textcolor{keyword}{typename} Functor>
+00823 \textcolor{keyword}{struct }Assignment<DstXprType, SrcXprType, Functor, Triangular2Triangular>
+00824 \{
+00825   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} Functor &func)
+00826   \{
+00827     eigen\_assert(\textcolor{keywordtype}{int}(DstXprType::Mode) == \textcolor{keywordtype}{int}(SrcXprType::Mode));
+00828     
+00829     call\_triangular\_assignment\_loop<DstXprType::Mode, false>(dst, src, func);  
+00830   \}
+00831 \};
+00832 
+00833 \textcolor{keyword}{template}< \textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} SrcXprType, \textcolor{keyword}{typename} Functor>
+00834 \textcolor{keyword}{struct }Assignment<DstXprType, SrcXprType, Functor, Triangular2Dense>
+00835 \{
+00836   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} Functor &func)
+00837   \{
+00838     call\_triangular\_assignment\_loop<SrcXprType::Mode, (SrcXprType::Mode&SelfAdjoint)==0>(dst, src, func);  
+00839   \}
+00840 \};
+00841 
+00842 \textcolor{keyword}{template}< \textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} SrcXprType, \textcolor{keyword}{typename} Functor>
+00843 \textcolor{keyword}{struct }Assignment<DstXprType, SrcXprType, Functor, Dense2Triangular>
+00844 \{
+00845   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} Functor &func)
+00846   \{
+00847     call\_triangular\_assignment\_loop<DstXprType::Mode, false>(dst, src, func);  
+00848   \}
+00849 \};
+00850 
+00851 
+00852 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Kernel, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} Mode, \textcolor{keywordtype}{int} UnrollCount, \textcolor{keywordtype}{bool} SetOpposite>
+00853 \textcolor{keyword}{struct }triangular\_assignment\_loop
+00854 \{
+00855   \textcolor{comment}{// FIXME: this is not very clean, perhaps this information should be provided by the kernel?}
+00856   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Kernel::DstEvaluatorType DstEvaluatorType;
+00857   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} DstEvaluatorType::XprType DstXprType;
+00858   
+00859   \textcolor{keyword}{enum} \{
+00860     col = (UnrollCount-1) / DstXprType::RowsAtCompileTime,
+00861     row = (UnrollCount-1) % DstXprType::RowsAtCompileTime
+00862   \};
+00863   
+00864   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Kernel::Scalar Scalar;
+00865 
+00866   EIGEN\_DEVICE\_FUNC
+00867   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} run(Kernel &kernel)
+00868   \{
+00869     triangular\_assignment\_loop<Kernel, Mode, UnrollCount-1, SetOpposite>::run(kernel);
+00870     
+00871     \textcolor{keywordflow}{if}(row==col)
+00872       kernel.assignDiagonalCoeff(row);
+00873     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}( ((Mode&\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}) && row>col) || ((Mode&\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}) && row<col) )
+00874       kernel.assignCoeff(row,col);
+00875     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(SetOpposite)
+00876       kernel.assignOppositeCoeff(row,col);
+00877   \}
+00878 \};
+00879 
+00880 \textcolor{comment}{// prevent buggy user code from causing an infinite recursion}
+00881 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Kernel, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} Mode, \textcolor{keywordtype}{bool} SetOpposite>
+00882 \textcolor{keyword}{struct }triangular\_assignment\_loop<Kernel, Mode, 0, SetOpposite>
+00883 \{
+00884   EIGEN\_DEVICE\_FUNC
+00885   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} run(Kernel &) \{\}
+00886 \};
+00887 
+00888 
+00889 
+00890 \textcolor{comment}{// TODO: experiment with a recursive assignment procedure splitting the current}
+00891 \textcolor{comment}{//       triangular part into one rectangular and two triangular parts.}
+00892 
+00893 
+00894 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Kernel, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} Mode, \textcolor{keywordtype}{bool} SetOpposite>
+00895 \textcolor{keyword}{struct }triangular\_assignment\_loop<Kernel, Mode, Dynamic, SetOpposite>
+00896 \{
+00897   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Kernel::Scalar Scalar;
+00898   EIGEN\_DEVICE\_FUNC
+00899   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} run(Kernel &kernel)
+00900   \{
+00901     \textcolor{keywordflow}{for}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} j = 0; j < kernel.cols(); ++j)
+00902     \{
+00903       \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} maxi = numext::mini(j, kernel.rows());
+00904       \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} i = 0;
+00905       \textcolor{keywordflow}{if} (((Mode&\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}) && SetOpposite) || (Mode&\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}))
+00906       \{
+00907         \textcolor{keywordflow}{for}(; i < maxi; ++i)
+00908           \textcolor{keywordflow}{if}(Mode&\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}) kernel.assignCoeff(i, j);
+00909           \textcolor{keywordflow}{else}           kernel.assignOppositeCoeff(i, j);
+00910       \}
+00911       \textcolor{keywordflow}{else}
+00912         i = maxi;
+00913       
+00914       \textcolor{keywordflow}{if}(i<kernel.rows()) \textcolor{comment}{// then i==j}
+00915         kernel.assignDiagonalCoeff(i++);
+00916       
+00917       \textcolor{keywordflow}{if} (((Mode&\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}) && SetOpposite) || (Mode&Lower))
+00918       \{
+00919         \textcolor{keywordflow}{for}(; i < kernel.rows(); ++i)
+00920           \textcolor{keywordflow}{if}(Mode&Lower) kernel.assignCoeff(i, j);
+00921           \textcolor{keywordflow}{else}           kernel.assignOppositeCoeff(i, j);
+00922       \}
+00923     \}
+00924   \}
+00925 \};
+00926 
+00927 \} \textcolor{comment}{// end namespace internal}
+00928 
+00931 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00932 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DenseDerived>
+00933 \textcolor{keywordtype}{void} \hyperlink{group___core___module_class_eigen_1_1_triangular_base}{TriangularBase<Derived>::evalToLazy}(
+      \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<DenseDerived>} &other)\textcolor{keyword}{ const}
+00934 \textcolor{keyword}{}\{
+00935   other.derived().\hyperlink{group___core___module_a13027a493a68a13496610caf3d81bd3e}{resize}(this->rows(), this->cols());
+00936   internal::call\_triangular\_assignment\_loop<Derived::Mode,(Derived::Mode&
+      \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda2491fc6765056421f504eb7e16083e8f}{SelfAdjoint})==0 \textcolor{comment}{/* SetOpposite */}>(other.derived(), derived().nestedExpression());
+00937 \}
+00938 
+00939 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00940   
+00941 \textcolor{comment}{// Triangular = Product}
+00942 \textcolor{keyword}{template}< \textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Scalar>
+00943 \textcolor{keyword}{struct }Assignment<DstXprType, Product<Lhs,Rhs,DefaultProduct>, internal::assign\_op<Scalar,typename Product<
+      Lhs,Rhs,DefaultProduct>::Scalar>, Dense2Triangular>
+00944 \{
+00945   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_product}{Product<Lhs,Rhs,DefaultProduct>} SrcXprType;
+00946   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} 
+      \hyperlink{struct_eigen_1_1internal_1_1assign__op}{internal::assign\_op<Scalar,typename SrcXprType::Scalar>}
+       &)
+00947   \{
+00948     \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} dstRows = src.rows();
+00949     \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} dstCols = src.cols();
+00950     \textcolor{keywordflow}{if}((dst.rows()!=dstRows) || (dst.cols()!=dstCols))
+00951       dst.resize(dstRows, dstCols);
+00952 
+00953     dst.\_assignProduct(src, 1, 0);
+00954   \}
+00955 \};
+00956 
+00957 \textcolor{comment}{// Triangular += Product}
+00958 \textcolor{keyword}{template}< \textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Scalar>
+00959 \textcolor{keyword}{struct }Assignment<DstXprType, Product<Lhs,Rhs,DefaultProduct>, internal::add\_assign\_op<Scalar,typename Prod
+      uct<Lhs,Rhs,DefaultProduct>::Scalar>, Dense2Triangular>
+00960 \{
+00961   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_product}{Product<Lhs,Rhs,DefaultProduct>} SrcXprType;
+00962   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} 
+      \hyperlink{struct_eigen_1_1internal_1_1add__assign__op}{internal::add\_assign\_op<Scalar,typename SrcXprType::Scalar>}
+       &)
+00963   \{
+00964     dst.\_assignProduct(src, 1, 1);
+00965   \}
+00966 \};
+00967 
+00968 \textcolor{comment}{// Triangular -= Product}
+00969 \textcolor{keyword}{template}< \textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Scalar>
+00970 \textcolor{keyword}{struct }Assignment<DstXprType, Product<Lhs,Rhs,DefaultProduct>, internal::sub\_assign\_op<Scalar,typename Prod
+      uct<Lhs,Rhs,DefaultProduct>::Scalar>, Dense2Triangular>
+00971 \{
+00972   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_product}{Product<Lhs,Rhs,DefaultProduct>} SrcXprType;
+00973   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} 
+      \hyperlink{struct_eigen_1_1internal_1_1sub__assign__op}{internal::sub\_assign\_op<Scalar,typename SrcXprType::Scalar>}
+       &)
+00974   \{
+00975     dst.\_assignProduct(src, -1, 1);
+00976   \}
+00977 \};
+00978 
+00979 \} \textcolor{comment}{// end namespace internal}
+00980 
+00981 \} \textcolor{comment}{// end namespace Eigen}
+00982 
+00983 \textcolor{preprocessor}{#endif // EIGEN\_TRIANGULARMATRIX\_H}
+\end{DoxyCode}

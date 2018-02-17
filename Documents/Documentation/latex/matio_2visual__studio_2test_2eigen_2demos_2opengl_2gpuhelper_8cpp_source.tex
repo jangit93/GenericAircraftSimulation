@@ -1,0 +1,139 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2demos_2opengl_2gpuhelper_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/demos/opengl/gpuhelper.cpp}
+\label{matio_2visual__studio_2test_2eigen_2demos_2opengl_2gpuhelper_8cpp_source}\index{gpuhelper.\+cpp@{gpuhelper.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "gpuhelper.h"}
+00011 \textcolor{preprocessor}{#include "icosphere.h"}
+00012 \textcolor{preprocessor}{#include <GL/glu.h>}
+00013 \textcolor{comment}{// PLEASE don't look at this old code... ;)}
+00014 
+00015 \textcolor{preprocessor}{#include <fstream>}
+00016 \textcolor{preprocessor}{#include <algorithm>}
+00017 
+00018 \hyperlink{class_gpu_helper}{GpuHelper} gpu;
+00019 
+00020 GpuHelper::GpuHelper()
+00021 \{
+00022     mVpWidth = mVpHeight = 0;
+00023     mCurrentMatrixTarget = 0;
+00024     mInitialized = \textcolor{keyword}{false};
+00025 \}
+00026 
+00027 GpuHelper::~GpuHelper()
+00028 \{
+00029 \}
+00030 
+00031 \textcolor{keywordtype}{void} GpuHelper::pushProjectionMode2D(ProjectionMode2D pm)
+00032 \{
+00033     \textcolor{comment}{// switch to 2D projection}
+00034     \hyperlink{class_gpu_helper_ac51c8b669a80ca6e4338c87136fb991e}{pushMatrix}(Matrix4f::Identity(),GL\_PROJECTION);
+00035 
+00036     \textcolor{keywordflow}{if}(pm==PM\_Normalized)
+00037     \{
+00038         \textcolor{comment}{//glOrtho(-1., 1., -1., 1., 0., 1.);}
+00039     \}
+00040     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(pm==PM\_Viewport)
+00041     \{
+00042         GLint vp[4];
+00043         glGetIntegerv(GL\_VIEWPORT, vp);
+00044         glOrtho(0., vp[2], 0., vp[3], -1., 1.);
+00045     \}
+00046 
+00047     \hyperlink{class_gpu_helper_ac51c8b669a80ca6e4338c87136fb991e}{pushMatrix}(Matrix4f::Identity(),GL\_MODELVIEW);
+00048 \}
+00049 
+00050 \textcolor{keywordtype}{void} GpuHelper::popProjectionMode2D(\textcolor{keywordtype}{void})
+00051 \{
+00052     \hyperlink{class_gpu_helper_aad0cc23c2eaf0dcc610b180e5c8b195e}{popMatrix}(GL\_PROJECTION);
+00053     \hyperlink{class_gpu_helper_aad0cc23c2eaf0dcc610b180e5c8b195e}{popMatrix}(GL\_MODELVIEW);
+00054 \}
+00055 
+00056 \textcolor{keywordtype}{void} GpuHelper::drawVector(\textcolor{keyword}{const} Vector3f& position, \textcolor{keyword}{const} Vector3f& vec, \textcolor{keyword}{const} Color& color, \textcolor{keywordtype}{float} aspect \textcolor{comment}{
+      /* = 50.*/})
+00057 \{
+00058     \textcolor{keyword}{static} GLUquadricObj *cylindre = gluNewQuadric();
+00059     glColor4fv(color.data());
+00060     \textcolor{keywordtype}{float} length = vec.norm();
+00061     \hyperlink{class_gpu_helper_ac51c8b669a80ca6e4338c87136fb991e}{pushMatrix}(GL\_MODELVIEW);
+00062     glTranslatef(position.x(), position.y(), position.z());
+00063     Vector3f ax = Matrix3f::Identity().col(2).cross(vec);
+00064     ax.normalize();
+00065     Vector3f tmp = vec;
+00066     tmp.normalize();
+00067     \textcolor{keywordtype}{float} angle = 180.f/M\_PI * acos(tmp.z());
+00068     \textcolor{keywordflow}{if} (angle>1e-3)
+00069         glRotatef(angle, ax.x(), ax.y(), ax.z());
+00070     gluCylinder(cylindre, length/aspect, length/aspect, 0.8*length, 10, 10);
+00071     glTranslatef(0.0,0.0,0.8*length);
+00072     gluCylinder(cylindre, 2.0*length/aspect, 0.0, 0.2*length, 10, 10);
+00073 
+00074     \hyperlink{class_gpu_helper_aad0cc23c2eaf0dcc610b180e5c8b195e}{popMatrix}(GL\_MODELVIEW);
+00075 \}
+00076 
+00077 \textcolor{keywordtype}{void} GpuHelper::drawVectorBox(\textcolor{keyword}{const} Vector3f& position, \textcolor{keyword}{const} Vector3f& vec, \textcolor{keyword}{const} Color& color, \textcolor{keywordtype}{float} 
+      aspect)
+00078 \{
+00079     \textcolor{keyword}{static} GLUquadricObj *cylindre = gluNewQuadric();
+00080     glColor4fv(color.data());
+00081     \textcolor{keywordtype}{float} length = vec.norm();
+00082     \hyperlink{class_gpu_helper_ac51c8b669a80ca6e4338c87136fb991e}{pushMatrix}(GL\_MODELVIEW);
+00083     glTranslatef(position.x(), position.y(), position.z());
+00084     Vector3f ax = Matrix3f::Identity().col(2).cross(vec);
+00085     ax.normalize();
+00086     Vector3f tmp = vec;
+00087     tmp.normalize();
+00088     \textcolor{keywordtype}{float} angle = 180.f/M\_PI * acos(tmp.z());
+00089     \textcolor{keywordflow}{if} (angle>1e-3)
+00090         glRotatef(angle, ax.x(), ax.y(), ax.z());
+00091     gluCylinder(cylindre, length/aspect, length/aspect, 0.8*length, 10, 10);
+00092     glTranslatef(0.0,0.0,0.8*length);
+00093     glScalef(4.0*length/aspect,4.0*length/aspect,4.0*length/aspect);
+00094     drawUnitCube();
+00095     \hyperlink{class_gpu_helper_aad0cc23c2eaf0dcc610b180e5c8b195e}{popMatrix}(GL\_MODELVIEW);
+00096 \}
+00097 
+00098 \textcolor{keywordtype}{void} GpuHelper::drawUnitCube(\textcolor{keywordtype}{void})
+00099 \{
+00100     \textcolor{keyword}{static} \textcolor{keywordtype}{float} vertices[][3] = \{
+00101         \{-0.5,-0.5,-0.5\},
+00102         \{ 0.5,-0.5,-0.5\},
+00103         \{-0.5, 0.5,-0.5\},
+00104         \{ 0.5, 0.5,-0.5\},
+00105         \{-0.5,-0.5, 0.5\},
+00106         \{ 0.5,-0.5, 0.5\},
+00107         \{-0.5, 0.5, 0.5\},
+00108         \{ 0.5, 0.5, 0.5\}\};
+00109 
+00110     glBegin(GL\_QUADS);
+00111     glNormal3f(0,0,-1); glVertex3fv(vertices[0]); glVertex3fv(vertices[2]); glVertex3fv(vertices[3]); 
+      glVertex3fv(vertices[1]);
+00112     glNormal3f(0,0, 1); glVertex3fv(vertices[4]); glVertex3fv(vertices[5]); glVertex3fv(vertices[7]); 
+      glVertex3fv(vertices[6]);
+00113     glNormal3f(0,-1,0); glVertex3fv(vertices[0]); glVertex3fv(vertices[1]); glVertex3fv(vertices[5]); 
+      glVertex3fv(vertices[4]);
+00114     glNormal3f(0, 1,0); glVertex3fv(vertices[2]); glVertex3fv(vertices[6]); glVertex3fv(vertices[7]); 
+      glVertex3fv(vertices[3]);
+00115     glNormal3f(-1,0,0); glVertex3fv(vertices[0]); glVertex3fv(vertices[4]); glVertex3fv(vertices[6]); 
+      glVertex3fv(vertices[2]);
+00116     glNormal3f( 1,0,0); glVertex3fv(vertices[1]); glVertex3fv(vertices[3]); glVertex3fv(vertices[7]); 
+      glVertex3fv(vertices[5]);
+00117     glEnd();
+00118 \}
+00119 
+00120 \textcolor{keywordtype}{void} GpuHelper::drawUnitSphere(\textcolor{keywordtype}{int} level)
+00121 \{
+00122   \textcolor{keyword}{static} \hyperlink{class_ico_sphere}{IcoSphere} sphere;
+00123   sphere.draw(level);
+00124 \}
+00125 
+00126 
+\end{DoxyCode}

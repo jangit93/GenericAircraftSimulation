@@ -1,0 +1,162 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__sycl_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/test/cxx11\+\_\+tensor\+\_\+sycl.cpp}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__sycl_8cpp_source}\index{cxx11\+\_\+tensor\+\_\+sycl.\+cpp@{cxx11\+\_\+tensor\+\_\+sycl.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2016}
+00005 \textcolor{comment}{// Mehdi Goli    Codeplay Software Ltd.}
+00006 \textcolor{comment}{// Ralph Potter  Codeplay Software Ltd.}
+00007 \textcolor{comment}{// Luke Iwanski  Codeplay Software Ltd.}
+00008 \textcolor{comment}{// Contact: <eigen@codeplay.com>}
+00009 \textcolor{comment}{// Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00010 \textcolor{comment}{//}
+00011 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00012 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00013 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00014 
+00015 
+00016 \textcolor{preprocessor}{#define EIGEN\_TEST\_NO\_LONGDOUBLE}
+00017 \textcolor{preprocessor}{#define EIGEN\_TEST\_NO\_COMPLEX}
+00018 \textcolor{preprocessor}{#define EIGEN\_TEST\_FUNC cxx11\_tensor\_sycl}
+00019 \textcolor{preprocessor}{#define EIGEN\_DEFAULT\_DENSE\_INDEX\_TYPE int}
+00020 \textcolor{preprocessor}{#define EIGEN\_USE\_SYCL}
+00021 
+00022 \textcolor{preprocessor}{#include "main.h"}
+00023 \textcolor{preprocessor}{#include <unsupported/Eigen/CXX11/Tensor>}
+00024 
+00025 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1array}{Eigen::array};
+00026 \textcolor{keyword}{using} Eigen::SyclDevice;
+00027 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor};
+00028 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor_map}{Eigen::TensorMap};
+00029 
+00030 \textcolor{keywordtype}{void} test\_sycl\_cpu(\textcolor{keyword}{const} Eigen::SyclDevice &sycl\_device) \{
+00031 
+00032   \textcolor{keywordtype}{int} sizeDim1 = 100;
+00033   \textcolor{keywordtype}{int} sizeDim2 = 100;
+00034   \textcolor{keywordtype}{int} sizeDim3 = 100;
+00035   \hyperlink{class_eigen_1_1array}{array<int, 3>} tensorRange = \{\{sizeDim1, sizeDim2, sizeDim3\}\};
+00036   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>} in1(tensorRange);
+00037   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>} in2(tensorRange);
+00038   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>} in3(tensorRange);
+00039   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>} out(tensorRange);
+00040 
+00041   in2 = in2.random();
+00042   in3 = in3.random();
+00043 
+00044   \textcolor{keywordtype}{float} * gpu\_in1\_data  = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}*\textcolor{keyword}{>}(sycl\_device.allocate(in1.dimensions().TotalSize()*\textcolor{keyword}{sizeof}(
+      float)));
+00045   \textcolor{keywordtype}{float} * gpu\_in2\_data  = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}*\textcolor{keyword}{>}(sycl\_device.allocate(in2.dimensions().TotalSize()*\textcolor{keyword}{sizeof}(
+      float)));
+00046   \textcolor{keywordtype}{float} * gpu\_in3\_data  = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}*\textcolor{keyword}{>}(sycl\_device.allocate(in3.dimensions().TotalSize()*\textcolor{keyword}{sizeof}(
+      float)));
+00047   \textcolor{keywordtype}{float} * gpu\_out\_data =  \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}*\textcolor{keyword}{>}(sycl\_device.allocate(out.dimensions().TotalSize()*\textcolor{keyword}{sizeof}(
+      float)));
+00048 
+00049   \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<float, 3>}> gpu\_in1(gpu\_in1\_data, tensorRange);
+00050   \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<float, 3>}> gpu\_in2(gpu\_in2\_data, tensorRange);
+00051   \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<float, 3>}> gpu\_in3(gpu\_in3\_data, tensorRange);
+00052   \hyperlink{class_eigen_1_1_tensor_map}{TensorMap<Tensor<float, 3>}> gpu\_out(gpu\_out\_data, tensorRange);
+00053 
+00055   gpu\_in1.device(sycl\_device) = gpu\_in1.constant(1.2f);
+00056   sycl\_device.memcpyDeviceToHost(in1.data(), gpu\_in1\_data ,(in1.dimensions().TotalSize())*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));
+00057   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < sizeDim1; ++i) \{
+00058     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < sizeDim2; ++j) \{
+00059       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < sizeDim3; ++k) \{
+00060         VERIFY\_IS\_APPROX(in1(i,j,k), 1.2f);
+00061       \}
+00062     \}
+00063   \}
+00064   printf(\textcolor{stringliteral}{"a=1.2f Test passed\(\backslash\)n"});
+00065 
+00067   gpu\_out.device(sycl\_device) = gpu\_in1 * 1.2f;
+00068   sycl\_device.memcpyDeviceToHost(out.data(), gpu\_out\_data ,(out.dimensions().TotalSize())*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));
+00069   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < sizeDim1; ++i) \{
+00070     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < sizeDim2; ++j) \{
+00071       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < sizeDim3; ++k) \{
+00072         VERIFY\_IS\_APPROX(out(i,j,k),
+00073                          in1(i,j,k) * 1.2f);
+00074       \}
+00075     \}
+00076   \}
+00077   printf(\textcolor{stringliteral}{"a=b*1.2f Test Passed\(\backslash\)n"});
+00078 
+00080   sycl\_device.memcpyHostToDevice(gpu\_in2\_data, in2.data(),(in2.dimensions().TotalSize())*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));
+00081   gpu\_out.device(sycl\_device) = gpu\_in1 * gpu\_in2;
+00082   sycl\_device.memcpyDeviceToHost(out.data(), gpu\_out\_data,(out.dimensions().TotalSize())*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));
+00083   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < sizeDim1; ++i) \{
+00084     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < sizeDim2; ++j) \{
+00085       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < sizeDim3; ++k) \{
+00086         VERIFY\_IS\_APPROX(out(i,j,k),
+00087                          in1(i,j,k) *
+00088                              in2(i,j,k));
+00089       \}
+00090     \}
+00091   \}
+00092   printf(\textcolor{stringliteral}{"c=a*b Test Passed\(\backslash\)n"});
+00093 
+00095   gpu\_out.device(sycl\_device) = gpu\_in1 + gpu\_in2;
+00096   sycl\_device.memcpyDeviceToHost(out.data(), gpu\_out\_data,(out.dimensions().TotalSize())*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));
+00097   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < sizeDim1; ++i) \{
+00098     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < sizeDim2; ++j) \{
+00099       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < sizeDim3; ++k) \{
+00100         VERIFY\_IS\_APPROX(out(i,j,k),
+00101                          in1(i,j,k) +
+00102                              in2(i,j,k));
+00103       \}
+00104     \}
+00105   \}
+00106   printf(\textcolor{stringliteral}{"c=a+b Test Passed\(\backslash\)n"});
+00107 
+00109   gpu\_out.device(sycl\_device) = gpu\_in1 * gpu\_in1;
+00110   sycl\_device.memcpyDeviceToHost(out.data(), gpu\_out\_data,(out.dimensions().TotalSize())*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));
+00111   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < sizeDim1; ++i) \{
+00112     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < sizeDim2; ++j) \{
+00113       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < sizeDim3; ++k) \{
+00114         VERIFY\_IS\_APPROX(out(i,j,k),
+00115                          in1(i,j,k) *
+00116                              in1(i,j,k));
+00117       \}
+00118     \}
+00119   \}
+00120   printf(\textcolor{stringliteral}{"c= a*a Test Passed\(\backslash\)n"});
+00121 
+00122   \textcolor{comment}{//a*3.14f + b*2.7f}
+00123   gpu\_out.device(sycl\_device) =  gpu\_in1 * gpu\_in1.constant(3.14f) + gpu\_in2 * gpu\_in2.constant(2.7f);
+00124   sycl\_device.memcpyDeviceToHost(out.data(),gpu\_out\_data,(out.dimensions().TotalSize())*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));
+00125   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < sizeDim1; ++i) \{
+00126     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < sizeDim2; ++j) \{
+00127       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < sizeDim3; ++k) \{
+00128         VERIFY\_IS\_APPROX(out(i,j,k),
+00129                          in1(i,j,k) * 3.14f
+00130                        + in2(i,j,k) * 2.7f);
+00131       \}
+00132     \}
+00133   \}
+00134   printf(\textcolor{stringliteral}{"a*3.14f + b*2.7f Test Passed\(\backslash\)n"});
+00135 
+00137   sycl\_device.memcpyHostToDevice(gpu\_in3\_data, in3.data(),(in3.dimensions().TotalSize())*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));
+00138   gpu\_out.device(sycl\_device) =(gpu\_in1 > gpu\_in1.constant(0.5f)).select(gpu\_in2, gpu\_in3);
+00139   sycl\_device.memcpyDeviceToHost(out.data(), gpu\_out\_data,(out.dimensions().TotalSize())*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));
+00140   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < sizeDim1; ++i) \{
+00141     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < sizeDim2; ++j) \{
+00142       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < sizeDim3; ++k) \{
+00143         VERIFY\_IS\_APPROX(out(i, j, k), (in1(i, j, k) > 0.5f)
+00144                                                 ? in2(i, j, k)
+00145                                                 : in3(i, j, k));
+00146       \}
+00147     \}
+00148   \}
+00149   printf(\textcolor{stringliteral}{"d= (a>0.5? b:c) Test Passed\(\backslash\)n"});
+00150   sycl\_device.deallocate(gpu\_in1\_data);
+00151   sycl\_device.deallocate(gpu\_in2\_data);
+00152   sycl\_device.deallocate(gpu\_in3\_data);
+00153   sycl\_device.deallocate(gpu\_out\_data);
+00154 \}
+00155 \textcolor{keywordtype}{void} test\_cxx11\_tensor\_sycl() \{
+00156   cl::sycl::gpu\_selector s;
+00157   Eigen::SyclDevice sycl\_device(s);
+00158   CALL\_SUBTEST(test\_sycl\_cpu(sycl\_device));
+00159 \}
+\end{DoxyCode}

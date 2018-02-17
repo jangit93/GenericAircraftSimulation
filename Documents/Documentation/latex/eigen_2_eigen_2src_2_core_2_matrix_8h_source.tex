@@ -1,0 +1,271 @@
+\hypertarget{eigen_2_eigen_2src_2_core_2_matrix_8h_source}{}\section{eigen/\+Eigen/src/\+Core/\+Matrix.h}
+\label{eigen_2_eigen_2src_2_core_2_matrix_8h_source}\index{Matrix.\+h@{Matrix.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2006-2010 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{// Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_MATRIX\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_MATRIX\_H}
+00013 
+00014 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00015 
+00016 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00017 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} \_Rows, \textcolor{keywordtype}{int} \_Cols, \textcolor{keywordtype}{int} \_Options, \textcolor{keywordtype}{int} \_MaxRows, \textcolor{keywordtype}{int} \_MaxCols>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_matrix_8h_source_l00018}\hyperlink{struct_eigen_1_1internal_1_1traits_3_01_matrix_3_01___scalar_00_01___rows_00_01___cols_00_01___o4c9772ffb3eee7280611af9a479b3583}{00018} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1traits}{traits}<\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix}<\_Scalar, \_Rows, \_Cols, \_Options, \_MaxRows, \_MaxCols> >
+00019 \{
+00020 \textcolor{keyword}{private}:
+00021   \textcolor{keyword}{enum} \{ size = \hyperlink{struct_eigen_1_1internal_1_1size__at__compile__time}{internal::size\_at\_compile\_time<\_Rows,\_Cols>::ret}
+       \};
+00022   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} find\_best\_packet<\_Scalar,size>::type PacketScalar;
+00023   \textcolor{keyword}{enum} \{
+00024       row\_major\_bit = \_Options&\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor} ? \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit} : 0,
+00025       is\_dynamic\_size\_storage = \_MaxRows==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} || \_MaxCols==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00026       max\_size = is\_dynamic\_size\_storage ? \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} : \_MaxRows*\_MaxCols,
+00027       default\_alignment = \hyperlink{struct_eigen_1_1internal_1_1compute__default__alignment}{compute\_default\_alignment<\_Scalar,max\_size>::value}
+      ,
+00028       actual\_alignment = ((\_Options&\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a40a452614141522dd313363dbbd65726}{DontAlign})==0) ? default\_alignment : 0,
+00029       required\_alignment = \hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{unpacket\_traits<PacketScalar>::alignment}
+      ,
+00030       packet\_access\_bit = (\hyperlink{struct_eigen_1_1internal_1_1packet__traits}{packet\_traits<\_Scalar>::Vectorizable} && (
+      EIGEN\_UNALIGNED\_VECTORIZE || (actual\_alignment>=required\_alignment))) ? 
+      \hyperlink{group__flags_ga1a306a438e1ab074e8be59512e887b9f}{PacketAccessBit} : 0
+00031     \};
+00032     
+00033 \textcolor{keyword}{public}:
+00034   \textcolor{keyword}{typedef} \_Scalar Scalar;
+00035   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1_dense}{Dense} \hyperlink{struct_eigen_1_1_dense}{StorageKind};
+00036   \textcolor{keyword}{typedef} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Eigen::Index} StorageIndex;
+00037   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1_matrix_xpr}{MatrixXpr} \hyperlink{struct_eigen_1_1_matrix_xpr}{XprKind};
+00038   \textcolor{keyword}{enum} \{
+00039     RowsAtCompileTime = \_Rows,
+00040     ColsAtCompileTime = \_Cols,
+00041     MaxRowsAtCompileTime = \_MaxRows,
+00042     MaxColsAtCompileTime = \_MaxCols,
+00043     Flags = 
+      \hyperlink{class_eigen_1_1internal_1_1compute__matrix__flags}{compute\_matrix\_flags<\_Scalar, \_Rows, \_Cols, \_Options, \_MaxRows, \_MaxCols>::ret}
+      ,
+00044     Options = \_Options,
+00045     InnerStrideAtCompileTime = 1,
+00046     OuterStrideAtCompileTime = (Options&\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}) ? ColsAtCompileTime : RowsAtCompileTime,
+00047     
+00048     \textcolor{comment}{// FIXME, the following flag in only used to define NeedsToAlign in PlainObjectBase}
+00049     EvaluatorFlags = \hyperlink{group__flags_ga4b983a15d57cd55806df618ac544d09e}{LinearAccessBit} | \hyperlink{group__flags_gabf1e9d0516a933445a4c307ad8f14915}{DirectAccessBit} | packet\_access\_bit | 
+      row\_major\_bit,
+00050     Alignment = actual\_alignment
+00051   \};
+00052 \};
+00053 \}
+00054 
+00177 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} \_Rows, \textcolor{keywordtype}{int} \_Cols, \textcolor{keywordtype}{int} \_Options, \textcolor{keywordtype}{int} \_MaxRows, \textcolor{keywordtype}{int} \_MaxCols>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_matrix_8h_source_l00178}\hyperlink{group___core___module}{00178} \textcolor{keyword}{class }\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix}
+00179   : \textcolor{keyword}{public} \hyperlink{class_eigen_1_1_plain_object_base}{PlainObjectBase}<Matrix<\_Scalar, \_Rows, \_Cols, \_Options, \_MaxRows, \_MaxCols> >
+00180 \{
+00181   \textcolor{keyword}{public}:
+00182 
+\Hypertarget{eigen_2_eigen_2src_2_core_2_matrix_8h_source_l00186}\hyperlink{group___core___module_a9f405923954599ec7a71ee6bad2c53f1}{00186}     \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_plain_object_base}{PlainObjectBase<Matrix>} \hyperlink{group___core___module_a9f405923954599ec7a71ee6bad2c53f1}{Base};
+00187 
+00188     \textcolor{keyword}{enum} \{ Options = \_Options \};
+00189 
+00190     EIGEN\_DENSE\_PUBLIC\_INTERFACE(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix})
+00191 
+00192     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Base::PlainObject PlainObject;
+00193 
+00194     \textcolor{keyword}{using} Base::base;
+00195     \textcolor{keyword}{using} Base::coeffRef;
+00196 
+00205     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_matrix_8h_source_l00206}\hyperlink{group___core___module_aa123b56b10819a0cbf5164abb242102f}{00206}     EIGEN\_STRONG\_INLINE \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix}& \hyperlink{group___core___module_aa123b56b10819a0cbf5164abb242102f}{operator=}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix}& other)
+00207     \{
+00208       \textcolor{keywordflow}{return} Base::\_set(other);
+00209     \}
+00210 
+00221     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00222     EIGEN\_DEVICE\_FUNC
+00223     EIGEN\_STRONG\_INLINE \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix}& operator=(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other
+      )
+00224     \{
+00225       \textcolor{keywordflow}{return} Base::\_set(other);
+00226     \}
+00227 
+00228     \textcolor{comment}{/* Here, doxygen failed to copy the brief information when using \(\backslash\)copydoc */}
+00229 
+00234     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00235     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_matrix_8h_source_l00236}\hyperlink{group___core___module_ae1be4ae99dbfc91c6a3a0d0af7165047}{00236}     EIGEN\_STRONG\_INLINE \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix}& \hyperlink{group___core___module_ae1be4ae99dbfc91c6a3a0d0af7165047}{operator=}(\textcolor{keyword}{const} 
+      \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<OtherDerived>} &other)
+00237     \{
+00238       \textcolor{keywordflow}{return} Base::operator=(other);
+00239     \}
+00240 
+00241     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00242     EIGEN\_DEVICE\_FUNC
+00243     EIGEN\_STRONG\_INLINE \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix}& operator=(\textcolor{keyword}{const} 
+      \hyperlink{group___core___module_class_eigen_1_1_return_by_value}{ReturnByValue<OtherDerived>}& \hyperlink{structfunc}{func})
+00244     \{
+00245       \textcolor{keywordflow}{return} Base::operator=(func);
+00246     \}
+00247 
+00258     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_matrix_8h_source_l00259}\hyperlink{group___core___module_a11f852d66fa55b2aed12aa22da807a6b}{00259}     EIGEN\_STRONG\_INLINE \hyperlink{group___core___module_a11f852d66fa55b2aed12aa22da807a6b}{Matrix}() : Base()
+00260     \{
+00261       Base::\_check\_template\_params();
+00262       EIGEN\_INITIALIZE\_COEFFS\_IF\_THAT\_OPTION\_IS\_ENABLED
+00263     \}
+00264 
+00265     \textcolor{comment}{// FIXME is it still needed}
+00266     EIGEN\_DEVICE\_FUNC
+00267     \textcolor{keyword}{explicit} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix}(\hyperlink{struct_eigen_1_1internal_1_1constructor__without__unaligned__array__assert}{internal::constructor\_without\_unaligned\_array\_assert}
+      )
+00268       : Base(\hyperlink{struct_eigen_1_1internal_1_1constructor__without__unaligned__array__assert}{internal::constructor\_without\_unaligned\_array\_assert}
+      ())
+00269     \{ Base::\_check\_template\_params(); EIGEN\_INITIALIZE\_COEFFS\_IF\_THAT\_OPTION\_IS\_ENABLED \}
+00270 
+00271 \textcolor{preprocessor}{#if EIGEN\_HAS\_RVALUE\_REFERENCES}
+00272     EIGEN\_DEVICE\_FUNC
+00273     Matrix(Matrix&& other) EIGEN\_NOEXCEPT\_IF(std::is\_nothrow\_move\_constructible<Scalar>::value)
+00274       : Base(std::move(other))
+00275     \{
+00276       Base::\_check\_template\_params();
+00277       \textcolor{keywordflow}{if} (RowsAtCompileTime!=\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} && ColsAtCompileTime!=\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})
+00278         Base::\_set\_noalias(other);
+00279     \}
+00280     EIGEN\_DEVICE\_FUNC
+00281     Matrix& operator=(Matrix&& other) EIGEN\_NOEXCEPT\_IF(std::is\_nothrow\_move\_assignable<Scalar>::value)
+00282     \{
+00283       other.\hyperlink{group___core___module_ab420d9d588ac443f5a1b1a7dceb12c90}{swap}(*\textcolor{keyword}{this});
+00284       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00285     \}
+00286 \textcolor{preprocessor}{#endif}
+00287 
+00288 \textcolor{preprocessor}{    #ifndef EIGEN\_PARSED\_BY\_DOXYGEN}
+00289 
+00290     \textcolor{comment}{// This constructor is for both 1x1 matrices and dynamic vectors}
+00291     \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00292     EIGEN\_DEVICE\_FUNC
+00293     EIGEN\_STRONG\_INLINE \textcolor{keyword}{explicit} Matrix(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module}{T}& x)
+00294     \{
+00295       Base::\_check\_template\_params();
+00296       Base::template \_init1<T>(x);
+00297     \}
+00298 
+00299     \textcolor{keyword}{template}<\textcolor{keyword}{typename} T0, \textcolor{keyword}{typename} T1>
+00300     EIGEN\_DEVICE\_FUNC
+00301     EIGEN\_STRONG\_INLINE Matrix(\textcolor{keyword}{const} T0& x, \textcolor{keyword}{const} T1& y)
+00302     \{
+00303       Base::\_check\_template\_params();
+00304       Base::template \_init2<T0,T1>(x, y);
+00305     \}
+00306 \textcolor{preprocessor}{    #else}
+00307 
+00308     EIGEN\_DEVICE\_FUNC
+00309     \textcolor{keyword}{explicit} Matrix(\textcolor{keyword}{const} Scalar *data);
+00310 
+00323     EIGEN\_STRONG\_INLINE \textcolor{keyword}{explicit} Matrix(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} dim);
+00325     Matrix(\textcolor{keyword}{const} Scalar& x);
+00338     EIGEN\_DEVICE\_FUNC
+00339     Matrix(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols);
+00340     
+00342     Matrix(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar& y);
+00343 \textcolor{preprocessor}{    #endif}
+00344 
+00346     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_matrix_8h_source_l00347}\hyperlink{group___core___module_a0a422e4c801e859d47226c348c482cb5}{00347}     EIGEN\_STRONG\_INLINE \hyperlink{group___core___module_a0a422e4c801e859d47226c348c482cb5}{Matrix}(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar& y, \textcolor{keyword}{const} Scalar& z)
+00348     \{
+00349       Base::\_check\_template\_params();
+00350       EIGEN\_STATIC\_ASSERT\_VECTOR\_SPECIFIC\_SIZE(Matrix, 3)
+00351       m\_storage.data()[0] = x;
+00352       m\_storage.data()[1] = y;
+00353       m\_storage.data()[2] = z;
+00354     \}
+00356     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_matrix_8h_source_l00357}\hyperlink{group___core___module_afe8c7913883c78db58f15e22103f93a2}{00357}     EIGEN\_STRONG\_INLINE \hyperlink{group___core___module_afe8c7913883c78db58f15e22103f93a2}{Matrix}(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar& y, \textcolor{keyword}{const} Scalar& z, \textcolor{keyword}{const} Scalar& w)
+00358     \{
+00359       Base::\_check\_template\_params();
+00360       EIGEN\_STATIC\_ASSERT\_VECTOR\_SPECIFIC\_SIZE(Matrix, 4)
+00361       m\_storage.data()[0] = x;
+00362       m\_storage.data()[1] = y;
+00363       m\_storage.data()[2] = z;
+00364       m\_storage.data()[3] = w;
+00365     \}
+00366 
+00367 
+00369     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_matrix_8h_source_l00370}\hyperlink{group___core___module_aea16cba266274974c729c98e8567f41d}{00370}     EIGEN\_STRONG\_INLINE \hyperlink{group___core___module_aea16cba266274974c729c98e8567f41d}{Matrix}(\textcolor{keyword}{const} Matrix& other) : Base(other)
+00371     \{ \}
+00372 
+00376     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00377     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_matrix_8h_source_l00378}\hyperlink{group___core___module_ae4bcda7578de9624709cbfa8d3ddd9d9}{00378}     EIGEN\_STRONG\_INLINE \hyperlink{group___core___module_ae4bcda7578de9624709cbfa8d3ddd9d9}{Matrix}(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<OtherDerived>} &other)
+00379       : Base(other.derived())
+00380     \{ \}
+00381 
+00382     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} innerStride()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} 1; \}
+00383     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} outerStride()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} this->innerSize(); \}
+00384 
+00386 
+00387     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00388     EIGEN\_DEVICE\_FUNC
+00389     \textcolor{keyword}{explicit} Matrix(\textcolor{keyword}{const} \hyperlink{class_eigen_1_1_rotation_base}{RotationBase<OtherDerived,ColsAtCompileTime>}
+      & r);
+00390     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00391     EIGEN\_DEVICE\_FUNC
+00392     Matrix& operator=(\textcolor{keyword}{const} \hyperlink{class_eigen_1_1_rotation_base}{RotationBase<OtherDerived,ColsAtCompileTime>}
+      & r);
+00393 
+00394     \textcolor{comment}{// allow to extend Matrix outside Eigen}
+00395 \textcolor{preprocessor}{    #ifdef EIGEN\_MATRIX\_PLUGIN}
+00396 \textcolor{preprocessor}{    #include EIGEN\_MATRIX\_PLUGIN}
+00397 \textcolor{preprocessor}{    #endif}
+00398 
+00399   \textcolor{keyword}{protected}:
+00400     \textcolor{keyword}{template} <\textcolor{keyword}{typename} Derived, \textcolor{keyword}{typename} OtherDerived, \textcolor{keywordtype}{bool} IsVector>
+00401     \textcolor{keyword}{friend} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1conservative__resize__like__impl}{internal::conservative\_resize\_like\_impl};
+00402 
+00403     \textcolor{keyword}{using} Base::m\_storage;
+00404 \};
+00405 
+00426 \textcolor{preprocessor}{#define EIGEN\_MAKE\_TYPEDEFS(Type, TypeSuffix, Size, SizeSuffix)   \(\backslash\)}
+00427 \textcolor{preprocessor}{                                    \(\backslash\)}
+00428 \textcolor{preprocessor}{typedef Matrix<Type, Size, Size> Matrix##SizeSuffix##TypeSuffix;  \(\backslash\)}
+00429 \textcolor{preprocessor}{                                    \(\backslash\)}
+00430 \textcolor{preprocessor}{typedef Matrix<Type, Size, 1>    Vector##SizeSuffix##TypeSuffix;  \(\backslash\)}
+00431 \textcolor{preprocessor}{                                    \(\backslash\)}
+00432 \textcolor{preprocessor}{typedef Matrix<Type, 1, Size>    RowVector##SizeSuffix##TypeSuffix;}
+00433 
+00434 \textcolor{preprocessor}{#define EIGEN\_MAKE\_FIXED\_TYPEDEFS(Type, TypeSuffix, Size)         \(\backslash\)}
+00435 \textcolor{preprocessor}{                                    \(\backslash\)}
+00436 \textcolor{preprocessor}{typedef Matrix<Type, Size, Dynamic> Matrix##Size##X##TypeSuffix;  \(\backslash\)}
+00437 \textcolor{preprocessor}{                                    \(\backslash\)}
+00438 \textcolor{preprocessor}{typedef Matrix<Type, Dynamic, Size> Matrix##X##Size##TypeSuffix;}
+00439 
+00440 \textcolor{preprocessor}{#define EIGEN\_MAKE\_TYPEDEFS\_ALL\_SIZES(Type, TypeSuffix) \(\backslash\)}
+00441 \textcolor{preprocessor}{EIGEN\_MAKE\_TYPEDEFS(Type, TypeSuffix, 2, 2) \(\backslash\)}
+00442 \textcolor{preprocessor}{EIGEN\_MAKE\_TYPEDEFS(Type, TypeSuffix, 3, 3) \(\backslash\)}
+00443 \textcolor{preprocessor}{EIGEN\_MAKE\_TYPEDEFS(Type, TypeSuffix, 4, 4) \(\backslash\)}
+00444 \textcolor{preprocessor}{EIGEN\_MAKE\_TYPEDEFS(Type, TypeSuffix, Dynamic, X) \(\backslash\)}
+00445 \textcolor{preprocessor}{EIGEN\_MAKE\_FIXED\_TYPEDEFS(Type, TypeSuffix, 2) \(\backslash\)}
+00446 \textcolor{preprocessor}{EIGEN\_MAKE\_FIXED\_TYPEDEFS(Type, TypeSuffix, 3) \(\backslash\)}
+00447 \textcolor{preprocessor}{EIGEN\_MAKE\_FIXED\_TYPEDEFS(Type, TypeSuffix, 4)}
+00448 
+00449 EIGEN\_MAKE\_TYPEDEFS\_ALL\_SIZES(\textcolor{keywordtype}{int},                  i)
+00450 EIGEN\_MAKE\_TYPEDEFS\_ALL\_SIZES(\textcolor{keywordtype}{float},                f)
+00451 EIGEN\_MAKE\_TYPEDEFS\_ALL\_SIZES(\textcolor{keywordtype}{double},               d)
+00452 EIGEN\_MAKE\_TYPEDEFS\_ALL\_SIZES(std::complex<float>,  cf)
+00453 EIGEN\_MAKE\_TYPEDEFS\_ALL\_SIZES(std::complex<double>, cd)
+00454 
+00455 \textcolor{preprocessor}{#undef EIGEN\_MAKE\_TYPEDEFS\_ALL\_SIZES}
+00456 \textcolor{preprocessor}{#undef EIGEN\_MAKE\_TYPEDEFS}
+00457 \textcolor{preprocessor}{#undef EIGEN\_MAKE\_FIXED\_TYPEDEFS}
+00458 
+00459 \} \textcolor{comment}{// end namespace Eigen}
+00460 
+00461 \textcolor{preprocessor}{#endif // EIGEN\_MATRIX\_H}
+\end{DoxyCode}

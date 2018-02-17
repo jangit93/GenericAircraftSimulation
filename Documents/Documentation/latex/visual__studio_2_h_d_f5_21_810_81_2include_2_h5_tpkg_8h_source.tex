@@ -1,0 +1,1338 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2include_2_h5_tpkg_8h_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/include/\+H5\+Tpkg.h}
+\label{visual__studio_2_h_d_f5_21_810_81_2include_2_h5_tpkg_8h_source}\index{H5\+Tpkg.\+h@{H5\+Tpkg.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+00002 \textcolor{comment}{ * Copyright by The HDF Group.                                               *}
+00003 \textcolor{comment}{ * Copyright by the Board of Trustees of the University of Illinois.         *}
+00004 \textcolor{comment}{ * All rights reserved.                                                      *}
+00005 \textcolor{comment}{ *                                                                           *}
+00006 \textcolor{comment}{ * This file is part of HDF5.  The full HDF5 copyright notice, including     *}
+00007 \textcolor{comment}{ * terms governing use, modification, and redistribution, is contained in    *}
+00008 \textcolor{comment}{ * the COPYING file, which can be found at the root of the source code       *}
+00009 \textcolor{comment}{ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *}
+00010 \textcolor{comment}{ * If you do not have access to either file, you may request a copy from     *}
+00011 \textcolor{comment}{ * help@hdfgroup.org.                                                        *}
+00012 \textcolor{comment}{ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00013 
+00014 \textcolor{comment}{/*}
+00015 \textcolor{comment}{ * Programmer:  Robb Matzke <matzke@llnl.gov>}
+00016 \textcolor{comment}{ *      Monday, December  8, 1997}
+00017 \textcolor{comment}{ *}
+00018 \textcolor{comment}{ * Purpose: This file contains declarations which are visible only within}
+00019 \textcolor{comment}{ *      the H5T package.  Source files outside the H5T package should}
+00020 \textcolor{comment}{ *      include H5Tprivate.h instead.}
+00021 \textcolor{comment}{ */}
+00022 \textcolor{preprocessor}{#if !(defined H5T\_FRIEND || defined H5T\_MODULE)}
+00023 \textcolor{preprocessor}{#error "Do not include this file outside the H5T package!"}
+00024 \textcolor{preprocessor}{#endif}
+00025 
+00026 \textcolor{preprocessor}{#ifndef \_H5Tpkg\_H}
+00027 \textcolor{preprocessor}{#define \_H5Tpkg\_H}
+00028 
+00029 \textcolor{comment}{/*}
+00030 \textcolor{comment}{ * Define this to enable debugging.}
+00031 \textcolor{comment}{ */}
+00032 \textcolor{preprocessor}{#ifdef NDEBUG}
+00033 \textcolor{preprocessor}{#  undef H5T\_DEBUG}
+00034 \textcolor{preprocessor}{#endif}
+00035 
+00036 \textcolor{comment}{/* Get package's private header */}
+00037 \textcolor{preprocessor}{#include "H5Tprivate.h"}
+00038 
+00039 \textcolor{comment}{/* Other private headers needed by this file */}
+00040 \textcolor{preprocessor}{#include "H5Fprivate.h"}     \textcolor{comment}{/* Files                */}
+00041 \textcolor{preprocessor}{#include "H5FLprivate.h"}    \textcolor{comment}{/* Free Lists               */}
+00042 \textcolor{preprocessor}{#include "H5Oprivate.h"}     \textcolor{comment}{/* Object headers           */}
+00043 
+00044 \textcolor{comment}{/* Other public headers needed by this file */}
+00045 \textcolor{preprocessor}{#include "H5Spublic.h"}      \textcolor{comment}{/* Dataspace functions          */}
+00046 
+00047 \textcolor{comment}{/* Length of debugging name buffer */}
+00048 \textcolor{preprocessor}{#define H5T\_NAMELEN     32}
+00049 
+00050 \textcolor{comment}{/* Macro to ease detecting "complex" datatypes (i.e. those with base types or fields) */}
+00051 \textcolor{preprocessor}{#define H5T\_IS\_COMPLEX(t)       ((t) == H5T\_COMPOUND || (t) == H5T\_ENUM || (t) == H5T\_VLEN || (t) ==
+       H5T\_ARRAY)}
+00052 
+00053 \textcolor{comment}{/* Macro to ease detecting fixed "string" datatypes */}
+00054 \textcolor{preprocessor}{#define H5T\_IS\_FIXED\_STRING(dt) (H5T\_STRING == (dt)->type)}
+00055 
+00056 \textcolor{comment}{/* Macro to ease detecting variable-length "string" datatypes */}
+00057 \textcolor{preprocessor}{#define H5T\_IS\_VL\_STRING(dt)    (H5T\_VLEN == (dt)->type && H5T\_VLEN\_STRING == (dt)->u.vlen.type)}
+00058 
+00059 \textcolor{comment}{/* Macro to ease detecting fixed or variable-length "string" datatypes */}
+00060 \textcolor{preprocessor}{#define H5T\_IS\_STRING(dt)       (H5T\_IS\_FIXED\_STRING(dt) || H5T\_IS\_VL\_STRING(dt))}
+00061 
+00062 \textcolor{comment}{/* Macro to ease detecting atomic datatypes */}
+00063 \textcolor{preprocessor}{#define H5T\_IS\_ATOMIC(dt)       (!(H5T\_IS\_COMPLEX((dt)->type) || (dt)->type == H5T\_OPAQUE))}
+00064 
+00065 \textcolor{comment}{/* Macro to ease retrieving class of shared datatype */}
+00066 \textcolor{comment}{/* (Externally, a VL string is a string; internally, a VL string is a VL.  Lie}
+00067 \textcolor{comment}{ *      to the user if they have a VL string and tell them it's in the string}
+00068 \textcolor{comment}{ *      class)}
+00069 \textcolor{comment}{ */}
+00070 \textcolor{preprocessor}{#define H5T\_GET\_CLASS(shared, internal) ((internal) ? (shared)->type : (H5T\_IS\_VL\_STRING(shared) ? 
+       H5T\_STRING : (shared)->type))}
+00071 
+00072 
+00073 \textcolor{comment}{/*}
+00074 \textcolor{comment}{ * Datatype encoding versions}
+00075 \textcolor{comment}{ */}
+00076 
+00077 \textcolor{comment}{/* This is the version to create all datatypes which don't contain}
+00078 \textcolor{comment}{ * array datatypes (atomic types, compound datatypes without array fields,}
+00079 \textcolor{comment}{ * vlen sequences of objects which aren't arrays, etc.) or VAX byte-ordered}
+00080 \textcolor{comment}{ * objects.}
+00081 \textcolor{comment}{ */}
+00082 \textcolor{preprocessor}{#define H5O\_DTYPE\_VERSION\_1 1}
+00083 
+00084 \textcolor{comment}{/* This is the version to create all datatypes which contain H5T\_ARRAY}
+00085 \textcolor{comment}{ * class objects (array definitely, potentially compound & vlen sequences also),}
+00086 \textcolor{comment}{ * but not VAX byte-ordered objects.}
+00087 \textcolor{comment}{ */}
+00088 \textcolor{preprocessor}{#define H5O\_DTYPE\_VERSION\_2 2}
+00089 
+00090 \textcolor{comment}{/* This is the version to create all datatypes which contain VAX byte-ordered}
+00091 \textcolor{comment}{ * objects (floating-point types, currently).}
+00092 \textcolor{comment}{ */}
+00093 \textcolor{comment}{/* This version also packs compound & enum field names without padding */}
+00094 \textcolor{comment}{/* This version also encodes the member offset of compound fields more efficiently */}
+00095 \textcolor{comment}{/* This version also encodes array types more efficiently */}
+00096 \textcolor{preprocessor}{#define H5O\_DTYPE\_VERSION\_3 3}
+00097 
+00098 \textcolor{comment}{/* The latest version of the format.  Look through the 'encode helper' routine}
+00099 \textcolor{comment}{ *      and 'size' callback for places to change when updating this. */}
+00100 \textcolor{preprocessor}{#define H5O\_DTYPE\_VERSION\_LATEST H5O\_DTYPE\_VERSION\_3}
+00101 
+00102 
+00103 \textcolor{comment}{/* Flags for visiting datatype */}
+00104 \textcolor{preprocessor}{#define H5T\_VISIT\_COMPLEX\_FIRST 0x01            }\textcolor{comment}{/* Visit complex datatype before visiting member/parent
+       datatypes */}\textcolor{preprocessor}{}
+00105 \textcolor{preprocessor}{#define H5T\_VISIT\_COMPLEX\_LAST  0x02            }\textcolor{comment}{/* Visit complex datatype after visiting member/parent
+       datatypes */}\textcolor{preprocessor}{}
+00106                                                 \textcolor{comment}{/* (setting both flags will mean visiting complex type
+       twice) */}
+00107 \textcolor{preprocessor}{#define H5T\_VISIT\_SIMPLE        0x04            }\textcolor{comment}{/* Visit simple datatypes (at all) */}\textcolor{preprocessor}{}
+00108                                                 \textcolor{comment}{/* (setting H5T\_VISIT\_SIMPLE and \_not\_ setting either
+       H5T\_VISIT\_COMPLEX\_FIRST or H5T\_VISIT\_COMPLEX\_LAST will mean visiting \_only\_ "simple" "leafs" in the "tree" */}
+00109                                                 \textcolor{comment}{/* (\_not\_ setting H5T\_VISIT\_SIMPLE and setting either
+       H5T\_VISIT\_COMPLEX\_FIRST or H5T\_VISIT\_COMPLEX\_LAST will mean visiting all nodes \_except\_ "simple" "leafs" in the
+       "tree" */}
+00110 
+00111 
+00112 \textcolor{comment}{/* Define an internal macro for converting long long to long double.  Mac OS 10.4 gives some}
+00113 \textcolor{comment}{ * incorrect conversions. */}
+00114 \textcolor{preprocessor}{#if (H5\_WANT\_DATA\_ACCURACY && defined(H5\_LLONG\_TO\_LDOUBLE\_CORRECT)) || (!H5\_WANT\_DATA\_ACCURACY)}
+00115 \textcolor{preprocessor}{#define H5T\_CONV\_INTERNAL\_LLONG\_LDOUBLE       1}
+00116 \textcolor{preprocessor}{#endif}
+00117 
+00118 \textcolor{comment}{/* Define an internal macro for converting unsigned long long to long double.  SGI compilers give}
+00119 \textcolor{comment}{ * some incorect conversion.  64-bit Solaris does different rounding.   Windows Visual Studio 6 does}
+00120 \textcolor{comment}{ * not support unsigned long long.  For FreeBSD(sleipnir), the last 2 bytes of mantissa are lost when}
+00121 \textcolor{comment}{ * compiler tries to do the conversion.  For Cygwin, compiler doesn't do rounding correctly.}
+00122 \textcolor{comment}{ * Mac OS 10.4 gives some incorrect result. */}
+00123 \textcolor{preprocessor}{#if (H5\_WANT\_DATA\_ACCURACY && defined(H5\_LLONG\_TO\_LDOUBLE\_CORRECT)) || (!H5\_WANT\_DATA\_ACCURACY)}
+00124 \textcolor{preprocessor}{#define H5T\_CONV\_INTERNAL\_ULLONG\_LDOUBLE         1}
+00125 \textcolor{preprocessor}{#endif}
+00126 
+00127 \textcolor{comment}{/* Define an internal macro for converting long double to long long.  SGI compilers give some incorrect}
+00128 \textcolor{comment}{ * conversions. Mac OS 10.4 gives incorrect conversions. HP-UX 11.00 compiler generates floating exception.}
+00129 \textcolor{comment}{ * The hard conversion on Windows .NET 2003 has a bug and gives wrong exception value. */}
+00130 \textcolor{preprocessor}{#if (H5\_WANT\_DATA\_ACCURACY && defined(H5\_LDOUBLE\_TO\_LLONG\_ACCURATE)) || \(\backslash\)}
+00131 \textcolor{preprocessor}{    (!H5\_WANT\_DATA\_ACCURACY)}
+00132 \textcolor{preprocessor}{#define H5T\_CONV\_INTERNAL\_LDOUBLE\_LLONG         1}
+00133 \textcolor{preprocessor}{#endif}
+00134 
+00135 \textcolor{comment}{/* Define an internal macro for converting long double to unsigned long long.  SGI compilers give some}
+00136 \textcolor{comment}{ * incorrect conversions.  Mac OS 10.4 gives incorrect conversions. HP-UX 11.00 compiler generates}
+00137 \textcolor{comment}{ * floating exception. */}
+00138 \textcolor{preprocessor}{#if (H5\_WANT\_DATA\_ACCURACY && defined(H5\_LDOUBLE\_TO\_LLONG\_ACCURATE)) || \(\backslash\)}
+00139 \textcolor{preprocessor}{    (!H5\_WANT\_DATA\_ACCURACY)}
+00140 \textcolor{preprocessor}{#define H5T\_CONV\_INTERNAL\_LDOUBLE\_ULLONG         1}
+00141 \textcolor{preprocessor}{#else}
+00142 \textcolor{preprocessor}{#define H5T\_CONV\_INTERNAL\_LDOUBLE\_ULLONG         0}
+00143 \textcolor{preprocessor}{#endif}
+00144 
+00145 \textcolor{comment}{/* Statistics about a conversion function */}
+00146 \textcolor{keyword}{struct }\hyperlink{struct_h5_t__stats__t}{H5T\_stats\_t} \{
+00147     \textcolor{keywordtype}{unsigned}    ncalls;         \textcolor{comment}{/*num calls to conversion function   */}
+00148     hsize\_t nelmts;         \textcolor{comment}{/*total data points converted        */}
+00149     H5\_timer\_t  timer;          \textcolor{comment}{/*total time for conversion      */}
+00150 \};
+00151 
+00152 \textcolor{comment}{/* The datatype conversion database */}
+00153 \textcolor{keyword}{struct }\hyperlink{struct_h5_t__path__t}{H5T\_path\_t} \{
+00154     \textcolor{keywordtype}{char}    name[H5T\_NAMELEN];  \textcolor{comment}{/*name for debugging only        */}
+00155     \hyperlink{struct_h5_t__t}{H5T\_t}  *src;           \textcolor{comment}{/*source datatype            */}
+00156     \hyperlink{struct_h5_t__t}{H5T\_t}  *dst;           \textcolor{comment}{/*destination datatype           */}
+00157     H5T\_conv\_t  \hyperlink{structfunc}{func};           \textcolor{comment}{/*data conversion function       */}
+00158     hbool\_t is\_hard;        \textcolor{comment}{/*is it a hard function?         */}
+00159     hbool\_t is\_noop;        \textcolor{comment}{/*is it the noop conversion?         */}
+00160     hbool\_t are\_compounds;      \textcolor{comment}{/*are source and dest both compounds?*/}
+00161     \hyperlink{struct_h5_t__stats__t}{H5T\_stats\_t}  stats;          \textcolor{comment}{/*statistics for the conversion      */}
+00162     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t}  cdata;          \textcolor{comment}{/*data for this function         */}
+00163 \};
+00164 
+00165 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_t__atomic__t}{H5T\_atomic\_t} \{
+00166     H5T\_order\_t     order;  \textcolor{comment}{/*byte order                     */}
+00167     \textcolor{keywordtype}{size\_t}      prec;   \textcolor{comment}{/*precision in bits              */}
+00168     \textcolor{keywordtype}{size\_t}      offset; \textcolor{comment}{/*bit position of lsb of value           */}
+00169     H5T\_pad\_t           lsb\_pad;\textcolor{comment}{/*type of lsb padding                */}
+00170     H5T\_pad\_t       msb\_pad;\textcolor{comment}{/*type of msb padding                */}
+00171     \textcolor{keyword}{union }\{
+00172     \textcolor{keyword}{struct }\{
+00173         H5T\_sign\_t  sign;   \textcolor{comment}{/*type of integer sign               */}
+00174     \} i;            \textcolor{comment}{/*integer; integer types             */}
+00175 
+00176     \textcolor{keyword}{struct }\{
+00177         \textcolor{keywordtype}{size\_t}  sign;   \textcolor{comment}{/*bit position of sign bit           */}
+00178         \textcolor{keywordtype}{size\_t}  epos;   \textcolor{comment}{/*position of lsb of exponent            */}
+00179         \textcolor{keywordtype}{size\_t}  esize;  \textcolor{comment}{/*size of exponent in bits           */}
+00180         uint64\_t    ebias;  \textcolor{comment}{/*exponent bias                  */}
+00181         \textcolor{keywordtype}{size\_t}  mpos;   \textcolor{comment}{/*position of lsb of mantissa            */}
+00182         \textcolor{keywordtype}{size\_t}  msize;  \textcolor{comment}{/*size of mantissa               */}
+00183         H5T\_norm\_t  norm;   \textcolor{comment}{/*normalization                  */}
+00184         H5T\_pad\_t   pad;    \textcolor{comment}{/*type of padding for internal bits      */}
+00185     \} f;            \textcolor{comment}{/*floating-point types               */}
+00186 
+00187     \textcolor{keyword}{struct }\{
+00188         H5T\_cset\_t  cset;   \textcolor{comment}{/*character set                  */}
+00189         H5T\_str\_t   pad;    \textcolor{comment}{/*space or null padding of extra bytes       */}
+00190     \} s;            \textcolor{comment}{/*string types                   */}
+00191 
+00192     \textcolor{keyword}{struct }\{
+00193         H5R\_type\_t  rtype;  \textcolor{comment}{/*type of reference stored           */}
+00194             H5T\_loc\_t   loc;    \textcolor{comment}{/* Location of data in buffer            */}
+00195     \} r;            \textcolor{comment}{/*reference types                */}
+00196     \} u;
+00197 \} \hyperlink{struct_h5_t__atomic__t}{H5T\_atomic\_t};
+00198 
+00199 \textcolor{comment}{/* How members are sorted for compound or enum datatypes */}
+00200 \textcolor{keyword}{typedef} \textcolor{keyword}{enum} H5T\_sort\_t \{
+00201     H5T\_SORT\_NONE   = 0,        \textcolor{comment}{/*not sorted                 */}
+00202     H5T\_SORT\_NAME   = 1,        \textcolor{comment}{/*sorted by member name          */}
+00203     H5T\_SORT\_VALUE  = 2         \textcolor{comment}{/*sorted by memb offset or enum value*/}
+00204 \} H5T\_sort\_t;
+00205 
+00206 \textcolor{comment}{/* A compound datatype member */}
+00207 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_t__cmemb__t}{H5T\_cmemb\_t} \{
+00208     \textcolor{keywordtype}{char}        *name;      \textcolor{comment}{/*name of this member            */}
+00209     \textcolor{keywordtype}{size\_t}      offset;     \textcolor{comment}{/*offset from beginning of struct    */}
+00210     \textcolor{keywordtype}{size\_t}      size;       \textcolor{comment}{/*size of this member            */}
+00211     \textcolor{keyword}{struct }\hyperlink{struct_h5_t__t}{H5T\_t}   *type;      \textcolor{comment}{/*type of this member            */}
+00212 \} \hyperlink{struct_h5_t__cmemb__t}{H5T\_cmemb\_t};
+00213 
+00214 \textcolor{comment}{/* A compound datatype */}
+00215 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_t__compnd__t}{H5T\_compnd\_t} \{
+00216     \textcolor{keywordtype}{unsigned}    nalloc;     \textcolor{comment}{/*num entries allocated in MEMB array*/}
+00217     \textcolor{keywordtype}{unsigned}    nmembs;     \textcolor{comment}{/*number of members defined in struct*/}
+00218     H5T\_sort\_t  sorted;     \textcolor{comment}{/*how are members sorted?        */}
+00219     hbool\_t     packed;     \textcolor{comment}{/*are members packed together?       */}
+00220     \hyperlink{struct_h5_t__cmemb__t}{H5T\_cmemb\_t}  *memb;      \textcolor{comment}{/*array of struct members        */}
+00221     \textcolor{keywordtype}{size\_t}      memb\_size;  \textcolor{comment}{/*total of all member sizes          */}
+00222 \} \hyperlink{struct_h5_t__compnd__t}{H5T\_compnd\_t};
+00223 
+00224 \textcolor{comment}{/* An enumeration datatype */}
+00225 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_t__enum__t}{H5T\_enum\_t} \{
+00226     \textcolor{keywordtype}{unsigned}    nalloc;     \textcolor{comment}{/*num entries allocated          */}
+00227     \textcolor{keywordtype}{unsigned}    nmembs;     \textcolor{comment}{/*number of members defined in enum  */}
+00228     H5T\_sort\_t  sorted;     \textcolor{comment}{/*how are members sorted?        */}
+00229     uint8\_t *value;     \textcolor{comment}{/*array of values            */}
+00230     \textcolor{keywordtype}{char}    **name;     \textcolor{comment}{/*array of symbol names          */}
+00231 \} \hyperlink{struct_h5_t__enum__t}{H5T\_enum\_t};
+00232 
+00233 \textcolor{comment}{/* VL function pointers */}
+00234 \textcolor{keyword}{typedef} ssize\_t (*H5T\_vlen\_getlenfunc\_t)(\textcolor{keyword}{const} \textcolor{keywordtype}{void} *vl\_addr);
+00235 \textcolor{keyword}{typedef} \textcolor{keywordtype}{void} * (*H5T\_vlen\_getptrfunc\_t)(\textcolor{keywordtype}{void} *vl\_addr);
+00236 \textcolor{keyword}{typedef} htri\_t (*H5T\_vlen\_isnullfunc\_t)(\textcolor{keyword}{const} \hyperlink{struct_h5_f__t}{H5F\_t} *f, \textcolor{keywordtype}{void} *vl\_addr);
+00237 \textcolor{keyword}{typedef} herr\_t (*H5T\_vlen\_readfunc\_t)(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \textcolor{keywordtype}{void} *\_vl, \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{size\_t} len);
+00238 \textcolor{keyword}{typedef} herr\_t (*H5T\_vlen\_writefunc\_t)(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \textcolor{keyword}{const} H5T\_vlen\_alloc\_info\_t *
+      vl\_alloc\_info, \textcolor{keywordtype}{void} *\_vl, \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *\_bg, \textcolor{keywordtype}{size\_t} seq\_len, \textcolor{keywordtype}{size\_t} base\_size);
+00239 \textcolor{keyword}{typedef} herr\_t (*H5T\_vlen\_setnullfunc\_t)(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \textcolor{keywordtype}{void} *\_vl, \textcolor{keywordtype}{void} *\_bg);
+00240 
+00241 \textcolor{comment}{/* VL types */}
+00242 \textcolor{keyword}{typedef} \textcolor{keyword}{enum} \{
+00243     H5T\_VLEN\_BADTYPE =  -1, \textcolor{comment}{/* invalid VL Type */}
+00244     H5T\_VLEN\_SEQUENCE = 0,  \textcolor{comment}{/* VL sequence */}
+00245     H5T\_VLEN\_STRING,        \textcolor{comment}{/* VL string */}
+00246     H5T\_VLEN\_MAXTYPE        \textcolor{comment}{/* highest type (Invalid as true type) */}
+00247 \} H5T\_vlen\_type\_t;
+00248 
+00249 \textcolor{comment}{/* A VL datatype */}
+00250 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_t__vlen__t}{H5T\_vlen\_t} \{
+00251     H5T\_vlen\_type\_t     type;   \textcolor{comment}{/* Type of VL data in buffer */}
+00252     H5T\_loc\_t       loc;    \textcolor{comment}{/* Location of VL data in buffer */}
+00253     H5T\_cset\_t          cset;   \textcolor{comment}{/* For VL string. character set */}
+00254     H5T\_str\_t           pad;    \textcolor{comment}{/* For VL string.  space or null padding of}
+00255 \textcolor{comment}{                                 * extra bytes */}
+00256     \hyperlink{struct_h5_f__t}{H5F\_t} *f;                   \textcolor{comment}{/* File ID (if VL data is on disk) */}
+00257     H5T\_vlen\_getptrfunc\_t getptr;   \textcolor{comment}{/* Function to get VL sequence pointer */}
+00258     H5T\_vlen\_getlenfunc\_t getlen;   \textcolor{comment}{/* Function to get VL sequence size (in element units, not bytes) */}
+00259     H5T\_vlen\_isnullfunc\_t isnull;   \textcolor{comment}{/* Function to check if VL value is NIL */}
+00260     H5T\_vlen\_readfunc\_t read;   \textcolor{comment}{/* Function to read VL sequence into buffer */}
+00261     H5T\_vlen\_writefunc\_t write; \textcolor{comment}{/* Function to write VL sequence from buffer */}
+00262     H5T\_vlen\_setnullfunc\_t setnull; \textcolor{comment}{/* Function to set a VL value to NIL */}
+00263 \} \hyperlink{struct_h5_t__vlen__t}{H5T\_vlen\_t};
+00264 
+00265 \textcolor{comment}{/* An opaque datatype */}
+00266 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_t__opaque__t}{H5T\_opaque\_t} \{
+00267     \textcolor{keywordtype}{char}        *tag;       \textcolor{comment}{/*short type description string      */}
+00268 \} \hyperlink{struct_h5_t__opaque__t}{H5T\_opaque\_t};
+00269 
+00270 \textcolor{comment}{/* An array datatype */}
+00271 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_t__array__t}{H5T\_array\_t} \{
+00272     \textcolor{keywordtype}{size\_t}  nelem;      \textcolor{comment}{/* total number of elements in array */}
+00273     \textcolor{keywordtype}{unsigned}    ndims;      \textcolor{comment}{/* member dimensionality        */}
+00274     \textcolor{keywordtype}{size\_t}  dim[H5S\_MAX\_RANK];  \textcolor{comment}{/* size in each dimension       */}
+00275 \} \hyperlink{struct_h5_t__array__t}{H5T\_array\_t};
+00276 
+00277 \textcolor{keyword}{typedef} \textcolor{keyword}{enum} H5T\_state\_t \{
+00278     H5T\_STATE\_TRANSIENT,        \textcolor{comment}{/*type is a modifiable, closable transient */}
+00279     H5T\_STATE\_RDONLY,           \textcolor{comment}{/*transient, not modifiable, closable */}
+00280     H5T\_STATE\_IMMUTABLE,        \textcolor{comment}{/*transient, not modifiable, not closable */}
+00281     H5T\_STATE\_NAMED,            \textcolor{comment}{/*named constant, not open       */}
+00282     H5T\_STATE\_OPEN          \textcolor{comment}{/*named constant, open object header */}
+00283 \} H5T\_state\_t;
+00284 
+00285     \textcolor{comment}{/* This struct is shared between all occurances of an open named type */}
+00286 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_t__shared__t}{H5T\_shared\_t} \{
+00287     hsize\_t     fo\_count; \textcolor{comment}{/* number of references to this file object */}
+00288     H5T\_state\_t     \hyperlink{structstate}{state}; \textcolor{comment}{/*current state of the type          */}
+00289     H5T\_class\_t     type;   \textcolor{comment}{/*which class of type is this?           */}
+00290     \textcolor{keywordtype}{size\_t}      size;   \textcolor{comment}{/*total size of an instance of this type     */}
+00291     \textcolor{keywordtype}{unsigned}            version;        \textcolor{comment}{/* Version of object header message to encode this object with */}
+00292     hbool\_t     force\_conv;\textcolor{comment}{/* Set if this type always needs to be converted and H5T\_\_conv\_noop cannot be
+       called */}
+00293     \textcolor{keyword}{struct }\hyperlink{struct_h5_t__t}{H5T\_t}   *parent;\textcolor{comment}{/*parent type for derived datatypes      */}
+00294     \textcolor{keyword}{union }\{
+00295         \hyperlink{struct_h5_t__atomic__t}{H5T\_atomic\_t}    atomic; \textcolor{comment}{/* an atomic datatype              */}
+00296         \hyperlink{struct_h5_t__compnd__t}{H5T\_compnd\_t}    compnd; \textcolor{comment}{/* a compound datatype (struct)    */}
+00297         \hyperlink{struct_h5_t__enum__t}{H5T\_enum\_t}    enumer; \textcolor{comment}{/* an enumeration type (enum)       */}
+00298         \hyperlink{struct_h5_t__vlen__t}{H5T\_vlen\_t}    vlen;   \textcolor{comment}{/* a variable-length datatype       */}
+00299         \hyperlink{struct_h5_t__opaque__t}{H5T\_opaque\_t}    opaque; \textcolor{comment}{/* an opaque datatype              */}
+00300         \hyperlink{struct_h5_t__array__t}{H5T\_array\_t}  array;  \textcolor{comment}{/* an array datatype                */}
+00301     \} u;
+00302 \} \hyperlink{struct_h5_t__shared__t}{H5T\_shared\_t};
+00303 
+00304 \textcolor{keyword}{struct }\hyperlink{struct_h5_t__t}{H5T\_t} \{
+00305     H5O\_shared\_t    sh\_loc;     \textcolor{comment}{/* Shared message info (must be first) */}
+00306 
+00307     \hyperlink{struct_h5_t__shared__t}{H5T\_shared\_t}   *shared;     \textcolor{comment}{/* all other information */}
+00308     H5O\_loc\_t       oloc;       \textcolor{comment}{/* Object location, if the type is a named type */}
+00309     H5G\_name\_t      path;       \textcolor{comment}{/* group hier. path if the type is a named type */}
+00310 \};
+00311 
+00312 \textcolor{comment}{/* The master list of soft conversion functions */}
+00313 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_t__soft__t}{H5T\_soft\_t} \{
+00314     \textcolor{keywordtype}{char}    name[H5T\_NAMELEN];  \textcolor{comment}{/*name for debugging only        */}
+00315     H5T\_class\_t src;            \textcolor{comment}{/*source datatype class      */}
+00316     H5T\_class\_t dst;            \textcolor{comment}{/*destination datatype class         */}
+00317     H5T\_conv\_t  \hyperlink{structfunc}{func};           \textcolor{comment}{/*the conversion function        */}
+00318 \} \hyperlink{struct_h5_t__soft__t}{H5T\_soft\_t};
+00319 
+00320 \textcolor{comment}{/* Bit search direction */}
+00321 \textcolor{keyword}{typedef} \textcolor{keyword}{enum} H5T\_sdir\_t \{
+00322     H5T\_BIT\_LSB,            \textcolor{comment}{/*search lsb toward msb          */}
+00323     H5T\_BIT\_MSB             \textcolor{comment}{/*search msb toward lsb          */}
+00324 \} H5T\_sdir\_t;
+00325 
+00326 \textcolor{comment}{/* Typedef for named datatype creation operation */}
+00327 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\{
+00328     \hyperlink{struct_h5_t__t}{H5T\_t} *dt;                  \textcolor{comment}{/* Datatype to commit */}
+00329     hid\_t tcpl\_id;              \textcolor{comment}{/* Named datatype creation property list */}
+00330 \} \hyperlink{struct_h5_t__obj__create__t}{H5T\_obj\_create\_t};
+00331 
+00332 \textcolor{comment}{/* Typedef for datatype iteration operations */}
+00333 \textcolor{keyword}{typedef} herr\_t (*H5T\_operator\_t)(\hyperlink{struct_h5_t__t}{H5T\_t} *dt, \textcolor{keywordtype}{void} *op\_data\textcolor{comment}{/*in,out*/});
+00334 
+00335 \textcolor{comment}{/*}
+00336 \textcolor{comment}{ * Alignment information for native types. A value of N indicates that the}
+00337 \textcolor{comment}{ * data must be aligned on an address ADDR such that 0 == ADDR mod N. When}
+00338 \textcolor{comment}{ * N=1 no alignment is required; N=0 implies that alignment constraints were}
+00339 \textcolor{comment}{ * not calculated.  These alignment info is only for H5Tget\_native\_type.}
+00340 \textcolor{comment}{ * These values are used for structure alignment.}
+00341 \textcolor{comment}{ */}
+00342 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_SCHAR\_COMP\_ALIGN\_g;
+00343 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_SHORT\_COMP\_ALIGN\_g;
+00344 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_INT\_COMP\_ALIGN\_g;
+00345 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_LONG\_COMP\_ALIGN\_g;
+00346 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_LLONG\_COMP\_ALIGN\_g;
+00347 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_FLOAT\_COMP\_ALIGN\_g;
+00348 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_DOUBLE\_COMP\_ALIGN\_g;
+00349 \textcolor{preprocessor}{#if H5\_SIZEOF\_LONG\_DOUBLE !=0}
+00350 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_LDOUBLE\_COMP\_ALIGN\_g;
+00351 \textcolor{preprocessor}{#endif}
+00352 
+00353 H5\_DLLVAR \textcolor{keywordtype}{size\_t} H5T\_POINTER\_COMP\_ALIGN\_g;
+00354 H5\_DLLVAR \textcolor{keywordtype}{size\_t} H5T\_HVL\_COMP\_ALIGN\_g;
+00355 H5\_DLLVAR \textcolor{keywordtype}{size\_t} H5T\_HOBJREF\_COMP\_ALIGN\_g;
+00356 H5\_DLLVAR \textcolor{keywordtype}{size\_t} H5T\_HDSETREGREF\_COMP\_ALIGN\_g;
+00357 
+00358 \textcolor{comment}{/*}
+00359 \textcolor{comment}{ * Alignment information for native types. A value of N indicates that the}
+00360 \textcolor{comment}{ * data must be aligned on an address ADDR such that 0 == ADDR mod N. When}
+00361 \textcolor{comment}{ * N=1 no alignment is required; N=0 implies that alignment constraints were}
+00362 \textcolor{comment}{ * not calculated.}
+00363 \textcolor{comment}{ */}
+00364 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_SCHAR\_ALIGN\_g;
+00365 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_UCHAR\_ALIGN\_g;
+00366 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_SHORT\_ALIGN\_g;
+00367 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_USHORT\_ALIGN\_g;
+00368 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_INT\_ALIGN\_g;
+00369 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_UINT\_ALIGN\_g;
+00370 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_LONG\_ALIGN\_g;
+00371 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_ULONG\_ALIGN\_g;
+00372 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_LLONG\_ALIGN\_g;
+00373 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_ULLONG\_ALIGN\_g;
+00374 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_FLOAT\_ALIGN\_g;
+00375 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_DOUBLE\_ALIGN\_g;
+00376 \textcolor{preprocessor}{#if H5\_SIZEOF\_LONG\_DOUBLE !=0}
+00377 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_LDOUBLE\_ALIGN\_g;
+00378 \textcolor{preprocessor}{#endif}
+00379 
+00380 \textcolor{comment}{/* C9x alignment constraints */}
+00381 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_INT8\_ALIGN\_g;
+00382 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_UINT8\_ALIGN\_g;
+00383 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_INT\_LEAST8\_ALIGN\_g;
+00384 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_UINT\_LEAST8\_ALIGN\_g;
+00385 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_INT\_FAST8\_ALIGN\_g;
+00386 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_UINT\_FAST8\_ALIGN\_g;
+00387 
+00388 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_INT16\_ALIGN\_g;
+00389 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_UINT16\_ALIGN\_g;
+00390 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_INT\_LEAST16\_ALIGN\_g;
+00391 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_UINT\_LEAST16\_ALIGN\_g;
+00392 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_INT\_FAST16\_ALIGN\_g;
+00393 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_UINT\_FAST16\_ALIGN\_g;
+00394 
+00395 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_INT32\_ALIGN\_g;
+00396 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_UINT32\_ALIGN\_g;
+00397 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_INT\_LEAST32\_ALIGN\_g;
+00398 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_UINT\_LEAST32\_ALIGN\_g;
+00399 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_INT\_FAST32\_ALIGN\_g;
+00400 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_UINT\_FAST32\_ALIGN\_g;
+00401 
+00402 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_INT64\_ALIGN\_g;
+00403 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_UINT64\_ALIGN\_g;
+00404 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_INT\_LEAST64\_ALIGN\_g;
+00405 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_UINT\_LEAST64\_ALIGN\_g;
+00406 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_INT\_FAST64\_ALIGN\_g;
+00407 H5\_DLLVAR \textcolor{keywordtype}{size\_t}    H5T\_NATIVE\_UINT\_FAST64\_ALIGN\_g;
+00408 
+00409 \textcolor{comment}{/* Useful floating-point values for conversion routines */}
+00410 \textcolor{comment}{/* (+/- Inf for all floating-point types) */}
+00411 H5\_DLLVAR \textcolor{keywordtype}{float} H5T\_NATIVE\_FLOAT\_POS\_INF\_g;
+00412 H5\_DLLVAR \textcolor{keywordtype}{float} H5T\_NATIVE\_FLOAT\_NEG\_INF\_g;
+00413 H5\_DLLVAR \textcolor{keywordtype}{double} H5T\_NATIVE\_DOUBLE\_POS\_INF\_g;
+00414 H5\_DLLVAR \textcolor{keywordtype}{double} H5T\_NATIVE\_DOUBLE\_NEG\_INF\_g;
+00415 \textcolor{preprocessor}{#if H5\_SIZEOF\_LONG\_DOUBLE !=0}
+00416 H5\_DLLVAR \textcolor{keywordtype}{double} H5T\_NATIVE\_LDOUBLE\_POS\_INF\_g;
+00417 H5\_DLLVAR \textcolor{keywordtype}{double} H5T\_NATIVE\_LDOUBLE\_NEG\_INF\_g;
+00418 \textcolor{preprocessor}{#endif}
+00419 
+00420 \textcolor{comment}{/* Declare extern the free lists for H5T\_t's and H5T\_shared\_t's */}
+00421 H5FL\_EXTERN(\hyperlink{struct_h5_t__t}{H5T\_t});
+00422 H5FL\_EXTERN(\hyperlink{struct_h5_t__shared__t}{H5T\_shared\_t});
+00423 
+00424 \textcolor{comment}{/* Common functions */}
+00425 H5\_DLL herr\_t H5T\_\_init\_native(\textcolor{keywordtype}{void});
+00426 H5\_DLL \hyperlink{struct_h5_t__t}{H5T\_t} *H5T\_\_create(H5T\_class\_t type, \textcolor{keywordtype}{size\_t} size);
+00427 H5\_DLL herr\_t H5T\_\_commit(\hyperlink{struct_h5_f__t}{H5F\_t} *\hyperlink{structfile}{file}, \hyperlink{struct_h5_t__t}{H5T\_t} *type, hid\_t tcpl\_id, hid\_t dxpl\_id);
+00428 H5\_DLL herr\_t H5T\_\_commit\_named(\textcolor{keyword}{const} H5G\_loc\_t *loc, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,
+00429     \hyperlink{struct_h5_t__t}{H5T\_t} *dt, hid\_t lcpl\_id, hid\_t tcpl\_id, hid\_t tapl\_id, hid\_t dxpl\_id);
+00430 H5\_DLL \hyperlink{struct_h5_t__t}{H5T\_t} *H5T\_\_alloc(\textcolor{keywordtype}{void});
+00431 H5\_DLL herr\_t H5T\_\_free(\hyperlink{struct_h5_t__t}{H5T\_t} *dt);
+00432 H5\_DLL herr\_t H5T\_\_visit(\hyperlink{struct_h5_t__t}{H5T\_t} *dt, \textcolor{keywordtype}{unsigned} visit\_flags, H5T\_operator\_t op,
+00433     \textcolor{keywordtype}{void} *op\_value);
+00434 H5\_DLL herr\_t H5T\_\_upgrade\_version(\hyperlink{struct_h5_t__t}{H5T\_t} *dt, \textcolor{keywordtype}{unsigned} new\_version);
+00435 
+00436 \textcolor{comment}{/* Conversion functions */}
+00437 H5\_DLL herr\_t H5T\_\_conv\_noop(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00438                 \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00439                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00440                             hid\_t dset\_xfer\_plist);
+00441 
+00442 H5\_DLL herr\_t H5T\_\_conv\_order(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00443                 \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00444                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *\_buf, \textcolor{keywordtype}{void} *bkg,
+00445                             hid\_t dset\_xfer\_plist);
+00446 H5\_DLL herr\_t H5T\_\_conv\_order\_opt(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00447                             \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00448                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *\_buf, \textcolor{keywordtype}{void} *bkg,
+00449                             hid\_t dset\_xfer\_plist);
+00450 H5\_DLL herr\_t H5T\_\_conv\_struct(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00451                 \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00452                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *\_buf, \textcolor{keywordtype}{void} *bkg,
+00453                             hid\_t dset\_xfer\_plist);
+00454 H5\_DLL herr\_t H5T\_\_conv\_struct\_opt(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00455                             \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00456                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *\_buf, \textcolor{keywordtype}{void} *bkg,
+00457                             hid\_t dset\_xfer\_plist);
+00458 H5\_DLL herr\_t H5T\_\_conv\_enum(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00459                 \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00460                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00461                             hid\_t dset\_xfer\_plist);
+00462 H5\_DLL herr\_t H5T\_\_conv\_enum\_numeric(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00463                 \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00464                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00465                             hid\_t dset\_xfer\_plist);
+00466 H5\_DLL herr\_t H5T\_\_conv\_vlen(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00467                 \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00468                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00469                             hid\_t dset\_xfer\_plist);
+00470 H5\_DLL herr\_t H5T\_\_conv\_array(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00471                 \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00472                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00473                             hid\_t dset\_xfer\_plist);
+00474 H5\_DLL herr\_t H5T\_\_conv\_i\_i(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00475                             \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00476                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *\_buf, \textcolor{keywordtype}{void} *bkg,
+00477                             hid\_t dset\_xfer\_plist);
+00478 H5\_DLL herr\_t H5T\_\_conv\_f\_f(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00479                 \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00480                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *\_buf, \textcolor{keywordtype}{void} *bkg,
+00481                             hid\_t dset\_xfer\_plist);
+00482 H5\_DLL herr\_t H5T\_\_conv\_f\_i(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00483                 \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00484                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *\_buf, \textcolor{keywordtype}{void} *bkg,
+00485                             hid\_t dset\_xfer\_plist);
+00486 H5\_DLL herr\_t H5T\_\_conv\_i\_f(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00487                 \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00488                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *\_buf, \textcolor{keywordtype}{void} *bkg,
+00489                             hid\_t dset\_xfer\_plist);
+00490 H5\_DLL herr\_t H5T\_\_conv\_s\_s(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00491                 \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00492                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *\_buf, \textcolor{keywordtype}{void} *bkg,
+00493                             hid\_t dset\_xfer\_plist);
+00494 H5\_DLL herr\_t H5T\_\_conv\_b\_b(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00495                 \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00496                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *\_buf, \textcolor{keywordtype}{void} *bkg,
+00497                             hid\_t dset\_xfer\_plist);
+00498 
+00499 H5\_DLL herr\_t H5T\_\_conv\_schar\_uchar(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00500                             \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00501                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00502                             hid\_t dset\_xfer\_plist);
+00503 H5\_DLL herr\_t H5T\_\_conv\_uchar\_schar(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00504                             \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00505                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00506                             hid\_t dset\_xfer\_plist);
+00507 H5\_DLL herr\_t H5T\_\_conv\_schar\_short(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00508                             \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00509                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00510                             hid\_t dset\_xfer\_plist);
+00511 H5\_DLL herr\_t H5T\_\_conv\_schar\_ushort(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00512                             \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00513                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00514                             hid\_t dset\_xfer\_plist);
+00515 H5\_DLL herr\_t H5T\_\_conv\_uchar\_short(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00516                             \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00517                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00518                             hid\_t dset\_xfer\_plist);
+00519 H5\_DLL herr\_t H5T\_\_conv\_uchar\_ushort(hid\_t src\_id, hid\_t dst\_id, \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata,
+00520                             \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} buf\_stride,
+00521                             \textcolor{keywordtype}{size\_t} bkg\_stride, \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00522                             hid\_t dset\_xfer\_plist);
+00523 H5\_DLL herr\_t H5T\_\_conv\_schar\_int(hid\_t src\_id, hid\_t dst\_id,
+00524                   \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00525                   \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00526                                   \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00527                                   hid\_t dset\_xfer\_plist);
+00528 H5\_DLL herr\_t H5T\_\_conv\_schar\_uint(hid\_t src\_id, hid\_t dst\_id,
+00529                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00530                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00531                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00532                                    hid\_t dset\_xfer\_plist);
+00533 H5\_DLL herr\_t H5T\_\_conv\_uchar\_int(hid\_t src\_id, hid\_t dst\_id,
+00534                   \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00535                   \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00536                                   \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00537                                   hid\_t dset\_xfer\_plist);
+00538 H5\_DLL herr\_t H5T\_\_conv\_uchar\_uint(hid\_t src\_id, hid\_t dst\_id,
+00539                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00540                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00541                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00542                                    hid\_t dset\_xfer\_plist);
+00543 H5\_DLL herr\_t H5T\_\_conv\_schar\_long(hid\_t src\_id, hid\_t dst\_id,
+00544                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00545                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00546                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00547                                    hid\_t dset\_xfer\_plist);
+00548 H5\_DLL herr\_t H5T\_\_conv\_schar\_ulong(hid\_t src\_id, hid\_t dst\_id,
+00549                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00550                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00551                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00552                                     hid\_t dset\_xfer\_plist);
+00553 H5\_DLL herr\_t H5T\_\_conv\_uchar\_long(hid\_t src\_id, hid\_t dst\_id,
+00554                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00555                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00556                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00557                                    hid\_t dset\_xfer\_plist);
+00558 H5\_DLL herr\_t H5T\_\_conv\_uchar\_ulong(hid\_t src\_id, hid\_t dst\_id,
+00559                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00560                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00561                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00562                                     hid\_t dset\_xfer\_plist);
+00563 H5\_DLL herr\_t H5T\_\_conv\_schar\_llong(hid\_t src\_id, hid\_t dst\_id,
+00564                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00565                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00566                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00567                                     hid\_t dset\_xfer\_plist);
+00568 H5\_DLL herr\_t H5T\_\_conv\_schar\_ullong(hid\_t src\_id, hid\_t dst\_id,
+00569                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00570                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00571                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00572                                      hid\_t dset\_xfer\_plist);
+00573 H5\_DLL herr\_t H5T\_\_conv\_uchar\_llong(hid\_t src\_id, hid\_t dst\_id,
+00574                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00575                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00576                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00577                                     hid\_t dset\_xfer\_plist);
+00578 H5\_DLL herr\_t H5T\_\_conv\_uchar\_ullong(hid\_t src\_id, hid\_t dst\_id,
+00579                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00580                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00581                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00582                                      hid\_t dset\_xfer\_plist);
+00583 
+00584 H5\_DLL herr\_t H5T\_\_conv\_short\_schar(hid\_t src\_id, hid\_t dst\_id,
+00585                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00586                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00587                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00588                                     hid\_t dset\_xfer\_plist);
+00589 H5\_DLL herr\_t H5T\_\_conv\_short\_uchar(hid\_t src\_id, hid\_t dst\_id,
+00590                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00591                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00592                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00593                                     hid\_t dset\_xfer\_plist);
+00594 H5\_DLL herr\_t H5T\_\_conv\_ushort\_schar(hid\_t src\_id, hid\_t dst\_id,
+00595                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00596                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00597                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00598                                      hid\_t dset\_xfer\_plist);
+00599 H5\_DLL herr\_t H5T\_\_conv\_ushort\_uchar(hid\_t src\_id, hid\_t dst\_id,
+00600                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00601                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00602                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00603                                      hid\_t dset\_xfer\_plist);
+00604 H5\_DLL herr\_t H5T\_\_conv\_short\_ushort(hid\_t src\_id, hid\_t dst\_id,
+00605                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00606                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00607                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00608                                      hid\_t dset\_xfer\_plist);
+00609 H5\_DLL herr\_t H5T\_\_conv\_ushort\_short(hid\_t src\_id, hid\_t dst\_id,
+00610                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00611                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00612                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00613                                      hid\_t dset\_xfer\_plist);
+00614 H5\_DLL herr\_t H5T\_\_conv\_short\_int(hid\_t src\_id, hid\_t dst\_id,
+00615                   \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00616                   \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00617                                   \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00618                                   hid\_t dset\_xfer\_plist);
+00619 H5\_DLL herr\_t H5T\_\_conv\_short\_uint(hid\_t src\_id, hid\_t dst\_id,
+00620                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00621                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00622                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00623                                    hid\_t dset\_xfer\_plist);
+00624 H5\_DLL herr\_t H5T\_\_conv\_ushort\_int(hid\_t src\_id, hid\_t dst\_id,
+00625                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00626                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00627                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00628                                    hid\_t dset\_xfer\_plist);
+00629 H5\_DLL herr\_t H5T\_\_conv\_ushort\_uint(hid\_t src\_id, hid\_t dst\_id,
+00630                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00631                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00632                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00633                                     hid\_t dset\_xfer\_plist);
+00634 H5\_DLL herr\_t H5T\_\_conv\_short\_long(hid\_t src\_id, hid\_t dst\_id,
+00635                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00636                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00637                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00638                                    hid\_t dset\_xfer\_plist);
+00639 H5\_DLL herr\_t H5T\_\_conv\_short\_ulong(hid\_t src\_id, hid\_t dst\_id,
+00640                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00641                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00642                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00643                                     hid\_t dset\_xfer\_plist);
+00644 H5\_DLL herr\_t H5T\_\_conv\_ushort\_long(hid\_t src\_id, hid\_t dst\_id,
+00645                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00646                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00647                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00648                                     hid\_t dset\_xfer\_plist);
+00649 H5\_DLL herr\_t H5T\_\_conv\_ushort\_ulong(hid\_t src\_id, hid\_t dst\_id,
+00650                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00651                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00652                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00653                                      hid\_t dset\_xfer\_plist);
+00654 H5\_DLL herr\_t H5T\_\_conv\_short\_llong(hid\_t src\_id, hid\_t dst\_id,
+00655                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00656                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00657                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00658                                     hid\_t dset\_xfer\_plist);
+00659 H5\_DLL herr\_t H5T\_\_conv\_short\_ullong(hid\_t src\_id, hid\_t dst\_id,
+00660                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00661                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00662                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00663                                      hid\_t dset\_xfer\_plist);
+00664 H5\_DLL herr\_t H5T\_\_conv\_ushort\_llong(hid\_t src\_id, hid\_t dst\_id,
+00665                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00666                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00667                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00668                                      hid\_t dset\_xfer\_plist);
+00669 H5\_DLL herr\_t H5T\_\_conv\_ushort\_ullong(hid\_t src\_id, hid\_t dst\_id,
+00670                       \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00671                       \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00672                                       \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00673                                       hid\_t dset\_xfer\_plist);
+00674 
+00675 H5\_DLL herr\_t H5T\_\_conv\_int\_schar(hid\_t src\_id, hid\_t dst\_id,
+00676                   \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00677                   \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00678                                   \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00679                                   hid\_t dset\_xfer\_plist);
+00680 H5\_DLL herr\_t H5T\_\_conv\_int\_uchar(hid\_t src\_id, hid\_t dst\_id,
+00681                   \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00682                   \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00683                                   \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00684                                   hid\_t dset\_xfer\_plist);
+00685 H5\_DLL herr\_t H5T\_\_conv\_uint\_schar(hid\_t src\_id, hid\_t dst\_id,
+00686                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00687                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00688                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00689                                    hid\_t dset\_xfer\_plist);
+00690 H5\_DLL herr\_t H5T\_\_conv\_uint\_uchar(hid\_t src\_id, hid\_t dst\_id,
+00691                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00692                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00693                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00694                                    hid\_t dset\_xfer\_plist);
+00695 H5\_DLL herr\_t H5T\_\_conv\_int\_short(hid\_t src\_id, hid\_t dst\_id,
+00696                   \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00697                   \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00698                                   \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00699                                   hid\_t dset\_xfer\_plist);
+00700 H5\_DLL herr\_t H5T\_\_conv\_int\_ushort(hid\_t src\_id, hid\_t dst\_id,
+00701                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00702                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00703                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00704                                    hid\_t dset\_xfer\_plist);
+00705 H5\_DLL herr\_t H5T\_\_conv\_uint\_short(hid\_t src\_id, hid\_t dst\_id,
+00706                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00707                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00708                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00709                                    hid\_t dset\_xfer\_plist);
+00710 H5\_DLL herr\_t H5T\_\_conv\_uint\_ushort(hid\_t src\_id, hid\_t dst\_id,
+00711                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00712                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00713                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00714                                     hid\_t dset\_xfer\_plist);
+00715 H5\_DLL herr\_t H5T\_\_conv\_int\_uint(hid\_t src\_id, hid\_t dst\_id,
+00716                  \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00717                  \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00718                                  \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00719                                  hid\_t dset\_xfer\_plist);
+00720 H5\_DLL herr\_t H5T\_\_conv\_uint\_int(hid\_t src\_id, hid\_t dst\_id,
+00721                  \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00722                  \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00723                                  \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00724                                  hid\_t dset\_xfer\_plist);
+00725 H5\_DLL herr\_t H5T\_\_conv\_int\_long(hid\_t src\_id, hid\_t dst\_id,
+00726                  \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00727                  \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00728                                  \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00729                                  hid\_t dset\_xfer\_plist);
+00730 H5\_DLL herr\_t H5T\_\_conv\_int\_ulong(hid\_t src\_id, hid\_t dst\_id,
+00731                   \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00732                   \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00733                                   \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00734                                   hid\_t dset\_xfer\_plist);
+00735 H5\_DLL herr\_t H5T\_\_conv\_uint\_long(hid\_t src\_id, hid\_t dst\_id,
+00736                   \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00737                   \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00738                                   \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00739                                   hid\_t dset\_xfer\_plist);
+00740 H5\_DLL herr\_t H5T\_\_conv\_uint\_ulong(hid\_t src\_id, hid\_t dst\_id,
+00741                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00742                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00743                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00744                                    hid\_t dset\_xfer\_plist);
+00745 H5\_DLL herr\_t H5T\_\_conv\_int\_llong(hid\_t src\_id, hid\_t dst\_id,
+00746                   \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00747                   \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00748                                   \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00749                                   hid\_t dset\_xfer\_plist);
+00750 H5\_DLL herr\_t H5T\_\_conv\_int\_ullong(hid\_t src\_id, hid\_t dst\_id,
+00751                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00752                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00753                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00754                                    hid\_t dset\_xfer\_plist);
+00755 H5\_DLL herr\_t H5T\_\_conv\_uint\_llong(hid\_t src\_id, hid\_t dst\_id,
+00756                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00757                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00758                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00759                                    hid\_t dset\_xfer\_plist);
+00760 H5\_DLL herr\_t H5T\_\_conv\_uint\_ullong(hid\_t src\_id, hid\_t dst\_id,
+00761                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00762                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00763                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00764                                     hid\_t dset\_xfer\_plist);
+00765 
+00766 H5\_DLL herr\_t H5T\_\_conv\_long\_schar(hid\_t src\_id, hid\_t dst\_id,
+00767                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00768                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00769                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00770                                    hid\_t dset\_xfer\_plist);
+00771 H5\_DLL herr\_t H5T\_\_conv\_long\_uchar(hid\_t src\_id, hid\_t dst\_id,
+00772                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00773                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00774                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00775                                    hid\_t dset\_xfer\_plist);
+00776 H5\_DLL herr\_t H5T\_\_conv\_ulong\_schar(hid\_t src\_id, hid\_t dst\_id,
+00777                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00778                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00779                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00780                                     hid\_t dset\_xfer\_plist);
+00781 H5\_DLL herr\_t H5T\_\_conv\_ulong\_uchar(hid\_t src\_id, hid\_t dst\_id,
+00782                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00783                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00784                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00785                                     hid\_t dset\_xfer\_plist);
+00786 H5\_DLL herr\_t H5T\_\_conv\_long\_short(hid\_t src\_id, hid\_t dst\_id,
+00787                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00788                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00789                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00790                                    hid\_t dset\_xfer\_plist);
+00791 H5\_DLL herr\_t H5T\_\_conv\_long\_ushort(hid\_t src\_id, hid\_t dst\_id,
+00792                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00793                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00794                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00795                                     hid\_t dset\_xfer\_plist);
+00796 H5\_DLL herr\_t H5T\_\_conv\_ulong\_short(hid\_t src\_id, hid\_t dst\_id,
+00797                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00798                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00799                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00800                                     hid\_t dset\_xfer\_plist);
+00801 H5\_DLL herr\_t H5T\_\_conv\_ulong\_ushort(hid\_t src\_id, hid\_t dst\_id,
+00802                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00803                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00804                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00805                                      hid\_t dset\_xfer\_plist);
+00806 H5\_DLL herr\_t H5T\_\_conv\_long\_int(hid\_t src\_id, hid\_t dst\_id,
+00807                  \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00808                  \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00809                                  \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00810                                  hid\_t dset\_xfer\_plist);
+00811 H5\_DLL herr\_t H5T\_\_conv\_long\_uint(hid\_t src\_id, hid\_t dst\_id,
+00812                   \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00813                   \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00814                                   \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00815                                   hid\_t dset\_xfer\_plist);
+00816 H5\_DLL herr\_t H5T\_\_conv\_ulong\_int(hid\_t src\_id, hid\_t dst\_id,
+00817                   \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00818                   \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00819                                   \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00820                                   hid\_t dset\_xfer\_plist);
+00821 H5\_DLL herr\_t H5T\_\_conv\_ulong\_uint(hid\_t src\_id, hid\_t dst\_id,
+00822                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00823                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00824                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00825                                    hid\_t dset\_xfer\_plist);
+00826 H5\_DLL herr\_t H5T\_\_conv\_long\_ulong(hid\_t src\_id, hid\_t dst\_id,
+00827                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00828                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00829                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00830                                    hid\_t dset\_xfer\_plist);
+00831 H5\_DLL herr\_t H5T\_\_conv\_ulong\_long(hid\_t src\_id, hid\_t dst\_id,
+00832                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00833                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00834                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00835                                    hid\_t dset\_xfer\_plist);
+00836 H5\_DLL herr\_t H5T\_\_conv\_long\_llong(hid\_t src\_id, hid\_t dst\_id,
+00837                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00838                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00839                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00840                                    hid\_t dset\_xfer\_plist);
+00841 H5\_DLL herr\_t H5T\_\_conv\_long\_ullong(hid\_t src\_id, hid\_t dst\_id,
+00842                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00843                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00844                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00845                                     hid\_t dset\_xfer\_plist);
+00846 H5\_DLL herr\_t H5T\_\_conv\_ulong\_llong(hid\_t src\_id, hid\_t dst\_id,
+00847                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00848                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00849                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00850                                     hid\_t dset\_xfer\_plist);
+00851 H5\_DLL herr\_t H5T\_\_conv\_ulong\_ullong(hid\_t src\_id, hid\_t dst\_id,
+00852                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00853                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00854                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00855                                      hid\_t dset\_xfer\_plist);
+00856 
+00857 H5\_DLL herr\_t H5T\_\_conv\_llong\_schar(hid\_t src\_id, hid\_t dst\_id,
+00858                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00859                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00860                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00861                                     hid\_t dset\_xfer\_plist);
+00862 H5\_DLL herr\_t H5T\_\_conv\_llong\_uchar(hid\_t src\_id, hid\_t dst\_id,
+00863                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00864                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00865                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00866                                     hid\_t dset\_xfer\_plist);
+00867 H5\_DLL herr\_t H5T\_\_conv\_ullong\_schar(hid\_t src\_id, hid\_t dst\_id,
+00868                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00869                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00870                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00871                                      hid\_t dset\_xfer\_plist);
+00872 H5\_DLL herr\_t H5T\_\_conv\_ullong\_uchar(hid\_t src\_id, hid\_t dst\_id,
+00873                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00874                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00875                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00876                                      hid\_t dset\_xfer\_plist);
+00877 H5\_DLL herr\_t H5T\_\_conv\_llong\_short(hid\_t src\_id, hid\_t dst\_id,
+00878                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00879                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00880                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00881                                     hid\_t dset\_xfer\_plist);
+00882 H5\_DLL herr\_t H5T\_\_conv\_llong\_ushort(hid\_t src\_id, hid\_t dst\_id,
+00883                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00884                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00885                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00886                                      hid\_t dset\_xfer\_plist);
+00887 H5\_DLL herr\_t H5T\_\_conv\_ullong\_short(hid\_t src\_id, hid\_t dst\_id,
+00888                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00889                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00890                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00891                                      hid\_t dset\_xfer\_plist);
+00892 H5\_DLL herr\_t H5T\_\_conv\_ullong\_ushort(hid\_t src\_id, hid\_t dst\_id,
+00893                       \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00894                       \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00895                                       \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00896                                       hid\_t dset\_xfer\_plist);
+00897 H5\_DLL herr\_t H5T\_\_conv\_llong\_int(hid\_t src\_id, hid\_t dst\_id,
+00898                   \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00899                   \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00900                                   \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00901                                   hid\_t dset\_xfer\_plist);
+00902 H5\_DLL herr\_t H5T\_\_conv\_llong\_uint(hid\_t src\_id, hid\_t dst\_id,
+00903                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00904                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00905                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00906                                    hid\_t dset\_xfer\_plist);
+00907 H5\_DLL herr\_t H5T\_\_conv\_ullong\_int(hid\_t src\_id, hid\_t dst\_id,
+00908                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00909                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00910                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00911                                    hid\_t dset\_xfer\_plist);
+00912 H5\_DLL herr\_t H5T\_\_conv\_ullong\_uint(hid\_t src\_id, hid\_t dst\_id,
+00913                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00914                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00915                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00916                                     hid\_t dset\_xfer\_plist);
+00917 H5\_DLL herr\_t H5T\_\_conv\_llong\_long(hid\_t src\_id, hid\_t dst\_id,
+00918                    \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00919                    \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00920                                    \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00921                                    hid\_t dset\_xfer\_plist);
+00922 H5\_DLL herr\_t H5T\_\_conv\_llong\_ulong(hid\_t src\_id, hid\_t dst\_id,
+00923                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00924                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00925                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00926                                     hid\_t dset\_xfer\_plist);
+00927 H5\_DLL herr\_t H5T\_\_conv\_ullong\_long(hid\_t src\_id, hid\_t dst\_id,
+00928                     \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00929                     \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00930                                     \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00931                                     hid\_t dset\_xfer\_plist);
+00932 H5\_DLL herr\_t H5T\_\_conv\_ullong\_ulong(hid\_t src\_id, hid\_t dst\_id,
+00933                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00934                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00935                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00936                                      hid\_t dset\_xfer\_plist);
+00937 H5\_DLL herr\_t H5T\_\_conv\_llong\_ullong(hid\_t src\_id, hid\_t dst\_id,
+00938                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00939                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00940                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00941                                      hid\_t dset\_xfer\_plist);
+00942 H5\_DLL herr\_t H5T\_\_conv\_ullong\_llong(hid\_t src\_id, hid\_t dst\_id,
+00943                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00944                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00945                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00946                                      hid\_t dset\_xfer\_plist);
+00947 H5\_DLL herr\_t H5T\_\_conv\_float\_double(hid\_t src\_id, hid\_t dst\_id,
+00948                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00949                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00950                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00951                                      hid\_t dset\_xfer\_plist);
+00952 H5\_DLL herr\_t H5T\_\_conv\_float\_ldouble(hid\_t src\_id, hid\_t dst\_id,
+00953                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00954                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00955                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00956                                      hid\_t dset\_xfer\_plist);
+00957 H5\_DLL herr\_t H5T\_\_conv\_double\_float(hid\_t src\_id, hid\_t dst\_id,
+00958                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00959                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00960                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00961                                      hid\_t dset\_xfer\_plist);
+00962 H5\_DLL herr\_t H5T\_\_conv\_double\_ldouble(hid\_t src\_id, hid\_t dst\_id,
+00963                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00964                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00965                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00966                                      hid\_t dset\_xfer\_plist);
+00967 H5\_DLL herr\_t H5T\_\_conv\_ldouble\_float(hid\_t src\_id, hid\_t dst\_id,
+00968                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00969                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00970                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00971                                      hid\_t dset\_xfer\_plist);
+00972 H5\_DLL herr\_t H5T\_\_conv\_ldouble\_double(hid\_t src\_id, hid\_t dst\_id,
+00973                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00974                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00975                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00976                                      hid\_t dset\_xfer\_plist);
+00977 H5\_DLL herr\_t H5T\_\_conv\_schar\_float(hid\_t src\_id, hid\_t dst\_id,
+00978                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00979                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00980                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00981                                      hid\_t dset\_xfer\_plist);
+00982 H5\_DLL herr\_t H5T\_\_conv\_schar\_double(hid\_t src\_id, hid\_t dst\_id,
+00983                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00984                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00985                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00986                                      hid\_t dset\_xfer\_plist);
+00987 H5\_DLL herr\_t H5T\_\_conv\_schar\_ldouble(hid\_t src\_id, hid\_t dst\_id,
+00988                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00989                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00990                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00991                                      hid\_t dset\_xfer\_plist);
+00992 H5\_DLL herr\_t H5T\_\_conv\_uchar\_float(hid\_t src\_id, hid\_t dst\_id,
+00993                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00994                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+00995                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+00996                                      hid\_t dset\_xfer\_plist);
+00997 H5\_DLL herr\_t H5T\_\_conv\_uchar\_double(hid\_t src\_id, hid\_t dst\_id,
+00998                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+00999                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01000                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01001                                      hid\_t dset\_xfer\_plist);
+01002 H5\_DLL herr\_t H5T\_\_conv\_uchar\_ldouble(hid\_t src\_id, hid\_t dst\_id,
+01003                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01004                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01005                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01006                                      hid\_t dset\_xfer\_plist);
+01007 H5\_DLL herr\_t H5T\_\_conv\_short\_float(hid\_t src\_id, hid\_t dst\_id,
+01008                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01009                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01010                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01011                                      hid\_t dset\_xfer\_plist);
+01012 H5\_DLL herr\_t H5T\_\_conv\_short\_double(hid\_t src\_id, hid\_t dst\_id,
+01013                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01014                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01015                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01016                                      hid\_t dset\_xfer\_plist);
+01017 H5\_DLL herr\_t H5T\_\_conv\_short\_ldouble(hid\_t src\_id, hid\_t dst\_id,
+01018                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01019                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01020                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01021                                      hid\_t dset\_xfer\_plist);
+01022 H5\_DLL herr\_t H5T\_\_conv\_ushort\_float(hid\_t src\_id, hid\_t dst\_id,
+01023                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01024                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01025                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01026                                      hid\_t dset\_xfer\_plist);
+01027 H5\_DLL herr\_t H5T\_\_conv\_ushort\_double(hid\_t src\_id, hid\_t dst\_id,
+01028                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01029                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01030                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01031                                      hid\_t dset\_xfer\_plist);
+01032 H5\_DLL herr\_t H5T\_\_conv\_ushort\_ldouble(hid\_t src\_id, hid\_t dst\_id,
+01033                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01034                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01035                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01036                                      hid\_t dset\_xfer\_plist);
+01037 H5\_DLL herr\_t H5T\_\_conv\_int\_float(hid\_t src\_id, hid\_t dst\_id,
+01038                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01039                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01040                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01041                                      hid\_t dset\_xfer\_plist);
+01042 H5\_DLL herr\_t H5T\_\_conv\_int\_double(hid\_t src\_id, hid\_t dst\_id,
+01043                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01044                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01045                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01046                                      hid\_t dset\_xfer\_plist);
+01047 H5\_DLL herr\_t H5T\_\_conv\_int\_ldouble(hid\_t src\_id, hid\_t dst\_id,
+01048                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01049                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01050                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01051                                      hid\_t dset\_xfer\_plist);
+01052 H5\_DLL herr\_t H5T\_\_conv\_uint\_float(hid\_t src\_id, hid\_t dst\_id,
+01053                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01054                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01055                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01056                                      hid\_t dset\_xfer\_plist);
+01057 H5\_DLL herr\_t H5T\_\_conv\_uint\_double(hid\_t src\_id, hid\_t dst\_id,
+01058                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01059                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01060                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01061                                      hid\_t dset\_xfer\_plist);
+01062 H5\_DLL herr\_t H5T\_\_conv\_uint\_ldouble(hid\_t src\_id, hid\_t dst\_id,
+01063                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01064                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01065                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01066                                      hid\_t dset\_xfer\_plist);
+01067 H5\_DLL herr\_t H5T\_\_conv\_long\_float(hid\_t src\_id, hid\_t dst\_id,
+01068                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01069                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01070                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01071                                      hid\_t dset\_xfer\_plist);
+01072 H5\_DLL herr\_t H5T\_\_conv\_long\_double(hid\_t src\_id, hid\_t dst\_id,
+01073                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01074                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01075                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01076                                      hid\_t dset\_xfer\_plist);
+01077 H5\_DLL herr\_t H5T\_\_conv\_long\_ldouble(hid\_t src\_id, hid\_t dst\_id,
+01078                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01079                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01080                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01081                                      hid\_t dset\_xfer\_plist);
+01082 H5\_DLL herr\_t H5T\_\_conv\_ulong\_float(hid\_t src\_id, hid\_t dst\_id,
+01083                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01084                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01085                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01086                                      hid\_t dset\_xfer\_plist);
+01087 H5\_DLL herr\_t H5T\_\_conv\_ulong\_double(hid\_t src\_id, hid\_t dst\_id,
+01088                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01089                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01090                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01091                                      hid\_t dset\_xfer\_plist);
+01092 H5\_DLL herr\_t H5T\_\_conv\_ulong\_ldouble(hid\_t src\_id, hid\_t dst\_id,
+01093                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01094                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01095                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01096                                      hid\_t dset\_xfer\_plist);
+01097 H5\_DLL herr\_t H5T\_\_conv\_llong\_float(hid\_t src\_id, hid\_t dst\_id,
+01098                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01099                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01100                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01101                                      hid\_t dset\_xfer\_plist);
+01102 H5\_DLL herr\_t H5T\_\_conv\_llong\_double(hid\_t src\_id, hid\_t dst\_id,
+01103                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01104                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01105                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01106                                      hid\_t dset\_xfer\_plist);
+01107 H5\_DLL herr\_t H5T\_\_conv\_llong\_ldouble(hid\_t src\_id, hid\_t dst\_id,
+01108                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01109                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01110                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01111                                      hid\_t dset\_xfer\_plist);
+01112 H5\_DLL herr\_t H5T\_\_conv\_ullong\_float(hid\_t src\_id, hid\_t dst\_id,
+01113                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01114                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01115                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01116                                      hid\_t dset\_xfer\_plist);
+01117 H5\_DLL herr\_t H5T\_\_conv\_ullong\_double(hid\_t src\_id, hid\_t dst\_id,
+01118                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01119                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01120                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01121                                      hid\_t dset\_xfer\_plist);
+01122 H5\_DLL herr\_t H5T\_\_conv\_ullong\_ldouble(hid\_t src\_id, hid\_t dst\_id,
+01123                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01124                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01125                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01126                                      hid\_t dset\_xfer\_plist);
+01127 H5\_DLL herr\_t H5T\_\_conv\_float\_schar(hid\_t src\_id, hid\_t dst\_id,
+01128                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01129                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01130                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01131                                      hid\_t dset\_xfer\_plist);
+01132 H5\_DLL herr\_t H5T\_\_conv\_float\_uchar(hid\_t src\_id, hid\_t dst\_id,
+01133                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01134                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01135                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01136                                      hid\_t dset\_xfer\_plist);
+01137 H5\_DLL herr\_t H5T\_\_conv\_float\_short(hid\_t src\_id, hid\_t dst\_id,
+01138                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01139                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01140                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01141                                      hid\_t dset\_xfer\_plist);
+01142 H5\_DLL herr\_t H5T\_\_conv\_float\_ushort(hid\_t src\_id, hid\_t dst\_id,
+01143                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01144                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01145                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01146                                      hid\_t dset\_xfer\_plist);
+01147 H5\_DLL herr\_t H5T\_\_conv\_float\_int(hid\_t src\_id, hid\_t dst\_id,
+01148                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01149                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01150                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01151                                      hid\_t dset\_xfer\_plist);
+01152 H5\_DLL herr\_t H5T\_\_conv\_float\_uint(hid\_t src\_id, hid\_t dst\_id,
+01153                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01154                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01155                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01156                                      hid\_t dset\_xfer\_plist);
+01157 H5\_DLL herr\_t H5T\_\_conv\_float\_long(hid\_t src\_id, hid\_t dst\_id,
+01158                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01159                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01160                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01161                                      hid\_t dset\_xfer\_plist);
+01162 H5\_DLL herr\_t H5T\_\_conv\_float\_ulong(hid\_t src\_id, hid\_t dst\_id,
+01163                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01164                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01165                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01166                                      hid\_t dset\_xfer\_plist);
+01167 H5\_DLL herr\_t H5T\_\_conv\_float\_llong(hid\_t src\_id, hid\_t dst\_id,
+01168                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01169                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01170                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01171                                      hid\_t dset\_xfer\_plist);
+01172 H5\_DLL herr\_t H5T\_\_conv\_float\_ullong(hid\_t src\_id, hid\_t dst\_id,
+01173                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01174                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01175                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01176                                      hid\_t dset\_xfer\_plist);
+01177 H5\_DLL herr\_t H5T\_\_conv\_double\_schar(hid\_t src\_id, hid\_t dst\_id,
+01178                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01179                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01180                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01181                                      hid\_t dset\_xfer\_plist);
+01182 H5\_DLL herr\_t H5T\_\_conv\_double\_uchar(hid\_t src\_id, hid\_t dst\_id,
+01183                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01184                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01185                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01186                                      hid\_t dset\_xfer\_plist);
+01187 H5\_DLL herr\_t H5T\_\_conv\_double\_short(hid\_t src\_id, hid\_t dst\_id,
+01188                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01189                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01190                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01191                                      hid\_t dset\_xfer\_plist);
+01192 H5\_DLL herr\_t H5T\_\_conv\_double\_ushort(hid\_t src\_id, hid\_t dst\_id,
+01193                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01194                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01195                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01196                                      hid\_t dset\_xfer\_plist);
+01197 H5\_DLL herr\_t H5T\_\_conv\_double\_int(hid\_t src\_id, hid\_t dst\_id,
+01198                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01199                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01200                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01201                                      hid\_t dset\_xfer\_plist);
+01202 H5\_DLL herr\_t H5T\_\_conv\_double\_uint(hid\_t src\_id, hid\_t dst\_id,
+01203                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01204                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01205                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01206                                      hid\_t dset\_xfer\_plist);
+01207 H5\_DLL herr\_t H5T\_\_conv\_double\_long(hid\_t src\_id, hid\_t dst\_id,
+01208                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01209                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01210                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01211                                      hid\_t dset\_xfer\_plist);
+01212 H5\_DLL herr\_t H5T\_\_conv\_double\_ulong(hid\_t src\_id, hid\_t dst\_id,
+01213                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01214                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01215                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01216                                      hid\_t dset\_xfer\_plist);
+01217 H5\_DLL herr\_t H5T\_\_conv\_double\_llong(hid\_t src\_id, hid\_t dst\_id,
+01218                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01219                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01220                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01221                                      hid\_t dset\_xfer\_plist);
+01222 H5\_DLL herr\_t H5T\_\_conv\_double\_ullong(hid\_t src\_id, hid\_t dst\_id,
+01223                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01224                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01225                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01226                                      hid\_t dset\_xfer\_plist);
+01227 H5\_DLL herr\_t H5T\_\_conv\_ldouble\_schar(hid\_t src\_id, hid\_t dst\_id,
+01228                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01229                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01230                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01231                                      hid\_t dset\_xfer\_plist);
+01232 H5\_DLL herr\_t H5T\_\_conv\_ldouble\_uchar(hid\_t src\_id, hid\_t dst\_id,
+01233                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01234                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01235                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01236                                      hid\_t dset\_xfer\_plist);
+01237 H5\_DLL herr\_t H5T\_\_conv\_ldouble\_short(hid\_t src\_id, hid\_t dst\_id,
+01238                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01239                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01240                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01241                                      hid\_t dset\_xfer\_plist);
+01242 H5\_DLL herr\_t H5T\_\_conv\_ldouble\_ushort(hid\_t src\_id, hid\_t dst\_id,
+01243                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01244                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01245                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01246                                      hid\_t dset\_xfer\_plist);
+01247 H5\_DLL herr\_t H5T\_\_conv\_ldouble\_int(hid\_t src\_id, hid\_t dst\_id,
+01248                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01249                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01250                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01251                                      hid\_t dset\_xfer\_plist);
+01252 H5\_DLL herr\_t H5T\_\_conv\_ldouble\_uint(hid\_t src\_id, hid\_t dst\_id,
+01253                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01254                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01255                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01256                                      hid\_t dset\_xfer\_plist);
+01257 H5\_DLL herr\_t H5T\_\_conv\_ldouble\_long(hid\_t src\_id, hid\_t dst\_id,
+01258                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01259                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01260                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01261                                      hid\_t dset\_xfer\_plist);
+01262 H5\_DLL herr\_t H5T\_\_conv\_ldouble\_ulong(hid\_t src\_id, hid\_t dst\_id,
+01263                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01264                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01265                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01266                                      hid\_t dset\_xfer\_plist);
+01267 H5\_DLL herr\_t H5T\_\_conv\_ldouble\_llong(hid\_t src\_id, hid\_t dst\_id,
+01268                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01269                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01270                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01271                                      hid\_t dset\_xfer\_plist);
+01272 H5\_DLL herr\_t H5T\_\_conv\_ldouble\_ullong(hid\_t src\_id, hid\_t dst\_id,
+01273                      \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata, \textcolor{keywordtype}{size\_t} nelmts,
+01274                      \textcolor{keywordtype}{size\_t} buf\_stride, \textcolor{keywordtype}{size\_t} bkg\_stride,
+01275                                      \textcolor{keywordtype}{void} *buf, \textcolor{keywordtype}{void} *bkg,
+01276                                      hid\_t dset\_xfer\_plist);
+01277 
+01278 \textcolor{comment}{/* Bit twiddling functions */}
+01279 H5\_DLL \textcolor{keywordtype}{void} H5T\_\_bit\_copy(uint8\_t *dst, \textcolor{keywordtype}{size\_t} dst\_offset, \textcolor{keyword}{const} uint8\_t *src,
+01280               \textcolor{keywordtype}{size\_t} src\_offset, \textcolor{keywordtype}{size\_t} size);
+01281 H5\_DLL herr\_t H5T\_\_bit\_shift(uint8\_t *buf, ssize\_t shift\_dist, \textcolor{keywordtype}{size\_t} offset, \textcolor{keywordtype}{size\_t} size);
+01282 H5\_DLL \textcolor{keywordtype}{void} H5T\_\_bit\_set(uint8\_t *buf, \textcolor{keywordtype}{size\_t} offset, \textcolor{keywordtype}{size\_t} size,
+01283              hbool\_t value);
+01284 H5\_DLL uint64\_t H5T\_\_bit\_get\_d(uint8\_t *buf, \textcolor{keywordtype}{size\_t} offset, \textcolor{keywordtype}{size\_t} size);
+01285 H5\_DLL \textcolor{keywordtype}{void} H5T\_\_bit\_set\_d(uint8\_t *buf, \textcolor{keywordtype}{size\_t} offset, \textcolor{keywordtype}{size\_t} size,
+01286                uint64\_t val);
+01287 H5\_DLL ssize\_t H5T\_\_bit\_find(uint8\_t *buf, \textcolor{keywordtype}{size\_t} offset, \textcolor{keywordtype}{size\_t} size,
+01288                  H5T\_sdir\_t direction, hbool\_t value);
+01289 H5\_DLL hbool\_t H5T\_\_bit\_inc(uint8\_t *buf, \textcolor{keywordtype}{size\_t} start, \textcolor{keywordtype}{size\_t} size);
+01290 H5\_DLL hbool\_t H5T\_\_bit\_dec(uint8\_t *buf, \textcolor{keywordtype}{size\_t} start, \textcolor{keywordtype}{size\_t} size);
+01291 H5\_DLL \textcolor{keywordtype}{void} H5T\_\_bit\_neg(uint8\_t *buf, \textcolor{keywordtype}{size\_t} start, \textcolor{keywordtype}{size\_t} size);
+01292 
+01293 \textcolor{comment}{/* VL functions */}
+01294 H5\_DLL \hyperlink{struct_h5_t__t}{H5T\_t} * H5T\_\_vlen\_create(\textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *base);
+01295 H5\_DLL htri\_t H5T\_\_vlen\_set\_loc(\textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *dt, \hyperlink{struct_h5_f__t}{H5F\_t} *f, H5T\_loc\_t loc);
+01296 
+01297 \textcolor{comment}{/* Array functions */}
+01298 H5\_DLL \hyperlink{struct_h5_t__t}{H5T\_t} *H5T\_\_array\_create(\hyperlink{struct_h5_t__t}{H5T\_t} *base, \textcolor{keywordtype}{unsigned} ndims, \textcolor{keyword}{const} hsize\_t dim[\textcolor{comment}{/* ndims */}]);
+01299 H5\_DLL \textcolor{keywordtype}{int}    H5T\_\_get\_array\_ndims(\textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *dt);
+01300 H5\_DLL \textcolor{keywordtype}{int}    H5T\_\_get\_array\_dims(\textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *dt, hsize\_t dims[]);
+01301 
+01302 \textcolor{comment}{/* Compound functions */}
+01303 H5\_DLL herr\_t H5T\_\_insert(\hyperlink{struct_h5_t__t}{H5T\_t} *parent, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name, \textcolor{keywordtype}{size\_t} offset,
+01304         \textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *member);
+01305 H5\_DLL \textcolor{keywordtype}{size\_t} H5T\_\_get\_member\_size(\textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *dt, \textcolor{keywordtype}{unsigned} membno);
+01306 H5\_DLL \textcolor{keywordtype}{void} H5T\_\_update\_packed(\textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *dt);
+01307 H5\_DLL H5T\_subset\_info\_t *H5T\_\_conv\_struct\_subset(\textcolor{keyword}{const} \hyperlink{struct_h5_t__cdata__t}{H5T\_cdata\_t} *cdata);
+01308 
+01309 \textcolor{comment}{/* Enumerated type functions */}
+01310 H5\_DLL \hyperlink{struct_h5_t__t}{H5T\_t} *H5T\_\_enum\_create(\textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *parent);
+01311 H5\_DLL herr\_t H5T\_\_enum\_insert(\textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *dt, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name, \textcolor{keyword}{const} \textcolor{keywordtype}{void} *value);
+01312 H5\_DLL herr\_t H5T\_\_get\_member\_value(\textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *dt, \textcolor{keywordtype}{unsigned} membno, \textcolor{keywordtype}{void} *value);
+01313 
+01314 \textcolor{comment}{/* Field functions (for both compound & enumerated types) */}
+01315 H5\_DLL \textcolor{keywordtype}{char}  *H5T\_\_get\_member\_name(\hyperlink{struct_h5_t__t}{H5T\_t} \textcolor{keyword}{const} *dt, \textcolor{keywordtype}{unsigned} membno);
+01316 H5\_DLL herr\_t H5T\_\_sort\_value(\textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *dt, \textcolor{keywordtype}{int} *map);
+01317 H5\_DLL herr\_t H5T\_\_sort\_name(\textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *dt, \textcolor{keywordtype}{int} *map);
+01318 
+01319 \textcolor{comment}{/* Debugging functions */}
+01320 H5\_DLL herr\_t H5T\_\_print\_stats(\hyperlink{struct_h5_t__path__t}{H5T\_path\_t} *path, \textcolor{keywordtype}{int} *nprint\textcolor{comment}{/*in,out*/});
+01321 
+01322 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* \_H5Tpkg\_H */}\textcolor{preprocessor}{}
+01323 
+\end{DoxyCode}

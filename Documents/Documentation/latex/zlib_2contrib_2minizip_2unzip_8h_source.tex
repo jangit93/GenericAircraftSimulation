@@ -1,0 +1,437 @@
+\hypertarget{zlib_2contrib_2minizip_2unzip_8h_source}{}\section{zlib/contrib/minizip/unzip.h}
+\label{zlib_2contrib_2minizip_2unzip_8h_source}\index{unzip.\+h@{unzip.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* unzip.h -- IO for uncompress .zip files using zlib}
+00002 \textcolor{comment}{   Version 1.1, February 14h, 2010}
+00003 \textcolor{comment}{   part of the MiniZip project - ( http://www.winimage.com/zLibDll/minizip.html )}
+00004 \textcolor{comment}{}
+00005 \textcolor{comment}{         Copyright (C) 1998-2010 Gilles Vollant (minizip) ( http://www.winimage.com/zLibDll/minizip.html )}
+00006 \textcolor{comment}{}
+00007 \textcolor{comment}{         Modifications of Unzip for Zip64}
+00008 \textcolor{comment}{         Copyright (C) 2007-2008 Even Rouault}
+00009 \textcolor{comment}{}
+00010 \textcolor{comment}{         Modifications for Zip64 support on both zip and unzip}
+00011 \textcolor{comment}{         Copyright (C) 2009-2010 Mathias Svensson ( http://result42.com )}
+00012 \textcolor{comment}{}
+00013 \textcolor{comment}{         For more info read MiniZip\_info.txt}
+00014 \textcolor{comment}{}
+00015 \textcolor{comment}{         ---------------------------------------------------------------------------------}
+00016 \textcolor{comment}{}
+00017 \textcolor{comment}{        Condition of use and distribution are the same than zlib :}
+00018 \textcolor{comment}{}
+00019 \textcolor{comment}{  This software is provided 'as-is', without any express or implied}
+00020 \textcolor{comment}{  warranty.  In no event will the authors be held liable for any damages}
+00021 \textcolor{comment}{  arising from the use of this software.}
+00022 \textcolor{comment}{}
+00023 \textcolor{comment}{  Permission is granted to anyone to use this software for any purpose,}
+00024 \textcolor{comment}{  including commercial applications, and to alter it and redistribute it}
+00025 \textcolor{comment}{  freely, subject to the following restrictions:}
+00026 \textcolor{comment}{}
+00027 \textcolor{comment}{  1. The origin of this software must not be misrepresented; you must not}
+00028 \textcolor{comment}{     claim that you wrote the original software. If you use this software}
+00029 \textcolor{comment}{     in a product, an acknowledgment in the product documentation would be}
+00030 \textcolor{comment}{     appreciated but is not required.}
+00031 \textcolor{comment}{  2. Altered source versions must be plainly marked as such, and must not be}
+00032 \textcolor{comment}{     misrepresented as being the original software.}
+00033 \textcolor{comment}{  3. This notice may not be removed or altered from any source distribution.}
+00034 \textcolor{comment}{}
+00035 \textcolor{comment}{  ---------------------------------------------------------------------------------}
+00036 \textcolor{comment}{}
+00037 \textcolor{comment}{        Changes}
+00038 \textcolor{comment}{}
+00039 \textcolor{comment}{        See header of unzip64.c}
+00040 \textcolor{comment}{}
+00041 \textcolor{comment}{*/}
+00042 
+00043 \textcolor{preprocessor}{#ifndef \_unz64\_H}
+00044 \textcolor{preprocessor}{#define \_unz64\_H}
+00045 
+00046 \textcolor{preprocessor}{#ifdef \_\_cplusplus}
+00047 \textcolor{keyword}{extern} \textcolor{stringliteral}{"C"} \{
+00048 \textcolor{preprocessor}{#endif}
+00049 
+00050 \textcolor{preprocessor}{#ifndef \_ZLIB\_H}
+00051 \textcolor{preprocessor}{#include "zlib.h"}
+00052 \textcolor{preprocessor}{#endif}
+00053 
+00054 \textcolor{preprocessor}{#ifndef  \_ZLIBIOAPI\_H}
+00055 \textcolor{preprocessor}{#include "ioapi.h"}
+00056 \textcolor{preprocessor}{#endif}
+00057 
+00058 \textcolor{preprocessor}{#ifdef HAVE\_BZIP2}
+00059 \textcolor{preprocessor}{#include "bzlib.h"}
+00060 \textcolor{preprocessor}{#endif}
+00061 
+00062 \textcolor{preprocessor}{#define Z\_BZIP2ED 12}
+00063 
+00064 \textcolor{preprocessor}{#if defined(STRICTUNZIP) || defined(STRICTZIPUNZIP)}
+00065 \textcolor{comment}{/* like the STRICT of WIN32, we define a pointer that cannot be converted}
+00066 \textcolor{comment}{    from (void*) without cast */}
+00067 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }TagunzFile\_\_ \{ \textcolor{keywordtype}{int} unused; \} unzFile\_\_;
+00068 \textcolor{keyword}{typedef} unzFile\_\_ *unzFile;
+00069 \textcolor{preprocessor}{#else}
+00070 \textcolor{keyword}{typedef} voidp unzFile;
+00071 \textcolor{preprocessor}{#endif}
+00072 
+00073 
+00074 \textcolor{preprocessor}{#define UNZ\_OK                          (0)}
+00075 \textcolor{preprocessor}{#define UNZ\_END\_OF\_LIST\_OF\_FILE         (-100)}
+00076 \textcolor{preprocessor}{#define UNZ\_ERRNO                       (Z\_ERRNO)}
+00077 \textcolor{preprocessor}{#define UNZ\_EOF                         (0)}
+00078 \textcolor{preprocessor}{#define UNZ\_PARAMERROR                  (-102)}
+00079 \textcolor{preprocessor}{#define UNZ\_BADZIPFILE                  (-103)}
+00080 \textcolor{preprocessor}{#define UNZ\_INTERNALERROR               (-104)}
+00081 \textcolor{preprocessor}{#define UNZ\_CRCERROR                    (-105)}
+00082 
+00083 \textcolor{comment}{/* tm\_unz contain date/time info */}
+00084 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structtm__unz__s}{tm\_unz\_s}
+00085 \{
+00086     uInt tm\_sec;            \textcolor{comment}{/* seconds after the minute - [0,59] */}
+00087     uInt tm\_min;            \textcolor{comment}{/* minutes after the hour - [0,59] */}
+00088     uInt tm\_hour;           \textcolor{comment}{/* hours since midnight - [0,23] */}
+00089     uInt tm\_mday;           \textcolor{comment}{/* day of the month - [1,31] */}
+00090     uInt tm\_mon;            \textcolor{comment}{/* months since January - [0,11] */}
+00091     uInt tm\_year;           \textcolor{comment}{/* years - [1980..2044] */}
+00092 \} \hyperlink{structtm__unz__s}{tm\_unz};
+00093 
+00094 \textcolor{comment}{/* unz\_global\_info structure contain global data about the ZIPfile}
+00095 \textcolor{comment}{   These data comes from the end of central dir */}
+00096 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structunz__global__info64__s}{unz\_global\_info64\_s}
+00097 \{
+00098     ZPOS64\_T number\_entry;         \textcolor{comment}{/* total number of entries in}
+00099 \textcolor{comment}{                                     the central dir on this disk */}
+00100     uLong size\_comment;         \textcolor{comment}{/* size of the global comment of the zipfile */}
+00101 \} \hyperlink{structunz__global__info64__s}{unz\_global\_info64};
+00102 
+00103 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structunz__global__info__s}{unz\_global\_info\_s}
+00104 \{
+00105     uLong number\_entry;         \textcolor{comment}{/* total number of entries in}
+00106 \textcolor{comment}{                                     the central dir on this disk */}
+00107     uLong size\_comment;         \textcolor{comment}{/* size of the global comment of the zipfile */}
+00108 \} \hyperlink{structunz__global__info__s}{unz\_global\_info};
+00109 
+00110 \textcolor{comment}{/* unz\_file\_info contain information about a file in the zipfile */}
+00111 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structunz__file__info64__s}{unz\_file\_info64\_s}
+00112 \{
+00113     uLong version;              \textcolor{comment}{/* version made by                 2 bytes */}
+00114     uLong version\_needed;       \textcolor{comment}{/* version needed to extract       2 bytes */}
+00115     uLong flag;                 \textcolor{comment}{/* general purpose bit flag        2 bytes */}
+00116     uLong compression\_method;   \textcolor{comment}{/* compression method              2 bytes */}
+00117     uLong dosDate;              \textcolor{comment}{/* last mod file date in Dos fmt   4 bytes */}
+00118     uLong crc;                  \textcolor{comment}{/* crc-32                          4 bytes */}
+00119     ZPOS64\_T compressed\_size;   \textcolor{comment}{/* compressed size                 8 bytes */}
+00120     ZPOS64\_T uncompressed\_size; \textcolor{comment}{/* uncompressed size               8 bytes */}
+00121     uLong size\_filename;        \textcolor{comment}{/* filename length                 2 bytes */}
+00122     uLong size\_file\_extra;      \textcolor{comment}{/* extra field length              2 bytes */}
+00123     uLong size\_file\_comment;    \textcolor{comment}{/* file comment length             2 bytes */}
+00124 
+00125     uLong disk\_num\_start;       \textcolor{comment}{/* disk number start               2 bytes */}
+00126     uLong internal\_fa;          \textcolor{comment}{/* internal file attributes        2 bytes */}
+00127     uLong external\_fa;          \textcolor{comment}{/* external file attributes        4 bytes */}
+00128 
+00129     \hyperlink{structtm__unz__s}{tm\_unz} tmu\_date;
+00130 \} \hyperlink{structunz__file__info64__s}{unz\_file\_info64};
+00131 
+00132 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structunz__file__info__s}{unz\_file\_info\_s}
+00133 \{
+00134     uLong version;              \textcolor{comment}{/* version made by                 2 bytes */}
+00135     uLong version\_needed;       \textcolor{comment}{/* version needed to extract       2 bytes */}
+00136     uLong flag;                 \textcolor{comment}{/* general purpose bit flag        2 bytes */}
+00137     uLong compression\_method;   \textcolor{comment}{/* compression method              2 bytes */}
+00138     uLong dosDate;              \textcolor{comment}{/* last mod file date in Dos fmt   4 bytes */}
+00139     uLong crc;                  \textcolor{comment}{/* crc-32                          4 bytes */}
+00140     uLong compressed\_size;      \textcolor{comment}{/* compressed size                 4 bytes */}
+00141     uLong uncompressed\_size;    \textcolor{comment}{/* uncompressed size               4 bytes */}
+00142     uLong size\_filename;        \textcolor{comment}{/* filename length                 2 bytes */}
+00143     uLong size\_file\_extra;      \textcolor{comment}{/* extra field length              2 bytes */}
+00144     uLong size\_file\_comment;    \textcolor{comment}{/* file comment length             2 bytes */}
+00145 
+00146     uLong disk\_num\_start;       \textcolor{comment}{/* disk number start               2 bytes */}
+00147     uLong internal\_fa;          \textcolor{comment}{/* internal file attributes        2 bytes */}
+00148     uLong external\_fa;          \textcolor{comment}{/* external file attributes        4 bytes */}
+00149 
+00150     \hyperlink{structtm__unz__s}{tm\_unz} tmu\_date;
+00151 \} \hyperlink{structunz__file__info__s}{unz\_file\_info};
+00152 
+00153 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzStringFileNameCompare OF ((\textcolor{keyword}{const} \textcolor{keywordtype}{char}* fileName1,
+00154                                                  \textcolor{keyword}{const} \textcolor{keywordtype}{char}* fileName2,
+00155                                                  \textcolor{keywordtype}{int} iCaseSensitivity));
+00156 \textcolor{comment}{/*}
+00157 \textcolor{comment}{   Compare two filename (fileName1,fileName2).}
+00158 \textcolor{comment}{   If iCaseSenisivity = 1, comparision is case sensitivity (like strcmp)}
+00159 \textcolor{comment}{   If iCaseSenisivity = 2, comparision is not case sensitivity (like strcmpi}
+00160 \textcolor{comment}{                                or strcasecmp)}
+00161 \textcolor{comment}{   If iCaseSenisivity = 0, case sensitivity is defaut of your operating system}
+00162 \textcolor{comment}{    (like 1 on Unix, 2 on Windows)}
+00163 \textcolor{comment}{*/}
+00164 
+00165 
+00166 \textcolor{keyword}{extern} unzFile ZEXPORT unzOpen OF((\textcolor{keyword}{const} \textcolor{keywordtype}{char} *path));
+00167 \textcolor{keyword}{extern} unzFile ZEXPORT unzOpen64 OF((\textcolor{keyword}{const} \textcolor{keywordtype}{void} *path));
+00168 \textcolor{comment}{/*}
+00169 \textcolor{comment}{  Open a Zip file. path contain the full pathname (by example,}
+00170 \textcolor{comment}{     on a Windows XP computer "c:\(\backslash\)\(\backslash\)zlib\(\backslash\)\(\backslash\)zlib113.zip" or on an Unix computer}
+00171 \textcolor{comment}{     "zlib/zlib113.zip".}
+00172 \textcolor{comment}{     If the zipfile cannot be opened (file don't exist or in not valid), the}
+00173 \textcolor{comment}{       return value is NULL.}
+00174 \textcolor{comment}{     Else, the return value is a unzFile Handle, usable with other function}
+00175 \textcolor{comment}{       of this unzip package.}
+00176 \textcolor{comment}{     the "64" function take a const void* pointer, because the path is just the}
+00177 \textcolor{comment}{       value passed to the open64\_file\_func callback.}
+00178 \textcolor{comment}{     Under Windows, if UNICODE is defined, using fill\_fopen64\_filefunc, the path}
+00179 \textcolor{comment}{       is a pointer to a wide unicode string (LPCTSTR is LPCWSTR), so const char*}
+00180 \textcolor{comment}{       does not describe the reality}
+00181 \textcolor{comment}{*/}
+00182 
+00183 
+00184 \textcolor{keyword}{extern} unzFile ZEXPORT unzOpen2 OF((\textcolor{keyword}{const} \textcolor{keywordtype}{char} *path,
+00185                                     \hyperlink{structzlib__filefunc__def__s}{zlib\_filefunc\_def}* pzlib\_filefunc\_def));
+00186 \textcolor{comment}{/*}
+00187 \textcolor{comment}{   Open a Zip file, like unzOpen, but provide a set of file low level API}
+00188 \textcolor{comment}{      for read/write the zip file (see ioapi.h)}
+00189 \textcolor{comment}{*/}
+00190 
+00191 \textcolor{keyword}{extern} unzFile ZEXPORT unzOpen2\_64 OF((\textcolor{keyword}{const} \textcolor{keywordtype}{void} *path,
+00192                                     \hyperlink{structzlib__filefunc64__def__s}{zlib\_filefunc64\_def}* pzlib\_filefunc\_def));
+00193 \textcolor{comment}{/*}
+00194 \textcolor{comment}{   Open a Zip file, like unz64Open, but provide a set of file low level API}
+00195 \textcolor{comment}{      for read/write the zip file (see ioapi.h)}
+00196 \textcolor{comment}{*/}
+00197 
+00198 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzClose OF((unzFile \hyperlink{structfile}{file}));
+00199 \textcolor{comment}{/*}
+00200 \textcolor{comment}{  Close a ZipFile opened with unzOpen.}
+00201 \textcolor{comment}{  If there is files inside the .Zip opened with unzOpenCurrentFile (see later),}
+00202 \textcolor{comment}{    these files MUST be closed with unzCloseCurrentFile before call unzClose.}
+00203 \textcolor{comment}{  return UNZ\_OK if there is no problem. */}
+00204 
+00205 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGetGlobalInfo OF((unzFile \hyperlink{structfile}{file},
+00206                                         \hyperlink{structunz__global__info__s}{unz\_global\_info} *pglobal\_info));
+00207 
+00208 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGetGlobalInfo64 OF((unzFile \hyperlink{structfile}{file},
+00209                                         \hyperlink{structunz__global__info64__s}{unz\_global\_info64} *pglobal\_info));
+00210 \textcolor{comment}{/*}
+00211 \textcolor{comment}{  Write info about the ZipFile in the *pglobal\_info structure.}
+00212 \textcolor{comment}{  No preparation of the structure is needed}
+00213 \textcolor{comment}{  return UNZ\_OK if there is no problem. */}
+00214 
+00215 
+00216 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGetGlobalComment OF((unzFile \hyperlink{structfile}{file},
+00217                                            \textcolor{keywordtype}{char} *szComment,
+00218                                            uLong uSizeBuf));
+00219 \textcolor{comment}{/*}
+00220 \textcolor{comment}{  Get the global comment string of the ZipFile, in the szComment buffer.}
+00221 \textcolor{comment}{  uSizeBuf is the size of the szComment buffer.}
+00222 \textcolor{comment}{  return the number of byte copied or an error code <0}
+00223 \textcolor{comment}{*/}
+00224 
+00225 
+00226 \textcolor{comment}{/***************************************************************************/}
+00227 \textcolor{comment}{/* Unzip package allow you browse the directory of the zipfile */}
+00228 
+00229 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGoToFirstFile OF((unzFile \hyperlink{structfile}{file}));
+00230 \textcolor{comment}{/*}
+00231 \textcolor{comment}{  Set the current file of the zipfile to the first file.}
+00232 \textcolor{comment}{  return UNZ\_OK if there is no problem}
+00233 \textcolor{comment}{*/}
+00234 
+00235 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGoToNextFile OF((unzFile \hyperlink{structfile}{file}));
+00236 \textcolor{comment}{/*}
+00237 \textcolor{comment}{  Set the current file of the zipfile to the next file.}
+00238 \textcolor{comment}{  return UNZ\_OK if there is no problem}
+00239 \textcolor{comment}{  return UNZ\_END\_OF\_LIST\_OF\_FILE if the actual file was the latest.}
+00240 \textcolor{comment}{*/}
+00241 
+00242 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzLocateFile OF((unzFile \hyperlink{structfile}{file},
+00243                      \textcolor{keyword}{const} \textcolor{keywordtype}{char} *szFileName,
+00244                      \textcolor{keywordtype}{int} iCaseSensitivity));
+00245 \textcolor{comment}{/*}
+00246 \textcolor{comment}{  Try locate the file szFileName in the zipfile.}
+00247 \textcolor{comment}{  For the iCaseSensitivity signification, see unzStringFileNameCompare}
+00248 \textcolor{comment}{}
+00249 \textcolor{comment}{  return value :}
+00250 \textcolor{comment}{  UNZ\_OK if the file is found. It becomes the current file.}
+00251 \textcolor{comment}{  UNZ\_END\_OF\_LIST\_OF\_FILE if the file is not found}
+00252 \textcolor{comment}{*/}
+00253 
+00254 
+00255 \textcolor{comment}{/* ****************************************** */}
+00256 \textcolor{comment}{/* Ryan supplied functions */}
+00257 \textcolor{comment}{/* unz\_file\_info contain information about a file in the zipfile */}
+00258 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structunz__file__pos__s}{unz\_file\_pos\_s}
+00259 \{
+00260     uLong pos\_in\_zip\_directory;   \textcolor{comment}{/* offset in zip file directory */}
+00261     uLong num\_of\_file;            \textcolor{comment}{/* # of file */}
+00262 \} \hyperlink{structunz__file__pos__s}{unz\_file\_pos};
+00263 
+00264 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGetFilePos(
+00265     unzFile \hyperlink{structfile}{file},
+00266     \hyperlink{structunz__file__pos__s}{unz\_file\_pos}* file\_pos);
+00267 
+00268 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGoToFilePos(
+00269     unzFile \hyperlink{structfile}{file},
+00270     \hyperlink{structunz__file__pos__s}{unz\_file\_pos}* file\_pos);
+00271 
+00272 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structunz64__file__pos__s}{unz64\_file\_pos\_s}
+00273 \{
+00274     ZPOS64\_T pos\_in\_zip\_directory;   \textcolor{comment}{/* offset in zip file directory */}
+00275     ZPOS64\_T num\_of\_file;            \textcolor{comment}{/* # of file */}
+00276 \} \hyperlink{structunz64__file__pos__s}{unz64\_file\_pos};
+00277 
+00278 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGetFilePos64(
+00279     unzFile \hyperlink{structfile}{file},
+00280     \hyperlink{structunz64__file__pos__s}{unz64\_file\_pos}* file\_pos);
+00281 
+00282 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGoToFilePos64(
+00283     unzFile \hyperlink{structfile}{file},
+00284     \textcolor{keyword}{const} \hyperlink{structunz64__file__pos__s}{unz64\_file\_pos}* file\_pos);
+00285 
+00286 \textcolor{comment}{/* ****************************************** */}
+00287 
+00288 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGetCurrentFileInfo64 OF((unzFile \hyperlink{structfile}{file},
+00289                          \hyperlink{structunz__file__info64__s}{unz\_file\_info64} *pfile\_info,
+00290                          \textcolor{keywordtype}{char} *szFileName,
+00291                          uLong fileNameBufferSize,
+00292                          \textcolor{keywordtype}{void} *extraField,
+00293                          uLong extraFieldBufferSize,
+00294                          \textcolor{keywordtype}{char} *szComment,
+00295                          uLong commentBufferSize));
+00296 
+00297 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGetCurrentFileInfo OF((unzFile \hyperlink{structfile}{file},
+00298                          \hyperlink{structunz__file__info__s}{unz\_file\_info} *pfile\_info,
+00299                          \textcolor{keywordtype}{char} *szFileName,
+00300                          uLong fileNameBufferSize,
+00301                          \textcolor{keywordtype}{void} *extraField,
+00302                          uLong extraFieldBufferSize,
+00303                          \textcolor{keywordtype}{char} *szComment,
+00304                          uLong commentBufferSize));
+00305 \textcolor{comment}{/*}
+00306 \textcolor{comment}{  Get Info about the current file}
+00307 \textcolor{comment}{  if pfile\_info!=NULL, the *pfile\_info structure will contain somes info about}
+00308 \textcolor{comment}{        the current file}
+00309 \textcolor{comment}{  if szFileName!=NULL, the filemane string will be copied in szFileName}
+00310 \textcolor{comment}{            (fileNameBufferSize is the size of the buffer)}
+00311 \textcolor{comment}{  if extraField!=NULL, the extra field information will be copied in extraField}
+00312 \textcolor{comment}{            (extraFieldBufferSize is the size of the buffer).}
+00313 \textcolor{comment}{            This is the Central-header version of the extra field}
+00314 \textcolor{comment}{  if szComment!=NULL, the comment string of the file will be copied in szComment}
+00315 \textcolor{comment}{            (commentBufferSize is the size of the buffer)}
+00316 \textcolor{comment}{*/}
+00317 
+00318 
+00321 \textcolor{keyword}{extern} ZPOS64\_T ZEXPORT unzGetCurrentFileZStreamPos64 OF((unzFile \hyperlink{structfile}{file}));
+00322 
+00326 \textcolor{comment}{/***************************************************************************/}
+00327 \textcolor{comment}{/* for reading the content of the current zipfile, you can open it, read data}
+00328 \textcolor{comment}{   from it, and close it (you can close it before reading all the file)}
+00329 \textcolor{comment}{   */}
+00330 
+00331 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzOpenCurrentFile OF((unzFile \hyperlink{structfile}{file}));
+00332 \textcolor{comment}{/*}
+00333 \textcolor{comment}{  Open for reading data the current file in the zipfile.}
+00334 \textcolor{comment}{  If there is no error, the return value is UNZ\_OK.}
+00335 \textcolor{comment}{*/}
+00336 
+00337 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzOpenCurrentFilePassword OF((unzFile \hyperlink{structfile}{file},
+00338                                                   \textcolor{keyword}{const} \textcolor{keywordtype}{char}* password));
+00339 \textcolor{comment}{/*}
+00340 \textcolor{comment}{  Open for reading data the current file in the zipfile.}
+00341 \textcolor{comment}{  password is a crypting password}
+00342 \textcolor{comment}{  If there is no error, the return value is UNZ\_OK.}
+00343 \textcolor{comment}{*/}
+00344 
+00345 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzOpenCurrentFile2 OF((unzFile \hyperlink{structfile}{file},
+00346                                            \textcolor{keywordtype}{int}* method,
+00347                                            \textcolor{keywordtype}{int}* level,
+00348                                            \textcolor{keywordtype}{int} raw));
+00349 \textcolor{comment}{/*}
+00350 \textcolor{comment}{  Same than unzOpenCurrentFile, but open for read raw the file (not uncompress)}
+00351 \textcolor{comment}{    if raw==1}
+00352 \textcolor{comment}{  *method will receive method of compression, *level will receive level of}
+00353 \textcolor{comment}{     compression}
+00354 \textcolor{comment}{  note : you can set level parameter as NULL (if you did not want known level,}
+00355 \textcolor{comment}{         but you CANNOT set method parameter as NULL}
+00356 \textcolor{comment}{*/}
+00357 
+00358 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzOpenCurrentFile3 OF((unzFile \hyperlink{structfile}{file},
+00359                                            \textcolor{keywordtype}{int}* method,
+00360                                            \textcolor{keywordtype}{int}* level,
+00361                                            \textcolor{keywordtype}{int} raw,
+00362                                            \textcolor{keyword}{const} \textcolor{keywordtype}{char}* password));
+00363 \textcolor{comment}{/*}
+00364 \textcolor{comment}{  Same than unzOpenCurrentFile, but open for read raw the file (not uncompress)}
+00365 \textcolor{comment}{    if raw==1}
+00366 \textcolor{comment}{  *method will receive method of compression, *level will receive level of}
+00367 \textcolor{comment}{     compression}
+00368 \textcolor{comment}{  note : you can set level parameter as NULL (if you did not want known level,}
+00369 \textcolor{comment}{         but you CANNOT set method parameter as NULL}
+00370 \textcolor{comment}{*/}
+00371 
+00372 
+00373 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzCloseCurrentFile OF((unzFile \hyperlink{structfile}{file}));
+00374 \textcolor{comment}{/*}
+00375 \textcolor{comment}{  Close the file in zip opened with unzOpenCurrentFile}
+00376 \textcolor{comment}{  Return UNZ\_CRCERROR if all the file was read but the CRC is not good}
+00377 \textcolor{comment}{*/}
+00378 
+00379 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzReadCurrentFile OF((unzFile \hyperlink{structfile}{file},
+00380                       voidp buf,
+00381                       \textcolor{keywordtype}{unsigned} len));
+00382 \textcolor{comment}{/*}
+00383 \textcolor{comment}{  Read bytes from the current file (opened by unzOpenCurrentFile)}
+00384 \textcolor{comment}{  buf contain buffer where data must be copied}
+00385 \textcolor{comment}{  len the size of buf.}
+00386 \textcolor{comment}{}
+00387 \textcolor{comment}{  return the number of byte copied if somes bytes are copied}
+00388 \textcolor{comment}{  return 0 if the end of file was reached}
+00389 \textcolor{comment}{  return <0 with error code if there is an error}
+00390 \textcolor{comment}{    (UNZ\_ERRNO for IO error, or zLib error for uncompress error)}
+00391 \textcolor{comment}{*/}
+00392 
+00393 \textcolor{keyword}{extern} z\_off\_t ZEXPORT unztell OF((unzFile \hyperlink{structfile}{file}));
+00394 
+00395 \textcolor{keyword}{extern} ZPOS64\_T ZEXPORT unztell64 OF((unzFile \hyperlink{structfile}{file}));
+00396 \textcolor{comment}{/*}
+00397 \textcolor{comment}{  Give the current position in uncompressed data}
+00398 \textcolor{comment}{*/}
+00399 
+00400 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzeof OF((unzFile \hyperlink{structfile}{file}));
+00401 \textcolor{comment}{/*}
+00402 \textcolor{comment}{  return 1 if the end of file was reached, 0 elsewhere}
+00403 \textcolor{comment}{*/}
+00404 
+00405 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGetLocalExtrafield OF((unzFile \hyperlink{structfile}{file},
+00406                                              voidp buf,
+00407                                              \textcolor{keywordtype}{unsigned} len));
+00408 \textcolor{comment}{/*}
+00409 \textcolor{comment}{  Read extra field from the current file (opened by unzOpenCurrentFile)}
+00410 \textcolor{comment}{  This is the local-header version of the extra field (sometimes, there is}
+00411 \textcolor{comment}{    more info in the local-header version than in the central-header)}
+00412 \textcolor{comment}{}
+00413 \textcolor{comment}{  if buf==NULL, it return the size of the local extra field}
+00414 \textcolor{comment}{}
+00415 \textcolor{comment}{  if buf!=NULL, len is the size of the buffer, the extra header is copied in}
+00416 \textcolor{comment}{    buf.}
+00417 \textcolor{comment}{  the return value is the number of bytes copied in buf, or (if <0)}
+00418 \textcolor{comment}{    the error code}
+00419 \textcolor{comment}{*/}
+00420 
+00421 \textcolor{comment}{/***************************************************************************/}
+00422 
+00423 \textcolor{comment}{/* Get the current file offset */}
+00424 \textcolor{keyword}{extern} ZPOS64\_T ZEXPORT unzGetOffset64 (unzFile \hyperlink{structfile}{file});
+00425 \textcolor{keyword}{extern} uLong ZEXPORT unzGetOffset (unzFile \hyperlink{structfile}{file});
+00426 
+00427 \textcolor{comment}{/* Set the current file offset */}
+00428 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzSetOffset64 (unzFile \hyperlink{structfile}{file}, ZPOS64\_T pos);
+00429 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzSetOffset (unzFile \hyperlink{structfile}{file}, uLong pos);
+00430 
+00431 
+00432 
+00433 \textcolor{preprocessor}{#ifdef \_\_cplusplus}
+00434 \}
+00435 \textcolor{preprocessor}{#endif}
+00436 
+00437 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* \_unz64\_H */}\textcolor{preprocessor}{}
+\end{DoxyCode}

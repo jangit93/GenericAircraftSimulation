@@ -16,9 +16,7 @@ public:
 	virtual void updateGuidance(Float64 FlightTime,
 						AerodynamicStruct &AeroData,
 						ThrustStruct &ThrustData,
-						AircraftStruct &AircraftData,
 						AirframeStruct &AirframeData,
-						AtmosphereStruct & AtmosphereData,
 						GuidanceStruct &GuidanceData);
 
 

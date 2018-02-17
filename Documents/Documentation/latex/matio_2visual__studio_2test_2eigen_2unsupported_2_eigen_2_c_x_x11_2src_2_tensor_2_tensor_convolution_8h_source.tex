@@ -1,0 +1,1216 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_convolution_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/\+C\+X\+X11/src/\+Tensor/\+Tensor\+Convolution.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_convolution_8h_source}\index{Tensor\+Convolution.\+h@{Tensor\+Convolution.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2014 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_CXX11\_TENSOR\_TENSOR\_CONVOLUTION\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_CXX11\_TENSOR\_TENSOR\_CONVOLUTION\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00022 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00023 
+00024 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Index, \textcolor{keyword}{typename} InputDims, \textcolor{keywordtype}{int} NumKernelDims, \textcolor{keywordtype}{int} Layout>
+00025 \textcolor{keyword}{class }IndexMapper \{
+00026  \textcolor{keyword}{public}:
+00027   IndexMapper(\textcolor{keyword}{const} InputDims& input\_dims, \textcolor{keyword}{const} array<Index, NumKernelDims>& kernel\_dims,
+00028               \textcolor{keyword}{const} array<Index, NumKernelDims>& indices) \{
+00029 
+00030     array<Index, NumDims> dimensions = input\_dims;
+00031     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < NumKernelDims; ++i) \{
+00032       \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} index = indices[i];
+00033       \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} input\_dim = input\_dims[index];
+00034       \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} kernel\_dim = kernel\_dims[i];
+00035       \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} result\_dim = input\_dim - kernel\_dim + 1;
+00036       dimensions[index] = result\_dim;
+00037     \}
+00038 
+00039     array<Index, NumDims> inputStrides;
+00040     array<Index, NumDims> outputStrides;
+00041     \textcolor{keywordflow}{if} (static\_cast<int>(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})) \{
+00042       inputStrides[0] = 1;
+00043       outputStrides[0] = 1;
+00044       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 1; i < NumDims; ++i) \{
+00045         inputStrides[i] = inputStrides[i-1] * input\_dims[i-1];
+00046         outputStrides[i] = outputStrides[i-1] * dimensions[i-1];
+00047       \}
+00048     \} \textcolor{keywordflow}{else} \{
+00049       inputStrides[NumDims - 1] = 1;
+00050       outputStrides[NumDims - 1] = 1;
+00051       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = static\_cast<int>(NumDims) - 2; i >= 0; --i) \{
+00052         inputStrides[i] = inputStrides[i + 1] * input\_dims[i + 1];
+00053         outputStrides[i] = outputStrides[i + 1] * dimensions[i + 1];
+00054       \}
+00055     \}
+00056 
+00057     array<Index, NumDims> cudaInputDimensions;
+00058     array<Index, NumDims> cudaOutputDimensions;
+00059     array<Index, NumDims> tmp = dimensions;
+00060     array<Index, NumDims> ordering;
+00061     \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} offset = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})
+00062                               ? 0
+00063                               : NumDims - NumKernelDims;
+00064     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < NumKernelDims; ++i) \{
+00065       \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} index = i + offset;
+00066       ordering[index] = indices[i];
+00067       tmp[indices[i]] = -1;
+00068       cudaInputDimensions[index] = input\_dims[indices[i]];
+00069       cudaOutputDimensions[index] = dimensions[indices[i]];
+00070     \}
+00071 
+00072     \textcolor{keywordtype}{int} written = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})
+00073                       ? NumKernelDims
+00074                       : 0;
+00075     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < NumDims; ++i) \{
+00076       \textcolor{keywordflow}{if} (tmp[i] >= 0) \{
+00077         ordering[written] = i;
+00078         cudaInputDimensions[written] = input\_dims[i];
+00079         cudaOutputDimensions[written] = dimensions[i];
+00080         ++written;
+00081       \}
+00082     \}
+00083 
+00084     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < NumDims; ++i) \{
+00085       m\_inputStrides[i] = inputStrides[ordering[i]];
+00086       m\_outputStrides[i] = outputStrides[ordering[i]];
+00087     \}
+00088 
+00089     \textcolor{keywordflow}{if} (static\_cast<int>(Layout) == \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})) \{
+00090       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < NumDims; ++i) \{
+00091         \textcolor{keywordflow}{if} (i > NumKernelDims) \{
+00092           m\_cudaInputStrides[i] =
+00093               m\_cudaInputStrides[i - 1] * cudaInputDimensions[i - 1];
+00094           m\_cudaOutputStrides[i] =
+00095               m\_cudaOutputStrides[i - 1] * cudaOutputDimensions[i - 1];
+00096         \} \textcolor{keywordflow}{else} \{
+00097           m\_cudaInputStrides[i] = 1;
+00098           m\_cudaOutputStrides[i] = 1;
+00099         \}
+00100       \}
+00101     \} \textcolor{keywordflow}{else} \{
+00102       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = NumDims - 1; i >= 0; --i) \{
+00103         \textcolor{keywordflow}{if} (i + 1 < offset) \{
+00104           m\_cudaInputStrides[i] =
+00105               m\_cudaInputStrides[i + 1] * cudaInputDimensions[i + 1];
+00106           m\_cudaOutputStrides[i] =
+00107               m\_cudaOutputStrides[i + 1] * cudaOutputDimensions[i + 1];
+00108         \} \textcolor{keywordflow}{else} \{
+00109           m\_cudaInputStrides[i] = 1;
+00110           m\_cudaOutputStrides[i] = 1;
+00111         \}
+00112       \}
+00113     \}
+00114   \}
+00115 
+00116   EIGEN\_STRONG\_INLINE EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} mapCudaInputPlaneToTensorInputOffset(
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} p)\textcolor{keyword}{ const }\{
+00117     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} inputIndex = 0;
+00118     \textcolor{keywordflow}{if} (static\_cast<int>(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})) \{
+00119       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = NumDims - 1; d > NumKernelDims; --d) \{
+00120         \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} idx = p / m\_cudaInputStrides[d];
+00121         inputIndex += idx * m\_inputStrides[d];
+00122         p -= idx * m\_cudaInputStrides[d];
+00123       \}
+00124       inputIndex += p * m\_inputStrides[NumKernelDims];
+00125     \} \textcolor{keywordflow}{else} \{
+00126       std::ptrdiff\_t limit = 0;
+00127       \textcolor{keywordflow}{if} (NumKernelDims < NumDims) \{
+00128         limit = NumDims - NumKernelDims - 1;
+00129       \}
+00130       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = 0; d < limit; ++d) \{
+00131         \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} idx = p / m\_cudaInputStrides[d];
+00132         inputIndex += idx * m\_inputStrides[d];
+00133         p -= idx * m\_cudaInputStrides[d];
+00134       \}
+00135       inputIndex += p * m\_inputStrides[limit];
+00136     \}
+00137     \textcolor{keywordflow}{return} inputIndex;
+00138   \}
+00139 
+00140   EIGEN\_STRONG\_INLINE EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} mapCudaOutputPlaneToTensorOutputOffset(
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} p)\textcolor{keyword}{ const }\{
+00141     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} outputIndex = 0;
+00142     \textcolor{keywordflow}{if} (static\_cast<int>(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})) \{
+00143       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = NumDims - 1; d > NumKernelDims; --d) \{
+00144         \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} idx = p / m\_cudaOutputStrides[d];
+00145         outputIndex += idx * m\_outputStrides[d];
+00146         p -= idx * m\_cudaOutputStrides[d];
+00147       \}
+00148       outputIndex += p * m\_outputStrides[NumKernelDims];
+00149     \} \textcolor{keywordflow}{else} \{
+00150       std::ptrdiff\_t limit = 0;
+00151       \textcolor{keywordflow}{if} (NumKernelDims < NumDims) \{
+00152         limit = NumDims - NumKernelDims - 1;
+00153       \}
+00154       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = 0; d < limit; ++d) \{
+00155         \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} idx = p / m\_cudaOutputStrides[d];
+00156         outputIndex += idx * m\_outputStrides[d];
+00157         p -= idx * m\_cudaOutputStrides[d];
+00158       \}
+00159       outputIndex += p * m\_outputStrides[limit];
+00160     \}
+00161     \textcolor{keywordflow}{return} outputIndex;
+00162   \}
+00163 
+00164   EIGEN\_STRONG\_INLINE EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} mapCudaInputKernelToTensorInputOffset(
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i)\textcolor{keyword}{ const }\{
+00165     \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} offset = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})
+00166                               ? 0
+00167                               : NumDims - NumKernelDims;
+00168     \textcolor{keywordflow}{return} i * m\_inputStrides[offset];
+00169   \}
+00170 
+00171   EIGEN\_STRONG\_INLINE EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} mapCudaOutputKernelToTensorOutputOffset(
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i)\textcolor{keyword}{ const }\{
+00172     \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} offset = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})
+00173                               ? 0
+00174                               : NumDims - NumKernelDims;
+00175     \textcolor{keywordflow}{return} i * m\_outputStrides[offset];
+00176   \}
+00177 
+00178   EIGEN\_STRONG\_INLINE EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} mapCudaInputKernelToTensorInputOffset(
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j)\textcolor{keyword}{ const }\{
+00179     \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} offset = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})
+00180                               ? 0
+00181                               : NumDims - NumKernelDims;
+00182     \textcolor{keywordflow}{return} i * m\_inputStrides[offset] + j * m\_inputStrides[offset + 1];
+00183   \}
+00184 
+00185   EIGEN\_STRONG\_INLINE EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} mapCudaOutputKernelToTensorOutputOffset(
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j)\textcolor{keyword}{ const }\{
+00186     \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} offset = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})
+00187                               ? 0
+00188                               : NumDims - NumKernelDims;
+00189     \textcolor{keywordflow}{return} i * m\_outputStrides[offset] + j * m\_outputStrides[offset + 1];
+00190   \}
+00191 
+00192   EIGEN\_STRONG\_INLINE EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} mapCudaInputKernelToTensorInputOffset(
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k)\textcolor{keyword}{ const }\{
+00193     \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} offset = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})
+00194                               ? 0
+00195                               : NumDims - NumKernelDims;
+00196     \textcolor{keywordflow}{return} i * m\_inputStrides[offset] + j * m\_inputStrides[offset + 1] +
+00197            k * m\_inputStrides[offset + 2];
+00198   \}
+00199 
+00200   EIGEN\_STRONG\_INLINE EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} mapCudaOutputKernelToTensorOutputOffset(
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k)\textcolor{keyword}{ const }\{
+00201     \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} offset = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})
+00202                               ? 0
+00203                               : NumDims - NumKernelDims;
+00204     \textcolor{keywordflow}{return} i * m\_outputStrides[offset] + j * m\_outputStrides[offset + 1] +
+00205            k * m\_outputStrides[offset + 2];
+00206   \}
+00207 
+00208  \textcolor{keyword}{private}:
+00209   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} NumDims = internal::array\_size<InputDims>::value;
+00210   array<Index, NumDims> m\_inputStrides;
+00211   array<Index, NumDims> m\_outputStrides;
+00212   array<Index, NumDims> m\_cudaInputStrides;
+00213   array<Index, NumDims> m\_cudaOutputStrides;
+00214 \};
+00215 
+00216 
+00217 
+00218 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dimensions, \textcolor{keyword}{typename} InputXprType, \textcolor{keyword}{typename} KernelXprType>
+00219 \textcolor{keyword}{struct }traits<TensorConvolutionOp<Dimensions, InputXprType, KernelXprType> >
+00220 \{
+00221   \textcolor{comment}{// Type promotion to handle the case where the types of the lhs and the rhs are different.}
+00222   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} promote\_storage\_type<\textcolor{keyword}{typename} InputXprType::Scalar,
+00223                                         \textcolor{keyword}{typename} KernelXprType::Scalar>::ret Scalar;
+00224   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} promote\_storage\_type<typename traits<InputXprType>::StorageKind,
+00225                                         \textcolor{keyword}{typename} traits<KernelXprType>::StorageKind>::ret StorageKind;
+00226   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} promote\_index\_type<typename traits<InputXprType>::Index,
+00227                                       \textcolor{keyword}{typename} traits<KernelXprType>::Index>::type 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00228   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} InputXprType::Nested LhsNested;
+00229   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} KernelXprType::Nested RhsNested;
+00230   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_reference<LhsNested>::type \_LhsNested;
+00231   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_reference<RhsNested>::type \_RhsNested;
+00232   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} NumDimensions = traits<InputXprType>::NumDimensions;
+00233   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} Layout = traits<InputXprType>::Layout;
+00234 
+00235   \textcolor{keyword}{enum} \{
+00236     Flags = 0
+00237   \};
+00238 \};
+00239 
+00240 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dimensions, \textcolor{keyword}{typename} InputXprType, \textcolor{keyword}{typename} KernelXprType>
+00241 \textcolor{keyword}{struct }eval<TensorConvolutionOp<Dimensions, InputXprType, KernelXprType>, \hyperlink{namespace_eigen}{Eigen}::Dense>
+00242 \{
+00243   \textcolor{keyword}{typedef} \textcolor{keyword}{const} TensorConvolutionOp<Dimensions, InputXprType, KernelXprType>& type;
+00244 \};
+00245 
+00246 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dimensions, \textcolor{keyword}{typename} InputXprType, \textcolor{keyword}{typename} KernelXprType>
+00247 \textcolor{keyword}{struct }nested<TensorConvolutionOp<Dimensions, InputXprType, KernelXprType>, 1, typename eval<
+      TensorConvolutionOp<Dimensions, InputXprType, KernelXprType> >::type>
+00248 \{
+00249   \textcolor{keyword}{typedef} TensorConvolutionOp<Dimensions, InputXprType, KernelXprType> type;
+00250 \};
+00251 
+00252 \}  \textcolor{comment}{// end namespace internal}
+00253 
+00254 
+00255 
+00256 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Indices, \textcolor{keyword}{typename} InputXprType, \textcolor{keyword}{typename} KernelXprType>
+00257 \textcolor{keyword}{class }TensorConvolutionOp : \textcolor{keyword}{public} TensorBase<TensorConvolutionOp<Indices, InputXprType, KernelXprType>, Re
+      adOnlyAccessors>
+00258 \{
+00259   \textcolor{keyword}{public}:
+00260   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{Eigen::internal::traits<TensorConvolutionOp>::Scalar}
+       Scalar;
+00261   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{Eigen::NumTraits<Scalar>::Real} RealScalar;
+00262   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::promote\_storage\_type<\textcolor{keyword}{typename} InputXprType::CoeffReturnType,
+00263                                                   \textcolor{keyword}{typename} KernelXprType::CoeffReturnType>::ret 
+      CoeffReturnType;
+00264   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{Eigen::internal::nested<TensorConvolutionOp>::type}
+       Nested;
+00265   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{Eigen::internal::traits<TensorConvolutionOp>::StorageKind}
+       StorageKind;
+00266   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{Eigen::internal::traits<TensorConvolutionOp>::Index}
+       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00267 
+00268   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE TensorConvolutionOp(\textcolor{keyword}{const} InputXprType& input, \textcolor{keyword}{const} KernelXprType&
+       kernel, \textcolor{keyword}{const} Indices& dims)
+00269       : m\_input\_xpr(input), m\_kernel\_xpr(kernel), m\_indices(dims) \{\}
+00270 
+00271     EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00272     \textcolor{keyword}{const} Indices& indices()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_indices; \}
+00273 
+00275     EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00276     \textcolor{keyword}{const} \textcolor{keyword}{typename} internal::remove\_all<typename InputXprType::Nested>::type&
+\Hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_convolution_8h_source_l00277}\hyperlink{class_eigen_1_1_tensor_convolution_op_a57097fbe6e0a033d587e98654f0bd664}{00277}     \hyperlink{class_eigen_1_1_tensor_convolution_op_a57097fbe6e0a033d587e98654f0bd664}{inputExpression}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_input\_xpr; \}
+00278 
+00279     EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00280     \textcolor{keyword}{const} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{internal::remove\_all<typename KernelXprType::Nested>::type}
+      &
+00281     kernelExpression()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_kernel\_xpr; \}
+00282 
+00283   \textcolor{keyword}{protected}:
+00284     \textcolor{keyword}{typename} InputXprType::Nested m\_input\_xpr;
+00285     \textcolor{keyword}{typename} KernelXprType::Nested m\_kernel\_xpr;
+00286     \textcolor{keyword}{const} Indices m\_indices;
+00287 \};
+00288 
+00289 
+00290 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Indices, \textcolor{keyword}{typename} InputArgType, \textcolor{keyword}{typename} KernelArgType, \textcolor{keyword}{typename} Device>
+00291 \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}<const TensorConvolutionOp<Indices, InputArgType, KernelArgType>, 
+      Device>
+00292 \{
+00293   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor_convolution_op}{TensorConvolutionOp<Indices, InputArgType, KernelArgType>}
+       XprType;
+00294 
+00295   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} NumDims = 
+      \hyperlink{struct_eigen_1_1internal_1_1array__size}{internal::array\_size<typename TensorEvaluator<InputArgType, Device>::Dimensions}
+      >::value;
+00296   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} NumKernelDims = \hyperlink{struct_eigen_1_1internal_1_1array__size}{internal::array\_size<Indices>::value}
+      ;
+00297   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00298   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1_d_sizes}{DSizes<Index, NumDims>} Dimensions;
+00299 
+00300   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Scalar Scalar;
+00301   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::CoeffReturnType CoeffReturnType;
+00302   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{PacketType<CoeffReturnType, Device>::type} 
+      PacketReturnType;
+00303   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} PacketSize = 
+      \hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{internal::unpacket\_traits<PacketReturnType>::size};
+00304 
+00305   \textcolor{keyword}{enum} \{
+00306     IsAligned = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, Device>::IsAligned}
+       & \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<KernelArgType, Device>::IsAligned},
+00307     PacketAccess = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, Device>::PacketAccess}
+       & \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<KernelArgType, Device>::PacketAccess},
+00308     Layout = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, Device>::Layout},
+00309     CoordAccess = \textcolor{keyword}{false},  \textcolor{comment}{// to be implemented}
+00310     RawAccess = \textcolor{keyword}{false}
+00311   \};
+00312 
+00313   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}(\textcolor{keyword}{const} XprType& op, \textcolor{keyword}{const} Device& 
+      device)
+00314       : m\_inputImpl(op.inputExpression(), device), m\_kernelImpl(op.kernelExpression(), device), m\_kernelArg
+      (op.kernelExpression()), m\_kernel(NULL), m\_local\_kernel(\textcolor{keyword}{false}), m\_device(device)
+00315   \{
+00316     EIGEN\_STATIC\_ASSERT((static\_cast<int>(
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, Device>::Layout}) == 
+      static\_cast<int>(\hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<KernelArgType, Device>::Layout})), 
+      YOU\_MADE\_A\_PROGRAMMING\_MISTAKE);
+00317 
+00318     \textcolor{keyword}{const} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, Device>::Dimensions}
+      & input\_dims = m\_inputImpl.dimensions();
+00319     \textcolor{keyword}{const} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<KernelArgType, Device>::Dimensions}
+      & kernel\_dims = m\_kernelImpl.dimensions();
+00320 
+00321     \textcolor{keywordflow}{if} (static\_cast<int>(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})) \{
+00322       m\_inputStride[0] = 1;
+00323       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 1; i < NumDims; ++i) \{
+00324         m\_inputStride[i] = m\_inputStride[i - 1] * input\_dims[i - 1];
+00325       \}
+00326     \} \textcolor{keywordflow}{else} \{
+00327       m\_inputStride[NumDims - 1] = 1;
+00328       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = NumDims - 2; i >= 0; --i) \{
+00329         m\_inputStride[i] = m\_inputStride[i + 1] * input\_dims[i + 1];
+00330       \}
+00331     \}
+00332 
+00333     m\_dimensions = m\_inputImpl.dimensions();
+00334     \textcolor{keywordflow}{if} (static\_cast<int>(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})) \{
+00335       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < NumKernelDims; ++i) \{
+00336         \textcolor{keyword}{const} Index index = op.indices()[i];
+00337         \textcolor{keyword}{const} Index input\_dim = input\_dims[index];
+00338         \textcolor{keyword}{const} Index kernel\_dim = kernel\_dims[i];
+00339         \textcolor{keyword}{const} Index result\_dim = input\_dim - kernel\_dim + 1;
+00340         m\_dimensions[index] = result\_dim;
+00341         \textcolor{keywordflow}{if} (i > 0) \{
+00342           m\_kernelStride[i] = m\_kernelStride[i - 1] * kernel\_dims[i - 1];
+00343         \} \textcolor{keywordflow}{else} \{
+00344           m\_kernelStride[0] = 1;
+00345         \}
+00346         m\_indexStride[i] = m\_inputStride[index];
+00347       \}
+00348 
+00349       m\_outputStride[0] = 1;
+00350       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 1; i < NumDims; ++i) \{
+00351         m\_outputStride[i] = m\_outputStride[i - 1] * m\_dimensions[i - 1];
+00352       \}
+00353     \} \textcolor{keywordflow}{else} \{
+00354       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = NumKernelDims - 1; i >= 0; --i) \{
+00355         \textcolor{keyword}{const} Index index = op.indices()[i];
+00356         \textcolor{keyword}{const} Index input\_dim = input\_dims[index];
+00357         \textcolor{keyword}{const} Index kernel\_dim = kernel\_dims[i];
+00358         \textcolor{keyword}{const} Index result\_dim = input\_dim - kernel\_dim + 1;
+00359         m\_dimensions[index] = result\_dim;
+00360         \textcolor{keywordflow}{if} (i < NumKernelDims - 1) \{
+00361           m\_kernelStride[i] = m\_kernelStride[i + 1] * kernel\_dims[i + 1];
+00362         \} \textcolor{keywordflow}{else} \{
+00363           m\_kernelStride[NumKernelDims - 1] = 1;
+00364         \}
+00365         m\_indexStride[i] = m\_inputStride[index];
+00366       \}
+00367 
+00368       m\_outputStride[NumDims - 1] = 1;
+00369       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = NumDims - 2; i >= 0; --i) \{
+00370         m\_outputStride[i] = m\_outputStride[i + 1] * m\_dimensions[i + 1];
+00371       \}
+00372     \}
+00373   \}
+00374 
+00375   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{const} Dimensions& dimensions()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_dimensions; \}
+00376 
+00377   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{bool} evalSubExprsIfNeeded(Scalar*) \{
+00378     m\_inputImpl.evalSubExprsIfNeeded(NULL);
+00379     preloadKernel();
+00380     \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00381   \}
+00382   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} cleanup() \{
+00383     m\_inputImpl.cleanup();
+00384     \textcolor{keywordflow}{if} (m\_local\_kernel) \{
+00385       m\_device.deallocate((\textcolor{keywordtype}{void}*)m\_kernel);
+00386       m\_local\_kernel = \textcolor{keyword}{false};
+00387     \}
+00388     m\_kernel = NULL;
+00389   \}
+00390 
+00391   \textcolor{keywordtype}{void} evalTo(\textcolor{keyword}{typename} XprType::Scalar* buffer) \{
+00392     evalSubExprsIfNeeded(NULL);
+00393     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < dimensions().TotalSize(); ++i) \{
+00394       buffer[i] += coeff(i);
+00395     \}
+00396     cleanup();
+00397   \}
+00398 
+00399   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE CoeffReturnType coeff(Index index)\textcolor{keyword}{ const}
+00400 \textcolor{keyword}{  }\{
+00401     CoeffReturnType result = CoeffReturnType(0);
+00402     convolve(firstInput(index), 0, NumKernelDims-1, result);
+00403     \textcolor{keywordflow}{return} result;
+00404   \}
+00405 
+00406   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode>
+00407   EIGEN\_DEVICE\_FUNC PacketReturnType packet(\textcolor{keyword}{const} Index index)\textcolor{keyword}{ const}
+00408 \textcolor{keyword}{  }\{
+00409     Index indices[2] = \{index, index+PacketSize-1\};
+00410     Index startInputs[2] = \{0, 0\};
+00411     \textcolor{keywordflow}{if} (static\_cast<int>(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})) \{
+00412       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = NumDims - 1; i > 0; --i) \{
+00413         \textcolor{keyword}{const} Index idx0 = indices[0] / m\_outputStride[i];
+00414         \textcolor{keyword}{const} Index idx1 = indices[1] / m\_outputStride[i];
+00415         startInputs[0] += idx0 * m\_inputStride[i];
+00416         startInputs[1] += idx1 * m\_inputStride[i];
+00417         indices[0] -= idx0 * m\_outputStride[i];
+00418         indices[1] -= idx1 * m\_outputStride[i];
+00419       \}
+00420     \} \textcolor{keywordflow}{else} \{
+00421       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < NumDims - 1; ++i) \{
+00422         \textcolor{keyword}{const} Index idx0 = indices[0] / m\_outputStride[i];
+00423         \textcolor{keyword}{const} Index idx1 = indices[1] / m\_outputStride[i];
+00424         startInputs[0] += idx0 * m\_inputStride[i];
+00425         startInputs[1] += idx1 * m\_inputStride[i];
+00426         indices[0] -= idx0 * m\_outputStride[i];
+00427         indices[1] -= idx1 * m\_outputStride[i];
+00428       \}
+00429     \}
+00430     startInputs[0] += indices[0];
+00431     startInputs[1] += indices[1];
+00432 
+00433     \textcolor{keywordflow}{if} (startInputs[1]-startInputs[0] == PacketSize-1) \{
+00434       PacketReturnType result = internal::pset1<PacketReturnType>(0);
+00435       convolvePacket(startInputs[0], 0, NumKernelDims-1, result);
+00436       \textcolor{keywordflow}{return} result;
+00437     \} \textcolor{keywordflow}{else} \{
+00438       EIGEN\_ALIGN\_MAX Scalar data[PacketSize];
+00439       data[0] = Scalar(0);
+00440       convolve(startInputs[0], 0, NumKernelDims-1, data[0]);
+00441       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 1; i < PacketSize-1; ++i) \{
+00442         data[i] = Scalar(0);
+00443         convolve(firstInput(index+i), 0, NumKernelDims-1, data[i]);
+00444       \}
+00445       data[PacketSize-1] = Scalar(0);
+00446       convolve(startInputs[1], 0, NumKernelDims-1, data[PacketSize-1]);
+00447       \textcolor{keywordflow}{return} internal::pload<PacketReturnType>(data);
+00448     \}
+00449   \}
+00450 
+00451   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost}
+00452   costPerCoeff(\textcolor{keywordtype}{bool} vectorized)\textcolor{keyword}{ const }\{
+00453     \textcolor{keyword}{const} \textcolor{keywordtype}{double} kernel\_size = m\_kernelImpl.dimensions().TotalSize();
+00454     \textcolor{comment}{// We ignore the use of fused multiply-add.}
+00455     \textcolor{keyword}{const} \textcolor{keywordtype}{double} convolve\_compute\_cost =
+00456         TensorOpCost::AddCost<Scalar>() + TensorOpCost::MulCost<Scalar>();
+00457     \textcolor{keyword}{const} \textcolor{keywordtype}{double} firstIndex\_compute\_cost =
+00458         NumDims *
+00459         (2 * TensorOpCost::AddCost<Index>() + 2 * TensorOpCost::MulCost<Index>() +
+00460          TensorOpCost::DivCost<Index>());
+00461     \textcolor{keywordflow}{return} \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost}(0, 0, firstIndex\_compute\_cost, vectorized, PacketSize) +
+00462            kernel\_size * (m\_inputImpl.costPerCoeff(vectorized) +
+00463                           m\_kernelImpl.costPerCoeff(vectorized) +
+00464                           \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost}(0, 0, convolve\_compute\_cost, vectorized,
+00465                                        PacketSize));
+00466   \}
+00467 
+00468   EIGEN\_DEVICE\_FUNC Scalar* data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} NULL; \}
+00469 
+00470  \textcolor{keyword}{private}:
+00471   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE Index firstInput(Index index)\textcolor{keyword}{ const }\{
+00472     Index startInput = 0;
+00473     \textcolor{keywordflow}{if} (static\_cast<int>(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})) \{
+00474       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = NumDims - 1; i > 0; --i) \{
+00475         \textcolor{keyword}{const} Index idx = index / m\_outputStride[i];
+00476         startInput += idx * m\_inputStride[i];
+00477         index -= idx * m\_outputStride[i];
+00478       \}
+00479     \} \textcolor{keywordflow}{else} \{
+00480       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < NumDims - 1; ++i) \{
+00481         \textcolor{keyword}{const} Index idx = index / m\_outputStride[i];
+00482         startInput += idx * m\_inputStride[i];
+00483         index -= idx * m\_outputStride[i];
+00484       \}
+00485     \}
+00486     startInput += index;
+00487     \textcolor{keywordflow}{return} startInput;
+00488   \}
+00489 
+00490   EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} convolve(Index firstIndex, Index firstKernel, \textcolor{keywordtype}{int} DimIndex, CoeffReturnType& accum
+      )\textcolor{keyword}{ const }\{
+00491     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < m\_kernelImpl.dimensions()[DimIndex]; ++j) \{
+00492       \textcolor{keyword}{const} Index input = firstIndex + j * m\_indexStride[DimIndex];
+00493       \textcolor{keyword}{const} Index kernel = firstKernel + j * m\_kernelStride[DimIndex];
+00494       \textcolor{keywordflow}{if} (DimIndex > 0) \{
+00495         convolve(input, kernel, DimIndex-1, accum);
+00496       \} \textcolor{keywordflow}{else} \{
+00497         accum += m\_inputImpl.coeff(input) * m\_kernel[kernel];
+00498       \}
+00499     \}
+00500   \}
+00501 
+00502   \textcolor{keyword}{template} <\textcolor{keyword}{typename} Packet>
+00503   EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} convolvePacket(Index firstIndex, Index firstKernel, \textcolor{keywordtype}{int} DimIndex, 
+      \hyperlink{group___sparse_core___module}{Packet}& accum)\textcolor{keyword}{ const }\{
+00504     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < m\_kernelImpl.dimensions()[DimIndex]; ++j) \{
+00505       \textcolor{keyword}{const} Index input = firstIndex + j * m\_indexStride[DimIndex];
+00506       \textcolor{keyword}{const} Index kernel = firstKernel + j * m\_kernelStride[DimIndex];
+00507       \textcolor{keywordflow}{if} (DimIndex > 0) \{
+00508         convolvePacket(input, kernel, DimIndex-1, accum);
+00509       \} \textcolor{keywordflow}{else} \{
+00510         accum = internal::pmadd<Packet>(m\_inputImpl.template packet<Unaligned>(input), 
+      internal::pset1<Packet>(m\_kernel[kernel]), accum);
+00511       \}
+00512     \}
+00513   \}
+00514 
+00515   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} preloadKernel() \{
+00516     \textcolor{comment}{// Don't make a local copy of the kernel unless we have to (i.e. it's an}
+00517     \textcolor{comment}{// expression that needs to be evaluated)}
+00518     \textcolor{keyword}{const} Scalar* in\_place = m\_kernelImpl.data();
+00519     \textcolor{keywordflow}{if} (in\_place) \{
+00520       m\_kernel = in\_place;
+00521       m\_local\_kernel = \textcolor{keyword}{false};
+00522     \} \textcolor{keywordflow}{else} \{
+00523       \textcolor{keywordtype}{size\_t} kernel\_sz = m\_kernelImpl.dimensions().TotalSize() * \textcolor{keyword}{sizeof}(Scalar);
+00524       Scalar* local = (Scalar*)m\_device.allocate(kernel\_sz);
+00525       \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor_eval_to_op}{TensorEvalToOp<const KernelArgType>} EvalTo;
+00526       EvalTo evalToTmp(local, m\_kernelArg);
+00527       \textcolor{keyword}{const} \textcolor{keywordtype}{bool} PacketAccess = 
+      \hyperlink{struct_eigen_1_1internal_1_1_is_vectorizable}{internal::IsVectorizable<Device, KernelArgType>::value}
+      ;
+00528       \hyperlink{class_eigen_1_1internal_1_1_tensor_executor}{internal::TensorExecutor<const EvalTo, Device, PacketAccess>::run}
+      (evalToTmp, m\_device);
+00529 
+00530       m\_kernel = local;
+00531       m\_local\_kernel = \textcolor{keyword}{true};
+00532     \}
+00533   \}
+00534 
+00535   \hyperlink{class_eigen_1_1array}{array<Index, NumDims>} m\_inputStride;
+00536   \hyperlink{class_eigen_1_1array}{array<Index, NumDims>} m\_outputStride;
+00537 
+00538   \hyperlink{class_eigen_1_1array}{array<Index, NumKernelDims>} m\_indexStride;
+00539   \hyperlink{class_eigen_1_1array}{array<Index, NumKernelDims>} m\_kernelStride;
+00540   \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, Device>} m\_inputImpl;
+00541   \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<KernelArgType, Device>} m\_kernelImpl;
+00542   Dimensions m\_dimensions;
+00543 
+00544   KernelArgType m\_kernelArg;
+00545   \textcolor{keyword}{const} Scalar* m\_kernel;
+00546   \textcolor{keywordtype}{bool} m\_local\_kernel;
+00547   \textcolor{keyword}{const} Device& m\_device;
+00548 \};
+00549 
+00550 
+00551 
+00552 
+00553 \textcolor{comment}{// Use an optimized implementation of the evaluation code for GPUs whenever possible.}
+00554 \textcolor{preprocessor}{#if defined(EIGEN\_USE\_GPU) && defined(\_\_CUDACC\_\_)}
+00555 
+00556 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} StaticKernelSize>
+00557 \textcolor{keyword}{struct }GetKernelSize \{
+00558   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{int} operator() (\textcolor{keyword}{const} \textcolor{keywordtype}{int} \textcolor{comment}{/*kernelSize*/})\textcolor{keyword}{ const }\{
+00559     \textcolor{keywordflow}{return} StaticKernelSize;
+00560   \}
+00561 \};
+00562 \textcolor{keyword}{template} <>
+00563 \textcolor{keyword}{struct }GetKernelSize<Dynamic> \{
+00564   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{int} operator() (\textcolor{keyword}{const} \textcolor{keywordtype}{int} kernelSize)\textcolor{keyword}{ const }\{
+00565     \textcolor{keywordflow}{return} kernelSize;
+00566   \}
+00567 \};
+00568 
+00569 \textcolor{keyword}{template} <\textcolor{keyword}{typename} InputEvaluator, \textcolor{keyword}{typename} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \textcolor{keyword}{typename} InputDims,
+00570           \textcolor{keywordtype}{int} StaticKernelSize>
+00571 \_\_global\_\_ \textcolor{keywordtype}{void} EigenConvolutionKernel1D(
+00572     InputEvaluator eval,
+00573     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1internal_1_1_index_mapper}{internal::IndexMapper<Index, InputDims, 1, InputEvaluator::Layout>}
+00574         indexMapper,
+00575     \textcolor{keyword}{const} \textcolor{keywordtype}{float}* \_\_restrict kernel, \textcolor{keyword}{const} \textcolor{keywordtype}{int} numPlanes, \textcolor{keyword}{const} \textcolor{keywordtype}{int} numX,
+00576     \textcolor{keyword}{const} \textcolor{keywordtype}{int} maxX, \textcolor{keyword}{const} \textcolor{keywordtype}{int} kernelSize, \textcolor{keywordtype}{float}* buffer) \{
+00577   \textcolor{keyword}{extern} \_\_shared\_\_ \textcolor{keywordtype}{float} s[];
+00578 
+00579   \textcolor{keyword}{const} \textcolor{keywordtype}{int} first\_x = blockIdx.x * maxX;
+00580   \textcolor{keyword}{const} \textcolor{keywordtype}{int} last\_x = (first\_x + maxX < numX ? first\_x + maxX : numX) - 1;
+00581   \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_x\_input = last\_x - first\_x + GetKernelSize<StaticKernelSize>()(kernelSize);
+00582   \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_x\_output = last\_x - first\_x + 1;
+00583 
+00584   \textcolor{keyword}{const} \textcolor{keywordtype}{int} first\_plane = blockIdx.y * blockDim.y;
+00585   \textcolor{keyword}{const} \textcolor{keywordtype}{int} plane\_stride = blockDim.y * gridDim.y;
+00586 
+00587   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} p = first\_plane + threadIdx.y; p < numPlanes; p += plane\_stride) \{
+00588     \textcolor{comment}{// Load inputs to shared memory}
+00589     \textcolor{keyword}{const} \textcolor{keywordtype}{int} plane\_input\_offset = indexMapper.mapCudaInputPlaneToTensorInputOffset(p);
+00590     \textcolor{keyword}{const} \textcolor{keywordtype}{int} plane\_kernel\_offset = threadIdx.y * num\_x\_input;
+00591 \textcolor{preprocessor}{    #pragma unroll}
+00592     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = threadIdx.x; i < num\_x\_input; i += blockDim.x) \{
+00593       \textcolor{keyword}{const} \textcolor{keywordtype}{int} tensor\_index = plane\_input\_offset + indexMapper.mapCudaInputKernelToTensorInputOffset(i+
+      first\_x);
+00594       s[i + plane\_kernel\_offset] = eval.coeff(tensor\_index);
+00595     \}
+00596 
+00597     \_\_syncthreads();
+00598 
+00599     \textcolor{comment}{// Compute the convolution}
+00600     \textcolor{keyword}{const} \textcolor{keywordtype}{int} plane\_output\_offset = indexMapper.mapCudaOutputPlaneToTensorOutputOffset(p);
+00601 
+00602 \textcolor{preprocessor}{    #pragma unroll}
+00603     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = threadIdx.x; i < num\_x\_output; i += blockDim.x) \{
+00604       \textcolor{keyword}{const} \textcolor{keywordtype}{int} kernel\_offset = plane\_kernel\_offset + i;
+00605       \textcolor{keywordtype}{float} result = 0.0f;
+00606 \textcolor{preprocessor}{      #pragma unroll}
+00607       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < GetKernelSize<StaticKernelSize>()(kernelSize); ++k) \{
+00608         result += s[k + kernel\_offset] * kernel[k];
+00609       \}
+00610       \textcolor{keyword}{const} \textcolor{keywordtype}{int} tensor\_index = plane\_output\_offset + indexMapper.mapCudaOutputKernelToTensorOutputOffset(i+
+      first\_x);
+00611       buffer[tensor\_index] = result;
+00612     \}
+00613     \_\_syncthreads();
+00614   \}
+00615 \};
+00616 
+00617 \textcolor{keyword}{template} <\textcolor{keyword}{typename} InputEvaluator, \textcolor{keyword}{typename} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \textcolor{keyword}{typename} InputDims,
+00618           \textcolor{keywordtype}{int} StaticKernelSizeX, \textcolor{keywordtype}{int} StaticKernelSizeY>
+00619 \_\_global\_\_ \textcolor{keywordtype}{void} EigenConvolutionKernel2D(
+00620     InputEvaluator eval,
+00621     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1internal_1_1_index_mapper}{internal::IndexMapper<Index, InputDims, 2, InputEvaluator::Layout>}
+00622         indexMapper,
+00623     \textcolor{keyword}{const} \textcolor{keywordtype}{float}* \_\_restrict kernel, \textcolor{keyword}{const} \textcolor{keywordtype}{int} numPlanes, \textcolor{keyword}{const} \textcolor{keywordtype}{int} numX,
+00624     \textcolor{keyword}{const} \textcolor{keywordtype}{int} maxX, \textcolor{keyword}{const} \textcolor{keywordtype}{int} numY, \textcolor{keyword}{const} \textcolor{keywordtype}{int} maxY, \textcolor{keyword}{const} \textcolor{keywordtype}{int} kernelSizeX,
+00625     \textcolor{keyword}{const} \textcolor{keywordtype}{int} kernelSizeY, \textcolor{keywordtype}{float}* buffer) \{
+00626   \textcolor{keyword}{extern} \_\_shared\_\_ \textcolor{keywordtype}{float} s[];
+00627 
+00628   \textcolor{keyword}{const} \textcolor{keywordtype}{int} first\_x = blockIdx.x * maxX;
+00629   \textcolor{keyword}{const} \textcolor{keywordtype}{int} last\_x = (first\_x + maxX < numX ? first\_x + maxX : numX) - 1;
+00630   \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_x\_input = last\_x - first\_x + GetKernelSize<StaticKernelSizeX>()(kernelSizeX);
+00631   \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_x\_output = last\_x - first\_x + 1;
+00632 
+00633   \textcolor{keyword}{const} \textcolor{keywordtype}{int} first\_y = blockIdx.y * maxY;
+00634   \textcolor{keyword}{const} \textcolor{keywordtype}{int} last\_y = (first\_y + maxY < numY ? first\_y + maxY : numY) - 1;
+00635   \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_y\_input = last\_y - first\_y + GetKernelSize<StaticKernelSizeY>()(kernelSizeY);
+00636   \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_y\_output = last\_y - first\_y + 1;
+00637 
+00638   \textcolor{keyword}{const} \textcolor{keywordtype}{int} first\_plane = blockIdx.z * blockDim.z;
+00639   \textcolor{keyword}{const} \textcolor{keywordtype}{int} plane\_stride = blockDim.z * gridDim.z;
+00640 
+00641   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} p = first\_plane + threadIdx.z; p < numPlanes; p += plane\_stride) \{
+00642 
+00643     \textcolor{keyword}{const} \textcolor{keywordtype}{int} plane\_input\_offset = indexMapper.mapCudaInputPlaneToTensorInputOffset(p);
+00644     \textcolor{keyword}{const} \textcolor{keywordtype}{int} plane\_kernel\_offset = threadIdx.z * num\_y\_input;
+00645 
+00646     \textcolor{comment}{// Load inputs to shared memory}
+00647 \textcolor{preprocessor}{    #pragma unroll}
+00648     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = threadIdx.y; j < num\_y\_input; j += blockDim.y) \{
+00649       \textcolor{keyword}{const} \textcolor{keywordtype}{int} input\_offset = num\_x\_input * (j + plane\_kernel\_offset);
+00650 \textcolor{preprocessor}{      #pragma unroll}
+00651       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = threadIdx.x; i < num\_x\_input; i += blockDim.x) \{
+00652         \textcolor{keyword}{const} \textcolor{keywordtype}{int} tensor\_index = plane\_input\_offset + indexMapper.mapCudaInputKernelToTensorInputOffset(i+
+      first\_x, j+first\_y);
+00653         s[i + input\_offset] = eval.coeff(tensor\_index);
+00654       \}
+00655     \}
+00656 
+00657     \_\_syncthreads();
+00658 
+00659     \textcolor{comment}{// Convolution}
+00660     \textcolor{keyword}{const} \textcolor{keywordtype}{int} plane\_output\_offset = indexMapper.mapCudaOutputPlaneToTensorOutputOffset(p);
+00661 
+00662 \textcolor{preprocessor}{    #pragma unroll}
+00663     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = threadIdx.y; j < num\_y\_output; j += blockDim.y) \{
+00664 \textcolor{preprocessor}{      #pragma unroll}
+00665       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = threadIdx.x; i < num\_x\_output; i += blockDim.x) \{
+00666         \textcolor{keywordtype}{float} result = 0.0f;
+00667 \textcolor{preprocessor}{        #pragma unroll}
+00668         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < GetKernelSize<StaticKernelSizeY>()(kernelSizeY); ++l) \{
+00669           \textcolor{keyword}{const} \textcolor{keywordtype}{int} kernel\_offset = kernelSizeX * l;
+00670           \textcolor{keyword}{const} \textcolor{keywordtype}{int} input\_offset = i + num\_x\_input * (j + l + plane\_kernel\_offset);
+00671 \textcolor{preprocessor}{          #pragma unroll}
+00672           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < GetKernelSize<StaticKernelSizeX>()(kernelSizeX); ++k) \{
+00673             result += s[k + input\_offset] * kernel[k + kernel\_offset];
+00674           \}
+00675         \}
+00676         \textcolor{keyword}{const} \textcolor{keywordtype}{int} tensor\_index = plane\_output\_offset + indexMapper.mapCudaOutputKernelToTensorOutputOffset(
+      i+first\_x, j+first\_y);
+00677         buffer[tensor\_index] = result;
+00678       \}
+00679     \}
+00680 
+00681     \_\_syncthreads();
+00682   \}
+00683 \};
+00684 
+00685 \textcolor{keyword}{template} <\textcolor{keyword}{typename} InputEvaluator, \textcolor{keyword}{typename} Index, \textcolor{keyword}{typename} InputDims>
+00686 \_\_global\_\_ \textcolor{keywordtype}{void} EigenConvolutionKernel3D(
+00687     InputEvaluator eval,
+00688     \textcolor{keyword}{const} \hyperlink{class_eigen_1_1internal_1_1_index_mapper}{internal::IndexMapper<Index, InputDims, 3, InputEvaluator::Layout>}
+00689         indexMapper,
+00690     \textcolor{keyword}{const} \textcolor{keywordtype}{float}* \_\_restrict kernel, \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} numPlanes, \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} numX,
+00691     \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} maxX, \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} numY, \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} maxY, \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} numZ,
+00692     \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} maxZ, \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} kernelSizeX, \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} kernelSizeY,
+00693     \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} kernelSizeZ, \textcolor{keywordtype}{float}* buffer) \{
+00694   \textcolor{keyword}{extern} \_\_shared\_\_ \textcolor{keywordtype}{float} s[];
+00695 
+00696   \textcolor{comment}{// Load inputs to shared memory}
+00697   \textcolor{keyword}{const} \textcolor{keywordtype}{int} first\_x = blockIdx.x * maxX;
+00698   \textcolor{keyword}{const} \textcolor{keywordtype}{int} last\_x = (first\_x + maxX < numX ? first\_x + maxX : numX) - 1;
+00699   \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_x\_input = last\_x - first\_x + kernelSizeX;
+00700 
+00701   \textcolor{keyword}{const} \textcolor{keywordtype}{int} first\_y = blockIdx.y * maxY;
+00702   \textcolor{keyword}{const} \textcolor{keywordtype}{int} last\_y = (first\_y + maxY < numY ? first\_y + maxY : numY) - 1;
+00703   \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_y\_input = last\_y - first\_y + kernelSizeY;
+00704 
+00705   \textcolor{keyword}{const} \textcolor{keywordtype}{int} first\_z = blockIdx.z * maxZ;
+00706   \textcolor{keyword}{const} \textcolor{keywordtype}{int} last\_z = (first\_z + maxZ < numZ ? first\_z + maxZ : numZ) - 1;
+00707   \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_z\_input = last\_z - first\_z + kernelSizeZ;
+00708 
+00709   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} p = 0; p < numPlanes; ++p) \{
+00710 
+00711     \textcolor{keyword}{const} \textcolor{keywordtype}{int} plane\_input\_offset = indexMapper.mapCudaInputPlaneToTensorInputOffset(p);
+00712     \textcolor{keyword}{const} \textcolor{keywordtype}{int} plane\_kernel\_offset = 0;
+00713 
+00714     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = threadIdx.z; k < num\_z\_input; k += blockDim.z) \{
+00715       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = threadIdx.y; j < num\_y\_input; j += blockDim.y) \{
+00716         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = threadIdx.x; i < num\_x\_input; i += blockDim.x) \{
+00717           \textcolor{keyword}{const} \textcolor{keywordtype}{int} tensor\_index = plane\_input\_offset + indexMapper.mapCudaInputKernelToTensorInputOffset(i
+      +first\_x, j+first\_y, k+first\_z);
+00718           s[i + num\_x\_input * (j + num\_y\_input * (k + plane\_kernel\_offset))] = eval.coeff(tensor\_index);
+00719         \}
+00720       \}
+00721     \}
+00722 
+00723     \_\_syncthreads();
+00724 
+00725     \textcolor{comment}{// Convolution}
+00726     \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_z\_output = last\_z - first\_z + 1;
+00727     \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_y\_output = last\_y - first\_y + 1;
+00728     \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_x\_output = last\_x - first\_x + 1;
+00729     \textcolor{keyword}{const} \textcolor{keywordtype}{int} plane\_output\_offset = indexMapper.mapCudaOutputPlaneToTensorOutputOffset(p);
+00730 
+00731     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = threadIdx.z; k < num\_z\_output; k += blockDim.z) \{
+00732       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = threadIdx.y; j < num\_y\_output; j += blockDim.y) \{
+00733         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = threadIdx.x; i < num\_x\_output; i += blockDim.x) \{
+00734           \textcolor{keywordtype}{float} result = 0.0f;
+00735           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} n = 0; n < kernelSizeZ; ++n) \{
+00736             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} m = 0; m < kernelSizeY; ++m) \{
+00737               \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < kernelSizeX; ++l) \{
+00738                 result += s[i + l + num\_x\_input * (j + m + num\_y\_input * (k + n + plane\_kernel\_offset))] * 
+      kernel[l + kernelSizeX * (m + kernelSizeY * n)];
+00739               \}
+00740             \}
+00741           \}
+00742           \textcolor{keyword}{const} \textcolor{keywordtype}{int} tensor\_index = plane\_output\_offset + indexMapper.
+      mapCudaOutputKernelToTensorOutputOffset(i+first\_x, j+first\_y, k+first\_z);
+00743           buffer[tensor\_index] = result;
+00744         \}
+00745       \}
+00746     \}
+00747     \_\_syncthreads();
+00748   \}
+00749 \};
+00750 
+00751 
+00752 
+00753 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Indices, \textcolor{keyword}{typename} InputArgType, \textcolor{keyword}{typename} KernelArgType>
+00754 \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}<const TensorConvolutionOp<Indices, InputArgType, KernelArgType>, 
+      GpuDevice>
+00755 \{
+00756   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor_convolution_op}{TensorConvolutionOp<Indices, InputArgType, KernelArgType>}
+       XprType;
+00757 
+00758   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} NumDims =  
+      \hyperlink{struct_eigen_1_1internal_1_1array__size}{internal::array\_size<typename TensorEvaluator<InputArgType, GpuDevice>::Dimensions}
+      >::value;
+00759   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} NumKernelDims = \hyperlink{struct_eigen_1_1internal_1_1array__size}{internal::array\_size<Indices>::value}
+      ;
+00760   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00761   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1_d_sizes}{DSizes<Index, NumDims>} Dimensions;
+00762   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} TensorEvaluator<KernelArgType, GpuDevice>::Dimensions KernelDimensions;
+00763 
+00764   \textcolor{keyword}{enum} \{
+00765     IsAligned = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, GpuDevice>::IsAligned}
+       & \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<KernelArgType, GpuDevice>::IsAligned},
+00766     PacketAccess = \textcolor{keyword}{false},
+00767     Layout = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, GpuDevice>::Layout}
+      ,
+00768     CoordAccess = \textcolor{keyword}{false},  \textcolor{comment}{// to be implemented}
+00769     RawAccess = \textcolor{keyword}{false}
+00770   \};
+00771 
+00772   EIGEN\_DEVICE\_FUNC \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}(\textcolor{keyword}{const} XprType& op, \textcolor{keyword}{const} GpuDevice& device)
+00773       : m\_inputImpl(op.inputExpression(), device), m\_kernelArg(op.kernelExpression()), m\_kernelImpl(op.
+      kernelExpression(), device), m\_indices(op.indices()), m\_buf(NULL), m\_kernel(NULL), m\_local\_kernel(\textcolor{keyword}{false}), 
+      m\_device(device)
+00774   \{
+00775     EIGEN\_STATIC\_ASSERT((static\_cast<int>(
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, GpuDevice>::Layout}) == 
+      static\_cast<int>(\hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<KernelArgType, GpuDevice>::Layout}
+      )), YOU\_MADE\_A\_PROGRAMMING\_MISTAKE);
+00776 
+00777     \textcolor{keyword}{const} \textcolor{keyword}{typename} TensorEvaluator<InputArgType, GpuDevice>::Dimensions& input\_dims = m\_inputImpl.
+      dimensions();
+00778     \textcolor{keyword}{const} \textcolor{keyword}{typename} TensorEvaluator<KernelArgType, GpuDevice>::Dimensions& kernel\_dims = m\_kernelImpl.
+      dimensions();
+00779 
+00780     m\_dimensions = m\_inputImpl.dimensions();
+00781     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < NumKernelDims; ++i) \{
+00782       \textcolor{keyword}{const} Index index = op.indices()[i];
+00783       \textcolor{keyword}{const} Index input\_dim = input\_dims[index];
+00784       \textcolor{keyword}{const} Index kernel\_dim = kernel\_dims[i];
+00785       \textcolor{keyword}{const} Index result\_dim = input\_dim - kernel\_dim + 1;
+00786       m\_dimensions[index] = result\_dim;
+00787     \}
+00788   \}
+00789 
+00790   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::CoeffReturnType CoeffReturnType;
+00791   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{PacketType<CoeffReturnType, GpuDevice>::type}
+       PacketReturnType;
+00792   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} InputArgType::Scalar Scalar;
+00793   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} PacketSize = 
+      \hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{internal::unpacket\_traits<PacketReturnType>::size};
+00794 
+00795   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} Dimensions& dimensions()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_dimensions; \}
+00796 
+00797   EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{bool} evalSubExprsIfNeeded(Scalar* data) \{
+00798     preloadKernel();
+00799     m\_inputImpl.evalSubExprsIfNeeded(NULL);
+00800     \textcolor{keywordflow}{if} (data) \{
+00801       executeEval(data);
+00802       \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00803     \} \textcolor{keywordflow}{else} \{
+00804       m\_buf = (Scalar*)m\_device.allocate(dimensions().TotalSize() * \textcolor{keyword}{sizeof}(Scalar));
+00805       executeEval(m\_buf);
+00806       \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00807     \}
+00808   \}
+00809 
+00810   EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} cleanup() \{
+00811     m\_inputImpl.cleanup();
+00812     \textcolor{keywordflow}{if} (m\_buf) \{
+00813       m\_device.deallocate(m\_buf);
+00814       m\_buf = NULL;
+00815     \}
+00816     \textcolor{keywordflow}{if} (m\_local\_kernel) \{
+00817       m\_device.deallocate((\textcolor{keywordtype}{void}*)m\_kernel);
+00818       m\_local\_kernel = \textcolor{keyword}{false};
+00819     \}
+00820     m\_kernel = NULL;
+00821   \}
+00822 
+00823   EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} preloadKernel() \{
+00824     \textcolor{comment}{// Don't make a local copy of the kernel unless we have to (i.e. it's an}
+00825     \textcolor{comment}{// expression that needs to be evaluated)}
+00826     \textcolor{keyword}{const} Scalar* in\_place = m\_kernelImpl.data();
+00827     \textcolor{keywordflow}{if} (in\_place) \{
+00828       m\_kernel = in\_place;
+00829       m\_local\_kernel = \textcolor{keyword}{false};
+00830     \} \textcolor{keywordflow}{else} \{
+00831       \textcolor{keywordtype}{size\_t} kernel\_sz = m\_kernelImpl.dimensions().TotalSize() * \textcolor{keyword}{sizeof}(Scalar);
+00832       Scalar* local = (Scalar*)m\_device.allocate(kernel\_sz);
+00833       \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor_eval_to_op}{TensorEvalToOp<const KernelArgType>} EvalTo;
+00834       EvalTo evalToTmp(local, m\_kernelArg);
+00835       \textcolor{keyword}{const} \textcolor{keywordtype}{bool} PacketAccess = 
+      \hyperlink{struct_eigen_1_1internal_1_1_is_vectorizable}{internal::IsVectorizable<GpuDevice, KernelArgType>::value}
+      ;
+00836       \hyperlink{class_eigen_1_1internal_1_1_tensor_executor}{internal::TensorExecutor<const EvalTo, GpuDevice, PacketAccess>::run}
+      (evalToTmp, m\_device);
+00837 
+00838       m\_kernel = local;
+00839       m\_local\_kernel = \textcolor{keyword}{true};
+00840     \}
+00841   \}
+00842 
+00843   \textcolor{keyword}{static} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} ceil(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} num, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} denom) \{
+00844     \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} rounded\_toward\_zero = num / denom;
+00845     \textcolor{keywordflow}{if} (num > rounded\_toward\_zero * denom) \{
+00846       \textcolor{keywordflow}{return} rounded\_toward\_zero + 1;
+00847     \}
+00848     \textcolor{keywordflow}{return} rounded\_toward\_zero;
+00849   \}
+00850 
+00851   \textcolor{keywordtype}{void} executeEval(Scalar* data)\textcolor{keyword}{ const }\{
+00852     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} TensorEvaluator<InputArgType, GpuDevice>::Dimensions InputDims;
+00853 
+00854     \textcolor{keyword}{const} \textcolor{keywordtype}{int} maxSharedMem = m\_device.sharedMemPerBlock();
+00855     \textcolor{keyword}{const} \textcolor{keywordtype}{int} maxThreadsPerBlock = m\_device.maxCudaThreadsPerBlock();
+00856     \textcolor{keyword}{const} \textcolor{keywordtype}{int} maxBlocksPerProcessor = m\_device.maxCudaThreadsPerMultiProcessor() / maxThreadsPerBlock;
+00857     \textcolor{keyword}{const} \textcolor{keywordtype}{int} numMultiProcessors = m\_device.getNumCudaMultiProcessors();
+00858     \textcolor{keyword}{const} \textcolor{keywordtype}{int} warpSize = 32;
+00859 
+00860     \textcolor{keywordflow}{switch} (NumKernelDims) \{
+00861       \textcolor{keywordflow}{case} 1: \{
+00862         \textcolor{keyword}{const} \textcolor{keywordtype}{int} kernel\_size = m\_kernelImpl.dimensions().TotalSize();
+00863 
+00864         \textcolor{keyword}{const} \textcolor{keywordtype}{int} numX = dimensions()[m\_indices[0]];
+00865         \textcolor{keyword}{const} \textcolor{keywordtype}{int} numP = dimensions().TotalSize() / numX;
+00866         \textcolor{keywordtype}{int} maxX;
+00867         dim3 block\_size;
+00868 
+00869         \textcolor{keyword}{const} \textcolor{keywordtype}{int} single\_stride\_dim =
+00870             \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})
+00871                 ? 0
+00872                 : m\_inputImpl.dimensions().rank() - 1;
+00873         \textcolor{keywordflow}{if} (m\_indices[0] == single\_stride\_dim) \{
+00874           \textcolor{comment}{// Maximum the reuse}
+00875           \textcolor{keyword}{const} \textcolor{keywordtype}{int} inner\_dim = ((maxSharedMem / (\textcolor{keyword}{sizeof}(Scalar)) - kernel\_size + 1 + 31) / 32) * 32;
+00876           maxX = numext::mini<int>(inner\_dim, numX);
+00877           \textcolor{keyword}{const} \textcolor{keywordtype}{int} maxP = numext::mini<int>(maxSharedMem / ((kernel\_size - 1 + maxX) * \textcolor{keyword}{sizeof}(Scalar)), 
+      numP);
+00878           block\_size.x = numext::mini(maxThreadsPerBlock, maxX);
+00879           block\_size.y = numext::mini<int>(maxThreadsPerBlock / block\_size.x, maxP);
+00880         \}
+00881         \textcolor{keywordflow}{else} \{
+00882           \textcolor{comment}{// Read as much as possible alongside the inner most dimension, that is the plane}
+00883           \textcolor{keyword}{const} \textcolor{keywordtype}{int} inner\_dim = maxSharedMem / ((warpSize + kernel\_size) * \textcolor{keyword}{sizeof}(Scalar));
+00884           \textcolor{keyword}{const} \textcolor{keywordtype}{int} maxP = numext::mini<int>(inner\_dim, numP);
+00885           maxX = numext::mini<int>(maxSharedMem / (inner\_dim * \textcolor{keyword}{sizeof}(Scalar)) - kernel\_size + 1, numX);
+00886 
+00887           block\_size.x = numext::mini(warpSize, maxX);
+00888           block\_size.y = numext::mini<int>(maxThreadsPerBlock/block\_size.x, maxP);
+00889         \}
+00890 
+00891         \textcolor{keyword}{const} \textcolor{keywordtype}{int} shared\_mem = block\_size.y * (maxX + kernel\_size - 1) * \textcolor{keyword}{sizeof}(Scalar);
+00892         assert(shared\_mem <= maxSharedMem);
+00893 
+00894         \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_x\_blocks = ceil(numX, maxX);
+00895         \textcolor{keyword}{const} \textcolor{keywordtype}{int} blocksPerProcessor = numext::mini(maxBlocksPerProcessor, maxSharedMem / shared\_mem);
+00896         \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_y\_blocks = ceil(numMultiProcessors * blocksPerProcessor, num\_x\_blocks);
+00897 
+00898         dim3 num\_blocks(num\_x\_blocks, numext::mini<int>(num\_y\_blocks, ceil(numP, block\_size.y)));
+00899 
+00900 
+00901         \textcolor{comment}{//cout << "launching 1D kernel with block\_size.x: " << block\_size.x << " block\_size.y: " <<
+       block\_size.y << " num\_blocks.x: " << num\_blocks.x << " num\_blocks.y: " << num\_blocks.y << " maxX: " << maxX << "
+       shared\_mem: " << shared\_mem << " in stream " << m\_device.stream() << endl;}
+00902 
+00903         \textcolor{keyword}{const} \hyperlink{class_eigen_1_1array}{array<Index, 1>} indices(m\_indices[0]);
+00904         \textcolor{keyword}{const} \hyperlink{class_eigen_1_1array}{array<Index, 1>} kernel\_dims(m\_kernelImpl.dimensions()[0]);
+00905         \hyperlink{class_eigen_1_1internal_1_1_index_mapper}{internal::IndexMapper<Index, InputDims, 1, Layout>}
+       indexMapper(
+00906             m\_inputImpl.dimensions(), kernel\_dims, indices);
+00907         \textcolor{keywordflow}{switch}(kernel\_size) \{
+00908           \textcolor{keywordflow}{case} 4: \{
+00909             LAUNCH\_CUDA\_KERNEL((EigenConvolutionKernel1D<
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, GpuDevice>}, Index, InputDims, 4>), 
+      num\_blocks, block\_size, shared\_mem, m\_device, m\_inputImpl, indexMapper, m\_kernel, numP, numX, maxX, 4, data);
+00910             \textcolor{keywordflow}{break};
+00911           \}
+00912           \textcolor{keywordflow}{case} 7: \{
+00913             LAUNCH\_CUDA\_KERNEL((EigenConvolutionKernel1D<
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, GpuDevice>}, Index, InputDims, 7>), 
+      num\_blocks, block\_size, shared\_mem, m\_device, m\_inputImpl, indexMapper, m\_kernel, numP, numX, maxX, 7, data);
+00914             \textcolor{keywordflow}{break};
+00915           \}
+00916           \textcolor{keywordflow}{default}: \{
+00917             LAUNCH\_CUDA\_KERNEL((EigenConvolutionKernel1D<
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, GpuDevice>}, Index, InputDims, Dynamic
+      >), num\_blocks, block\_size, shared\_mem, m\_device, m\_inputImpl, indexMapper, m\_kernel, numP, numX, maxX, 
+      kernel\_size, data);
+00918           \}
+00919         \}
+00920         \textcolor{keywordflow}{break};
+00921       \}
+00922 
+00923       \textcolor{keywordflow}{case} 2: \{
+00924         \textcolor{keyword}{const} \textcolor{keywordtype}{int} idxX =
+00925             \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}) ? 0 : 1;
+00926         \textcolor{keyword}{const} \textcolor{keywordtype}{int} idxY =
+00927             \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}) ? 1 : 0;
+00928         \textcolor{keyword}{const} \textcolor{keywordtype}{int} kernel\_size\_x = m\_kernelImpl.dimensions()[idxX];
+00929         \textcolor{keyword}{const} \textcolor{keywordtype}{int} kernel\_size\_y = m\_kernelImpl.dimensions()[idxY];
+00930 
+00931         \textcolor{keyword}{const} \textcolor{keywordtype}{int} numX = dimensions()[m\_indices[idxX]];
+00932         \textcolor{keyword}{const} \textcolor{keywordtype}{int} numY = dimensions()[m\_indices[idxY]];
+00933         \textcolor{keyword}{const} \textcolor{keywordtype}{int} numP = dimensions().TotalSize() / (numX*numY);
+00934 
+00935         \textcolor{keyword}{const} \textcolor{keywordtype}{float} scaling\_factor = sqrtf(static\_cast<float>(maxSharedMem) / (\textcolor{keyword}{sizeof}(Scalar) * 
+      kernel\_size\_y * kernel\_size\_x));
+00936 
+00937         \textcolor{comment}{// Snap maxX to warp size}
+00938         \textcolor{keywordtype}{int} inner\_dim = ((\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(scaling\_factor * kernel\_size\_x) - kernel\_size\_x + 1 + 32) / 32) 
+      * 32;
+00939         \textcolor{keyword}{const} \textcolor{keywordtype}{int} maxX = numext::mini<int>(inner\_dim, numX);
+00940         \textcolor{keyword}{const} \textcolor{keywordtype}{int} maxY = numext::mini<int>(maxSharedMem / (\textcolor{keyword}{sizeof}(Scalar) * (maxX + kernel\_size\_x - 1)) - 
+      kernel\_size\_y + 1, numY);
+00941         \textcolor{keyword}{const} \textcolor{keywordtype}{int} maxP = numext::mini<int>(maxSharedMem / ((kernel\_size\_x - 1 + maxX) * (kernel\_size\_y - 1 
+      + maxY) * \textcolor{keyword}{sizeof}(Scalar)), numP);
+00942 
+00943         dim3 block\_size;
+00944         block\_size.x = numext::mini(1024, maxX);
+00945         block\_size.y = numext::mini<int>(1024/block\_size.x, maxY);
+00946         block\_size.z = numext::mini<int>(1024/(block\_size.x*block\_size.y), maxP);
+00947 
+00948         \textcolor{keyword}{const} \textcolor{keywordtype}{int} shared\_mem = block\_size.z * (maxX + kernel\_size\_x - 1) * (maxY + kernel\_size\_y - 1) * \textcolor{keyword}{
+      sizeof}(Scalar);
+00949         assert(shared\_mem <= maxSharedMem);
+00950 
+00951         \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_x\_blocks = ceil(numX, maxX);
+00952         \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_y\_blocks = ceil(numY, maxY);
+00953         \textcolor{keyword}{const} \textcolor{keywordtype}{int} blocksPerProcessor = numext::mini(maxBlocksPerProcessor, maxSharedMem / shared\_mem);
+00954         \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_z\_blocks = ceil(numMultiProcessors * blocksPerProcessor, num\_x\_blocks * num\_y\_blocks)
+      ;
+00955 
+00956         dim3 num\_blocks(num\_x\_blocks, num\_y\_blocks, numext::mini<int>(num\_z\_blocks, ceil(numP, block\_size.z
+      )));
+00957 
+00958 
+00959         \textcolor{comment}{//cout << "launching 2D kernel with block\_size.x: " << block\_size.x << " block\_size.y: " <<
+       block\_size.y  << " block\_size.z: " << block\_size.z << " num\_blocks.x: " << num\_blocks.x << " num\_blocks.y: " <<
+       num\_blocks.y << " num\_blocks.z: " << num\_blocks.z << " maxX: " << maxX << " maxY: " << maxY << " maxP: " <<
+       maxP << " shared\_mem: " << shared\_mem << " in stream " << m\_device.stream() << endl;}
+00960 
+00961         \textcolor{keyword}{const} \hyperlink{class_eigen_1_1array}{array<Index, 2>} indices(m\_indices[idxX], m\_indices[idxY]);
+00962         \textcolor{keyword}{const} \hyperlink{class_eigen_1_1array}{array<Index, 2>} kernel\_dims(m\_kernelImpl.dimensions()[idxX],
+00963                                           m\_kernelImpl.dimensions()[idxY]);
+00964         \hyperlink{class_eigen_1_1internal_1_1_index_mapper}{internal::IndexMapper<Index, InputDims, 2, Layout>}
+       indexMapper(
+00965             m\_inputImpl.dimensions(), kernel\_dims, indices);
+00966         \textcolor{keywordflow}{switch} (kernel\_size\_x) \{
+00967           \textcolor{keywordflow}{case} 4: \{
+00968             \textcolor{keywordflow}{switch} (kernel\_size\_y) \{
+00969               \textcolor{keywordflow}{case} 7: \{
+00970                 LAUNCH\_CUDA\_KERNEL((EigenConvolutionKernel2D<
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, GpuDevice>}, Index, InputDims, 4, 7>),
+       num\_blocks, block\_size, shared\_mem, m\_device, m\_inputImpl, indexMapper, m\_kernel, numP, numX, maxX, numY, 
+      maxY, 4, 7, data);
+00971                 \textcolor{keywordflow}{break};
+00972               \}
+00973               \textcolor{keywordflow}{default}: \{
+00974                 LAUNCH\_CUDA\_KERNEL((EigenConvolutionKernel2D<
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, GpuDevice>}, Index, InputDims, 4, 
+      Dynamic>), num\_blocks, block\_size, shared\_mem, m\_device, m\_inputImpl, indexMapper, m\_kernel, numP, numX, maxX, 
+      numY, maxY, 4, kernel\_size\_y, data);
+00975                 \textcolor{keywordflow}{break};
+00976               \}
+00977             \}
+00978             \textcolor{keywordflow}{break};
+00979           \}
+00980           \textcolor{keywordflow}{case} 7: \{
+00981             \textcolor{keywordflow}{switch} (kernel\_size\_y) \{
+00982               \textcolor{keywordflow}{case} 4: \{
+00983                 LAUNCH\_CUDA\_KERNEL((EigenConvolutionKernel2D<
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, GpuDevice>}, Index, InputDims, 7, 4>),
+       num\_blocks, block\_size, shared\_mem, m\_device, m\_inputImpl, indexMapper, m\_kernel, numP, numX, maxX, numY, 
+      maxY, 7, 4, data);
+00984                 \textcolor{keywordflow}{break};
+00985               \}
+00986               \textcolor{keywordflow}{default}: \{
+00987                 LAUNCH\_CUDA\_KERNEL((EigenConvolutionKernel2D<
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, GpuDevice>}, Index, InputDims, 7, 
+      Dynamic>), num\_blocks, block\_size, shared\_mem, m\_device, m\_inputImpl, indexMapper, m\_kernel, numP, numX, maxX, 
+      numY, maxY, 7, kernel\_size\_y, data);
+00988                 \textcolor{keywordflow}{break};
+00989               \}
+00990             \}
+00991             \textcolor{keywordflow}{break};
+00992           \}
+00993           \textcolor{keywordflow}{default}: \{
+00994             LAUNCH\_CUDA\_KERNEL((EigenConvolutionKernel2D<
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, GpuDevice>}, Index, InputDims, Dynamic
+      , Dynamic>), num\_blocks, block\_size, shared\_mem, m\_device, m\_inputImpl, indexMapper, m\_kernel, numP, numX, 
+      maxX, numY, maxY, kernel\_size\_x, kernel\_size\_y, data);
+00995             \textcolor{keywordflow}{break};
+00996           \}
+00997         \}
+00998         \textcolor{keywordflow}{break};
+00999       \}
+01000 
+01001       \textcolor{keywordflow}{case} 3: \{
+01002         \textcolor{keyword}{const} \textcolor{keywordtype}{int} idxX =
+01003             \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}) ? 0 : 2;
+01004         \textcolor{keyword}{const} \textcolor{keywordtype}{int} idxY =
+01005             \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}) ? 1 : 1;
+01006         \textcolor{keyword}{const} \textcolor{keywordtype}{int} idxZ =
+01007             \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}) ? 2 : 0;
+01008 
+01009         \textcolor{keyword}{const} \textcolor{keywordtype}{int} kernel\_size\_x = m\_kernelImpl.dimensions()[idxX];
+01010         \textcolor{keyword}{const} \textcolor{keywordtype}{int} kernel\_size\_y = m\_kernelImpl.dimensions()[idxY];
+01011         \textcolor{keyword}{const} \textcolor{keywordtype}{int} kernel\_size\_z = m\_kernelImpl.dimensions()[idxZ];
+01012 
+01013         \textcolor{keyword}{const} \textcolor{keywordtype}{int} numX = dimensions()[m\_indices[idxX]];
+01014         \textcolor{keyword}{const} \textcolor{keywordtype}{int} numY = dimensions()[m\_indices[idxY]];
+01015         \textcolor{keyword}{const} \textcolor{keywordtype}{int} numZ = dimensions()[m\_indices[idxZ]];
+01016         \textcolor{keyword}{const} \textcolor{keywordtype}{int} numP = dimensions().TotalSize() / (numX*numY*numZ);
+01017 
+01018         \textcolor{keyword}{const} \textcolor{keywordtype}{int} maxX = numext::mini<int>(128, numext::mini<int>(maxSharedMem / (\textcolor{keyword}{sizeof}(Scalar) * 
+      kernel\_size\_y * kernel\_size\_z) - kernel\_size\_x + 1, numX));
+01019         \textcolor{keyword}{const} \textcolor{keywordtype}{int} maxY = numext::mini<int>(128, numext::mini<int>(maxSharedMem / (\textcolor{keyword}{sizeof}(Scalar) * (maxX + 
+      kernel\_size\_x - 1) * kernel\_size\_z) - kernel\_size\_y + 1, numY));
+01020         \textcolor{keyword}{const} \textcolor{keywordtype}{int} maxZ = numext::mini<int>(128, numext::mini<int>(maxSharedMem / (\textcolor{keyword}{sizeof}(Scalar) * (maxX + 
+      kernel\_size\_x - 1) * (maxY + kernel\_size\_y - 1)) - kernel\_size\_z + 1, numZ));
+01021 
+01022         dim3 block\_size;
+01023         block\_size.x = numext::mini(32, maxX);
+01024         block\_size.y = numext::mini(32, maxY);
+01025         block\_size.z = numext::mini<int>(1024/(block\_size.x*block\_size.y), maxZ);
+01026         dim3 num\_blocks(ceil(numX, maxX), ceil(numY, maxY), ceil(numZ, maxZ));
+01027 
+01028         \textcolor{keyword}{const} \textcolor{keywordtype}{int} shared\_mem = (maxX + kernel\_size\_x - 1) * (maxY + kernel\_size\_y - 1) * (maxZ + 
+      kernel\_size\_z - 1) * \textcolor{keyword}{sizeof}(Scalar);
+01029         assert(shared\_mem <= maxSharedMem);
+01030 
+01031         \textcolor{comment}{//cout << "launching 3D kernel with block\_size.x: " << block\_size.x << " block\_size.y: " <<
+       block\_size.y  << " block\_size.z: " << block\_size.z << " num\_blocks.x: " << num\_blocks.x << " num\_blocks.y: " <<
+       num\_blocks.y << " num\_blocks.z: " << num\_blocks.z  << " shared\_mem: " << shared\_mem << " in stream " <<
+       m\_device.stream() << endl;}
+01032         \textcolor{keyword}{const} \hyperlink{class_eigen_1_1array}{array<Index, 3>} indices(m\_indices[idxX], m\_indices[idxY],
+01033                                       m\_indices[idxZ]);
+01034         \textcolor{keyword}{const} \hyperlink{class_eigen_1_1array}{array<Index, 3>} kernel\_dims(m\_kernelImpl.dimensions()[idxX],
+01035                                           m\_kernelImpl.dimensions()[idxY],
+01036                                           m\_kernelImpl.dimensions()[idxZ]);
+01037         \hyperlink{class_eigen_1_1internal_1_1_index_mapper}{internal::IndexMapper<Index, InputDims, 3, Layout>}
+       indexMapper(
+01038             m\_inputImpl.dimensions(), kernel\_dims, indices);
+01039 
+01040         LAUNCH\_CUDA\_KERNEL((EigenConvolutionKernel3D<
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, GpuDevice>}, Index, InputDims>), 
+      num\_blocks, block\_size, shared\_mem, m\_device, m\_inputImpl, indexMapper, m\_kernel, numP, numX, maxX, numY, maxY, 
+      numZ, maxZ, kernel\_size\_x, kernel\_size\_y, kernel\_size\_z, data);
+01041         \textcolor{keywordflow}{break};
+01042       \}
+01043 
+01044       \textcolor{keywordflow}{default}: \{
+01045         EIGEN\_STATIC\_ASSERT((NumKernelDims >= 1 && NumKernelDims <= 3), 
+      THIS\_METHOD\_IS\_ONLY\_FOR\_OBJECTS\_OF\_A\_SPECIFIC\_SIZE);
+01046       \}
+01047     \}
+01048   \}
+01049 
+01050   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE CoeffReturnType coeff(Index index)\textcolor{keyword}{ const}
+01051 \textcolor{keyword}{  }\{
+01052     eigen\_assert(m\_buf);
+01053     eigen\_assert(index < m\_dimensions.TotalSize());
+01054     \textcolor{keywordflow}{return} m\_buf[index];
+01055   \}
+01056 
+01057   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode>
+01058   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE PacketReturnType packet(\textcolor{keyword}{const} Index index)\textcolor{keyword}{ const}
+01059 \textcolor{keyword}{  }\{
+01060     eigen\_assert(m\_buf);
+01061     eigen\_assert(index < m\_dimensions.TotalSize());
+01062     \textcolor{keywordflow}{return} internal::ploadt<PacketReturnType, LoadMode>(m\_buf+index);
+01063   \}
+01064 
+01065   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost}
+01066   costPerCoeff(\textcolor{keywordtype}{bool} vectorized)\textcolor{keyword}{ const }\{
+01067     \textcolor{comment}{// TODO(rmlarsen): FIXME: For now, this is just a copy of the CPU cost}
+01068     \textcolor{comment}{// model.}
+01069     \textcolor{keyword}{const} \textcolor{keywordtype}{double} kernel\_size = m\_kernelImpl.dimensions().TotalSize();
+01070     \textcolor{comment}{// We ignore the use of fused multiply-add.}
+01071     \textcolor{keyword}{const} \textcolor{keywordtype}{double} convolve\_compute\_cost =
+01072         TensorOpCost::AddCost<Scalar>() + TensorOpCost::MulCost<Scalar>();
+01073     \textcolor{keyword}{const} \textcolor{keywordtype}{double} firstIndex\_compute\_cost =
+01074         NumDims *
+01075         (2 * TensorOpCost::AddCost<Index>() + 2 * TensorOpCost::MulCost<Index>() +
+01076          TensorOpCost::DivCost<Index>());
+01077     \textcolor{keywordflow}{return} \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost}(0, 0, firstIndex\_compute\_cost, vectorized, PacketSize) +
+01078            kernel\_size * (m\_inputImpl.costPerCoeff(vectorized) +
+01079                           m\_kernelImpl.costPerCoeff(vectorized) +
+01080                           \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost}(0, 0, convolve\_compute\_cost, vectorized,
+01081                                        PacketSize));
+01082   \}
+01083 
+01084  \textcolor{keyword}{private}:
+01085   \textcolor{comment}{// No assignment (copies are needed by the kernels)}
+01086   TensorEvaluator& operator = (\textcolor{keyword}{const} TensorEvaluator&);
+01087 
+01088   \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<InputArgType, GpuDevice>} m\_inputImpl;
+01089   \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<KernelArgType, GpuDevice>} m\_kernelImpl;
+01090   KernelArgType m\_kernelArg;
+01091   Indices m\_indices;
+01092   Dimensions m\_dimensions;
+01093   Scalar* m\_buf;
+01094   \textcolor{keyword}{const} Scalar* m\_kernel;
+01095   \textcolor{keywordtype}{bool} m\_local\_kernel;
+01096 
+01097   \textcolor{keyword}{const} GpuDevice& m\_device;
+01098 \};
+01099 \textcolor{preprocessor}{#endif}
+01100 
+01101 
+01102 \} \textcolor{comment}{// end namespace Eigen}
+01103 
+01104 \textcolor{preprocessor}{#endif // EIGEN\_CXX11\_TENSOR\_TENSOR\_CONVOLUTION\_H}
+\end{DoxyCode}

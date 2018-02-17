@@ -1,0 +1,124 @@
+\hypertarget{eigen_2unsupported_2doc_2examples_2_f_f_t_8cpp_source}{}\section{eigen/unsupported/doc/examples/\+F\+FT.cpp}
+\label{eigen_2unsupported_2doc_2examples_2_f_f_t_8cpp_source}\index{F\+F\+T.\+cpp@{F\+F\+T.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{//  To use the simple FFT implementation}
+00002 \textcolor{comment}{//  g++ -o demofft -I.. -Wall -O3 FFT.cpp }
+00003 
+00004 \textcolor{comment}{//  To use the FFTW implementation}
+00005 \textcolor{comment}{//  g++ -o demofft -I.. -DUSE\_FFTW -Wall -O3 FFT.cpp -lfftw3 -lfftw3f -lfftw3l}
+00006 
+00007 \textcolor{preprocessor}{#ifdef USE\_FFTW}
+00008 \textcolor{preprocessor}{#include <fftw3.h>}
+00009 \textcolor{preprocessor}{#endif}
+00010 
+00011 \textcolor{preprocessor}{#include <vector>}
+00012 \textcolor{preprocessor}{#include <complex>}
+00013 \textcolor{preprocessor}{#include <algorithm>}
+00014 \textcolor{preprocessor}{#include <iterator>}
+00015 \textcolor{preprocessor}{#include <iostream>}
+00016 \textcolor{preprocessor}{#include <Eigen/Core>}
+00017 \textcolor{preprocessor}{#include <unsupported/Eigen/FFT>}
+00018 
+00019 \textcolor{keyword}{using namespace }\hyperlink{namespacestd}{std};
+00020 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00021 
+00022 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00023 \hyperlink{group___sparse_core___module}{T} mag2(\hyperlink{group___sparse_core___module}{T} a)
+00024 \{
+00025     \textcolor{keywordflow}{return} a*a;
+00026 \}
+00027 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00028 \hyperlink{group___sparse_core___module}{T} mag2(std::complex<T> a)
+00029 \{
+00030     \textcolor{keywordflow}{return} norm(a);
+00031 \}
+00032 
+00033 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00034 \hyperlink{group___sparse_core___module}{T} mag2(\textcolor{keyword}{const} std::vector<T> & vec)
+00035 \{
+00036     \hyperlink{group___sparse_core___module}{T} out=0;
+00037     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} k=0;k<vec.size();++k)
+00038         out += mag2(vec[k]);
+00039     \textcolor{keywordflow}{return} out;
+00040 \}
+00041 
+00042 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00043 \hyperlink{group___sparse_core___module}{T} mag2(\textcolor{keyword}{const} std::vector<std::complex<T> > & vec)
+00044 \{
+00045     \hyperlink{group___sparse_core___module}{T} out=0;
+00046     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} k=0;k<vec.size();++k)
+00047         out += mag2(vec[k]);
+00048     \textcolor{keywordflow}{return} out;
+00049 \}
+00050 
+00051 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00052 vector<T> operator-(\textcolor{keyword}{const} vector<T> & a,\textcolor{keyword}{const} vector<T> & b )
+00053 \{
+00054     vector<T> c(a);
+00055     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} k=0;k<b.size();++k) 
+00056         c[k] -= b[k];
+00057     \textcolor{keywordflow}{return} c;
+00058 \}
+00059 
+00060 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00061 \textcolor{keywordtype}{void} RandomFill(std::vector<T> & vec)
+00062 \{
+00063     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} k=0;k<vec.size();++k)
+00064         vec[k] = \hyperlink{group___sparse_core___module}{T}( rand() )/\hyperlink{group___sparse_core___module}{T}(RAND\_MAX) - .5;
+00065 \}
+00066 
+00067 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00068 \textcolor{keywordtype}{void} RandomFill(std::vector<std::complex<T> > & vec)
+00069 \{
+00070     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} k=0;k<vec.size();++k)
+00071         vec[k] = std::complex<T> ( \hyperlink{group___sparse_core___module}{T}( rand() )/\hyperlink{group___sparse_core___module}{T}(RAND\_MAX) - .5, \hyperlink{group___sparse_core___module}{T}( rand() )/
+      \hyperlink{group___sparse_core___module}{T}(RAND\_MAX) - .5);
+00072 \}
+00073 
+00074 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T\_time,\textcolor{keyword}{typename} T\_freq>
+00075 \textcolor{keywordtype}{void} fwd\_inv(\textcolor{keywordtype}{size\_t} nfft)
+00076 \{
+00077     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<T\_freq>::Real} Scalar;
+00078     vector<T\_time> timebuf(nfft);
+00079     RandomFill(timebuf);
+00080 
+00081     vector<T\_freq> freqbuf;
+00082     \textcolor{keyword}{static} FFT<Scalar> fft;
+00083     fft.fwd(freqbuf,timebuf);
+00084 
+00085     vector<T\_time> timebuf2;
+00086     fft.inv(timebuf2,freqbuf);
+00087 
+00088     \textcolor{keywordtype}{long} \textcolor{keywordtype}{double} rmse = mag2(timebuf - timebuf2) / mag2(timebuf);
+00089     cout << \textcolor{stringliteral}{"roundtrip rmse: "} << rmse << endl;
+00090 \}
+00091 
+00092 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T\_scalar>
+00093 \textcolor{keywordtype}{void} two\_demos(\textcolor{keywordtype}{int} nfft)
+00094 \{
+00095     cout << \textcolor{stringliteral}{"     scalar "};
+00096     fwd\_inv<T\_scalar,std::complex<T\_scalar> >(nfft);
+00097     cout << \textcolor{stringliteral}{"    complex "};
+00098     fwd\_inv<std::complex<T\_scalar>,std::complex<T\_scalar> >(nfft);
+00099 \}
+00100 
+00101 \textcolor{keywordtype}{void} demo\_all\_types(\textcolor{keywordtype}{int} nfft)
+00102 \{
+00103     cout << \textcolor{stringliteral}{"nfft="} << nfft << endl;
+00104     cout << \textcolor{stringliteral}{"   float"} << endl;
+00105     two\_demos<float>(nfft);
+00106     cout << \textcolor{stringliteral}{"   double"} << endl;
+00107     two\_demos<double>(nfft);
+00108     cout << \textcolor{stringliteral}{"   long double"} << endl;
+00109     two\_demos<long double>(nfft);
+00110 \}
+00111 
+00112 \textcolor{keywordtype}{int} main()
+00113 \{
+00114     demo\_all\_types( 2*3*4*5*7 );
+00115     demo\_all\_types( 2*9*16*25 );
+00116     demo\_all\_types( 1024 );
+00117     \textcolor{keywordflow}{return} 0;
+00118 \}
+\end{DoxyCode}

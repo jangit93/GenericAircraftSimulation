@@ -1,0 +1,325 @@
+\hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_symmetry_2_dynamic_symmetry_8h_source}{}\section{eigen/unsupported/\+Eigen/\+C\+X\+X11/src/\+Tensor\+Symmetry/\+Dynamic\+Symmetry.h}
+\label{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_symmetry_2_dynamic_symmetry_8h_source}\index{Dynamic\+Symmetry.\+h@{Dynamic\+Symmetry.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2013 Christian Seiler <christian@iwakd.de>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_CXX11\_TENSORSYMMETRY\_DYNAMICSYMMETRY\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_CXX11\_TENSORSYMMETRY\_DYNAMICSYMMETRY\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_symmetry_2_dynamic_symmetry_8h_source_l00015}\hyperlink{class_eigen_1_1_dynamic_s_group}{00015} \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_dynamic_s_group}{DynamicSGroup}
+00016 \{
+00017   \textcolor{keyword}{public}:
+00018     \textcolor{keyword}{inline} \textcolor{keyword}{explicit} \hyperlink{class_eigen_1_1_dynamic_s_group}{DynamicSGroup}() : m\_numIndices(1), m\_elements(), m\_generators(), 
+      m\_globalFlags(0) \{ m\_elements.push\_back(ge(Generator(0, 0, 0))); \}
+00019     \textcolor{keyword}{inline} \hyperlink{class_eigen_1_1_dynamic_s_group}{DynamicSGroup}(\textcolor{keyword}{const} \hyperlink{class_eigen_1_1_dynamic_s_group}{DynamicSGroup}& o) : m\_numIndices(o.m\_numIndices), 
+      m\_elements(o.m\_elements), m\_generators(o.m\_generators), m\_globalFlags(o.m\_globalFlags) \{ \}
+00020     \textcolor{keyword}{inline} \hyperlink{class_eigen_1_1_dynamic_s_group}{DynamicSGroup}(\hyperlink{class_eigen_1_1_dynamic_s_group}{DynamicSGroup}&& o) : m\_numIndices(o.m\_numIndices), 
+      m\_elements(), m\_generators(o.m\_generators), m\_globalFlags(o.m\_globalFlags) \{ \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_elements, o.
+      m\_elements); \}
+00021     \textcolor{keyword}{inline} \hyperlink{class_eigen_1_1_dynamic_s_group}{DynamicSGroup}& operator=(\textcolor{keyword}{const} \hyperlink{class_eigen_1_1_dynamic_s_group}{DynamicSGroup}& o) \{ m\_numIndices = o.
+      m\_numIndices; m\_elements = o.m\_elements; m\_generators = o.m\_generators; m\_globalFlags = o.m\_globalFlags; \textcolor{keywordflow}{
+      return} *\textcolor{keyword}{this}; \}
+00022     \textcolor{keyword}{inline} \hyperlink{class_eigen_1_1_dynamic_s_group}{DynamicSGroup}& operator=(\hyperlink{class_eigen_1_1_dynamic_s_group}{DynamicSGroup}&& o) \{ m\_numIndices = o.
+      m\_numIndices; \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_elements, o.m\_elements); m\_generators = o.m\_generators; m\_globalFlags = o.
+      m\_globalFlags; \textcolor{keywordflow}{return} *\textcolor{keyword}{this}; \}
+00023 
+00024     \textcolor{keywordtype}{void} add(\textcolor{keywordtype}{int} one, \textcolor{keywordtype}{int} two, \textcolor{keywordtype}{int} flags = 0);
+00025 
+00026     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Gen\_>
+00027     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} add(Gen\_) \{ add(Gen\_::One, Gen\_::Two, Gen\_::Flags); \}
+00028     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} addSymmetry(\textcolor{keywordtype}{int} one, \textcolor{keywordtype}{int} two) \{ add(one, two, 0); \}
+00029     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} addAntiSymmetry(\textcolor{keywordtype}{int} one, \textcolor{keywordtype}{int} two) \{ add(one, two, NegationFlag); \}
+00030     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} addHermiticity(\textcolor{keywordtype}{int} one, \textcolor{keywordtype}{int} two) \{ add(one, two, ConjugationFlag); \}
+00031     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} addAntiHermiticity(\textcolor{keywordtype}{int} one, \textcolor{keywordtype}{int} two) \{ add(one, two, NegationFlag | ConjugationFlag); \}
+00032 
+00033     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Op, \textcolor{keyword}{typename} RV, \textcolor{keyword}{typename} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, std::size\_t N, \textcolor{keyword}{typename}... Args>
+00034     \textcolor{keyword}{inline} RV apply(\textcolor{keyword}{const} std::array<Index, N>& idx, RV initial, Args&&... args)\textcolor{keyword}{ const}
+00035 \textcolor{keyword}{    }\{
+00036       eigen\_assert(N >= m\_numIndices && \textcolor{stringliteral}{"Can only apply symmetry group to objects that have at least the
+       required amount of indices."});
+00037       \textcolor{keywordflow}{for} (std::size\_t i = 0; i < size(); i++)
+00038         initial = Op::run(h\_permute(i, idx, \textcolor{keyword}{typename} internal::gen\_numeric\_list<int, N>::type()), 
+      m\_elements[i].flags, initial, std::forward<Args>(args)...);
+00039       \textcolor{keywordflow}{return} initial;
+00040     \}
+00041 
+00042     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Op, \textcolor{keyword}{typename} RV, \textcolor{keyword}{typename} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \textcolor{keyword}{typename}... Args>
+00043     \textcolor{keyword}{inline} RV apply(\textcolor{keyword}{const} std::vector<Index>& idx, RV initial, Args&&... args)\textcolor{keyword}{ const}
+00044 \textcolor{keyword}{    }\{
+00045       eigen\_assert(idx.size() >= m\_numIndices && \textcolor{stringliteral}{"Can only apply symmetry group to objects that have at
+       least the required amount of indices."});
+00046       \textcolor{keywordflow}{for} (std::size\_t i = 0; i < size(); i++)
+00047         initial = Op::run(h\_permute(i, idx), m\_elements[i].flags, initial, std::forward<Args>(args)...);
+00048       \textcolor{keywordflow}{return} initial;
+00049     \}
+00050 
+00051     \textcolor{keyword}{inline} \textcolor{keywordtype}{int} globalFlags()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_globalFlags; \}
+00052     \textcolor{keyword}{inline} std::size\_t size()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_elements.size(); \}
+00053 
+00054     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Tensor\_, \textcolor{keyword}{typename}... IndexTypes>
+00055     \textcolor{keyword}{inline} \hyperlink{class_eigen_1_1internal_1_1tensor__symmetry__value__setter}{internal::tensor\_symmetry\_value\_setter<Tensor\_, DynamicSGroup>}
+       operator()(Tensor\_& tensor, \textcolor{keyword}{typename} Tensor\_::Index firstIndex, IndexTypes... otherIndices)\textcolor{keyword}{ const}
+00056 \textcolor{keyword}{    }\{
+00057       static\_assert(\textcolor{keyword}{sizeof}...(otherIndices) + 1 == Tensor\_::NumIndices, \textcolor{stringliteral}{"Number of indices used to access a
+       tensor coefficient must be equal to the rank of the tensor."});
+00058       \textcolor{keywordflow}{return} operator()(tensor, std::array<typename Tensor\_::Index, Tensor\_::NumIndices>\{\{firstIndex, 
+      otherIndices...\}\});
+00059     \}
+00060 
+00061     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Tensor\_>
+00062     \textcolor{keyword}{inline} \hyperlink{class_eigen_1_1internal_1_1tensor__symmetry__value__setter}{internal::tensor\_symmetry\_value\_setter<Tensor\_, DynamicSGroup>}
+       operator()(Tensor\_& tensor, std::array<typename Tensor\_::Index, Tensor\_::NumIndices> \textcolor{keyword}{const}& indices)\textcolor{keyword}{ const}
+00063 \textcolor{keyword}{    }\{
+00064       \textcolor{keywordflow}{return} \hyperlink{class_eigen_1_1internal_1_1tensor__symmetry__value__setter}{internal::tensor\_symmetry\_value\_setter<Tensor\_, DynamicSGroup>}
+      (tensor, *\textcolor{keyword}{this}, indices);
+00065     \}
+00066   \textcolor{keyword}{private}:
+00067     \textcolor{keyword}{struct }GroupElement \{
+00068       std::vector<int> representation;
+00069       \textcolor{keywordtype}{int} flags;
+00070       \textcolor{keywordtype}{bool} isId()\textcolor{keyword}{ const}
+00071 \textcolor{keyword}{      }\{
+00072         \textcolor{keywordflow}{for} (std::size\_t i = 0; i < representation.size(); i++)
+00073           \textcolor{keywordflow}{if} (i != (\textcolor{keywordtype}{size\_t})representation[i])
+00074             \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00075         \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00076       \}
+00077     \};
+00078     \textcolor{keyword}{struct }Generator \{
+00079       \textcolor{keywordtype}{int} one;
+00080       \textcolor{keywordtype}{int} two;
+00081       \textcolor{keywordtype}{int} flags;
+00082       constexpr \textcolor{keyword}{inline} Generator(\textcolor{keywordtype}{int} one\_, \textcolor{keywordtype}{int} two\_, \textcolor{keywordtype}{int} flags\_) : one(one\_), two(two\_), flags(flags\_) \{\}
+00083     \};
+00084 
+00085     std::size\_t m\_numIndices;
+00086     std::vector<GroupElement> m\_elements;
+00087     std::vector<Generator> m\_generators;
+00088     \textcolor{keywordtype}{int} m\_globalFlags;
+00089 
+00090     \textcolor{keyword}{template}<\textcolor{keyword}{typename} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, std::size\_t N, \textcolor{keywordtype}{int}... n>
+00091     \textcolor{keyword}{inline} std::array<Index, N> h\_permute(std::size\_t which, \textcolor{keyword}{const} std::array<Index, N>& idx, 
+      internal::numeric\_list<int, n...>)\textcolor{keyword}{ const}
+00092 \textcolor{keyword}{    }\{
+00093       \textcolor{keywordflow}{return} std::array<Index, N>\{\{ idx[n >= m\_numIndices ? n : m\_elements[which].representation[n]]... \}\};
+00094     \}
+00095 
+00096     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Index>
+00097     \textcolor{keyword}{inline} std::vector<Index> h\_permute(std::size\_t which, std::vector<Index> idx)\textcolor{keyword}{ const}
+00098 \textcolor{keyword}{    }\{
+00099       std::vector<Index> result;
+00100       result.reserve(idx.size());
+00101       \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} k : m\_elements[which].representation)
+00102         result.push\_back(idx[k]);
+00103       \textcolor{keywordflow}{for} (std::size\_t i = m\_numIndices; i < idx.size(); i++)
+00104         result.push\_back(idx[i]);
+00105       \textcolor{keywordflow}{return} result;
+00106     \}
+00107 
+00108     \textcolor{keyword}{inline} GroupElement ge(Generator \textcolor{keyword}{const}& g)\textcolor{keyword}{ const}
+00109 \textcolor{keyword}{    }\{
+00110       GroupElement result;
+00111       result.representation.reserve(m\_numIndices);
+00112       result.flags = g.flags;
+00113       \textcolor{keywordflow}{for} (std::size\_t k = 0; k < m\_numIndices; k++) \{
+00114         \textcolor{keywordflow}{if} (k == (std::size\_t)g.one)
+00115           result.representation.push\_back(g.two);
+00116         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (k == (std::size\_t)g.two)
+00117           result.representation.push\_back(g.one);
+00118         \textcolor{keywordflow}{else}
+00119           result.representation.push\_back(\textcolor{keywordtype}{int}(k));
+00120       \}
+00121       \textcolor{keywordflow}{return} result;
+00122     \}
+00123 
+00124     GroupElement mul(GroupElement, GroupElement) \textcolor{keyword}{const};
+00125     \textcolor{keyword}{inline} GroupElement mul(Generator g1, GroupElement g2)\textcolor{keyword}{ const}
+00126 \textcolor{keyword}{    }\{
+00127       \textcolor{keywordflow}{return} mul(ge(g1), g2);
+00128     \}
+00129 
+00130     \textcolor{keyword}{inline} GroupElement mul(GroupElement g1, Generator g2)\textcolor{keyword}{ const}
+00131 \textcolor{keyword}{    }\{
+00132       \textcolor{keywordflow}{return} mul(g1, ge(g2));
+00133     \}
+00134 
+00135     \textcolor{keyword}{inline} GroupElement mul(Generator g1, Generator g2)\textcolor{keyword}{ const}
+00136 \textcolor{keyword}{    }\{
+00137       \textcolor{keywordflow}{return} mul(ge(g1), ge(g2));
+00138     \}
+00139 
+00140     \textcolor{keyword}{inline} \textcolor{keywordtype}{int} findElement(GroupElement e)\textcolor{keyword}{ const}
+00141 \textcolor{keyword}{    }\{
+00142       \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} ee : m\_elements) \{
+00143         \textcolor{keywordflow}{if} (ee.representation == e.representation)
+00144           \textcolor{keywordflow}{return} ee.flags ^ e.flags;
+00145       \}
+00146       \textcolor{keywordflow}{return} -1;
+00147     \}
+00148 
+00149     \textcolor{keywordtype}{void} updateGlobalFlags(\textcolor{keywordtype}{int} flagDiffOfSameGenerator);
+00150 \};
+00151 
+00152 \textcolor{comment}{// dynamic symmetry group that auto-adds the template parameters in the constructor}
+00153 \textcolor{keyword}{template}<\textcolor{keyword}{typename}... Gen>
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_symmetry_2_dynamic_symmetry_8h_source_l00154}\hyperlink{class_eigen_1_1_dynamic_s_group_from_template_args}{00154} \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_dynamic_s_group_from_template_args}{DynamicSGroupFromTemplateArgs} : \textcolor{keyword}{public} 
+      \hyperlink{class_eigen_1_1_dynamic_s_group}{DynamicSGroup}
+00155 \{
+00156   \textcolor{keyword}{public}:
+00157     \textcolor{keyword}{inline} \hyperlink{class_eigen_1_1_dynamic_s_group_from_template_args}{DynamicSGroupFromTemplateArgs}() : 
+      \hyperlink{class_eigen_1_1_dynamic_s_group}{DynamicSGroup}()
+00158     \{
+00159       add\_all(\hyperlink{struct_eigen_1_1internal_1_1type__list}{internal::type\_list<Gen...>}());
+00160     \}
+00161     \textcolor{keyword}{inline} \hyperlink{class_eigen_1_1_dynamic_s_group_from_template_args}{DynamicSGroupFromTemplateArgs}(
+      \hyperlink{class_eigen_1_1_dynamic_s_group_from_template_args}{DynamicSGroupFromTemplateArgs} \textcolor{keyword}{const}& other) : 
+      \hyperlink{class_eigen_1_1_dynamic_s_group}{DynamicSGroup}(other) \{ \}
+00162     \textcolor{keyword}{inline} \hyperlink{class_eigen_1_1_dynamic_s_group_from_template_args}{DynamicSGroupFromTemplateArgs}(
+      \hyperlink{class_eigen_1_1_dynamic_s_group_from_template_args}{DynamicSGroupFromTemplateArgs}&& other) : 
+      \hyperlink{class_eigen_1_1_dynamic_s_group}{DynamicSGroup}(other) \{ \}
+00163     \textcolor{keyword}{inline} \hyperlink{class_eigen_1_1_dynamic_s_group_from_template_args}{DynamicSGroupFromTemplateArgs}<Gen...>& operator=(\textcolor{keyword}{const} 
+      \hyperlink{class_eigen_1_1_dynamic_s_group_from_template_args}{DynamicSGroupFromTemplateArgs<Gen...>}& o) \{ DynamicSGroup::operator=(o
+      ); \textcolor{keywordflow}{return} *\textcolor{keyword}{this}; \}
+00164     \textcolor{keyword}{inline} \hyperlink{class_eigen_1_1_dynamic_s_group_from_template_args}{DynamicSGroupFromTemplateArgs}<Gen...>& operator=(
+      \hyperlink{class_eigen_1_1_dynamic_s_group_from_template_args}{DynamicSGroupFromTemplateArgs<Gen...>}&& o) \{ DynamicSGroup::operator=(
+      o); \textcolor{keywordflow}{return} *\textcolor{keyword}{this}; \}
+00165   
+00166   \textcolor{keyword}{private}:
+00167     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Gen1, \textcolor{keyword}{typename}... GenNext>
+00168     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} add\_all(\hyperlink{struct_eigen_1_1internal_1_1type__list}{internal::type\_list<Gen1, GenNext...>})
+00169     \{
+00170       add(Gen1());
+00171       add\_all(\hyperlink{struct_eigen_1_1internal_1_1type__list}{internal::type\_list<GenNext...>}());
+00172     \}
+00173 
+00174     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} add\_all(\hyperlink{struct_eigen_1_1internal_1_1type__list}{internal::type\_list<>})
+00175     \{
+00176     \}
+00177 \};
+00178 
+00179 \textcolor{keyword}{inline} DynamicSGroup::GroupElement DynamicSGroup::mul(GroupElement g1, GroupElement g2)\textcolor{keyword}{ const}
+00180 \textcolor{keyword}{}\{
+00181   eigen\_internal\_assert(g1.representation.size() == m\_numIndices);
+00182   eigen\_internal\_assert(g2.representation.size() == m\_numIndices);
+00183 
+00184   GroupElement result;
+00185   result.representation.reserve(m\_numIndices);
+00186   \textcolor{keywordflow}{for} (std::size\_t i = 0; i < m\_numIndices; i++) \{
+00187     \textcolor{keywordtype}{int} v = g2.representation[g1.representation[i]];
+00188     eigen\_assert(v >= 0);
+00189     result.representation.push\_back(v);
+00190   \}
+00191   result.flags = g1.flags ^ g2.flags;
+00192   \textcolor{keywordflow}{return} result;
+00193 \}
+00194 
+00195 \textcolor{keyword}{inline} \textcolor{keywordtype}{void} DynamicSGroup::add(\textcolor{keywordtype}{int} one, \textcolor{keywordtype}{int} two, \textcolor{keywordtype}{int} flags)
+00196 \{
+00197   eigen\_assert(one >= 0);
+00198   eigen\_assert(two >= 0);
+00199   eigen\_assert(one != two);
+00200 
+00201   \textcolor{keywordflow}{if} ((std::size\_t)one >= m\_numIndices || (std::size\_t)two >= m\_numIndices) \{
+00202     std::size\_t newNumIndices = (one > two) ? one : two + 1;
+00203     \textcolor{keywordflow}{for} (\textcolor{keyword}{auto}& gelem : m\_elements) \{
+00204       gelem.representation.reserve(newNumIndices);
+00205       \textcolor{keywordflow}{for} (std::size\_t i = m\_numIndices; i < newNumIndices; i++)
+00206         gelem.representation.push\_back(i);
+00207     \}
+00208     m\_numIndices = newNumIndices;
+00209   \}
+00210 
+00211   Generator g\{one, two, flags\};
+00212   GroupElement e = ge(g);
+00213 
+00214   \textcolor{comment}{/* special case for first generator */}
+00215   \textcolor{keywordflow}{if} (m\_elements.size() == 1) \{
+00216     \textcolor{keywordflow}{while} (!e.isId()) \{
+00217       m\_elements.push\_back(e);
+00218       e = mul(e, g);
+00219     \}
+00220 
+00221     \textcolor{keywordflow}{if} (e.flags > 0)
+00222       updateGlobalFlags(e.flags);
+00223 
+00224     \textcolor{comment}{// only add in case we didn't have identity}
+00225     \textcolor{keywordflow}{if} (m\_elements.size() > 1)
+00226       m\_generators.push\_back(g);
+00227     \textcolor{keywordflow}{return};
+00228   \}
+00229 
+00230   \textcolor{keywordtype}{int} p = findElement(e);
+00231   \textcolor{keywordflow}{if} (p >= 0) \{
+00232     updateGlobalFlags(p);
+00233     \textcolor{keywordflow}{return};
+00234   \}
+00235 
+00236   std::size\_t coset\_order = m\_elements.size();
+00237   m\_elements.push\_back(e);
+00238   \textcolor{keywordflow}{for} (std::size\_t i = 1; i < coset\_order; i++)
+00239     m\_elements.push\_back(mul(m\_elements[i], e));
+00240   m\_generators.push\_back(g);
+00241 
+00242   std::size\_t coset\_rep = coset\_order;
+00243   \textcolor{keywordflow}{do} \{
+00244     \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} g : m\_generators) \{
+00245       e = mul(m\_elements[coset\_rep], g);
+00246       p = findElement(e);
+00247       \textcolor{keywordflow}{if} (p < 0) \{
+00248         \textcolor{comment}{// element not yet in group}
+00249         m\_elements.push\_back(e);
+00250         \textcolor{keywordflow}{for} (std::size\_t i = 1; i < coset\_order; i++)
+00251           m\_elements.push\_back(mul(m\_elements[i], e));
+00252       \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (p > 0) \{
+00253         updateGlobalFlags(p);
+00254       \}
+00255     \}
+00256     coset\_rep += coset\_order;
+00257   \} \textcolor{keywordflow}{while} (coset\_rep < m\_elements.size());
+00258 \}
+00259 
+00260 \textcolor{keyword}{inline} \textcolor{keywordtype}{void} DynamicSGroup::updateGlobalFlags(\textcolor{keywordtype}{int} flagDiffOfSameGenerator)
+00261 \{
+00262     \textcolor{keywordflow}{switch} (flagDiffOfSameGenerator) \{
+00263       \textcolor{keywordflow}{case} 0:
+00264       \textcolor{keywordflow}{default}:
+00265         \textcolor{comment}{// nothing happened}
+00266         \textcolor{keywordflow}{break};
+00267       \textcolor{keywordflow}{case} NegationFlag:
+00268         \textcolor{comment}{// every element is it's own negative => whole tensor is zero}
+00269         m\_globalFlags |= GlobalZeroFlag;
+00270         \textcolor{keywordflow}{break};
+00271       \textcolor{keywordflow}{case} ConjugationFlag:
+00272         \textcolor{comment}{// every element is it's own conjugate => whole tensor is real}
+00273         m\_globalFlags |= GlobalRealFlag;
+00274         \textcolor{keywordflow}{break};
+00275       \textcolor{keywordflow}{case} (NegationFlag | ConjugationFlag):
+00276         \textcolor{comment}{// every element is it's own negative conjugate => whole tensor is imaginary}
+00277         m\_globalFlags |= GlobalImagFlag;
+00278         \textcolor{keywordflow}{break};
+00279       \textcolor{comment}{/* NOTE:}
+00280 \textcolor{comment}{       *   since GlobalZeroFlag == GlobalRealFlag | GlobalImagFlag, if one generator}
+00281 \textcolor{comment}{       *   causes the tensor to be real and the next one to be imaginary, this will}
+00282 \textcolor{comment}{       *   trivially give the correct result}
+00283 \textcolor{comment}{       */}
+00284     \}
+00285 \}
+00286 
+00287 \} \textcolor{comment}{// end namespace Eigen}
+00288 
+00289 \textcolor{preprocessor}{#endif // EIGEN\_CXX11\_TENSORSYMMETRY\_DYNAMICSYMMETRY\_H}
+00290 
+00291 \textcolor{comment}{/*}
+00292 \textcolor{comment}{ * kate: space-indent on; indent-width 2; mixedindent off; indent-mode cstyle;}
+00293 \textcolor{comment}{ */}
+\end{DoxyCode}

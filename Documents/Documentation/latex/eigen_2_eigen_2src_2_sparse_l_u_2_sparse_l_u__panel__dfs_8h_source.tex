@@ -1,0 +1,236 @@
+\hypertarget{eigen_2_eigen_2src_2_sparse_l_u_2_sparse_l_u__panel__dfs_8h_source}{}\section{eigen/\+Eigen/src/\+Sparse\+L\+U/\+Sparse\+L\+U\+\_\+panel\+\_\+dfs.h}
+\label{eigen_2_eigen_2src_2_sparse_l_u_2_sparse_l_u__panel__dfs_8h_source}\index{Sparse\+L\+U\+\_\+panel\+\_\+dfs.\+h@{Sparse\+L\+U\+\_\+panel\+\_\+dfs.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2012 Désiré Nuentsa-Wakam <desire.nuentsa\_wakam@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{comment}{/* }
+00011 \textcolor{comment}{ }
+00012 \textcolor{comment}{ * NOTE: This file is the modified version of [s,d,c,z]panel\_dfs.c file in SuperLU }
+00013 \textcolor{comment}{ }
+00014 \textcolor{comment}{ * -- SuperLU routine (version 2.0) --}
+00015 \textcolor{comment}{ * Univ. of California Berkeley, Xerox Palo Alto Research Center,}
+00016 \textcolor{comment}{ * and Lawrence Berkeley National Lab.}
+00017 \textcolor{comment}{ * November 15, 1997}
+00018 \textcolor{comment}{ *}
+00019 \textcolor{comment}{ * Copyright (c) 1994 by Xerox Corporation.  All rights reserved.}
+00020 \textcolor{comment}{ *}
+00021 \textcolor{comment}{ * THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY}
+00022 \textcolor{comment}{ * EXPRESSED OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.}
+00023 \textcolor{comment}{ *}
+00024 \textcolor{comment}{ * Permission is hereby granted to use or copy this program for any}
+00025 \textcolor{comment}{ * purpose, provided the above notices are retained on all copies.}
+00026 \textcolor{comment}{ * Permission to modify the code and to distribute modified code is}
+00027 \textcolor{comment}{ * granted, provided the above notices are retained, and a notice that}
+00028 \textcolor{comment}{ * the code was modified is included with the above copyright notice.}
+00029 \textcolor{comment}{ */}
+00030 \textcolor{preprocessor}{#ifndef SPARSELU\_PANEL\_DFS\_H}
+00031 \textcolor{preprocessor}{#define SPARSELU\_PANEL\_DFS\_H}
+00032 
+00033 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00034 
+00035 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00036   
+00037 \textcolor{keyword}{template}<\textcolor{keyword}{typename} IndexVector>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_l_u_2_sparse_l_u__panel__dfs_8h_source_l00038}\hyperlink{struct_eigen_1_1internal_1_1panel__dfs__traits}{00038} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1panel__dfs__traits}{panel\_dfs\_traits}
+00039 \{
+00040   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} IndexVector::Scalar StorageIndex;
+00041   \hyperlink{struct_eigen_1_1internal_1_1panel__dfs__traits}{panel\_dfs\_traits}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} jcol, StorageIndex* marker)
+00042     : m\_jcol(jcol), m\_marker(marker)
+00043   \{\}
+00044   \textcolor{keywordtype}{bool} update\_segrep(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} krep, StorageIndex jj)
+00045   \{
+00046     \textcolor{keywordflow}{if}(m\_marker[krep]<m\_jcol)
+00047     \{
+00048       m\_marker[krep] = jj; 
+00049       \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00050     \}
+00051     \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00052   \}
+00053   \textcolor{keywordtype}{void} mem\_expand(IndexVector& \textcolor{comment}{/*glu.lsub*/}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{comment}{/*nextl*/}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{comment}{/*chmark*/}) \{\}
+00054   \textcolor{keyword}{enum} \{ ExpandMem = \textcolor{keyword}{false} \};
+00055   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_jcol;
+00056   StorageIndex* m\_marker;
+00057 \};
+00058 
+00059 
+00060 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} StorageIndex>
+00061 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Traits>
+00062 \textcolor{keywordtype}{void} \hyperlink{group___sparse_l_u___module_class_eigen_1_1internal_1_1_sparse_l_u_impl}{SparseLUImpl<Scalar,StorageIndex>::dfs\_kernel}(\textcolor{keyword}{const} 
+      StorageIndex jj, IndexVector& perm\_r,
+00063                    \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& nseg, IndexVector& panel\_lsub, IndexVector& segrep,
+00064                    \hyperlink{group___core___module_class_eigen_1_1_ref}{Ref<IndexVector>} repfnz\_col, IndexVector& xprune, 
+      \hyperlink{group___core___module_class_eigen_1_1_ref}{Ref<IndexVector>} marker, IndexVector& parent,
+00065                    IndexVector& xplore, GlobalLU\_t& glu,
+00066                    \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& nextl\_col, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} krow, Traits& \hyperlink{struct_eigen_1_1internal_1_1traits}{traits}
+00067                   )
+00068 \{
+00069   
+00070   StorageIndex kmark = marker(krow);
+00071       
+00072   \textcolor{comment}{// For each unmarked krow of jj}
+00073   marker(krow) = jj; 
+00074   StorageIndex kperm = perm\_r(krow); 
+00075   \textcolor{keywordflow}{if} (kperm == emptyIdxLU ) \{
+00076     \textcolor{comment}{// krow is in L : place it in structure of L(*, jj)}
+00077     panel\_lsub(nextl\_col++) = StorageIndex(krow);  \textcolor{comment}{// krow is indexed into A}
+00078     
+00079     traits.mem\_expand(panel\_lsub, nextl\_col, kmark);
+00080   \}
+00081   \textcolor{keywordflow}{else} 
+00082   \{
+00083     \textcolor{comment}{// krow is in U : if its supernode-representative krep}
+00084     \textcolor{comment}{// has been explored, update repfnz(*)}
+00085     \textcolor{comment}{// krep = supernode representative of the current row}
+00086     StorageIndex krep = glu.xsup(glu.supno(kperm)+1) - 1; 
+00087     \textcolor{comment}{// First nonzero element in the current column:}
+00088     StorageIndex myfnz = repfnz\_col(krep); 
+00089     
+00090     \textcolor{keywordflow}{if} (myfnz != emptyIdxLU )
+00091     \{
+00092       \textcolor{comment}{// Representative visited before}
+00093       \textcolor{keywordflow}{if} (myfnz > kperm ) repfnz\_col(krep) = kperm; 
+00094       
+00095     \}
+00096     \textcolor{keywordflow}{else} 
+00097     \{
+00098       \textcolor{comment}{// Otherwise, perform dfs starting at krep}
+00099       StorageIndex oldrep = emptyIdxLU; 
+00100       parent(krep) = oldrep; 
+00101       repfnz\_col(krep) = kperm; 
+00102       StorageIndex xdfs =  glu.xlsub(krep); 
+00103       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} maxdfs = xprune(krep); 
+00104       
+00105       StorageIndex kpar;
+00106       \textcolor{keywordflow}{do} 
+00107       \{
+00108         \textcolor{comment}{// For each unmarked kchild of krep}
+00109         \textcolor{keywordflow}{while} (xdfs < maxdfs) 
+00110         \{
+00111           StorageIndex kchild = glu.lsub(xdfs); 
+00112           xdfs++; 
+00113           StorageIndex chmark = marker(kchild); 
+00114           
+00115           \textcolor{keywordflow}{if} (chmark != jj ) 
+00116           \{
+00117             marker(kchild) = jj; 
+00118             StorageIndex chperm = perm\_r(kchild); 
+00119             
+00120             \textcolor{keywordflow}{if} (chperm == emptyIdxLU) 
+00121             \{
+00122               \textcolor{comment}{// case kchild is in L: place it in L(*, j)}
+00123               panel\_lsub(nextl\_col++) = kchild;
+00124               traits.mem\_expand(panel\_lsub, nextl\_col, chmark);
+00125             \}
+00126             \textcolor{keywordflow}{else}
+00127             \{
+00128               \textcolor{comment}{// case kchild is in U :}
+00129               \textcolor{comment}{// chrep = its supernode-rep. If its rep has been explored, }
+00130               \textcolor{comment}{// update its repfnz(*)}
+00131               StorageIndex chrep = glu.xsup(glu.supno(chperm)+1) - 1; 
+00132               myfnz = repfnz\_col(chrep); 
+00133               
+00134               \textcolor{keywordflow}{if} (myfnz != emptyIdxLU) 
+00135               \{ \textcolor{comment}{// Visited before }
+00136                 \textcolor{keywordflow}{if} (myfnz > chperm) 
+00137                   repfnz\_col(chrep) = chperm; 
+00138               \}
+00139               \textcolor{keywordflow}{else} 
+00140               \{ \textcolor{comment}{// Cont. dfs at snode-rep of kchild}
+00141                 xplore(krep) = xdfs; 
+00142                 oldrep = krep; 
+00143                 krep = chrep; \textcolor{comment}{// Go deeper down G(L)}
+00144                 parent(krep) = oldrep; 
+00145                 repfnz\_col(krep) = chperm; 
+00146                 xdfs = glu.xlsub(krep); 
+00147                 maxdfs = xprune(krep); 
+00148                 
+00149               \} \textcolor{comment}{// end if myfnz != -1}
+00150             \} \textcolor{comment}{// end if chperm == -1 }
+00151                 
+00152           \} \textcolor{comment}{// end if chmark !=jj}
+00153         \} \textcolor{comment}{// end while xdfs < maxdfs}
+00154         
+00155         \textcolor{comment}{// krow has no more unexplored nbrs :}
+00156         \textcolor{comment}{//    Place snode-rep krep in postorder DFS, if this }
+00157         \textcolor{comment}{//    segment is seen for the first time. (Note that }
+00158         \textcolor{comment}{//    "repfnz(krep)" may change later.)}
+00159         \textcolor{comment}{//    Baktrack dfs to its parent}
+00160         \textcolor{keywordflow}{if}(traits.update\_segrep(krep,jj))
+00161         \textcolor{comment}{//if (marker1(krep) < jcol )}
+00162         \{
+00163           segrep(nseg) = krep; 
+00164           ++nseg; 
+00165           \textcolor{comment}{//marker1(krep) = jj; }
+00166         \}
+00167         
+00168         kpar = parent(krep); \textcolor{comment}{// Pop recursion, mimic recursion }
+00169         \textcolor{keywordflow}{if} (kpar == emptyIdxLU) 
+00170           \textcolor{keywordflow}{break}; \textcolor{comment}{// dfs done }
+00171         krep = kpar; 
+00172         xdfs = xplore(krep); 
+00173         maxdfs = xprune(krep); 
+00174 
+00175       \} \textcolor{keywordflow}{while} (kpar != emptyIdxLU); \textcolor{comment}{// Do until empty stack }
+00176       
+00177     \} \textcolor{comment}{// end if (myfnz = -1)}
+00178 
+00179   \} \textcolor{comment}{// end if (kperm == -1)   }
+00180 \}
+00181 
+00218 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} StorageIndex>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_l_u_2_sparse_l_u__panel__dfs_8h_source_l00219}\hyperlink{group___sparse_l_u___module_acaf62fda387ea03e9caa2734e4e7b0c9}{00219} \textcolor{keywordtype}{void} \hyperlink{group___sparse_l_u___module_acaf62fda387ea03e9caa2734e4e7b0c9}{SparseLUImpl<Scalar,StorageIndex>::panel\_dfs}(\textcolor{keyword}{const} 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m, \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} w, \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} jcol, \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix}{MatrixType}& \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}, 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{IndexVector}& perm\_r, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& nseg, \hyperlink{group___core___module_class_eigen_1_1_matrix}{ScalarVector}& dense, 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{IndexVector}& panel\_lsub, \hyperlink{group___core___module_class_eigen_1_1_matrix}{IndexVector}& segrep, \hyperlink{group___core___module_class_eigen_1_1_matrix}{IndexVector}& repfnz, 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{IndexVector}& xprune, \hyperlink{group___core___module_class_eigen_1_1_matrix}{IndexVector}& marker, \hyperlink{group___core___module_class_eigen_1_1_matrix}{IndexVector}& parent, 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{IndexVector}& xplore, \hyperlink{struct_eigen_1_1internal_1_1_l_u___global_l_u__t}{GlobalLU\_t}& glu)
+00220 \{
+00221   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} nextl\_col; \textcolor{comment}{// Next available position in panel\_lsub[*,jj] }
+00222   
+00223   \textcolor{comment}{// Initialize pointers }
+00224   \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<IndexVector>} marker1(marker, m, m); 
+00225   nseg = 0; 
+00226   
+00227   \hyperlink{struct_eigen_1_1internal_1_1panel__dfs__traits}{panel\_dfs\_traits<IndexVector>} traits(jcol, marker1.data());
+00228   
+00229   \textcolor{comment}{// For each column in the panel }
+00230   \textcolor{keywordflow}{for} (StorageIndex jj = StorageIndex(jcol); jj < jcol + w; jj++) 
+00231   \{
+00232     nextl\_col = (jj - jcol) * m; 
+00233     
+00234     \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<IndexVector>} repfnz\_col(repfnz, nextl\_col, m); \textcolor{comment}{// First nonzero
+       location in each row}
+00235     \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<ScalarVector>} dense\_col(dense,nextl\_col, m); \textcolor{comment}{// Accumulate a
+       column vector here}
+00236     
+00237     
+00238     \textcolor{comment}{// For each nnz in A[*, jj] do depth first search}
+00239     \textcolor{keywordflow}{for} (\textcolor{keyword}{typename} \hyperlink{class_eigen_1_1_sparse_compressed_base_1_1_inner_iterator}{MatrixType::InnerIterator} it(A, jj); it; ++it)
+00240     \{
+00241       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} krow = it.row(); 
+00242       dense\_col(krow) = it.value();
+00243       
+00244       StorageIndex kmark = marker(krow); 
+00245       \textcolor{keywordflow}{if} (kmark == jj) 
+00246         \textcolor{keywordflow}{continue}; \textcolor{comment}{// krow visited before, go to the next nonzero}
+00247       
+00248       dfs\_kernel(jj, perm\_r, nseg, panel\_lsub, segrep, repfnz\_col, xprune, marker, parent,
+00249                    xplore, glu, nextl\_col, krow, traits);
+00250     \}\textcolor{comment}{// end for nonzeros in column jj}
+00251     
+00252   \} \textcolor{comment}{// end for column jj}
+00253 \}
+00254 
+00255 \} \textcolor{comment}{// end namespace internal}
+00256 \} \textcolor{comment}{// end namespace Eigen}
+00257 
+00258 \textcolor{preprocessor}{#endif // SPARSELU\_PANEL\_DFS\_H}
+\end{DoxyCode}

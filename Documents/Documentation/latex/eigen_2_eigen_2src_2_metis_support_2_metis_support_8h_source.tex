@@ -1,0 +1,141 @@
+\hypertarget{eigen_2_eigen_2src_2_metis_support_2_metis_support_8h_source}{}\section{eigen/\+Eigen/src/\+Metis\+Support/\+Metis\+Support.h}
+\label{eigen_2_eigen_2src_2_metis_support_2_metis_support_8h_source}\index{Metis\+Support.\+h@{Metis\+Support.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2012 Désiré Nuentsa-Wakam <desire.nuentsa\_wakam@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 \textcolor{preprocessor}{#ifndef METIS\_SUPPORT\_H}
+00010 \textcolor{preprocessor}{#define METIS\_SUPPORT\_H}
+00011 
+00012 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00021 \textcolor{keyword}{template} <\textcolor{keyword}{typename} StorageIndex>
+\Hypertarget{eigen_2_eigen_2src_2_metis_support_2_metis_support_8h_source_l00022}\hyperlink{class_eigen_1_1_metis_ordering}{00022} \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_metis_ordering}{MetisOrdering}
+00023 \{
+00024 \textcolor{keyword}{public}:
+00025   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{PermutationMatrix<Dynamic,Dynamic,StorageIndex>} 
+      \hyperlink{group___core___module}{PermutationType};
+00026   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<StorageIndex,Dynamic,1>} 
+      \hyperlink{group___core___module}{IndexVector}; 
+00027   
+00028   \textcolor{keyword}{template} <\textcolor{keyword}{typename} MatrixType>
+00029   \textcolor{keywordtype}{void} get\_symmetrized\_graph(\textcolor{keyword}{const} MatrixType& \hyperlink{group___core___module_class_eigen_1_1_matrix}{A})
+00030   \{
+00031     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m = A.cols(); 
+00032     eigen\_assert((A.rows() == A.cols()) && \textcolor{stringliteral}{"ONLY FOR SQUARED MATRICES"});
+00033     \textcolor{comment}{// Get the transpose of the input matrix }
+00034     MatrixType At = A.transpose(); 
+00035     \textcolor{comment}{// Get the number of nonzeros elements in each row/col of At+A}
+00036     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} TotNz = 0; 
+00037     IndexVector visited(m); 
+00038     visited.\hyperlink{class_eigen_1_1_plain_object_base_ac8dea1df3d92b752cc683ff42abf6f9b}{setConstant}(-1); 
+00039     \textcolor{keywordflow}{for} (StorageIndex j = 0; j < m; j++)
+00040     \{
+00041       \textcolor{comment}{// Compute the union structure of of A(j,:) and At(j,:)}
+00042       visited(j) = j; \textcolor{comment}{// Do not include the diagonal element}
+00043       \textcolor{comment}{// Get the nonzeros in row/column j of A}
+00044       \textcolor{keywordflow}{for} (\textcolor{keyword}{typename} MatrixType::InnerIterator it(A, j); it; ++it)
+00045       \{
+00046         \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} idx = it.index(); \textcolor{comment}{// Get the row index (for column major) or column index (for row
+       major)}
+00047         \textcolor{keywordflow}{if} (visited(idx) != j ) 
+00048         \{
+00049           visited(idx) = j; 
+00050           ++TotNz; 
+00051         \}
+00052       \}
+00053       \textcolor{comment}{//Get the nonzeros in row/column j of At}
+00054       \textcolor{keywordflow}{for} (\textcolor{keyword}{typename} MatrixType::InnerIterator it(At, j); it; ++it)
+00055       \{
+00056         \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} idx = it.index(); 
+00057         \textcolor{keywordflow}{if}(visited(idx) != j)
+00058         \{
+00059           visited(idx) = j; 
+00060           ++TotNz; 
+00061         \}
+00062       \}
+00063     \}
+00064     \textcolor{comment}{// Reserve place for A + At}
+00065     m\_indexPtr.\hyperlink{class_eigen_1_1_plain_object_base_a99d9054ee2d5a40c6e00ded0265e9cea}{resize}(m+1);
+00066     m\_innerIndices.\hyperlink{class_eigen_1_1_plain_object_base_a99d9054ee2d5a40c6e00ded0265e9cea}{resize}(TotNz); 
+00067 
+00068     \textcolor{comment}{// Now compute the real adjacency list of each column/row }
+00069     visited.\hyperlink{class_eigen_1_1_plain_object_base_ac8dea1df3d92b752cc683ff42abf6f9b}{setConstant}(-1); 
+00070     StorageIndex CurNz = 0; 
+00071     \textcolor{keywordflow}{for} (StorageIndex j = 0; j < m; j++)
+00072     \{
+00073       m\_indexPtr(j) = CurNz; 
+00074       
+00075       visited(j) = j; \textcolor{comment}{// Do not include the diagonal element}
+00076       \textcolor{comment}{// Add the pattern of row/column j of A to A+At}
+00077       \textcolor{keywordflow}{for} (\textcolor{keyword}{typename} MatrixType::InnerIterator it(A,j); it; ++it)
+00078       \{
+00079         StorageIndex idx = it.index(); \textcolor{comment}{// Get the row index (for column major) or column index (for row
+       major)}
+00080         \textcolor{keywordflow}{if} (visited(idx) != j ) 
+00081         \{
+00082           visited(idx) = j; 
+00083           m\_innerIndices(CurNz) = idx; 
+00084           CurNz++; 
+00085         \}
+00086       \}
+00087       \textcolor{comment}{//Add the pattern of row/column j of At to A+At}
+00088       \textcolor{keywordflow}{for} (\textcolor{keyword}{typename} MatrixType::InnerIterator it(At, j); it; ++it)
+00089       \{
+00090         StorageIndex idx = it.index(); 
+00091         \textcolor{keywordflow}{if}(visited(idx) != j)
+00092         \{
+00093           visited(idx) = j; 
+00094           m\_innerIndices(CurNz) = idx; 
+00095           ++CurNz; 
+00096         \}
+00097       \}
+00098     \}
+00099     m\_indexPtr(m) = CurNz;    
+00100   \}
+00101   
+00102   \textcolor{keyword}{template} <\textcolor{keyword}{typename} MatrixType>
+00103   \textcolor{keywordtype}{void} operator() (\textcolor{keyword}{const} MatrixType& A, PermutationType& matperm)
+00104   \{
+00105      StorageIndex m = internal::convert\_index<StorageIndex>(A.cols()); \textcolor{comment}{// must be StorageIndex, because it
+       is passed by address to METIS}
+00106      IndexVector perm(m),iperm(m); 
+00107     \textcolor{comment}{// First, symmetrize the matrix graph. }
+00108      get\_symmetrized\_graph(A); 
+00109      \textcolor{keywordtype}{int} output\_error;
+00110      
+00111      \textcolor{comment}{// Call the fill-reducing routine from METIS }
+00112      output\_error = METIS\_NodeND(&m, m\_indexPtr.\hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}(), m\_innerIndices.\hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}(), NULL, NULL, perm.
+      data(), iperm.data());
+00113      
+00114     \textcolor{keywordflow}{if}(output\_error != METIS\_OK) 
+00115     \{
+00116       \textcolor{comment}{//FIXME The ordering interface should define a class of possible errors }
+00117      std::cerr << \textcolor{stringliteral}{"ERROR WHILE CALLING THE METIS PACKAGE \(\backslash\)n"}; 
+00118      \textcolor{keywordflow}{return}; 
+00119     \}
+00120     
+00121     \textcolor{comment}{// Get the fill-reducing permutation }
+00122     \textcolor{comment}{//NOTE:  If Ap is the permuted matrix then perm and iperm vectors are defined as follows }
+00123     \textcolor{comment}{// Row (column) i of Ap is the perm(i) row(column) of A, and row (column) i of A is the iperm(i)
+       row(column) of Ap}
+00124     
+00125      matperm.\hyperlink{group___core___module_a0e0fda6e84d69e02432e4770359bb532}{resize}(m);
+00126      \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < m; j++)
+00127        matperm.\hyperlink{group___core___module_a2f1ab379207fcd1ceb33941e25cf50c2}{indices}()(iperm(j)) = j;
+00128    
+00129   \}
+00130   
+00131   \textcolor{keyword}{protected}:
+00132     IndexVector m\_indexPtr; \textcolor{comment}{// Pointer to the adjacenccy list of each row/column}
+00133     IndexVector m\_innerIndices; \textcolor{comment}{// Adjacency list }
+00134 \};
+00135 
+00136 \}\textcolor{comment}{// end namespace eigen }
+00137 \textcolor{preprocessor}{#endif}
+\end{DoxyCode}

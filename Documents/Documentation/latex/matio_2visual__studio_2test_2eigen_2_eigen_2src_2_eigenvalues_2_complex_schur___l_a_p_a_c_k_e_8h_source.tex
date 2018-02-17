@@ -1,0 +1,97 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_complex_schur___l_a_p_a_c_k_e_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Eigenvalues/\+Complex\+Schur\+\_\+\+L\+A\+P\+A\+C\+KE.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_complex_schur___l_a_p_a_c_k_e_8h_source}\index{Complex\+Schur\+\_\+\+L\+A\+P\+A\+C\+K\+E.\+h@{Complex\+Schur\+\_\+\+L\+A\+P\+A\+C\+K\+E.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/*}
+00002 \textcolor{comment}{ Copyright (c) 2011, Intel Corporation. All rights reserved.}
+00003 \textcolor{comment}{}
+00004 \textcolor{comment}{ Redistribution and use in source and binary forms, with or without modification,}
+00005 \textcolor{comment}{ are permitted provided that the following conditions are met:}
+00006 \textcolor{comment}{}
+00007 \textcolor{comment}{ * Redistributions of source code must retain the above copyright notice, this}
+00008 \textcolor{comment}{   list of conditions and the following disclaimer.}
+00009 \textcolor{comment}{ * Redistributions in binary form must reproduce the above copyright notice,}
+00010 \textcolor{comment}{   this list of conditions and the following disclaimer in the documentation}
+00011 \textcolor{comment}{   and/or other materials provided with the distribution.}
+00012 \textcolor{comment}{ * Neither the name of Intel Corporation nor the names of its contributors may}
+00013 \textcolor{comment}{   be used to endorse or promote products derived from this software without}
+00014 \textcolor{comment}{   specific prior written permission.}
+00015 \textcolor{comment}{}
+00016 \textcolor{comment}{ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND}
+00017 \textcolor{comment}{ ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED}
+00018 \textcolor{comment}{ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE}
+00019 \textcolor{comment}{ DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR}
+00020 \textcolor{comment}{ ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES}
+00021 \textcolor{comment}{ (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;}
+00022 \textcolor{comment}{ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON}
+00023 \textcolor{comment}{ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}
+00024 \textcolor{comment}{ (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS}
+00025 \textcolor{comment}{ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}
+00026 \textcolor{comment}{}
+00027 \textcolor{comment}{ ********************************************************************************}
+00028 \textcolor{comment}{ *   Content : Eigen bindings to LAPACKe}
+00029 \textcolor{comment}{ *    Complex Schur needed to complex unsymmetrical eigenvalues/eigenvectors.}
+00030 \textcolor{comment}{ ********************************************************************************}
+00031 \textcolor{comment}{*/}
+00032 
+00033 \textcolor{preprocessor}{#ifndef EIGEN\_COMPLEX\_SCHUR\_LAPACKE\_H}
+00034 \textcolor{preprocessor}{#define EIGEN\_COMPLEX\_SCHUR\_LAPACKE\_H}
+00035 
+00036 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00037 
+00040 \textcolor{preprocessor}{#define EIGEN\_LAPACKE\_SCHUR\_COMPLEX(EIGTYPE, LAPACKE\_TYPE, LAPACKE\_PREFIX, LAPACKE\_PREFIX\_U, EIGCOLROW,
+       LAPACKE\_COLROW) \(\backslash\)}
+00041 \textcolor{preprocessor}{template<> template<typename InputType> inline \(\backslash\)}
+00042 \textcolor{preprocessor}{ComplexSchur<Matrix<EIGTYPE, Dynamic, Dynamic, EIGCOLROW> >& \(\backslash\)}
+00043 \textcolor{preprocessor}{ComplexSchur<Matrix<EIGTYPE, Dynamic, Dynamic, EIGCOLROW> >::compute(const EigenBase<InputType>& matrix,
+       bool computeU) \(\backslash\)}
+00044 \textcolor{preprocessor}{\{ \(\backslash\)}
+00045 \textcolor{preprocessor}{  typedef Matrix<EIGTYPE, Dynamic, Dynamic, EIGCOLROW> MatrixType; \(\backslash\)}
+00046 \textcolor{preprocessor}{  typedef MatrixType::RealScalar RealScalar; \(\backslash\)}
+00047 \textcolor{preprocessor}{  typedef std::complex<RealScalar> ComplexScalar; \(\backslash\)}
+00048 \textcolor{preprocessor}{\(\backslash\)}
+00049 \textcolor{preprocessor}{  eigen\_assert(matrix.cols() == matrix.rows()); \(\backslash\)}
+00050 \textcolor{preprocessor}{\(\backslash\)}
+00051 \textcolor{preprocessor}{  m\_matUisUptodate = false; \(\backslash\)}
+00052 \textcolor{preprocessor}{  if(matrix.cols() == 1) \(\backslash\)}
+00053 \textcolor{preprocessor}{  \{ \(\backslash\)}
+00054 \textcolor{preprocessor}{    m\_matT = matrix.derived().template cast<ComplexScalar>(); \(\backslash\)}
+00055 \textcolor{preprocessor}{    if(computeU)  m\_matU = ComplexMatrixType::Identity(1,1); \(\backslash\)}
+00056 \textcolor{preprocessor}{      m\_info = Success; \(\backslash\)}
+00057 \textcolor{preprocessor}{      m\_isInitialized = true; \(\backslash\)}
+00058 \textcolor{preprocessor}{      m\_matUisUptodate = computeU; \(\backslash\)}
+00059 \textcolor{preprocessor}{      return *this; \(\backslash\)}
+00060 \textcolor{preprocessor}{  \} \(\backslash\)}
+00061 \textcolor{preprocessor}{  lapack\_int n = internal::convert\_index<lapack\_int>(matrix.cols()), sdim, info; \(\backslash\)}
+00062 \textcolor{preprocessor}{  lapack\_int matrix\_order = LAPACKE\_COLROW; \(\backslash\)}
+00063 \textcolor{preprocessor}{  char jobvs, sort='N'; \(\backslash\)}
+00064 \textcolor{preprocessor}{  LAPACK\_##LAPACKE\_PREFIX\_U##\_SELECT1 select = 0; \(\backslash\)}
+00065 \textcolor{preprocessor}{  jobvs = (computeU) ? 'V' : 'N'; \(\backslash\)}
+00066 \textcolor{preprocessor}{  m\_matU.resize(n, n); \(\backslash\)}
+00067 \textcolor{preprocessor}{  lapack\_int ldvs  = internal::convert\_index<lapack\_int>(m\_matU.outerStride()); \(\backslash\)}
+00068 \textcolor{preprocessor}{  m\_matT = matrix; \(\backslash\)}
+00069 \textcolor{preprocessor}{  lapack\_int lda = internal::convert\_index<lapack\_int>(m\_matT.outerStride()); \(\backslash\)}
+00070 \textcolor{preprocessor}{  Matrix<EIGTYPE, Dynamic, Dynamic> w; \(\backslash\)}
+00071 \textcolor{preprocessor}{  w.resize(n, 1);\(\backslash\)}
+00072 \textcolor{preprocessor}{  info = LAPACKE\_##LAPACKE\_PREFIX##gees( matrix\_order, jobvs, sort, select, n,
+       (LAPACKE\_TYPE*)m\_matT.data(), lda, &sdim, (LAPACKE\_TYPE*)w.data(), (LAPACKE\_TYPE*)m\_matU.data(), ldvs ); \(\backslash\)}
+00073 \textcolor{preprocessor}{  if(info == 0) \(\backslash\)}
+00074 \textcolor{preprocessor}{    m\_info = Success; \(\backslash\)}
+00075 \textcolor{preprocessor}{  else \(\backslash\)}
+00076 \textcolor{preprocessor}{    m\_info = NoConvergence; \(\backslash\)}
+00077 \textcolor{preprocessor}{\(\backslash\)}
+00078 \textcolor{preprocessor}{  m\_isInitialized = true; \(\backslash\)}
+00079 \textcolor{preprocessor}{  m\_matUisUptodate = computeU; \(\backslash\)}
+00080 \textcolor{preprocessor}{  return *this; \(\backslash\)}
+00081 \textcolor{preprocessor}{\(\backslash\)}
+00082 \textcolor{preprocessor}{\}}
+00083 
+00084 EIGEN\_LAPACKE\_SCHUR\_COMPLEX(dcomplex, lapack\_complex\_double, z, Z, \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}, LAPACK\_COL\_MAJOR)
+00085 EIGEN\_LAPACKE\_SCHUR\_COMPLEX(scomplex, lapack\_complex\_float,  c, C, \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}, LAPACK\_COL\_MAJOR)
+00086 EIGEN\_LAPACKE\_SCHUR\_COMPLEX(dcomplex, lapack\_complex\_double, z, Z, \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}, LAPACK\_ROW\_MAJOR)
+00087 EIGEN\_LAPACKE\_SCHUR\_COMPLEX(scomplex, lapack\_complex\_float,  c, C, \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}, LAPACK\_ROW\_MAJOR)
+00088 
+00089 \} \textcolor{comment}{// end namespace Eigen}
+00090 
+00091 \textcolor{preprocessor}{#endif // EIGEN\_COMPLEX\_SCHUR\_LAPACKE\_H}
+\end{DoxyCode}

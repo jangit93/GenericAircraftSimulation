@@ -1,0 +1,294 @@
+\hypertarget{eigen_2unsupported_2test_2cxx11__tensor__fft_8cpp_source}{}\section{eigen/unsupported/test/cxx11\+\_\+tensor\+\_\+fft.cpp}
+\label{eigen_2unsupported_2test_2cxx11__tensor__fft_8cpp_source}\index{cxx11\+\_\+tensor\+\_\+fft.\+cpp@{cxx11\+\_\+tensor\+\_\+fft.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2014 Jianwei Cui <thucjw@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 \textcolor{preprocessor}{#include <Eigen/CXX11/Tensor>}
+00012 
+00013 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor};
+00014 
+00015 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00016 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_fft\_2D\_golden() \{
+00017   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} input(2, 3);
+00018   input(0, 0) = 1;
+00019   input(0, 1) = 2;
+00020   input(0, 2) = 3;
+00021   input(1, 0) = 4;
+00022   input(1, 1) = 5;
+00023   input(1, 2) = 6;
+00024 
+00025   array<ptrdiff\_t, 2> fft;
+00026   fft[0] = 0;
+00027   fft[1] = 1;
+00028 
+00029   \hyperlink{class_eigen_1_1_tensor}{Tensor<std::complex<float>}, 2, DataLayout> output = input.template 
+      fft<Eigen::BothParts, Eigen::FFT\_FORWARD>(fft);
+00030 
+00031   std::complex<float> output\_golden[6]; \textcolor{comment}{// in ColMajor order}
+00032   output\_golden[0] = std::complex<float>(21, 0);
+00033   output\_golden[1] = std::complex<float>(-9, 0);
+00034   output\_golden[2] = std::complex<float>(-3, 1.73205);
+00035   output\_golden[3] = std::complex<float>( 0, 0);
+00036   output\_golden[4] = std::complex<float>(-3, -1.73205);
+00037   output\_golden[5] = std::complex<float>(0 ,0);
+00038 
+00039   std::complex<float> c\_offset = std::complex<float>(1.0, 1.0);
+00040 
+00041   \textcolor{keywordflow}{if} (DataLayout == \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}) \{
+00042     VERIFY\_IS\_APPROX(output(0) + c\_offset, output\_golden[0] + c\_offset);
+00043     VERIFY\_IS\_APPROX(output(1) + c\_offset, output\_golden[1] + c\_offset);
+00044     VERIFY\_IS\_APPROX(output(2) + c\_offset, output\_golden[2] + c\_offset);
+00045     VERIFY\_IS\_APPROX(output(3) + c\_offset, output\_golden[3] + c\_offset);
+00046     VERIFY\_IS\_APPROX(output(4) + c\_offset, output\_golden[4] + c\_offset);
+00047     VERIFY\_IS\_APPROX(output(5) + c\_offset, output\_golden[5] + c\_offset);
+00048   \}
+00049   \textcolor{keywordflow}{else} \{
+00050     VERIFY\_IS\_APPROX(output(0)+ c\_offset, output\_golden[0]+ c\_offset);
+00051     VERIFY\_IS\_APPROX(output(1)+ c\_offset, output\_golden[2]+ c\_offset);
+00052     VERIFY\_IS\_APPROX(output(2)+ c\_offset, output\_golden[4]+ c\_offset);
+00053     VERIFY\_IS\_APPROX(output(3)+ c\_offset, output\_golden[1]+ c\_offset);
+00054     VERIFY\_IS\_APPROX(output(4)+ c\_offset, output\_golden[3]+ c\_offset);
+00055     VERIFY\_IS\_APPROX(output(5)+ c\_offset, output\_golden[5]+ c\_offset);
+00056   \}
+00057 \}
+00058 
+00059 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_fft\_complex\_input\_golden() \{
+00060   \hyperlink{class_eigen_1_1_tensor}{Tensor<std::complex<float>}, 1, \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}> input(5);
+00061   input(0) = std::complex<float>(1, 1);
+00062   input(1) = std::complex<float>(2, 2);
+00063   input(2) = std::complex<float>(3, 3);
+00064   input(3) = std::complex<float>(4, 4);
+00065   input(4) = std::complex<float>(5, 5);
+00066 
+00067   array<ptrdiff\_t, 1> fft;
+00068   fft[0] = 0;
+00069 
+00070   \hyperlink{class_eigen_1_1_tensor}{Tensor<std::complex<float>}, 1, \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}> forward\_output\_both\_parts = 
+      input.fft<BothParts, FFT\_FORWARD>(fft);
+00071   \hyperlink{class_eigen_1_1_tensor}{Tensor<std::complex<float>}, 1, \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}> reverse\_output\_both\_parts = 
+      input.fft<BothParts, FFT\_REVERSE>(fft);
+00072 
+00073   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, ColMajor>} forward\_output\_real\_part = input.fft<RealPart, 
+      FFT\_FORWARD>(fft);
+00074   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, ColMajor>} reverse\_output\_real\_part = input.fft<RealPart, 
+      FFT\_REVERSE>(fft);
+00075 
+00076   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, ColMajor>} forward\_output\_imag\_part = input.fft<ImagPart, 
+      FFT\_FORWARD>(fft);
+00077   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, ColMajor>} reverse\_output\_imag\_part = input.fft<ImagPart, 
+      FFT\_REVERSE>(fft);
+00078 
+00079   VERIFY\_IS\_EQUAL(forward\_output\_both\_parts.dimension(0), input.dimension(0));
+00080   VERIFY\_IS\_EQUAL(reverse\_output\_both\_parts.dimension(0), input.dimension(0));
+00081 
+00082   VERIFY\_IS\_EQUAL(forward\_output\_real\_part.dimension(0), input.dimension(0));
+00083   VERIFY\_IS\_EQUAL(reverse\_output\_real\_part.dimension(0), input.dimension(0));
+00084 
+00085   VERIFY\_IS\_EQUAL(forward\_output\_imag\_part.dimension(0), input.dimension(0));
+00086   VERIFY\_IS\_EQUAL(reverse\_output\_imag\_part.dimension(0), input.dimension(0));
+00087 
+00088   std::complex<float> forward\_golden\_result[5];
+00089   std::complex<float> reverse\_golden\_result[5];
+00090 
+00091   forward\_golden\_result[0] = std::complex<float>(15.000000000000000,+15.000000000000000);
+00092   forward\_golden\_result[1] = std::complex<float>(-5.940954801177935, +0.940954801177934);
+00093   forward\_golden\_result[2] = std::complex<float>(-3.312299240582266, -1.687700759417735);
+00094   forward\_golden\_result[3] = std::complex<float>(-1.687700759417735, -3.312299240582266);
+00095   forward\_golden\_result[4] = std::complex<float>( 0.940954801177934, -5.940954801177935);
+00096 
+00097   reverse\_golden\_result[0] = std::complex<float>( 3.000000000000000, + 3.000000000000000);
+00098   reverse\_golden\_result[1] = std::complex<float>( 0.188190960235587, - 1.188190960235587);
+00099   reverse\_golden\_result[2] = std::complex<float>(-0.337540151883547, - 0.662459848116453);
+00100   reverse\_golden\_result[3] = std::complex<float>(-0.662459848116453, - 0.337540151883547);
+00101   reverse\_golden\_result[4] = std::complex<float>(-1.188190960235587, + 0.188190960235587);
+00102 
+00103   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < 5; ++i) \{
+00104     VERIFY\_IS\_APPROX(forward\_output\_both\_parts(i), forward\_golden\_result[i]);
+00105     VERIFY\_IS\_APPROX(forward\_output\_real\_part(i), forward\_golden\_result[i].real());
+00106     VERIFY\_IS\_APPROX(forward\_output\_imag\_part(i), forward\_golden\_result[i].imag());
+00107   \}
+00108 
+00109   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < 5; ++i) \{
+00110     VERIFY\_IS\_APPROX(reverse\_output\_both\_parts(i), reverse\_golden\_result[i]);
+00111     VERIFY\_IS\_APPROX(reverse\_output\_real\_part(i), reverse\_golden\_result[i].real());
+00112     VERIFY\_IS\_APPROX(reverse\_output\_imag\_part(i), reverse\_golden\_result[i].imag());
+00113   \}
+00114 \}
+00115 
+00116 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_fft\_real\_input\_golden() \{
+00117   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, ColMajor>} input(5);
+00118   input(0) = 1.0;
+00119   input(1) = 2.0;
+00120   input(2) = 3.0;
+00121   input(3) = 4.0;
+00122   input(4) = 5.0;
+00123 
+00124   array<ptrdiff\_t, 1> fft;
+00125   fft[0] = 0;
+00126 
+00127   Tensor<std::complex<float>, 1, \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}> forward\_output\_both\_parts = input.fft<BothParts, 
+      FFT\_FORWARD>(fft);
+00128   Tensor<std::complex<float>, 1, \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}> reverse\_output\_both\_parts = input.fft<BothParts, 
+      FFT\_REVERSE>(fft);
+00129 
+00130   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, ColMajor>} forward\_output\_real\_part = input.fft<RealPart, 
+      FFT\_FORWARD>(fft);
+00131   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, ColMajor>} reverse\_output\_real\_part = input.fft<RealPart, 
+      FFT\_REVERSE>(fft);
+00132 
+00133   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, ColMajor>} forward\_output\_imag\_part = input.fft<ImagPart, 
+      FFT\_FORWARD>(fft);
+00134   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, ColMajor>} reverse\_output\_imag\_part = input.fft<ImagPart, 
+      FFT\_REVERSE>(fft);
+00135 
+00136   VERIFY\_IS\_EQUAL(forward\_output\_both\_parts.dimension(0), input.dimension(0));
+00137   VERIFY\_IS\_EQUAL(reverse\_output\_both\_parts.dimension(0), input.dimension(0));
+00138 
+00139   VERIFY\_IS\_EQUAL(forward\_output\_real\_part.dimension(0), input.dimension(0));
+00140   VERIFY\_IS\_EQUAL(reverse\_output\_real\_part.dimension(0), input.dimension(0));
+00141 
+00142   VERIFY\_IS\_EQUAL(forward\_output\_imag\_part.dimension(0), input.dimension(0));
+00143   VERIFY\_IS\_EQUAL(reverse\_output\_imag\_part.dimension(0), input.dimension(0));
+00144 
+00145   std::complex<float> forward\_golden\_result[5];
+00146   std::complex<float> reverse\_golden\_result[5];
+00147 
+00148 
+00149   forward\_golden\_result[0] = std::complex<float>(  15, 0);
+00150   forward\_golden\_result[1] = std::complex<float>(-2.5, +3.44095480117793);
+00151   forward\_golden\_result[2] = std::complex<float>(-2.5, +0.81229924058227);
+00152   forward\_golden\_result[3] = std::complex<float>(-2.5, -0.81229924058227);
+00153   forward\_golden\_result[4] = std::complex<float>(-2.5, -3.44095480117793);
+00154 
+00155   reverse\_golden\_result[0] = std::complex<float>( 3.0, 0);
+00156   reverse\_golden\_result[1] = std::complex<float>(-0.5, -0.688190960235587);
+00157   reverse\_golden\_result[2] = std::complex<float>(-0.5, -0.162459848116453);
+00158   reverse\_golden\_result[3] = std::complex<float>(-0.5, +0.162459848116453);
+00159   reverse\_golden\_result[4] = std::complex<float>(-0.5, +0.688190960235587);
+00160 
+00161   std::complex<float> c\_offset(1.0, 1.0);
+00162   \textcolor{keywordtype}{float} r\_offset = 1.0;
+00163 
+00164   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < 5; ++i) \{
+00165     VERIFY\_IS\_APPROX(forward\_output\_both\_parts(i) + c\_offset, forward\_golden\_result[i] + c\_offset);
+00166     VERIFY\_IS\_APPROX(forward\_output\_real\_part(i)  + r\_offset, forward\_golden\_result[i].real() + r\_offset);
+00167     VERIFY\_IS\_APPROX(forward\_output\_imag\_part(i)  + r\_offset, forward\_golden\_result[i].imag() + r\_offset);
+00168   \}
+00169 
+00170   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < 5; ++i) \{
+00171     VERIFY\_IS\_APPROX(reverse\_output\_both\_parts(i) + c\_offset, reverse\_golden\_result[i] + c\_offset);
+00172     VERIFY\_IS\_APPROX(reverse\_output\_real\_part(i)  + r\_offset, reverse\_golden\_result[i].real() + r\_offset);
+00173     VERIFY\_IS\_APPROX(reverse\_output\_imag\_part(i)  + r\_offset, reverse\_golden\_result[i].imag() + r\_offset);
+00174   \}
+00175 \}
+00176 
+00177 
+00178 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout, \textcolor{keyword}{typename} RealScalar, \textcolor{keywordtype}{bool} isComplexInput, \textcolor{keywordtype}{int} FFTResultType, \textcolor{keywordtype}{int} FFTDirection, \textcolor{keywordtype}{
+      int} TensorRank>
+00179 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_fft\_real\_input\_energy() \{
+00180 
+00181   \hyperlink{struct_eigen_1_1_d_sizes}{Eigen::DSizes<ptrdiff\_t, TensorRank>} dimensions;
+00182   ptrdiff\_t total\_size = 1;
+00183   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < TensorRank; ++i) \{
+00184     dimensions[i] = rand() % 20 + 1;
+00185     total\_size *= dimensions[i];
+00186   \}
+00187   \textcolor{keyword}{const} DSizes<ptrdiff\_t, TensorRank> arr = dimensions;
+00188 
+00189   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::conditional<isComplexInput == true, std::complex<RealScalar>, RealScalar>
+      ::type InputScalar;
+00190 
+00191   \hyperlink{class_eigen_1_1_tensor}{Tensor<InputScalar, TensorRank, DataLayout>} input;
+00192   input.\hyperlink{class_eigen_1_1_tensor_a5ab1ec6dc9b05d5e4db3600bc9d2cc6b}{resize}(arr);
+00193   input.setRandom();
+00194 
+00195   array<ptrdiff\_t, TensorRank> fft;
+00196   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < TensorRank; ++i) \{
+00197     fft[i] = i;
+00198   \}
+00199 
+00200   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::conditional<FFTResultType == Eigen::BothParts, std::complex<RealScalar>, 
+      RealScalar>::type OutputScalar;
+00201   \hyperlink{class_eigen_1_1_tensor}{Tensor<OutputScalar, TensorRank, DataLayout>} output;
+00202   output = input.template fft<FFTResultType, FFTDirection>(fft);
+00203 
+00204   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < TensorRank; ++i) \{
+00205     VERIFY\_IS\_EQUAL(output.dimension(i), input.dimension(i));
+00206   \}
+00207 
+00208   RealScalar energy\_original = 0.0;
+00209   RealScalar energy\_after\_fft = 0.0;
+00210 
+00211   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < total\_size; ++i) \{
+00212     energy\_original += numext::abs2(input(i));
+00213   \}
+00214 
+00215   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < total\_size; ++i) \{
+00216     energy\_after\_fft += numext::abs2(output(i));
+00217   \}
+00218 
+00219   \textcolor{keywordflow}{if}(FFTDirection == FFT\_FORWARD) \{
+00220     VERIFY\_IS\_APPROX(energy\_original, energy\_after\_fft / total\_size);
+00221   \}
+00222   \textcolor{keywordflow}{else} \{
+00223     VERIFY\_IS\_APPROX(energy\_original, energy\_after\_fft * total\_size);
+00224   \}
+00225 \}
+00226 
+00227 \textcolor{keywordtype}{void} test\_cxx11\_tensor\_fft() \{
+00228     test\_fft\_complex\_input\_golden();
+00229     test\_fft\_real\_input\_golden();
+00230 
+00231     test\_fft\_2D\_golden<ColMajor>();
+00232     test\_fft\_2D\_golden<RowMajor>();
+00233 
+00234     test\_fft\_real\_input\_energy<ColMajor, float,  true,  Eigen::BothParts, FFT\_FORWARD, 1>();
+00235     test\_fft\_real\_input\_energy<ColMajor, double, true,  Eigen::BothParts, FFT\_FORWARD, 1>();
+00236     test\_fft\_real\_input\_energy<ColMajor, float,  false,  Eigen::BothParts, FFT\_FORWARD, 1>();
+00237     test\_fft\_real\_input\_energy<ColMajor, double, false,  Eigen::BothParts, FFT\_FORWARD, 1>();
+00238 
+00239     test\_fft\_real\_input\_energy<ColMajor, float,  true,  Eigen::BothParts, FFT\_FORWARD, 2>();
+00240     test\_fft\_real\_input\_energy<ColMajor, double, true,  Eigen::BothParts, FFT\_FORWARD, 2>();
+00241     test\_fft\_real\_input\_energy<ColMajor, float,  false,  Eigen::BothParts, FFT\_FORWARD, 2>();
+00242     test\_fft\_real\_input\_energy<ColMajor, double, false,  Eigen::BothParts, FFT\_FORWARD, 2>();
+00243 
+00244     test\_fft\_real\_input\_energy<ColMajor, float,  true,  Eigen::BothParts, FFT\_FORWARD, 3>();
+00245     test\_fft\_real\_input\_energy<ColMajor, double, true,  Eigen::BothParts, FFT\_FORWARD, 3>();
+00246     test\_fft\_real\_input\_energy<ColMajor, float,  false,  Eigen::BothParts, FFT\_FORWARD, 3>();
+00247     test\_fft\_real\_input\_energy<ColMajor, double, false,  Eigen::BothParts, FFT\_FORWARD, 3>();
+00248 
+00249     test\_fft\_real\_input\_energy<ColMajor, float,  true,  Eigen::BothParts, FFT\_FORWARD, 4>();
+00250     test\_fft\_real\_input\_energy<ColMajor, double, true,  Eigen::BothParts, FFT\_FORWARD, 4>();
+00251     test\_fft\_real\_input\_energy<ColMajor, float,  false,  Eigen::BothParts, FFT\_FORWARD, 4>();
+00252     test\_fft\_real\_input\_energy<ColMajor, double, false,  Eigen::BothParts, FFT\_FORWARD, 4>();
+00253 
+00254     test\_fft\_real\_input\_energy<RowMajor, float,  true,  Eigen::BothParts, FFT\_FORWARD, 1>();
+00255     test\_fft\_real\_input\_energy<RowMajor, double, true,  Eigen::BothParts, FFT\_FORWARD, 1>();
+00256     test\_fft\_real\_input\_energy<RowMajor, float,  false,  Eigen::BothParts, FFT\_FORWARD, 1>();
+00257     test\_fft\_real\_input\_energy<RowMajor, double, false,  Eigen::BothParts, FFT\_FORWARD, 1>();
+00258 
+00259     test\_fft\_real\_input\_energy<RowMajor, float,  true,  Eigen::BothParts, FFT\_FORWARD, 2>();
+00260     test\_fft\_real\_input\_energy<RowMajor, double, true,  Eigen::BothParts, FFT\_FORWARD, 2>();
+00261     test\_fft\_real\_input\_energy<RowMajor, float,  false,  Eigen::BothParts, FFT\_FORWARD, 2>();
+00262     test\_fft\_real\_input\_energy<RowMajor, double, false,  Eigen::BothParts, FFT\_FORWARD, 2>();
+00263 
+00264     test\_fft\_real\_input\_energy<RowMajor, float,  true,  Eigen::BothParts, FFT\_FORWARD, 3>();
+00265     test\_fft\_real\_input\_energy<RowMajor, double, true,  Eigen::BothParts, FFT\_FORWARD, 3>();
+00266     test\_fft\_real\_input\_energy<RowMajor, float,  false,  Eigen::BothParts, FFT\_FORWARD, 3>();
+00267     test\_fft\_real\_input\_energy<RowMajor, double, false,  Eigen::BothParts, FFT\_FORWARD, 3>();
+00268 
+00269     test\_fft\_real\_input\_energy<RowMajor, float,  true,  Eigen::BothParts, FFT\_FORWARD, 4>();
+00270     test\_fft\_real\_input\_energy<RowMajor, double, true,  Eigen::BothParts, FFT\_FORWARD, 4>();
+00271     test\_fft\_real\_input\_energy<RowMajor, float,  false,  Eigen::BothParts, FFT\_FORWARD, 4>();
+00272     test\_fft\_real\_input\_energy<RowMajor, double, false,  Eigen::BothParts, FFT\_FORWARD, 4>();
+00273 \}
+\end{DoxyCode}

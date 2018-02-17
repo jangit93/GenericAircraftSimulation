@@ -1,0 +1,484 @@
+\hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source}{}\section{visual\+\_\+studio/zlib/contrib/iostream3/zfstream.cc}
+\label{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source}\index{zfstream.\+cc@{zfstream.\+cc}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/*}
+00002 \textcolor{comment}{ * A C++ I/O streams interface to the zlib gz* functions}
+00003 \textcolor{comment}{ *}
+00004 \textcolor{comment}{ * by Ludwig Schwardt <schwardt@sun.ac.za>}
+00005 \textcolor{comment}{ * original version by Kevin Ruland <kevin@rodin.wustl.edu>}
+00006 \textcolor{comment}{ *}
+00007 \textcolor{comment}{ * This version is standard-compliant and compatible with gcc 3.x.}
+00008 \textcolor{comment}{ */}
+00009 
+00010 \textcolor{preprocessor}{#include "zfstream.h"}
+00011 \textcolor{preprocessor}{#include <cstring>}          \textcolor{comment}{// for strcpy, strcat, strlen (mode strings)}
+00012 \textcolor{preprocessor}{#include <cstdio>}           \textcolor{comment}{// for BUFSIZ}
+00013 
+00014 \textcolor{comment}{// Internal buffer sizes (default and "unbuffered" versions)}
+00015 \textcolor{preprocessor}{#define BIGBUFSIZE BUFSIZ}
+00016 \textcolor{preprocessor}{#define SMALLBUFSIZE 1}
+00017 
+00018 \textcolor{comment}{/*****************************************************************************/}
+00019 
+00020 \textcolor{comment}{// Default constructor}
+00021 gzfilebuf::gzfilebuf()
+00022 : \hyperlink{structfile}{file}(NULL), io\_mode(\hyperlink{namespacestd}{std}::ios\_base::openmode(0)), own\_fd(false),
+00023   buffer(NULL), buffer\_size(BIGBUFSIZE), own\_buffer(true)
+00024 \{
+00025   \textcolor{comment}{// No buffers to start with}
+00026   this->disable\_buffer();
+00027 \}
+00028 
+00029 \textcolor{comment}{// Destructor}
+00030 gzfilebuf::~gzfilebuf()
+00031 \{
+00032   \textcolor{comment}{// Sync output buffer and close only if responsible for file}
+00033   \textcolor{comment}{// (i.e. attached streams should be left open at this stage)}
+00034   this->sync();
+00035   \textcolor{keywordflow}{if} (own\_fd)
+00036     this->close();
+00037   \textcolor{comment}{// Make sure internal buffer is deallocated}
+00038   this->disable\_buffer();
+00039 \}
+00040 
+00041 \textcolor{comment}{// Set compression level and strategy}
+00042 \textcolor{keywordtype}{int}
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00043}\hyperlink{classgzfilebuf_ad109ea4fc4ca7cc19d8014b53375255d}{00043} \hyperlink{classgzfilebuf_ad109ea4fc4ca7cc19d8014b53375255d}{gzfilebuf::setcompression}(\textcolor{keywordtype}{int} comp\_level,
+00044                           \textcolor{keywordtype}{int} comp\_strategy)
+00045 \{
+00046   \textcolor{keywordflow}{return} gzsetparams(\hyperlink{structfile}{file}, comp\_level, comp\_strategy);
+00047 \}
+00048 
+00049 \textcolor{comment}{// Open gzipped file}
+00050 \hyperlink{classgzfilebuf}{gzfilebuf}*
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00051}\hyperlink{classgzfilebuf_a9582843a0caa22cb1b4ead1c687dabb2}{00051} gzfilebuf::open(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,
+00052                 std::ios\_base::openmode mode)
+00053 \{
+00054   \textcolor{comment}{// Fail if file already open}
+00055   \textcolor{keywordflow}{if} (this->is\_open())
+00056     \textcolor{keywordflow}{return} NULL;
+00057   \textcolor{comment}{// Don't support simultaneous read/write access (yet)}
+00058   \textcolor{keywordflow}{if} ((mode & std::ios\_base::in) && (mode & std::ios\_base::out))
+00059     \textcolor{keywordflow}{return} NULL;
+00060 
+00061   \textcolor{comment}{// Build mode string for gzopen and check it [27.8.1.3.2]}
+00062   \textcolor{keywordtype}{char} char\_mode[6] = \textcolor{stringliteral}{"\(\backslash\)0\(\backslash\)0\(\backslash\)0\(\backslash\)0\(\backslash\)0"};
+00063   \textcolor{keywordflow}{if} (!this->open\_mode(mode, char\_mode))
+00064     \textcolor{keywordflow}{return} NULL;
+00065 
+00066   \textcolor{comment}{// Attempt to open file}
+00067   \textcolor{keywordflow}{if} ((\hyperlink{structfile}{file} = gzopen(name, char\_mode)) == NULL)
+00068     \textcolor{keywordflow}{return} NULL;
+00069 
+00070   \textcolor{comment}{// On success, allocate internal buffer and set flags}
+00071   this->enable\_buffer();
+00072   io\_mode = mode;
+00073   own\_fd = \textcolor{keyword}{true};
+00074   \textcolor{keywordflow}{return} \textcolor{keyword}{this};
+00075 \}
+00076 
+00077 \textcolor{comment}{// Attach to gzipped file}
+00078 \hyperlink{classgzfilebuf}{gzfilebuf}*
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00079}\hyperlink{classgzfilebuf_ae8a47750ca65bc2a43b4768b47f3923a}{00079} gzfilebuf::attach(\textcolor{keywordtype}{int} fd,
+00080                   std::ios\_base::openmode mode)
+00081 \{
+00082   \textcolor{comment}{// Fail if file already open}
+00083   \textcolor{keywordflow}{if} (this->is\_open())
+00084     \textcolor{keywordflow}{return} NULL;
+00085   \textcolor{comment}{// Don't support simultaneous read/write access (yet)}
+00086   \textcolor{keywordflow}{if} ((mode & std::ios\_base::in) && (mode & std::ios\_base::out))
+00087     \textcolor{keywordflow}{return} NULL;
+00088 
+00089   \textcolor{comment}{// Build mode string for gzdopen and check it [27.8.1.3.2]}
+00090   \textcolor{keywordtype}{char} char\_mode[6] = \textcolor{stringliteral}{"\(\backslash\)0\(\backslash\)0\(\backslash\)0\(\backslash\)0\(\backslash\)0"};
+00091   \textcolor{keywordflow}{if} (!this->open\_mode(mode, char\_mode))
+00092     \textcolor{keywordflow}{return} NULL;
+00093 
+00094   \textcolor{comment}{// Attempt to attach to file}
+00095   \textcolor{keywordflow}{if} ((\hyperlink{structfile}{file} = gzdopen(fd, char\_mode)) == NULL)
+00096     \textcolor{keywordflow}{return} NULL;
+00097 
+00098   \textcolor{comment}{// On success, allocate internal buffer and set flags}
+00099   this->enable\_buffer();
+00100   io\_mode = mode;
+00101   own\_fd = \textcolor{keyword}{false};
+00102   \textcolor{keywordflow}{return} \textcolor{keyword}{this};
+00103 \}
+00104 
+00105 \textcolor{comment}{// Close gzipped file}
+00106 \hyperlink{classgzfilebuf}{gzfilebuf}*
+00107 gzfilebuf::close()
+00108 \{
+00109   \textcolor{comment}{// Fail immediately if no file is open}
+00110   \textcolor{keywordflow}{if} (!this->is\_open())
+00111     \textcolor{keywordflow}{return} NULL;
+00112   \textcolor{comment}{// Assume success}
+00113   \hyperlink{classgzfilebuf}{gzfilebuf}* retval = \textcolor{keyword}{this};
+00114   \textcolor{comment}{// Attempt to sync and close gzipped file}
+00115   \textcolor{keywordflow}{if} (this->sync() == -1)
+00116     retval = NULL;
+00117   \textcolor{keywordflow}{if} (gzclose(\hyperlink{structfile}{file}) < 0)
+00118     retval = NULL;
+00119   \textcolor{comment}{// File is now gone anyway (postcondition [27.8.1.3.8])}
+00120   \hyperlink{structfile}{file} = NULL;
+00121   own\_fd = \textcolor{keyword}{false};
+00122   \textcolor{comment}{// Destroy internal buffer if it exists}
+00123   this->disable\_buffer();
+00124   \textcolor{keywordflow}{return} retval;
+00125 \}
+00126 
+00127 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00128 
+00129 \textcolor{comment}{// Convert int open mode to mode string}
+00130 \textcolor{keywordtype}{bool}
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00131}\hyperlink{classgzfilebuf_ab0c2c304183e591706681af26add3da2}{00131} \hyperlink{classgzfilebuf_ab0c2c304183e591706681af26add3da2}{gzfilebuf::open\_mode}(std::ios\_base::openmode mode,
+00132                      \textcolor{keywordtype}{char}* c\_mode)\textcolor{keyword}{ const}
+00133 \textcolor{keyword}{}\{
+00134   \textcolor{keywordtype}{bool} testb = mode & std::ios\_base::binary;
+00135   \textcolor{keywordtype}{bool} testi = mode & std::ios\_base::in;
+00136   \textcolor{keywordtype}{bool} testo = mode & std::ios\_base::out;
+00137   \textcolor{keywordtype}{bool} testt = mode & std::ios\_base::trunc;
+00138   \textcolor{keywordtype}{bool} testa = mode & std::ios\_base::app;
+00139 
+00140   \textcolor{comment}{// Check for valid flag combinations - see [27.8.1.3.2] (Table 92)}
+00141   \textcolor{comment}{// Original zfstream hardcoded the compression level to maximum here...}
+00142   \textcolor{comment}{// Double the time for less than 1% size improvement seems}
+00143   \textcolor{comment}{// excessive though - keeping it at the default level}
+00144   \textcolor{comment}{// To change back, just append "9" to the next three mode strings}
+00145   \textcolor{keywordflow}{if} (!testi && testo && !testt && !testa)
+00146     strcpy(c\_mode, \textcolor{stringliteral}{"w"});
+00147   \textcolor{keywordflow}{if} (!testi && testo && !testt && testa)
+00148     strcpy(c\_mode, \textcolor{stringliteral}{"a"});
+00149   \textcolor{keywordflow}{if} (!testi && testo && testt && !testa)
+00150     strcpy(c\_mode, \textcolor{stringliteral}{"w"});
+00151   \textcolor{keywordflow}{if} (testi && !testo && !testt && !testa)
+00152     strcpy(c\_mode, \textcolor{stringliteral}{"r"});
+00153   \textcolor{comment}{// No read/write mode yet}
+00154 \textcolor{comment}{//  if (testi && testo && !testt && !testa)}
+00155 \textcolor{comment}{//    strcpy(c\_mode, "r+");}
+00156 \textcolor{comment}{//  if (testi && testo && testt && !testa)}
+00157 \textcolor{comment}{//    strcpy(c\_mode, "w+");}
+00158 
+00159   \textcolor{comment}{// Mode string should be empty for invalid combination of flags}
+00160   \textcolor{keywordflow}{if} (strlen(c\_mode) == 0)
+00161     \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00162   \textcolor{keywordflow}{if} (testb)
+00163     strcat(c\_mode, \textcolor{stringliteral}{"b"});
+00164   \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00165 \}
+00166 
+00167 \textcolor{comment}{// Determine number of characters in internal get buffer}
+00168 std::streamsize
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00169}\hyperlink{classgzfilebuf_afbe2418d8a9c3f4a321cc26aa4ae5f7a}{00169} \hyperlink{classgzfilebuf_afbe2418d8a9c3f4a321cc26aa4ae5f7a}{gzfilebuf::showmanyc}()
+00170 \{
+00171   \textcolor{comment}{// Calls to underflow will fail if file not opened for reading}
+00172   \textcolor{keywordflow}{if} (!this->is\_open() || !(io\_mode & std::ios\_base::in))
+00173     \textcolor{keywordflow}{return} -1;
+00174   \textcolor{comment}{// Make sure get area is in use}
+00175   \textcolor{keywordflow}{if} (this->gptr() && (this->gptr() < this->egptr()))
+00176     \textcolor{keywordflow}{return} std::streamsize(this->egptr() - this->gptr());
+00177   \textcolor{keywordflow}{else}
+00178     \textcolor{keywordflow}{return} 0;
+00179 \}
+00180 
+00181 \textcolor{comment}{// Fill get area from gzipped file}
+00182 gzfilebuf::int\_type
+00183 gzfilebuf::underflow()
+00184 \{
+00185   \textcolor{comment}{// If something is left in the get area by chance, return it}
+00186   \textcolor{comment}{// (this shouldn't normally happen, as underflow is only supposed}
+00187   \textcolor{comment}{// to be called when gptr >= egptr, but it serves as error check)}
+00188   \textcolor{keywordflow}{if} (this->gptr() && (this->gptr() < this->egptr()))
+00189     \textcolor{keywordflow}{return} traits\_type::to\_int\_type(*(this->gptr()));
+00190 
+00191   \textcolor{comment}{// If the file hasn't been opened for reading, produce error}
+00192   \textcolor{keywordflow}{if} (!this->is\_open() || !(io\_mode & std::ios\_base::in))
+00193     \textcolor{keywordflow}{return} traits\_type::eof();
+00194 
+00195   \textcolor{comment}{// Attempt to fill internal buffer from gzipped file}
+00196   \textcolor{comment}{// (buffer must be guaranteed to exist...)}
+00197   \textcolor{keywordtype}{int} bytes\_read = gzread(\hyperlink{structfile}{file}, buffer, buffer\_size);
+00198   \textcolor{comment}{// Indicates error or EOF}
+00199   \textcolor{keywordflow}{if} (bytes\_read <= 0)
+00200   \{
+00201     \textcolor{comment}{// Reset get area}
+00202     this->setg(buffer, buffer, buffer);
+00203     \textcolor{keywordflow}{return} traits\_type::eof();
+00204   \}
+00205   \textcolor{comment}{// Make all bytes read from file available as get area}
+00206   this->setg(buffer, buffer, buffer + bytes\_read);
+00207 
+00208   \textcolor{comment}{// Return next character in get area}
+00209   \textcolor{keywordflow}{return} traits\_type::to\_int\_type(*(this->gptr()));
+00210 \}
+00211 
+00212 \textcolor{comment}{// Write put area to gzipped file}
+00213 gzfilebuf::int\_type
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00214}\hyperlink{classgzfilebuf_a425a4b0d1890abff8f83d7a5aae344b4}{00214} gzfilebuf::overflow(int\_type c)
+00215 \{
+00216   \textcolor{comment}{// Determine whether put area is in use}
+00217   \textcolor{keywordflow}{if} (this->pbase())
+00218   \{
+00219     \textcolor{comment}{// Double-check pointer range}
+00220     \textcolor{keywordflow}{if} (this->pptr() > this->epptr() || this->pptr() < this->pbase())
+00221       \textcolor{keywordflow}{return} traits\_type::eof();
+00222     \textcolor{comment}{// Add extra character to buffer if not EOF}
+00223     \textcolor{keywordflow}{if} (!traits\_type::eq\_int\_type(c, traits\_type::eof()))
+00224     \{
+00225       *(this->pptr()) = traits\_type::to\_char\_type(c);
+00226       this->pbump(1);
+00227     \}
+00228     \textcolor{comment}{// Number of characters to write to file}
+00229     \textcolor{keywordtype}{int} bytes\_to\_write = this->pptr() - this->pbase();
+00230     \textcolor{comment}{// Overflow doesn't fail if nothing is to be written}
+00231     \textcolor{keywordflow}{if} (bytes\_to\_write > 0)
+00232     \{
+00233       \textcolor{comment}{// If the file hasn't been opened for writing, produce error}
+00234       \textcolor{keywordflow}{if} (!this->is\_open() || !(io\_mode & std::ios\_base::out))
+00235         \textcolor{keywordflow}{return} traits\_type::eof();
+00236       \textcolor{comment}{// If gzipped file won't accept all bytes written to it, fail}
+00237       \textcolor{keywordflow}{if} (gzwrite(\hyperlink{structfile}{file}, this->pbase(), bytes\_to\_write) != bytes\_to\_write)
+00238         \textcolor{keywordflow}{return} traits\_type::eof();
+00239       \textcolor{comment}{// Reset next pointer to point to pbase on success}
+00240       this->pbump(-bytes\_to\_write);
+00241     \}
+00242   \}
+00243   \textcolor{comment}{// Write extra character to file if not EOF}
+00244   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (!traits\_type::eq\_int\_type(c, traits\_type::eof()))
+00245   \{
+00246     \textcolor{comment}{// If the file hasn't been opened for writing, produce error}
+00247     \textcolor{keywordflow}{if} (!this->is\_open() || !(io\_mode & std::ios\_base::out))
+00248       \textcolor{keywordflow}{return} traits\_type::eof();
+00249     \textcolor{comment}{// Impromptu char buffer (allows "unbuffered" output)}
+00250     char\_type last\_char = traits\_type::to\_char\_type(c);
+00251     \textcolor{comment}{// If gzipped file won't accept this character, fail}
+00252     \textcolor{keywordflow}{if} (gzwrite(\hyperlink{structfile}{file}, &last\_char, 1) != 1)
+00253       \textcolor{keywordflow}{return} traits\_type::eof();
+00254   \}
+00255 
+00256   \textcolor{comment}{// If you got here, you have succeeded (even if c was EOF)}
+00257   \textcolor{comment}{// The return value should therefore be non-EOF}
+00258   \textcolor{keywordflow}{if} (traits\_type::eq\_int\_type(c, traits\_type::eof()))
+00259     \textcolor{keywordflow}{return} traits\_type::not\_eof(c);
+00260   \textcolor{keywordflow}{else}
+00261     \textcolor{keywordflow}{return} c;
+00262 \}
+00263 
+00264 \textcolor{comment}{// Assign new buffer}
+00265 std::streambuf*
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00266}\hyperlink{classgzfilebuf_a856bc21f7cfc6ba43f017c9c3f0d5f81}{00266} \hyperlink{classgzfilebuf_a856bc21f7cfc6ba43f017c9c3f0d5f81}{gzfilebuf::setbuf}(char\_type* p,
+00267                   std::streamsize n)
+00268 \{
+00269   \textcolor{comment}{// First make sure stuff is sync'ed, for safety}
+00270   \textcolor{keywordflow}{if} (this->sync() == -1)
+00271     \textcolor{keywordflow}{return} NULL;
+00272   \textcolor{comment}{// If buffering is turned off on purpose via setbuf(0,0), still allocate one...}
+00273   \textcolor{comment}{// "Unbuffered" only really refers to put [27.8.1.4.10], while get needs at}
+00274   \textcolor{comment}{// least a buffer of size 1 (very inefficient though, therefore make it bigger?)}
+00275   \textcolor{comment}{// This follows from [27.5.2.4.3]/12 (gptr needs to point at something, it seems)}
+00276   \textcolor{keywordflow}{if} (!p || !n)
+00277   \{
+00278     \textcolor{comment}{// Replace existing buffer (if any) with small internal buffer}
+00279     this->disable\_buffer();
+00280     buffer = NULL;
+00281     buffer\_size = 0;
+00282     own\_buffer = \textcolor{keyword}{true};
+00283     this->enable\_buffer();
+00284   \}
+00285   \textcolor{keywordflow}{else}
+00286   \{
+00287     \textcolor{comment}{// Replace existing buffer (if any) with external buffer}
+00288     this->disable\_buffer();
+00289     buffer = p;
+00290     buffer\_size = n;
+00291     own\_buffer = \textcolor{keyword}{false};
+00292     this->enable\_buffer();
+00293   \}
+00294   \textcolor{keywordflow}{return} \textcolor{keyword}{this};
+00295 \}
+00296 
+00297 \textcolor{comment}{// Write put area to gzipped file (i.e. ensures that put area is empty)}
+00298 \textcolor{keywordtype}{int}
+00299 gzfilebuf::sync()
+00300 \{
+00301   \textcolor{keywordflow}{return} traits\_type::eq\_int\_type(this->overflow(), traits\_type::eof()) ? -1 : 0;
+00302 \}
+00303 
+00304 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00305 
+00306 \textcolor{comment}{// Allocate internal buffer}
+00307 \textcolor{keywordtype}{void}
+00308 gzfilebuf::enable\_buffer()
+00309 \{
+00310   \textcolor{comment}{// If internal buffer required, allocate one}
+00311   \textcolor{keywordflow}{if} (own\_buffer && !buffer)
+00312   \{
+00313     \textcolor{comment}{// Check for buffered vs. "unbuffered"}
+00314     \textcolor{keywordflow}{if} (buffer\_size > 0)
+00315     \{
+00316       \textcolor{comment}{// Allocate internal buffer}
+00317       buffer = \textcolor{keyword}{new} char\_type[buffer\_size];
+00318       \textcolor{comment}{// Get area starts empty and will be expanded by underflow as need arises}
+00319       this->setg(buffer, buffer, buffer);
+00320       \textcolor{comment}{// Setup entire internal buffer as put area.}
+00321       \textcolor{comment}{// The one-past-end pointer actually points to the last element of the buffer,}
+00322       \textcolor{comment}{// so that overflow(c) can safely add the extra character c to the sequence.}
+00323       \textcolor{comment}{// These pointers remain in place for the duration of the buffer}
+00324       this->setp(buffer, buffer + buffer\_size - 1);
+00325     \}
+00326     \textcolor{keywordflow}{else}
+00327     \{
+00328       \textcolor{comment}{// Even in "unbuffered" case, (small?) get buffer is still required}
+00329       buffer\_size = SMALLBUFSIZE;
+00330       buffer = \textcolor{keyword}{new} char\_type[buffer\_size];
+00331       this->setg(buffer, buffer, buffer);
+00332       \textcolor{comment}{// "Unbuffered" means no put buffer}
+00333       this->setp(0, 0);
+00334     \}
+00335   \}
+00336   \textcolor{keywordflow}{else}
+00337   \{
+00338     \textcolor{comment}{// If buffer already allocated, reset buffer pointers just to make sure no}
+00339     \textcolor{comment}{// stale chars are lying around}
+00340     this->setg(buffer, buffer, buffer);
+00341     this->setp(buffer, buffer + buffer\_size - 1);
+00342   \}
+00343 \}
+00344 
+00345 \textcolor{comment}{// Destroy internal buffer}
+00346 \textcolor{keywordtype}{void}
+00347 gzfilebuf::disable\_buffer()
+00348 \{
+00349   \textcolor{comment}{// If internal buffer exists, deallocate it}
+00350   \textcolor{keywordflow}{if} (own\_buffer && buffer)
+00351   \{
+00352     \textcolor{comment}{// Preserve unbuffered status by zeroing size}
+00353     \textcolor{keywordflow}{if} (!this->pbase())
+00354       buffer\_size = 0;
+00355     \textcolor{keyword}{delete}[] buffer;
+00356     buffer = NULL;
+00357     this->setg(0, 0, 0);
+00358     this->setp(0, 0);
+00359   \}
+00360   \textcolor{keywordflow}{else}
+00361   \{
+00362     \textcolor{comment}{// Reset buffer pointers to initial state if external buffer exists}
+00363     this->setg(buffer, buffer, buffer);
+00364     \textcolor{keywordflow}{if} (buffer)
+00365       this->setp(buffer, buffer + buffer\_size - 1);
+00366     \textcolor{keywordflow}{else}
+00367       this->setp(0, 0);
+00368   \}
+00369 \}
+00370 
+00371 \textcolor{comment}{/*****************************************************************************/}
+00372 
+00373 \textcolor{comment}{// Default constructor initializes stream buffer}
+00374 gzifstream::gzifstream()
+00375 : std::istream(NULL), sb()
+00376 \{ this->\hyperlink{structinit}{init}(&sb); \}
+00377 
+00378 \textcolor{comment}{// Initialize stream buffer and open file}
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00379}\hyperlink{classgzifstream_a90f6e0eea83b7ce3c64f755b51b5b011}{00379} gzifstream::gzifstream(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* name,
+00380                        std::ios\_base::openmode mode)
+00381 : \hyperlink{namespacestd}{std}::istream(NULL), sb()
+00382 \{
+00383   this->\hyperlink{structinit}{init}(&sb);
+00384   this->\hyperlink{classgzifstream_a8105f9300d36dafbe8b10c204583f5a1}{open}(name, mode);
+00385 \}
+00386 
+00387 \textcolor{comment}{// Initialize stream buffer and attach to file}
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00388}\hyperlink{classgzifstream_aa5ab9dcc3ab35bffe781f4c49239826e}{00388} gzifstream::gzifstream(\textcolor{keywordtype}{int} fd,
+00389                        std::ios\_base::openmode mode)
+00390 : \hyperlink{namespacestd}{std}::istream(NULL), sb()
+00391 \{
+00392   this->\hyperlink{structinit}{init}(&sb);
+00393   this->\hyperlink{classgzifstream_a24aff901c395acbdaddb7878f4ddb7aa}{attach}(fd, mode);
+00394 \}
+00395 
+00396 \textcolor{comment}{// Open file and go into fail() state if unsuccessful}
+00397 \textcolor{keywordtype}{void}
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00398}\hyperlink{classgzifstream_a8105f9300d36dafbe8b10c204583f5a1}{00398} \hyperlink{classgzifstream_a8105f9300d36dafbe8b10c204583f5a1}{gzifstream::open}(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* name,
+00399                  std::ios\_base::openmode mode)
+00400 \{
+00401   \textcolor{keywordflow}{if} (!sb.open(name, mode | std::ios\_base::in))
+00402     this->setstate(std::ios\_base::failbit);
+00403   \textcolor{keywordflow}{else}
+00404     this->clear();
+00405 \}
+00406 
+00407 \textcolor{comment}{// Attach to file and go into fail() state if unsuccessful}
+00408 \textcolor{keywordtype}{void}
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00409}\hyperlink{classgzifstream_a24aff901c395acbdaddb7878f4ddb7aa}{00409} \hyperlink{classgzifstream_a24aff901c395acbdaddb7878f4ddb7aa}{gzifstream::attach}(\textcolor{keywordtype}{int} fd,
+00410                    std::ios\_base::openmode mode)
+00411 \{
+00412   \textcolor{keywordflow}{if} (!sb.attach(fd, mode | std::ios\_base::in))
+00413     this->setstate(std::ios\_base::failbit);
+00414   \textcolor{keywordflow}{else}
+00415     this->clear();
+00416 \}
+00417 
+00418 \textcolor{comment}{// Close file}
+00419 \textcolor{keywordtype}{void}
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00420}\hyperlink{classgzifstream_a073fadd9dc90195c47a6ae2d863c8ace}{00420} \hyperlink{classgzifstream_a073fadd9dc90195c47a6ae2d863c8ace}{gzifstream::close}()
+00421 \{
+00422   \textcolor{keywordflow}{if} (!sb.close())
+00423     this->setstate(std::ios\_base::failbit);
+00424 \}
+00425 
+00426 \textcolor{comment}{/*****************************************************************************/}
+00427 
+00428 \textcolor{comment}{// Default constructor initializes stream buffer}
+00429 gzofstream::gzofstream()
+00430 : std::ostream(NULL), sb()
+00431 \{ this->\hyperlink{structinit}{init}(&sb); \}
+00432 
+00433 \textcolor{comment}{// Initialize stream buffer and open file}
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00434}\hyperlink{classgzofstream_a4334d31aab99f8c9c2277b672a55c78f}{00434} gzofstream::gzofstream(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* name,
+00435                        std::ios\_base::openmode mode)
+00436 : \hyperlink{namespacestd}{std}::ostream(NULL), sb()
+00437 \{
+00438   this->\hyperlink{structinit}{init}(&sb);
+00439   this->\hyperlink{classgzofstream_aee3eb31f07eda7f5ad1f60d59ea4b239}{open}(name, mode);
+00440 \}
+00441 
+00442 \textcolor{comment}{// Initialize stream buffer and attach to file}
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00443}\hyperlink{classgzofstream_aa94d0c8414119a52f2a7f42aa0440941}{00443} gzofstream::gzofstream(\textcolor{keywordtype}{int} fd,
+00444                        std::ios\_base::openmode mode)
+00445 : \hyperlink{namespacestd}{std}::ostream(NULL), sb()
+00446 \{
+00447   this->\hyperlink{structinit}{init}(&sb);
+00448   this->\hyperlink{classgzofstream_a95b76eaecd03b6cbf53d2f4b1c867439}{attach}(fd, mode);
+00449 \}
+00450 
+00451 \textcolor{comment}{// Open file and go into fail() state if unsuccessful}
+00452 \textcolor{keywordtype}{void}
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00453}\hyperlink{classgzofstream_aee3eb31f07eda7f5ad1f60d59ea4b239}{00453} \hyperlink{classgzofstream_aee3eb31f07eda7f5ad1f60d59ea4b239}{gzofstream::open}(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* name,
+00454                  std::ios\_base::openmode mode)
+00455 \{
+00456   \textcolor{keywordflow}{if} (!sb.open(name, mode | std::ios\_base::out))
+00457     this->setstate(std::ios\_base::failbit);
+00458   \textcolor{keywordflow}{else}
+00459     this->clear();
+00460 \}
+00461 
+00462 \textcolor{comment}{// Attach to file and go into fail() state if unsuccessful}
+00463 \textcolor{keywordtype}{void}
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00464}\hyperlink{classgzofstream_a95b76eaecd03b6cbf53d2f4b1c867439}{00464} \hyperlink{classgzofstream_a95b76eaecd03b6cbf53d2f4b1c867439}{gzofstream::attach}(\textcolor{keywordtype}{int} fd,
+00465                    std::ios\_base::openmode mode)
+00466 \{
+00467   \textcolor{keywordflow}{if} (!sb.attach(fd, mode | std::ios\_base::out))
+00468     this->setstate(std::ios\_base::failbit);
+00469   \textcolor{keywordflow}{else}
+00470     this->clear();
+00471 \}
+00472 
+00473 \textcolor{comment}{// Close file}
+00474 \textcolor{keywordtype}{void}
+\Hypertarget{visual__studio_2zlib_2contrib_2iostream3_2zfstream_8cc_source_l00475}\hyperlink{classgzofstream_a59e8b01e1c9741085f18ca456c4b8f54}{00475} \hyperlink{classgzofstream_a59e8b01e1c9741085f18ca456c4b8f54}{gzofstream::close}()
+00476 \{
+00477   \textcolor{keywordflow}{if} (!sb.close())
+00478     this->setstate(std::ios\_base::failbit);
+00479 \}
+\end{DoxyCode}

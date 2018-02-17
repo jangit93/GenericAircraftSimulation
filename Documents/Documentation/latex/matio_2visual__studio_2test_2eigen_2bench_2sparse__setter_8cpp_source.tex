@@ -1,0 +1,498 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2bench_2sparse__setter_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/bench/sparse\+\_\+setter.cpp}
+\label{matio_2visual__studio_2test_2eigen_2bench_2sparse__setter_8cpp_source}\index{sparse\+\_\+setter.\+cpp@{sparse\+\_\+setter.\+cpp}}
+
+\begin{DoxyCode}
+00001 
+00002 \textcolor{comment}{//g++ -O3 -g0 -DNDEBUG  sparse\_product.cpp -I.. -I/home/gael/Coding/LinearAlgebra/mtl4/ -DDENSITY=0.005
+       -DSIZE=10000 && ./a.out}
+00003 \textcolor{comment}{//g++ -O3 -g0 -DNDEBUG  sparse\_product.cpp -I.. -I/home/gael/Coding/LinearAlgebra/mtl4/ -DDENSITY=0.05
+       -DSIZE=2000 && ./a.out}
+00004 \textcolor{comment}{// -DNOGMM -DNOMTL -DCSPARSE}
+00005 \textcolor{comment}{// -I /home/gael/Coding/LinearAlgebra/CSparse/Include/
+       /home/gael/Coding/LinearAlgebra/CSparse/Lib/libcsparse.a}
+00006 \textcolor{preprocessor}{#ifndef SIZE}
+00007 \textcolor{preprocessor}{#define SIZE 100000}
+00008 \textcolor{preprocessor}{#endif}
+00009 
+00010 \textcolor{preprocessor}{#ifndef NBPERROW}
+00011 \textcolor{preprocessor}{#define NBPERROW 24}
+00012 \textcolor{preprocessor}{#endif}
+00013 
+00014 \textcolor{preprocessor}{#ifndef REPEAT}
+00015 \textcolor{preprocessor}{#define REPEAT 2}
+00016 \textcolor{preprocessor}{#endif}
+00017 
+00018 \textcolor{preprocessor}{#ifndef NBTRIES}
+00019 \textcolor{preprocessor}{#define NBTRIES 2}
+00020 \textcolor{preprocessor}{#endif}
+00021 
+00022 \textcolor{preprocessor}{#ifndef KK}
+00023 \textcolor{preprocessor}{#define KK 10}
+00024 \textcolor{preprocessor}{#endif}
+00025 
+00026 \textcolor{preprocessor}{#ifndef NOGOOGLE}
+00027 \textcolor{preprocessor}{#define EIGEN\_GOOGLEHASH\_SUPPORT}
+00028 \textcolor{preprocessor}{#include <google/sparse\_hash\_map>}
+00029 \textcolor{preprocessor}{#endif}
+00030 
+00031 \textcolor{preprocessor}{#include "BenchSparseUtil.h"}
+00032 
+00033 \textcolor{preprocessor}{#define CHECK\_MEM}
+00034 \textcolor{comment}{// #define CHECK\_MEM  std/**/::cout << "check mem\(\backslash\)n"; getchar();}
+00035 
+00036 \textcolor{preprocessor}{#define BENCH(X) \(\backslash\)}
+00037 \textcolor{preprocessor}{  timer.reset(); \(\backslash\)}
+00038 \textcolor{preprocessor}{  for (int \_j=0; \_j<NBTRIES; ++\_j) \{ \(\backslash\)}
+00039 \textcolor{preprocessor}{    timer.start(); \(\backslash\)}
+00040 \textcolor{preprocessor}{    for (int \_k=0; \_k<REPEAT; ++\_k) \{ \(\backslash\)}
+00041 \textcolor{preprocessor}{        X  \(\backslash\)}
+00042 \textcolor{preprocessor}{  \} timer.stop(); \}}
+00043 
+00044 \textcolor{keyword}{typedef} std::vector<Vector2i> Coordinates;
+00045 \textcolor{keyword}{typedef} std::vector<float> Values;
+00046 
+00047 EIGEN\_DONT\_INLINE Scalar* setinnerrand\_eigen(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals);
+00048 EIGEN\_DONT\_INLINE Scalar* setrand\_eigen\_dynamic(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals);
+00049 EIGEN\_DONT\_INLINE Scalar* setrand\_eigen\_compact(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals);
+00050 EIGEN\_DONT\_INLINE Scalar* setrand\_eigen\_sumeq(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals);
+00051 EIGEN\_DONT\_INLINE Scalar* setrand\_eigen\_gnu\_hash(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals);
+00052 EIGEN\_DONT\_INLINE Scalar* setrand\_eigen\_google\_dense(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals);
+00053 EIGEN\_DONT\_INLINE Scalar* setrand\_eigen\_google\_sparse(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals);
+00054 EIGEN\_DONT\_INLINE Scalar* setrand\_scipy(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals);
+00055 EIGEN\_DONT\_INLINE Scalar* setrand\_ublas\_mapped(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals);
+00056 EIGEN\_DONT\_INLINE Scalar* setrand\_ublas\_coord(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals);
+00057 EIGEN\_DONT\_INLINE Scalar* setrand\_ublas\_compressed(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals);
+00058 EIGEN\_DONT\_INLINE Scalar* setrand\_ublas\_genvec(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals);
+00059 EIGEN\_DONT\_INLINE Scalar* setrand\_mtl(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals);
+00060 
+00061 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])
+00062 \{
+00063   \textcolor{keywordtype}{int} rows = SIZE;
+00064   \textcolor{keywordtype}{int} cols = SIZE;
+00065   \textcolor{keywordtype}{bool} fullyrand = \textcolor{keyword}{true};
+00066 
+00067   \hyperlink{class_eigen_1_1_bench_timer}{BenchTimer} timer;
+00068   Coordinates coords;
+00069   Values values;
+00070   \textcolor{keywordflow}{if}(fullyrand)
+00071   \{
+00072     Coordinates pool;
+00073     pool.reserve(cols*NBPERROW);
+00074     std::cerr << \textcolor{stringliteral}{"fill pool"} << \textcolor{stringliteral}{"\(\backslash\)n"};
+00075     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<cols*NBPERROW; )
+00076     \{
+00077 \textcolor{comment}{//       DynamicSparseMatrix<int> stencil(SIZE,SIZE);}
+00078       Vector2i ij(internal::random<int>(0,rows-1),internal::random<int>(0,cols-1));
+00079 \textcolor{comment}{//       if(stencil.coeffRef(ij.x(), ij.y())==0)}
+00080       \{
+00081 \textcolor{comment}{//         stencil.coeffRef(ij.x(), ij.y()) = 1;}
+00082         pool.push\_back(ij);
+00083 
+00084       \}
+00085       ++i;
+00086     \}
+00087     std::cerr << \textcolor{stringliteral}{"pool ok"} << \textcolor{stringliteral}{"\(\backslash\)n"};
+00088     \textcolor{keywordtype}{int} n = cols*NBPERROW*KK;
+00089     coords.reserve(n);
+00090     values.reserve(n);
+00091     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<n; ++i)
+00092     \{
+00093       \textcolor{keywordtype}{int} i = internal::random<int>(0,pool.size());
+00094       coords.push\_back(pool[i]);
+00095       values.push\_back(internal::random<Scalar>());
+00096     \}
+00097   \}
+00098   \textcolor{keywordflow}{else}
+00099   \{
+00100     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<cols; ++j)
+00101     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<NBPERROW; ++i)
+00102     \{
+00103       coords.push\_back(Vector2i(internal::random<int>(0,rows-1),j));
+00104       values.push\_back(internal::random<Scalar>());
+00105     \}
+00106   \}
+00107   std::cout << \textcolor{stringliteral}{"nnz = "} << coords.size()  << \textcolor{stringliteral}{"\(\backslash\)n"};
+00108   CHECK\_MEM
+00109 
+00110     \textcolor{comment}{// dense matrices}
+00111 \textcolor{preprocessor}{    #ifdef DENSEMATRIX}
+00112     \{
+00113       BENCH(setrand\_eigen\_dense(coords,values);)
+00114       std::cout << \textcolor{stringliteral}{"Eigen Dense\(\backslash\)t"} << timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{"\(\backslash\)n"};
+00115     \}
+00116 \textcolor{preprocessor}{    #endif}
+00117 
+00118     \textcolor{comment}{// eigen sparse matrices}
+00119 \textcolor{comment}{//     if (!fullyrand)}
+00120 \textcolor{comment}{//     \{}
+00121 \textcolor{comment}{//       BENCH(setinnerrand\_eigen(coords,values);)}
+00122 \textcolor{comment}{//       std::cout << "Eigen fillrand\(\backslash\)t" << timer.value() << "\(\backslash\)n";}
+00123 \textcolor{comment}{//     \}}
+00124     \{
+00125       BENCH(setrand\_eigen\_dynamic(coords,values);)
+00126       std::cout << \textcolor{stringliteral}{"Eigen dynamic\(\backslash\)t"} << timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{"\(\backslash\)n"};
+00127     \}
+00128 \textcolor{comment}{//     \{}
+00129 \textcolor{comment}{//       BENCH(setrand\_eigen\_compact(coords,values);)}
+00130 \textcolor{comment}{//       std::cout << "Eigen compact\(\backslash\)t" << timer.value() << "\(\backslash\)n";}
+00131 \textcolor{comment}{//     \}}
+00132     \{
+00133       BENCH(setrand\_eigen\_sumeq(coords,values);)
+00134       std::cout << \textcolor{stringliteral}{"Eigen sumeq\(\backslash\)t"} << timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{"\(\backslash\)n"};
+00135     \}
+00136     \{
+00137 \textcolor{comment}{//       BENCH(setrand\_eigen\_gnu\_hash(coords,values);)}
+00138 \textcolor{comment}{//       std::cout << "Eigen std::map\(\backslash\)t" << timer.value() << "\(\backslash\)n";}
+00139     \}
+00140     \{
+00141       BENCH(setrand\_scipy(coords,values);)
+00142       std::cout << \textcolor{stringliteral}{"scipy\(\backslash\)t"} << timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{"\(\backslash\)n"};
+00143     \}
+00144 \textcolor{preprocessor}{    #ifndef NOGOOGLE}
+00145     \{
+00146       BENCH(setrand\_eigen\_google\_dense(coords,values);)
+00147       std::cout << \textcolor{stringliteral}{"Eigen google dense\(\backslash\)t"} << timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{"\(\backslash\)n"};
+00148     \}
+00149     \{
+00150       BENCH(setrand\_eigen\_google\_sparse(coords,values);)
+00151       std::cout << \textcolor{stringliteral}{"Eigen google sparse\(\backslash\)t"} << timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{"\(\backslash\)n"};
+00152     \}
+00153 \textcolor{preprocessor}{    #endif}
+00154 
+00155 \textcolor{preprocessor}{    #ifndef NOUBLAS}
+00156     \{
+00157 \textcolor{comment}{//       BENCH(setrand\_ublas\_mapped(coords,values);)}
+00158 \textcolor{comment}{//       std::cout << "ublas mapped\(\backslash\)t" << timer.value() << "\(\backslash\)n";}
+00159     \}
+00160     \{
+00161       BENCH(setrand\_ublas\_genvec(coords,values);)
+00162       std::cout << \textcolor{stringliteral}{"ublas vecofvec\(\backslash\)t"} << timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{"\(\backslash\)n"};
+00163     \}
+00164     \textcolor{comment}{/*\{}
+00165 \textcolor{comment}{      timer.reset();}
+00166 \textcolor{comment}{      timer.start();}
+00167 \textcolor{comment}{      for (int k=0; k<REPEAT; ++k)}
+00168 \textcolor{comment}{        setrand\_ublas\_compressed(coords,values);}
+00169 \textcolor{comment}{      timer.stop();}
+00170 \textcolor{comment}{      std::cout << "ublas comp\(\backslash\)t" << timer.value() << "\(\backslash\)n";}
+00171 \textcolor{comment}{    \}}
+00172 \textcolor{comment}{    \{}
+00173 \textcolor{comment}{      timer.reset();}
+00174 \textcolor{comment}{      timer.start();}
+00175 \textcolor{comment}{      for (int k=0; k<REPEAT; ++k)}
+00176 \textcolor{comment}{        setrand\_ublas\_coord(coords,values);}
+00177 \textcolor{comment}{      timer.stop();}
+00178 \textcolor{comment}{      std::cout << "ublas coord\(\backslash\)t" << timer.value() << "\(\backslash\)n";}
+00179 \textcolor{comment}{    \}*/}
+00180 \textcolor{preprocessor}{    #endif}
+00181 
+00182 
+00183     \textcolor{comment}{// MTL4}
+00184 \textcolor{preprocessor}{    #ifndef NOMTL}
+00185     \{
+00186       BENCH(setrand\_mtl(coords,values));
+00187       std::cout << \textcolor{stringliteral}{"MTL\(\backslash\)t"} << timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{"\(\backslash\)n"};
+00188     \}
+00189 \textcolor{preprocessor}{    #endif}
+00190 
+00191   \textcolor{keywordflow}{return} 0;
+00192 \}
+00193 
+00194 EIGEN\_DONT\_INLINE Scalar* setinnerrand\_eigen(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals)
+00195 \{
+00196   \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00197   \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar>} mat(SIZE,SIZE);
+00198   \textcolor{comment}{//mat.startFill(2000000/*coords.size()*/);}
+00199   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<coords.size(); ++i)
+00200   \{
+00201     mat.insert(coords[i].x(), coords[i].y()) = vals[i];
+00202   \}
+00203   mat.finalize();
+00204   CHECK\_MEM;
+00205   \textcolor{keywordflow}{return} 0;
+00206 \}
+00207 
+00208 EIGEN\_DONT\_INLINE Scalar* setrand\_eigen\_dynamic(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals)
+00209 \{
+00210   \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00211   \hyperlink{class_eigen_1_1_dynamic_sparse_matrix}{DynamicSparseMatrix<Scalar>} mat(SIZE,SIZE);
+00212   mat.reserve(coords.size()/10);
+00213   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<coords.size(); ++i)
+00214   \{
+00215     mat.coeffRef(coords[i].x(), coords[i].y()) += vals[i];
+00216   \}
+00217   mat.finalize();
+00218   CHECK\_MEM;
+00219   \textcolor{keywordflow}{return} &mat.coeffRef(coords[0].x(), coords[0].y());
+00220 \}
+00221 
+00222 EIGEN\_DONT\_INLINE Scalar* setrand\_eigen\_sumeq(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals)
+00223 \{
+00224   \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00225   \textcolor{keywordtype}{int} n = coords.size()/KK;
+00226   \hyperlink{class_eigen_1_1_dynamic_sparse_matrix}{DynamicSparseMatrix<Scalar>} mat(SIZE,SIZE);
+00227   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<KK; ++j)
+00228   \{
+00229     \hyperlink{class_eigen_1_1_dynamic_sparse_matrix}{DynamicSparseMatrix<Scalar>} aux(SIZE,SIZE);
+00230     mat.reserve(n);
+00231     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=j*n; i<(j+1)*n; ++i)
+00232     \{
+00233       aux.insert(coords[i].x(), coords[i].y()) += vals[i];
+00234     \}
+00235     aux.finalize();
+00236     mat += aux;
+00237   \}
+00238   \textcolor{keywordflow}{return} &mat.coeffRef(coords[0].x(), coords[0].y());
+00239 \}
+00240 
+00241 EIGEN\_DONT\_INLINE Scalar* setrand\_eigen\_compact(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals)
+00242 \{
+00243   \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00244   \hyperlink{class_eigen_1_1_dynamic_sparse_matrix}{DynamicSparseMatrix<Scalar>} setter(SIZE,SIZE);
+00245   setter.reserve(coords.size()/10);
+00246   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<coords.size(); ++i)
+00247   \{
+00248     setter.coeffRef(coords[i].x(), coords[i].y()) += vals[i];
+00249   \}
+00250   \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar>} mat = setter;
+00251   CHECK\_MEM;
+00252   \textcolor{keywordflow}{return} &mat.\hyperlink{group___sparse_core___module_a013197b3f598968ff37ed8c97087f1ef}{coeffRef}(coords[0].x(), coords[0].y());
+00253 \}
+00254 
+00255 EIGEN\_DONT\_INLINE Scalar* setrand\_eigen\_gnu\_hash(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals)
+00256 \{
+00257   \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00258   \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar>} mat(SIZE,SIZE);
+00259   \{
+00260     \hyperlink{class_eigen_1_1_random_setter}{RandomSetter<SparseMatrix<Scalar>}, 
+      \hyperlink{struct_eigen_1_1_std_map_traits}{StdMapTraits} > setter(mat);
+00261     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<coords.size(); ++i)
+00262     \{
+00263       setter(coords[i].x(), coords[i].y()) += vals[i];
+00264     \}
+00265     CHECK\_MEM;
+00266   \}
+00267   \textcolor{keywordflow}{return} &mat.\hyperlink{group___sparse_core___module_a013197b3f598968ff37ed8c97087f1ef}{coeffRef}(coords[0].x(), coords[0].y());
+00268 \}
+00269 
+00270 \textcolor{preprocessor}{#ifndef NOGOOGLE}
+00271 EIGEN\_DONT\_INLINE Scalar* setrand\_eigen\_google\_dense(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals)
+00272 \{
+00273   \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00274   \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar>} mat(SIZE,SIZE);
+00275   \{
+00276     \hyperlink{class_eigen_1_1_random_setter}{RandomSetter<SparseMatrix<Scalar>}, GoogleDenseHashMapTraits> setter(
+      mat);
+00277     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<coords.size(); ++i)
+00278       setter(coords[i].x(), coords[i].y()) += vals[i];
+00279     CHECK\_MEM;
+00280   \}
+00281   \textcolor{keywordflow}{return} &mat.\hyperlink{group___sparse_core___module_a013197b3f598968ff37ed8c97087f1ef}{coeffRef}(coords[0].x(), coords[0].y());
+00282 \}
+00283 
+00284 EIGEN\_DONT\_INLINE Scalar* setrand\_eigen\_google\_sparse(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals)
+00285 \{
+00286   \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00287   \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar>} mat(SIZE,SIZE);
+00288   \{
+00289     \hyperlink{class_eigen_1_1_random_setter}{RandomSetter<SparseMatrix<Scalar>}, GoogleSparseHashMapTraits> setter(
+      mat);
+00290     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<coords.size(); ++i)
+00291       setter(coords[i].x(), coords[i].y()) += vals[i];
+00292     CHECK\_MEM;
+00293   \}
+00294   \textcolor{keywordflow}{return} &mat.\hyperlink{group___sparse_core___module_a013197b3f598968ff37ed8c97087f1ef}{coeffRef}(coords[0].x(), coords[0].y());
+00295 \}
+00296 \textcolor{preprocessor}{#endif}
+00297 
+00298 
+00299 \textcolor{keyword}{template} <\textcolor{keyword}{class} T>
+00300 \textcolor{keywordtype}{void} coo\_tocsr(\textcolor{keyword}{const} \textcolor{keywordtype}{int} n\_row,
+00301                \textcolor{keyword}{const} \textcolor{keywordtype}{int} n\_col,
+00302                \textcolor{keyword}{const} \textcolor{keywordtype}{int} nnz,
+00303                \textcolor{keyword}{const} Coordinates Aij,
+00304                \textcolor{keyword}{const} Values Ax,
+00305                      \textcolor{keywordtype}{int} Bp[],
+00306                      \textcolor{keywordtype}{int} Bj[],
+00307                      \hyperlink{group___sparse_core___module}{T} Bx[])
+00308 \{
+00309     \textcolor{comment}{//compute number of non-zero entries per row of A coo\_tocsr}
+00310     std::fill(Bp, Bp + n\_row, 0);
+00311 
+00312     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} n = 0; n < nnz; n++)\{
+00313         Bp[Aij[n].x()]++;
+00314     \}
+00315 
+00316     \textcolor{comment}{//cumsum the nnz per row to get Bp[]}
+00317     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0, cumsum = 0; i < n\_row; i++)\{
+00318         \textcolor{keywordtype}{int} temp = Bp[i];
+00319         Bp[i] = cumsum;
+00320         cumsum += temp;
+00321     \}
+00322     Bp[n\_row] = nnz;
+00323 
+00324     \textcolor{comment}{//write Aj,Ax into Bj,Bx}
+00325     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} n = 0; n < nnz; n++)\{
+00326         \textcolor{keywordtype}{int} row  = Aij[n].x();
+00327         \textcolor{keywordtype}{int} dest = Bp[row];
+00328 
+00329         Bj[dest] = Aij[n].y();
+00330         Bx[dest] = Ax[n];
+00331 
+00332         Bp[row]++;
+00333     \}
+00334 
+00335     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0, last = 0; i <= n\_row; i++)\{
+00336         \textcolor{keywordtype}{int} temp = Bp[i];
+00337         Bp[i]  = last;
+00338         last   = temp;
+00339     \}
+00340 
+00341     \textcolor{comment}{//now Bp,Bj,Bx form a CSR representation (with possible duplicates)}
+00342 \}
+00343 
+00344 \textcolor{keyword}{template}< \textcolor{keyword}{class} T1, \textcolor{keyword}{class} T2 >
+00345 \textcolor{keywordtype}{bool} kv\_pair\_less(\textcolor{keyword}{const} std::pair<T1,T2>& x, \textcolor{keyword}{const} std::pair<T1,T2>& y)\{
+00346     \textcolor{keywordflow}{return} x.first < y.first;
+00347 \}
+00348 
+00349 
+00350 \textcolor{keyword}{template}<\textcolor{keyword}{class} I, \textcolor{keyword}{class} T>
+00351 \textcolor{keywordtype}{void} csr\_sort\_indices(\textcolor{keyword}{const} I n\_row,
+00352                       \textcolor{keyword}{const} I Ap[],
+00353                             I Aj[],
+00354                             \hyperlink{group___sparse_core___module}{T} Ax[])
+00355 \{
+00356     std::vector< std::pair<I,T> > temp;
+00357 
+00358     \textcolor{keywordflow}{for}(I i = 0; i < n\_row; i++)\{
+00359         I row\_start = Ap[i];
+00360         I row\_end   = Ap[i+1];
+00361 
+00362         temp.clear();
+00363 
+00364         \textcolor{keywordflow}{for}(I jj = row\_start; jj < row\_end; jj++)\{
+00365             temp.push\_back(std::make\_pair(Aj[jj],Ax[jj]));
+00366         \}
+00367 
+00368         std::sort(temp.begin(),temp.end(),kv\_pair\_less<I,T>);
+00369 
+00370         \textcolor{keywordflow}{for}(I jj = row\_start, n = 0; jj < row\_end; jj++, n++)\{
+00371             Aj[jj] = temp[n].first;
+00372             Ax[jj] = temp[n].second;
+00373         \}
+00374     \}
+00375 \}
+00376 
+00377 \textcolor{keyword}{template} <\textcolor{keyword}{class} I, \textcolor{keyword}{class} T>
+00378 \textcolor{keywordtype}{void} csr\_sum\_duplicates(\textcolor{keyword}{const} I n\_row,
+00379                         \textcolor{keyword}{const} I n\_col,
+00380                               I Ap[],
+00381                               I Aj[],
+00382                               \hyperlink{group___sparse_core___module}{T} Ax[])
+00383 \{
+00384     I nnz = 0;
+00385     I row\_end = 0;
+00386     \textcolor{keywordflow}{for}(I i = 0; i < n\_row; i++)\{
+00387         I jj = row\_end;
+00388         row\_end = Ap[i+1];
+00389         \textcolor{keywordflow}{while}( jj < row\_end )\{
+00390             I j = Aj[jj];
+00391             \hyperlink{group___sparse_core___module}{T} x = Ax[jj];
+00392             jj++;
+00393             \textcolor{keywordflow}{while}( jj < row\_end && Aj[jj] == j )\{
+00394                 x += Ax[jj];
+00395                 jj++;
+00396             \}
+00397             Aj[nnz] = j;
+00398             Ax[nnz] = x;
+00399             nnz++;
+00400         \}
+00401         Ap[i+1] = nnz;
+00402     \}
+00403 \}
+00404 
+00405 EIGEN\_DONT\_INLINE Scalar* setrand\_scipy(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals)
+00406 \{
+00407   \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00408   \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar>} mat(SIZE,SIZE);
+00409   mat.resizeNonZeros(coords.size());
+00410 \textcolor{comment}{//   std::cerr << "setrand\_scipy...\(\backslash\)n";}
+00411   coo\_tocsr<Scalar>(SIZE,SIZE, coords.size(), coords, vals, mat.\_outerIndexPtr(), mat.\_innerIndexPtr(), mat
+      .\_valuePtr());
+00412 \textcolor{comment}{//   std::cerr << "coo\_tocsr ok\(\backslash\)n";}
+00413 
+00414   csr\_sort\_indices(SIZE, mat.\_outerIndexPtr(), mat.\_innerIndexPtr(), mat.\_valuePtr());
+00415 
+00416   csr\_sum\_duplicates(SIZE, SIZE, mat.\_outerIndexPtr(), mat.\_innerIndexPtr(), mat.\_valuePtr());
+00417 
+00418   mat.resizeNonZeros(mat.\_outerIndexPtr()[SIZE]);
+00419 
+00420   \textcolor{keywordflow}{return} &mat.\hyperlink{group___sparse_core___module_a013197b3f598968ff37ed8c97087f1ef}{coeffRef}(coords[0].x(), coords[0].y());
+00421 \}
+00422 
+00423 
+00424 \textcolor{preprocessor}{#ifndef NOUBLAS}
+00425 EIGEN\_DONT\_INLINE Scalar* setrand\_ublas\_mapped(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals)
+00426 \{
+00427   \textcolor{keyword}{using namespace }\hyperlink{namespaceboost}{boost};
+00428   \textcolor{keyword}{using namespace }\hyperlink{namespaceboost_1_1numeric}{boost::numeric};
+00429   \textcolor{keyword}{using namespace }boost::numeric::ublas;
+00430   mapped\_matrix<Scalar> aux(SIZE,SIZE);
+00431   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<coords.size(); ++i)
+00432   \{
+00433     aux(coords[i].x(), coords[i].y()) += vals[i];
+00434   \}
+00435   CHECK\_MEM;
+00436   compressed\_matrix<Scalar> mat(aux);
+00437   \textcolor{keywordflow}{return} 0;\textcolor{comment}{// &mat(coords[0].x(), coords[0].y());}
+00438 \}
+00439 \textcolor{comment}{/*EIGEN\_DONT\_INLINE Scalar* setrand\_ublas\_coord(const Coordinates& coords, const Values& vals)}
+00440 \textcolor{comment}{\{}
+00441 \textcolor{comment}{  using namespace boost;}
+00442 \textcolor{comment}{  using namespace boost::numeric;}
+00443 \textcolor{comment}{  using namespace boost::numeric::ublas;}
+00444 \textcolor{comment}{  coordinate\_matrix<Scalar> aux(SIZE,SIZE);}
+00445 \textcolor{comment}{  for (int i=0; i<coords.size(); ++i)}
+00446 \textcolor{comment}{  \{}
+00447 \textcolor{comment}{    aux(coords[i].x(), coords[i].y()) = vals[i];}
+00448 \textcolor{comment}{  \}}
+00449 \textcolor{comment}{  compressed\_matrix<Scalar> mat(aux);}
+00450 \textcolor{comment}{  return 0;//&mat(coords[0].x(), coords[0].y());}
+00451 \textcolor{comment}{\}}
+00452 \textcolor{comment}{EIGEN\_DONT\_INLINE Scalar* setrand\_ublas\_compressed(const Coordinates& coords, const Values& vals)}
+00453 \textcolor{comment}{\{}
+00454 \textcolor{comment}{  using namespace boost;}
+00455 \textcolor{comment}{  using namespace boost::numeric;}
+00456 \textcolor{comment}{  using namespace boost::numeric::ublas;}
+00457 \textcolor{comment}{  compressed\_matrix<Scalar> mat(SIZE,SIZE);}
+00458 \textcolor{comment}{  for (int i=0; i<coords.size(); ++i)}
+00459 \textcolor{comment}{  \{}
+00460 \textcolor{comment}{    mat(coords[i].x(), coords[i].y()) = vals[i];}
+00461 \textcolor{comment}{  \}}
+00462 \textcolor{comment}{  return 0;//&mat(coords[0].x(), coords[0].y());}
+00463 \textcolor{comment}{\}*/}
+00464 EIGEN\_DONT\_INLINE Scalar* setrand\_ublas\_genvec(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals)
+00465 \{
+00466   \textcolor{keyword}{using namespace }\hyperlink{namespaceboost}{boost};
+00467   \textcolor{keyword}{using namespace }\hyperlink{namespaceboost_1_1numeric}{boost::numeric};
+00468   \textcolor{keyword}{using namespace }boost::numeric::ublas;
+00469 
+00470 \textcolor{comment}{//   ublas::vector<coordinate\_vector<Scalar> > foo;}
+00471   generalized\_vector\_of\_vector<Scalar, row\_major, ublas::vector<coordinate\_vector<Scalar> > > aux(SIZE,SIZE
+      );
+00472   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<coords.size(); ++i)
+00473   \{
+00474     aux(coords[i].x(), coords[i].y()) += vals[i];
+00475   \}
+00476   CHECK\_MEM;
+00477   compressed\_matrix<Scalar,row\_major> mat(aux);
+00478   \textcolor{keywordflow}{return} 0;\textcolor{comment}{//&mat(coords[0].x(), coords[0].y());}
+00479 \}
+00480 \textcolor{preprocessor}{#endif}
+00481 
+00482 \textcolor{preprocessor}{#ifndef NOMTL}
+00483 EIGEN\_DONT\_INLINE \textcolor{keywordtype}{void} setrand\_mtl(\textcolor{keyword}{const} Coordinates& coords, \textcolor{keyword}{const} Values& vals);
+00484 \textcolor{preprocessor}{#endif}
+00485 
+\end{DoxyCode}

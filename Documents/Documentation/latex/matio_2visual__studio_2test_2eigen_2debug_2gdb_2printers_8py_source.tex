@@ -1,0 +1,222 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2debug_2gdb_2printers_8py_source}{}\section{matio/visual\+\_\+studio/test/eigen/debug/gdb/printers.py}
+\label{matio_2visual__studio_2test_2eigen_2debug_2gdb_2printers_8py_source}\index{printers.\+py@{printers.\+py}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{# -*- coding: utf-8 -*-}
+00002 \textcolor{comment}{# This file is part of Eigen, a lightweight C++ template library}
+00003 \textcolor{comment}{# for linear algebra.}
+00004 \textcolor{comment}{#}
+00005 \textcolor{comment}{# Copyright (C) 2009 Benjamin Schindler <bschindler@inf.ethz.ch>}
+00006 \textcolor{comment}{#}
+00007 \textcolor{comment}{# This Source Code Form is subject to the terms of the Mozilla Public}
+00008 \textcolor{comment}{# License, v. 2.0. If a copy of the MPL was not distributed with this}
+00009 \textcolor{comment}{# file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{comment}{# Pretty printers for Eigen::Matrix}
+00012 \textcolor{comment}{# This is still pretty basic as the python extension to gdb is still pretty basic. }
+00013 \textcolor{comment}{# It cannot handle complex eigen types and it doesn't support any of the other eigen types}
+00014 \textcolor{comment}{# Such as quaternion or some other type. }
+00015 \textcolor{comment}{# This code supports fixed size as well as dynamic size matrices}
+00016 
+00017 \textcolor{comment}{# To use it:}
+00018 \textcolor{comment}{#}
+00019 \textcolor{comment}{# * Create a directory and put the file as well as an empty \_\_init\_\_.py in }
+00020 \textcolor{comment}{#   that directory.}
+00021 \textcolor{comment}{# * Create a ~/.gdbinit file, that contains the following:}
+00022 \textcolor{comment}{#      python}
+00023 \textcolor{comment}{#      import sys}
+00024 \textcolor{comment}{#      sys.path.insert(0, '/path/to/eigen/printer/directory')}
+00025 \textcolor{comment}{#      from printers import register\_eigen\_printers}
+00026 \textcolor{comment}{#      register\_eigen\_printers (None)}
+00027 \textcolor{comment}{#      end}
+00028 
+00029 \textcolor{keyword}{import} gdb
+00030 \textcolor{keyword}{import} re
+00031 \textcolor{keyword}{import} itertools
+00032 
+00033 
+00034 \textcolor{keyword}{class }EigenMatrixPrinter:
+00035     \textcolor{stringliteral}{"Print Eigen Matrix or Array of some kind"}
+00036 
+00037     \textcolor{keyword}{def }\_\_init\_\_(self, variety, val):
+00038         \textcolor{stringliteral}{"Extract all the necessary information"}
+00039         
+00040         \textcolor{comment}{# Save the variety (presumably "Matrix" or "Array") for later usage}
+00041         self.variety = variety
+00042         
+00043         \textcolor{comment}{# The gdb extension does not support value template arguments - need to extract them by hand}
+00044         type = val.type
+00045         \textcolor{keywordflow}{if} type.code == gdb.TYPE\_CODE\_REF:
+00046             type = type.target()
+00047         self.type = type.unqualified().strip\_typedefs()
+00048         tag = self.type.tag
+00049         regex = re.compile(\textcolor{stringliteral}{'\(\backslash\)<.*\(\backslash\)>'})
+00050         m = regex.findall(tag)[0][1:-1]
+00051         template\_params = m.split(\textcolor{stringliteral}{','})
+00052         template\_params = [x.replace(\textcolor{stringliteral}{" "}, \textcolor{stringliteral}{""}) \textcolor{keywordflow}{for} x \textcolor{keywordflow}{in} template\_params]
+00053         
+00054         \textcolor{keywordflow}{if} template\_params[1] == \textcolor{stringliteral}{'-0x00000000000000001'} \textcolor{keywordflow}{or} template\_params[1] == \textcolor{stringliteral}{'-0x000000001'} \textcolor{keywordflow}{or} 
+      template\_params[1] == \textcolor{stringliteral}{'-1'}:
+00055             self.rows = val[\textcolor{stringliteral}{'m\_storage'}][\textcolor{stringliteral}{'m\_rows'}]
+00056         \textcolor{keywordflow}{else}:
+00057             self.rows = int(template\_params[1])
+00058         
+00059         \textcolor{keywordflow}{if} template\_params[2] == \textcolor{stringliteral}{'-0x00000000000000001'} \textcolor{keywordflow}{or} template\_params[2] == \textcolor{stringliteral}{'-0x000000001'} \textcolor{keywordflow}{or} 
+      template\_params[2] == \textcolor{stringliteral}{'-1'}:
+00060             self.cols = val[\textcolor{stringliteral}{'m\_storage'}][\textcolor{stringliteral}{'m\_cols'}]
+00061         \textcolor{keywordflow}{else}:
+00062             self.cols = int(template\_params[2])
+00063         
+00064         self.options = 0 \textcolor{comment}{# default value}
+00065         \textcolor{keywordflow}{if} len(template\_params) > 3:
+00066             self.options = template\_params[3];
+00067         
+00068         self.rowMajor = (int(self.options) & 0x1)
+00069         
+00070         self.innerType = self.type.template\_argument(0)
+00071         
+00072         self.val = val
+00073         
+00074         \textcolor{comment}{# Fixed size matrices have a struct as their storage, so we need to walk through this}
+00075         self.data = self.val[\textcolor{stringliteral}{'m\_storage'}][\textcolor{stringliteral}{'m\_data'}]
+00076         \textcolor{keywordflow}{if} self.data.type.code == gdb.TYPE\_CODE\_STRUCT:
+00077             self.data = self.data[\textcolor{stringliteral}{'array'}]
+00078             self.data = self.data.cast(self.innerType.pointer())
+00079             
+00080     \textcolor{keyword}{class }\_iterator:
+00081         \textcolor{keyword}{def }\_\_init\_\_ (self, rows, cols, dataPtr, rowMajor):
+00082             self.rows = rows
+00083             self.cols = cols
+00084             self.dataPtr = dataPtr
+00085             self.currentRow = 0
+00086             self.currentCol = 0
+00087             self.rowMajor = rowMajor
+00088             
+00089         \textcolor{keyword}{def }\_\_iter\_\_ (self):
+00090             \textcolor{keywordflow}{return} self
+00091 
+00092         \textcolor{keyword}{def }next(self):
+00093                         \textcolor{keywordflow}{return} self.\_\_next\_\_()  \textcolor{comment}{# Python 2.x compatibility}
+00094 
+00095         \textcolor{keyword}{def }\_\_next\_\_(self):
+00096             
+00097             row = self.currentRow
+00098             col = self.currentCol
+00099             \textcolor{keywordflow}{if} self.rowMajor == 0:
+00100                 \textcolor{keywordflow}{if} self.currentCol >= self.cols:
+00101                     \textcolor{keywordflow}{raise} StopIteration
+00102                     
+00103                 self.currentRow = self.currentRow + 1
+00104                 \textcolor{keywordflow}{if} self.currentRow >= self.rows:
+00105                     self.currentRow = 0
+00106                     self.currentCol = self.currentCol + 1
+00107             \textcolor{keywordflow}{else}:
+00108                 \textcolor{keywordflow}{if} self.currentRow >= self.rows:
+00109                     \textcolor{keywordflow}{raise} StopIteration
+00110                     
+00111                 self.currentCol = self.currentCol + 1
+00112                 \textcolor{keywordflow}{if} self.currentCol >= self.cols:
+00113                     self.currentCol = 0
+00114                     self.currentRow = self.currentRow + 1
+00115                 
+00116             
+00117             item = self.dataPtr.dereference()
+00118             self.dataPtr = self.dataPtr + 1
+00119             \textcolor{keywordflow}{if} (self.cols == 1): \textcolor{comment}{#if it's a column vector}
+00120                 \textcolor{keywordflow}{return} (\textcolor{stringliteral}{'[%d]'} % (row,), item)
+00121             \textcolor{keywordflow}{elif} (self.rows == 1): \textcolor{comment}{#if it's a row vector}
+00122                 \textcolor{keywordflow}{return} (\textcolor{stringliteral}{'[%d]'} % (col,), item)
+00123             \textcolor{keywordflow}{return} (\textcolor{stringliteral}{'[%d,%d]'} % (row, col), item)
+00124             
+00125     \textcolor{keyword}{def }children(self):
+00126         
+00127         \textcolor{keywordflow}{return} self.\_iterator(self.rows, self.cols, self.data, self.rowMajor)
+00128         
+00129     \textcolor{keyword}{def }to\_string(self):
+00130         \textcolor{keywordflow}{return} \textcolor{stringliteral}{"Eigen::%s<%s,%d,%d,%s> (data ptr: %s)"} % (self.variety, self.innerType, self.rows, self.
+      cols, \textcolor{stringliteral}{"RowMajor"} \textcolor{keywordflow}{if} self.rowMajor \textcolor{keywordflow}{else}  \textcolor{stringliteral}{"ColMajor"}, self.data)
+00131 
+00132 \textcolor{keyword}{class }EigenQuaternionPrinter:
+00133     \textcolor{stringliteral}{"Print an Eigen Quaternion"}
+00134     
+00135     \textcolor{keyword}{def }\_\_init\_\_(self, val):
+00136         \textcolor{stringliteral}{"Extract all the necessary information"}
+00137         \textcolor{comment}{# The gdb extension does not support value template arguments - need to extract them by hand}
+00138         type = val.type
+00139         \textcolor{keywordflow}{if} type.code == gdb.TYPE\_CODE\_REF:
+00140             type = type.target()
+00141         self.type = type.unqualified().strip\_typedefs()
+00142         self.innerType = self.type.template\_argument(0)
+00143         self.val = val
+00144         
+00145         \textcolor{comment}{# Quaternions have a struct as their storage, so we need to walk through this}
+00146         self.data = self.val[\textcolor{stringliteral}{'m\_coeffs'}][\textcolor{stringliteral}{'m\_storage'}][\textcolor{stringliteral}{'m\_data'}][\textcolor{stringliteral}{'array'}]
+00147         self.data = self.data.cast(self.innerType.pointer())
+00148             
+00149     \textcolor{keyword}{class }\_iterator:
+00150         \textcolor{keyword}{def }\_\_init\_\_ (self, dataPtr):
+00151             self.dataPtr = dataPtr
+00152             self.currentElement = 0
+00153             self.elementNames = [\textcolor{stringliteral}{'x'}, \textcolor{stringliteral}{'y'}, \textcolor{stringliteral}{'z'}, \textcolor{stringliteral}{'w'}]
+00154             
+00155         \textcolor{keyword}{def }\_\_iter\_\_ (self):
+00156             \textcolor{keywordflow}{return} self
+00157     
+00158         \textcolor{keyword}{def }next(self):
+00159                         \textcolor{keywordflow}{return} self.\_\_next\_\_()  \textcolor{comment}{# Python 2.x compatibility}
+00160 
+00161         \textcolor{keyword}{def }\_\_next\_\_(self):
+00162             element = self.currentElement
+00163             
+00164             \textcolor{keywordflow}{if} self.currentElement >= 4: \textcolor{comment}{#there are 4 elements in a quanternion}
+00165                 \textcolor{keywordflow}{raise} StopIteration
+00166             
+00167             self.currentElement = self.currentElement + 1
+00168             
+00169             item = self.dataPtr.dereference()
+00170             self.dataPtr = self.dataPtr + 1
+00171             \textcolor{keywordflow}{return} (\textcolor{stringliteral}{'[%s]'} % (self.elementNames[element],), item)
+00172             
+00173     \textcolor{keyword}{def }children(self):
+00174         
+00175         \textcolor{keywordflow}{return} self.\_iterator(self.data)
+00176     
+00177     \textcolor{keyword}{def }to\_string(self):
+00178         \textcolor{keywordflow}{return} \textcolor{stringliteral}{"Eigen::Quaternion<%s> (data ptr: %s)"} % (self.innerType, self.data)
+00179 
+00180 \textcolor{keyword}{def }build\_eigen\_dictionary ():
+00181     pretty\_printers\_dict[re.compile(\textcolor{stringliteral}{'^Eigen::Quaternion<.*>$'})] = \textcolor{keyword}{lambda} val: EigenQuaternionPrinter(val)
+00182     pretty\_printers\_dict[re.compile(\textcolor{stringliteral}{'^Eigen::Matrix<.*>$'})] = \textcolor{keyword}{lambda} val: EigenMatrixPrinter(\textcolor{stringliteral}{"Matrix"}, val)
+00183     pretty\_printers\_dict[re.compile(\textcolor{stringliteral}{'^Eigen::Array<.*>$'})]  = \textcolor{keyword}{lambda} val: EigenMatrixPrinter(\textcolor{stringliteral}{"Array"},  val)
+00184 
+00185 \textcolor{keyword}{def }register\_eigen\_printers(obj):
+00186     \textcolor{stringliteral}{"Register eigen pretty-printers with objfile Obj"}
+00187 
+00188     \textcolor{keywordflow}{if} obj == \textcolor{keywordtype}{None}:
+00189         obj = gdb
+00190     obj.pretty\_printers.append(lookup\_function)
+00191 
+00192 \textcolor{keyword}{def }lookup\_function(val):
+00193     \textcolor{stringliteral}{"Look-up and return a pretty-printer that can print va."}
+00194     
+00195     type = val.type
+00196     
+00197     \textcolor{keywordflow}{if} type.code == gdb.TYPE\_CODE\_REF:
+00198         type = type.target()
+00199     
+00200     type = type.unqualified().strip\_typedefs()
+00201     
+00202     typename = type.tag
+00203     \textcolor{keywordflow}{if} typename == \textcolor{keywordtype}{None}:
+00204         \textcolor{keywordflow}{return} \textcolor{keywordtype}{None}
+00205     
+00206     \textcolor{keywordflow}{for} function \textcolor{keywordflow}{in} pretty\_printers\_dict:
+00207         \textcolor{keywordflow}{if} function.search(typename):
+00208             \textcolor{keywordflow}{return} pretty\_printers\_dict[function](val)
+00209     
+00210     \textcolor{keywordflow}{return} \textcolor{keywordtype}{None}
+00211 
+00212 pretty\_printers\_dict = \{\}
+00213 
+00214 build\_eigen\_dictionary ()
+\end{DoxyCode}

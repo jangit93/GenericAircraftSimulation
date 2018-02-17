@@ -1,0 +1,146 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_d_2h5ex__d__alloc_8c_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+C/\+H5\+D/h5ex\+\_\+d\+\_\+alloc.c}
+\label{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_d_2h5ex__d__alloc_8c_source}\index{h5ex\+\_\+d\+\_\+alloc.\+c@{h5ex\+\_\+d\+\_\+alloc.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/************************************************************}
+00002 \textcolor{comment}{}
+00003 \textcolor{comment}{  This example shows how to set the space allocation time}
+00004 \textcolor{comment}{  for a dataset.  The program first creates two datasets,}
+00005 \textcolor{comment}{  one with the default allocation time (late) and one with}
+00006 \textcolor{comment}{  early allocation time, and displays whether each has been}
+00007 \textcolor{comment}{  allocated and their allocation size.  Next, it writes data}
+00008 \textcolor{comment}{  to the datasets, and again displays whether each has been}
+00009 \textcolor{comment}{  allocated and their allocation size.}
+00010 \textcolor{comment}{}
+00011 \textcolor{comment}{  This file is intended for use with HDF5 Library version 1.8}
+00012 \textcolor{comment}{}
+00013 \textcolor{comment}{ ************************************************************/}
+00014 
+00015 \textcolor{preprocessor}{#include "hdf5.h"}
+00016 \textcolor{preprocessor}{#include <stdio.h>}
+00017 \textcolor{preprocessor}{#include <stdlib.h>}
+00018 
+00019 \textcolor{preprocessor}{#define FILE            "h5ex\_d\_alloc.h5"}
+00020 \textcolor{preprocessor}{#define DATASET1        "DS1"}
+00021 \textcolor{preprocessor}{#define DATASET2        "DS2"}
+00022 \textcolor{preprocessor}{#define DIM0            4}
+00023 \textcolor{preprocessor}{#define DIM1            7}
+00024 \textcolor{preprocessor}{#define FILLVAL         99}
+00025 
+00026 \textcolor{keywordtype}{int}
+00027 main (\textcolor{keywordtype}{void})
+00028 \{
+00029     hid\_t                   \hyperlink{structfile}{file}, space, dset1, dset2, dcpl;
+00030                                                     \textcolor{comment}{/* Handles */}
+00031     herr\_t                  status;
+00032     H5D\_space\_status\_t      space\_status;
+00033     hsize\_t                 dims[2] = \{DIM0, DIM1\},
+00034                             storage\_size;
+00035     \textcolor{keywordtype}{int}                     wdata[DIM0][DIM1],      \textcolor{comment}{/* Write buffer */}
+00036                             i, j;
+00037 
+00038     \textcolor{comment}{/*}
+00039 \textcolor{comment}{     * Initialize data.}
+00040 \textcolor{comment}{     */}
+00041     \textcolor{keywordflow}{for} (i=0; i<DIM0; i++)
+00042         \textcolor{keywordflow}{for} (j=0; j<DIM1; j++)
+00043             wdata[i][j] = i * j - j;
+00044 
+00045     \textcolor{comment}{/*}
+00046 \textcolor{comment}{     * Create a new file using the default properties.}
+00047 \textcolor{comment}{     */}
+00048     file = H5Fcreate (FILE, H5F\_ACC\_TRUNC, H5P\_DEFAULT, H5P\_DEFAULT);
+00049 
+00050     \textcolor{comment}{/*}
+00051 \textcolor{comment}{     * Create dataspace.  Setting maximum size to NULL sets the maximum}
+00052 \textcolor{comment}{     * size to be the current size.}
+00053 \textcolor{comment}{     */}
+00054     space = H5Screate\_simple (2, dims, NULL);
+00055 
+00056     \textcolor{comment}{/*}
+00057 \textcolor{comment}{     * Create the dataset creation property list, and set the chunk}
+00058 \textcolor{comment}{     * size.}
+00059 \textcolor{comment}{     */}
+00060     dcpl = H5Pcreate (H5P\_DATASET\_CREATE);
+00061 
+00062     \textcolor{comment}{/*}
+00063 \textcolor{comment}{     * Set the allocation time to "early".  This way we can be sure}
+00064 \textcolor{comment}{     * that reading from the dataset immediately after creation will}
+00065 \textcolor{comment}{     * return the fill value.}
+00066 \textcolor{comment}{     */}
+00067     status = H5Pset\_alloc\_time (dcpl, H5D\_ALLOC\_TIME\_EARLY);
+00068 
+00069     printf (\textcolor{stringliteral}{"Creating datasets...\(\backslash\)n"});
+00070     printf (\textcolor{stringliteral}{"%s has allocation time H5D\_ALLOC\_TIME\_LATE\(\backslash\)n"}, DATASET1);
+00071     printf (\textcolor{stringliteral}{"%s has allocation time H5D\_ALLOC\_TIME\_EARLY\(\backslash\)n\(\backslash\)n"}, DATASET2);
+00072 
+00073     \textcolor{comment}{/*}
+00074 \textcolor{comment}{     * Create the dataset using the dataset creation property list.}
+00075 \textcolor{comment}{     */}
+00076     dset1 = H5Dcreate (file, DATASET1, H5T\_STD\_I32LE, space, H5P\_DEFAULT,
+00077                 H5P\_DEFAULT, H5P\_DEFAULT);
+00078     dset2 = H5Dcreate (file, DATASET2, H5T\_STD\_I32LE, space, H5P\_DEFAULT, dcpl,
+00079                 H5P\_DEFAULT);
+00080 
+00081     \textcolor{comment}{/*}
+00082 \textcolor{comment}{     * Retrieve and print space status and storage size for dset1.}
+00083 \textcolor{comment}{     */}
+00084     status = H5Dget\_space\_status (dset1, &space\_status);
+00085     storage\_size = H5Dget\_storage\_size (dset1);
+00086     printf (\textcolor{stringliteral}{"Space for %s has%sbeen allocated.\(\backslash\)n"}, DATASET1,
+00087                 space\_status == H5D\_SPACE\_STATUS\_ALLOCATED ? \textcolor{stringliteral}{" "} : \textcolor{stringliteral}{" not "});
+00088     printf (\textcolor{stringliteral}{"Storage size for %s is: %ld bytes.\(\backslash\)n"}, DATASET1,
+00089                 (\textcolor{keywordtype}{long}) storage\_size);
+00090 
+00091     \textcolor{comment}{/*}
+00092 \textcolor{comment}{     * Retrieve and print space status and storage size for dset2.}
+00093 \textcolor{comment}{     */}
+00094     status = H5Dget\_space\_status (dset2, &space\_status);
+00095     storage\_size = H5Dget\_storage\_size (dset2);
+00096     printf (\textcolor{stringliteral}{"Space for %s has%sbeen allocated.\(\backslash\)n"}, DATASET2,
+00097                 space\_status == H5D\_SPACE\_STATUS\_ALLOCATED ? \textcolor{stringliteral}{" "} : \textcolor{stringliteral}{" not "});
+00098     printf (\textcolor{stringliteral}{"Storage size for %s is: %ld bytes.\(\backslash\)n"}, DATASET2,
+00099                 (\textcolor{keywordtype}{long}) storage\_size);
+00100 
+00101     printf (\textcolor{stringliteral}{"\(\backslash\)nWriting data...\(\backslash\)n\(\backslash\)n"});
+00102 
+00103     \textcolor{comment}{/*}
+00104 \textcolor{comment}{     * Write the data to the datasets.}
+00105 \textcolor{comment}{     */}
+00106     status = H5Dwrite (dset1, H5T\_NATIVE\_INT, H5S\_ALL, H5S\_ALL, H5P\_DEFAULT,
+00107                 wdata[0]);
+00108     status = H5Dwrite (dset2, H5T\_NATIVE\_INT, H5S\_ALL, H5S\_ALL, H5P\_DEFAULT,
+00109                 wdata[0]);
+00110 
+00111     \textcolor{comment}{/*}
+00112 \textcolor{comment}{     * Retrieve and print space status and storage size for dset1.}
+00113 \textcolor{comment}{     */}
+00114     status = H5Dget\_space\_status (dset1, &space\_status);
+00115     storage\_size = H5Dget\_storage\_size (dset1);
+00116     printf (\textcolor{stringliteral}{"Space for %s has%sbeen allocated.\(\backslash\)n"}, DATASET1,
+00117                 space\_status == H5D\_SPACE\_STATUS\_ALLOCATED ? \textcolor{stringliteral}{" "} : \textcolor{stringliteral}{" not "});
+00118     printf (\textcolor{stringliteral}{"Storage size for %s is: %ld bytes.\(\backslash\)n"}, DATASET1,
+00119                 (\textcolor{keywordtype}{long}) storage\_size);
+00120 
+00121     \textcolor{comment}{/*}
+00122 \textcolor{comment}{     * Retrieve and print space status and storage size for dset2.}
+00123 \textcolor{comment}{     */}
+00124     status = H5Dget\_space\_status (dset2, &space\_status);
+00125     storage\_size = H5Dget\_storage\_size (dset2);
+00126     printf (\textcolor{stringliteral}{"Space for %s has%sbeen allocated.\(\backslash\)n"}, DATASET2,
+00127                 space\_status == H5D\_SPACE\_STATUS\_ALLOCATED ? \textcolor{stringliteral}{" "} : \textcolor{stringliteral}{" not "});
+00128     printf (\textcolor{stringliteral}{"Storage size for %s is: %ld bytes.\(\backslash\)n"}, DATASET2,
+00129                 (\textcolor{keywordtype}{long}) storage\_size);
+00130 
+00131     \textcolor{comment}{/*}
+00132 \textcolor{comment}{     * Close and release resources.}
+00133 \textcolor{comment}{     */}
+00134     status = H5Pclose (dcpl);
+00135     status = H5Dclose (dset1);
+00136     status = H5Dclose (dset2);
+00137     status = H5Sclose (space);
+00138     status = H5Fclose (file);
+00139 
+00140     \textcolor{keywordflow}{return} 0;
+00141 \}
+\end{DoxyCode}

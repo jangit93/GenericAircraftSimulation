@@ -11,9 +11,9 @@ LinearInterpolation::~LinearInterpolation()
 {
 }
 
-Float64 LinearInterpolation::searchIndex(VectorXd Vector, 
-										 Float64 Value, 
-										 Int32 aIndex)
+Float64 LinearInterpolation::searchIndex(VectorXd &Vector, 
+										 Float64 &Value, 
+										 Int32 &aIndex)
 {
 	index = 0;
 
@@ -24,7 +24,7 @@ Float64 LinearInterpolation::searchIndex(VectorXd Vector,
 		index = index - 1;
 	}
 	else {
-		while (Value < Vector(index) && index >0) {
+		while (Value < Vector(index) && index > 0) {
 			index = index - 1;
 		}
 	}
@@ -33,11 +33,11 @@ Float64 LinearInterpolation::searchIndex(VectorXd Vector,
 
 
 
-Float64 LinearInterpolation::linearInterpolation2D(VectorXd Vector1,
-												   VectorXd Vector2,
-												   MatrixXd Table,
-												   Float64 Value1,
-												   Float64 Value2)
+Float64 LinearInterpolation::linearInterpolation2D(VectorXd &Vector1,
+												   VectorXd &Vector2,
+												   MatrixXd &Table,
+												   Float64 &Value1,
+												   Float64 &Value2)
 {
 
 	index1 = searchIndex(Vector1,
@@ -79,7 +79,7 @@ Float64 LinearInterpolation::linearInterpolation2D(VectorXd Vector1,
 	return interpolationValue;
 }
 
-Float64 LinearInterpolation::linearInterpolation1D(VectorXd Vector1, VectorXd Table, Float64 Value)
+Float64 LinearInterpolation::linearInterpolation1D(VectorXd &Vector1, VectorXd &Table, Float64 &Value)
 {
 	Index = searchIndex(Vector1, Value,Index);
 

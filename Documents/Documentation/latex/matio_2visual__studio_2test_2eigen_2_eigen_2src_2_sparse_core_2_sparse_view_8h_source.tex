@@ -1,0 +1,220 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_sparse_core_2_sparse_view_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Sparse\+Core/\+Sparse\+View.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_sparse_core_2_sparse_view_8h_source}\index{Sparse\+View.\+h@{Sparse\+View.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2011-2014 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2010 Daniel Lowengrub <lowdanie@gmail.com>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_SPARSEVIEW\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_SPARSEVIEW\_H}
+00013 
+00014 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00015 
+00016 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00017 
+00018 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00019 \textcolor{keyword}{struct }traits<SparseView<MatrixType> > : traits<MatrixType>
+00020 \{
+00021   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::StorageIndex StorageIndex;
+00022   \textcolor{keyword}{typedef} Sparse StorageKind;
+00023   \textcolor{keyword}{enum} \{
+00024     Flags = int(traits<MatrixType>::Flags) & (\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit})
+00025   \};
+00026 \};
+00027 
+00028 \} \textcolor{comment}{// end namespace internal}
+00029 
+00044 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00045 \textcolor{keyword}{class }SparseView : \textcolor{keyword}{public} SparseMatrixBase<SparseView<MatrixType> >
+00046 \{
+00047   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Nested MatrixTypeNested;
+00048   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_all<MatrixTypeNested>::type \_MatrixTypeNested;
+00049   \textcolor{keyword}{typedef} SparseMatrixBase<SparseView > Base;
+00050 \textcolor{keyword}{public}:
+00051   EIGEN\_SPARSE\_PUBLIC\_INTERFACE(SparseView)
+00052   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_all<MatrixType>::type NestedExpression;
+00053 
+00054   \textcolor{keyword}{explicit} SparseView(\textcolor{keyword}{const} MatrixType& mat, \textcolor{keyword}{const} Scalar& reference = Scalar(0),
+00055                       \textcolor{keyword}{const} RealScalar &epsilon = NumTraits<Scalar>::dummy\_precision())
+00056     : m\_matrix(mat), m\_reference(reference), m\_epsilon(epsilon) \{\}
+00057 
+00058   \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix.rows(); \}
+00059   \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix.cols(); \}
+00060 
+00061   \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} innerSize()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix.innerSize(); \}
+00062   \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} outerSize()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix.outerSize(); \}
+00063   
+00065   \textcolor{keyword}{const} \textcolor{keyword}{typename} internal::remove\_all<MatrixTypeNested>::type&
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_sparse_core_2_sparse_view_8h_source_l00066}\hyperlink{group___sparse_core___module_a50f53a9405017012077ae907959aca14}{00066}   \hyperlink{group___sparse_core___module_a50f53a9405017012077ae907959aca14}{nestedExpression}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix; \}
+00067   
+00068   Scalar reference()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_reference; \}
+00069   \hyperlink{group___sparse_core___module_aaec8ace6efb785c81d442931c3248d88}{RealScalar} epsilon()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_epsilon; \}
+00070   
+00071 \textcolor{keyword}{protected}:
+00072   MatrixTypeNested m\_matrix;
+00073   Scalar m\_reference;
+00074   \hyperlink{group___sparse_core___module_aaec8ace6efb785c81d442931c3248d88}{RealScalar} m\_epsilon;
+00075 \};
+00076 
+00077 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00078 
+00079 \textcolor{comment}{// TODO find a way to unify the two following variants}
+00080 \textcolor{comment}{// This is tricky because implementing an inner iterator on top of an IndexBased evaluator is}
+00081 \textcolor{comment}{// not easy because the evaluators do not expose the sizes of the underlying expression.}
+00082   
+00083 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ArgType>
+00084 \textcolor{keyword}{struct }unary\_evaluator<SparseView<ArgType>, IteratorBased>
+00085   : \textcolor{keyword}{public} evaluator\_base<SparseView<ArgType> >
+00086 \{
+00087     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} evaluator<ArgType>::InnerIterator EvalIterator;
+00088   \textcolor{keyword}{public}:
+00089     \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_view}{SparseView<ArgType>} XprType;
+00090     
+00091     \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_inner_iterator}{InnerIterator} : \textcolor{keyword}{public} EvalIterator
+00092     \{
+00093         \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Scalar Scalar;
+00094       \textcolor{keyword}{public}:
+00095 
+00096         EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1_inner_iterator}{InnerIterator}(\textcolor{keyword}{const} unary\_evaluator& sve, 
+      \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} outer)
+00097           : EvalIterator(sve.m\_argImpl,outer), m\_view(sve.m\_view)
+00098         \{
+00099           incrementToNonZero();
+00100         \}
+00101 
+00102         EIGEN\_STRONG\_INLINE InnerIterator& operator++()
+00103         \{
+00104           EvalIterator::operator++();
+00105           incrementToNonZero();
+00106           \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00107         \}
+00108 
+00109         \textcolor{keyword}{using} EvalIterator::value;
+00110 
+00111       \textcolor{keyword}{protected}:
+00112         \textcolor{keyword}{const} XprType &m\_view;
+00113 
+00114       \textcolor{keyword}{private}:
+00115         \textcolor{keywordtype}{void} incrementToNonZero()
+00116         \{
+00117           \textcolor{keywordflow}{while}((\textcolor{keywordtype}{bool}(*\textcolor{keyword}{this})) && internal::isMuchSmallerThan(value(), m\_view.reference(), m\_view.epsilon())
+      )
+00118           \{
+00119             EvalIterator::operator++();
+00120           \}
+00121         \}
+00122     \};
+00123     
+00124     \textcolor{keyword}{enum} \{
+00125       CoeffReadCost = evaluator<ArgType>::CoeffReadCost,
+00126       Flags = XprType::Flags
+00127     \};
+00128     
+00129     \textcolor{keyword}{explicit} unary\_evaluator(\textcolor{keyword}{const} XprType& xpr) : m\_argImpl(xpr.nestedExpression()), m\_view(xpr) \{\}
+00130 
+00131   \textcolor{keyword}{protected}:
+00132     evaluator<ArgType> m\_argImpl;
+00133     \textcolor{keyword}{const} XprType &m\_view;
+00134 \};
+00135 
+00136 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ArgType>
+00137 \textcolor{keyword}{struct }unary\_evaluator<SparseView<ArgType>, IndexBased>
+00138   : \textcolor{keyword}{public} evaluator\_base<SparseView<ArgType> >
+00139 \{
+00140   \textcolor{keyword}{public}:
+00141     \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_view}{SparseView<ArgType>} XprType;
+00142   \textcolor{keyword}{protected}:
+00143     \textcolor{keyword}{enum} \{ IsRowMajor = (XprType::Flags&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit})==\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit} \};
+00144     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Scalar Scalar;
+00145     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::StorageIndex \hyperlink{group___sparse_core___module_a0b540ba724726ebe953f8c0df06081ed}{StorageIndex};
+00146   \textcolor{keyword}{public}:
+00147     
+00148     \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_inner_iterator}{InnerIterator}
+00149     \{
+00150       \textcolor{keyword}{public}:
+00151 
+00152         EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1_inner_iterator}{InnerIterator}(\textcolor{keyword}{const} unary\_evaluator& sve, 
+      \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} outer)
+00153           : m\_sve(sve), m\_inner(0), m\_outer(outer), m\_end(sve.m\_view.innerSize())
+00154         \{
+00155           incrementToNonZero();
+00156         \}
+00157 
+00158         EIGEN\_STRONG\_INLINE InnerIterator& operator++()
+00159         \{
+00160           m\_inner++;
+00161           incrementToNonZero();
+00162           \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00163         \}
+00164 
+00165         EIGEN\_STRONG\_INLINE Scalar value()\textcolor{keyword}{ const}
+00166 \textcolor{keyword}{        }\{
+00167           \textcolor{keywordflow}{return} (IsRowMajor) ? m\_sve.m\_argImpl.coeff(m\_outer, m\_inner)
+00168                               : m\_sve.m\_argImpl.coeff(m\_inner, m\_outer);
+00169         \}
+00170 
+00171         EIGEN\_STRONG\_INLINE StorageIndex index()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_inner; \}
+00172         \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} row()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} IsRowMajor ? m\_outer : index(); \}
+00173         \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} col()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} IsRowMajor ? index() : m\_outer; \}
+00174 
+00175         EIGEN\_STRONG\_INLINE \textcolor{keyword}{operator} bool()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_inner < m\_end && m\_inner>=0; \}
+00176 
+00177       \textcolor{keyword}{protected}:
+00178         \textcolor{keyword}{const} unary\_evaluator &m\_sve;
+00179         \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} m\_inner;
+00180         \textcolor{keyword}{const} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} m\_outer;
+00181         \textcolor{keyword}{const} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} m\_end;
+00182 
+00183       \textcolor{keyword}{private}:
+00184         \textcolor{keywordtype}{void} incrementToNonZero()
+00185         \{
+00186           \textcolor{keywordflow}{while}((\textcolor{keywordtype}{bool}(*\textcolor{keyword}{this})) && internal::isMuchSmallerThan(value(), m\_sve.m\_view.reference(), m\_sve.
+      m\_view.epsilon()))
+00187           \{
+00188             m\_inner++;
+00189           \}
+00190         \}
+00191     \};
+00192     
+00193     \textcolor{keyword}{enum} \{
+00194       CoeffReadCost = evaluator<ArgType>::CoeffReadCost,
+00195       Flags = XprType::Flags
+00196     \};
+00197     
+00198     \textcolor{keyword}{explicit} unary\_evaluator(\textcolor{keyword}{const} XprType& xpr) : m\_argImpl(xpr.nestedExpression()), m\_view(xpr) \{\}
+00199 
+00200   \textcolor{keyword}{protected}:
+00201     evaluator<ArgType> m\_argImpl;
+00202     \textcolor{keyword}{const} XprType &m\_view;
+00203 \};
+00204 
+00205 \} \textcolor{comment}{// end namespace internal}
+00206 
+00224 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00225 \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_view}{SparseView<Derived>} \hyperlink{group___sparse_core___module_ga320dd291cbf4339c6118c41521b75350}{MatrixBase<Derived>::sparseView}
+      (\textcolor{keyword}{const} Scalar& reference,
+00226                                                           \textcolor{keyword}{const} \textcolor{keyword}{typename} 
+      \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real}& epsilon)\textcolor{keyword}{ const}
+00227 \textcolor{keyword}{}\{
+00228   \textcolor{keywordflow}{return} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_view}{SparseView<Derived>}(derived(), reference, epsilon);
+00229 \}
+00230 
+00243 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00244 \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_view}{SparseView<Derived>}
+00245 \hyperlink{group___sparse_core___module_ac8d0414b56d9d620ce9a698c1b281e5d}{SparseMatrixBase<Derived>::pruned}(\textcolor{keyword}{const} Scalar& reference,
+00246                                   \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_aaec8ace6efb785c81d442931c3248d88}{RealScalar}& epsilon)\textcolor{keyword}{ const}
+00247 \textcolor{keyword}{}\{
+00248   \textcolor{keywordflow}{return} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_view}{SparseView<Derived>}(derived(), reference, epsilon);
+00249 \}
+00250 
+00251 \} \textcolor{comment}{// end namespace Eigen}
+00252 
+00253 \textcolor{preprocessor}{#endif}
+\end{DoxyCode}

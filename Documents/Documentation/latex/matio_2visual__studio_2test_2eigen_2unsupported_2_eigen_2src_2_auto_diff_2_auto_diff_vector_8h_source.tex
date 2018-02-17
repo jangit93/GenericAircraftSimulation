@@ -1,0 +1,231 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_auto_diff_2_auto_diff_vector_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/src/\+Auto\+Diff/\+Auto\+Diff\+Vector.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_auto_diff_2_auto_diff_vector_8h_source}\index{Auto\+Diff\+Vector.\+h@{Auto\+Diff\+Vector.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_AUTODIFF\_VECTOR\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_AUTODIFF\_VECTOR\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00015 \textcolor{comment}{/* \(\backslash\)class AutoDiffScalar}
+00016 \textcolor{comment}{  * \(\backslash\)brief A scalar type replacement with automatic differentation capability}
+00017 \textcolor{comment}{  *}
+00018 \textcolor{comment}{  * \(\backslash\)param DerType the vector type used to store/represent the derivatives (e.g. Vector3f)}
+00019 \textcolor{comment}{  *}
+00020 \textcolor{comment}{  * This class represents a scalar value while tracking its respective derivatives.}
+00021 \textcolor{comment}{  *}
+00022 \textcolor{comment}{  * It supports the following list of global math function:}
+00023 \textcolor{comment}{  *  - std::abs, std::sqrt, std::pow, std::exp, std::log, std::sin, std::cos,}
+00024 \textcolor{comment}{  *  - internal::abs, internal::sqrt, numext::pow, internal::exp, internal::log, internal::sin,
+       internal::cos,}
+00025 \textcolor{comment}{  *  - internal::conj, internal::real, internal::imag, numext::abs2.}
+00026 \textcolor{comment}{  *}
+00027 \textcolor{comment}{  * AutoDiffScalar can be used as the scalar type of an Eigen::Matrix object. However,}
+00028 \textcolor{comment}{  * in that case, the expression template mechanism only occurs at the top Matrix level,}
+00029 \textcolor{comment}{  * while derivatives are computed right away.}
+00030 \textcolor{comment}{  *}
+00031 \textcolor{comment}{  */}
+00032 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ValueType, \textcolor{keyword}{typename} JacobianType>
+00033 \textcolor{keyword}{class }AutoDiffVector
+00034 \{
+00035   \textcolor{keyword}{public}:
+00036     \textcolor{comment}{//typedef typename internal::traits<ValueType>::Scalar Scalar;}
+00037     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::traits<ValueType>::Scalar BaseScalar;
+00038     \textcolor{keyword}{typedef} AutoDiffScalar<Matrix<BaseScalar,JacobianType::RowsAtCompileTime,1> > ActiveScalar;
+00039     \textcolor{keyword}{typedef} ActiveScalar Scalar;
+00040     \textcolor{keyword}{typedef} AutoDiffScalar<typename JacobianType::ColXpr> CoeffType;
+00041     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} JacobianType::Index Index;
+00042 
+00043     \textcolor{keyword}{inline} AutoDiffVector() \{\}
+00044 
+00045     \textcolor{keyword}{inline} AutoDiffVector(\textcolor{keyword}{const} ValueType& values)
+00046       : m\_values(values)
+00047     \{
+00048       m\_jacobian.setZero();
+00049     \}
+00050 
+00051 
+00052     CoeffType operator[] (Index i) \{ \textcolor{keywordflow}{return} CoeffType(m\_values[i], m\_jacobian.col(i)); \}
+00053     \textcolor{keyword}{const} CoeffType operator[] (Index i)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} CoeffType(m\_values[i], m\_jacobian.col(i)); \}
+00054 
+00055     CoeffType operator() (Index i) \{ \textcolor{keywordflow}{return} CoeffType(m\_values[i], m\_jacobian.col(i)); \}
+00056     \textcolor{keyword}{const} CoeffType operator() (Index i)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} CoeffType(m\_values[i], m\_jacobian.col(i)); \}
+00057 
+00058     CoeffType coeffRef(Index i) \{ \textcolor{keywordflow}{return} CoeffType(m\_values[i], m\_jacobian.col(i)); \}
+00059     \textcolor{keyword}{const} CoeffType coeffRef(Index i)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} CoeffType(m\_values[i], m\_jacobian.col(i)); \}
+00060 
+00061     Index size()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_values.size(); \}
+00062 
+00063     \textcolor{comment}{// FIXME here we could return an expression of the sum}
+00064     Scalar sum()\textcolor{keyword}{ const }\{ \textcolor{comment}{/*std::cerr << "sum \(\backslash\)n\(\backslash\)n";*/} \textcolor{comment}{/*std::cerr << m\_jacobian.rowwise().sum() << "\(\backslash\)n\(\backslash\)n";
+      */} \textcolor{keywordflow}{return} Scalar(m\_values.sum(), m\_jacobian.rowwise().sum()); \}
+00065 
+00066 
+00067     \textcolor{keyword}{inline} AutoDiffVector(\textcolor{keyword}{const} ValueType& values, \textcolor{keyword}{const} JacobianType& jac)
+00068       : m\_values(values), m\_jacobian(jac)
+00069     \{\}
+00070 
+00071     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherValueType, \textcolor{keyword}{typename} OtherJacobianType>
+00072     \textcolor{keyword}{inline} AutoDiffVector(\textcolor{keyword}{const} AutoDiffVector<OtherValueType, OtherJacobianType>& other)
+00073       : m\_values(other.values()), m\_jacobian(other.jacobian())
+00074     \{\}
+00075 
+00076     \textcolor{keyword}{inline} AutoDiffVector(\textcolor{keyword}{const} AutoDiffVector& other)
+00077       : m\_values(other.values()), m\_jacobian(other.jacobian())
+00078     \{\}
+00079 
+00080     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherValueType, \textcolor{keyword}{typename} OtherJacobianType>
+00081     \textcolor{keyword}{inline} AutoDiffVector& operator=(\textcolor{keyword}{const} AutoDiffVector<OtherValueType, OtherJacobianType>& other)
+00082     \{
+00083       m\_values = other.values();
+00084       m\_jacobian = other.jacobian();
+00085       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00086     \}
+00087 
+00088     \textcolor{keyword}{inline} AutoDiffVector& operator=(\textcolor{keyword}{const} AutoDiffVector& other)
+00089     \{
+00090       m\_values = other.values();
+00091       m\_jacobian = other.jacobian();
+00092       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00093     \}
+00094 
+00095     \textcolor{keyword}{inline} \textcolor{keyword}{const} ValueType& values()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_values; \}
+00096     \textcolor{keyword}{inline} ValueType& values() \{ \textcolor{keywordflow}{return} m\_values; \}
+00097 
+00098     \textcolor{keyword}{inline} \textcolor{keyword}{const} JacobianType& jacobian()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_jacobian; \}
+00099     \textcolor{keyword}{inline} JacobianType& jacobian() \{ \textcolor{keywordflow}{return} m\_jacobian; \}
+00100 
+00101     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherValueType,\textcolor{keyword}{typename} OtherJacobianType>
+00102     \textcolor{keyword}{inline} \textcolor{keyword}{const} AutoDiffVector<
+00103       \textcolor{keyword}{typename} MakeCwiseBinaryOp<internal::scalar\_sum\_op<BaseScalar>,ValueType,OtherValueType>::Type,
+00104       \textcolor{keyword}{typename} MakeCwiseBinaryOp<internal::scalar\_sum\_op<BaseScalar>,JacobianType,OtherJacobianType>::Type 
+      >
+00105     operator+(\textcolor{keyword}{const} AutoDiffVector<OtherValueType,OtherJacobianType>& other)\textcolor{keyword}{ const}
+00106 \textcolor{keyword}{    }\{
+00107       \textcolor{keywordflow}{return} AutoDiffVector<
+00108       \textcolor{keyword}{typename} MakeCwiseBinaryOp<internal::scalar\_sum\_op<BaseScalar>,ValueType,OtherValueType>::Type,
+00109       \textcolor{keyword}{typename} MakeCwiseBinaryOp<internal::scalar\_sum\_op<BaseScalar>,JacobianType,OtherJacobianType>::Type 
+      >(
+00110         m\_values + other.values(),
+00111         m\_jacobian + other.jacobian());
+00112     \}
+00113 
+00114     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherValueType, \textcolor{keyword}{typename} OtherJacobianType>
+00115     \textcolor{keyword}{inline} AutoDiffVector&
+00116     operator+=(\textcolor{keyword}{const} AutoDiffVector<OtherValueType,OtherJacobianType>& other)
+00117     \{
+00118       m\_values += other.values();
+00119       m\_jacobian += other.jacobian();
+00120       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00121     \}
+00122 
+00123     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherValueType,\textcolor{keyword}{typename} OtherJacobianType>
+00124     \textcolor{keyword}{inline} \textcolor{keyword}{const} AutoDiffVector<
+00125       \textcolor{keyword}{typename} MakeCwiseBinaryOp<internal::scalar\_difference\_op<Scalar>,ValueType,OtherValueType>::Type,
+00126       \textcolor{keyword}{typename} MakeCwiseBinaryOp<internal::scalar\_difference\_op<Scalar>,JacobianType,OtherJacobianType>
+      ::Type >
+00127     operator-(\textcolor{keyword}{const} AutoDiffVector<OtherValueType,OtherJacobianType>& other)\textcolor{keyword}{ const}
+00128 \textcolor{keyword}{    }\{
+00129       \textcolor{keywordflow}{return} AutoDiffVector<
+00130         \textcolor{keyword}{typename} MakeCwiseBinaryOp<internal::scalar\_difference\_op<Scalar>,ValueType,OtherValueType>::Type,
+00131         \textcolor{keyword}{typename} MakeCwiseBinaryOp<internal::scalar\_difference\_op<Scalar>,JacobianType,OtherJacobianType>
+      ::Type >(
+00132           m\_values - other.values(),
+00133           m\_jacobian - other.jacobian());
+00134     \}
+00135 
+00136     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherValueType, \textcolor{keyword}{typename} OtherJacobianType>
+00137     \textcolor{keyword}{inline} AutoDiffVector&
+00138     operator-=(\textcolor{keyword}{const} AutoDiffVector<OtherValueType,OtherJacobianType>& other)
+00139     \{
+00140       m\_values -= other.values();
+00141       m\_jacobian -= other.jacobian();
+00142       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00143     \}
+00144 
+00145     \textcolor{keyword}{inline} \textcolor{keyword}{const} AutoDiffVector<
+00146       \textcolor{keyword}{typename} MakeCwiseUnaryOp<internal::scalar\_opposite\_op<Scalar>, ValueType>::Type,
+00147       \textcolor{keyword}{typename} MakeCwiseUnaryOp<internal::scalar\_opposite\_op<Scalar>, JacobianType>::Type >
+00148     operator-()\textcolor{keyword}{ const}
+00149 \textcolor{keyword}{    }\{
+00150       \textcolor{keywordflow}{return} AutoDiffVector<
+00151         \textcolor{keyword}{typename} MakeCwiseUnaryOp<internal::scalar\_opposite\_op<Scalar>, ValueType>::Type,
+00152         \textcolor{keyword}{typename} MakeCwiseUnaryOp<internal::scalar\_opposite\_op<Scalar>, JacobianType>::Type >(
+00153           -m\_values,
+00154           -m\_jacobian);
+00155     \}
+00156 
+00157     \textcolor{keyword}{inline} \textcolor{keyword}{const} AutoDiffVector<
+00158       \textcolor{keyword}{typename} MakeCwiseUnaryOp<internal::scalar\_multiple\_op<Scalar>, ValueType>::Type,
+00159       \textcolor{keyword}{typename} MakeCwiseUnaryOp<internal::scalar\_multiple\_op<Scalar>, JacobianType>::Type>
+00160     operator*(\textcolor{keyword}{const} BaseScalar& other)\textcolor{keyword}{ const}
+00161 \textcolor{keyword}{    }\{
+00162       \textcolor{keywordflow}{return} AutoDiffVector<
+00163         \textcolor{keyword}{typename} MakeCwiseUnaryOp<internal::scalar\_multiple\_op<Scalar>, ValueType>::Type,
+00164         \textcolor{keyword}{typename} MakeCwiseUnaryOp<internal::scalar\_multiple\_op<Scalar>, JacobianType>::Type >(
+00165           m\_values * other,
+00166           m\_jacobian * other);
+00167     \}
+00168 
+00169     \textcolor{keyword}{friend} \textcolor{keyword}{inline} \textcolor{keyword}{const} AutoDiffVector<
+00170       \textcolor{keyword}{typename} MakeCwiseUnaryOp<internal::scalar\_multiple\_op<Scalar>, ValueType>::Type,
+00171       \textcolor{keyword}{typename} MakeCwiseUnaryOp<internal::scalar\_multiple\_op<Scalar>, JacobianType>::Type >
+00172     operator*(\textcolor{keyword}{const} Scalar& other, \textcolor{keyword}{const} AutoDiffVector& v)
+00173     \{
+00174       \textcolor{keywordflow}{return} AutoDiffVector<
+00175         \textcolor{keyword}{typename} MakeCwiseUnaryOp<internal::scalar\_multiple\_op<Scalar>, ValueType>::Type,
+00176         \textcolor{keyword}{typename} MakeCwiseUnaryOp<internal::scalar\_multiple\_op<Scalar>, JacobianType>::Type >(
+00177           v.values() * other,
+00178           v.jacobian() * other);
+00179     \}
+00180 
+00181 \textcolor{comment}{//     template<typename OtherValueType,typename OtherJacobianType>}
+00182 \textcolor{comment}{//     inline const AutoDiffVector<}
+00183 \textcolor{comment}{//       CwiseBinaryOp<internal::scalar\_multiple\_op<Scalar>, ValueType, OtherValueType>}
+00184 \textcolor{comment}{//       CwiseBinaryOp<internal::scalar\_sum\_op<Scalar>,}
+00185 \textcolor{comment}{//         CwiseUnaryOp<internal::scalar\_multiple\_op<Scalar>, JacobianType>,}
+00186 \textcolor{comment}{//         CwiseUnaryOp<internal::scalar\_multiple\_op<Scalar>, OtherJacobianType> > >}
+00187 \textcolor{comment}{//     operator*(const AutoDiffVector<OtherValueType,OtherJacobianType>& other) const}
+00188 \textcolor{comment}{//     \{}
+00189 \textcolor{comment}{//       return AutoDiffVector<}
+00190 \textcolor{comment}{//         CwiseBinaryOp<internal::scalar\_multiple\_op<Scalar>, ValueType, OtherValueType>}
+00191 \textcolor{comment}{//         CwiseBinaryOp<internal::scalar\_sum\_op<Scalar>,}
+00192 \textcolor{comment}{//           CwiseUnaryOp<internal::scalar\_multiple\_op<Scalar>, JacobianType>,}
+00193 \textcolor{comment}{//           CwiseUnaryOp<internal::scalar\_multiple\_op<Scalar>, OtherJacobianType> > >(}
+00194 \textcolor{comment}{//             m\_values.cwise() * other.values(),}
+00195 \textcolor{comment}{//             (m\_jacobian * other.values()) + (m\_values * other.jacobian()));}
+00196 \textcolor{comment}{//     \}}
+00197 
+00198     \textcolor{keyword}{inline} AutoDiffVector& operator*=(\textcolor{keyword}{const} Scalar& other)
+00199     \{
+00200       m\_values *= other;
+00201       m\_jacobian *= other;
+00202       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00203     \}
+00204 
+00205     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherValueType,\textcolor{keyword}{typename} OtherJacobianType>
+00206     \textcolor{keyword}{inline} AutoDiffVector& operator*=(\textcolor{keyword}{const} AutoDiffVector<OtherValueType,OtherJacobianType>& other)
+00207     \{
+00208       *\textcolor{keyword}{this} = *\textcolor{keyword}{this} * other;
+00209       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00210     \}
+00211 
+00212   \textcolor{keyword}{protected}:
+00213     ValueType m\_values;
+00214     JacobianType m\_jacobian;
+00215 
+00216 \};
+00217 
+00218 \}
+00219 
+00220 \textcolor{preprocessor}{#endif // EIGEN\_AUTODIFF\_VECTOR\_H}
+\end{DoxyCode}

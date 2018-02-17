@@ -1,0 +1,658 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2geo__transformations_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/geo\+\_\+transformations.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2geo__transformations_8cpp_source}\index{geo\+\_\+transformations.\+cpp@{geo\+\_\+transformations.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 \textcolor{preprocessor}{#include <Eigen/Geometry>}
+00012 \textcolor{preprocessor}{#include <Eigen/LU>}
+00013 \textcolor{preprocessor}{#include <Eigen/SVD>}
+00014 
+00015 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00016 \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<T,2,1>} angleToVec(\hyperlink{group___sparse_core___module}{T} a)
+00017 \{
+00018   \textcolor{keywordflow}{return} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<T,2,1>}(std::cos(a), std::sin(a));
+00019 \}
+00020 
+00021 \textcolor{comment}{// This permits to workaround a bug in clang/llvm code generation.}
+00022 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00023 EIGEN\_DONT\_INLINE
+00024 \textcolor{keywordtype}{void} dont\_over\_optimize(\hyperlink{group___sparse_core___module}{T}& x) \{ \textcolor{keyword}{volatile} \textcolor{keyword}{typename} T::Scalar tmp = x(0); x(0) = tmp; \}
+00025 
+00026 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{int} Mode, \textcolor{keywordtype}{int} Options> \textcolor{keywordtype}{void} non\_projective\_only()
+00027 \{
+00028     \textcolor{comment}{/* this test covers the following files:}
+00029 \textcolor{comment}{     Cross.h Quaternion.h, Transform.cpp}
+00030 \textcolor{comment}{  */}
+00031   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,3,1>} Vector3;
+00032   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<Scalar>} Quaternionx;
+00033   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_angle_axis}{AngleAxis<Scalar>} AngleAxisx;
+00034   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<Scalar,3,Mode,Options>} Transform3;
+00035   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_diagonal_matrix}{DiagonalMatrix<Scalar,3>} AlignedScaling3;
+00036   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_translation}{Translation<Scalar,3>} Translation3;
+00037 
+00038   Vector3 v0 = Vector3::Random(),
+00039           v1 = Vector3::Random();
+00040 
+00041   Transform3 t0, t1, t2;
+00042 
+00043   Scalar a = internal::random<Scalar>(-Scalar(EIGEN\_PI), Scalar(EIGEN\_PI));
+00044 
+00045   Quaternionx q1, q2;
+00046 
+00047   q1 = AngleAxisx(a, v0.normalized());
+00048 
+00049   t0 = Transform3::Identity();
+00050   VERIFY\_IS\_APPROX(t0.matrix(), Transform3::MatrixType::Identity());
+00051 
+00052   t0.linear() = q1.toRotationMatrix();
+00053 
+00054   v0 << 50, 2, 1;
+00055   t0.scale(v0);
+00056 
+00057   VERIFY\_IS\_APPROX( (t0 * Vector3(1,0,0)).\textcolor{keyword}{template} head<3>().norm(), v0.x());
+00058 
+00059   t0.setIdentity();
+00060   t1.setIdentity();
+00061   v1 << 1, 2, 3;
+00062   t0.linear() = q1.toRotationMatrix();
+00063   t0.pretranslate(v0);
+00064   t0.scale(v1);
+00065   t1.linear() = q1.conjugate().toRotationMatrix();
+00066   t1.prescale(v1.cwiseInverse());
+00067   t1.translate(-v0);
+00068 
+00069   VERIFY((t0 * t1).matrix().isIdentity(test\_precision<Scalar>()));
+00070 
+00071   t1.fromPositionOrientationScale(v0, q1, v1);
+00072   VERIFY\_IS\_APPROX(t1.matrix(), t0.matrix());
+00073   VERIFY\_IS\_APPROX(t1*v1, t0*v1);
+00074 
+00075   \textcolor{comment}{// translation * vector}
+00076   t0.setIdentity();
+00077   t0.translate(v0);
+00078   VERIFY\_IS\_APPROX((t0 * v1).\textcolor{keyword}{template} head<3>(), Translation3(v0) * v1);
+00079 
+00080   \textcolor{comment}{// AlignedScaling * vector}
+00081   t0.setIdentity();
+00082   t0.scale(v0);
+00083   VERIFY\_IS\_APPROX((t0 * v1).\textcolor{keyword}{template} head<3>(), AlignedScaling3(v0) * v1);
+00084 \}
+00085 
+00086 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{int} Mode, \textcolor{keywordtype}{int} Options> \textcolor{keywordtype}{void} transformations()
+00087 \{
+00088   \textcolor{comment}{/* this test covers the following files:}
+00089 \textcolor{comment}{     Cross.h Quaternion.h, Transform.cpp}
+00090 \textcolor{comment}{  */}
+00091   \textcolor{keyword}{using} std::cos;
+00092   \textcolor{keyword}{using} std::abs;
+00093   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,3,3>} Matrix3;
+00094   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,4,4>} Matrix4;
+00095   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,2,1>} Vector2;
+00096   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,3,1>} Vector3;
+00097   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,4,1>} Vector4;
+00098   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<Scalar>} Quaternionx;
+00099   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_angle_axis}{AngleAxis<Scalar>} AngleAxisx;
+00100   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<Scalar,2,Mode,Options>} Transform2;
+00101   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<Scalar,3,Mode,Options>} Transform3;
+00102   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Transform3::MatrixType MatrixType;
+00103   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_diagonal_matrix}{DiagonalMatrix<Scalar,3>} AlignedScaling3;
+00104   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_translation}{Translation<Scalar,2>} Translation2;
+00105   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_translation}{Translation<Scalar,3>} Translation3;
+00106 
+00107   Vector3 v0 = Vector3::Random(),
+00108           v1 = Vector3::Random();
+00109   Matrix3 matrot1, m;
+00110 
+00111   Scalar a = internal::random<Scalar>(-Scalar(EIGEN\_PI), Scalar(EIGEN\_PI));
+00112   Scalar s0 = internal::random<Scalar>(), s1 = internal::random<Scalar>();
+00113   
+00114   \textcolor{keywordflow}{while}(v0.norm() < test\_precision<Scalar>()) v0 = Vector3::Random();
+00115   \textcolor{keywordflow}{while}(v1.norm() < test\_precision<Scalar>()) v1 = Vector3::Random();
+00116 
+00117   VERIFY\_IS\_APPROX(v0, AngleAxisx(a, v0.normalized()) * v0);
+00118   VERIFY\_IS\_APPROX(-v0, AngleAxisx(Scalar(EIGEN\_PI), v0.unitOrthogonal()) * v0);
+00119   \textcolor{keywordflow}{if}(abs(cos(a)) > test\_precision<Scalar>())
+00120   \{
+00121     VERIFY\_IS\_APPROX(cos(a)*v0.squaredNorm(), v0.dot(AngleAxisx(a, v0.unitOrthogonal()) * v0));
+00122   \}
+00123   m = AngleAxisx(a, v0.normalized()).toRotationMatrix().adjoint();
+00124   VERIFY\_IS\_APPROX(Matrix3::Identity(), m * AngleAxisx(a, v0.normalized()));
+00125   VERIFY\_IS\_APPROX(Matrix3::Identity(), AngleAxisx(a, v0.normalized()) * m);
+00126 
+00127   Quaternionx q1, q2;
+00128   q1 = AngleAxisx(a, v0.normalized());
+00129   q2 = AngleAxisx(a, v1.normalized());
+00130 
+00131   \textcolor{comment}{// rotation matrix conversion}
+00132   matrot1 = AngleAxisx(Scalar(0.1), Vector3::UnitX())
+00133           * AngleAxisx(Scalar(0.2), Vector3::UnitY())
+00134           * AngleAxisx(Scalar(0.3), Vector3::UnitZ());
+00135   VERIFY\_IS\_APPROX(matrot1 * v1,
+00136        AngleAxisx(Scalar(0.1), Vector3(1,0,0)).toRotationMatrix()
+00137     * (AngleAxisx(Scalar(0.2), Vector3(0,1,0)).toRotationMatrix()
+00138     * (AngleAxisx(Scalar(0.3), Vector3(0,0,1)).toRotationMatrix() * v1)));
+00139 
+00140   \textcolor{comment}{// angle-axis conversion}
+00141   AngleAxisx aa = AngleAxisx(q1);
+00142   VERIFY\_IS\_APPROX(q1 * v1, Quaternionx(aa) * v1);
+00143   
+00144   \textcolor{comment}{// The following test is stable only if 2*angle != angle and v1 is not colinear with axis}
+00145   \textcolor{keywordflow}{if}( (abs(aa.angle()) > test\_precision<Scalar>()) && (abs(aa.axis().dot(v1.normalized()))<(Scalar(1)-
+      Scalar(4)*test\_precision<Scalar>())) )
+00146   \{
+00147     VERIFY( !(q1 * v1).isApprox(Quaternionx(AngleAxisx(aa.angle()*2,aa.axis())) * v1) );
+00148   \}
+00149 
+00150   aa.fromRotationMatrix(aa.toRotationMatrix());
+00151   VERIFY\_IS\_APPROX(q1 * v1, Quaternionx(aa) * v1);
+00152   \textcolor{comment}{// The following test is stable only if 2*angle != angle and v1 is not colinear with axis}
+00153   \textcolor{keywordflow}{if}( (abs(aa.angle()) > test\_precision<Scalar>()) && (abs(aa.axis().dot(v1.normalized()))<(Scalar(1)-
+      Scalar(4)*test\_precision<Scalar>())) )
+00154   \{
+00155     VERIFY( !(q1 * v1).isApprox(Quaternionx(AngleAxisx(aa.angle()*2,aa.axis())) * v1) );
+00156   \}
+00157 
+00158   \textcolor{comment}{// AngleAxis}
+00159   VERIFY\_IS\_APPROX(AngleAxisx(a,v1.normalized()).toRotationMatrix(),
+00160     Quaternionx(AngleAxisx(a,v1.normalized())).toRotationMatrix());
+00161 
+00162   AngleAxisx aa1;
+00163   m = q1.toRotationMatrix();
+00164   aa1 = m;
+00165   VERIFY\_IS\_APPROX(AngleAxisx(m).toRotationMatrix(),
+00166     Quaternionx(m).toRotationMatrix());
+00167 
+00168   \textcolor{comment}{// Transform}
+00169   \textcolor{comment}{// TODO complete the tests !}
+00170   a = 0;
+00171   \textcolor{keywordflow}{while} (abs(a)<Scalar(0.1))
+00172     a = internal::random<Scalar>(-Scalar(0.4)*Scalar(EIGEN\_PI), Scalar(0.4)*Scalar(EIGEN\_PI));
+00173   q1 = AngleAxisx(a, v0.normalized());
+00174   Transform3 t0, t1, t2;
+00175 
+00176   \textcolor{comment}{// first test setIdentity() and Identity()}
+00177   t0.setIdentity();
+00178   VERIFY\_IS\_APPROX(t0.matrix(), Transform3::MatrixType::Identity());
+00179   t0.matrix().setZero();
+00180   t0 = Transform3::Identity();
+00181   VERIFY\_IS\_APPROX(t0.matrix(), Transform3::MatrixType::Identity());
+00182 
+00183   t0.setIdentity();
+00184   t1.setIdentity();
+00185   v1 << 1, 2, 3;
+00186   t0.linear() = q1.toRotationMatrix();
+00187   t0.pretranslate(v0);
+00188   t0.scale(v1);
+00189   t1.linear() = q1.conjugate().toRotationMatrix();
+00190   t1.prescale(v1.cwiseInverse());
+00191   t1.translate(-v0);
+00192 
+00193   VERIFY((t0 * t1).matrix().isIdentity(test\_precision<Scalar>()));
+00194 
+00195   t1.fromPositionOrientationScale(v0, q1, v1);
+00196   VERIFY\_IS\_APPROX(t1.matrix(), t0.matrix());
+00197 
+00198   t0.setIdentity(); t0.scale(v0).rotate(q1.toRotationMatrix());
+00199   t1.setIdentity(); t1.scale(v0).rotate(q1);
+00200   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00201 
+00202   t0.setIdentity(); t0.scale(v0).rotate(AngleAxisx(q1));
+00203   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00204 
+00205   VERIFY\_IS\_APPROX(t0.scale(a).matrix(), t1.scale(Vector3::Constant(a)).matrix());
+00206   VERIFY\_IS\_APPROX(t0.prescale(a).matrix(), t1.prescale(Vector3::Constant(a)).matrix());
+00207 
+00208   \textcolor{comment}{// More transform constructors, operator=, operator*=}
+00209 
+00210   Matrix3 mat3 = Matrix3::Random();
+00211   Matrix4 mat4;
+00212   mat4 << mat3 , Vector3::Zero() , Vector4::Zero().transpose();
+00213   Transform3 tmat3(mat3), tmat4(mat4);
+00214   \textcolor{keywordflow}{if}(Mode!=\textcolor{keywordtype}{int}(\hyperlink{group__enums_ggaee59a86102f150923b0cac6d4ff05107aa30a06b60d218b709020972df47de2b0}{AffineCompact}))
+00215     tmat4.matrix()(3,3) = Scalar(1);
+00216   VERIFY\_IS\_APPROX(tmat3.matrix(), tmat4.matrix());
+00217 
+00218   Scalar a3 = internal::random<Scalar>(-Scalar(EIGEN\_PI), Scalar(EIGEN\_PI));
+00219   Vector3 v3 = Vector3::Random().normalized();
+00220   AngleAxisx aa3(a3, v3);
+00221   Transform3 t3(aa3);
+00222   Transform3 t4;
+00223   t4 = aa3;
+00224   VERIFY\_IS\_APPROX(t3.matrix(), t4.matrix());
+00225   t4.rotate(AngleAxisx(-a3,v3));
+00226   VERIFY\_IS\_APPROX(t4.matrix(), MatrixType::Identity());
+00227   t4 *= aa3;
+00228   VERIFY\_IS\_APPROX(t3.matrix(), t4.matrix());
+00229 
+00230   \textcolor{keywordflow}{do} \{
+00231     v3 = Vector3::Random();
+00232     dont\_over\_optimize(v3);
+00233   \} \textcolor{keywordflow}{while} (v3.cwiseAbs().minCoeff()<\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::epsilon}());
+00234   Translation3 tv3(v3);
+00235   Transform3 t5(tv3);
+00236   t4 = tv3;
+00237   VERIFY\_IS\_APPROX(t5.matrix(), t4.matrix());
+00238   t4.translate((-v3).eval());
+00239   VERIFY\_IS\_APPROX(t4.matrix(), MatrixType::Identity());
+00240   t4 *= tv3;
+00241   VERIFY\_IS\_APPROX(t5.matrix(), t4.matrix());
+00242 
+00243   AlignedScaling3 sv3(v3);
+00244   Transform3 t6(sv3);
+00245   t4 = sv3;
+00246   VERIFY\_IS\_APPROX(t6.matrix(), t4.matrix());
+00247   t4.scale(v3.cwiseInverse());
+00248   VERIFY\_IS\_APPROX(t4.matrix(), MatrixType::Identity());
+00249   t4 *= sv3;
+00250   VERIFY\_IS\_APPROX(t6.matrix(), t4.matrix());
+00251 
+00252   \textcolor{comment}{// matrix * transform}
+00253   VERIFY\_IS\_APPROX((t3.matrix()*t4).matrix(), (t3*t4).matrix());
+00254 
+00255   \textcolor{comment}{// chained Transform product}
+00256   VERIFY\_IS\_APPROX(((t3*t4)*t5).matrix(), (t3*(t4*t5)).matrix());
+00257 
+00258   \textcolor{comment}{// check that Transform product doesn't have aliasing problems}
+00259   t5 = t4;
+00260   t5 = t5*t5;
+00261   VERIFY\_IS\_APPROX(t5, t4*t4);
+00262 
+00263   \textcolor{comment}{// 2D transformation}
+00264   Transform2 t20, t21;
+00265   Vector2 v20 = Vector2::Random();
+00266   Vector2 v21 = Vector2::Random();
+00267   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k=0; k<2; ++k)
+00268     \textcolor{keywordflow}{if} (abs(v21[k])<Scalar(1e-3)) v21[k] = Scalar(1e-3);
+00269   t21.setIdentity();
+00270   t21.linear() = \hyperlink{group___geometry___module_class_eigen_1_1_rotation2_d}{Rotation2D<Scalar>}(a).toRotationMatrix();
+00271   VERIFY\_IS\_APPROX(t20.fromPositionOrientationScale(v20,a,v21).matrix(),
+00272     t21.pretranslate(v20).scale(v21).matrix());
+00273 
+00274   t21.setIdentity();
+00275   t21.linear() = \hyperlink{group___geometry___module_class_eigen_1_1_rotation2_d}{Rotation2D<Scalar>}(-a).toRotationMatrix();
+00276   VERIFY( (t20.fromPositionOrientationScale(v20,a,v21)
+00277         * (t21.prescale(v21.cwiseInverse()).translate(-v20))).matrix().isIdentity(test\_precision<Scalar>())
+       );
+00278 
+00279   \textcolor{comment}{// Transform - new API}
+00280   \textcolor{comment}{// 3D}
+00281   t0.setIdentity();
+00282   t0.rotate(q1).scale(v0).translate(v0);
+00283   \textcolor{comment}{// mat * aligned scaling and mat * translation}
+00284   t1 = (Matrix3(q1) * AlignedScaling3(v0)) * Translation3(v0);
+00285   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00286   t1 = (Matrix3(q1) * \hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Eigen::Scaling}(v0)) * Translation3(v0);
+00287   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00288   t1 = (q1 * \hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Eigen::Scaling}(v0)) * Translation3(v0);
+00289   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00290   \textcolor{comment}{// mat * transformation and aligned scaling * translation}
+00291   t1 = Matrix3(q1) * (AlignedScaling3(v0) * Translation3(v0));
+00292   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00293 
+00294 
+00295   t0.setIdentity();
+00296   t0.scale(s0).translate(v0);
+00297   t1 = \hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Eigen::Scaling}(s0) * Translation3(v0);
+00298   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00299   t0.prescale(s0);
+00300   t1 = \hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Eigen::Scaling}(s0) * t1;
+00301   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00302   
+00303   t0 = t3;
+00304   t0.scale(s0);
+00305   t1 = t3 * \hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Eigen::Scaling}(s0,s0,s0);
+00306   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00307   t0.prescale(s0);
+00308   t1 = \hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Eigen::Scaling}(s0,s0,s0) * t1;
+00309   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00310 
+00311   t0 = t3;
+00312   t0.scale(s0);
+00313   t1 = t3 * \hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Eigen::Scaling}(s0);
+00314   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00315   t0.prescale(s0);
+00316   t1 = \hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Eigen::Scaling}(s0) * t1;
+00317   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00318 
+00319   t0.setIdentity();
+00320   t0.prerotate(q1).prescale(v0).pretranslate(v0);
+00321   \textcolor{comment}{// translation * aligned scaling and transformation * mat}
+00322   t1 = (Translation3(v0) * AlignedScaling3(v0)) * Transform3(q1);
+00323   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00324   \textcolor{comment}{// scaling * mat and translation * mat}
+00325   t1 = Translation3(v0) * (AlignedScaling3(v0) * Transform3(q1));
+00326   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00327 
+00328   t0.setIdentity();
+00329   t0.scale(v0).translate(v0).rotate(q1);
+00330   \textcolor{comment}{// translation * mat and aligned scaling * transformation}
+00331   t1 = AlignedScaling3(v0) * (Translation3(v0) * Transform3(q1));
+00332   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00333   \textcolor{comment}{// transformation * aligned scaling}
+00334   t0.scale(v0);
+00335   t1 *= AlignedScaling3(v0);
+00336   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00337   t1 = AlignedScaling3(v0) * (Translation3(v0) * Transform3(q1));
+00338   t1 = t1 * v0.asDiagonal();
+00339   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00340   \textcolor{comment}{// transformation * translation}
+00341   t0.translate(v0);
+00342   t1 = t1 * Translation3(v0);
+00343   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00344   \textcolor{comment}{// translation * transformation}
+00345   t0.pretranslate(v0);
+00346   t1 = Translation3(v0) * t1;
+00347   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00348 
+00349   \textcolor{comment}{// transform * quaternion}
+00350   t0.rotate(q1);
+00351   t1 = t1 * q1;
+00352   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00353 
+00354   \textcolor{comment}{// translation * quaternion}
+00355   t0.translate(v1).rotate(q1);
+00356   t1 = t1 * (Translation3(v1) * q1);
+00357   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00358 
+00359   \textcolor{comment}{// aligned scaling * quaternion}
+00360   t0.scale(v1).rotate(q1);
+00361   t1 = t1 * (AlignedScaling3(v1) * q1);
+00362   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00363 
+00364   \textcolor{comment}{// quaternion * transform}
+00365   t0.prerotate(q1);
+00366   t1 = q1 * t1;
+00367   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00368 
+00369   \textcolor{comment}{// quaternion * translation}
+00370   t0.rotate(q1).translate(v1);
+00371   t1 = t1 * (q1 * Translation3(v1));
+00372   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00373 
+00374   \textcolor{comment}{// quaternion * aligned scaling}
+00375   t0.rotate(q1).scale(v1);
+00376   t1 = t1 * (q1 * AlignedScaling3(v1));
+00377   VERIFY\_IS\_APPROX(t0.matrix(), t1.matrix());
+00378 
+00379   \textcolor{comment}{// test transform inversion}
+00380   t0.setIdentity();
+00381   t0.translate(v0);
+00382   \textcolor{keywordflow}{do} \{
+00383     t0.linear().setRandom();
+00384   \} \textcolor{keywordflow}{while}(t0.linear().jacobiSvd().singularValues()(2)<test\_precision<Scalar>());
+00385   Matrix4 t044 = Matrix4::Zero();
+00386   t044(3,3) = 1;
+00387   t044.block(0,0,t0.matrix().rows(),4) = t0.matrix();
+00388   VERIFY\_IS\_APPROX(t0.inverse(\hyperlink{group__enums_ggaee59a86102f150923b0cac6d4ff05107a71e768e0581725d919d0b05f4cb83234}{Affine}).matrix(), t044.inverse().block(0,0,t0.matrix().rows(),4));
+00389   t0.setIdentity();
+00390   t0.translate(v0).rotate(q1);
+00391   t044 = Matrix4::Zero();
+00392   t044(3,3) = 1;
+00393   t044.block(0,0,t0.matrix().rows(),4) = t0.matrix();
+00394   VERIFY\_IS\_APPROX(t0.inverse(\hyperlink{group__enums_ggaee59a86102f150923b0cac6d4ff05107a080cd5366173608f701cd945c2335568}{Isometry}).matrix(), t044.inverse().block(0,0,t0.matrix().rows(),4));
+00395 
+00396   Matrix3 mat\_rotation, mat\_scaling;
+00397   t0.setIdentity();
+00398   t0.translate(v0).rotate(q1).scale(v1);
+00399   t0.computeRotationScaling(&mat\_rotation, &mat\_scaling);
+00400   VERIFY\_IS\_APPROX(t0.linear(), mat\_rotation * mat\_scaling);
+00401   VERIFY\_IS\_APPROX(mat\_rotation*mat\_rotation.adjoint(), Matrix3::Identity());
+00402   VERIFY\_IS\_APPROX(mat\_rotation.determinant(), Scalar(1));
+00403   t0.computeScalingRotation(&mat\_scaling, &mat\_rotation);
+00404   VERIFY\_IS\_APPROX(t0.linear(), mat\_scaling * mat\_rotation);
+00405   VERIFY\_IS\_APPROX(mat\_rotation*mat\_rotation.adjoint(), Matrix3::Identity());
+00406   VERIFY\_IS\_APPROX(mat\_rotation.determinant(), Scalar(1));
+00407 
+00408   \textcolor{comment}{// test casting}
+00409   \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<float,3,Mode>} t1f = t1.template cast<float>();
+00410   VERIFY\_IS\_APPROX(t1f.template cast<Scalar>(),t1);
+00411   \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<double,3,Mode>} t1d = t1.template cast<double>();
+00412   VERIFY\_IS\_APPROX(t1d.template cast<Scalar>(),t1);
+00413 
+00414   Translation3 tr1(v0);
+00415   \hyperlink{group___geometry___module_class_eigen_1_1_translation}{Translation<float,3>} tr1f = tr1.template cast<float>();
+00416   VERIFY\_IS\_APPROX(tr1f.template cast<Scalar>(),tr1);
+00417   \hyperlink{group___geometry___module_class_eigen_1_1_translation}{Translation<double,3>} tr1d = tr1.template cast<double>();
+00418   VERIFY\_IS\_APPROX(tr1d.template cast<Scalar>(),tr1);
+00419 
+00420   \hyperlink{group___geometry___module_class_eigen_1_1_angle_axis}{AngleAxis<float>} aa1f = aa1.template cast<float>();
+00421   VERIFY\_IS\_APPROX(aa1f.template cast<Scalar>(),aa1);
+00422   \hyperlink{group___geometry___module_class_eigen_1_1_angle_axis}{AngleAxis<double>} aa1d = aa1.template cast<double>();
+00423   VERIFY\_IS\_APPROX(aa1d.template cast<Scalar>(),aa1);
+00424 
+00425   \hyperlink{group___geometry___module_class_eigen_1_1_rotation2_d}{Rotation2D<Scalar>} r2d1(internal::random<Scalar>());
+00426   \hyperlink{group___geometry___module_class_eigen_1_1_rotation2_d}{Rotation2D<float>} r2d1f = r2d1.template cast<float>();
+00427   VERIFY\_IS\_APPROX(r2d1f.template cast<Scalar>(),r2d1);
+00428   \hyperlink{group___geometry___module_class_eigen_1_1_rotation2_d}{Rotation2D<double>} r2d1d = r2d1.template cast<double>();
+00429   VERIFY\_IS\_APPROX(r2d1d.template cast<Scalar>(),r2d1);
+00430   
+00431   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} k=0; k<100; ++k)
+00432   \{
+00433     Scalar angle = internal::random<Scalar>(-100,100);
+00434     \hyperlink{group___geometry___module_class_eigen_1_1_rotation2_d}{Rotation2D<Scalar>} rot2(angle);
+00435     VERIFY( rot2.smallestPositiveAngle() >= 0 );
+00436     VERIFY( rot2.smallestPositiveAngle() <= Scalar(2)*Scalar(EIGEN\_PI) );
+00437     VERIFY\_IS\_APPROX( angleToVec(rot2.smallestPositiveAngle()), angleToVec(rot2.angle()) );
+00438     
+00439     VERIFY( rot2.smallestAngle() >= -Scalar(EIGEN\_PI) );
+00440     VERIFY( rot2.smallestAngle() <=  Scalar(EIGEN\_PI) );
+00441     VERIFY\_IS\_APPROX( angleToVec(rot2.smallestAngle()), angleToVec(rot2.angle()) );
+00442 
+00443     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,2,2>} rot2\_as\_mat(rot2);
+00444     \hyperlink{group___geometry___module_class_eigen_1_1_rotation2_d}{Rotation2D<Scalar>} rot3(rot2\_as\_mat);
+00445     VERIFY\_IS\_APPROX( angleToVec(rot2.smallestAngle()),  angleToVec(rot3.angle()) );
+00446   \}
+00447 
+00448   s0 = internal::random<Scalar>(-100,100);
+00449   s1 = internal::random<Scalar>(-100,100);
+00450   \hyperlink{group___geometry___module_class_eigen_1_1_rotation2_d}{Rotation2D<Scalar>} R0(s0), R1(s1);
+00451   
+00452   t20 = Translation2(v20) * (R0 * \hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Eigen::Scaling}(s0));
+00453   t21 = Translation2(v20) * R0 * \hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Eigen::Scaling}(s0);
+00454   VERIFY\_IS\_APPROX(t20,t21);
+00455   
+00456   t20 = Translation2(v20) * (R0 * R0.inverse() * \hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Eigen::Scaling}(s0));
+00457   t21 = Translation2(v20) * \hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Eigen::Scaling}(s0);
+00458   VERIFY\_IS\_APPROX(t20,t21);
+00459   
+00460   VERIFY\_IS\_APPROX(s0, (R0.slerp(0, R1)).angle());
+00461   VERIFY\_IS\_APPROX( angleToVec(R1.smallestPositiveAngle()), angleToVec((R0.slerp(1, R1)).
+      smallestPositiveAngle()) );
+00462   VERIFY\_IS\_APPROX(R0.smallestPositiveAngle(), (R0.slerp(0.5, R0)).smallestPositiveAngle());
+00463 
+00464   \textcolor{keywordflow}{if}(std::cos(s0)>0)
+00465     VERIFY\_IS\_MUCH\_SMALLER\_THAN((R0.slerp(0.5, R0.inverse())).smallestAngle(), Scalar(1));
+00466   \textcolor{keywordflow}{else}
+00467     VERIFY\_IS\_APPROX(Scalar(EIGEN\_PI), (R0.slerp(0.5, R0.inverse())).smallestPositiveAngle());
+00468   
+00469   \textcolor{comment}{// Check path length}
+00470   Scalar l = 0;
+00471   \textcolor{keywordtype}{int} path\_steps = 100;
+00472   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} k=0; k<path\_steps; ++k)
+00473   \{
+00474     Scalar a1 = R0.slerp(Scalar(k)/Scalar(path\_steps), R1).angle();
+00475     Scalar a2 = R0.slerp(Scalar(k+1)/Scalar(path\_steps), R1).angle();
+00476     l += std::abs(a2-a1);
+00477   \}
+00478   VERIFY(l<=Scalar(EIGEN\_PI)*(Scalar(1)+\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::epsilon}()*Scalar(
+      path\_steps/2)));
+00479   
+00480   \textcolor{comment}{// check basic features}
+00481   \{
+00482     \hyperlink{group___geometry___module_class_eigen_1_1_rotation2_d}{Rotation2D<Scalar>} r1;           \textcolor{comment}{// default ctor}
+00483     r1 = \hyperlink{group___geometry___module_class_eigen_1_1_rotation2_d}{Rotation2D<Scalar>}(s0);     \textcolor{comment}{// copy assignment}
+00484     VERIFY\_IS\_APPROX(r1.\hyperlink{group___geometry___module_af34ab8da6bfe010ca66c8acafa239a6e}{angle}(),s0);
+00485     \hyperlink{group___geometry___module_class_eigen_1_1_rotation2_d}{Rotation2D<Scalar>} r2(r1);       \textcolor{comment}{// copy ctor}
+00486     VERIFY\_IS\_APPROX(r2.angle(),s0);
+00487   \}
+00488 
+00489   \{
+00490     Transform3 t32(Matrix4::Random()), t33, t34;
+00491     t34 = t33 = t32;
+00492     t32.scale(v0);
+00493     t33*=AlignedScaling3(v0);
+00494     VERIFY\_IS\_APPROX(t32.matrix(), t33.matrix());
+00495     t33 = t34 * AlignedScaling3(v0);
+00496     VERIFY\_IS\_APPROX(t32.matrix(), t33.matrix());
+00497   \}
+00498 
+00499 \}
+00500 
+00501 \textcolor{keyword}{template}<\textcolor{keyword}{typename} A1, \textcolor{keyword}{typename} A2, \textcolor{keyword}{typename} P, \textcolor{keyword}{typename} Q, \textcolor{keyword}{typename} V, \textcolor{keyword}{typename} H>
+00502 \textcolor{keywordtype}{void} transform\_associativity\_left(\textcolor{keyword}{const} A1& a1, \textcolor{keyword}{const} A2& a2, \textcolor{keyword}{const} P& p, \textcolor{keyword}{const} Q& q, \textcolor{keyword}{const} V& v, \textcolor{keyword}{const} H& 
+      h)
+00503 \{
+00504   VERIFY\_IS\_APPROX( q*(a1*v), (q*a1)*v );
+00505   VERIFY\_IS\_APPROX( q*(a2*v), (q*a2)*v );
+00506   VERIFY\_IS\_APPROX( q*(p*h).hnormalized(),  ((q*p)*h).hnormalized() );
+00507 \}
+00508 
+00509 \textcolor{keyword}{template}<\textcolor{keyword}{typename} A1, \textcolor{keyword}{typename} A2, \textcolor{keyword}{typename} P, \textcolor{keyword}{typename} Q, \textcolor{keyword}{typename} V, \textcolor{keyword}{typename} H>
+00510 \textcolor{keywordtype}{void} transform\_associativity2(\textcolor{keyword}{const} A1& a1, \textcolor{keyword}{const} A2& a2, \textcolor{keyword}{const} P& p, \textcolor{keyword}{const} Q& q, \textcolor{keyword}{const} V& v, \textcolor{keyword}{const} H& h)
+00511 \{
+00512   VERIFY\_IS\_APPROX( a1*(q*v), (a1*q)*v );
+00513   VERIFY\_IS\_APPROX( a2*(q*v), (a2*q)*v );
+00514   VERIFY\_IS\_APPROX( p *(q*v).homogeneous(), (p *q)*v.homogeneous() );
+00515 
+00516   transform\_associativity\_left(a1, a2,p, q, v, h);
+00517 \}
+00518 
+00519 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{int} Dim, \textcolor{keywordtype}{int} Options,\textcolor{keyword}{typename} RotationType>
+00520 \textcolor{keywordtype}{void} transform\_associativity(\textcolor{keyword}{const} RotationType& R)
+00521 \{
+00522   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dim,1>} \hyperlink{struct_vector_type}{VectorType};
+00523   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Dim+1,1>} HVectorType;
+00524   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Dim,Dim>} LinearType;
+00525   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Dim+1,Dim+1>} MatrixType;
+00526   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<Scalar,Dim,AffineCompact,Options>} 
+      AffineCompactType;
+00527   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<Scalar,Dim,Affine,Options>} AffineType;
+00528   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<Scalar,Dim,Projective,Options>} ProjectiveType;
+00529   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_diagonal_matrix}{DiagonalMatrix<Scalar,Dim>} ScalingType;
+00530   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_translation}{Translation<Scalar,Dim>} TranslationType;
+00531 
+00532   AffineCompactType A1c; A1c.matrix().setRandom();
+00533   AffineCompactType A2c; A2c.matrix().setRandom();
+00534   AffineType A1(A1c);
+00535   AffineType A2(A2c);
+00536   ProjectiveType P1; P1.matrix().setRandom();
+00537   VectorType v1 = VectorType::Random();
+00538   VectorType v2 = VectorType::Random();
+00539   HVectorType h1 = HVectorType::Random();
+00540   Scalar s1 = internal::random<Scalar>();
+00541   LinearType L = LinearType::Random();
+00542   MatrixType \hyperlink{group___core___module_class_eigen_1_1_matrix}{M} = MatrixType::Random();
+00543 
+00544   CALL\_SUBTEST( transform\_associativity2(A1c, A1, P1, A2, v2, h1) );
+00545   CALL\_SUBTEST( transform\_associativity2(A1c, A1, P1, A2c, v2, h1) );
+00546   CALL\_SUBTEST( transform\_associativity2(A1c, A1, P1, v1.asDiagonal(), v2, h1) );
+00547   CALL\_SUBTEST( transform\_associativity2(A1c, A1, P1, ScalingType(v1), v2, h1) );
+00548   CALL\_SUBTEST( transform\_associativity2(A1c, A1, P1, \hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Scaling}(v1), v2, h1) );
+00549   CALL\_SUBTEST( transform\_associativity2(A1c, A1, P1, \hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Scaling}(s1), v2, h1) );
+00550   CALL\_SUBTEST( transform\_associativity2(A1c, A1, P1, TranslationType(v1), v2, h1) );
+00551   CALL\_SUBTEST( transform\_associativity\_left(A1c, A1, P1, L, v2, h1) );
+00552   CALL\_SUBTEST( transform\_associativity2(A1c, A1, P1, R, v2, h1) );
+00553 
+00554   VERIFY\_IS\_APPROX( A1*(M*h1), (A1*M)*h1 );
+00555   VERIFY\_IS\_APPROX( A1c*(M*h1), (A1c*M)*h1 );
+00556   VERIFY\_IS\_APPROX( P1*(M*h1), (P1*M)*h1 );
+00557 
+00558   VERIFY\_IS\_APPROX( M*(A1*h1), (M*A1)*h1 );
+00559   VERIFY\_IS\_APPROX( M*(A1c*h1), (M*A1c)*h1 );
+00560   VERIFY\_IS\_APPROX( M*(P1*h1),  ((M*P1)*h1) );
+00561 \}
+00562 
+00563 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keywordtype}{void} transform\_alignment()
+00564 \{
+00565   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<Scalar,3,Projective,AutoAlign>} Projective3a;
+00566   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<Scalar,3,Projective,DontAlign>} Projective3u;
+00567 
+00568   EIGEN\_ALIGN\_MAX Scalar array1[16];
+00569   EIGEN\_ALIGN\_MAX Scalar array2[16];
+00570   EIGEN\_ALIGN\_MAX Scalar array3[16+1];
+00571   Scalar* array3u = array3+1;
+00572 
+00573   Projective3a *p1 = ::new(reinterpret\_cast<void*>(array1)) Projective3a;
+00574   Projective3u *p2 = ::new(reinterpret\_cast<void*>(array2)) Projective3u;
+00575   Projective3u *p3 = ::new(reinterpret\_cast<void*>(array3u)) Projective3u;
+00576   
+00577   p1->matrix().setRandom();
+00578   *p2 = *p1;
+00579   *p3 = *p1;
+00580 
+00581   VERIFY\_IS\_APPROX(p1->matrix(), p2->matrix());
+00582   VERIFY\_IS\_APPROX(p1->matrix(), p3->matrix());
+00583   
+00584   VERIFY\_IS\_APPROX( (*p1) * (*p1), (*p2)*(*p3));
+00585   
+00586 \textcolor{preprocessor}{  #if defined(EIGEN\_VECTORIZE) && EIGEN\_MAX\_STATIC\_ALIGN\_BYTES>0}
+00587   \textcolor{keywordflow}{if}(internal::packet\_traits<Scalar>::Vectorizable)
+00588     VERIFY\_RAISES\_ASSERT((::\textcolor{keyword}{new}(reinterpret\_cast<void*>(array3u)) Projective3a));
+00589 \textcolor{preprocessor}{  #endif}
+00590 \}
+00591 
+00592 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{int} Dim, \textcolor{keywordtype}{int} Options> \textcolor{keywordtype}{void} transform\_products()
+00593 \{
+00594   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Dim+1,Dim+1>} \hyperlink{group___core___module}{Mat};
+00595   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<Scalar,Dim,Projective,Options>} Proj;
+00596   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<Scalar,Dim,Affine,Options>} Aff;
+00597   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<Scalar,Dim,AffineCompact,Options>} AffC;
+00598 
+00599   Proj p; p.\hyperlink{group___geometry___module_aec8168000a88a807130d41020af98d47}{matrix}().\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00600   Aff a; a.linear().setRandom(); a.translation().setRandom();
+00601   AffC ac = a;
+00602 
+00603   Mat p\_m(p.matrix()), a\_m(a.matrix());
+00604 
+00605   VERIFY\_IS\_APPROX((p*p).matrix(), p\_m*p\_m);
+00606   VERIFY\_IS\_APPROX((a*a).matrix(), a\_m*a\_m);
+00607   VERIFY\_IS\_APPROX((p*a).matrix(), p\_m*a\_m);
+00608   VERIFY\_IS\_APPROX((a*p).matrix(), a\_m*p\_m);
+00609   VERIFY\_IS\_APPROX((ac*a).matrix(), a\_m*a\_m);
+00610   VERIFY\_IS\_APPROX((a*ac).matrix(), a\_m*a\_m);
+00611   VERIFY\_IS\_APPROX((p*ac).matrix(), p\_m*a\_m);
+00612   VERIFY\_IS\_APPROX((ac*p).matrix(), a\_m*p\_m);
+00613 \}
+00614 
+00615 \textcolor{keywordtype}{void} test\_geo\_transformations()
+00616 \{
+00617   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00618     CALL\_SUBTEST\_1(( transformations<double,Affine,AutoAlign>() ));
+00619     CALL\_SUBTEST\_1(( non\_projective\_only<double,Affine,AutoAlign>() ));
+00620     
+00621     CALL\_SUBTEST\_2(( transformations<float,AffineCompact,AutoAlign>() ));
+00622     CALL\_SUBTEST\_2(( non\_projective\_only<float,AffineCompact,AutoAlign>() ));
+00623     CALL\_SUBTEST\_2(( transform\_alignment<float>() ));
+00624     
+00625     CALL\_SUBTEST\_3(( transformations<double,Projective,AutoAlign>() ));
+00626     CALL\_SUBTEST\_3(( transformations<double,Projective,DontAlign>() ));
+00627     CALL\_SUBTEST\_3(( transform\_alignment<double>() ));
+00628     
+00629     CALL\_SUBTEST\_4(( transformations<float,Affine,RowMajor|AutoAlign>() ));
+00630     CALL\_SUBTEST\_4(( non\_projective\_only<float,Affine,RowMajor>() ));
+00631     
+00632     CALL\_SUBTEST\_5(( transformations<double,AffineCompact,RowMajor|AutoAlign>() ));
+00633     CALL\_SUBTEST\_5(( non\_projective\_only<double,AffineCompact,RowMajor>() ));
+00634 
+00635     CALL\_SUBTEST\_6(( transformations<double,Projective,RowMajor|AutoAlign>() ));
+00636     CALL\_SUBTEST\_6(( transformations<double,Projective,RowMajor|DontAlign>() ));
+00637 
+00638 
+00639     CALL\_SUBTEST\_7(( transform\_products<double,3,RowMajor|AutoAlign>() ));
+00640     CALL\_SUBTEST\_7(( transform\_products<float,2,AutoAlign>() ));
+00641 
+00642     CALL\_SUBTEST\_8(( transform\_associativity<double,2,ColMajor>(
+      \hyperlink{group___geometry___module_class_eigen_1_1_rotation2_d}{Rotation2D<double>}(internal::random<double>()*\textcolor{keywordtype}{double}(EIGEN\_PI))) ));
+00643     CALL\_SUBTEST\_8(( transform\_associativity<double,3,ColMajor>(Quaterniond::UnitRandom()) ));
+00644   \}
+00645 \}
+\end{DoxyCode}

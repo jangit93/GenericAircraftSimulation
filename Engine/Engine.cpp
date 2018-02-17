@@ -15,7 +15,7 @@ void Engine::selectEngineType(int type)
 	switch (type)
 	{
 	case 1:
-		std::cout << "Thrust:" << "Analytical Thrust" << std::endl;
+		std::cout << "Thrust:\t\t" << "Analytical Thrust" << std::endl;
 		Thrust = new ThrustAnalytical;
 		break;
 	}

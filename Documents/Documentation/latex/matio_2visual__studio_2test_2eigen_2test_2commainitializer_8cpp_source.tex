@@ -1,0 +1,114 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2commainitializer_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/commainitializer.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2commainitializer_8cpp_source}\index{commainitializer.\+cpp@{commainitializer.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 
+00013 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} M1, \textcolor{keywordtype}{int} M2, \textcolor{keywordtype}{int} N1, \textcolor{keywordtype}{int} N2>
+00014 \textcolor{keywordtype}{void} test\_blocks()
+00015 \{
+00016   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<int, M1+M2, N1+N2>} m\_fixed;
+00017   MatrixXi m\_dynamic(M1+M2, N1+N2);
+00018 
+00019   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<int, M1, N1>} mat11; mat11.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00020   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<int, M1, N2>} mat12; mat12.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00021   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<int, M2, N1>} mat21; mat21.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00022   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<int, M2, N2>} mat22; mat22.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00023 
+00024   MatrixXi matx11 = mat11, matx12 = mat12, matx21 = mat21, matx22 = mat22;
+00025 
+00026   \{
+00027     VERIFY\_IS\_EQUAL((m\_fixed << mat11, mat12, mat21, matx22).finished(), (m\_dynamic << mat11, matx12, mat21
+      , matx22).finished());
+00028     VERIFY\_IS\_EQUAL((m\_fixed.template topLeftCorner<M1,N1>()), mat11);
+00029     VERIFY\_IS\_EQUAL((m\_fixed.template topRightCorner<M1,N2>()), mat12);
+00030     VERIFY\_IS\_EQUAL((m\_fixed.template bottomLeftCorner<M2,N1>()), mat21);
+00031     VERIFY\_IS\_EQUAL((m\_fixed.template bottomRightCorner<M2,N2>()), mat22);
+00032     VERIFY\_IS\_EQUAL((m\_fixed << mat12, mat11, matx21, mat22).finished(), (m\_dynamic << mat12, matx11, 
+      matx21, mat22).finished());
+00033   \}
+00034 
+00035   \textcolor{keywordflow}{if}(N1 > 0)
+00036   \{
+00037     VERIFY\_RAISES\_ASSERT((m\_fixed << mat11, mat12, mat11, mat21, mat22));
+00038     VERIFY\_RAISES\_ASSERT((m\_fixed << mat11, mat12, mat21, mat21, mat22));
+00039   \}
+00040   \textcolor{keywordflow}{else}
+00041   \{
+00042     \textcolor{comment}{// allow insertion of zero-column blocks:}
+00043     VERIFY\_IS\_EQUAL((m\_fixed << mat11, mat12, mat11, mat11, mat21, mat21, mat22).finished(), (m\_dynamic << 
+      mat12, mat22).finished());
+00044   \}
+00045   \textcolor{keywordflow}{if}(M1 != M2)
+00046   \{
+00047     VERIFY\_RAISES\_ASSERT((m\_fixed << mat11, mat21, mat12, mat22));
+00048   \}
+00049 \}
+00050 
+00051 
+00052 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} N>
+00053 \textcolor{keyword}{struct }\hyperlink{structtest__block__recursion}{test\_block\_recursion}
+00054 \{
+00055   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run()
+00056   \{
+00057     test\_blocks<(N>>6)&3, (N>>4)&3, (N>>2)&3, N & 3>();
+00058     \hyperlink{structtest__block__recursion}{test\_block\_recursion<N-1>::run}();
+00059   \}
+00060 \};
+00061 
+00062 \textcolor{keyword}{template}<>
+00063 \textcolor{keyword}{struct }\hyperlink{structtest__block__recursion}{test\_block\_recursion}<-1>
+00064 \{
+00065   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run() \{ \}
+00066 \};
+00067 
+00068 \textcolor{keywordtype}{void} test\_commainitializer()
+00069 \{
+00070   Matrix3d m3;
+00071   Matrix4d m4;
+00072 
+00073   VERIFY\_RAISES\_ASSERT( (m3 << 1, 2, 3, 4, 5, 6, 7, 8) );
+00074   
+00075 \textcolor{preprocessor}{  #ifndef \_MSC\_VER}
+00076   VERIFY\_RAISES\_ASSERT( (m3 << 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) );
+00077 \textcolor{preprocessor}{  #endif}
+00078 
+00079   \textcolor{keywordtype}{double} data[] = \{1, 2, 3, 4, 5, 6, 7, 8, 9\};
+00080   Matrix3d ref = \hyperlink{group___core___module_class_eigen_1_1_map}{Map<Matrix<double,3,3,RowMajor>} >(data);
+00081 
+00082   m3 = Matrix3d::Random();
+00083   m3 << 1, 2, 3, 4, 5, 6, 7, 8, 9;
+00084   VERIFY\_IS\_APPROX(m3, ref );
+00085 
+00086   Vector3d vec[3];
+00087   vec[0] << 1, 4, 7;
+00088   vec[1] << 2, 5, 8;
+00089   vec[2] << 3, 6, 9;
+00090   m3 = Matrix3d::Random();
+00091   m3 << vec[0], vec[1], vec[2];
+00092   VERIFY\_IS\_APPROX(m3, ref);
+00093 
+00094   vec[0] << 1, 2, 3;
+00095   vec[1] << 4, 5, 6;
+00096   vec[2] << 7, 8, 9;
+00097   m3 = Matrix3d::Random();
+00098   m3 << vec[0].transpose(),
+00099         4, 5, 6,
+00100         vec[2].transpose();
+00101   VERIFY\_IS\_APPROX(m3, ref);
+00102 
+00103 
+00104   \textcolor{comment}{// recursively test all block-sizes from 0 to 3:}
+00105   \hyperlink{structtest__block__recursion}{test\_block\_recursion}<(1<<8) - 1>();
+00106 \}
+\end{DoxyCode}

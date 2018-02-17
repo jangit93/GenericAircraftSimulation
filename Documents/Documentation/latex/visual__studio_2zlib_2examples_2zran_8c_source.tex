@@ -1,0 +1,414 @@
+\hypertarget{visual__studio_2zlib_2examples_2zran_8c_source}{}\section{visual\+\_\+studio/zlib/examples/zran.c}
+\label{visual__studio_2zlib_2examples_2zran_8c_source}\index{zran.\+c@{zran.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* zran.c -- example of zlib/gzip stream indexing and random access}
+00002 \textcolor{comment}{ * Copyright (C) 2005, 2012 Mark Adler}
+00003 \textcolor{comment}{ * For conditions of distribution and use, see copyright notice in zlib.h}
+00004 \textcolor{comment}{   Version 1.1  29 Sep 2012  Mark Adler */}
+00005 
+00006 \textcolor{comment}{/* Version History:}
+00007 \textcolor{comment}{ 1.0  29 May 2005  First version}
+00008 \textcolor{comment}{ 1.1  29 Sep 2012  Fix memory reallocation error}
+00009 \textcolor{comment}{ */}
+00010 
+00011 \textcolor{comment}{/* Illustrate the use of Z\_BLOCK, inflatePrime(), and inflateSetDictionary()}
+00012 \textcolor{comment}{   for random access of a compressed file.  A file containing a zlib or gzip}
+00013 \textcolor{comment}{   stream is provided on the command line.  The compressed stream is decoded in}
+00014 \textcolor{comment}{   its entirety, and an index built with access points about every SPAN bytes}
+00015 \textcolor{comment}{   in the uncompressed output.  The compressed file is left open, and can then}
+00016 \textcolor{comment}{   be read randomly, having to decompress on the average SPAN/2 uncompressed}
+00017 \textcolor{comment}{   bytes before getting to the desired block of data.}
+00018 \textcolor{comment}{}
+00019 \textcolor{comment}{   An access point can be created at the start of any deflate block, by saving}
+00020 \textcolor{comment}{   the starting file offset and bit of that block, and the 32K bytes of}
+00021 \textcolor{comment}{   uncompressed data that precede that block.  Also the uncompressed offset of}
+00022 \textcolor{comment}{   that block is saved to provide a referece for locating a desired starting}
+00023 \textcolor{comment}{   point in the uncompressed stream.  build\_index() works by decompressing the}
+00024 \textcolor{comment}{   input zlib or gzip stream a block at a time, and at the end of each block}
+00025 \textcolor{comment}{   deciding if enough uncompressed data has gone by to justify the creation of}
+00026 \textcolor{comment}{   a new access point.  If so, that point is saved in a data structure that}
+00027 \textcolor{comment}{   grows as needed to accommodate the points.}
+00028 \textcolor{comment}{}
+00029 \textcolor{comment}{   To use the index, an offset in the uncompressed data is provided, for which}
+00030 \textcolor{comment}{   the latest access point at or preceding that offset is located in the index.}
+00031 \textcolor{comment}{   The input file is positioned to the specified location in the index, and if}
+00032 \textcolor{comment}{   necessary the first few bits of the compressed data is read from the file.}
+00033 \textcolor{comment}{   inflate is initialized with those bits and the 32K of uncompressed data, and}
+00034 \textcolor{comment}{   the decompression then proceeds until the desired offset in the file is}
+00035 \textcolor{comment}{   reached.  Then the decompression continues to read the desired uncompressed}
+00036 \textcolor{comment}{   data from the file.}
+00037 \textcolor{comment}{}
+00038 \textcolor{comment}{   Another approach would be to generate the index on demand.  In that case,}
+00039 \textcolor{comment}{   requests for random access reads from the compressed data would try to use}
+00040 \textcolor{comment}{   the index, but if a read far enough past the end of the index is required,}
+00041 \textcolor{comment}{   then further index entries would be generated and added.}
+00042 \textcolor{comment}{}
+00043 \textcolor{comment}{   There is some fair bit of overhead to starting inflation for the random}
+00044 \textcolor{comment}{   access, mainly copying the 32K byte dictionary.  So if small pieces of the}
+00045 \textcolor{comment}{   file are being accessed, it would make sense to implement a cache to hold}
+00046 \textcolor{comment}{   some lookahead and avoid many calls to extract() for small lengths.}
+00047 \textcolor{comment}{}
+00048 \textcolor{comment}{   Another way to build an index would be to use inflateCopy().  That would}
+00049 \textcolor{comment}{   not be constrained to have access points at block boundaries, but requires}
+00050 \textcolor{comment}{   more memory per access point, and also cannot be saved to file due to the}
+00051 \textcolor{comment}{   use of pointers in the state.  The approach here allows for storage of the}
+00052 \textcolor{comment}{   index in a file.}
+00053 \textcolor{comment}{ */}
+00054 
+00055 \textcolor{preprocessor}{#include <stdio.h>}
+00056 \textcolor{preprocessor}{#include <stdlib.h>}
+00057 \textcolor{preprocessor}{#include <string.h>}
+00058 \textcolor{preprocessor}{#include "zlib.h"}
+00059 
+00060 \textcolor{preprocessor}{#define local static}
+00061 
+00062 \textcolor{preprocessor}{#define SPAN 1048576L       }\textcolor{comment}{/* desired distance between access points */}\textcolor{preprocessor}{}
+00063 \textcolor{preprocessor}{#define WINSIZE 32768U      }\textcolor{comment}{/* sliding window size */}\textcolor{preprocessor}{}
+00064 \textcolor{preprocessor}{#define CHUNK 16384         }\textcolor{comment}{/* file input buffer size */}\textcolor{preprocessor}{}
+00065 
+00066 \textcolor{comment}{/* access point entry */}
+\Hypertarget{visual__studio_2zlib_2examples_2zran_8c_source_l00067}\hyperlink{structpoint}{00067} \textcolor{keyword}{struct }\hyperlink{structpoint}{point} \{
+00068     off\_t out;          \textcolor{comment}{/* corresponding offset in uncompressed data */}
+00069     off\_t in;           \textcolor{comment}{/* offset in input file of first full byte */}
+00070     \textcolor{keywordtype}{int} bits;           \textcolor{comment}{/* number of bits (1-7) from byte at in - 1, or 0 */}
+00071     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} window[WINSIZE];  \textcolor{comment}{/* preceding 32K of uncompressed data */}
+00072 \};
+00073 
+00074 \textcolor{comment}{/* access point list */}
+\Hypertarget{visual__studio_2zlib_2examples_2zran_8c_source_l00075}\hyperlink{structaccess}{00075} \textcolor{keyword}{struct }\hyperlink{structaccess}{access} \{
+00076     \textcolor{keywordtype}{int} have;           \textcolor{comment}{/* number of list entries filled in */}
+00077     \textcolor{keywordtype}{int} size;           \textcolor{comment}{/* number of list entries allocated */}
+00078     \textcolor{keyword}{struct }\hyperlink{structpoint}{point} *list; \textcolor{comment}{/* allocated list */}
+00079 \};
+00080 
+00081 \textcolor{comment}{/* Deallocate an index built by build\_index() */}
+00082 local \textcolor{keywordtype}{void} free\_index(\textcolor{keyword}{struct} \hyperlink{structaccess}{access} *index)
+00083 \{
+00084     \textcolor{keywordflow}{if} (index != NULL) \{
+00085         free(index->list);
+00086         free(index);
+00087     \}
+00088 \}
+00089 
+00090 \textcolor{comment}{/* Add an entry to the access point list.  If out of memory, deallocate the}
+00091 \textcolor{comment}{   existing list and return NULL. */}
+00092 local \textcolor{keyword}{struct }\hyperlink{structaccess}{access} *addpoint(\textcolor{keyword}{struct} \hyperlink{structaccess}{access} *index, \textcolor{keywordtype}{int} bits,
+00093     off\_t in, off\_t out, \textcolor{keywordtype}{unsigned} left, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *window)
+00094 \{
+00095     \textcolor{keyword}{struct }\hyperlink{structpoint}{point} *next;
+00096 
+00097     \textcolor{comment}{/* if list is empty, create it (start with eight points) */}
+00098     \textcolor{keywordflow}{if} (index == NULL) \{
+00099         index = malloc(\textcolor{keyword}{sizeof}(\textcolor{keyword}{struct} \hyperlink{structaccess}{access}));
+00100         \textcolor{keywordflow}{if} (index == NULL) \textcolor{keywordflow}{return} NULL;
+00101         index->list = malloc(\textcolor{keyword}{sizeof}(\textcolor{keyword}{struct} \hyperlink{structpoint}{point}) << 3);
+00102         \textcolor{keywordflow}{if} (index->list == NULL) \{
+00103             free(index);
+00104             \textcolor{keywordflow}{return} NULL;
+00105         \}
+00106         index->size = 8;
+00107         index->have = 0;
+00108     \}
+00109 
+00110     \textcolor{comment}{/* if list is full, make it bigger */}
+00111     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (index->have == index->size) \{
+00112         index->size <<= 1;
+00113         next = realloc(index->list, \textcolor{keyword}{sizeof}(\textcolor{keyword}{struct} \hyperlink{structpoint}{point}) * index->size);
+00114         \textcolor{keywordflow}{if} (next == NULL) \{
+00115             free\_index(index);
+00116             \textcolor{keywordflow}{return} NULL;
+00117         \}
+00118         index->list = next;
+00119     \}
+00120 
+00121     \textcolor{comment}{/* fill in entry and increment how many we have */}
+00122     next = index->list + index->have;
+00123     next->bits = bits;
+00124     next->in = in;
+00125     next->out = out;
+00126     \textcolor{keywordflow}{if} (left)
+00127         memcpy(next->window, window + WINSIZE - left, left);
+00128     \textcolor{keywordflow}{if} (left < WINSIZE)
+00129         memcpy(next->window + left, window, WINSIZE - left);
+00130     index->have++;
+00131 
+00132     \textcolor{comment}{/* return list, possibly reallocated */}
+00133     \textcolor{keywordflow}{return} index;
+00134 \}
+00135 
+00136 \textcolor{comment}{/* Make one entire pass through the compressed stream and build an index, with}
+00137 \textcolor{comment}{   access points about every span bytes of uncompressed output -- span is}
+00138 \textcolor{comment}{   chosen to balance the speed of random access against the memory requirements}
+00139 \textcolor{comment}{   of the list, about 32K bytes per access point.  Note that data after the end}
+00140 \textcolor{comment}{   of the first zlib or gzip stream in the file is ignored.  build\_index()}
+00141 \textcolor{comment}{   returns the number of access points on success (>= 1), Z\_MEM\_ERROR for out}
+00142 \textcolor{comment}{   of memory, Z\_DATA\_ERROR for an error in the input file, or Z\_ERRNO for a}
+00143 \textcolor{comment}{   file read error.  On success, *built points to the resulting index. */}
+00144 local \textcolor{keywordtype}{int} build\_index(FILE *in, off\_t span, \textcolor{keyword}{struct} \hyperlink{structaccess}{access} **built)
+00145 \{
+00146     \textcolor{keywordtype}{int} ret;
+00147     off\_t totin, totout;        \textcolor{comment}{/* our own total counters to avoid 4GB limit */}
+00148     off\_t last;                 \textcolor{comment}{/* totout value of last access point */}
+00149     \textcolor{keyword}{struct }\hyperlink{structaccess}{access} *index;       \textcolor{comment}{/* access points being generated */}
+00150     \hyperlink{structz__stream__s}{z\_stream} strm;
+00151     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} input[CHUNK];
+00152     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} window[WINSIZE];
+00153 
+00154     \textcolor{comment}{/* initialize inflate */}
+00155     strm.zalloc = Z\_NULL;
+00156     strm.zfree = Z\_NULL;
+00157     strm.opaque = Z\_NULL;
+00158     strm.avail\_in = 0;
+00159     strm.next\_in = Z\_NULL;
+00160     ret = inflateInit2(&strm, 47);      \textcolor{comment}{/* automatic zlib or gzip decoding */}
+00161     \textcolor{keywordflow}{if} (ret != Z\_OK)
+00162         \textcolor{keywordflow}{return} ret;
+00163 
+00164     \textcolor{comment}{/* inflate the input, maintain a sliding window, and build an index -- this}
+00165 \textcolor{comment}{       also validates the integrity of the compressed data using the check}
+00166 \textcolor{comment}{       information at the end of the gzip or zlib stream */}
+00167     totin = totout = last = 0;
+00168     index = NULL;               \textcolor{comment}{/* will be allocated by first addpoint() */}
+00169     strm.avail\_out = 0;
+00170     \textcolor{keywordflow}{do} \{
+00171         \textcolor{comment}{/* get some compressed data from input file */}
+00172         strm.avail\_in = fread(input, 1, CHUNK, in);
+00173         \textcolor{keywordflow}{if} (ferror(in)) \{
+00174             ret = Z\_ERRNO;
+00175             \textcolor{keywordflow}{goto} build\_index\_error;
+00176         \}
+00177         \textcolor{keywordflow}{if} (strm.avail\_in == 0) \{
+00178             ret = Z\_DATA\_ERROR;
+00179             \textcolor{keywordflow}{goto} build\_index\_error;
+00180         \}
+00181         strm.next\_in = input;
+00182 
+00183         \textcolor{comment}{/* process all of that, or until end of stream */}
+00184         \textcolor{keywordflow}{do} \{
+00185             \textcolor{comment}{/* reset sliding window if necessary */}
+00186             \textcolor{keywordflow}{if} (strm.avail\_out == 0) \{
+00187                 strm.avail\_out = WINSIZE;
+00188                 strm.next\_out = window;
+00189             \}
+00190 
+00191             \textcolor{comment}{/* inflate until out of input, output, or at end of block --}
+00192 \textcolor{comment}{               update the total input and output counters */}
+00193             totin += strm.avail\_in;
+00194             totout += strm.avail\_out;
+00195             ret = inflate(&strm, Z\_BLOCK);      \textcolor{comment}{/* return at end of block */}
+00196             totin -= strm.avail\_in;
+00197             totout -= strm.avail\_out;
+00198             \textcolor{keywordflow}{if} (ret == Z\_NEED\_DICT)
+00199                 ret = Z\_DATA\_ERROR;
+00200             \textcolor{keywordflow}{if} (ret == Z\_MEM\_ERROR || ret == Z\_DATA\_ERROR)
+00201                 \textcolor{keywordflow}{goto} build\_index\_error;
+00202             \textcolor{keywordflow}{if} (ret == Z\_STREAM\_END)
+00203                 \textcolor{keywordflow}{break};
+00204 
+00205             \textcolor{comment}{/* if at end of block, consider adding an index entry (note that if}
+00206 \textcolor{comment}{               data\_type indicates an end-of-block, then all of the}
+00207 \textcolor{comment}{               uncompressed data from that block has been delivered, and none}
+00208 \textcolor{comment}{               of the compressed data after that block has been consumed,}
+00209 \textcolor{comment}{               except for up to seven bits) -- the totout == 0 provides an}
+00210 \textcolor{comment}{               entry point after the zlib or gzip header, and assures that the}
+00211 \textcolor{comment}{               index always has at least one access point; we avoid creating an}
+00212 \textcolor{comment}{               access point after the last block by checking bit 6 of data\_type}
+00213 \textcolor{comment}{             */}
+00214             \textcolor{keywordflow}{if} ((strm.data\_type & 128) && !(strm.data\_type & 64) &&
+00215                 (totout == 0 || totout - last > span)) \{
+00216                 index = addpoint(index, strm.data\_type & 7, totin,
+00217                                  totout, strm.avail\_out, window);
+00218                 \textcolor{keywordflow}{if} (index == NULL) \{
+00219                     ret = Z\_MEM\_ERROR;
+00220                     \textcolor{keywordflow}{goto} build\_index\_error;
+00221                 \}
+00222                 last = totout;
+00223             \}
+00224         \} \textcolor{keywordflow}{while} (strm.avail\_in != 0);
+00225     \} \textcolor{keywordflow}{while} (ret != Z\_STREAM\_END);
+00226 
+00227     \textcolor{comment}{/* clean up and return index (release unused entries in list) */}
+00228     (void)inflateEnd(&strm);
+00229     index->list = realloc(index->list, \textcolor{keyword}{sizeof}(\textcolor{keyword}{struct} \hyperlink{structpoint}{point}) * index->have);
+00230     index->size = index->have;
+00231     *built = index;
+00232     \textcolor{keywordflow}{return} index->size;
+00233 
+00234     \textcolor{comment}{/* return error */}
+00235   build\_index\_error:
+00236     (void)inflateEnd(&strm);
+00237     \textcolor{keywordflow}{if} (index != NULL)
+00238         free\_index(index);
+00239     \textcolor{keywordflow}{return} ret;
+00240 \}
+00241 
+00242 \textcolor{comment}{/* Use the index to read len bytes from offset into buf, return bytes read or}
+00243 \textcolor{comment}{   negative for error (Z\_DATA\_ERROR or Z\_MEM\_ERROR).  If data is requested past}
+00244 \textcolor{comment}{   the end of the uncompressed data, then extract() will return a value less}
+00245 \textcolor{comment}{   than len, indicating how much as actually read into buf.  This function}
+00246 \textcolor{comment}{   should not return a data error unless the file was modified since the index}
+00247 \textcolor{comment}{   was generated.  extract() may also return Z\_ERRNO if there is an error on}
+00248 \textcolor{comment}{   reading or seeking the input file. */}
+00249 local \textcolor{keywordtype}{int} extract(FILE *in, \textcolor{keyword}{struct} \hyperlink{structaccess}{access} *index, off\_t offset,
+00250                   \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *buf, \textcolor{keywordtype}{int} len)
+00251 \{
+00252     \textcolor{keywordtype}{int} ret, skip;
+00253     \hyperlink{structz__stream__s}{z\_stream} strm;
+00254     \textcolor{keyword}{struct }\hyperlink{structpoint}{point} *here;
+00255     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} input[CHUNK];
+00256     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} discard[WINSIZE];
+00257 
+00258     \textcolor{comment}{/* proceed only if something reasonable to do */}
+00259     \textcolor{keywordflow}{if} (len < 0)
+00260         \textcolor{keywordflow}{return} 0;
+00261 
+00262     \textcolor{comment}{/* find where in stream to start */}
+00263     here = index->list;
+00264     ret = index->have;
+00265     \textcolor{keywordflow}{while} (--ret && here[1].out <= offset)
+00266         here++;
+00267 
+00268     \textcolor{comment}{/* initialize file and inflate state to start there */}
+00269     strm.zalloc = Z\_NULL;
+00270     strm.zfree = Z\_NULL;
+00271     strm.opaque = Z\_NULL;
+00272     strm.avail\_in = 0;
+00273     strm.next\_in = Z\_NULL;
+00274     ret = inflateInit2(&strm, -15);         \textcolor{comment}{/* raw inflate */}
+00275     \textcolor{keywordflow}{if} (ret != Z\_OK)
+00276         \textcolor{keywordflow}{return} ret;
+00277     ret = fseeko(in, here->in - (here->bits ? 1 : 0), SEEK\_SET);
+00278     \textcolor{keywordflow}{if} (ret == -1)
+00279         \textcolor{keywordflow}{goto} extract\_ret;
+00280     \textcolor{keywordflow}{if} (here->bits) \{
+00281         ret = getc(in);
+00282         \textcolor{keywordflow}{if} (ret == -1) \{
+00283             ret = ferror(in) ? Z\_ERRNO : Z\_DATA\_ERROR;
+00284             \textcolor{keywordflow}{goto} extract\_ret;
+00285         \}
+00286         (void)inflatePrime(&strm, here->bits, ret >> (8 - here->bits));
+00287     \}
+00288     (void)inflateSetDictionary(&strm, here->window, WINSIZE);
+00289 
+00290     \textcolor{comment}{/* skip uncompressed bytes until offset reached, then satisfy request */}
+00291     offset -= here->out;
+00292     strm.avail\_in = 0;
+00293     skip = 1;                               \textcolor{comment}{/* while skipping to offset */}
+00294     \textcolor{keywordflow}{do} \{
+00295         \textcolor{comment}{/* define where to put uncompressed data, and how much */}
+00296         \textcolor{keywordflow}{if} (offset == 0 && skip) \{          \textcolor{comment}{/* at offset now */}
+00297             strm.avail\_out = len;
+00298             strm.next\_out = buf;
+00299             skip = 0;                       \textcolor{comment}{/* only do this once */}
+00300         \}
+00301         \textcolor{keywordflow}{if} (offset > WINSIZE) \{             \textcolor{comment}{/* skip WINSIZE bytes */}
+00302             strm.avail\_out = WINSIZE;
+00303             strm.next\_out = discard;
+00304             offset -= WINSIZE;
+00305         \}
+00306         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (offset != 0) \{             \textcolor{comment}{/* last skip */}
+00307             strm.avail\_out = (unsigned)offset;
+00308             strm.next\_out = discard;
+00309             offset = 0;
+00310         \}
+00311 
+00312         \textcolor{comment}{/* uncompress until avail\_out filled, or end of stream */}
+00313         \textcolor{keywordflow}{do} \{
+00314             \textcolor{keywordflow}{if} (strm.avail\_in == 0) \{
+00315                 strm.avail\_in = fread(input, 1, CHUNK, in);
+00316                 \textcolor{keywordflow}{if} (ferror(in)) \{
+00317                     ret = Z\_ERRNO;
+00318                     \textcolor{keywordflow}{goto} extract\_ret;
+00319                 \}
+00320                 \textcolor{keywordflow}{if} (strm.avail\_in == 0) \{
+00321                     ret = Z\_DATA\_ERROR;
+00322                     \textcolor{keywordflow}{goto} extract\_ret;
+00323                 \}
+00324                 strm.next\_in = input;
+00325             \}
+00326             ret = inflate(&strm, Z\_NO\_FLUSH);       \textcolor{comment}{/* normal inflate */}
+00327             \textcolor{keywordflow}{if} (ret == Z\_NEED\_DICT)
+00328                 ret = Z\_DATA\_ERROR;
+00329             \textcolor{keywordflow}{if} (ret == Z\_MEM\_ERROR || ret == Z\_DATA\_ERROR)
+00330                 \textcolor{keywordflow}{goto} extract\_ret;
+00331             \textcolor{keywordflow}{if} (ret == Z\_STREAM\_END)
+00332                 \textcolor{keywordflow}{break};
+00333         \} \textcolor{keywordflow}{while} (strm.avail\_out != 0);
+00334 
+00335         \textcolor{comment}{/* if reach end of stream, then don't keep trying to get more */}
+00336         \textcolor{keywordflow}{if} (ret == Z\_STREAM\_END)
+00337             \textcolor{keywordflow}{break};
+00338 
+00339         \textcolor{comment}{/* do until offset reached and requested data read, or stream ends */}
+00340     \} \textcolor{keywordflow}{while} (skip);
+00341 
+00342     \textcolor{comment}{/* compute number of uncompressed bytes read after offset */}
+00343     ret = skip ? 0 : len - strm.avail\_out;
+00344 
+00345     \textcolor{comment}{/* clean up and return bytes read or error */}
+00346   extract\_ret:
+00347     (void)inflateEnd(&strm);
+00348     \textcolor{keywordflow}{return} ret;
+00349 \}
+00350 
+00351 \textcolor{comment}{/* Demonstrate the use of build\_index() and extract() by processing the file}
+00352 \textcolor{comment}{   provided on the command line, and the extracting 16K from about 2/3rds of}
+00353 \textcolor{comment}{   the way through the uncompressed output, and writing that to stdout. */}
+00354 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} **argv)
+00355 \{
+00356     \textcolor{keywordtype}{int} len;
+00357     off\_t offset;
+00358     FILE *in;
+00359     \textcolor{keyword}{struct }\hyperlink{structaccess}{access} *index = NULL;
+00360     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} buf[CHUNK];
+00361 
+00362     \textcolor{comment}{/* open input file */}
+00363     \textcolor{keywordflow}{if} (argc != 2) \{
+00364         fprintf(stderr, \textcolor{stringliteral}{"usage: zran file.gz\(\backslash\)n"});
+00365         \textcolor{keywordflow}{return} 1;
+00366     \}
+00367     in = fopen(argv[1], \textcolor{stringliteral}{"rb"});
+00368     \textcolor{keywordflow}{if} (in == NULL) \{
+00369         fprintf(stderr, \textcolor{stringliteral}{"zran: could not open %s for reading\(\backslash\)n"}, argv[1]);
+00370         \textcolor{keywordflow}{return} 1;
+00371     \}
+00372 
+00373     \textcolor{comment}{/* build index */}
+00374     len = build\_index(in, SPAN, &index);
+00375     \textcolor{keywordflow}{if} (len < 0) \{
+00376         fclose(in);
+00377         \textcolor{keywordflow}{switch} (len) \{
+00378         \textcolor{keywordflow}{case} Z\_MEM\_ERROR:
+00379             fprintf(stderr, \textcolor{stringliteral}{"zran: out of memory\(\backslash\)n"});
+00380             \textcolor{keywordflow}{break};
+00381         \textcolor{keywordflow}{case} Z\_DATA\_ERROR:
+00382             fprintf(stderr, \textcolor{stringliteral}{"zran: compressed data error in %s\(\backslash\)n"}, argv[1]);
+00383             \textcolor{keywordflow}{break};
+00384         \textcolor{keywordflow}{case} Z\_ERRNO:
+00385             fprintf(stderr, \textcolor{stringliteral}{"zran: read error on %s\(\backslash\)n"}, argv[1]);
+00386             \textcolor{keywordflow}{break};
+00387         \textcolor{keywordflow}{default}:
+00388             fprintf(stderr, \textcolor{stringliteral}{"zran: error %d while building index\(\backslash\)n"}, len);
+00389         \}
+00390         \textcolor{keywordflow}{return} 1;
+00391     \}
+00392     fprintf(stderr, \textcolor{stringliteral}{"zran: built index with %d access points\(\backslash\)n"}, len);
+00393 
+00394     \textcolor{comment}{/* use index by reading some bytes from an arbitrary offset */}
+00395     offset = (index->list[index->have - 1].out << 1) / 3;
+00396     len = extract(in, index, offset, buf, CHUNK);
+00397     \textcolor{keywordflow}{if} (len < 0)
+00398         fprintf(stderr, \textcolor{stringliteral}{"zran: extraction failed: %s error\(\backslash\)n"},
+00399                 len == Z\_MEM\_ERROR ? \textcolor{stringliteral}{"out of memory"} : \textcolor{stringliteral}{"input corrupted"});
+00400     \textcolor{keywordflow}{else} \{
+00401         fwrite(buf, 1, len, stdout);
+00402         fprintf(stderr, \textcolor{stringliteral}{"zran: extracted %d bytes at %llu\(\backslash\)n"}, len, offset);
+00403     \}
+00404 
+00405     \textcolor{comment}{/* clean up and exit */}
+00406     free\_index(index);
+00407     fclose(in);
+00408     \textcolor{keywordflow}{return} 0;
+00409 \}
+\end{DoxyCode}

@@ -18,22 +18,25 @@ public:
 
 	~BaseTrajectory();
 
-	virtual void initTrajectory(AerodynamicStruct & AeroData,
+	virtual void initTrajectory(Float64 FlightTime, 
+						AerodynamicStruct & AeroData,
 						AirframeStruct & AirframeData,
 						ThrustStruct & ThrustData,
 						AircraftStruct &AircraftData, 
-						AutopilotStruct & AutopilotData,
-						GuidanceStruct & GuidanceData);
+						GuidanceStruct & GuidanceData,
+		NavigationStruct &NavData,
+		ActuatorStruct &ActuatorData,
+		IMUStruct &IMUData);
 
 	virtual void updateTrajectory(Float64 FlightTime,
 							AtmosphereStruct & AtmoData,
 							AerodynamicStruct & AeroData,
 							AirframeStruct & AirframeData,
 							ThrustStruct & ThrustData,
-							AutopilotStruct &AutopilotData,
-							GuidanceStruct &GuidanceData);
-
-
+							GuidanceStruct &GuidanceData,
+		NavigationStruct &NavData,
+		ActuatorStruct &ActuatorData,
+		IMUStruct &IMUData);
 
 
 private:

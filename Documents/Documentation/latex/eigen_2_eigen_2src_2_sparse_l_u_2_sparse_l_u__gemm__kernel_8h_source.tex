@@ -1,0 +1,290 @@
+\hypertarget{eigen_2_eigen_2src_2_sparse_l_u_2_sparse_l_u__gemm__kernel_8h_source}{}\section{eigen/\+Eigen/src/\+Sparse\+L\+U/\+Sparse\+L\+U\+\_\+gemm\+\_\+kernel.h}
+\label{eigen_2_eigen_2src_2_sparse_l_u_2_sparse_l_u__gemm__kernel_8h_source}\index{Sparse\+L\+U\+\_\+gemm\+\_\+kernel.\+h@{Sparse\+L\+U\+\_\+gemm\+\_\+kernel.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2012 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_SPARSELU\_GEMM\_KERNEL\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_SPARSELU\_GEMM\_KERNEL\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016 
+00017 
+00024 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00025 EIGEN\_DONT\_INLINE
+00026 \textcolor{keywordtype}{void} sparselu\_gemm(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} n, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} d, \textcolor{keyword}{const} Scalar* A, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} lda, \textcolor{keyword}{const} Scalar* B, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} ldb, Scalar* C, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} ldc)
+00027 \{
+00028   \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen_1_1internal}{Eigen::internal};
+00029   
+00030   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1packet__traits}{packet\_traits<Scalar>::type} \hyperlink{union_eigen_1_1internal_1_1_packet}{Packet};
+00031   \textcolor{keyword}{enum} \{
+00032     NumberOfRegisters = EIGEN\_ARCH\_DEFAULT\_NUMBER\_OF\_REGISTERS,
+00033     PacketSize = \hyperlink{struct_eigen_1_1internal_1_1packet__traits}{packet\_traits<Scalar>::size},
+00034     PM = 8,                             \textcolor{comment}{// peeling in M}
+00035     RN = 2,                             \textcolor{comment}{// register blocking}
+00036     RK = NumberOfRegisters>=16 ? 4 : 2, \textcolor{comment}{// register blocking}
+00037     BM = 4096/\textcolor{keyword}{sizeof}(Scalar),           \textcolor{comment}{// number of rows of A-C per chunk}
+00038     SM = PM*PacketSize                  \textcolor{comment}{// step along M}
+00039   \};
+00040   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} d\_end = (d/RK)*RK;    \textcolor{comment}{// number of columns of A (rows of B) suitable for full register
+       blocking}
+00041   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} n\_end = (n/RN)*RN;    \textcolor{comment}{// number of columns of B-C suitable for processing RN columns at once}
+00042   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i0 = internal::first\_default\_aligned(A,m);
+00043   
+00044   eigen\_internal\_assert(((lda%PacketSize)==0) && ((ldc%PacketSize)==0) && (i0==
+      internal::first\_default\_aligned(C,m)));
+00045   
+00046   \textcolor{comment}{// handle the non aligned rows of A and C without any optimization:}
+00047   \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=0; i<i0; ++i)
+00048   \{
+00049     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j=0; j<n; ++j)
+00050     \{
+00051       Scalar c = C[i+j*ldc];
+00052       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=0; k<d; ++k)
+00053         c += B[k+j*ldb] * A[i+k*lda];
+00054       C[i+j*ldc] = c;
+00055     \}
+00056   \}
+00057   \textcolor{comment}{// process the remaining rows per chunk of BM rows}
+00058   \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} ib=i0; ib<m; ib+=BM)
+00059   \{
+00060     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} actual\_b = std::min<Index>(BM, m-ib);                 \textcolor{comment}{// actual number of rows}
+00061     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} actual\_b\_end1 = (actual\_b/SM)*SM;                   \textcolor{comment}{// actual number of rows suitable for
+       peeling}
+00062     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} actual\_b\_end2 = (actual\_b/PacketSize)*PacketSize;   \textcolor{comment}{// actual number of rows suitable for
+       vectorization}
+00063     
+00064     \textcolor{comment}{// Let's process two columns of B-C at once}
+00065     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j=0; j<n\_end; j+=RN)
+00066     \{
+00067       \textcolor{keyword}{const} Scalar* Bc0 = B+(j+0)*ldb;
+00068       \textcolor{keyword}{const} Scalar* Bc1 = B+(j+1)*ldb;
+00069       
+00070       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=0; k<d\_end; k+=RK)
+00071       \{
+00072         
+00073         \textcolor{comment}{// load and expand a RN x RK block of B}
+00074         Packet b00, b10, b20, b30, b01, b11, b21, b31;
+00075                   \{ b00 = pset1<Packet>(Bc0[0]); \}
+00076                   \{ b10 = pset1<Packet>(Bc0[1]); \}
+00077         \textcolor{keywordflow}{if}(RK==4) \{ b20 = pset1<Packet>(Bc0[2]); \}
+00078         \textcolor{keywordflow}{if}(RK==4) \{ b30 = pset1<Packet>(Bc0[3]); \}
+00079                   \{ b01 = pset1<Packet>(Bc1[0]); \}
+00080                   \{ b11 = pset1<Packet>(Bc1[1]); \}
+00081         \textcolor{keywordflow}{if}(RK==4) \{ b21 = pset1<Packet>(Bc1[2]); \}
+00082         \textcolor{keywordflow}{if}(RK==4) \{ b31 = pset1<Packet>(Bc1[3]); \}
+00083         
+00084         Packet a0, a1, a2, a3, c0, c1, t0, t1;
+00085         
+00086         \textcolor{keyword}{const} Scalar* A0 = A+ib+(k+0)*lda;
+00087         \textcolor{keyword}{const} Scalar* A1 = A+ib+(k+1)*lda;
+00088         \textcolor{keyword}{const} Scalar* A2 = A+ib+(k+2)*lda;
+00089         \textcolor{keyword}{const} Scalar* A3 = A+ib+(k+3)*lda;
+00090         
+00091         Scalar* C0 = C+ib+(j+0)*ldc;
+00092         Scalar* C1 = C+ib+(j+1)*ldc;
+00093         
+00094                   a0 = pload<Packet>(A0);
+00095                   a1 = pload<Packet>(A1);
+00096         \textcolor{keywordflow}{if}(RK==4)
+00097         \{
+00098           a2 = pload<Packet>(A2);
+00099           a3 = pload<Packet>(A3);
+00100         \}
+00101         \textcolor{keywordflow}{else}
+00102         \{
+00103           \textcolor{comment}{// workaround "may be used uninitialized in this function" warning}
+00104           a2 = a3 = a0;
+00105         \}
+00106         
+00107 \textcolor{preprocessor}{#define KMADD(c, a, b, tmp) \{tmp = b; tmp = pmul(a,tmp); c = padd(c,tmp);\}}
+00108 \textcolor{preprocessor}{#define WORK(I)  \(\backslash\)}
+00109 \textcolor{preprocessor}{                     c0 = pload<Packet>(C0+i+(I)*PacketSize);    \(\backslash\)}
+00110 \textcolor{preprocessor}{                     c1 = pload<Packet>(C1+i+(I)*PacketSize);    \(\backslash\)}
+00111 \textcolor{preprocessor}{                     KMADD(c0, a0, b00, t0)                      \(\backslash\)}
+00112 \textcolor{preprocessor}{                     KMADD(c1, a0, b01, t1)                      \(\backslash\)}
+00113 \textcolor{preprocessor}{                     a0 = pload<Packet>(A0+i+(I+1)*PacketSize);  \(\backslash\)}
+00114 \textcolor{preprocessor}{                     KMADD(c0, a1, b10, t0)                      \(\backslash\)}
+00115 \textcolor{preprocessor}{                     KMADD(c1, a1, b11, t1)                      \(\backslash\)}
+00116 \textcolor{preprocessor}{                     a1 = pload<Packet>(A1+i+(I+1)*PacketSize);  \(\backslash\)}
+00117 \textcolor{preprocessor}{          if(RK==4)\{ KMADD(c0, a2, b20, t0)                     \}\(\backslash\)}
+00118 \textcolor{preprocessor}{          if(RK==4)\{ KMADD(c1, a2, b21, t1)                     \}\(\backslash\)}
+00119 \textcolor{preprocessor}{          if(RK==4)\{ a2 = pload<Packet>(A2+i+(I+1)*PacketSize); \}\(\backslash\)}
+00120 \textcolor{preprocessor}{          if(RK==4)\{ KMADD(c0, a3, b30, t0)                     \}\(\backslash\)}
+00121 \textcolor{preprocessor}{          if(RK==4)\{ KMADD(c1, a3, b31, t1)                     \}\(\backslash\)}
+00122 \textcolor{preprocessor}{          if(RK==4)\{ a3 = pload<Packet>(A3+i+(I+1)*PacketSize); \}\(\backslash\)}
+00123 \textcolor{preprocessor}{                     pstore(C0+i+(I)*PacketSize, c0);            \(\backslash\)}
+00124 \textcolor{preprocessor}{                     pstore(C1+i+(I)*PacketSize, c1)}
+00125         
+00126         \textcolor{comment}{// process rows of A' - C' with aggressive vectorization and peeling }
+00127         \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=0; i<actual\_b\_end1; i+=PacketSize*8)
+00128         \{
+00129           EIGEN\_ASM\_COMMENT(\textcolor{stringliteral}{"SPARSELU\_GEMML\_KERNEL1"});
+00130                     prefetch((A0+i+(5)*PacketSize));
+00131                     prefetch((A1+i+(5)*PacketSize));
+00132           \textcolor{keywordflow}{if}(RK==4) prefetch((A2+i+(5)*PacketSize));
+00133           \textcolor{keywordflow}{if}(RK==4) prefetch((A3+i+(5)*PacketSize));
+00134 
+00135           WORK(0);
+00136           WORK(1);
+00137           WORK(2);
+00138           WORK(3);
+00139           WORK(4);
+00140           WORK(5);
+00141           WORK(6);
+00142           WORK(7);
+00143         \}
+00144         \textcolor{comment}{// process the remaining rows with vectorization only}
+00145         \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=actual\_b\_end1; i<actual\_b\_end2; i+=PacketSize)
+00146         \{
+00147           WORK(0);
+00148         \}
+00149 \textcolor{preprocessor}{#undef WORK}
+00150         \textcolor{comment}{// process the remaining rows without vectorization}
+00151         \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=actual\_b\_end2; i<actual\_b; ++i)
+00152         \{
+00153           \textcolor{keywordflow}{if}(RK==4)
+00154           \{
+00155             C0[i] += A0[i]*Bc0[0]+A1[i]*Bc0[1]+A2[i]*Bc0[2]+A3[i]*Bc0[3];
+00156             C1[i] += A0[i]*Bc1[0]+A1[i]*Bc1[1]+A2[i]*Bc1[2]+A3[i]*Bc1[3];
+00157           \}
+00158           \textcolor{keywordflow}{else}
+00159           \{
+00160             C0[i] += A0[i]*Bc0[0]+A1[i]*Bc0[1];
+00161             C1[i] += A0[i]*Bc1[0]+A1[i]*Bc1[1];
+00162           \}
+00163         \}
+00164         
+00165         Bc0 += RK;
+00166         Bc1 += RK;
+00167       \} \textcolor{comment}{// peeled loop on k}
+00168     \} \textcolor{comment}{// peeled loop on the columns j}
+00169     \textcolor{comment}{// process the last column (we now perform a matrix-vector product)}
+00170     \textcolor{keywordflow}{if}((n-n\_end)>0)
+00171     \{
+00172       \textcolor{keyword}{const} Scalar* Bc0 = B+(n-1)*ldb;
+00173       
+00174       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=0; k<d\_end; k+=RK)
+00175       \{
+00176         
+00177         \textcolor{comment}{// load and expand a 1 x RK block of B}
+00178         Packet b00, b10, b20, b30;
+00179                   b00 = pset1<Packet>(Bc0[0]);
+00180                   b10 = pset1<Packet>(Bc0[1]);
+00181         \textcolor{keywordflow}{if}(RK==4) b20 = pset1<Packet>(Bc0[2]);
+00182         \textcolor{keywordflow}{if}(RK==4) b30 = pset1<Packet>(Bc0[3]);
+00183         
+00184         Packet a0, a1, a2, a3, c0, t0\textcolor{comment}{/*, t1*/};
+00185         
+00186         \textcolor{keyword}{const} Scalar* A0 = A+ib+(k+0)*lda;
+00187         \textcolor{keyword}{const} Scalar* A1 = A+ib+(k+1)*lda;
+00188         \textcolor{keyword}{const} Scalar* A2 = A+ib+(k+2)*lda;
+00189         \textcolor{keyword}{const} Scalar* A3 = A+ib+(k+3)*lda;
+00190         
+00191         Scalar* C0 = C+ib+(n\_end)*ldc;
+00192         
+00193                   a0 = pload<Packet>(A0);
+00194                   a1 = pload<Packet>(A1);
+00195         \textcolor{keywordflow}{if}(RK==4)
+00196         \{
+00197           a2 = pload<Packet>(A2);
+00198           a3 = pload<Packet>(A3);
+00199         \}
+00200         \textcolor{keywordflow}{else}
+00201         \{
+00202           \textcolor{comment}{// workaround "may be used uninitialized in this function" warning}
+00203           a2 = a3 = a0;
+00204         \}
+00205         
+00206 \textcolor{preprocessor}{#define WORK(I) \(\backslash\)}
+00207 \textcolor{preprocessor}{                   c0 = pload<Packet>(C0+i+(I)*PacketSize);     \(\backslash\)}
+00208 \textcolor{preprocessor}{                   KMADD(c0, a0, b00, t0)                       \(\backslash\)}
+00209 \textcolor{preprocessor}{                   a0 = pload<Packet>(A0+i+(I+1)*PacketSize);   \(\backslash\)}
+00210 \textcolor{preprocessor}{                   KMADD(c0, a1, b10, t0)                       \(\backslash\)}
+00211 \textcolor{preprocessor}{                   a1 = pload<Packet>(A1+i+(I+1)*PacketSize);   \(\backslash\)}
+00212 \textcolor{preprocessor}{        if(RK==4)\{ KMADD(c0, a2, b20, t0)                      \}\(\backslash\)}
+00213 \textcolor{preprocessor}{        if(RK==4)\{ a2 = pload<Packet>(A2+i+(I+1)*PacketSize);  \}\(\backslash\)}
+00214 \textcolor{preprocessor}{        if(RK==4)\{ KMADD(c0, a3, b30, t0)                      \}\(\backslash\)}
+00215 \textcolor{preprocessor}{        if(RK==4)\{ a3 = pload<Packet>(A3+i+(I+1)*PacketSize);  \}\(\backslash\)}
+00216 \textcolor{preprocessor}{                   pstore(C0+i+(I)*PacketSize, c0);}
+00217         
+00218         \textcolor{comment}{// agressive vectorization and peeling}
+00219         \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=0; i<actual\_b\_end1; i+=PacketSize*8)
+00220         \{
+00221           EIGEN\_ASM\_COMMENT(\textcolor{stringliteral}{"SPARSELU\_GEMML\_KERNEL2"});
+00222           WORK(0);
+00223           WORK(1);
+00224           WORK(2);
+00225           WORK(3);
+00226           WORK(4);
+00227           WORK(5);
+00228           WORK(6);
+00229           WORK(7);
+00230         \}
+00231         \textcolor{comment}{// vectorization only}
+00232         \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=actual\_b\_end1; i<actual\_b\_end2; i+=PacketSize)
+00233         \{
+00234           WORK(0);
+00235         \}
+00236         \textcolor{comment}{// remaining scalars}
+00237         \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=actual\_b\_end2; i<actual\_b; ++i)
+00238         \{
+00239           \textcolor{keywordflow}{if}(RK==4) 
+00240             C0[i] += A0[i]*Bc0[0]+A1[i]*Bc0[1]+A2[i]*Bc0[2]+A3[i]*Bc0[3];
+00241           \textcolor{keywordflow}{else}
+00242             C0[i] += A0[i]*Bc0[0]+A1[i]*Bc0[1];
+00243         \}
+00244         
+00245         Bc0 += RK;
+00246 \textcolor{preprocessor}{#undef WORK}
+00247       \}
+00248     \}
+00249     
+00250     \textcolor{comment}{// process the last columns of A, corresponding to the last rows of B}
+00251     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rd = d-d\_end;
+00252     \textcolor{keywordflow}{if}(rd>0)
+00253     \{
+00254       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j=0; j<n; ++j)
+00255       \{
+00256         \textcolor{keyword}{enum} \{
+00257           Alignment = PacketSize>1 ? \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Aligned} : 0
+00258         \};
+00259         \textcolor{keyword}{typedef} Map<Matrix<Scalar,Dynamic,1>, Alignment > MapVector;
+00260         \textcolor{keyword}{typedef} Map<const Matrix<Scalar,Dynamic,1>, Alignment > ConstMapVector;
+00261         \textcolor{keywordflow}{if}(rd==1)       MapVector(C+j*ldc+ib,actual\_b) += B[0+d\_end+j*ldb] * ConstMapVector(A+(d\_end+0)*lda
+      +ib, actual\_b);
+00262         
+00263         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(rd==2)  MapVector(C+j*ldc+ib,actual\_b) += B[0+d\_end+j*ldb] * ConstMapVector(A+(d\_end+0)*lda
+      +ib, actual\_b)
+00264                                                         + B[1+d\_end+j*ldb] * ConstMapVector(A+(d\_end+1)*lda
+      +ib, actual\_b);
+00265         
+00266         \textcolor{keywordflow}{else}            MapVector(C+j*ldc+ib,actual\_b) += B[0+d\_end+j*ldb] * ConstMapVector(A+(d\_end+0)*lda
+      +ib, actual\_b)
+00267                                                         + B[1+d\_end+j*ldb] * ConstMapVector(A+(d\_end+1)*lda
+      +ib, actual\_b)
+00268                                                         + B[2+d\_end+j*ldb] * ConstMapVector(A+(d\_end+2)*lda
+      +ib, actual\_b);
+00269       \}
+00270     \}
+00271   
+00272   \} \textcolor{comment}{// blocking on the rows of A and C}
+00273 \}
+00274 \textcolor{preprocessor}{#undef KMADD}
+00275 
+00276 \} \textcolor{comment}{// namespace internal}
+00277 
+00278 \} \textcolor{comment}{// namespace Eigen}
+00279 
+00280 \textcolor{preprocessor}{#endif // EIGEN\_SPARSELU\_GEMM\_KERNEL\_H}
+\end{DoxyCode}

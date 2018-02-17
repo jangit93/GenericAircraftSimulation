@@ -1,0 +1,487 @@
+\hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source}{}\section{eigen/\+Eigen/src/\+L\+U/\+Partial\+Piv\+LU.h}
+\label{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source}\index{Partial\+Piv\+L\+U.\+h@{Partial\+Piv\+L\+U.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2006-2009 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{// Copyright (C) 2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_PARTIALLU\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_PARTIALLU\_H}
+00013 
+00014 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00015 
+00016 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00017}\hyperlink{struct_eigen_1_1internal_1_1traits_3_01_partial_piv_l_u_3_01___matrix_type_01_4_01_4}{00017} \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1traits}{traits}<\hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU}<\_MatrixType> >
+00018  : \hyperlink{struct_eigen_1_1internal_1_1traits}{traits}<\_MatrixType>
+00019 \{
+00020   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1_matrix_xpr}{MatrixXpr} \hyperlink{struct_eigen_1_1_matrix_xpr}{XprKind};
+00021   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1_solver_storage}{SolverStorage} \hyperlink{struct_eigen_1_1_solver_storage}{StorageKind};
+00022   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1traits}{traits<\_MatrixType>} \hyperlink{struct_eigen_1_1internal_1_1traits}{BaseTraits};
+00023   \textcolor{keyword}{enum} \{
+00024     Flags = BaseTraits::Flags & \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit},
+00025     CoeffReadCost = \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}
+00026   \};
+00027 \};
+00028 
+00029 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T,\textcolor{keyword}{typename} Derived>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00030}\hyperlink{struct_eigen_1_1internal_1_1enable__if__ref}{00030} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1enable__if__ref}{enable\_if\_ref};
+00031 \textcolor{comment}{// \{}
+00032 \textcolor{comment}{//   typedef Derived type;}
+00033 \textcolor{comment}{// \};}
+00034 
+00035 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T,\textcolor{keyword}{typename} Derived>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00036}\hyperlink{struct_eigen_1_1internal_1_1enable__if__ref_3_01_ref_3_01_t_01_4_00_01_derived_01_4}{00036} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1enable__if__ref}{enable\_if\_ref}<\hyperlink{group___core___module_class_eigen_1_1_ref}{Ref}<\hyperlink{group___sparse_core___module}{T}>,Derived> \{
+00037   \textcolor{keyword}{typedef} Derived type;
+00038 \};
+00039 
+00040 \} \textcolor{comment}{// end namespace internal}
+00041 
+00075 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType> \textcolor{keyword}{class }\hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU}
+00076   : \textcolor{keyword}{public} \hyperlink{class_eigen_1_1_solver_base}{SolverBase}<PartialPivLU<\_MatrixType> >
+00077 \{
+00078   \textcolor{keyword}{public}:
+00079 
+00080     \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00081     \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_solver_base}{SolverBase<PartialPivLU>} Base;
+00082     EIGEN\_GENERIC\_PUBLIC\_INTERFACE(\hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU})
+00083     \textcolor{comment}{// FIXME StorageIndex defined in EIGEN\_GENERIC\_PUBLIC\_INTERFACE should be int}
+00084     \textcolor{keyword}{enum} \{
+00085       MaxRowsAtCompileTime = MatrixType::MaxRowsAtCompileTime,
+00086       MaxColsAtCompileTime = MatrixType::MaxColsAtCompileTime
+00087     \};
+00088     \textcolor{keyword}{typedef} \hyperlink{group___core___module}{PermutationMatrix<RowsAtCompileTime, MaxRowsAtCompileTime>}
+       PermutationType;
+00089     \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Transpositions<RowsAtCompileTime, MaxRowsAtCompileTime>}
+       TranspositionType;
+00090     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::PlainObject PlainObject;
+00091 
+00098     \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU}();
+00099 
+00106     \textcolor{keyword}{explicit} \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size);
+00107 
+00115     \textcolor{keyword}{template}<\textcolor{keyword}{typename} InputType>
+00116     \textcolor{keyword}{explicit} \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU}(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<InputType>}& matrix);
+00117 
+00125     \textcolor{keyword}{template}<\textcolor{keyword}{typename} InputType>
+00126     \textcolor{keyword}{explicit} \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU}(\hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<InputType>}& matrix);
+00127 
+00128     \textcolor{keyword}{template}<\textcolor{keyword}{typename} InputType>
+00129     \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU}& compute(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<InputType>}& matrix) \{
+00130       m\_lu = matrix.\hyperlink{group___core___module_a324b16961a11d2ecfd2d1b7dd7946545}{derived}();
+00131       compute();
+00132       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00133     \}
+00134 
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00141}\hyperlink{group___l_u___module_abea0d7e51c5591a6db152eade0892d9c}{00141}     \textcolor{keyword}{inline} \textcolor{keyword}{const} MatrixType& \hyperlink{group___l_u___module_abea0d7e51c5591a6db152eade0892d9c}{matrixLU}()\textcolor{keyword}{ const}
+00142 \textcolor{keyword}{    }\{
+00143       eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"PartialPivLU is not initialized."});
+00144       \textcolor{keywordflow}{return} m\_lu;
+00145     \}
+00146 
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00149}\hyperlink{group___l_u___module_a1c637530b3215787668a75ebb2e7b882}{00149}     \textcolor{keyword}{inline} \textcolor{keyword}{const} PermutationType& \hyperlink{group___l_u___module_a1c637530b3215787668a75ebb2e7b882}{permutationP}()\textcolor{keyword}{ const}
+00150 \textcolor{keyword}{    }\{
+00151       eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"PartialPivLU is not initialized."});
+00152       \textcolor{keywordflow}{return} m\_p;
+00153     \}
+00154 
+00172     \textcolor{comment}{// FIXME this is a copy-paste of the base-class member to add the isInitialized assertion.}
+00173     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs>
+00174     \textcolor{keyword}{inline} \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_solve}{Solve<PartialPivLU, Rhs>}
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00175}\hyperlink{group___l_u___module_a49247bd2f742a46bca1f9c2bf1b19ad8}{00175}     \hyperlink{group___l_u___module_a49247bd2f742a46bca1f9c2bf1b19ad8}{solve}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Rhs>}& b)\textcolor{keyword}{ const}
+00176 \textcolor{keyword}{    }\{
+00177       eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"PartialPivLU is not initialized."});
+00178       \textcolor{keywordflow}{return} \hyperlink{group___core___module_class_eigen_1_1_solve}{Solve<PartialPivLU, Rhs>}(*\textcolor{keyword}{this}, b.derived());
+00179     \}
+00180 
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00184}\hyperlink{group___l_u___module_a472b46d5d9ff7c328e1dccc13805f690}{00184}     \textcolor{keyword}{inline} RealScalar \hyperlink{group___l_u___module_a472b46d5d9ff7c328e1dccc13805f690}{rcond}()\textcolor{keyword}{ const}
+00185 \textcolor{keyword}{    }\{
+00186       eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"PartialPivLU is not initialized."});
+00187       \textcolor{keywordflow}{return} \hyperlink{namespace_eigen_1_1internal_ad1de0d785387bfb5435c410bf0554068}{internal::rcond\_estimate\_helper}(m\_l1\_norm, *\textcolor{keyword}{this});
+00188     \}
+00189 
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00197}\hyperlink{group___l_u___module_aef983470f92aba829e861e32e68681b5}{00197}     \textcolor{keyword}{inline} \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_inverse}{Inverse<PartialPivLU>} \hyperlink{group___l_u___module_aef983470f92aba829e861e32e68681b5}{inverse}()\textcolor{keyword}{ const}
+00198 \textcolor{keyword}{    }\{
+00199       eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"PartialPivLU is not initialized."});
+00200       \textcolor{keywordflow}{return} \hyperlink{class_eigen_1_1_inverse}{Inverse<PartialPivLU>}(*this);
+00201     \}
+00202 
+00216     Scalar determinant() \textcolor{keyword}{const};
+00217 
+00218     MatrixType reconstructedMatrix() \textcolor{keyword}{const};
+00219 
+00220     \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} rows()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_lu.rows(); \}
+00221     \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} cols()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_lu.cols(); \}
+00222 
+00223 \textcolor{preprocessor}{    #ifndef EIGEN\_PARSED\_BY\_DOXYGEN}
+00224     \textcolor{keyword}{template}<\textcolor{keyword}{typename} RhsType, \textcolor{keyword}{typename} DstType>
+00225     EIGEN\_DEVICE\_FUNC
+00226     \textcolor{keywordtype}{void} \_solve\_impl(\textcolor{keyword}{const} RhsType &rhs, DstType &dst)\textcolor{keyword}{ const }\{
+00227      \textcolor{comment}{/* The decomposition PA = LU can be rewritten as A = P^\{-1\} L U.}
+00228 \textcolor{comment}{      * So we proceed as follows:}
+00229 \textcolor{comment}{      * Step 1: compute c = Pb.}
+00230 \textcolor{comment}{      * Step 2: replace c by the solution x to Lx = c.}
+00231 \textcolor{comment}{      * Step 3: replace c by the solution x to Ux = c.}
+00232 \textcolor{comment}{      */}
+00233 
+00234       eigen\_assert(rhs.rows() == m\_lu.rows());
+00235 
+00236       \textcolor{comment}{// Step 1}
+00237       dst = permutationP() * rhs;
+00238 
+00239       \textcolor{comment}{// Step 2}
+00240       m\_lu.template triangularView<UnitLower>().solveInPlace(dst);
+00241 
+00242       \textcolor{comment}{// Step 3}
+00243       m\_lu.template triangularView<Upper>().solveInPlace(dst);
+00244     \}
+00245 
+00246     \textcolor{keyword}{template}<\textcolor{keywordtype}{bool} Conjugate, \textcolor{keyword}{typename} RhsType, \textcolor{keyword}{typename} DstType>
+00247     EIGEN\_DEVICE\_FUNC
+00248     \textcolor{keywordtype}{void} \_solve\_impl\_transposed(\textcolor{keyword}{const} RhsType &rhs, DstType &dst)\textcolor{keyword}{ const }\{
+00249      \textcolor{comment}{/* The decomposition PA = LU can be rewritten as A = P^\{-1\} L U.}
+00250 \textcolor{comment}{      * So we proceed as follows:}
+00251 \textcolor{comment}{      * Step 1: compute c = Pb.}
+00252 \textcolor{comment}{      * Step 2: replace c by the solution x to Lx = c.}
+00253 \textcolor{comment}{      * Step 3: replace c by the solution x to Ux = c.}
+00254 \textcolor{comment}{      */}
+00255 
+00256       eigen\_assert(rhs.rows() == m\_lu.cols());
+00257 
+00258       \textcolor{keywordflow}{if} (\hyperlink{class_eigen_1_1_conjugate}{Conjugate}) \{
+00259         \textcolor{comment}{// Step 1}
+00260         dst = m\_lu.template triangularView<Upper>().adjoint().solve(rhs);
+00261         \textcolor{comment}{// Step 2}
+00262         m\_lu.template triangularView<UnitLower>().adjoint().solveInPlace(dst);
+00263       \} \textcolor{keywordflow}{else} \{
+00264         \textcolor{comment}{// Step 1}
+00265         dst = m\_lu.template triangularView<Upper>().transpose().solve(rhs);
+00266         \textcolor{comment}{// Step 2}
+00267         m\_lu.template triangularView<UnitLower>().transpose().solveInPlace(dst);
+00268       \}
+00269       \textcolor{comment}{// Step 3}
+00270       dst = permutationP().transpose() * dst;
+00271     \}
+00272 \textcolor{preprocessor}{    #endif}
+00273 
+00274   \textcolor{keyword}{protected}:
+00275 
+00276     \textcolor{keyword}{static} \textcolor{keywordtype}{void} check\_template\_parameters()
+00277     \{
+00278       EIGEN\_STATIC\_ASSERT\_NON\_INTEGER(Scalar);
+00279     \}
+00280 
+00281     \textcolor{keywordtype}{void} compute();
+00282 
+00283     MatrixType m\_lu;
+00284     PermutationType m\_p;
+00285     TranspositionType m\_rowsTranspositions;
+00286     RealScalar m\_l1\_norm;
+00287     \textcolor{keywordtype}{signed} \textcolor{keywordtype}{char} m\_det\_p;
+00288     \textcolor{keywordtype}{bool} m\_isInitialized;
+00289 \};
+00290 
+00291 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00292}\hyperlink{group___l_u___module_a5c04818d354f94a98786d8a44cb709c6}{00292} \hyperlink{group___l_u___module_a5c04818d354f94a98786d8a44cb709c6}{PartialPivLU<MatrixType>::PartialPivLU}()
+00293   : m\_lu(),
+00294     m\_p(),
+00295     m\_rowsTranspositions(),
+00296     m\_l1\_norm(0),
+00297     m\_det\_p(0),
+00298     m\_isInitialized(false)
+00299 \{
+00300 \}
+00301 
+00302 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00303}\hyperlink{group___l_u___module_acf892c12d8a229b32bddc3149e32e63a}{00303} \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU<MatrixType>::PartialPivLU}(
+      \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} size)
+00304   : m\_lu(size, size),
+00305     m\_p(size),
+00306     m\_rowsTranspositions(size),
+00307     m\_l1\_norm(0),
+00308     m\_det\_p(0),
+00309     m\_isInitialized(false)
+00310 \{
+00311 \}
+00312 
+00313 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00314 \textcolor{keyword}{template}<\textcolor{keyword}{typename} InputType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00315}\hyperlink{group___l_u___module_acf37214aebb54d0e186ae39ac6c41bdf}{00315} \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU<MatrixType>::PartialPivLU}(\textcolor{keyword}{const} 
+      \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<InputType>}& matrix)
+00316   : m\_lu(matrix.rows(),matrix.cols()),
+00317     m\_p(matrix.rows()),
+00318     m\_rowsTranspositions(matrix.rows()),
+00319     m\_l1\_norm(0),
+00320     m\_det\_p(0),
+00321     m\_isInitialized(false)
+00322 \{
+00323   compute(matrix.\hyperlink{group___core___module_a324b16961a11d2ecfd2d1b7dd7946545}{derived}());
+00324 \}
+00325 
+00326 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00327 \textcolor{keyword}{template}<\textcolor{keyword}{typename} InputType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00328}\hyperlink{group___l_u___module_a4efc917d31d0e9d76781a97509309061}{00328} \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU<MatrixType>::PartialPivLU}(
+      \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<InputType>}& matrix)
+00329   : m\_lu(matrix.derived()),
+00330     m\_p(matrix.rows()),
+00331     m\_rowsTranspositions(matrix.rows()),
+00332     m\_l1\_norm(0),
+00333     m\_det\_p(0),
+00334     m\_isInitialized(false)
+00335 \{
+00336   compute();
+00337 \}
+00338 
+00339 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00340 
+00342 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{int} StorageOrder, \textcolor{keyword}{typename} PivIndex>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00343}\hyperlink{struct_eigen_1_1internal_1_1partial__lu__impl}{00343} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1partial__lu__impl}{partial\_lu\_impl}
+00344 \{
+00345   \textcolor{comment}{// FIXME add a stride to Map, so that the following mapping becomes easier,}
+00346   \textcolor{comment}{// another option would be to create an expression being able to automatically}
+00347   \textcolor{comment}{// warp any Map, Matrix, and Block expressions as a unique type, but since that's exactly}
+00348   \textcolor{comment}{// a Map + stride, why not adding a stride to Map, and convenient ctors from a Matrix,}
+00349   \textcolor{comment}{// and Block.}
+00350   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_map}{Map<Matrix<Scalar, Dynamic, Dynamic, StorageOrder>}
+       > \hyperlink{group___core___module_class_eigen_1_1_map}{MapLU};
+00351   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_block}{Block<MapLU, Dynamic, Dynamic>} 
+      \hyperlink{group___core___module_class_eigen_1_1_block}{MatrixType};
+00352   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_block}{Block<MatrixType,Dynamic,Dynamic>} 
+      \hyperlink{group___core___module_class_eigen_1_1_block}{BlockType};
+00353   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00354 
+00365   \textcolor{keyword}{static} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} unblocked\_lu(MatrixType& lu, PivIndex* row\_transpositions, PivIndex& nb\_transpositions)
+00366   \{
+00367     \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1scalar__score__coeff__op}{scalar\_score\_coeff\_op<Scalar>} Scoring;
+00368     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Scoring::result\_type Score;
+00369     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows = lu.rows();
+00370     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols = lu.cols();
+00371     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = (std::min)(rows,cols);
+00372     nb\_transpositions = 0;
+00373     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} first\_zero\_pivot = -1;
+00374     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k = 0; k < size; ++k)
+00375     \{
+00376       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rrows = rows-k-1;
+00377       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rcols = cols-k-1;
+00378 
+00379       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row\_of\_biggest\_in\_col;
+00380       Score biggest\_in\_corner
+00381         = lu.col(k).tail(rows-k).unaryExpr(Scoring()).maxCoeff(&row\_of\_biggest\_in\_col);
+00382       row\_of\_biggest\_in\_col += k;
+00383 
+00384       row\_transpositions[k] = PivIndex(row\_of\_biggest\_in\_col);
+00385 
+00386       \textcolor{keywordflow}{if}(biggest\_in\_corner != Score(0))
+00387       \{
+00388         \textcolor{keywordflow}{if}(k != row\_of\_biggest\_in\_col)
+00389         \{
+00390           lu.row(k).swap(lu.row(row\_of\_biggest\_in\_col));
+00391           ++nb\_transpositions;
+00392         \}
+00393 
+00394         \textcolor{comment}{// FIXME shall we introduce a safe quotient expression in cas 1/lu.coeff(k,k)}
+00395         \textcolor{comment}{// overflow but not the actual quotient?}
+00396         lu.col(k).tail(rrows) /= lu.coeff(k,k);
+00397       \}
+00398       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(first\_zero\_pivot==-1)
+00399       \{
+00400         \textcolor{comment}{// the pivot is exactly zero, we record the index of the first pivot which is exactly 0,}
+00401         \textcolor{comment}{// and continue the factorization such we still have A = PLU}
+00402         first\_zero\_pivot = k;
+00403       \}
+00404 
+00405       \textcolor{keywordflow}{if}(k<rows-1)
+00406         lu.bottomRightCorner(rrows,rcols).noalias() -= lu.col(k).tail(rrows) * lu.row(k).tail(rcols);
+00407     \}
+00408     \textcolor{keywordflow}{return} first\_zero\_pivot;
+00409   \}
+00410 
+00426   \textcolor{keyword}{static} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} blocked\_lu(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols, Scalar* lu\_data, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} luStride, PivIndex* row\_transpositions, PivIndex& nb\_transpositions, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} maxBlockSize=256)
+00427   \{
+00428     MapLU lu1(lu\_data,StorageOrder==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}?rows:luStride,StorageOrder==
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}?luStride:cols);
+00429     MatrixType lu(lu1,0,0,rows,cols);
+00430 
+00431     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = (std::min)(rows,cols);
+00432 
+00433     \textcolor{comment}{// if the matrix is too small, no blocking:}
+00434     \textcolor{keywordflow}{if}(size<=16)
+00435     \{
+00436       \textcolor{keywordflow}{return} unblocked\_lu(lu, row\_transpositions, nb\_transpositions);
+00437     \}
+00438 
+00439     \textcolor{comment}{// automatically adjust the number of subdivisions to the size}
+00440     \textcolor{comment}{// of the matrix so that there is enough sub blocks:}
+00441     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} blockSize;
+00442     \{
+00443       blockSize = size/8;
+00444       blockSize = (blockSize/16)*16;
+00445       blockSize = (std::min)((std::max)(blockSize,\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(8)), maxBlockSize);
+00446     \}
+00447 
+00448     nb\_transpositions = 0;
+00449     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} first\_zero\_pivot = -1;
+00450     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k = 0; k < size; k+=blockSize)
+00451     \{
+00452       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} bs = (std::min)(size-k,blockSize); \textcolor{comment}{// actual size of the block}
+00453       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} trows = rows - k - bs; \textcolor{comment}{// trailing rows}
+00454       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} tsize = size - k - bs; \textcolor{comment}{// trailing size}
+00455 
+00456       \textcolor{comment}{// partition the matrix:}
+00457       \textcolor{comment}{//                          A00 | A01 | A02}
+00458       \textcolor{comment}{// lu  = A\_0 | A\_1 | A\_2 =  A10 | A11 | A12}
+00459       \textcolor{comment}{//                          A20 | A21 | A22}
+00460       BlockType A\_0(lu,0,0,rows,k);
+00461       BlockType A\_2(lu,0,k+bs,rows,tsize);
+00462       BlockType A11(lu,k,k,bs,bs);
+00463       BlockType A12(lu,k,k+bs,bs,tsize);
+00464       BlockType A21(lu,k+bs,k,trows,bs);
+00465       BlockType A22(lu,k+bs,k+bs,trows,tsize);
+00466 
+00467       PivIndex nb\_transpositions\_in\_panel;
+00468       \textcolor{comment}{// recursively call the blocked LU algorithm on [A11^T A21^T]^T}
+00469       \textcolor{comment}{// with a very small blocking size:}
+00470       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} ret = blocked\_lu(trows+bs, bs, &lu.coeffRef(k,k), luStride,
+00471                    row\_transpositions+k, nb\_transpositions\_in\_panel, 16);
+00472       \textcolor{keywordflow}{if}(ret>=0 && first\_zero\_pivot==-1)
+00473         first\_zero\_pivot = k+ret;
+00474 
+00475       nb\_transpositions += nb\_transpositions\_in\_panel;
+00476       \textcolor{comment}{// update permutations and apply them to A\_0}
+00477       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=k; i<k+bs; ++i)
+00478       \{
+00479         \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} piv = (row\_transpositions[i] += internal::convert\_index<PivIndex>(k));
+00480         A\_0.row(i).swap(A\_0.row(piv));
+00481       \}
+00482 
+00483       \textcolor{keywordflow}{if}(trows)
+00484       \{
+00485         \textcolor{comment}{// apply permutations to A\_2}
+00486         \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=k;i<k+bs; ++i)
+00487           A\_2.row(i).swap(A\_2.row(row\_transpositions[i]));
+00488 
+00489         \textcolor{comment}{// A12 = A11^-1 A12}
+00490         A11.template triangularView<UnitLower>().solveInPlace(A12);
+00491 
+00492         A22.noalias() -= A21 * A12;
+00493       \}
+00494     \}
+00495     \textcolor{keywordflow}{return} first\_zero\_pivot;
+00496   \}
+00497 \};
+00498 
+00501 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} TranspositionType>
+00502 \textcolor{keywordtype}{void} partial\_lu\_inplace(\hyperlink{group___core___module_class_eigen_1_1_block}{MatrixType}& lu, TranspositionType& row\_transpositions, \textcolor{keyword}{typename} 
+      TranspositionType::StorageIndex& nb\_transpositions)
+00503 \{
+00504   eigen\_assert(lu.cols() == row\_transpositions.size());
+00505   eigen\_assert((&row\_transpositions.coeffRef(1)-&row\_transpositions.coeffRef(0)) == 1);
+00506 
+00507   \hyperlink{struct_eigen_1_1internal_1_1partial__lu__impl}{partial\_lu\_impl}
+00508     <\textcolor{keyword}{typename} MatrixType::Scalar, MatrixType::Flags&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}?
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}:\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}, \textcolor{keyword}{typename} TranspositionType::StorageIndex>
+00509     ::blocked\_lu(lu.rows(), lu.cols(), &lu.coeffRef(0,0), lu.outerStride(), &row\_transpositions.coeffRef(0)
+      , nb\_transpositions);
+00510 \}
+00511 
+00512 \} \textcolor{comment}{// end namespace internal}
+00513 
+00514 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00515 \textcolor{keywordtype}{void} \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU<MatrixType>::compute}()
+00516 \{
+00517   check\_template\_parameters();
+00518 
+00519   \textcolor{comment}{// the row permutation is stored as int indices, so just to be sure:}
+00520   eigen\_assert(m\_lu.rows()<\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<int>::highest}());
+00521 
+00522   m\_l1\_norm = m\_lu.cwiseAbs().colwise().sum().maxCoeff();
+00523 
+00524   eigen\_assert(m\_lu.rows() == m\_lu.cols() && \textcolor{stringliteral}{"PartialPivLU is only for square (and moreover invertible)
+       matrices"});
+00525   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = m\_lu.rows();
+00526 
+00527   m\_rowsTranspositions.resize(size);
+00528 
+00529   \textcolor{keyword}{typename} TranspositionType::StorageIndex nb\_transpositions;
+00530   internal::partial\_lu\_inplace(m\_lu, m\_rowsTranspositions, nb\_transpositions);
+00531   m\_det\_p = (nb\_transpositions%2) ? -1 : 1;
+00532 
+00533   m\_p = m\_rowsTranspositions;
+00534 
+00535   m\_isInitialized = \textcolor{keyword}{true};
+00536 \}
+00537 
+00538 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00539}\hyperlink{group___l_u___module_a54c3d39c9b46ff485a8d2140b9b23193}{00539} \textcolor{keyword}{typename} PartialPivLU<MatrixType>::Scalar \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU<MatrixType>::determinant}
+      ()\textcolor{keyword}{ const}
+00540 \textcolor{keyword}{}\{
+00541   eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"PartialPivLU is not initialized."});
+00542   \textcolor{keywordflow}{return} Scalar(m\_det\_p) * m\_lu.diagonal().prod();
+00543 \}
+00544 
+00548 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00549}\hyperlink{group___l_u___module_aba7f1ee83537b0d240ebf206503a4920}{00549} \hyperlink{group___core___module}{MatrixType} \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU<MatrixType>::reconstructedMatrix}
+      ()\textcolor{keyword}{ const}
+00550 \textcolor{keyword}{}\{
+00551   eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"LU is not initialized."});
+00552   \textcolor{comment}{// LU}
+00553   \hyperlink{group___core___module}{MatrixType} res = m\_lu.template triangularView<UnitLower>().toDenseMatrix()
+00554                  * m\_lu.template triangularView<Upper>();
+00555 
+00556   \textcolor{comment}{// P^\{-1\}(LU)}
+00557   res = m\_p.inverse() * res;
+00558 
+00559   \textcolor{keywordflow}{return} res;
+00560 \}
+00561 
+00562 \textcolor{comment}{/***** Implementation details *****************************************************/}
+00563 
+00564 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00565 
+00566 \textcolor{comment}{/***** Implementation of inverse() *****************************************************/}
+00567 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} MatrixType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00568}\hyperlink{struct_eigen_1_1internal_1_1_assignment_3_01_dst_xpr_type_00_01_inverse_3_01_partial_piv_l_u_3_0fe0876a690a87045a6eaca571908231d}{00568} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1_assignment}{Assignment}<DstXprType, \hyperlink{class_eigen_1_1_inverse}{Inverse}<\hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU}<MatrixType> >, 
+      \hyperlink{namespaceinternal}{internal}::\hyperlink{struct_eigen_1_1internal_1_1assign__op}{assign\_op}<typename DstXprType::Scalar,typename PartialPivLU<MatrixType>::Scalar>
+      , \hyperlink{struct_eigen_1_1internal_1_1_dense2_dense}{Dense2Dense}>
+00569 \{
+00570   \textcolor{keyword}{typedef} \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU<MatrixType>} \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{LuType};
+00571   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_inverse}{Inverse<LuType>} \hyperlink{class_eigen_1_1_inverse}{SrcXprType};
+00572   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} 
+      \hyperlink{struct_eigen_1_1internal_1_1assign__op}{internal::assign\_op<typename DstXprType::Scalar,typename LuType::Scalar>}
+       &)
+00573   \{
+00574     dst = src.nestedExpression().solve(MatrixType::Identity(src.rows(), src.cols()));
+00575   \}
+00576 \};
+00577 \} \textcolor{comment}{// end namespace internal}
+00578 
+00579 \textcolor{comment}{/******** MatrixBase methods *******/}
+00580 
+00587 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00588 \textcolor{keyword}{inline} \textcolor{keyword}{const} \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU<typename MatrixBase<Derived>::PlainObject}
+      >
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00589}\hyperlink{group___core___module_a6199d8aaf26c1b8ac3097fdfa7733a1e}{00589} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Derived>::partialPivLu}()\textcolor{keyword}{ const}
+00590 \textcolor{keyword}{}\{
+00591   \textcolor{keywordflow}{return} \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU<PlainObject>}(eval());
+00592 \}
+00593 
+00602 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00603 \textcolor{keyword}{inline} \textcolor{keyword}{const} \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU<typename MatrixBase<Derived>::PlainObject}
+      >
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u_8h_source_l00604}\hyperlink{group___core___module_afb312afbfe960cbda67811552d876fae}{00604} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Derived>::lu}()\textcolor{keyword}{ const}
+00605 \textcolor{keyword}{}\{
+00606   \textcolor{keywordflow}{return} \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU<PlainObject>}(eval());
+00607 \}
+00608 
+00609 \} \textcolor{comment}{// end namespace Eigen}
+00610 
+00611 \textcolor{preprocessor}{#endif // EIGEN\_PARTIALLU\_H}
+\end{DoxyCode}

@@ -1,0 +1,297 @@
+\hypertarget{eigen_2test_2eigensolver__selfadjoint_8cpp_source}{}\section{eigen/test/eigensolver\+\_\+selfadjoint.cpp}
+\label{eigen_2test_2eigensolver__selfadjoint_8cpp_source}\index{eigensolver\+\_\+selfadjoint.\+cpp@{eigensolver\+\_\+selfadjoint.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2010 Jitse Niesen <jitse@maths.leeds.ac.uk>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#include "main.h"}
+00012 \textcolor{preprocessor}{#include "svd\_fill.h"}
+00013 \textcolor{preprocessor}{#include <limits>}
+00014 \textcolor{preprocessor}{#include <Eigen/Eigenvalues>}
+00015 \textcolor{preprocessor}{#include <Eigen/SparseCore>}
+00016 
+00017 
+00018 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} selfadjointeigensolver\_essential\_check(\textcolor{keyword}{const} MatrixType& m)
+00019 \{
+00020   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00021   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00022   RealScalar eival\_eps = numext::mini<RealScalar>(test\_precision<RealScalar>(),  
+      \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::dummy\_precision}()*20000);
+00023   
+00024   \hyperlink{group___eigenvalues___module_class_eigen_1_1_self_adjoint_eigen_solver}{SelfAdjointEigenSolver<MatrixType>} eiSymm(m);
+00025   VERIFY\_IS\_EQUAL(eiSymm.info(), \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00026 
+00027   RealScalar scaling = m.cwiseAbs().maxCoeff();
+00028 
+00029   \textcolor{keywordflow}{if}(scaling<(std::numeric\_limits<RealScalar>::min)())
+00030   \{
+00031     VERIFY(eiSymm.eigenvalues().cwiseAbs().maxCoeff() <= (std::numeric\_limits<RealScalar>::min)());
+00032   \}
+00033   \textcolor{keywordflow}{else}
+00034   \{
+00035     VERIFY\_IS\_APPROX((m.template selfadjointView<Lower>() * eiSymm.eigenvectors())/scaling,
+00036                      (eiSymm.eigenvectors() * eiSymm.eigenvalues().asDiagonal())/scaling);
+00037   \}
+00038   VERIFY\_IS\_APPROX(m.template selfadjointView<Lower>().eigenvalues(), eiSymm.eigenvalues());
+00039   VERIFY\_IS\_UNITARY(eiSymm.eigenvectors());
+00040 
+00041   \textcolor{keywordflow}{if}(m.cols()<=4)
+00042   \{
+00043     \hyperlink{group___eigenvalues___module_class_eigen_1_1_self_adjoint_eigen_solver}{SelfAdjointEigenSolver<MatrixType>} eiDirect;
+00044     eiDirect.\hyperlink{group___eigenvalues___module_a40b0a68841d6176b1ab98743cc82bef4}{computeDirect}(m);  
+00045     VERIFY\_IS\_EQUAL(eiDirect.\hyperlink{group___eigenvalues___module_a56bd59b85a6f6f00ff7bff307ad0e015}{info}(), \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00046     \textcolor{keywordflow}{if}(! eiSymm.eigenvalues().isApprox(eiDirect.\hyperlink{group___eigenvalues___module_a8efab27e82aa6aa0ae0c64739238c2e0}{eigenvalues}(), eival\_eps) )
+00047     \{
+00048       std::cerr << \textcolor{stringliteral}{"reference eigenvalues: "} << eiSymm.eigenvalues().transpose() << \textcolor{stringliteral}{"\(\backslash\)n"}
+00049                 << \textcolor{stringliteral}{"obtained eigenvalues:  "} << eiDirect.\hyperlink{group___eigenvalues___module_a8efab27e82aa6aa0ae0c64739238c2e0}{eigenvalues}().transpose() << \textcolor{stringliteral}{"\(\backslash\)n"}
+00050                 << \textcolor{stringliteral}{"diff:                  "} << (eiSymm.eigenvalues()-eiDirect.
+      \hyperlink{group___eigenvalues___module_a8efab27e82aa6aa0ae0c64739238c2e0}{eigenvalues}()).transpose() << \textcolor{stringliteral}{"\(\backslash\)n"}
+00051                 << \textcolor{stringliteral}{"error (eps):           "} << (eiSymm.eigenvalues()-eiDirect.
+      \hyperlink{group___eigenvalues___module_a8efab27e82aa6aa0ae0c64739238c2e0}{eigenvalues}()).norm() / eiSymm.eigenvalues().norm() << \textcolor{stringliteral}{"  ("} << eival\_eps << \textcolor{stringliteral}{")\(\backslash\)n"};
+00052     \}
+00053     \textcolor{keywordflow}{if}(scaling<(std::numeric\_limits<RealScalar>::min)())
+00054     \{
+00055       VERIFY(eiDirect.\hyperlink{group___eigenvalues___module_a8efab27e82aa6aa0ae0c64739238c2e0}{eigenvalues}().cwiseAbs().maxCoeff() <= (
+      std::numeric\_limits<RealScalar>::min)());
+00056     \}
+00057     \textcolor{keywordflow}{else}
+00058     \{
+00059       VERIFY\_IS\_APPROX(eiSymm.eigenvalues()/scaling, eiDirect.\hyperlink{group___eigenvalues___module_a8efab27e82aa6aa0ae0c64739238c2e0}{eigenvalues}()/scaling);
+00060       VERIFY\_IS\_APPROX((m.template selfadjointView<Lower>() * eiDirect.
+      \hyperlink{group___eigenvalues___module_a7b9f7e641fa46ac4c5f2371405c69b2b}{eigenvectors}())/scaling,
+00061                        (eiDirect.\hyperlink{group___eigenvalues___module_a7b9f7e641fa46ac4c5f2371405c69b2b}{eigenvectors}() * eiDirect.
+      \hyperlink{group___eigenvalues___module_a8efab27e82aa6aa0ae0c64739238c2e0}{eigenvalues}().asDiagonal())/scaling);
+00062       VERIFY\_IS\_APPROX(m.template selfadjointView<Lower>().eigenvalues()/scaling, eiDirect.
+      \hyperlink{group___eigenvalues___module_a8efab27e82aa6aa0ae0c64739238c2e0}{eigenvalues}()/scaling);
+00063     \}
+00064 
+00065     VERIFY\_IS\_UNITARY(eiDirect.\hyperlink{group___eigenvalues___module_a7b9f7e641fa46ac4c5f2371405c69b2b}{eigenvectors}());
+00066   \}
+00067 \}
+00068 
+00069 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} selfadjointeigensolver(\textcolor{keyword}{const} MatrixType& m)
+00070 \{
+00071   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00072   \textcolor{comment}{/* this test covers the following files:}
+00073 \textcolor{comment}{     EigenSolver.h, SelfAdjointEigenSolver.h (and indirectly: Tridiagonalization.h)}
+00074 \textcolor{comment}{  */}
+00075   Index rows = m.rows();
+00076   Index cols = m.cols();
+00077 
+00078   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00079   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00080 
+00081   RealScalar largerEps = 10*test\_precision<RealScalar>();
+00082 
+00083   MatrixType a = MatrixType::Random(rows,cols);
+00084   MatrixType a1 = MatrixType::Random(rows,cols);
+00085   MatrixType symmA =  a.adjoint() * a + a1.adjoint() * a1;
+00086   MatrixType symmC = symmA;
+00087   
+00088   svd\_fill\_random(symmA,\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda7d30fb969ef6b763c098f0015108cef4}{Symmetric});
+00089 
+00090   symmA.template triangularView<StrictlyUpper>().setZero();
+00091   symmC.template triangularView<StrictlyUpper>().setZero();
+00092 
+00093   MatrixType b = MatrixType::Random(rows,cols);
+00094   MatrixType b1 = MatrixType::Random(rows,cols);
+00095   MatrixType symmB = b.adjoint() * b + b1.adjoint() * b1;
+00096   symmB.template triangularView<StrictlyUpper>().setZero();
+00097   
+00098   CALL\_SUBTEST( selfadjointeigensolver\_essential\_check(symmA) );
+00099 
+00100   \hyperlink{group___eigenvalues___module_class_eigen_1_1_self_adjoint_eigen_solver}{SelfAdjointEigenSolver<MatrixType>} eiSymm(symmA);
+00101   \textcolor{comment}{// generalized eigen pb}
+00102   \hyperlink{group___eigenvalues___module_class_eigen_1_1_generalized_self_adjoint_eigen_solver}{GeneralizedSelfAdjointEigenSolver<MatrixType>} eiSymmGen(
+      symmC, symmB);
+00103 
+00104   \hyperlink{group___eigenvalues___module_class_eigen_1_1_self_adjoint_eigen_solver}{SelfAdjointEigenSolver<MatrixType>} eiSymmNoEivecs(symmA, \textcolor{keyword}{false});
+00105   VERIFY\_IS\_EQUAL(eiSymmNoEivecs.info(), \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00106   VERIFY\_IS\_APPROX(eiSymm.eigenvalues(), eiSymmNoEivecs.eigenvalues());
+00107   
+00108   \textcolor{comment}{// generalized eigen problem Ax = lBx}
+00109   eiSymmGen.compute(symmC, symmB,\hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9a1a7cefbb22c2c3928d246b753cf53633}{Ax\_lBx});
+00110   VERIFY\_IS\_EQUAL(eiSymmGen.info(), \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00111   VERIFY((symmC.template selfadjointView<Lower>() * eiSymmGen.eigenvectors()).isApprox(
+00112           symmB.template selfadjointView<Lower>() * (eiSymmGen.eigenvectors() * eiSymmGen.eigenvalues().
+      asDiagonal()), largerEps));
+00113 
+00114   \textcolor{comment}{// generalized eigen problem BAx = lx}
+00115   eiSymmGen.compute(symmC, symmB,\hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9a5b64c528c90483f0b716018cad0143f8}{BAx\_lx});
+00116   VERIFY\_IS\_EQUAL(eiSymmGen.info(), \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00117   VERIFY((symmB.template selfadjointView<Lower>() * (symmC.template selfadjointView<Lower>() * eiSymmGen.
+      eigenvectors())).isApprox(
+00118          (eiSymmGen.eigenvectors() * eiSymmGen.eigenvalues().asDiagonal()), largerEps));
+00119 
+00120   \textcolor{comment}{// generalized eigen problem ABx = lx}
+00121   eiSymmGen.compute(symmC, symmB,\hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9afc36646eaa4187858eaad466d32a2096}{ABx\_lx});
+00122   VERIFY\_IS\_EQUAL(eiSymmGen.info(), \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00123   VERIFY((symmC.template selfadjointView<Lower>() * (symmB.template selfadjointView<Lower>() * eiSymmGen.
+      eigenvectors())).isApprox(
+00124          (eiSymmGen.eigenvectors() * eiSymmGen.eigenvalues().asDiagonal()), largerEps));
+00125 
+00126 
+00127   eiSymm.compute(symmC);
+00128   MatrixType sqrtSymmA = eiSymm.operatorSqrt();
+00129   VERIFY\_IS\_APPROX(MatrixType(symmC.template selfadjointView<Lower>()), sqrtSymmA*sqrtSymmA);
+00130   VERIFY\_IS\_APPROX(sqrtSymmA, symmC.template selfadjointView<Lower>()*eiSymm.operatorInverseSqrt());
+00131 
+00132   MatrixType \textcolor{keywordtype}{id} = MatrixType::Identity(rows, cols);
+00133   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{id}.\textcolor{keyword}{template} selfadjointView<Lower>().operatorNorm(), RealScalar(1));
+00134 
+00135   \hyperlink{group___eigenvalues___module_class_eigen_1_1_self_adjoint_eigen_solver}{SelfAdjointEigenSolver<MatrixType>} eiSymmUninitialized;
+00136   VERIFY\_RAISES\_ASSERT(eiSymmUninitialized.\hyperlink{group___eigenvalues___module_a56bd59b85a6f6f00ff7bff307ad0e015}{info}());
+00137   VERIFY\_RAISES\_ASSERT(eiSymmUninitialized.\hyperlink{group___eigenvalues___module_a8efab27e82aa6aa0ae0c64739238c2e0}{eigenvalues}());
+00138   VERIFY\_RAISES\_ASSERT(eiSymmUninitialized.\hyperlink{group___eigenvalues___module_a7b9f7e641fa46ac4c5f2371405c69b2b}{eigenvectors}());
+00139   VERIFY\_RAISES\_ASSERT(eiSymmUninitialized.\hyperlink{group___eigenvalues___module_a5c5158fd86366081bdabec38112c2c8a}{operatorSqrt}());
+00140   VERIFY\_RAISES\_ASSERT(eiSymmUninitialized.\hyperlink{group___eigenvalues___module_a71fe0aea0b22d176efcea556c5c160f5}{operatorInverseSqrt}());
+00141 
+00142   eiSymmUninitialized.\hyperlink{group___eigenvalues___module_a88bcdc24112efa7c4d2ebb3476efcbe9}{compute}(symmA, \textcolor{keyword}{false});
+00143   VERIFY\_RAISES\_ASSERT(eiSymmUninitialized.\hyperlink{group___eigenvalues___module_a7b9f7e641fa46ac4c5f2371405c69b2b}{eigenvectors}());
+00144   VERIFY\_RAISES\_ASSERT(eiSymmUninitialized.\hyperlink{group___eigenvalues___module_a5c5158fd86366081bdabec38112c2c8a}{operatorSqrt}());
+00145   VERIFY\_RAISES\_ASSERT(eiSymmUninitialized.\hyperlink{group___eigenvalues___module_a71fe0aea0b22d176efcea556c5c160f5}{operatorInverseSqrt}());
+00146 
+00147   \textcolor{comment}{// test Tridiagonalization's methods}
+00148   \hyperlink{group___eigenvalues___module_class_eigen_1_1_tridiagonalization}{Tridiagonalization<MatrixType>} tridiag(symmC);
+00149   VERIFY\_IS\_APPROX(tridiag.diagonal(), tridiag.matrixT().diagonal());
+00150   VERIFY\_IS\_APPROX(tridiag.subDiagonal(), tridiag.matrixT().template diagonal<-1>());
+00151   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<RealScalar,Dynamic,Dynamic>} \hyperlink{group___sparse_core___module}{T} = tridiag.matrixT();
+00152   \textcolor{keywordflow}{if}(rows>1 && cols>1) \{
+00153     \textcolor{comment}{// FIXME check that upper and lower part are 0:}
+00154     \textcolor{comment}{//VERIFY(T.topRightCorner(rows-2, cols-2).template triangularView<Upper>().isZero());}
+00155   \}
+00156   VERIFY\_IS\_APPROX(tridiag.diagonal(), T.diagonal());
+00157   VERIFY\_IS\_APPROX(tridiag.subDiagonal(), T.template diagonal<1>());
+00158   VERIFY\_IS\_APPROX(MatrixType(symmC.template selfadjointView<Lower>()), tridiag.matrixQ() * tridiag.matrixT
+      ().eval() * MatrixType(tridiag.matrixQ()).adjoint());
+00159   VERIFY\_IS\_APPROX(MatrixType(symmC.template selfadjointView<Lower>()), tridiag.matrixQ() * tridiag.matrixT
+      () * tridiag.matrixQ().adjoint());
+00160   
+00161   \textcolor{comment}{// Test computation of eigenvalues from tridiagonal matrix}
+00162   \textcolor{keywordflow}{if}(rows > 1)
+00163   \{
+00164     \hyperlink{group___eigenvalues___module_class_eigen_1_1_self_adjoint_eigen_solver}{SelfAdjointEigenSolver<MatrixType>} eiSymmTridiag;
+00165     eiSymmTridiag.\hyperlink{group___eigenvalues___module_a297893df7098c43278d385e4d4e23fe4}{computeFromTridiagonal}(tridiag.matrixT().diagonal(), tridiag.
+      matrixT().diagonal(-1), \hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9ada93d8885bde32b876ba4af01d3292cc}{ComputeEigenvectors});
+00166     VERIFY\_IS\_APPROX(eiSymm.eigenvalues(), eiSymmTridiag.\hyperlink{group___eigenvalues___module_a8efab27e82aa6aa0ae0c64739238c2e0}{eigenvalues}());
+00167     VERIFY\_IS\_APPROX(tridiag.matrixT(), eiSymmTridiag.\hyperlink{group___eigenvalues___module_a7b9f7e641fa46ac4c5f2371405c69b2b}{eigenvectors}().real() * eiSymmTridiag.
+      \hyperlink{group___eigenvalues___module_a8efab27e82aa6aa0ae0c64739238c2e0}{eigenvalues}().asDiagonal() * eiSymmTridiag.\hyperlink{group___eigenvalues___module_a7b9f7e641fa46ac4c5f2371405c69b2b}{eigenvectors}().real().transpose());
+00168   \}
+00169 
+00170   \textcolor{keywordflow}{if} (rows > 1 && rows < 20)
+00171   \{
+00172     \textcolor{comment}{// Test matrix with NaN}
+00173     symmC(0,0) = std::numeric\_limits<typename MatrixType::RealScalar>::quiet\_NaN();
+00174     \hyperlink{group___eigenvalues___module_class_eigen_1_1_self_adjoint_eigen_solver}{SelfAdjointEigenSolver<MatrixType>} eiSymmNaN(symmC);
+00175     VERIFY\_IS\_EQUAL(eiSymmNaN.info(), \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaba1c8763d1179778070f365ecc4157a8}{NoConvergence});
+00176   \}
+00177 
+00178   \textcolor{comment}{// regression test for bug 1098}
+00179   \{
+00180     \hyperlink{group___eigenvalues___module_class_eigen_1_1_self_adjoint_eigen_solver}{SelfAdjointEigenSolver<MatrixType>} eig(a.adjoint() * a);
+00181     eig.compute(a.adjoint() * a);
+00182   \}
+00183 
+00184   \textcolor{comment}{// regression test for bug 478}
+00185   \{
+00186     a.setZero();
+00187     \hyperlink{group___eigenvalues___module_class_eigen_1_1_self_adjoint_eigen_solver}{SelfAdjointEigenSolver<MatrixType>} ei3(a);
+00188     VERIFY\_IS\_EQUAL(ei3.info(), \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00189     VERIFY\_IS\_MUCH\_SMALLER\_THAN(ei3.eigenvalues().norm(),RealScalar(1));
+00190     VERIFY((ei3.eigenvectors().transpose()*ei3.eigenvectors().transpose()).eval().isIdentity());
+00191   \}
+00192 \}
+00193 
+00194 \textcolor{keyword}{template}<\textcolor{keywordtype}{int}>
+00195 \textcolor{keywordtype}{void} bug\_854()
+00196 \{
+00197   Matrix3d m;
+00198   m << 850.961, 51.966, 0,
+00199        51.966, 254.841, 0,
+00200             0,       0, 0;
+00201   selfadjointeigensolver\_essential\_check(m);
+00202 \}
+00203 
+00204 \textcolor{keyword}{template}<\textcolor{keywordtype}{int}>
+00205 \textcolor{keywordtype}{void} bug\_1014()
+00206 \{
+00207   Matrix3d m;
+00208   m <<        0.11111111111111114658, 0, 0,
+00209        0,     0.11111111111111109107, 0,
+00210        0, 0,  0.11111111111111107719;
+00211   selfadjointeigensolver\_essential\_check(m);
+00212 \}
+00213 
+00214 \textcolor{keyword}{template}<\textcolor{keywordtype}{int}>
+00215 \textcolor{keywordtype}{void} bug\_1225()
+00216 \{
+00217   Matrix3d m1, m2;
+00218   m1.setRandom();
+00219   m1 = m1*m1.transpose();
+00220   m2 = m1.triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>();
+00221   \hyperlink{group___eigenvalues___module_class_eigen_1_1_self_adjoint_eigen_solver}{SelfAdjointEigenSolver<Matrix3d>} eig1(m1);
+00222   \hyperlink{group___eigenvalues___module_class_eigen_1_1_self_adjoint_eigen_solver}{SelfAdjointEigenSolver<Matrix3d>} eig2(m2.selfadjointView<
+      \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>());
+00223   VERIFY\_IS\_APPROX(eig1.eigenvalues(), eig2.eigenvalues());
+00224 \}
+00225 
+00226 \textcolor{keyword}{template}<\textcolor{keywordtype}{int}>
+00227 \textcolor{keywordtype}{void} bug\_1204()
+00228 \{
+00229   \hyperlink{group___sparse_core___module}{SparseMatrix<double>} \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}(2,2);
+00230   \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.setIdentity();
+00231   \hyperlink{group___eigenvalues___module_class_eigen_1_1_self_adjoint_eigen_solver}{SelfAdjointEigenSolver<Eigen::SparseMatrix<double>} > 
+      eig(\hyperlink{group___core___module_class_eigen_1_1_matrix}{A});
+00232 \}
+00233 
+00234 \textcolor{keywordtype}{void} test\_eigensolver\_selfadjoint()
+00235 \{
+00236   \textcolor{keywordtype}{int} s = 0;
+00237   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00238     \textcolor{comment}{// trivial test for 1x1 matrices:}
+00239     CALL\_SUBTEST\_1( selfadjointeigensolver(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 1, 1>}()));
+00240     CALL\_SUBTEST\_1( selfadjointeigensolver(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double, 1, 1>}()));
+00241     \textcolor{comment}{// very important to test 3x3 and 2x2 matrices since we provide special paths for them}
+00242     CALL\_SUBTEST\_12( selfadjointeigensolver(Matrix2f()) );
+00243     CALL\_SUBTEST\_12( selfadjointeigensolver(Matrix2d()) );
+00244     CALL\_SUBTEST\_13( selfadjointeigensolver(Matrix3f()) );
+00245     CALL\_SUBTEST\_13( selfadjointeigensolver(Matrix3d()) );
+00246     CALL\_SUBTEST\_2( selfadjointeigensolver(Matrix4d()) );
+00247     
+00248     s = internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE/4);
+00249     CALL\_SUBTEST\_3( selfadjointeigensolver(MatrixXf(s,s)) );
+00250     CALL\_SUBTEST\_4( selfadjointeigensolver(MatrixXd(s,s)) );
+00251     CALL\_SUBTEST\_5( selfadjointeigensolver(MatrixXcd(s,s)) );
+00252     CALL\_SUBTEST\_9( selfadjointeigensolver(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix}<std::complex<double>,Dynamic,Dynamic,
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}>(s,s)) );
+00253     TEST\_SET\_BUT\_UNUSED\_VARIABLE(s)
+00254 
+00255     \textcolor{comment}{// some trivial but implementation-wise tricky cases}
+00256     CALL\_SUBTEST\_4( selfadjointeigensolver(MatrixXd(1,1)) );
+00257     CALL\_SUBTEST\_4( selfadjointeigensolver(MatrixXd(2,2)) );
+00258     CALL\_SUBTEST\_6( selfadjointeigensolver(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,1,1>}()) );
+00259     CALL\_SUBTEST\_7( selfadjointeigensolver(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,2,2>}()) );
+00260   \}
+00261   
+00262   CALL\_SUBTEST\_13( bug\_854<0>() );
+00263   CALL\_SUBTEST\_13( bug\_1014<0>() );
+00264   CALL\_SUBTEST\_13( bug\_1204<0>() );
+00265   CALL\_SUBTEST\_13( bug\_1225<0>() );
+00266 
+00267   \textcolor{comment}{// Test problem size constructors}
+00268   s = internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE/4);
+00269   CALL\_SUBTEST\_8(\hyperlink{group___eigenvalues___module_class_eigen_1_1_self_adjoint_eigen_solver}{SelfAdjointEigenSolver<MatrixXf>} tmp1(s));
+00270   CALL\_SUBTEST\_8(\hyperlink{group___eigenvalues___module_class_eigen_1_1_tridiagonalization}{Tridiagonalization<MatrixXf>} tmp2(s));
+00271   
+00272   TEST\_SET\_BUT\_UNUSED\_VARIABLE(s)
+00273 \}
+00274 
+\end{DoxyCode}

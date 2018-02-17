@@ -1,0 +1,1427 @@
+\hypertarget{eigen_2_eigen_2src_2_core_2_math_functions_8h_source}{}\section{eigen/\+Eigen/src/\+Core/\+Math\+Functions.h}
+\label{eigen_2_eigen_2src_2_core_2_math_functions_8h_source}\index{Math\+Functions.\+h@{Math\+Functions.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2006-2010 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_MATHFUNCTIONS\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_MATHFUNCTIONS\_H}
+00012 
+00013 \textcolor{comment}{// source: http://www.geom.uiuc.edu/~huberty/math5337/groupe/digits.html}
+00014 \textcolor{comment}{// TODO this should better be moved to NumTraits}
+00015 \textcolor{preprocessor}{#define EIGEN\_PI 3.141592653589793238462643383279502884197169399375105820974944592307816406L}
+00016 
+00017 
+00018 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00019 
+00020 \textcolor{comment}{// On WINCE, std::abs is defined for int only, so let's defined our own overloads:}
+00021 \textcolor{comment}{// This issue has been confirmed with MSVC 2008 only, but the issue might exist for more recent versions
+       too.}
+00022 \textcolor{preprocessor}{#if EIGEN\_OS\_WINCE && EIGEN\_COMP\_MSVC && EIGEN\_COMP\_MSVC<=1500}
+00023 \textcolor{keywordtype}{long}        abs(\textcolor{keywordtype}{long}        x) \{ \textcolor{keywordflow}{return} (labs(x));  \}
+00024 \textcolor{keywordtype}{double}      abs(\textcolor{keywordtype}{double}      x) \{ \textcolor{keywordflow}{return} (fabs(x));  \}
+00025 \textcolor{keywordtype}{float}       abs(\textcolor{keywordtype}{float}       x) \{ \textcolor{keywordflow}{return} (fabsf(x)); \}
+00026 \textcolor{keywordtype}{long} \textcolor{keywordtype}{double} abs(\textcolor{keywordtype}{long} \textcolor{keywordtype}{double} x) \{ \textcolor{keywordflow}{return} (fabsl(x)); \}
+00027 \textcolor{preprocessor}{#endif}
+00028 
+00029 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00030 
+00051 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} dummy = \textcolor{keywordtype}{void}>
+00052 \textcolor{keyword}{struct }global\_math\_functions\_filtering\_base
+00053 \{
+00054   \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} type;
+00055 \};
+00056 
+00057 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> \textcolor{keyword}{struct }always\_void \{ \textcolor{keyword}{typedef} \textcolor{keywordtype}{void} type; \};
+00058 
+00059 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00060 \textcolor{keyword}{struct }global\_math\_functions\_filtering\_base
+00061   <\hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T},
+00062    typename always\_void<typename \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}::Eigen\_BaseClassForSpecializationOfGlobalMathFuncImpl>::type
+00063   >
+00064 \{
+00065   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} T::Eigen\_BaseClassForSpecializationOfGlobalMathFuncImpl type;
+00066 \};
+00067 
+00068 \textcolor{preprocessor}{#define EIGEN\_MATHFUNC\_IMPL(func, scalar) Eigen::internal::func##\_impl<typename
+       Eigen::internal::global\_math\_functions\_filtering\_base<scalar>::type>}
+00069 \textcolor{preprocessor}{#define EIGEN\_MATHFUNC\_RETVAL(func, scalar) typename Eigen::internal::func##\_retval<typename
+       Eigen::internal::global\_math\_functions\_filtering\_base<scalar>::type>::type}
+00070 
+00071 \textcolor{comment}{/****************************************************************************}
+00072 \textcolor{comment}{* Implementation of real                                                 *}
+00073 \textcolor{comment}{****************************************************************************/}
+00074 
+00075 template<typename Scalar, bool IsComplex = NumTraits<Scalar>::IsComplex>
+00076 \textcolor{keyword}{struct }real\_default\_impl
+00077 \{
+00078   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00079   EIGEN\_DEVICE\_FUNC
+00080   \textcolor{keyword}{static} \textcolor{keyword}{inline} RealScalar run(\textcolor{keyword}{const} Scalar& x)
+00081   \{
+00082     \textcolor{keywordflow}{return} x;
+00083   \}
+00084 \};
+00085 
+00086 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00087 \textcolor{keyword}{struct }real\_default\_impl<Scalar,true>
+00088 \{
+00089   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00090   EIGEN\_DEVICE\_FUNC
+00091   \textcolor{keyword}{static} \textcolor{keyword}{inline} RealScalar run(\textcolor{keyword}{const} Scalar& x)
+00092   \{
+00093     \textcolor{keyword}{using} std::real;
+00094     \textcolor{keywordflow}{return} real(x);
+00095   \}
+00096 \};
+00097 
+00098 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keyword}{struct }real\_impl : real\_default\_impl<Scalar> \{\};
+00099 
+00100 \textcolor{preprocessor}{#ifdef \_\_CUDA\_ARCH\_\_}
+00101 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00102 \textcolor{keyword}{struct }real\_impl<\hyperlink{namespacestd}{std}::\hyperlink{structcomplex}{complex}<T> >
+00103 \{
+00104   \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} RealScalar;
+00105   EIGEN\_DEVICE\_FUNC
+00106   \textcolor{keyword}{static} \textcolor{keyword}{inline} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} run(\textcolor{keyword}{const} std::complex<T>& x)
+00107   \{
+00108     \textcolor{keywordflow}{return} x.real();
+00109   \}
+00110 \};
+00111 \textcolor{preprocessor}{#endif}
+00112 
+00113 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00114 \textcolor{keyword}{struct }real\_retval
+00115 \{
+00116   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real type;
+00117 \};
+00118 
+00119 \textcolor{comment}{/****************************************************************************}
+00120 \textcolor{comment}{* Implementation of imag                                                 *}
+00121 \textcolor{comment}{****************************************************************************/}
+00122 
+00123 template<typename Scalar, bool IsComplex = NumTraits<Scalar>::IsComplex>
+00124 \textcolor{keyword}{struct }imag\_default\_impl
+00125 \{
+00126   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00127   EIGEN\_DEVICE\_FUNC
+00128   \textcolor{keyword}{static} \textcolor{keyword}{inline} RealScalar run(\textcolor{keyword}{const} Scalar&)
+00129   \{
+00130     \textcolor{keywordflow}{return} RealScalar(0);
+00131   \}
+00132 \};
+00133 
+00134 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00135 \textcolor{keyword}{struct }imag\_default\_impl<Scalar,true>
+00136 \{
+00137   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00138   EIGEN\_DEVICE\_FUNC
+00139   \textcolor{keyword}{static} \textcolor{keyword}{inline} RealScalar run(\textcolor{keyword}{const} Scalar& x)
+00140   \{
+00141     \textcolor{keyword}{using} std::imag;
+00142     \textcolor{keywordflow}{return} imag(x);
+00143   \}
+00144 \};
+00145 
+00146 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keyword}{struct }imag\_impl : imag\_default\_impl<Scalar> \{\};
+00147 
+00148 \textcolor{preprocessor}{#ifdef \_\_CUDA\_ARCH\_\_}
+00149 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00150 \textcolor{keyword}{struct }imag\_impl<\hyperlink{namespacestd}{std}::\hyperlink{structcomplex}{complex}<T> >
+00151 \{
+00152   \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} RealScalar;
+00153   EIGEN\_DEVICE\_FUNC
+00154   \textcolor{keyword}{static} \textcolor{keyword}{inline} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} run(\textcolor{keyword}{const} std::complex<T>& x)
+00155   \{
+00156     \textcolor{keywordflow}{return} x.imag();
+00157   \}
+00158 \};
+00159 \textcolor{preprocessor}{#endif}
+00160 
+00161 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00162 \textcolor{keyword}{struct }imag\_retval
+00163 \{
+00164   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real type;
+00165 \};
+00166 
+00167 \textcolor{comment}{/****************************************************************************}
+00168 \textcolor{comment}{* Implementation of real\_ref                                             *}
+00169 \textcolor{comment}{****************************************************************************/}
+00170 
+00171 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00172 \textcolor{keyword}{struct }real\_ref\_impl
+00173 \{
+00174   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00175   EIGEN\_DEVICE\_FUNC
+00176   \textcolor{keyword}{static} \textcolor{keyword}{inline} RealScalar& run(Scalar& x)
+00177   \{
+00178     \textcolor{keywordflow}{return} \textcolor{keyword}{reinterpret\_cast<}RealScalar*\textcolor{keyword}{>}(&x)[0];
+00179   \}
+00180   EIGEN\_DEVICE\_FUNC
+00181   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{const} RealScalar& run(\textcolor{keyword}{const} Scalar& x)
+00182   \{
+00183     \textcolor{keywordflow}{return} \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }RealScalar*\textcolor{keyword}{>}(&x)[0];
+00184   \}
+00185 \};
+00186 
+00187 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00188 \textcolor{keyword}{struct }real\_ref\_retval
+00189 \{
+00190   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real & type;
+00191 \};
+00192 
+00193 \textcolor{comment}{/****************************************************************************}
+00194 \textcolor{comment}{* Implementation of imag\_ref                                             *}
+00195 \textcolor{comment}{****************************************************************************/}
+00196 
+00197 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{bool} IsComplex>
+00198 \textcolor{keyword}{struct }imag\_ref\_default\_impl
+00199 \{
+00200   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00201   EIGEN\_DEVICE\_FUNC
+00202   \textcolor{keyword}{static} \textcolor{keyword}{inline} RealScalar& run(Scalar& x)
+00203   \{
+00204     \textcolor{keywordflow}{return} \textcolor{keyword}{reinterpret\_cast<}RealScalar*\textcolor{keyword}{>}(&x)[1];
+00205   \}
+00206   EIGEN\_DEVICE\_FUNC
+00207   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{const} RealScalar& run(\textcolor{keyword}{const} Scalar& x)
+00208   \{
+00209     \textcolor{keywordflow}{return} \textcolor{keyword}{reinterpret\_cast<}RealScalar*\textcolor{keyword}{>}(&x)[1];
+00210   \}
+00211 \};
+00212 
+00213 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00214 \textcolor{keyword}{struct }imag\_ref\_default\_impl<Scalar, false>
+00215 \{
+00216   EIGEN\_DEVICE\_FUNC
+00217   \textcolor{keyword}{static} \textcolor{keyword}{inline} Scalar run(Scalar&)
+00218   \{
+00219     \textcolor{keywordflow}{return} Scalar(0);
+00220   \}
+00221   EIGEN\_DEVICE\_FUNC
+00222   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{const} Scalar run(\textcolor{keyword}{const} Scalar&)
+00223   \{
+00224     \textcolor{keywordflow}{return} Scalar(0);
+00225   \}
+00226 \};
+00227 
+00228 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00229 \textcolor{keyword}{struct }imag\_ref\_impl : imag\_ref\_default\_impl<Scalar, NumTraits<Scalar>::IsComplex> \{\};
+00230 
+00231 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00232 \textcolor{keyword}{struct }imag\_ref\_retval
+00233 \{
+00234   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real & type;
+00235 \};
+00236 
+00237 \textcolor{comment}{/****************************************************************************}
+00238 \textcolor{comment}{* Implementation of conj                                                 *}
+00239 \textcolor{comment}{****************************************************************************/}
+00240 
+00241 template<typename Scalar, bool IsComplex = NumTraits<Scalar>::IsComplex>
+00242 \textcolor{keyword}{struct }conj\_impl
+00243 \{
+00244   EIGEN\_DEVICE\_FUNC
+00245   \textcolor{keyword}{static} \textcolor{keyword}{inline} Scalar run(\textcolor{keyword}{const} Scalar& x)
+00246   \{
+00247     \textcolor{keywordflow}{return} x;
+00248   \}
+00249 \};
+00250 
+00251 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00252 \textcolor{keyword}{struct }conj\_impl<Scalar,true>
+00253 \{
+00254   EIGEN\_DEVICE\_FUNC
+00255   \textcolor{keyword}{static} \textcolor{keyword}{inline} Scalar run(\textcolor{keyword}{const} Scalar& x)
+00256   \{
+00257     \textcolor{keyword}{using} std::conj;
+00258     \textcolor{keywordflow}{return} conj(x);
+00259   \}
+00260 \};
+00261 
+00262 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00263 \textcolor{keyword}{struct }conj\_retval
+00264 \{
+00265   \textcolor{keyword}{typedef} Scalar type;
+00266 \};
+00267 
+00268 \textcolor{comment}{/****************************************************************************}
+00269 \textcolor{comment}{* Implementation of abs2                                                 *}
+00270 \textcolor{comment}{****************************************************************************/}
+00271 
+00272 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar,\textcolor{keywordtype}{bool} IsComplex>
+00273 \textcolor{keyword}{struct }abs2\_impl\_default
+00274 \{
+00275   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00276   EIGEN\_DEVICE\_FUNC
+00277   \textcolor{keyword}{static} \textcolor{keyword}{inline} RealScalar run(\textcolor{keyword}{const} Scalar& x)
+00278   \{
+00279     \textcolor{keywordflow}{return} x*x;
+00280   \}
+00281 \};
+00282 
+00283 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00284 \textcolor{keyword}{struct }abs2\_impl\_default<Scalar, true> \textcolor{comment}{// IsComplex}
+00285 \{
+00286   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00287   EIGEN\_DEVICE\_FUNC
+00288   \textcolor{keyword}{static} \textcolor{keyword}{inline} RealScalar run(\textcolor{keyword}{const} Scalar& x)
+00289   \{
+00290     \textcolor{keywordflow}{return} real(x)*real(x) + imag(x)*imag(x);
+00291   \}
+00292 \};
+00293 
+00294 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00295 \textcolor{keyword}{struct }abs2\_impl
+00296 \{
+00297   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00298   EIGEN\_DEVICE\_FUNC
+00299   \textcolor{keyword}{static} \textcolor{keyword}{inline} RealScalar run(\textcolor{keyword}{const} Scalar& x)
+00300   \{
+00301     \textcolor{keywordflow}{return} abs2\_impl\_default<Scalar,NumTraits<Scalar>::IsComplex>::run(x);
+00302   \}
+00303 \};
+00304 
+00305 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00306 \textcolor{keyword}{struct }abs2\_retval
+00307 \{
+00308   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real type;
+00309 \};
+00310 
+00311 \textcolor{comment}{/****************************************************************************}
+00312 \textcolor{comment}{* Implementation of norm1                                                *}
+00313 \textcolor{comment}{****************************************************************************/}
+00314 
+00315 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{bool} IsComplex>
+00316 \textcolor{keyword}{struct }norm1\_default\_impl
+00317 \{
+00318   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00319   EIGEN\_DEVICE\_FUNC
+00320   \textcolor{keyword}{static} \textcolor{keyword}{inline} RealScalar run(\textcolor{keyword}{const} Scalar& x)
+00321   \{
+00322     EIGEN\_USING\_STD\_MATH(abs);
+00323     \textcolor{keywordflow}{return} abs(real(x)) + abs(imag(x));
+00324   \}
+00325 \};
+00326 
+00327 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00328 \textcolor{keyword}{struct }norm1\_default\_impl<Scalar, false>
+00329 \{
+00330   EIGEN\_DEVICE\_FUNC
+00331   \textcolor{keyword}{static} \textcolor{keyword}{inline} Scalar run(\textcolor{keyword}{const} Scalar& x)
+00332   \{
+00333     EIGEN\_USING\_STD\_MATH(abs);
+00334     \textcolor{keywordflow}{return} abs(x);
+00335   \}
+00336 \};
+00337 
+00338 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00339 \textcolor{keyword}{struct }norm1\_impl : norm1\_default\_impl<Scalar, NumTraits<Scalar>::IsComplex> \{\};
+00340 
+00341 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00342 \textcolor{keyword}{struct }norm1\_retval
+00343 \{
+00344   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real type;
+00345 \};
+00346 
+00347 \textcolor{comment}{/****************************************************************************}
+00348 \textcolor{comment}{* Implementation of hypot                                                *}
+00349 \textcolor{comment}{****************************************************************************/}
+00350 
+00351 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00352 \textcolor{keyword}{struct }hypot\_impl
+00353 \{
+00354   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00355   \textcolor{keyword}{static} \textcolor{keyword}{inline} RealScalar run(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar& y)
+00356   \{
+00357     EIGEN\_USING\_STD\_MATH(abs);
+00358     EIGEN\_USING\_STD\_MATH(sqrt);
+00359     RealScalar \_x = abs(x);
+00360     RealScalar \_y = abs(y);
+00361     Scalar p, qp;
+00362     \textcolor{keywordflow}{if}(\_x>\_y)
+00363     \{
+00364       p = \_x;
+00365       qp = \_y / p;
+00366     \}
+00367     \textcolor{keywordflow}{else}
+00368     \{
+00369       p = \_y;
+00370       qp = \_x / p;
+00371     \}
+00372     \textcolor{keywordflow}{if}(p==RealScalar(0)) \textcolor{keywordflow}{return} RealScalar(0);
+00373     \textcolor{keywordflow}{return} p * sqrt(RealScalar(1) + qp*qp);
+00374   \}
+00375 \};
+00376 
+00377 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00378 \textcolor{keyword}{struct }hypot\_retval
+00379 \{
+00380   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real type;
+00381 \};
+00382 
+00383 \textcolor{comment}{/****************************************************************************}
+00384 \textcolor{comment}{* Implementation of cast                                                 *}
+00385 \textcolor{comment}{****************************************************************************/}
+00386 
+00387 \textcolor{keyword}{template}<\textcolor{keyword}{typename} OldType, \textcolor{keyword}{typename} NewType>
+00388 \textcolor{keyword}{struct }cast\_impl
+00389 \{
+00390   EIGEN\_DEVICE\_FUNC
+00391   \textcolor{keyword}{static} \textcolor{keyword}{inline} NewType run(\textcolor{keyword}{const} OldType& x)
+00392   \{
+00393     \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}NewType\textcolor{keyword}{>}(x);
+00394   \}
+00395 \};
+00396 
+00397 \textcolor{comment}{// here, for once, we're plainly returning NewType: we don't want cast to do weird things.}
+00398 
+00399 \textcolor{keyword}{template}<\textcolor{keyword}{typename} OldType, \textcolor{keyword}{typename} NewType>
+00400 EIGEN\_DEVICE\_FUNC
+00401 \textcolor{keyword}{inline} NewType cast(\textcolor{keyword}{const} OldType& x)
+00402 \{
+00403   \textcolor{keywordflow}{return} cast\_impl<OldType, NewType>::run(x);
+00404 \}
+00405 
+00406 \textcolor{comment}{/****************************************************************************}
+00407 \textcolor{comment}{* Implementation of round                                                   *}
+00408 \textcolor{comment}{****************************************************************************/}
+00409 
+00410 \textcolor{preprocessor}{#if EIGEN\_HAS\_CXX11\_MATH}
+00411   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00412   \textcolor{keyword}{struct }round\_impl \{
+00413     \textcolor{keyword}{static} \textcolor{keyword}{inline} Scalar run(\textcolor{keyword}{const} Scalar& x)
+00414     \{
+00415       EIGEN\_STATIC\_ASSERT((!NumTraits<Scalar>::IsComplex), NUMERIC\_TYPE\_MUST\_BE\_REAL)
+00416       \textcolor{keyword}{using} std::round;
+00417       \textcolor{keywordflow}{return} round(x);
+00418     \}
+00419   \};
+00420 \textcolor{preprocessor}{#else}
+00421   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00422   \textcolor{keyword}{struct }round\_impl
+00423   \{
+00424     \textcolor{keyword}{static} \textcolor{keyword}{inline} Scalar run(\textcolor{keyword}{const} Scalar& x)
+00425     \{
+00426       EIGEN\_STATIC\_ASSERT((!NumTraits<Scalar>::IsComplex), NUMERIC\_TYPE\_MUST\_BE\_REAL)
+00427       EIGEN\_USING\_STD\_MATH(floor);
+00428       EIGEN\_USING\_STD\_MATH(ceil);
+00429       \textcolor{keywordflow}{return} (x > Scalar(0)) ? floor(x + Scalar(0.5)) : ceil(x - Scalar(0.5));
+00430     \}
+00431   \};
+00432 \textcolor{preprocessor}{#endif}
+00433 
+00434 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00435 \textcolor{keyword}{struct }round\_retval
+00436 \{
+00437   \textcolor{keyword}{typedef} Scalar type;
+00438 \};
+00439 
+00440 \textcolor{comment}{/****************************************************************************}
+00441 \textcolor{comment}{* Implementation of arg                                                     *}
+00442 \textcolor{comment}{****************************************************************************/}
+00443 
+00444 \textcolor{preprocessor}{#if EIGEN\_HAS\_CXX11\_MATH}
+00445   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00446   \textcolor{keyword}{struct }arg\_impl \{
+00447     \textcolor{keyword}{static} \textcolor{keyword}{inline} Scalar run(\textcolor{keyword}{const} Scalar& x)
+00448     \{
+00449       EIGEN\_USING\_STD\_MATH(arg);
+00450       \textcolor{keywordflow}{return} arg(x);
+00451     \}
+00452   \};
+00453 \textcolor{preprocessor}{#else}
+00454   template<typename Scalar, bool IsComplex = NumTraits<Scalar>::IsComplex>
+00455   \textcolor{keyword}{struct }arg\_default\_impl
+00456   \{
+00457     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00458     EIGEN\_DEVICE\_FUNC
+00459     \textcolor{keyword}{static} \textcolor{keyword}{inline} RealScalar run(\textcolor{keyword}{const} Scalar& x)
+00460     \{
+00461       \textcolor{keywordflow}{return} (x < Scalar(0)) ? Scalar(EIGEN\_PI) : Scalar(0); \}
+00462   \};
+00463 
+00464   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00465   \textcolor{keyword}{struct }arg\_default\_impl<Scalar,true>
+00466   \{
+00467     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00468     EIGEN\_DEVICE\_FUNC
+00469     \textcolor{keyword}{static} \textcolor{keyword}{inline} RealScalar run(\textcolor{keyword}{const} Scalar& x)
+00470     \{
+00471       EIGEN\_USING\_STD\_MATH(arg);
+00472       \textcolor{keywordflow}{return} arg(x);
+00473     \}
+00474   \};
+00475 
+00476   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keyword}{struct }arg\_impl : arg\_default\_impl<Scalar> \{\};
+00477 \textcolor{preprocessor}{#endif}
+00478 
+00479 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00480 \textcolor{keyword}{struct }arg\_retval
+00481 \{
+00482   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real type;
+00483 \};
+00484 
+00485 \textcolor{comment}{/****************************************************************************}
+00486 \textcolor{comment}{* Implementation of log1p                                                   *}
+00487 \textcolor{comment}{****************************************************************************/}
+00488 
+00489 \textcolor{keyword}{namespace }std\_fallback \{
+00490   \textcolor{comment}{// fallback log1p implementation in case there is no log1p(Scalar) function in namespace of Scalar,}
+00491   \textcolor{comment}{// or that there is no suitable std::log1p function available}
+00492   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00493   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} Scalar log1p(\textcolor{keyword}{const} Scalar& x) \{
+00494     EIGEN\_STATIC\_ASSERT\_NON\_INTEGER(Scalar)
+00495     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00496     EIGEN\_USING\_STD\_MATH(\hyperlink{structlog}{log});
+00497     Scalar x1p = RealScalar(1) + x;
+00498     \textcolor{keywordflow}{return} ( x1p == Scalar(1) ) ? x : x * ( \hyperlink{structlog}{log}(x1p) / (x1p - RealScalar(1)) );
+00499   \}
+00500 \}
+00501 
+00502 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00503 \textcolor{keyword}{struct }log1p\_impl \{
+00504   \textcolor{keyword}{static} \textcolor{keyword}{inline} Scalar run(\textcolor{keyword}{const} Scalar& x)
+00505   \{
+00506     EIGEN\_STATIC\_ASSERT\_NON\_INTEGER(Scalar)
+00507     \textcolor{preprocessor}{#if EIGEN\_HAS\_CXX11\_MATH}
+00508     \textcolor{keyword}{using} std::log1p;
+00509 \textcolor{preprocessor}{    #endif}
+00510     \textcolor{keyword}{using} std\_fallback::log1p;
+00511     \textcolor{keywordflow}{return} log1p(x);
+00512   \}
+00513 \};
+00514 
+00515 
+00516 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00517 \textcolor{keyword}{struct }log1p\_retval
+00518 \{
+00519   \textcolor{keyword}{typedef} Scalar type;
+00520 \};
+00521 
+00522 \textcolor{comment}{/****************************************************************************}
+00523 \textcolor{comment}{* Implementation of pow                                                  *}
+00524 \textcolor{comment}{****************************************************************************/}
+00525 
+00526 template<typename ScalarX,typename ScalarY, bool IsInteger = NumTraits<ScalarX>::IsInteger&&
+      NumTraits<ScalarY>::IsInteger>
+00527 \textcolor{keyword}{struct }pow\_impl
+00528 \{
+00529   \textcolor{comment}{//typedef Scalar retval;}
+00530   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ScalarBinaryOpTraits<ScalarX,ScalarY,internal::scalar\_pow\_op<ScalarX,ScalarY> >
+      ::ReturnType result\_type;
+00531   \textcolor{keyword}{static} EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} result\_type run(\textcolor{keyword}{const} ScalarX& x, \textcolor{keyword}{const} ScalarY& y)
+00532   \{
+00533     EIGEN\_USING\_STD\_MATH(pow);
+00534     \textcolor{keywordflow}{return} pow(x, y);
+00535   \}
+00536 \};
+00537 
+00538 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ScalarX,\textcolor{keyword}{typename} ScalarY>
+00539 \textcolor{keyword}{struct }pow\_impl<ScalarX,ScalarY, true>
+00540 \{
+00541   \textcolor{keyword}{typedef} ScalarX result\_type;
+00542   \textcolor{keyword}{static} EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} ScalarX run(ScalarX x, ScalarY y)
+00543   \{
+00544     ScalarX res(1);
+00545     eigen\_assert(!NumTraits<ScalarY>::IsSigned || y >= 0);
+00546     \textcolor{keywordflow}{if}(y & 1) res *= x;
+00547     y >>= 1;
+00548     \textcolor{keywordflow}{while}(y)
+00549     \{
+00550       x *= x;
+00551       \textcolor{keywordflow}{if}(y&1) res *= x;
+00552       y >>= 1;
+00553     \}
+00554     \textcolor{keywordflow}{return} res;
+00555   \}
+00556 \};
+00557 
+00558 \textcolor{comment}{/****************************************************************************}
+00559 \textcolor{comment}{* Implementation of random                                               *}
+00560 \textcolor{comment}{****************************************************************************/}
+00561 
+00562 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar,
+00563          \textcolor{keywordtype}{bool} IsComplex,
+00564          \textcolor{keywordtype}{bool} IsInteger>
+00565 \textcolor{keyword}{struct }random\_default\_impl \{\};
+00566 
+00567 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00568 \textcolor{keyword}{struct }random\_impl : random\_default\_impl<Scalar, NumTraits<Scalar>::IsComplex, NumTraits<Scalar>::IsInteger
+      > \{\};
+00569 
+00570 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00571 \textcolor{keyword}{struct }random\_retval
+00572 \{
+00573   \textcolor{keyword}{typedef} Scalar type;
+00574 \};
+00575 
+00576 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keyword}{inline} EIGEN\_MATHFUNC\_RETVAL(random, Scalar) random(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar
+      & y);
+00577 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keyword}{inline} EIGEN\_MATHFUNC\_RETVAL(random, Scalar) random();
+00578 
+00579 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00580 \textcolor{keyword}{struct }random\_default\_impl<Scalar, false, false>
+00581 \{
+00582   \textcolor{keyword}{static} \textcolor{keyword}{inline} Scalar run(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar& y)
+00583   \{
+00584     \textcolor{keywordflow}{return} x + (y-x) * Scalar(std::rand()) / Scalar(RAND\_MAX);
+00585   \}
+00586   \textcolor{keyword}{static} \textcolor{keyword}{inline} Scalar run()
+00587   \{
+00588     \textcolor{keywordflow}{return} run(Scalar(NumTraits<Scalar>::IsSigned ? -1 : 0), Scalar(1));
+00589   \}
+00590 \};
+00591 
+00592 \textcolor{keyword}{enum} \{
+00593   meta\_floor\_log2\_terminate,
+00594   meta\_floor\_log2\_move\_up,
+00595   meta\_floor\_log2\_move\_down,
+00596   meta\_floor\_log2\_bogus
+00597 \};
+00598 
+00599 \textcolor{keyword}{template}<\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} n, \textcolor{keywordtype}{int} lower, \textcolor{keywordtype}{int} upper> \textcolor{keyword}{struct }meta\_floor\_log2\_selector
+00600 \{
+00601   \textcolor{keyword}{enum} \{ middle = (lower + upper) / 2,
+00602          value = (upper <= lower + 1) ? int(meta\_floor\_log2\_terminate)
+00603                : (n < (1 << middle)) ? int(meta\_floor\_log2\_move\_down)
+00604                : (n==0) ? int(meta\_floor\_log2\_bogus)
+00605                : int(meta\_floor\_log2\_move\_up)
+00606   \};
+00607 \};
+00608 
+00609 \textcolor{keyword}{template}<\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} n,
+00610          \textcolor{keywordtype}{int} lower = 0,
+00611          \textcolor{keywordtype}{int} upper = \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{unsigned} int) * CHAR\_BIT - 1,
+00612          \textcolor{keywordtype}{int} selector = meta\_floor\_log2\_selector<n, lower, upper>::value>
+00613 \textcolor{keyword}{struct} meta\_floor\_log2 \{\};
+00614 
+00615 \textcolor{keyword}{template}<\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} n, \textcolor{keywordtype}{int} lower, \textcolor{keywordtype}{int} upper>
+00616 \textcolor{keyword}{struct }meta\_floor\_log2<n, lower, upper, meta\_floor\_log2\_move\_down>
+00617 \{
+00618   \textcolor{keyword}{enum} \{ value = meta\_floor\_log2<n, lower, meta\_floor\_log2\_selector<n, lower, upper>::middle>::value \};
+00619 \};
+00620 
+00621 \textcolor{keyword}{template}<\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} n, \textcolor{keywordtype}{int} lower, \textcolor{keywordtype}{int} upper>
+00622 \textcolor{keyword}{struct }meta\_floor\_log2<n, lower, upper, meta\_floor\_log2\_move\_up>
+00623 \{
+00624   \textcolor{keyword}{enum} \{ value = meta\_floor\_log2<n, meta\_floor\_log2\_selector<n, lower, upper>::middle, upper>::value \};
+00625 \};
+00626 
+00627 \textcolor{keyword}{template}<\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} n, \textcolor{keywordtype}{int} lower, \textcolor{keywordtype}{int} upper>
+00628 \textcolor{keyword}{struct }meta\_floor\_log2<n, lower, upper, meta\_floor\_log2\_terminate>
+00629 \{
+00630   \textcolor{keyword}{enum} \{ value = (n >= ((\textcolor{keywordtype}{unsigned} int)(1) << (lower+1))) ? lower+1 : lower \};
+00631 \};
+00632 
+00633 \textcolor{keyword}{template}<\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} n, \textcolor{keywordtype}{int} lower, \textcolor{keywordtype}{int} upper>
+00634 \textcolor{keyword}{struct }meta\_floor\_log2<n, lower, upper, meta\_floor\_log2\_bogus>
+00635 \{
+00636   \textcolor{comment}{// no value, error at compile time}
+00637 \};
+00638 
+00639 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00640 \textcolor{keyword}{struct }random\_default\_impl<Scalar, false, true>
+00641 \{
+00642   \textcolor{keyword}{static} \textcolor{keyword}{inline} Scalar run(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar& y)
+00643   \{ 
+00644     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} conditional<NumTraits<Scalar>::IsSigned,std::ptrdiff\_t,std::size\_t>::type ScalarX;
+00645     \textcolor{keywordflow}{if}(y<x)
+00646       \textcolor{keywordflow}{return} x;
+00647     \textcolor{comment}{// the following difference might overflow on a 32 bits system,}
+00648     \textcolor{comment}{// but since y>=x the result converted to an unsigned long is still correct.}
+00649     std::size\_t range = ScalarX(y)-ScalarX(x);
+00650     std::size\_t offset = 0;
+00651     \textcolor{comment}{// rejection sampling}
+00652     std::size\_t divisor = 1;
+00653     std::size\_t multiplier = 1;
+00654     \textcolor{keywordflow}{if}(range<RAND\_MAX) divisor = (std::size\_t(RAND\_MAX)+1)/(range+1);
+00655     \textcolor{keywordflow}{else}               multiplier = 1 + range/(std::size\_t(RAND\_MAX)+1);
+00656     \textcolor{keywordflow}{do} \{
+00657       offset = (std::size\_t(std::rand()) * multiplier) / divisor;
+00658     \} \textcolor{keywordflow}{while} (offset > range);
+00659     \textcolor{keywordflow}{return} Scalar(ScalarX(x) + offset);
+00660   \}
+00661 
+00662   \textcolor{keyword}{static} \textcolor{keyword}{inline} Scalar run()
+00663   \{
+00664 \textcolor{preprocessor}{#ifdef EIGEN\_MAKING\_DOCS}
+00665     \textcolor{keywordflow}{return} run(Scalar(NumTraits<Scalar>::IsSigned ? -10 : 0), Scalar(10));
+00666 \textcolor{preprocessor}{#else}
+00667     \textcolor{keyword}{enum} \{ rand\_bits = meta\_floor\_log2<(unsigned int)(RAND\_MAX)+1>::value,
+00668            scalar\_bits = \textcolor{keyword}{sizeof}(Scalar) * CHAR\_BIT,
+00669            shift = EIGEN\_PLAIN\_ENUM\_MAX(0, \textcolor{keywordtype}{int}(rand\_bits) - int(scalar\_bits)),
+00670            offset = NumTraits<Scalar>::IsSigned ? (1 << (EIGEN\_PLAIN\_ENUM\_MIN(rand\_bits,scalar\_bits)-1)) : 
+      0
+00671     \};
+00672     \textcolor{keywordflow}{return} Scalar((std::rand() >> shift) - offset);
+00673 \textcolor{preprocessor}{#endif}
+00674   \}
+00675 \};
+00676 
+00677 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00678 \textcolor{keyword}{struct }random\_default\_impl<Scalar, true, false>
+00679 \{
+00680   \textcolor{keyword}{static} \textcolor{keyword}{inline} Scalar run(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar& y)
+00681   \{
+00682     \textcolor{keywordflow}{return} Scalar(random(real(x), real(y)),
+00683                   random(imag(x), imag(y)));
+00684   \}
+00685   \textcolor{keyword}{static} \textcolor{keyword}{inline} Scalar run()
+00686   \{
+00687     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00688     \textcolor{keywordflow}{return} Scalar(random<RealScalar>(), random<RealScalar>());
+00689   \}
+00690 \};
+00691 
+00692 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00693 \textcolor{keyword}{inline} EIGEN\_MATHFUNC\_RETVAL(random, Scalar) random(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar& y)
+00694 \{
+00695   \textcolor{keywordflow}{return} EIGEN\_MATHFUNC\_IMPL(random, Scalar)::run(x, y);
+00696 \}
+00697 
+00698 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00699 \textcolor{keyword}{inline} EIGEN\_MATHFUNC\_RETVAL(random, Scalar) random()
+00700 \{
+00701   \textcolor{keywordflow}{return} EIGEN\_MATHFUNC\_IMPL(random, Scalar)::run();
+00702 \}
+00703 
+00704 \textcolor{comment}{// Implementatin of is* functions}
+00705 
+00706 \textcolor{comment}{// std::is* do not work with fast-math and gcc, std::is* are available on MSVC 2013 and newer, as well as
+       in clang.}
+00707 \textcolor{preprocessor}{#if (EIGEN\_HAS\_CXX11\_MATH && !(EIGEN\_COMP\_GNUC\_STRICT && \_\_FINITE\_MATH\_ONLY\_\_)) || (EIGEN\_COMP\_MSVC>=1800)
+       || (EIGEN\_COMP\_CLANG)}
+00708 \textcolor{preprocessor}{#define EIGEN\_USE\_STD\_FPCLASSIFY 1}
+00709 \textcolor{preprocessor}{#else}
+00710 \textcolor{preprocessor}{#define EIGEN\_USE\_STD\_FPCLASSIFY 0}
+00711 \textcolor{preprocessor}{#endif}
+00712 
+00713 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00714 EIGEN\_DEVICE\_FUNC
+00715 \textcolor{keyword}{typename} internal::enable\_if<internal::is\_integral<T>::value,\textcolor{keywordtype}{bool}>::type
+00716 isnan\_impl(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}&) \{ \textcolor{keywordflow}{return} \textcolor{keyword}{false}; \}
+00717 
+00718 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00719 EIGEN\_DEVICE\_FUNC
+00720 \textcolor{keyword}{typename} internal::enable\_if<internal::is\_integral<T>::value,\textcolor{keywordtype}{bool}>::type
+00721 isinf\_impl(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}&) \{ \textcolor{keywordflow}{return} \textcolor{keyword}{false}; \}
+00722 
+00723 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00724 EIGEN\_DEVICE\_FUNC
+00725 \textcolor{keyword}{typename} internal::enable\_if<internal::is\_integral<T>::value,\textcolor{keywordtype}{bool}>::type
+00726 isfinite\_impl(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}&) \{ \textcolor{keywordflow}{return} \textcolor{keyword}{true}; \}
+00727 
+00728 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00729 EIGEN\_DEVICE\_FUNC
+00730 \textcolor{keyword}{typename} internal::enable\_if<(!internal::is\_integral<T>::value)&&(!NumTraits<T>::IsComplex),\textcolor{keywordtype}{bool}>::type
+00731 isfinite\_impl(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& x)
+00732 \{
+00733 \textcolor{preprocessor}{  #ifdef \_\_CUDA\_ARCH\_\_}
+00734     \textcolor{keywordflow}{return} (::isfinite)(x);
+00735 \textcolor{preprocessor}{  #elif EIGEN\_USE\_STD\_FPCLASSIFY}
+00736     \textcolor{keyword}{using} std::isfinite;
+00737     \textcolor{keywordflow}{return} isfinite EIGEN\_NOT\_A\_MACRO (x);
+00738 \textcolor{preprocessor}{  #else}
+00739     \textcolor{keywordflow}{return} x<=NumTraits<T>::highest() && x>=NumTraits<T>::lowest();
+00740 \textcolor{preprocessor}{  #endif}
+00741 \}
+00742 
+00743 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00744 EIGEN\_DEVICE\_FUNC
+00745 \textcolor{keyword}{typename} internal::enable\_if<(!internal::is\_integral<T>::value)&&(!NumTraits<T>::IsComplex),\textcolor{keywordtype}{bool}>::type
+00746 isinf\_impl(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& x)
+00747 \{
+00748 \textcolor{preprocessor}{  #ifdef \_\_CUDA\_ARCH\_\_}
+00749     \textcolor{keywordflow}{return} (::isinf)(x);
+00750 \textcolor{preprocessor}{  #elif EIGEN\_USE\_STD\_FPCLASSIFY}
+00751     \textcolor{keyword}{using} std::isinf;
+00752     \textcolor{keywordflow}{return} isinf EIGEN\_NOT\_A\_MACRO (x);
+00753 \textcolor{preprocessor}{  #else}
+00754     \textcolor{keywordflow}{return} x>NumTraits<T>::highest() || x<NumTraits<T>::lowest();
+00755 \textcolor{preprocessor}{  #endif}
+00756 \}
+00757 
+00758 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00759 EIGEN\_DEVICE\_FUNC
+00760 \textcolor{keyword}{typename} internal::enable\_if<(!internal::is\_integral<T>::value)&&(!NumTraits<T>::IsComplex),\textcolor{keywordtype}{bool}>::type
+00761 isnan\_impl(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& x)
+00762 \{
+00763 \textcolor{preprocessor}{  #ifdef \_\_CUDA\_ARCH\_\_}
+00764     \textcolor{keywordflow}{return} (::isnan)(x);
+00765 \textcolor{preprocessor}{  #elif EIGEN\_USE\_STD\_FPCLASSIFY}
+00766     \textcolor{keyword}{using} std::isnan;
+00767     \textcolor{keywordflow}{return} isnan EIGEN\_NOT\_A\_MACRO (x);
+00768 \textcolor{preprocessor}{  #else}
+00769     \textcolor{keywordflow}{return} x != x;
+00770 \textcolor{preprocessor}{  #endif}
+00771 \}
+00772 
+00773 \textcolor{preprocessor}{#if (!EIGEN\_USE\_STD\_FPCLASSIFY)}
+00774 
+00775 \textcolor{preprocessor}{#if EIGEN\_COMP\_MSVC}
+00776 
+00777 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{bool} isinf\_msvc\_helper(\hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} x)
+00778 \{
+00779   \textcolor{keywordflow}{return} \_fpclass(x)==\_FPCLASS\_NINF || \_fpclass(x)==\_FPCLASS\_PINF;
+00780 \}
+00781 
+00782 \textcolor{comment}{//MSVC defines a \_isnan builtin function, but for double only}
+00783 EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isnan\_impl(\textcolor{keyword}{const} \textcolor{keywordtype}{long} \textcolor{keywordtype}{double}& x) \{ \textcolor{keywordflow}{return} \_isnan(x)!=0; \}
+00784 EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isnan\_impl(\textcolor{keyword}{const} \textcolor{keywordtype}{double}& x)      \{ \textcolor{keywordflow}{return} \_isnan(x)!=0; \}
+00785 EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isnan\_impl(\textcolor{keyword}{const} \textcolor{keywordtype}{float}& x)       \{ \textcolor{keywordflow}{return} \_isnan(x)!=0; \}
+00786 
+00787 EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isinf\_impl(\textcolor{keyword}{const} \textcolor{keywordtype}{long} \textcolor{keywordtype}{double}& x) \{ \textcolor{keywordflow}{return} isinf\_msvc\_helper(x); \}
+00788 EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isinf\_impl(\textcolor{keyword}{const} \textcolor{keywordtype}{double}& x)      \{ \textcolor{keywordflow}{return} isinf\_msvc\_helper(x); \}
+00789 EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isinf\_impl(\textcolor{keyword}{const} \textcolor{keywordtype}{float}& x)       \{ \textcolor{keywordflow}{return} isinf\_msvc\_helper(x); \}
+00790 
+00791 \textcolor{preprocessor}{#elif (defined \_\_FINITE\_MATH\_ONLY\_\_ && \_\_FINITE\_MATH\_ONLY\_\_ && EIGEN\_COMP\_GNUC)}
+00792 
+00793 \textcolor{preprocessor}{#if EIGEN\_GNUC\_AT\_LEAST(5,0)}
+00794 \textcolor{preprocessor}{  #define EIGEN\_TMP\_NOOPT\_ATTRIB EIGEN\_DEVICE\_FUNC inline \_\_attribute\_\_((optimize("no-finite-math-only")))}
+00795 \textcolor{preprocessor}{#else}
+00796   \textcolor{comment}{// NOTE the inline qualifier and noinline attribute are both needed: the former is to avoid linking issue
+       (duplicate symbol),}
+00797   \textcolor{comment}{//      while the second prevent too aggressive optimizations in fast-math mode:}
+00798 \textcolor{preprocessor}{  #define EIGEN\_TMP\_NOOPT\_ATTRIB EIGEN\_DEVICE\_FUNC inline
+       \_\_attribute\_\_((noinline,optimize("no-finite-math-only")))}
+00799 \textcolor{preprocessor}{#endif}
+00800 
+00801 \textcolor{keyword}{template}<> EIGEN\_TMP\_NOOPT\_ATTRIB \textcolor{keywordtype}{bool} isnan\_impl(\textcolor{keyword}{const} \textcolor{keywordtype}{long} \textcolor{keywordtype}{double}& x) \{ \textcolor{keywordflow}{return} \_\_builtin\_isnan(x); \}
+00802 \textcolor{keyword}{template}<> EIGEN\_TMP\_NOOPT\_ATTRIB \textcolor{keywordtype}{bool} isnan\_impl(\textcolor{keyword}{const} \textcolor{keywordtype}{double}& x)      \{ \textcolor{keywordflow}{return} \_\_builtin\_isnan(x); \}
+00803 \textcolor{keyword}{template}<> EIGEN\_TMP\_NOOPT\_ATTRIB \textcolor{keywordtype}{bool} isnan\_impl(\textcolor{keyword}{const} \textcolor{keywordtype}{float}& x)       \{ \textcolor{keywordflow}{return} \_\_builtin\_isnan(x); \}
+00804 \textcolor{keyword}{template}<> EIGEN\_TMP\_NOOPT\_ATTRIB \textcolor{keywordtype}{bool} isinf\_impl(\textcolor{keyword}{const} \textcolor{keywordtype}{double}& x)      \{ \textcolor{keywordflow}{return} \_\_builtin\_isinf(x); \}
+00805 \textcolor{keyword}{template}<> EIGEN\_TMP\_NOOPT\_ATTRIB \textcolor{keywordtype}{bool} isinf\_impl(\textcolor{keyword}{const} \textcolor{keywordtype}{float}& x)       \{ \textcolor{keywordflow}{return} \_\_builtin\_isinf(x); \}
+00806 \textcolor{keyword}{template}<> EIGEN\_TMP\_NOOPT\_ATTRIB \textcolor{keywordtype}{bool} isinf\_impl(\textcolor{keyword}{const} \textcolor{keywordtype}{long} \textcolor{keywordtype}{double}& x) \{ \textcolor{keywordflow}{return} \_\_builtin\_isinf(x); \}
+00807 
+00808 \textcolor{preprocessor}{#undef EIGEN\_TMP\_NOOPT\_ATTRIB}
+00809 
+00810 \textcolor{preprocessor}{#endif}
+00811 
+00812 \textcolor{preprocessor}{#endif}
+00813 
+00814 \textcolor{comment}{// The following overload are defined at the end of this file}
+00815 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{bool} isfinite\_impl(\textcolor{keyword}{const} std::complex<T>& x);
+00816 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{bool} isnan\_impl(\textcolor{keyword}{const} std::complex<T>& x);
+00817 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{bool} isinf\_impl(\textcolor{keyword}{const} std::complex<T>& x);
+00818 
+00819 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} generic\_fast\_tanh\_float(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& a\_x);
+00820 
+00821 \} \textcolor{comment}{// end namespace internal}
+00822 
+00823 \textcolor{comment}{/****************************************************************************}
+00824 \textcolor{comment}{* Generic math functions                                                    *}
+00825 \textcolor{comment}{****************************************************************************/}
+00826 
+00827 \textcolor{keyword}{namespace }numext \{
+00828 
+00829 \textcolor{preprocessor}{#ifndef \_\_CUDA\_ARCH\_\_}
+00830 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00831 EIGEN\_DEVICE\_FUNC
+00832 EIGEN\_ALWAYS\_INLINE \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} mini(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& x, \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& y)
+00833 \{
+00834   EIGEN\_USING\_STD\_MATH(min);
+00835   \textcolor{keywordflow}{return} min EIGEN\_NOT\_A\_MACRO (x,y);
+00836 \}
+00837 
+00838 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00839 EIGEN\_DEVICE\_FUNC
+00840 EIGEN\_ALWAYS\_INLINE \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} maxi(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& x, \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& y)
+00841 \{
+00842   EIGEN\_USING\_STD\_MATH(max);
+00843   \textcolor{keywordflow}{return} max EIGEN\_NOT\_A\_MACRO (x,y);
+00844 \}
+00845 \textcolor{preprocessor}{#else}
+00846 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00847 EIGEN\_DEVICE\_FUNC
+00848 EIGEN\_ALWAYS\_INLINE \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} mini(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& x, \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& y)
+00849 \{
+00850   \textcolor{keywordflow}{return} y < x ? y : x;
+00851 \}
+00852 \textcolor{keyword}{template}<>
+00853 EIGEN\_DEVICE\_FUNC
+00854 EIGEN\_ALWAYS\_INLINE \textcolor{keywordtype}{float} mini(\textcolor{keyword}{const} \textcolor{keywordtype}{float}& x, \textcolor{keyword}{const} \textcolor{keywordtype}{float}& y)
+00855 \{
+00856   \textcolor{keywordflow}{return} fminf(x, y);
+00857 \}
+00858 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00859 EIGEN\_DEVICE\_FUNC
+00860 EIGEN\_ALWAYS\_INLINE \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} maxi(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& x, \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& y)
+00861 \{
+00862   \textcolor{keywordflow}{return} x < y ? y : x;
+00863 \}
+00864 \textcolor{keyword}{template}<>
+00865 EIGEN\_DEVICE\_FUNC
+00866 EIGEN\_ALWAYS\_INLINE \textcolor{keywordtype}{float} maxi(\textcolor{keyword}{const} \textcolor{keywordtype}{float}& x, \textcolor{keyword}{const} \textcolor{keywordtype}{float}& y)
+00867 \{
+00868   \textcolor{keywordflow}{return} fmaxf(x, y);
+00869 \}
+00870 \textcolor{preprocessor}{#endif}
+00871 
+00872 
+00873 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00874 EIGEN\_DEVICE\_FUNC
+00875 \textcolor{keyword}{inline} EIGEN\_MATHFUNC\_RETVAL(real, Scalar) real(\textcolor{keyword}{const} Scalar& x)
+00876 \{
+00877   \textcolor{keywordflow}{return} EIGEN\_MATHFUNC\_IMPL(real, Scalar)::run(x);
+00878 \}
+00879 
+00880 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00881 EIGEN\_DEVICE\_FUNC
+00882 \textcolor{keyword}{inline} \textcolor{keyword}{typename} internal::add\_const\_on\_value\_type< EIGEN\_MATHFUNC\_RETVAL(real\_ref, Scalar) >::type real\_ref
+      (\textcolor{keyword}{const} Scalar& x)
+00883 \{
+00884   \textcolor{keywordflow}{return} internal::real\_ref\_impl<Scalar>::run(x);
+00885 \}
+00886 
+00887 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00888 EIGEN\_DEVICE\_FUNC
+00889 \textcolor{keyword}{inline} EIGEN\_MATHFUNC\_RETVAL(real\_ref, Scalar) real\_ref(Scalar& x)
+00890 \{
+00891   \textcolor{keywordflow}{return} EIGEN\_MATHFUNC\_IMPL(real\_ref, Scalar)::run(x);
+00892 \}
+00893 
+00894 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00895 EIGEN\_DEVICE\_FUNC
+00896 \textcolor{keyword}{inline} EIGEN\_MATHFUNC\_RETVAL(imag, Scalar) imag(\textcolor{keyword}{const} Scalar& x)
+00897 \{
+00898   \textcolor{keywordflow}{return} EIGEN\_MATHFUNC\_IMPL(imag, Scalar)::run(x);
+00899 \}
+00900 
+00901 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00902 EIGEN\_DEVICE\_FUNC
+00903 \textcolor{keyword}{inline} EIGEN\_MATHFUNC\_RETVAL(arg, Scalar) arg(\textcolor{keyword}{const} Scalar& x)
+00904 \{
+00905   \textcolor{keywordflow}{return} EIGEN\_MATHFUNC\_IMPL(arg, Scalar)::run(x);
+00906 \}
+00907 
+00908 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00909 EIGEN\_DEVICE\_FUNC
+00910 \textcolor{keyword}{inline} \textcolor{keyword}{typename} internal::add\_const\_on\_value\_type< EIGEN\_MATHFUNC\_RETVAL(imag\_ref, Scalar) >::type imag\_ref
+      (\textcolor{keyword}{const} Scalar& x)
+00911 \{
+00912   \textcolor{keywordflow}{return} internal::imag\_ref\_impl<Scalar>::run(x);
+00913 \}
+00914 
+00915 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00916 EIGEN\_DEVICE\_FUNC
+00917 \textcolor{keyword}{inline} EIGEN\_MATHFUNC\_RETVAL(imag\_ref, Scalar) imag\_ref(Scalar& x)
+00918 \{
+00919   \textcolor{keywordflow}{return} EIGEN\_MATHFUNC\_IMPL(imag\_ref, Scalar)::run(x);
+00920 \}
+00921 
+00922 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00923 EIGEN\_DEVICE\_FUNC
+00924 \textcolor{keyword}{inline} EIGEN\_MATHFUNC\_RETVAL(conj, Scalar) conj(\textcolor{keyword}{const} Scalar& x)
+00925 \{
+00926   \textcolor{keywordflow}{return} EIGEN\_MATHFUNC\_IMPL(conj, Scalar)::run(x);
+00927 \}
+00928 
+00929 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00930 EIGEN\_DEVICE\_FUNC
+00931 \textcolor{keyword}{inline} EIGEN\_MATHFUNC\_RETVAL(abs2, Scalar) abs2(\textcolor{keyword}{const} Scalar& x)
+00932 \{
+00933   \textcolor{keywordflow}{return} EIGEN\_MATHFUNC\_IMPL(abs2, Scalar)::run(x);
+00934 \}
+00935 
+00936 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00937 EIGEN\_DEVICE\_FUNC
+00938 \textcolor{keyword}{inline} EIGEN\_MATHFUNC\_RETVAL(norm1, Scalar) norm1(\textcolor{keyword}{const} Scalar& x)
+00939 \{
+00940   \textcolor{keywordflow}{return} EIGEN\_MATHFUNC\_IMPL(norm1, Scalar)::run(x);
+00941 \}
+00942 
+00943 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00944 EIGEN\_DEVICE\_FUNC
+00945 \textcolor{keyword}{inline} EIGEN\_MATHFUNC\_RETVAL(hypot, Scalar) hypot(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar& y)
+00946 \{
+00947   \textcolor{keywordflow}{return} EIGEN\_MATHFUNC\_IMPL(hypot, Scalar)::run(x, y);
+00948 \}
+00949 
+00950 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00951 EIGEN\_DEVICE\_FUNC
+00952 \textcolor{keyword}{inline} EIGEN\_MATHFUNC\_RETVAL(log1p, Scalar) log1p(\textcolor{keyword}{const} Scalar& x)
+00953 \{
+00954   \textcolor{keywordflow}{return} EIGEN\_MATHFUNC\_IMPL(log1p, Scalar)::run(x);
+00955 \}
+00956 
+00957 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+00958 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+00959 \textcolor{keywordtype}{float} log1p(\textcolor{keyword}{const} \textcolor{keywordtype}{float} &x) \{ return ::log1pf(x); \}
+00960 
+00961 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+00962 \textcolor{keywordtype}{double} log1p(\textcolor{keyword}{const} \textcolor{keywordtype}{double} &x) \{ return ::log1p(x); \}
+00963 \textcolor{preprocessor}{#endif}
+00964 
+00965 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ScalarX,\textcolor{keyword}{typename} ScalarY>
+00966 EIGEN\_DEVICE\_FUNC
+00967 \textcolor{keyword}{inline} \textcolor{keyword}{typename} internal::pow\_impl<ScalarX,ScalarY>::result\_type pow(\textcolor{keyword}{const} ScalarX& x, \textcolor{keyword}{const} ScalarY& y)
+00968 \{
+00969   \textcolor{keywordflow}{return} internal::pow\_impl<ScalarX,ScalarY>::run(x, y);
+00970 \}
+00971 
+00972 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> EIGEN\_DEVICE\_FUNC bool (isnan)   (\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x) \{ \textcolor{keywordflow}{return} internal::isnan\_impl(x); \}
+00973 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> EIGEN\_DEVICE\_FUNC bool (isinf)   (\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x) \{ \textcolor{keywordflow}{return} internal::isinf\_impl(x); \}
+00974 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> EIGEN\_DEVICE\_FUNC bool (isfinite)(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x) \{ \textcolor{keywordflow}{return} internal::isfinite\_impl(x); \}
+00975 
+00976 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00977 EIGEN\_DEVICE\_FUNC
+00978 \textcolor{keyword}{inline} EIGEN\_MATHFUNC\_RETVAL(round, Scalar) round(\textcolor{keyword}{const} Scalar& x)
+00979 \{
+00980   \textcolor{keywordflow}{return} EIGEN\_MATHFUNC\_IMPL(round, Scalar)::run(x);
+00981 \}
+00982 
+00983 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00984 EIGEN\_DEVICE\_FUNC
+00985 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} (floor)(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& x)
+00986 \{
+00987   EIGEN\_USING\_STD\_MATH(floor);
+00988   \textcolor{keywordflow}{return} floor(x);
+00989 \}
+00990 
+00991 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+00992 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+00993 \textcolor{keywordtype}{float} floor(\textcolor{keyword}{const} \textcolor{keywordtype}{float} &x) \{ return ::floorf(x); \}
+00994 
+00995 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+00996 \textcolor{keywordtype}{double} floor(\textcolor{keyword}{const} \textcolor{keywordtype}{double} &x) \{ return ::floor(x); \}
+00997 \textcolor{preprocessor}{#endif}
+00998 
+00999 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01000 EIGEN\_DEVICE\_FUNC
+01001 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} (ceil)(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& x)
+01002 \{
+01003   EIGEN\_USING\_STD\_MATH(ceil);
+01004   \textcolor{keywordflow}{return} ceil(x);
+01005 \}
+01006 
+01007 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+01008 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01009 \textcolor{keywordtype}{float} ceil(\textcolor{keyword}{const} \textcolor{keywordtype}{float} &x) \{ return ::ceilf(x); \}
+01010 
+01011 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01012 \textcolor{keywordtype}{double} ceil(\textcolor{keyword}{const} \textcolor{keywordtype}{double} &x) \{ return ::ceil(x); \}
+01013 \textcolor{preprocessor}{#endif}
+01014 
+01015 
+01018 \textcolor{keyword}{inline} \textcolor{keywordtype}{int} log2(\textcolor{keywordtype}{int} x)
+01019 \{
+01020   eigen\_assert(x>=0);
+01021   \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} v(x);
+01022   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} table[32] = \{ 0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30, 8, 12, 20, 28, 
+      15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31 \};
+01023   v |= v >> 1;
+01024   v |= v >> 2;
+01025   v |= v >> 4;
+01026   v |= v >> 8;
+01027   v |= v >> 16;
+01028   \textcolor{keywordflow}{return} table[(v * 0x07C4ACDDU) >> 27];
+01029 \}
+01030 
+01039 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01040 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01041 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} sqrt(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x)
+01042 \{
+01043   EIGEN\_USING\_STD\_MATH(sqrt);
+01044   \textcolor{keywordflow}{return} sqrt(x);
+01045 \}
+01046 
+01047 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01048 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01049 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} \hyperlink{structlog}{log}(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x) \{
+01050   EIGEN\_USING\_STD\_MATH(\hyperlink{structlog}{log});
+01051   \textcolor{keywordflow}{return} \hyperlink{structlog}{log}(x);
+01052 \}
+01053 
+01054 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+01055 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01056 \textcolor{keywordtype}{float} \hyperlink{structlog}{log}(\textcolor{keyword}{const} \textcolor{keywordtype}{float} &x) \{ return ::logf(x); \}
+01057 
+01058 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01059 \textcolor{keywordtype}{double} \hyperlink{structlog}{log}(\textcolor{keyword}{const} \textcolor{keywordtype}{double} &x) \{ return ::log(x); \}
+01060 \textcolor{preprocessor}{#endif}
+01061 
+01062 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01063 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01064 \textcolor{keyword}{typename} internal::enable\_if<NumTraits<T>::IsSigned || NumTraits<T>::IsComplex,\textcolor{keyword}{typename} NumTraits<T>::Real>
+      ::type
+01065 abs(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x) \{
+01066   EIGEN\_USING\_STD\_MATH(abs);
+01067   \textcolor{keywordflow}{return} abs(x);
+01068 \}
+01069 
+01070 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01071 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01072 \textcolor{keyword}{typename} internal::enable\_if<!(NumTraits<T>::IsSigned || NumTraits<T>::IsComplex),\textcolor{keyword}{typename} 
+      NumTraits<T>::Real>::type
+01073 abs(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x) \{
+01074   \textcolor{keywordflow}{return} x;
+01075 \}
+01076 
+01077 \textcolor{preprocessor}{#if defined(\_\_SYCL\_DEVICE\_ONLY\_\_)}
+01078 EIGEN\_ALWAYS\_INLINE \textcolor{keywordtype}{float}   abs(\textcolor{keywordtype}{float} x) \{ \textcolor{keywordflow}{return} cl::sycl::fabs(x); \}
+01079 EIGEN\_ALWAYS\_INLINE \textcolor{keywordtype}{double}  abs(\textcolor{keywordtype}{double} x) \{ \textcolor{keywordflow}{return} cl::sycl::fabs(x); \}
+01080 \textcolor{preprocessor}{#endif // defined(\_\_SYCL\_DEVICE\_ONLY\_\_)}
+01081 
+01082 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+01083 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01084 \textcolor{keywordtype}{float} abs(\textcolor{keyword}{const} \textcolor{keywordtype}{float} &x) \{ return ::fabsf(x); \}
+01085 
+01086 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01087 \textcolor{keywordtype}{double} abs(\textcolor{keyword}{const} \textcolor{keywordtype}{double} &x) \{ return ::fabs(x); \}
+01088 
+01089 \textcolor{keyword}{template} <> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01090 \textcolor{keywordtype}{float} abs(\textcolor{keyword}{const} std::complex<float>& x) \{
+01091   return ::hypotf(x.real(), x.imag());
+01092 \}
+01093 
+01094 \textcolor{keyword}{template} <> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01095 \textcolor{keywordtype}{double} abs(\textcolor{keyword}{const} std::complex<double>& x) \{
+01096   return ::hypot(x.real(), x.imag());
+01097 \}
+01098 \textcolor{preprocessor}{#endif}
+01099 
+01100 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01101 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01102 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} exp(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x) \{
+01103   EIGEN\_USING\_STD\_MATH(exp);
+01104   \textcolor{keywordflow}{return} exp(x);
+01105 \}
+01106 
+01107 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+01108 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01109 \textcolor{keywordtype}{float} exp(\textcolor{keyword}{const} \textcolor{keywordtype}{float} &x) \{ return ::expf(x); \}
+01110 
+01111 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01112 \textcolor{keywordtype}{double} exp(\textcolor{keyword}{const} \textcolor{keywordtype}{double} &x) \{ return ::exp(x); \}
+01113 \textcolor{preprocessor}{#endif}
+01114 
+01115 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01116 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01117 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} cos(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x) \{
+01118   EIGEN\_USING\_STD\_MATH(cos);
+01119   \textcolor{keywordflow}{return} cos(x);
+01120 \}
+01121 
+01122 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+01123 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01124 \textcolor{keywordtype}{float} cos(\textcolor{keyword}{const} \textcolor{keywordtype}{float} &x) \{ return ::cosf(x); \}
+01125 
+01126 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01127 \textcolor{keywordtype}{double} cos(\textcolor{keyword}{const} \textcolor{keywordtype}{double} &x) \{ return ::cos(x); \}
+01128 \textcolor{preprocessor}{#endif}
+01129 
+01130 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01131 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01132 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} sin(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x) \{
+01133   EIGEN\_USING\_STD\_MATH(sin);
+01134   \textcolor{keywordflow}{return} sin(x);
+01135 \}
+01136 
+01137 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+01138 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01139 \textcolor{keywordtype}{float} sin(\textcolor{keyword}{const} \textcolor{keywordtype}{float} &x) \{ return ::sinf(x); \}
+01140 
+01141 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01142 \textcolor{keywordtype}{double} sin(\textcolor{keyword}{const} \textcolor{keywordtype}{double} &x) \{ return ::sin(x); \}
+01143 \textcolor{preprocessor}{#endif}
+01144 
+01145 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01146 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01147 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} tan(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x) \{
+01148   EIGEN\_USING\_STD\_MATH(tan);
+01149   \textcolor{keywordflow}{return} tan(x);
+01150 \}
+01151 
+01152 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+01153 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01154 \textcolor{keywordtype}{float} tan(\textcolor{keyword}{const} \textcolor{keywordtype}{float} &x) \{ return ::tanf(x); \}
+01155 
+01156 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01157 \textcolor{keywordtype}{double} tan(\textcolor{keyword}{const} \textcolor{keywordtype}{double} &x) \{ return ::tan(x); \}
+01158 \textcolor{preprocessor}{#endif}
+01159 
+01160 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01161 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01162 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} acos(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x) \{
+01163   EIGEN\_USING\_STD\_MATH(acos);
+01164   \textcolor{keywordflow}{return} acos(x);
+01165 \}
+01166 
+01167 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+01168 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01169 \textcolor{keywordtype}{float} acos(\textcolor{keyword}{const} \textcolor{keywordtype}{float} &x) \{ return ::acosf(x); \}
+01170 
+01171 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01172 \textcolor{keywordtype}{double} acos(\textcolor{keyword}{const} \textcolor{keywordtype}{double} &x) \{ return ::acos(x); \}
+01173 \textcolor{preprocessor}{#endif}
+01174 
+01175 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01176 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01177 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} asin(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x) \{
+01178   EIGEN\_USING\_STD\_MATH(asin);
+01179   \textcolor{keywordflow}{return} asin(x);
+01180 \}
+01181 
+01182 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+01183 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01184 \textcolor{keywordtype}{float} asin(\textcolor{keyword}{const} \textcolor{keywordtype}{float} &x) \{ return ::asinf(x); \}
+01185 
+01186 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01187 \textcolor{keywordtype}{double} asin(\textcolor{keyword}{const} \textcolor{keywordtype}{double} &x) \{ return ::asin(x); \}
+01188 \textcolor{preprocessor}{#endif}
+01189 
+01190 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01191 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01192 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} atan(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x) \{
+01193   EIGEN\_USING\_STD\_MATH(atan);
+01194   \textcolor{keywordflow}{return} atan(x);
+01195 \}
+01196 
+01197 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+01198 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01199 \textcolor{keywordtype}{float} atan(\textcolor{keyword}{const} \textcolor{keywordtype}{float} &x) \{ return ::atanf(x); \}
+01200 
+01201 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01202 \textcolor{keywordtype}{double} atan(\textcolor{keyword}{const} \textcolor{keywordtype}{double} &x) \{ return ::atan(x); \}
+01203 \textcolor{preprocessor}{#endif}
+01204 
+01205 
+01206 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01207 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01208 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} cosh(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x) \{
+01209   EIGEN\_USING\_STD\_MATH(cosh);
+01210   \textcolor{keywordflow}{return} cosh(x);
+01211 \}
+01212 
+01213 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+01214 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01215 \textcolor{keywordtype}{float} cosh(\textcolor{keyword}{const} \textcolor{keywordtype}{float} &x) \{ return ::coshf(x); \}
+01216 
+01217 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01218 \textcolor{keywordtype}{double} cosh(\textcolor{keyword}{const} \textcolor{keywordtype}{double} &x) \{ return ::cosh(x); \}
+01219 \textcolor{preprocessor}{#endif}
+01220 
+01221 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01222 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01223 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} sinh(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x) \{
+01224   EIGEN\_USING\_STD\_MATH(sinh);
+01225   \textcolor{keywordflow}{return} sinh(x);
+01226 \}
+01227 
+01228 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+01229 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01230 \textcolor{keywordtype}{float} sinh(\textcolor{keyword}{const} \textcolor{keywordtype}{float} &x) \{ return ::sinhf(x); \}
+01231 
+01232 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01233 \textcolor{keywordtype}{double} sinh(\textcolor{keyword}{const} \textcolor{keywordtype}{double} &x) \{ return ::sinh(x); \}
+01234 \textcolor{preprocessor}{#endif}
+01235 
+01236 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01237 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01238 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} tanh(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} &x) \{
+01239   EIGEN\_USING\_STD\_MATH(tanh);
+01240   \textcolor{keywordflow}{return} tanh(x);
+01241 \}
+01242 
+01243 \textcolor{preprocessor}{#if (!defined(\_\_CUDACC\_\_)) && EIGEN\_FAST\_MATH}
+01244 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01245 \textcolor{keywordtype}{float} tanh(\textcolor{keywordtype}{float} x) \{ \textcolor{keywordflow}{return} internal::generic\_fast\_tanh\_float(x); \}
+01246 \textcolor{preprocessor}{#endif}
+01247 
+01248 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+01249 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01250 \textcolor{keywordtype}{float} tanh(\textcolor{keyword}{const} \textcolor{keywordtype}{float} &x) \{ return ::tanhf(x); \}
+01251 
+01252 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01253 \textcolor{keywordtype}{double} tanh(\textcolor{keyword}{const} \textcolor{keywordtype}{double} &x) \{ return ::tanh(x); \}
+01254 \textcolor{preprocessor}{#endif}
+01255 
+01256 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+01257 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01258 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} fmod(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& a, \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& b) \{
+01259   EIGEN\_USING\_STD\_MATH(fmod);
+01260   \textcolor{keywordflow}{return} fmod(a, b);
+01261 \}
+01262 
+01263 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+01264 \textcolor{keyword}{template} <>
+01265 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01266 \textcolor{keywordtype}{float} fmod(\textcolor{keyword}{const} \textcolor{keywordtype}{float}& a, \textcolor{keyword}{const} \textcolor{keywordtype}{float}& b) \{
+01267   return ::fmodf(a, b);
+01268 \}
+01269 
+01270 \textcolor{keyword}{template} <>
+01271 EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+01272 \textcolor{keywordtype}{double} fmod(\textcolor{keyword}{const} \textcolor{keywordtype}{double}& a, \textcolor{keyword}{const} \textcolor{keywordtype}{double}& b) \{
+01273   return ::fmod(a, b);
+01274 \}
+01275 \textcolor{preprocessor}{#endif}
+01276 
+01277 \} \textcolor{comment}{// end namespace numext}
+01278 
+01279 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+01280 
+01281 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01282 EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{bool} isfinite\_impl(\textcolor{keyword}{const} std::complex<T>& x)
+01283 \{
+01284   \textcolor{keywordflow}{return} (numext::isfinite)(numext::real(x)) && (numext::isfinite)(numext::imag(x));
+01285 \}
+01286 
+01287 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01288 EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{bool} isnan\_impl(\textcolor{keyword}{const} std::complex<T>& x)
+01289 \{
+01290   \textcolor{keywordflow}{return} (numext::isnan)(numext::real(x)) || (numext::isnan)(numext::imag(x));
+01291 \}
+01292 
+01293 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+01294 EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{bool} isinf\_impl(\textcolor{keyword}{const} std::complex<T>& x)
+01295 \{
+01296   \textcolor{keywordflow}{return} ((numext::isinf)(numext::real(x)) || (numext::isinf)(numext::imag(x))) && (!(numext::isnan)(x));
+01297 \}
+01298 
+01299 \textcolor{comment}{/****************************************************************************}
+01300 \textcolor{comment}{* Implementation of fuzzy comparisons                                       *}
+01301 \textcolor{comment}{****************************************************************************/}
+01302 
+01303 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar,
+01304          \textcolor{keywordtype}{bool} IsComplex,
+01305          \textcolor{keywordtype}{bool} IsInteger>
+01306 \textcolor{keyword}{struct }scalar\_fuzzy\_default\_impl \{\};
+01307 
+01308 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+01309 \textcolor{keyword}{struct }scalar\_fuzzy\_default\_impl<Scalar, false, false>
+01310 \{
+01311   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+01312   \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherScalar> EIGEN\_DEVICE\_FUNC
+01313   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isMuchSmallerThan(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} OtherScalar& y, \textcolor{keyword}{const} RealScalar& prec)
+01314   \{
+01315     \textcolor{keywordflow}{return} numext::abs(x) <= numext::abs(y) * prec;
+01316   \}
+01317   EIGEN\_DEVICE\_FUNC
+01318   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isApprox(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar& y, \textcolor{keyword}{const} RealScalar& prec)
+01319   \{
+01320     \textcolor{keywordflow}{return} numext::abs(x - y) <= numext::mini(numext::abs(x), numext::abs(y)) * prec;
+01321   \}
+01322   EIGEN\_DEVICE\_FUNC
+01323   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isApproxOrLessThan(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar& y, \textcolor{keyword}{const} RealScalar& prec)
+01324   \{
+01325     \textcolor{keywordflow}{return} x <= y || isApprox(x, y, prec);
+01326   \}
+01327 \};
+01328 
+01329 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+01330 \textcolor{keyword}{struct }scalar\_fuzzy\_default\_impl<Scalar, false, true>
+01331 \{
+01332   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+01333   \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherScalar> EIGEN\_DEVICE\_FUNC
+01334   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isMuchSmallerThan(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar&, \textcolor{keyword}{const} RealScalar&)
+01335   \{
+01336     \textcolor{keywordflow}{return} x == Scalar(0);
+01337   \}
+01338   EIGEN\_DEVICE\_FUNC
+01339   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isApprox(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar& y, \textcolor{keyword}{const} RealScalar&)
+01340   \{
+01341     \textcolor{keywordflow}{return} x == y;
+01342   \}
+01343   EIGEN\_DEVICE\_FUNC
+01344   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isApproxOrLessThan(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar& y, \textcolor{keyword}{const} RealScalar&)
+01345   \{
+01346     \textcolor{keywordflow}{return} x <= y;
+01347   \}
+01348 \};
+01349 
+01350 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+01351 \textcolor{keyword}{struct }scalar\_fuzzy\_default\_impl<Scalar, true, false>
+01352 \{
+01353   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+01354   \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherScalar> EIGEN\_DEVICE\_FUNC
+01355   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isMuchSmallerThan(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} OtherScalar& y, \textcolor{keyword}{const} RealScalar& prec)
+01356   \{
+01357     \textcolor{keywordflow}{return} numext::abs2(x) <= numext::abs2(y) * prec * prec;
+01358   \}
+01359   EIGEN\_DEVICE\_FUNC
+01360   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isApprox(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar& y, \textcolor{keyword}{const} RealScalar& prec)
+01361   \{
+01362     \textcolor{keywordflow}{return} numext::abs2(x - y) <= numext::mini(numext::abs2(x), numext::abs2(y)) * prec * prec;
+01363   \}
+01364 \};
+01365 
+01366 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+01367 \textcolor{keyword}{struct }scalar\_fuzzy\_impl : scalar\_fuzzy\_default\_impl<Scalar, NumTraits<Scalar>::IsComplex, NumTraits<Scalar
+      >::IsInteger> \{\};
+01368 
+01369 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} OtherScalar> EIGEN\_DEVICE\_FUNC
+01370 \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isMuchSmallerThan(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} OtherScalar& y,
+01371                               \textcolor{keyword}{const} \textcolor{keyword}{typename} NumTraits<Scalar>::Real &precision = 
+      NumTraits<Scalar>::dummy\_precision())
+01372 \{
+01373   \textcolor{keywordflow}{return} scalar\_fuzzy\_impl<Scalar>::template isMuchSmallerThan<OtherScalar>(x, y, precision);
+01374 \}
+01375 
+01376 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> EIGEN\_DEVICE\_FUNC
+01377 \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isApprox(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar& y,
+01378                      \textcolor{keyword}{const} \textcolor{keyword}{typename} NumTraits<Scalar>::Real &precision = NumTraits<Scalar>::dummy\_precision
+      ())
+01379 \{
+01380   \textcolor{keywordflow}{return} scalar\_fuzzy\_impl<Scalar>::isApprox(x, y, precision);
+01381 \}
+01382 
+01383 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> EIGEN\_DEVICE\_FUNC
+01384 \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isApproxOrLessThan(\textcolor{keyword}{const} Scalar& x, \textcolor{keyword}{const} Scalar& y,
+01385                                \textcolor{keyword}{const} \textcolor{keyword}{typename} NumTraits<Scalar>::Real &precision = 
+      NumTraits<Scalar>::dummy\_precision())
+01386 \{
+01387   \textcolor{keywordflow}{return} scalar\_fuzzy\_impl<Scalar>::isApproxOrLessThan(x, y, precision);
+01388 \}
+01389 
+01390 \textcolor{comment}{/******************************************}
+01391 \textcolor{comment}{***  The special case of the  bool type ***}
+01392 \textcolor{comment}{******************************************/}
+01393 
+01394 \textcolor{keyword}{template}<> \textcolor{keyword}{struct }random\_impl<bool>
+01395 \{
+01396   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} run()
+01397   \{
+01398     \textcolor{keywordflow}{return} random<int>(0,1)==0 ? \textcolor{keyword}{false} : \textcolor{keyword}{true};
+01399   \}
+01400 \};
+01401 
+01402 \textcolor{keyword}{template}<> \textcolor{keyword}{struct }scalar\_fuzzy\_impl<bool>
+01403 \{
+01404   \textcolor{keyword}{typedef} \textcolor{keywordtype}{bool} RealScalar;
+01405   
+01406   \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherScalar> EIGEN\_DEVICE\_FUNC
+01407   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isMuchSmallerThan(\textcolor{keyword}{const} \textcolor{keywordtype}{bool}& x, \textcolor{keyword}{const} \textcolor{keywordtype}{bool}&, \textcolor{keyword}{const} \textcolor{keywordtype}{bool}&)
+01408   \{
+01409     \textcolor{keywordflow}{return} !x;
+01410   \}
+01411   
+01412   EIGEN\_DEVICE\_FUNC
+01413   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isApprox(\textcolor{keywordtype}{bool} x, \textcolor{keywordtype}{bool} y, \textcolor{keywordtype}{bool})
+01414   \{
+01415     \textcolor{keywordflow}{return} x == y;
+01416   \}
+01417 
+01418   EIGEN\_DEVICE\_FUNC
+01419   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isApproxOrLessThan(\textcolor{keyword}{const} \textcolor{keywordtype}{bool}& x, \textcolor{keyword}{const} \textcolor{keywordtype}{bool}& y, \textcolor{keyword}{const} \textcolor{keywordtype}{bool}&)
+01420   \{
+01421     \textcolor{keywordflow}{return} (!x) || y;
+01422   \}
+01423   
+01424 \};
+01425 
+01426   
+01427 \} \textcolor{comment}{// end namespace internal}
+01428 
+01429 \} \textcolor{comment}{// end namespace Eigen}
+01430 
+01431 \textcolor{preprocessor}{#endif // EIGEN\_MATHFUNCTIONS\_H}
+\end{DoxyCode}

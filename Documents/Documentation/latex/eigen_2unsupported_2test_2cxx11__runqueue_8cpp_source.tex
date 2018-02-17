@@ -1,0 +1,240 @@
+\hypertarget{eigen_2unsupported_2test_2cxx11__runqueue_8cpp_source}{}\section{eigen/unsupported/test/cxx11\+\_\+runqueue.cpp}
+\label{eigen_2unsupported_2test_2cxx11__runqueue_8cpp_source}\index{cxx11\+\_\+runqueue.\+cpp@{cxx11\+\_\+runqueue.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2016 Dmitry Vyukov <dvyukov@google.com>}
+00005 \textcolor{comment}{// Copyright (C) 2016 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#define EIGEN\_USE\_THREADS}
+00012 \textcolor{preprocessor}{#include <cstdlib>}
+00013 \textcolor{preprocessor}{#include "main.h"}
+00014 \textcolor{preprocessor}{#include <Eigen/CXX11/ThreadPool>}
+00015 
+00016 
+00017 \textcolor{comment}{// Visual studio doesn't implement a rand\_r() function since its}
+00018 \textcolor{comment}{// implementation of rand() is already thread safe}
+00019 \textcolor{keywordtype}{int} rand\_reentrant(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int}* s) \{
+00020 \textcolor{preprocessor}{#ifdef EIGEN\_COMP\_MSVC\_STRICT}
+00021   EIGEN\_UNUSED\_VARIABLE(s);
+00022   \textcolor{keywordflow}{return} rand();
+00023 \textcolor{preprocessor}{#else}
+00024   \textcolor{keywordflow}{return} rand\_r(s);
+00025 \textcolor{preprocessor}{#endif}
+00026 \}
+00027 
+00028 \textcolor{keywordtype}{void} test\_basic\_runqueue()
+00029 \{
+00030   RunQueue<int, 4> q;
+00031   \textcolor{comment}{// Check empty state.}
+00032   VERIFY(q.Empty());
+00033   VERIFY\_IS\_EQUAL(0u, q.Size());
+00034   VERIFY\_IS\_EQUAL(0, q.PopFront());
+00035   std::vector<int> stolen;
+00036   VERIFY\_IS\_EQUAL(0u, q.PopBackHalf(&stolen));
+00037   VERIFY\_IS\_EQUAL(0u, stolen.size());
+00038   \textcolor{comment}{// Push one front, pop one front.}
+00039   VERIFY\_IS\_EQUAL(0, q.PushFront(1));
+00040   VERIFY\_IS\_EQUAL(1u, q.Size());
+00041   VERIFY\_IS\_EQUAL(1, q.PopFront());
+00042   VERIFY\_IS\_EQUAL(0u, q.Size());
+00043   \textcolor{comment}{// Push front to overflow.}
+00044   VERIFY\_IS\_EQUAL(0, q.PushFront(2));
+00045   VERIFY\_IS\_EQUAL(1u, q.Size());
+00046   VERIFY\_IS\_EQUAL(0, q.PushFront(3));
+00047   VERIFY\_IS\_EQUAL(2u, q.Size());
+00048   VERIFY\_IS\_EQUAL(0, q.PushFront(4));
+00049   VERIFY\_IS\_EQUAL(3u, q.Size());
+00050   VERIFY\_IS\_EQUAL(0, q.PushFront(5));
+00051   VERIFY\_IS\_EQUAL(4u, q.Size());
+00052   VERIFY\_IS\_EQUAL(6, q.PushFront(6));
+00053   VERIFY\_IS\_EQUAL(4u, q.Size());
+00054   VERIFY\_IS\_EQUAL(5, q.PopFront());
+00055   VERIFY\_IS\_EQUAL(3u, q.Size());
+00056   VERIFY\_IS\_EQUAL(4, q.PopFront());
+00057   VERIFY\_IS\_EQUAL(2u, q.Size());
+00058   VERIFY\_IS\_EQUAL(3, q.PopFront());
+00059   VERIFY\_IS\_EQUAL(1u, q.Size());
+00060   VERIFY\_IS\_EQUAL(2, q.PopFront());
+00061   VERIFY\_IS\_EQUAL(0u, q.Size());
+00062   VERIFY\_IS\_EQUAL(0, q.PopFront());
+00063   \textcolor{comment}{// Push one back, pop one back.}
+00064   VERIFY\_IS\_EQUAL(0, q.PushBack(7));
+00065   VERIFY\_IS\_EQUAL(1u, q.Size());
+00066   VERIFY\_IS\_EQUAL(1u, q.PopBackHalf(&stolen));
+00067   VERIFY\_IS\_EQUAL(1u, stolen.size());
+00068   VERIFY\_IS\_EQUAL(7, stolen[0]);
+00069   VERIFY\_IS\_EQUAL(0u, q.Size());
+00070   stolen.clear();
+00071   \textcolor{comment}{// Push back to overflow.}
+00072   VERIFY\_IS\_EQUAL(0, q.PushBack(8));
+00073   VERIFY\_IS\_EQUAL(1u, q.Size());
+00074   VERIFY\_IS\_EQUAL(0, q.PushBack(9));
+00075   VERIFY\_IS\_EQUAL(2u, q.Size());
+00076   VERIFY\_IS\_EQUAL(0, q.PushBack(10));
+00077   VERIFY\_IS\_EQUAL(3u, q.Size());
+00078   VERIFY\_IS\_EQUAL(0, q.PushBack(11));
+00079   VERIFY\_IS\_EQUAL(4u, q.Size());
+00080   VERIFY\_IS\_EQUAL(12, q.PushBack(12));
+00081   VERIFY\_IS\_EQUAL(4u, q.Size());
+00082   \textcolor{comment}{// Pop back in halves.}
+00083   VERIFY\_IS\_EQUAL(2u, q.PopBackHalf(&stolen));
+00084   VERIFY\_IS\_EQUAL(2u, stolen.size());
+00085   VERIFY\_IS\_EQUAL(10, stolen[0]);
+00086   VERIFY\_IS\_EQUAL(11, stolen[1]);
+00087   VERIFY\_IS\_EQUAL(2u, q.Size());
+00088   stolen.clear();
+00089   VERIFY\_IS\_EQUAL(1u, q.PopBackHalf(&stolen));
+00090   VERIFY\_IS\_EQUAL(1u, stolen.size());
+00091   VERIFY\_IS\_EQUAL(9, stolen[0]);
+00092   VERIFY\_IS\_EQUAL(1u, q.Size());
+00093   stolen.clear();
+00094   VERIFY\_IS\_EQUAL(1u, q.PopBackHalf(&stolen));
+00095   VERIFY\_IS\_EQUAL(1u, stolen.size());
+00096   VERIFY\_IS\_EQUAL(8, stolen[0]);
+00097   stolen.clear();
+00098   VERIFY\_IS\_EQUAL(0u, q.PopBackHalf(&stolen));
+00099   VERIFY\_IS\_EQUAL(0u, stolen.size());
+00100   \textcolor{comment}{// Empty again.}
+00101   VERIFY(q.Empty());
+00102   VERIFY\_IS\_EQUAL(0u, q.Size());
+00103   VERIFY\_IS\_EQUAL(0, q.PushFront(1));
+00104   VERIFY\_IS\_EQUAL(0, q.PushFront(2));
+00105   VERIFY\_IS\_EQUAL(0, q.PushFront(3));
+00106   VERIFY\_IS\_EQUAL(1, q.PopBack());
+00107   VERIFY\_IS\_EQUAL(2, q.PopBack());
+00108   VERIFY\_IS\_EQUAL(3, q.PopBack());
+00109   VERIFY(q.Empty());
+00110   VERIFY\_IS\_EQUAL(0u, q.Size());
+00111 \}
+00112 
+00113 \textcolor{comment}{// Empty tests that the queue is not claimed to be empty when is is in fact not.}
+00114 \textcolor{comment}{// Emptiness property is crucial part of thread pool blocking scheme,}
+00115 \textcolor{comment}{// so we go to great effort to ensure this property. We create a queue with}
+00116 \textcolor{comment}{// 1 element and then push 1 element (either front or back at random) and pop}
+00117 \textcolor{comment}{// 1 element (either front or back at random). So queue always contains at least}
+00118 \textcolor{comment}{// 1 element, but otherwise changes chaotically. Another thread constantly tests}
+00119 \textcolor{comment}{// that the queue is not claimed to be empty.}
+00120 \textcolor{keywordtype}{void} test\_empty\_runqueue()
+00121 \{
+00122   RunQueue<int, 4> q;
+00123   q.PushFront(1);
+00124   std::atomic<bool> done(\textcolor{keyword}{false});
+00125   std::thread mutator([&q, &done]() \{
+00126     \textcolor{keywordtype}{unsigned} rnd = 0;
+00127     std::vector<int> stolen;
+00128     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 1 << 18; i++) \{
+00129       \textcolor{keywordflow}{if} (rand\_reentrant(&rnd) % 2)
+00130         VERIFY\_IS\_EQUAL(0, q.PushFront(1));
+00131       \textcolor{keywordflow}{else}
+00132         VERIFY\_IS\_EQUAL(0, q.PushBack(1));
+00133       \textcolor{keywordflow}{if} (rand\_reentrant(&rnd) % 2)
+00134         VERIFY\_IS\_EQUAL(1, q.PopFront());
+00135       \textcolor{keywordflow}{else} \{
+00136         \textcolor{keywordflow}{for} (;;) \{
+00137           \textcolor{keywordflow}{if} (q.PopBackHalf(&stolen) == 1) \{
+00138             stolen.clear();
+00139             \textcolor{keywordflow}{break};
+00140           \}
+00141           VERIFY\_IS\_EQUAL(0u, stolen.size());
+00142         \}
+00143       \}
+00144     \}
+00145     done = \textcolor{keyword}{true};
+00146   \});
+00147   \textcolor{keywordflow}{while} (!done) \{
+00148     VERIFY(!q.Empty());
+00149     \textcolor{keywordtype}{int} size = q.Size();
+00150     VERIFY\_GE(size, 1);
+00151     VERIFY\_LE(size, 2);
+00152   \}
+00153   VERIFY\_IS\_EQUAL(1, q.PopFront());
+00154   mutator.join();
+00155 \}
+00156 
+00157 \textcolor{comment}{// Stress is a chaotic random test.}
+00158 \textcolor{comment}{// One thread (owner) calls PushFront/PopFront, other threads call PushBack/}
+00159 \textcolor{comment}{// PopBack. Ensure that we don't crash, deadlock, and all sanity checks pass.}
+00160 \textcolor{keywordtype}{void} test\_stress\_runqueue()
+00161 \{
+00162   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} kEvents = 1 << 18;
+00163   RunQueue<int, 8> q;
+00164   std::atomic<int> total(0);
+00165   std::vector<std::unique\_ptr<std::thread>> threads;
+00166   threads.emplace\_back(\textcolor{keyword}{new} std::thread([&q, &total]() \{
+00167     \textcolor{keywordtype}{int} sum = 0;
+00168     \textcolor{keywordtype}{int} pushed = 1;
+00169     \textcolor{keywordtype}{int} popped = 1;
+00170     \textcolor{keywordflow}{while} (pushed < kEvents || popped < kEvents) \{
+00171       \textcolor{keywordflow}{if} (pushed < kEvents) \{
+00172         \textcolor{keywordflow}{if} (q.PushFront(pushed) == 0) \{
+00173           sum += pushed;
+00174           pushed++;
+00175         \}
+00176       \}
+00177       \textcolor{keywordflow}{if} (popped < kEvents) \{
+00178         \textcolor{keywordtype}{int} v = q.PopFront();
+00179         \textcolor{keywordflow}{if} (v != 0) \{
+00180           sum -= v;
+00181           popped++;
+00182         \}
+00183       \}
+00184     \}
+00185     total += sum;
+00186   \}));
+00187   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; i++) \{
+00188     threads.emplace\_back(\textcolor{keyword}{new} std::thread([&q, &total]() \{
+00189       \textcolor{keywordtype}{int} sum = 0;
+00190       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 1; j < kEvents; j++) \{
+00191         \textcolor{keywordflow}{if} (q.PushBack(j) == 0) \{
+00192           sum += j;
+00193           \textcolor{keywordflow}{continue};
+00194         \}
+00195         EIGEN\_THREAD\_YIELD();
+00196         j--;
+00197       \}
+00198       total += sum;
+00199     \}));
+00200     threads.emplace\_back(\textcolor{keyword}{new} std::thread([&q, &total]() \{
+00201       \textcolor{keywordtype}{int} sum = 0;
+00202       std::vector<int> stolen;
+00203       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 1; j < kEvents;) \{
+00204         \textcolor{keywordflow}{if} (q.PopBackHalf(&stolen) == 0) \{
+00205           EIGEN\_THREAD\_YIELD();
+00206           \textcolor{keywordflow}{continue};
+00207         \}
+00208         \textcolor{keywordflow}{while} (stolen.size() && j < kEvents) \{
+00209           \textcolor{keywordtype}{int} v = stolen.back();
+00210           stolen.pop\_back();
+00211           VERIFY\_IS\_NOT\_EQUAL(v, 0);
+00212           sum += v;
+00213           j++;
+00214         \}
+00215       \}
+00216       \textcolor{keywordflow}{while} (stolen.size()) \{
+00217         \textcolor{keywordtype}{int} v = stolen.back();
+00218         stolen.pop\_back();
+00219         VERIFY\_IS\_NOT\_EQUAL(v, 0);
+00220         \textcolor{keywordflow}{while} ((v = q.PushBack(v)) != 0) EIGEN\_THREAD\_YIELD();
+00221       \}
+00222       total -= sum;
+00223     \}));
+00224   \}
+00225   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < threads.size(); i++) threads[i]->join();
+00226   VERIFY(q.Empty());
+00227   VERIFY(total.load() == 0);
+00228 \}
+00229 
+00230 \textcolor{keywordtype}{void} test\_cxx11\_runqueue()
+00231 \{
+00232   CALL\_SUBTEST\_1(test\_basic\_runqueue());
+00233   CALL\_SUBTEST\_2(test\_empty\_runqueue());
+00234   CALL\_SUBTEST\_3(test\_stress\_runqueue());
+00235 \}
+\end{DoxyCode}

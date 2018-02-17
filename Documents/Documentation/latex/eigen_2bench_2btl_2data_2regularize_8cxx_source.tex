@@ -1,0 +1,133 @@
+\hypertarget{eigen_2bench_2btl_2data_2regularize_8cxx_source}{}\section{eigen/bench/btl/data/regularize.cxx}
+\label{eigen_2bench_2btl_2data_2regularize_8cxx_source}\index{regularize.\+cxx@{regularize.\+cxx}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{//=====================================================}
+00002 \textcolor{comment}{// File   :  regularize.cxx}
+00003 \textcolor{comment}{// Author :  L. Plagne <laurent.plagne@edf.fr)>        }
+00004 \textcolor{comment}{// Copyright (C) EDF R&D,  lun sep 30 14:23:15 CEST 2002}
+00005 \textcolor{comment}{//=====================================================}
+00006 \textcolor{comment}{// }
+00007 \textcolor{comment}{// This program is free software; you can redistribute it and/or}
+00008 \textcolor{comment}{// modify it under the terms of the GNU General Public License}
+00009 \textcolor{comment}{// as published by the Free Software Foundation; either version 2}
+00010 \textcolor{comment}{// of the License, or (at your option) any later version.}
+00011 \textcolor{comment}{// }
+00012 \textcolor{comment}{// This program is distributed in the hope that it will be useful,}
+00013 \textcolor{comment}{// but WITHOUT ANY WARRANTY; without even the implied warranty of}
+00014 \textcolor{comment}{// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the}
+00015 \textcolor{comment}{// GNU General Public License for more details.}
+00016 \textcolor{comment}{// You should have received a copy of the GNU General Public License}
+00017 \textcolor{comment}{// along with this program; if not, write to the Free Software}
+00018 \textcolor{comment}{// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.}
+00019 \textcolor{comment}{// }
+00020 \textcolor{preprocessor}{#include "utilities.h"}
+00021 \textcolor{preprocessor}{#include <vector>}
+00022 \textcolor{preprocessor}{#include <string>}
+00023 \textcolor{preprocessor}{#include <iostream>}
+00024 \textcolor{preprocessor}{#include <fstream>}
+00025 \textcolor{preprocessor}{#include "bench\_parameter.hh"}
+00026 \textcolor{preprocessor}{#include <set>}
+00027 
+00028 \textcolor{keyword}{using namespace }\hyperlink{namespacestd}{std};
+00029 
+00030 \textcolor{keywordtype}{void} read\_xy\_file(\textcolor{keyword}{const} \textcolor{keywordtype}{string} & filename, vector<int> & tab\_sizes, vector<double> & tab\_mflops);
+00031 \textcolor{keywordtype}{void} regularize\_curve(\textcolor{keyword}{const} \textcolor{keywordtype}{string} & filename,
+00032               \textcolor{keyword}{const} vector<double> & tab\_mflops, 
+00033               \textcolor{keyword}{const} vector<int> & tab\_sizes, 
+00034               \textcolor{keywordtype}{int} start\_cut\_size, \textcolor{keywordtype}{int} stop\_cut\_size);
+00036 
+00037 \textcolor{keywordtype}{int} main( \textcolor{keywordtype}{int} argc , \textcolor{keywordtype}{char} *argv[] )
+00038 \{
+00039 
+00040   \textcolor{comment}{// input data}
+00041 
+00042   \textcolor{keywordflow}{if} (argc<4)\{
+00043     INFOS(\textcolor{stringliteral}{"!!! Error ... usage : main filename start\_cut\_size stop\_cut\_size regularize\_filename"});
+00044     exit(0);
+00045   \}
+00046   INFOS(argc);
+00047 
+00048   \textcolor{keywordtype}{int} start\_cut\_size=atoi(argv[2]);
+00049   \textcolor{keywordtype}{int} stop\_cut\_size=atoi(argv[3]);
+00050 
+00051   \textcolor{keywordtype}{string} filename=argv[1];
+00052   \textcolor{keywordtype}{string} regularize\_filename=argv[4];
+00053   
+00054   INFOS(filename);
+00055   INFOS(\textcolor{stringliteral}{"start\_cut\_size="}<<start\_cut\_size);
+00056 
+00057   vector<int> tab\_sizes;
+00058   vector<double> tab\_mflops;
+00059 
+00060   read\_xy\_file(filename,tab\_sizes,tab\_mflops);
+00061 
+00062   \textcolor{comment}{// regularizeing}
+00063 
+00064   regularize\_curve(regularize\_filename,tab\_mflops,tab\_sizes,start\_cut\_size,stop\_cut\_size);
+00065   
+00066 
+00067 \}
+00068 
+00070 
+00071 \textcolor{keywordtype}{void} regularize\_curve(\textcolor{keyword}{const} \textcolor{keywordtype}{string} & filename,
+00072               \textcolor{keyword}{const} vector<double> & tab\_mflops, 
+00073               \textcolor{keyword}{const} vector<int> & tab\_sizes, 
+00074               \textcolor{keywordtype}{int} start\_cut\_size, \textcolor{keywordtype}{int} stop\_cut\_size)
+00075 \{
+00076   \textcolor{keywordtype}{int} size=tab\_mflops.size();
+00077   ofstream output\_file (filename.c\_str(),ios::out) ;
+00078 
+00079   \textcolor{keywordtype}{int} i=0;
+00080 
+00081   \textcolor{keywordflow}{while}(tab\_sizes[i]<start\_cut\_size)\{
+00082     
+00083     output\_file << tab\_sizes[i] << \textcolor{stringliteral}{" "} <<  tab\_mflops[i] << endl ;
+00084     i++;
+00085 
+00086   \}
+00087     
+00088   output\_file << endl ;
+00089 
+00090   \textcolor{keywordflow}{while}(tab\_sizes[i]<stop\_cut\_size)\{
+00091     
+00092     i++;
+00093 
+00094   \}
+00095 
+00096   \textcolor{keywordflow}{while}(i<size)\{
+00097     
+00098     output\_file << tab\_sizes[i] << \textcolor{stringliteral}{" "} <<  tab\_mflops[i] << endl ;
+00099     i++;
+00100 
+00101   \}
+00102 
+00103   output\_file.close();
+00104 
+00105 \}
+00106 
+00108 
+00109 \textcolor{keywordtype}{void} read\_xy\_file(\textcolor{keyword}{const} \textcolor{keywordtype}{string} & filename, vector<int> & tab\_sizes, vector<double> & tab\_mflops)\{
+00110 
+00111   ifstream input\_file (filename.c\_str(),ios::in) ;
+00112 
+00113   \textcolor{keywordflow}{if} (!input\_file)\{
+00114     INFOS(\textcolor{stringliteral}{"!!! Error opening "}<<filename);
+00115     exit(0);
+00116   \}
+00117   
+00118   \textcolor{keywordtype}{int} nb\_point=0;
+00119   \textcolor{keywordtype}{int} size=0;
+00120   \textcolor{keywordtype}{double} mflops=0;
+00121 
+00122   \textcolor{keywordflow}{while} (input\_file >> size >> mflops )\{
+00123     nb\_point++;
+00124     tab\_sizes.push\_back(size);
+00125     tab\_mflops.push\_back(mflops);
+00126   \}
+00127   SCRUTE(nb\_point);
+00128 
+00129   input\_file.close();
+00130 \}
+00131 
+\end{DoxyCode}

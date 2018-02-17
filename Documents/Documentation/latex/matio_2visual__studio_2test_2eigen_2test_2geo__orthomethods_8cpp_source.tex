@@ -1,0 +1,141 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2geo__orthomethods_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/geo\+\_\+orthomethods.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2geo__orthomethods_8cpp_source}\index{geo\+\_\+orthomethods.\+cpp@{geo\+\_\+orthomethods.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 \textcolor{preprocessor}{#include <Eigen/Geometry>}
+00012 \textcolor{preprocessor}{#include <Eigen/LU>}
+00013 \textcolor{preprocessor}{#include <Eigen/SVD>}
+00014 
+00015 \textcolor{comment}{/* this test covers the following files:}
+00016 \textcolor{comment}{   Geometry/OrthoMethods.h}
+00017 \textcolor{comment}{*/}
+00018 
+00019 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keywordtype}{void} orthomethods\_3()
+00020 \{
+00021   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00022   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,3,3>} Matrix3;
+00023   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,3,1>} Vector3;
+00024 
+00025   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,4,1>} Vector4;
+00026 
+00027   Vector3 v0 = Vector3::Random(),
+00028           v1 = Vector3::Random(),
+00029           v2 = Vector3::Random();
+00030 
+00031   \textcolor{comment}{// cross product}
+00032   VERIFY\_IS\_MUCH\_SMALLER\_THAN(v1.cross(v2).dot(v1), Scalar(1));
+00033   VERIFY\_IS\_MUCH\_SMALLER\_THAN(v1.dot(v1.cross(v2)), Scalar(1));
+00034   VERIFY\_IS\_MUCH\_SMALLER\_THAN(v1.cross(v2).dot(v2), Scalar(1));
+00035   VERIFY\_IS\_MUCH\_SMALLER\_THAN(v2.dot(v1.cross(v2)), Scalar(1));
+00036   VERIFY\_IS\_MUCH\_SMALLER\_THAN(v1.cross(Vector3::Random()).dot(v1), Scalar(1));
+00037   Matrix3 mat3;
+00038   mat3 << v0.normalized(),
+00039          (v0.cross(v1)).normalized(),
+00040          (v0.cross(v1).cross(v0)).normalized();
+00041   VERIFY(mat3.isUnitary());
+00042   
+00043   mat3.setRandom();
+00044   VERIFY\_IS\_APPROX(v0.cross(mat3*v1), -(mat3*v1).cross(v0));
+00045   VERIFY\_IS\_APPROX(v0.cross(mat3.lazyProduct(v1)), -(mat3.lazyProduct(v1)).cross(v0));
+00046 
+00047   \textcolor{comment}{// colwise/rowwise cross product}
+00048   mat3.setRandom();
+00049   Vector3 vec3 = Vector3::Random();
+00050   Matrix3 mcross;
+00051   \textcolor{keywordtype}{int} i = internal::random<int>(0,2);
+00052   mcross = mat3.colwise().cross(vec3);
+00053   VERIFY\_IS\_APPROX(mcross.col(i), mat3.col(i).cross(vec3));
+00054   
+00055   VERIFY\_IS\_MUCH\_SMALLER\_THAN((mat3.adjoint() * mat3.colwise().cross(vec3)).diagonal().cwiseAbs().sum(), 
+      Scalar(1));
+00056   VERIFY\_IS\_MUCH\_SMALLER\_THAN((mat3.adjoint() * mat3.colwise().cross(Vector3::Random())).diagonal().
+      cwiseAbs().sum(), Scalar(1));
+00057   
+00058   VERIFY\_IS\_MUCH\_SMALLER\_THAN((vec3.adjoint() * mat3.colwise().cross(vec3)).cwiseAbs().sum(), Scalar(1));
+00059   VERIFY\_IS\_MUCH\_SMALLER\_THAN((vec3.adjoint() * Matrix3::Random().colwise().cross(vec3)).cwiseAbs().sum(), 
+      Scalar(1));
+00060   
+00061   mcross = mat3.rowwise().cross(vec3);
+00062   VERIFY\_IS\_APPROX(mcross.row(i), mat3.row(i).cross(vec3));
+00063 
+00064   \textcolor{comment}{// cross3}
+00065   Vector4 v40 = Vector4::Random(),
+00066           v41 = Vector4::Random(),
+00067           v42 = Vector4::Random();
+00068   v40.w() = v41.w() = v42.w() = 0;
+00069   v42.template head<3>() = v40.template head<3>().cross(v41.template head<3>());
+00070   VERIFY\_IS\_APPROX(v40.cross3(v41), v42);
+00071   VERIFY\_IS\_MUCH\_SMALLER\_THAN(v40.cross3(Vector4::Random()).dot(v40), Scalar(1));
+00072   
+00073   \textcolor{comment}{// check mixed product}
+00074   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<RealScalar, 3, 1>} RealVector3;
+00075   RealVector3 rv1 = RealVector3::Random();
+00076   VERIFY\_IS\_APPROX(v1.cross(rv1.template cast<Scalar>()), v1.cross(rv1));
+00077   VERIFY\_IS\_APPROX(rv1.template cast<Scalar>().cross(v1), rv1.cross(v1));
+00078 \}
+00079 
+00080 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{int} Size> \textcolor{keywordtype}{void} orthomethods(\textcolor{keywordtype}{int} size=Size)
+00081 \{
+00082   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00083   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Size,1>} \hyperlink{struct_vector_type}{VectorType};
+00084   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,3,Size>} Matrix3N;
+00085   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Size,3>} MatrixN3;
+00086   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,3,1>} Vector3;
+00087 
+00088   VectorType v0 = VectorType::Random(size);
+00089 
+00090   \textcolor{comment}{// unitOrthogonal}
+00091   VERIFY\_IS\_MUCH\_SMALLER\_THAN(v0.unitOrthogonal().dot(v0), Scalar(1));
+00092   VERIFY\_IS\_APPROX(v0.unitOrthogonal().norm(), RealScalar(1));
+00093 
+00094   \textcolor{keywordflow}{if} (size>=3)
+00095   \{
+00096     v0.template head<2>().setZero();
+00097     v0.tail(size-2).setRandom();
+00098 
+00099     VERIFY\_IS\_MUCH\_SMALLER\_THAN(v0.unitOrthogonal().dot(v0), Scalar(1));
+00100     VERIFY\_IS\_APPROX(v0.unitOrthogonal().norm(), RealScalar(1));
+00101   \}
+00102 
+00103   \textcolor{comment}{// colwise/rowwise cross product}
+00104   Vector3 vec3 = Vector3::Random();
+00105   \textcolor{keywordtype}{int} i = internal::random<int>(0,size-1);
+00106 
+00107   Matrix3N mat3N(3,size), mcross3N(3,size);
+00108   mat3N.setRandom();
+00109   mcross3N = mat3N.colwise().cross(vec3);
+00110   VERIFY\_IS\_APPROX(mcross3N.col(i), mat3N.col(i).cross(vec3));
+00111 
+00112   MatrixN3 matN3(size,3), mcrossN3(size,3);
+00113   matN3.setRandom();
+00114   mcrossN3 = matN3.rowwise().cross(vec3);
+00115   VERIFY\_IS\_APPROX(mcrossN3.row(i), matN3.row(i).cross(vec3));
+00116 \}
+00117 
+00118 \textcolor{keywordtype}{void} test\_geo\_orthomethods()
+00119 \{
+00120   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00121     CALL\_SUBTEST\_1( orthomethods\_3<float>() );
+00122     CALL\_SUBTEST\_2( orthomethods\_3<double>() );
+00123     CALL\_SUBTEST\_4( orthomethods\_3<std::complex<double> >() );
+00124     CALL\_SUBTEST\_1( (orthomethods<float,2>()) );
+00125     CALL\_SUBTEST\_2( (orthomethods<double,2>()) );
+00126     CALL\_SUBTEST\_1( (orthomethods<float,3>()) );
+00127     CALL\_SUBTEST\_2( (orthomethods<double,3>()) );
+00128     CALL\_SUBTEST\_3( (orthomethods<float,7>()) );
+00129     CALL\_SUBTEST\_4( (orthomethods<std::complex<double>,8>()) );
+00130     CALL\_SUBTEST\_5( (orthomethods<float,Dynamic>(36)) );
+00131     CALL\_SUBTEST\_6( (orthomethods<double,Dynamic>(35)) );
+00132   \}
+00133 \}
+\end{DoxyCode}

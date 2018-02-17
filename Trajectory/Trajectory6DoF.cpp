@@ -1,67 +1,106 @@
 #include "Trajectory6DoF.h"
 
-Trajectory6Dof::Trajectory6Dof()
+Trajectory6Dof::Trajectory6Dof() 
 {
-	/*
-	engine = new Engine;
-	aerodynamics = new Aerodynamics;
-	airframe = new Airframe*/
+	
+	airframe = new Airframe;
+	guidance = new Guidance;
+	autopilot = new Autopilot;
 
 }
 
 Trajectory6Dof::~Trajectory6Dof()
 {
 }
-/*
-void Trajectory6Dof::initTrajectory(AerodynamicStruct & AeroData,
-	AirframeStruct & AirframeData,
-	ThrustStruct & ThrustData,
-	AircraftStruct &AircraftData,
-	AutopilotStruct & AutopilotData,
-	GuidanceStruct & GuidanceData)
+
+void Trajectory6Dof::initTrajectory(Float64 FlightTime, 
+									AerodynamicStruct & AeroData,
+									AirframeStruct & AirframeData,
+									ThrustStruct & ThrustData,
+									AircraftStruct &AircraftData,
+									GuidanceStruct & GuidanceData,
+									NavigationStruct &NavData,
+									ActuatorStruct &ActuatorData,
+									IMUStruct &IMUData)
 {
-	airframe->initAirframe(AircraftData,
-		AirframeData);
-
-	engine->initEngine(ThrustData,
-		AircraftData);
-
-	aerodynamics->initAerodynamic(AeroData,
-		AircraftData);
-
-	std::cout << "init 3Dof Trajectory" << std::endl;
+	initTrajectory6Dof(FlightTime,
+						AeroData,
+						AirframeData,
+						ThrustData,
+						AircraftData,
+						GuidanceData,
+						NavData);
 }
 
-void Trajectory6Dof::updateTrajectory(Float64 FlightTime,
-	AtmosphereStruct & AtmoData,
-	AerodynamicStruct & AeroData,
-	AirframeStruct & AirframeData,
-	ThrustStruct & ThrustData,
-	AutopilotStruct & AutopilotData,
-	GuidanceStruct & GuidanceData)
+
+void Trajectory6Dof::initTrajectory6Dof(Float64 FlightTime, 
+									AerodynamicStruct & AeroData,
+									AirframeStruct & AirframeData,
+									ThrustStruct & ThrustData,
+									AircraftStruct &AircraftData,
+									GuidanceStruct & GuidanceData,
+									NavigationStruct &NavData)
+{
+	initTrajectory3DoF(FlightTime,
+						AeroData,
+						AirframeData,
+						ThrustData,
+						AircraftData);
+
+	autopilot->initAutopilot();
+
+	guidance->initGuidance();
+	
+}
+
+void Trajectory6Dof::updateTrajectory(Float64 FlightTime, 
+									  AtmosphereStruct & AtmoData,
+									  AerodynamicStruct & AeroData, 
+									  AirframeStruct & AirframeData, 
+									  ThrustStruct & ThrustData, 
+									  GuidanceStruct & GuidanceData, 
+									  NavigationStruct & NavData, 
+									  ActuatorStruct & ActuatorData, 
+									  IMUStruct & IMUData)
 {
 
+	updateTrajectory6Dof(FlightTime,
+						AtmoData,
+						AeroData,
+						AirframeData,
+						ThrustData,
+						GuidanceData,
+						NavData);
+}
 
-	aerodynamics->updateAerodynamic(FlightTime,
-									AtmoData,
-									AeroData,
-									AirframeData,
-									ThrustData);
+void Trajectory6Dof::updateTrajectory6Dof(Float64 FlightTime,
+										AtmosphereStruct & AtmoData,
+										AerodynamicStruct & AeroData,
+										AirframeStruct & AirframeData,
+										ThrustStruct & ThrustData,
+										GuidanceStruct & GuidanceData,
+										NavigationStruct &NavData)
+{
 
-	engine->updateEngine(FlightTime,
+	updateTrajectory3DoF(FlightTime,
 						AtmoData,
 						AeroData,
 						AirframeData,
 						ThrustData);
 
-	airframe->updateTranslational(AeroData,
-									ThrustData,
-									AirframeData);
-
 	airframe->updateRotational(AeroData,
 								ThrustData,
 								AirframeData);
 
+	guidance->updateGuidance(FlightTime,
+							AeroData,
+							ThrustData,
+							AirframeData,
+							GuidanceData);
+
+	autopilot->updateAutopilot();
+
+
 
 }
-*/
+

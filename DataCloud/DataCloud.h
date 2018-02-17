@@ -166,17 +166,21 @@ struct AircraftStruct {
 * @param Kx_lat 	control parameters for lateral movement
 */
 struct AutopilotStruct {
-	Float64 Alt;
-	Float64 Vel;
-	Eigen::VectorXd u_bar;
-	Eigen::VectorXd x_bar;
-	Eigen::VectorXd Kx_pitch;
-	Float64 Ke_pitch;
-	Float64 Kv_pitch;
-	Float64 Kx_Vel;
-	Float64 Ke_Vel;
-	Eigen::MatrixXd Kx_lat;
-	Eigen::MatrixXd Ke_lat;
+	AutopilotStruct() {}
+		Float64 Alt;
+		Float64 Vel;
+		Eigen::VectorXd AltVec;
+		Eigen::VectorXd VelVec;
+		Eigen::VectorXd u_bar;
+		Eigen::VectorXd x_bar;
+		Eigen::VectorXd Kx_pitch;
+		Float64 Ke_pitch;
+		Float64 Kv_pitch;
+		Float64 Kx_Vel;
+		Float64 Ke_Vel;
+		Eigen::MatrixXd Kx_lat;
+		Eigen::MatrixXd Ke_lat;
+		Eigen::VectorXd Phi_blending;
 };
 
 /**
@@ -210,6 +214,21 @@ struct NavigationStruct
 
 struct ActuatorStruct
 {
+	Float64 realEta;
+	Float64 realXi;
+	Float64 realZeta;
+};
+
+struct SimDPreference
+{
+	int ActuatorMode;
+	int AeroMode;
+	int AutopilotMode;
+	int EngineMode;
+	int GPSMode;
+	int GuidanceMode;
+	int NavMode;
+	int Trajectory;
 
 };
 

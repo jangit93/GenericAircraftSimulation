@@ -1,0 +1,232 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2bench_2sparse__cholesky_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/bench/sparse\+\_\+cholesky.cpp}
+\label{matio_2visual__studio_2test_2eigen_2bench_2sparse__cholesky_8cpp_source}\index{sparse\+\_\+cholesky.\+cpp@{sparse\+\_\+cholesky.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// #define EIGEN\_TAUCS\_SUPPORT}
+00002 \textcolor{comment}{// #define EIGEN\_CHOLMOD\_SUPPORT}
+00003 \textcolor{preprocessor}{#include <iostream>}
+00004 \textcolor{preprocessor}{#include <Eigen/Sparse>}
+00005 
+00006 \textcolor{comment}{// g++ -DSIZE=10000 -DDENSITY=0.001  sparse\_cholesky.cpp -I.. -DDENSEMATRI -O3 -g0 -DNDEBUG   -DNBTRIES=1
+       -I /home/gael/Coding/LinearAlgebra/taucs\_full/src/ -I/home/gael/Coding/LinearAlgebra/taucs\_full/build/linux/ 
+       -L/home/gael/Coding/LinearAlgebra/taucs\_full/lib/linux/ -ltaucs
+       /home/gael/Coding/LinearAlgebra/GotoBLAS/libgoto.a -lpthread -I /home/gael/Coding/LinearAlgebra/SuiteSparse/CHOLMOD/Include/ $CHOLLIB -I
+       /home/gael/Coding/LinearAlgebra/SuiteSparse/UFconfig/ /home/gael/Coding/LinearAlgebra/SuiteSparse/CCOLAMD/Lib/libccolamd.a
+         /home/gael/Coding/LinearAlgebra/SuiteSparse/CHOLMOD/Lib/libcholmod.a -lmetis
+       /home/gael/Coding/LinearAlgebra/SuiteSparse/AMD/Lib/libamd.a  /home/gael/Coding/LinearAlgebra/SuiteSparse/CAMD/Lib/libcamd.a  
+       /home/gael/Coding/LinearAlgebra/SuiteSparse/CCOLAMD/Lib/libccolamd.a 
+       /home/gael/Coding/LinearAlgebra/SuiteSparse/COLAMD/Lib/libcolamd.a -llapack && ./a.out}
+00007 
+00008 \textcolor{preprocessor}{#define NOGMM}
+00009 \textcolor{preprocessor}{#define NOMTL}
+00010 
+00011 \textcolor{preprocessor}{#ifndef SIZE}
+00012 \textcolor{preprocessor}{#define SIZE 10}
+00013 \textcolor{preprocessor}{#endif}
+00014 
+00015 \textcolor{preprocessor}{#ifndef DENSITY}
+00016 \textcolor{preprocessor}{#define DENSITY 0.01}
+00017 \textcolor{preprocessor}{#endif}
+00018 
+00019 \textcolor{preprocessor}{#ifndef REPEAT}
+00020 \textcolor{preprocessor}{#define REPEAT 1}
+00021 \textcolor{preprocessor}{#endif}
+00022 
+00023 \textcolor{preprocessor}{#include "BenchSparseUtil.h"}
+00024 
+00025 \textcolor{preprocessor}{#ifndef MINDENSITY}
+00026 \textcolor{preprocessor}{#define MINDENSITY 0.0004}
+00027 \textcolor{preprocessor}{#endif}
+00028 
+00029 \textcolor{preprocessor}{#ifndef NBTRIES}
+00030 \textcolor{preprocessor}{#define NBTRIES 10}
+00031 \textcolor{preprocessor}{#endif}
+00032 
+00033 \textcolor{preprocessor}{#define BENCH(X) \(\backslash\)}
+00034 \textcolor{preprocessor}{  timer.reset(); \(\backslash\)}
+00035 \textcolor{preprocessor}{  for (int \_j=0; \_j<NBTRIES; ++\_j) \{ \(\backslash\)}
+00036 \textcolor{preprocessor}{    timer.start(); \(\backslash\)}
+00037 \textcolor{preprocessor}{    for (int \_k=0; \_k<REPEAT; ++\_k) \{ \(\backslash\)}
+00038 \textcolor{preprocessor}{        X  \(\backslash\)}
+00039 \textcolor{preprocessor}{  \} timer.stop(); \}}
+00040 
+00041 \textcolor{comment}{// typedef SparseMatrix<Scalar,UpperTriangular> EigenSparseTriMatrix;}
+00042 \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix}{SparseMatrix<Scalar,SelfAdjoint|LowerTriangular>} 
+      \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix}{EigenSparseSelfAdjointMatrix};
+00043 
+00044 \textcolor{keywordtype}{void} fillSpdMatrix(\textcolor{keywordtype}{float} density, \textcolor{keywordtype}{int} rows, \textcolor{keywordtype}{int} cols,  
+      \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix}{EigenSparseSelfAdjointMatrix}& dst)
+00045 \{
+00046   dst.startFill(rows*cols*density);
+00047   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j = 0; j < cols; j++)
+00048   \{
+00049     dst.fill(j,j) = internal::random<Scalar>(10,20);
+00050     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = j+1; i < rows; i++)
+00051     \{
+00052       Scalar v = (internal::random<float>(0,1) < density) ? internal::random<Scalar>() : 0;
+00053       \textcolor{keywordflow}{if} (v!=0)
+00054         dst.fill(i,j) = v;
+00055     \}
+00056 
+00057   \}
+00058   dst.endFill();
+00059 \}
+00060 
+00061 \textcolor{preprocessor}{#include <Eigen/Cholesky>}
+00062 
+00063 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Backend>
+00064 \textcolor{keywordtype}{void} doEigen(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* name, \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix}{EigenSparseSelfAdjointMatrix}& sm1, \textcolor{keywordtype}{int} 
+      flags = 0)
+00065 \{
+00066   std::cout << name << \textcolor{stringliteral}{"..."} << std::flush;
+00067   \hyperlink{class_eigen_1_1_bench_timer}{BenchTimer} timer;
+00068   timer.start();
+00069   SparseLLT<EigenSparseSelfAdjointMatrix,Backend> chol(sm1, flags);
+00070   timer.stop();
+00071   std::cout << \textcolor{stringliteral}{":\(\backslash\)t"} << timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << endl;
+00072 
+00073   std::cout << \textcolor{stringliteral}{"  nnz: "} << sm1.\hyperlink{group___sparse_core___module_a03de8b3da2c142ce8698a76123b3e7d3}{nonZeros}() << \textcolor{stringliteral}{" => "} << chol.matrixL().nonZeros() << \textcolor{stringliteral}{"\(\backslash\)n"};
+00074 \textcolor{comment}{//   std::cout << "sparse\(\backslash\)n" << chol.matrixL() << "%\(\backslash\)n";}
+00075 \}
+00076 
+00077 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])
+00078 \{
+00079   \textcolor{keywordtype}{int} rows = SIZE;
+00080   \textcolor{keywordtype}{int} cols = SIZE;
+00081   \textcolor{keywordtype}{float} density = DENSITY;
+00082   \hyperlink{class_eigen_1_1_bench_timer}{BenchTimer} timer;
+00083 
+00084   VectorXf b = VectorXf::Random(cols);
+00085   VectorXf x = VectorXf::Random(cols);
+00086 
+00087   \textcolor{keywordtype}{bool} densedone = \textcolor{keyword}{false};
+00088 
+00089   \textcolor{comment}{//for (float density = DENSITY; density>=MINDENSITY; density*=0.5)}
+00090 \textcolor{comment}{//   float density = 0.5;}
+00091   \{
+00092     \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix}{EigenSparseSelfAdjointMatrix} sm1(rows, cols);
+00093     std::cout << \textcolor{stringliteral}{"Generate sparse matrix (might take a while)...\(\backslash\)n"};
+00094     fillSpdMatrix(density, rows, cols, sm1);
+00095     std::cout << \textcolor{stringliteral}{"DONE\(\backslash\)n\(\backslash\)n"};
+00096 
+00097     \textcolor{comment}{// dense matrices}
+00098 \textcolor{preprocessor}{    #ifdef DENSEMATRIX}
+00099     \textcolor{keywordflow}{if} (!densedone)
+00100     \{
+00101       densedone = \textcolor{keyword}{true};
+00102       std::cout << \textcolor{stringliteral}{"Eigen Dense\(\backslash\)t"} << density*100 << \textcolor{stringliteral}{"%\(\backslash\)n"};
+00103       \hyperlink{group___core___module}{DenseMatrix} m1(rows,cols);
+00104       eiToDense(sm1, m1);
+00105       m1 = (m1 + m1.transpose()).eval();
+00106       m1.diagonal() *= 0.5;
+00107 
+00108 \textcolor{comment}{//       BENCH(LLT<DenseMatrix> chol(m1);)}
+00109 \textcolor{comment}{//       std::cout << "dense:\(\backslash\)t" << timer.value() << endl;}
+00110 
+00111       \hyperlink{class_eigen_1_1_bench_timer}{BenchTimer} timer;
+00112       timer.start();
+00113       \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT<DenseMatrix>} chol(m1);
+00114       timer.stop();
+00115       std::cout << \textcolor{stringliteral}{"dense:\(\backslash\)t"} << timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << endl;
+00116       \textcolor{keywordtype}{int} count = 0;
+00117       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<cols; ++j)
+00118         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=j; i<rows; ++i)
+00119           \textcolor{keywordflow}{if} (!internal::isMuchSmallerThan(internal::abs(chol.matrixL()(i,j)), 0.1))
+00120             count++;
+00121       std::cout << \textcolor{stringliteral}{"dense: "} << \textcolor{stringliteral}{"nnz = "} << count << \textcolor{stringliteral}{"\(\backslash\)n"};
+00122 \textcolor{comment}{//       std::cout << "dense:\(\backslash\)n" << m1 << "\(\backslash\)n\(\backslash\)n" << chol.matrixL() << endl;}
+00123     \}
+00124 \textcolor{preprocessor}{    #endif}
+00125 
+00126     \textcolor{comment}{// eigen sparse matrices}
+00127     doEigen<Eigen::DefaultBackend>(\textcolor{stringliteral}{"Eigen/Sparse"}, sm1, Eigen::IncompleteFactorization);
+00128 
+00129 \textcolor{preprocessor}{    #ifdef EIGEN\_CHOLMOD\_SUPPORT}
+00130     doEigen<Eigen::Cholmod>(\textcolor{stringliteral}{"Eigen/Cholmod"}, sm1, Eigen::IncompleteFactorization);
+00131 \textcolor{preprocessor}{    #endif}
+00132 
+00133 \textcolor{preprocessor}{    #ifdef EIGEN\_TAUCS\_SUPPORT}
+00134     doEigen<Eigen::Taucs>(\textcolor{stringliteral}{"Eigen/Taucs"}, sm1, Eigen::IncompleteFactorization);
+00135 \textcolor{preprocessor}{    #endif}
+00136 
+00137 \textcolor{preprocessor}{    #if 0}
+00138     \textcolor{comment}{// TAUCS}
+00139     \{
+00140       taucs\_ccs\_matrix \hyperlink{group___core___module_class_eigen_1_1_matrix}{A} = sm1.asTaucsMatrix();
+00141 
+00142       \textcolor{comment}{//BENCH(taucs\_ccs\_matrix* chol = taucs\_ccs\_factor\_llt(&A, 0, 0);)}
+00143 \textcolor{comment}{//       BENCH(taucs\_supernodal\_factor\_to\_ccs(taucs\_ccs\_factor\_llt\_ll(&A));)}
+00144 \textcolor{comment}{//       std::cout << "taucs:\(\backslash\)t" << timer.value() << endl;}
+00145 
+00146       taucs\_ccs\_matrix* chol = taucs\_ccs\_factor\_llt(&A, 0, 0);
+00147 
+00148       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<cols; ++j)
+00149       \{
+00150         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=chol->colptr[j]; i<chol->colptr[j+1]; ++i)
+00151           std::cout << chol->values.d[i] << \textcolor{stringliteral}{" "};
+00152       \}
+00153     \}
+00154 
+00155     \textcolor{comment}{// CHOLMOD}
+00156 \textcolor{preprocessor}{    #ifdef EIGEN\_CHOLMOD\_SUPPORT}
+00157     \{
+00158       cholmod\_common c;
+00159       cholmod\_start (&c);
+00160       cholmod\_sparse A;
+00161       cholmod\_factor *L;
+00162 
+00163       A = sm1.asCholmodMatrix();
+00164       \hyperlink{class_eigen_1_1_bench_timer}{BenchTimer} timer;
+00165 \textcolor{comment}{//       timer.reset();}
+00166       timer.start();
+00167       std::vector<int> perm(cols);
+00168 \textcolor{comment}{//       std::vector<int> set(ncols);}
+00169       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<cols; ++i)
+00170         perm[i] = i;
+00171 \textcolor{comment}{//       c.nmethods = 1;}
+00172 \textcolor{comment}{//       c.method[0] = 1;}
+00173 
+00174       c.nmethods = 1;
+00175       c.method [0].ordering = CHOLMOD\_NATURAL;
+00176       c.postorder = 0;
+00177       c.final\_ll = 1;
+00178 
+00179       L = cholmod\_analyze\_p(&A, &perm[0], &perm[0], cols, &c);
+00180       timer.stop();
+00181       std::cout << \textcolor{stringliteral}{"cholmod/analyze:\(\backslash\)t"} << timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << endl;
+00182       timer.reset();
+00183       timer.start();
+00184       cholmod\_factorize(&A, L, &c);
+00185       timer.stop();
+00186       std::cout << \textcolor{stringliteral}{"cholmod/factorize:\(\backslash\)t"} << timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << endl;
+00187 
+00188       cholmod\_sparse* cholmat = cholmod\_factor\_to\_sparse(L, &c);
+00189 
+00190       cholmod\_print\_factor(L, \textcolor{stringliteral}{"Factors"}, &c);
+00191 
+00192       cholmod\_print\_sparse(cholmat, \textcolor{stringliteral}{"Chol"}, &c);
+00193       cholmod\_write\_sparse(stdout, cholmat, 0, 0, &c);
+00194 \textcolor{comment}{//}
+00195 \textcolor{comment}{//       cholmod\_print\_sparse(&A, "A", &c);}
+00196 \textcolor{comment}{//       cholmod\_write\_sparse(stdout, &A, 0, 0, &c);}
+00197 
+00198 
+00199 \textcolor{comment}{//       for (int j=0; j<cols; ++j)}
+00200 \textcolor{comment}{//       \{}
+00201 \textcolor{comment}{//           for (int i=chol->colptr[j]; i<chol->colptr[j+1]; ++i)}
+00202 \textcolor{comment}{//             std::cout << chol->values.s[i] << " ";}
+00203 \textcolor{comment}{//       \}}
+00204     \}
+00205 \textcolor{preprocessor}{    #endif}
+00206 
+00207 \textcolor{preprocessor}{    #endif}
+00208 
+00209 
+00210 
+00211   \}
+00212 
+00213 
+00214   \textcolor{keywordflow}{return} 0;
+00215 \}
+00216 
+\end{DoxyCode}

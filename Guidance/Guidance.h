@@ -20,10 +20,8 @@ public:
 
 	void updateGuidance(Float64 FlightTime, 
 						AerodynamicStruct & AeroData, 
-						ThrustStruct & ThrustData, 
-						AircraftStruct & AircraftData, 
+						ThrustStruct & ThrustData,
 						AirframeStruct & AirframeData, 
-						AtmosphereStruct & AtmosphereData,
 						GuidanceStruct & GuidanceData);
 
 

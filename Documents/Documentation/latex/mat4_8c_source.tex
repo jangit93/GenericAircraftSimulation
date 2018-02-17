@@ -1,0 +1,866 @@
+\hypertarget{mat4_8c_source}{}\section{mat4.\+c}
+\label{mat4_8c_source}\index{mat4.\+c@{mat4.\+c}}
+
+\begin{DoxyCode}
+00001 
+00005 \textcolor{comment}{/*}
+00006 \textcolor{comment}{ * Copyright (c) 2005-2018, Christopher C. Hulbert}
+00007 \textcolor{comment}{ * All rights reserved.}
+00008 \textcolor{comment}{ *}
+00009 \textcolor{comment}{ * Redistribution and use in source and binary forms, with or without}
+00010 \textcolor{comment}{ * modification, are permitted provided that the following conditions are met:}
+00011 \textcolor{comment}{ *}
+00012 \textcolor{comment}{ * 1. Redistributions of source code must retain the above copyright notice, this}
+00013 \textcolor{comment}{ *    list of conditions and the following disclaimer.}
+00014 \textcolor{comment}{ *}
+00015 \textcolor{comment}{ * 2. Redistributions in binary form must reproduce the above copyright notice,}
+00016 \textcolor{comment}{ *    this list of conditions and the following disclaimer in the documentation}
+00017 \textcolor{comment}{ *    and/or other materials provided with the distribution.}
+00018 \textcolor{comment}{ *}
+00019 \textcolor{comment}{ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"}
+00020 \textcolor{comment}{ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE}
+00021 \textcolor{comment}{ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE}
+00022 \textcolor{comment}{ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE}
+00023 \textcolor{comment}{ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL}
+00024 \textcolor{comment}{ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR}
+00025 \textcolor{comment}{ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER}
+00026 \textcolor{comment}{ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,}
+00027 \textcolor{comment}{ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}
+00028 \textcolor{comment}{ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}
+00029 \textcolor{comment}{ */}
+00030 
+00031 \textcolor{preprocessor}{#include <stdlib.h>}
+00032 \textcolor{preprocessor}{#include <string.h>}
+00033 \textcolor{preprocessor}{#include <stdio.h>}
+00034 \textcolor{preprocessor}{#include <math.h>}
+00035 \textcolor{preprocessor}{#include <limits.h>}
+00036 \textcolor{preprocessor}{#if defined(\_\_GLIBC\_\_)}
+00037 \textcolor{preprocessor}{#include <endian.h>}
+00038 \textcolor{preprocessor}{#endif}
+00039 \textcolor{preprocessor}{#include "matio\_private.h"}
+00040 \textcolor{preprocessor}{#include "mat4.h"}
+00041 
+00052 \hyperlink{struct__mat__t}{mat\_t} *
+\Hypertarget{mat4_8c_source_l00053}\hyperlink{mat4_8c_aa819b0bf76cab52a202742dd4102c18d}{00053} \hyperlink{mat4_8c_aa819b0bf76cab52a202742dd4102c18d}{Mat\_Create4}(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* matname)
+00054 \{
+00055     FILE *fp;
+00056     \hyperlink{struct__mat__t}{mat\_t} *mat = NULL;
+00057 
+00058     fp = fopen(matname,\textcolor{stringliteral}{"w+b"});
+00059     \textcolor{keywordflow}{if} ( !fp )
+00060         \textcolor{keywordflow}{return} NULL;
+00061 
+00062     mat = (\hyperlink{struct__mat__t}{mat\_t}*)malloc(\textcolor{keyword}{sizeof}(*mat));
+00063     \textcolor{keywordflow}{if} ( NULL == mat ) \{
+00064         fclose(fp);
+00065         \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Couldn't allocate memory for the MAT file"});
+00066         \textcolor{keywordflow}{return} NULL;
+00067     \}
+00068 
+00069     mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp}            = fp;
+00070     mat->\hyperlink{struct__mat__t_a5ed5d0e4e3c4d76b626a8a1772d579c4}{header}        = NULL;
+00071     mat->\hyperlink{struct__mat__t_a19317c01209959d755d69311960d3eec}{subsys\_offset} = NULL;
+00072     mat->\hyperlink{struct__mat__t_a340b191598135edd03b6dec847f0b1b1}{filename}      = \hyperlink{group__mat__util_ga291b08f933c75fb70e3736b669896ebd}{strdup\_printf}(\textcolor{stringliteral}{"%s"},matname);
+00073     mat->\hyperlink{struct__mat__t_a729c2bc0afc97485057a5af425635b1a}{version}       = \hyperlink{group___m_a_t_ggad03442b8378999189d510e3745c702b7a858b4f5da65548219b1c3ad47aa478d3}{MAT\_FT\_MAT4};
+00074     mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap}      = 0;
+00075     mat->\hyperlink{struct__mat__t_aa43288b63b8edb7cadf0b79e2d1df2ee}{mode}          = 0;
+00076     mat->\hyperlink{struct__mat__t_a0f87794a6113bd568fe591953e20ddf3}{bof}           = 0;
+00077     mat->\hyperlink{struct__mat__t_a0163a12f9735356723bb604992639d9e}{next\_index}    = 0;
+00078     mat->\hyperlink{struct__mat__t_af37d0ba323e65edb27ecd5a2f766a3a4}{num\_datasets}  = 0;
+00079 \textcolor{preprocessor}{#if defined(MAT73) && MAT73}
+00080     mat->refs\_id       = -1;
+00081 \textcolor{preprocessor}{#endif}
+00082     mat->\hyperlink{struct__mat__t_a1bc6c604459d0787801d5e53d365684c}{dir}           = NULL;
+00083 
+00084     \hyperlink{group___m_a_t_ga4d6e3892d2e216c507a744ba0e070d0b}{Mat\_Rewind}(mat);
+00085 
+00086     \textcolor{keywordflow}{return} mat;
+00087 \}
+00088 
+00098 \textcolor{keywordtype}{int}
+\Hypertarget{mat4_8c_source_l00099}\hyperlink{mat4_8c_aa19d44f9375c3f316de3c288642b42c3}{00099} \hyperlink{mat4_8c_aa19d44f9375c3f316de3c288642b42c3}{Mat\_VarWrite4}(\hyperlink{struct__mat__t}{mat\_t} *mat,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar)
+00100 \{
+00101     \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\{
+00102         mat\_int32\_t type;
+00103         mat\_int32\_t mrows;
+00104         mat\_int32\_t ncols;
+00105         mat\_int32\_t imagf;
+00106         mat\_int32\_t namelen;
+00107     \} Fmatrix;
+00108 
+00109     mat\_int32\_t nmemb = 1, i;
+00110     Fmatrix x;
+00111 
+00112     \textcolor{keywordflow}{if} ( NULL == mat || NULL == matvar || NULL == matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name} || matvar->
+      \hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} != 2 )
+00113         \textcolor{keywordflow}{return} -1;
+00114 
+00115     \textcolor{keywordflow}{switch} ( matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type} ) \{
+00116         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a31e721ecf7e188196f83c32838288797}{MAT\_T\_DOUBLE}:
+00117             x.type = 0;
+00118             \textcolor{keywordflow}{break};
+00119         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a3a3657d40e9212c923d9b9d03531b64c}{MAT\_T\_SINGLE}:
+00120             x.type = 10;
+00121             \textcolor{keywordflow}{break};
+00122         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a83e06a68320726c6572bfbb9f3addb1d}{MAT\_T\_INT32}:
+00123             x.type = 20;
+00124             \textcolor{keywordflow}{break};
+00125         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a8c5b2e381946e95ea8d81ac216743302}{MAT\_T\_INT16}:
+00126             x.type = 30;
+00127             \textcolor{keywordflow}{break};
+00128         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a05bc7af7680aa68be95126ae0a4c2e31}{MAT\_T\_UINT16}:
+00129             x.type = 40;
+00130             \textcolor{keywordflow}{break};
+00131         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a01c1bd7db68f90552862eb5d311be408}{MAT\_T\_UINT8}:
+00132             x.type = 50;
+00133             \textcolor{keywordflow}{break};
+00134         \textcolor{keywordflow}{default}:
+00135             \textcolor{keywordflow}{return} 2;
+00136     \}
+00137 
+00138 \textcolor{preprocessor}{#if defined(\_\_GLIBC\_\_)}
+00139 \textcolor{preprocessor}{#if (\_\_BYTE\_ORDER == \_\_LITTLE\_ENDIAN)}
+00140 \textcolor{preprocessor}{#elif (\_\_BYTE\_ORDER == \_\_BIG\_ENDIAN)}
+00141     x.type += 1000;
+00142 \textcolor{preprocessor}{#else}
+00143     \textcolor{keywordflow}{return} -1;
+00144 \textcolor{preprocessor}{#endif}
+00145 \textcolor{preprocessor}{#elif defined(\_BIG\_ENDIAN) && !defined(\_LITTLE\_ENDIAN)}
+00146     x.type += 1000;
+00147 \textcolor{preprocessor}{#elif defined(\_LITTLE\_ENDIAN) && !defined(\_BIG\_ENDIAN)}
+00148 \textcolor{preprocessor}{#elif defined(\_\_sparc) || defined(\_\_sparc\_\_) || defined(\_POWER) || defined(\_\_powerpc\_\_) || \(\backslash\)}
+00149 \textcolor{preprocessor}{      defined(\_\_ppc\_\_) || defined(\_\_hpux) || defined(\_MIPSEB) || defined(\_POWER) || defined(\_\_s390\_\_)}
+00150     x.type += 1000;
+00151 \textcolor{preprocessor}{#elif defined(\_\_i386\_\_) || defined(\_\_alpha\_\_) || defined(\_\_ia64) || defined(\_\_ia64\_\_) || \(\backslash\)}
+00152 \textcolor{preprocessor}{      defined(\_M\_IX86) || defined(\_M\_IA64) || defined(\_M\_ALPHA) || defined(\_\_amd64) || \(\backslash\)}
+00153 \textcolor{preprocessor}{      defined(\_\_amd64\_\_) || defined(\_M\_AMD64) || defined(\_\_x86\_64) || defined(\_\_x86\_64\_\_) || \(\backslash\)}
+00154 \textcolor{preprocessor}{      defined(\_M\_X64) || defined(\_\_bfin\_\_)}
+00155 \textcolor{preprocessor}{#else}
+00156     \textcolor{keywordflow}{return} -1;
+00157 \textcolor{preprocessor}{#endif}
+00158 
+00159     x.namelen = (mat\_int32\_t)strlen(matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name}) + 1;
+00160 
+00161     \textcolor{comment}{/* FIXME: SEEK\_END is not Guaranteed by the C standard */}
+00162     (void)fseek((FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp},0,SEEK\_END);         \textcolor{comment}{/* Always write at end of file */}
+00163 
+00164     \textcolor{keywordflow}{switch} ( matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} ) \{
+00165         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40aacdec5834df0861130b393697646119c}{MAT\_C\_CHAR}:
+00166             x.type++;
+00167             \textcolor{comment}{/* Fall through */}
+00168         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5d70e0862e5bdb7bd86bf7ba5948f307}{MAT\_C\_DOUBLE}:
+00169         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2825631e26a961cbe0f79db50a39cea2}{MAT\_C\_SINGLE}:
+00170         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40adb44fc39694e3152ae5e69470a2fefe8}{MAT\_C\_INT32}:
+00171         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a40370e9de516c5036a67a5865c071006}{MAT\_C\_INT16}:
+00172         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a8bede21dbf6c1edc0bbccc1481bccae7}{MAT\_C\_UINT16}:
+00173         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a81270f8093cb4808e992c1d29d84d4e3}{MAT\_C\_UINT8}:
+00174             \textcolor{keywordflow}{for} ( i = 0; i < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; i++ ) \{
+00175                 mat\_int32\_t dim;
+00176                 dim = (mat\_int32\_t)matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[i];
+00177                 nmemb *= dim;
+00178             \}
+00179 
+00180             x.mrows = (mat\_int32\_t)matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0];
+00181             x.ncols = (mat\_int32\_t)matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[1];
+00182             x.imagf = matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} ? 1 : 0;
+00183             fwrite(&x, \textcolor{keyword}{sizeof}(Fmatrix), 1, (FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00184             fwrite(matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name}, \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{char}), x.namelen, (FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00185             \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} ) \{
+00186                 \hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t} *complex\_data;
+00187 
+00188                 complex\_data = (\hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t}*)matvar->
+      \hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data};
+00189                 fwrite(complex\_data->\hyperlink{group___m_a_t_a484a93607508adac2bce53a0252e0325}{Re}, matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size}, nmemb, (FILE*)mat->
+      \hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00190                 fwrite(complex\_data->\hyperlink{group___m_a_t_a7182d10b0d3598415887376065440946}{Im}, matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size}, nmemb, (FILE*)mat->
+      \hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00191             \}
+00192             \textcolor{keywordflow}{else} \{
+00193                 fwrite(matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data}, matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size}, nmemb, (FILE*)mat->
+      \hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00194             \}
+00195             \textcolor{keywordflow}{break};
+00196         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a0d5655b7e6178a2242cb3bb56ff4c8d2}{MAT\_C\_SPARSE}:
+00197         \{
+00198             \hyperlink{group___m_a_t_structmat__sparse__t}{mat\_sparse\_t}* sparse;
+00199             \textcolor{keywordtype}{double} tmp;
+00200             \textcolor{keywordtype}{int} i, j;
+00201             \textcolor{keywordtype}{size\_t} stride = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type});
+00202 \textcolor{preprocessor}{#if !defined(EXTENDED\_SPARSE)}
+00203             \textcolor{keywordflow}{if} ( \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a31e721ecf7e188196f83c32838288797}{MAT\_T\_DOUBLE} != matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type} )
+00204                 \textcolor{keywordflow}{break};
+00205 \textcolor{preprocessor}{#endif}
+00206 
+00207             sparse = (\hyperlink{group___m_a_t_structmat__sparse__t}{mat\_sparse\_t}*)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data};
+00208             x.type += 2;
+00209             x.mrows = sparse->\hyperlink{group___m_a_t_a482d8e4b40aa975f0c1daf146ebe08a4}{njc} > 0 ? sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc}[sparse->\hyperlink{group___m_a_t_a482d8e4b40aa975f0c1daf146ebe08a4}{njc} - 1] + 1 : 1;
+00210             x.ncols = matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} ? 4 : 3;
+00211             x.imagf = 0;
+00212 
+00213             fwrite(&x, \textcolor{keyword}{sizeof}(Fmatrix), 1, (FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00214             fwrite(matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name}, \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{char}), x.namelen, (FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00215 
+00216             \textcolor{keywordflow}{for} ( i = 0; i < sparse->\hyperlink{group___m_a_t_a482d8e4b40aa975f0c1daf146ebe08a4}{njc} - 1; i++ ) \{
+00217                 \textcolor{keywordflow}{for} ( j = sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc}[i];
+00218                       j < sparse->jc[i + 1] && j < sparse->ndata; j++ ) \{
+00219                     tmp = sparse->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir}[j] + 1;
+00220                     fwrite(&tmp, \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{double}), 1, (FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00221                 \}
+00222             \}
+00223             tmp = matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0];
+00224             fwrite(&tmp, \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{double}), 1, (FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00225             \textcolor{keywordflow}{for} ( i = 0; i < sparse->\hyperlink{group___m_a_t_a482d8e4b40aa975f0c1daf146ebe08a4}{njc} - 1; i++ ) \{
+00226                 \textcolor{keywordflow}{for} ( j = sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc}[i];
+00227                       j < sparse->jc[i + 1] && j < sparse->ndata; j++ ) \{
+00228                     tmp = i + 1;
+00229                     fwrite(&tmp, \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{double}), 1, (FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00230                 \}
+00231             \}
+00232             tmp = matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[1];
+00233             fwrite(&tmp, \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{double}), 1, (FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00234             tmp = 0.;
+00235             \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} ) \{
+00236                 \hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t} *complex\_data;
+00237                 \textcolor{keywordtype}{char}* re, *im;
+00238 
+00239                 complex\_data = (\hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t}*)sparse->
+      \hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data};
+00240                 re = (\textcolor{keywordtype}{char}*)complex\_data->\hyperlink{group___m_a_t_a484a93607508adac2bce53a0252e0325}{Re};
+00241                 im = (\textcolor{keywordtype}{char}*)complex\_data->\hyperlink{group___m_a_t_a7182d10b0d3598415887376065440946}{Im};
+00242                 for ( i = 0; i < sparse->\hyperlink{group___m_a_t_a482d8e4b40aa975f0c1daf146ebe08a4}{njc} - 1; i++ ) \{
+00243                     \textcolor{keywordflow}{for} ( j = sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc}[i];
+00244                           j < sparse->jc[i + 1] && j < sparse->ndata; j++ ) \{
+00245                         fwrite(re + j*stride, stride, 1, (FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00246                     \}
+00247                 \}
+00248                 fwrite(&tmp, stride, 1, (FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00249                 \textcolor{keywordflow}{for} ( i = 0; i < sparse->\hyperlink{group___m_a_t_a482d8e4b40aa975f0c1daf146ebe08a4}{njc} - 1; i++ ) \{
+00250                     \textcolor{keywordflow}{for} ( j = sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc}[i];
+00251                           j < sparse->jc[i + 1] && j < sparse->ndata; j++ ) \{
+00252                         fwrite(im + j*stride, stride, 1, (FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00253                     \}
+00254                 \}
+00255             \} \textcolor{keywordflow}{else} \{
+00256                 \textcolor{keywordtype}{char} *data = (\textcolor{keywordtype}{char}*)sparse->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data};
+00257                 for ( i = 0; i < sparse->\hyperlink{group___m_a_t_a482d8e4b40aa975f0c1daf146ebe08a4}{njc} - 1; i++ ) \{
+00258                     \textcolor{keywordflow}{for} ( j = sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc}[i];
+00259                           j < sparse->jc[i + 1] && j < sparse->ndata; j++ ) \{
+00260                         fwrite(data + j*stride, stride, 1, (FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00261                     \}
+00262                 \}
+00263             \}
+00264             fwrite(&tmp, stride, 1, (FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00265             \textcolor{keywordflow}{break};
+00266         \}
+00267         \textcolor{keywordflow}{default}:
+00268             \textcolor{keywordflow}{break};
+00269     \}
+00270 
+00271     \textcolor{keywordflow}{return} 0;
+00272 \}
+00273 
+00282 \textcolor{keywordtype}{void}
+\Hypertarget{mat4_8c_source_l00283}\hyperlink{mat4_8c_a48f37c81ddb08c15bd949ccd31a8aee9}{00283} \hyperlink{mat4_8c_a48f37c81ddb08c15bd949ccd31a8aee9}{Read4}(\hyperlink{struct__mat__t}{mat\_t} *mat,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar)
+00284 \{
+00285     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} N;
+00286 
+00287     (void)fseek((FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp},matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_afd3bfaab126a160bd6855563e1ea0a7e}{datapos},SEEK\_SET);
+00288 
+00289     N = matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0]*matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[1];
+00290     \textcolor{keywordflow}{switch} ( matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} ) \{
+00291         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5d70e0862e5bdb7bd86bf7ba5948f307}{MAT\_C\_DOUBLE}:
+00292             matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size} = \textcolor{keyword}{sizeof}(double);
+00293             matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes}    = N*matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size};
+00294             \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} ) \{
+00295                 \hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t} *complex\_data = ComplexMalloc(matvar->
+      \hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes});
+00296                 \textcolor{keywordflow}{if} ( NULL != complex\_data ) \{
+00297                     matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = complex\_data;
+00298                     ReadDoubleData(mat, (\textcolor{keywordtype}{double}*)complex\_data->\hyperlink{group___m_a_t_a484a93607508adac2bce53a0252e0325}{Re}, matvar->
+      \hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type}, N);
+00299                     ReadDoubleData(mat, (\textcolor{keywordtype}{double}*)complex\_data->\hyperlink{group___m_a_t_a7182d10b0d3598415887376065440946}{Im}, matvar->
+      \hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type}, N);
+00300                 \}
+00301                 \textcolor{keywordflow}{else} \{
+00302                     \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Memory allocation failure"});
+00303                 \}
+00304             \} \textcolor{keywordflow}{else} \{
+00305                 matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = malloc(matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes});
+00306                 \textcolor{keywordflow}{if} ( NULL != matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} ) \{
+00307                     ReadDoubleData(mat, (\textcolor{keywordtype}{double}*)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data}, matvar->
+      \hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type}, N);
+00308                 \}
+00309                 \textcolor{keywordflow}{else} \{
+00310                     \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Memory allocation failure"});
+00311                 \}
+00312             \}
+00313             \textcolor{comment}{/* Update data type to match format of matvar->data */}
+00314             matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type} = \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a31e721ecf7e188196f83c32838288797}{MAT\_T\_DOUBLE};
+00315             \textcolor{keywordflow}{break};
+00316         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40aacdec5834df0861130b393697646119c}{MAT\_C\_CHAR}:
+00317             matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size} = 1;
+00318             matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes} = N;
+00319             matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = malloc(matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes});
+00320             \textcolor{keywordflow}{if} ( NULL != matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} ) \{
+00321                 ReadUInt8Data(mat,(mat\_uint8\_t*)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data},matvar->
+      \hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type},N);
+00322             \}
+00323             \textcolor{keywordflow}{else} \{
+00324                 \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Memory allocation failure"});
+00325             \}
+00326             matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type} = \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a01c1bd7db68f90552862eb5d311be408}{MAT\_T\_UINT8};
+00327             \textcolor{keywordflow}{break};
+00328         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a0d5655b7e6178a2242cb3bb56ff4c8d2}{MAT\_C\_SPARSE}:
+00329             matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size} = \textcolor{keyword}{sizeof}(\hyperlink{group___m_a_t_gad1332d0eb4faa5a99377919f84b77baf}{mat\_sparse\_t});
+00330             matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data}      = malloc(matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size});
+00331             \textcolor{keywordflow}{if} ( NULL != matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} ) \{
+00332                 \textcolor{keywordtype}{double} tmp;
+00333                 \textcolor{keywordtype}{int} i;
+00334                 \hyperlink{group___m_a_t_structmat__sparse__t}{mat\_sparse\_t}* sparse;
+00335                 \textcolor{keywordtype}{long} fpos;
+00336                 \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type = \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a31e721ecf7e188196f83c32838288797}{MAT\_T\_DOUBLE};
+00337 
+00338                 \textcolor{comment}{/* matvar->dims[1] either is 3 for real or 4 for complex sparse */}
+00339                 matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} = matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[1] == 4 ? 1 : 0;
+00340                 sparse = (\hyperlink{group___m_a_t_structmat__sparse__t}{mat\_sparse\_t}*)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data};
+00341                 sparse->\hyperlink{group___m_a_t_aa64636ad57cf87f7a28ff5018437a850}{nir} = matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0] - 1;
+00342                 sparse->\hyperlink{group___m_a_t_ad79471861cb948e32671be6d4089173a}{nzmax} = sparse->\hyperlink{group___m_a_t_aa64636ad57cf87f7a28ff5018437a850}{nir};
+00343                 sparse->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir} = (mat\_int32\_t*)malloc(sparse->\hyperlink{group___m_a_t_aa64636ad57cf87f7a28ff5018437a850}{nir}*\textcolor{keyword}{sizeof}(mat\_int32\_t));
+00344                 \textcolor{keywordflow}{if} ( sparse->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir} != NULL ) \{
+00345                     ReadInt32Data(mat, sparse->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir}, data\_type, sparse->\hyperlink{group___m_a_t_aa64636ad57cf87f7a28ff5018437a850}{nir});
+00346                     \textcolor{keywordflow}{for} ( i = 0; i < sparse->\hyperlink{group___m_a_t_aa64636ad57cf87f7a28ff5018437a850}{nir}; i++ )
+00347                         sparse->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir}[i] = sparse->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir}[i] - 1;
+00348                 \} \textcolor{keywordflow}{else} \{
+00349                     free(matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data});
+00350                     matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = NULL;
+00351                     \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Memory allocation failure"});
+00352                     \textcolor{keywordflow}{return};
+00353                 \}
+00354                 ReadDoubleData(mat, &tmp, data\_type, 1);
+00355                 matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0] = (size\_t)tmp;
+00356 
+00357                 fpos = ftell((FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00358                 \textcolor{keywordflow}{if} ( fpos == -1L ) \{
+00359                     free(sparse->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir});
+00360                     free(matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data});
+00361                     matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = NULL;
+00362                     \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Couldn't determine file position"});
+00363                     \textcolor{keywordflow}{return};
+00364                 \}
+00365                 (void)fseek((FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp},sparse->\hyperlink{group___m_a_t_aa64636ad57cf87f7a28ff5018437a850}{nir}*\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type),
+00366                     SEEK\_CUR);
+00367                 ReadDoubleData(mat, &tmp, data\_type, 1);
+00368                 \textcolor{keywordflow}{if} ( tmp > INT\_MAX-1 || tmp < 0 ) \{
+00369                     free(sparse->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir});
+00370                     free(matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data});
+00371                     matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = NULL;
+00372                     \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Invalid column dimension for sparse matrix"});
+00373                     \textcolor{keywordflow}{return};
+00374                 \}
+00375                 matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[1] = tmp < 0 ? 0 : ( tmp > INT\_MAX-1 ? INT\_MAX-1 : (size\_t)tmp );
+00376                 (void)fseek((FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp},fpos,SEEK\_SET);
+00377                 \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[1] > INT\_MAX-1 ) \{
+00378                     free(sparse->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir});
+00379                     free(matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data});
+00380                     matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = NULL;
+00381                     \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Invalid column dimension for sparse matrix"});
+00382                     \textcolor{keywordflow}{return};
+00383                 \}
+00384                 sparse->\hyperlink{group___m_a_t_a482d8e4b40aa975f0c1daf146ebe08a4}{njc} = (int)matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[1] + 1;
+00385                 sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc} = (mat\_int32\_t*)malloc(sparse->\hyperlink{group___m_a_t_a482d8e4b40aa975f0c1daf146ebe08a4}{njc}*\textcolor{keyword}{sizeof}(mat\_int32\_t));
+00386                 \textcolor{keywordflow}{if} ( sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc} != NULL ) \{
+00387                     mat\_int32\_t *jc;
+00388                     jc = (mat\_int32\_t*)malloc(sparse->\hyperlink{group___m_a_t_aa64636ad57cf87f7a28ff5018437a850}{nir}*\textcolor{keyword}{sizeof}(mat\_int32\_t));
+00389                     \textcolor{keywordflow}{if} ( jc != NULL ) \{
+00390                         \textcolor{keywordtype}{int} j = 0;
+00391                         sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc}[0] = 0;
+00392                         ReadInt32Data(mat, jc, data\_type, sparse->\hyperlink{group___m_a_t_aa64636ad57cf87f7a28ff5018437a850}{nir});
+00393                         \textcolor{keywordflow}{for} ( i = 1; i < sparse->\hyperlink{group___m_a_t_a482d8e4b40aa975f0c1daf146ebe08a4}{njc}-1; i++ ) \{
+00394                             \textcolor{keywordflow}{while} ( j < sparse->nir && jc[j] <= i )
+00395                                 j++;
+00396                             sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc}[i] = j;
+00397                         \}
+00398                         free(jc);
+00399                         \textcolor{comment}{/* terminating nnz */}
+00400                         sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc}[sparse->\hyperlink{group___m_a_t_a482d8e4b40aa975f0c1daf146ebe08a4}{njc}-1] = sparse->\hyperlink{group___m_a_t_aa64636ad57cf87f7a28ff5018437a850}{nir};
+00401                     \} \textcolor{keywordflow}{else} \{
+00402                         free(sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc});
+00403                         free(sparse->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir});
+00404                         free(matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data});
+00405                         matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = NULL;
+00406                         \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Memory allocation failure"});
+00407                         \textcolor{keywordflow}{return};
+00408                     \}
+00409                 \} \textcolor{keywordflow}{else} \{
+00410                     free(sparse->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir});
+00411                     free(matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data});
+00412                     matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = NULL;
+00413                     \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Memory allocation failure"});
+00414                     \textcolor{keywordflow}{return};
+00415                 \}
+00416                 ReadDoubleData(mat, &tmp, data\_type, 1);
+00417                 sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata} = sparse->\hyperlink{group___m_a_t_aa64636ad57cf87f7a28ff5018437a850}{nir};
+00418                 data\_type = matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type};
+00419                 \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} ) \{
+00420                     \hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t} *complex\_data =
+00421                         ComplexMalloc(sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata}*\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type));
+00422                     \textcolor{keywordflow}{if} ( NULL != complex\_data ) \{
+00423                         sparse->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data} = complex\_data;
+00424 \textcolor{preprocessor}{#if defined(EXTENDED\_SPARSE)}
+00425                         \textcolor{keywordflow}{switch} ( data\_type ) \{
+00426                             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a31e721ecf7e188196f83c32838288797}{MAT\_T\_DOUBLE}:
+00427                                 ReadDoubleData(mat, (\textcolor{keywordtype}{double}*)complex\_data->\hyperlink{group___m_a_t_a484a93607508adac2bce53a0252e0325}{Re},
+00428                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00429                                 ReadDoubleData(mat, &tmp, data\_type, 1);
+00430                                 ReadDoubleData(mat, (\textcolor{keywordtype}{double}*)complex\_data->\hyperlink{group___m_a_t_a7182d10b0d3598415887376065440946}{Im},
+00431                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00432                                 ReadDoubleData(mat, &tmp, data\_type, 1);
+00433                                 \textcolor{keywordflow}{break};
+00434                             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a3a3657d40e9212c923d9b9d03531b64c}{MAT\_T\_SINGLE}:
+00435                             \{
+00436                                 \textcolor{keywordtype}{float} tmp2;
+00437                                 ReadSingleData(mat, (\textcolor{keywordtype}{float}*)complex\_data->\hyperlink{group___m_a_t_a484a93607508adac2bce53a0252e0325}{Re},
+00438                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00439                                 ReadSingleData(mat, &tmp2, data\_type, 1);
+00440                                 ReadSingleData(mat, (\textcolor{keywordtype}{float}*)complex\_data->\hyperlink{group___m_a_t_a7182d10b0d3598415887376065440946}{Im},
+00441                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00442                                 ReadSingleData(mat, &tmp2, data\_type, 1);
+00443                                 \textcolor{keywordflow}{break};
+00444                             \}
+00445                             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a83e06a68320726c6572bfbb9f3addb1d}{MAT\_T\_INT32}:
+00446                             \{
+00447                                 mat\_int32\_t tmp2;
+00448                                 ReadInt32Data(mat, (mat\_int32\_t*)complex\_data->
+      \hyperlink{group___m_a_t_a484a93607508adac2bce53a0252e0325}{Re},
+00449                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00450                                 ReadInt32Data(mat, &tmp2, data\_type, 1);
+00451                                 ReadInt32Data(mat, (mat\_int32\_t*)complex\_data->
+      \hyperlink{group___m_a_t_a7182d10b0d3598415887376065440946}{Im},
+00452                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00453                                 ReadInt32Data(mat, &tmp2, data\_type, 1);
+00454                                 \textcolor{keywordflow}{break};
+00455                             \}
+00456                             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a8c5b2e381946e95ea8d81ac216743302}{MAT\_T\_INT16}:
+00457                             \{
+00458                                 mat\_int16\_t tmp2;
+00459                                 ReadInt16Data(mat, (mat\_int16\_t*)complex\_data->
+      \hyperlink{group___m_a_t_a484a93607508adac2bce53a0252e0325}{Re},
+00460                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00461                                 ReadInt16Data(mat, &tmp2, data\_type, 1);
+00462                                 ReadInt16Data(mat, (mat\_int16\_t*)complex\_data->
+      \hyperlink{group___m_a_t_a7182d10b0d3598415887376065440946}{Im},
+00463                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00464                                 ReadInt16Data(mat, &tmp2, data\_type, 1);
+00465                                 \textcolor{keywordflow}{break};
+00466                             \}
+00467                             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a05bc7af7680aa68be95126ae0a4c2e31}{MAT\_T\_UINT16}:
+00468                             \{
+00469                                 mat\_uint16\_t tmp2;
+00470                                 ReadUInt16Data(mat, (mat\_uint16\_t*)complex\_data->
+      \hyperlink{group___m_a_t_a484a93607508adac2bce53a0252e0325}{Re},
+00471                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00472                                 ReadUInt16Data(mat, &tmp2, data\_type, 1);
+00473                                 ReadUInt16Data(mat, (mat\_uint16\_t*)complex\_data->
+      \hyperlink{group___m_a_t_a7182d10b0d3598415887376065440946}{Im},
+00474                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00475                                 ReadUInt16Data(mat, &tmp2, data\_type, 1);
+00476                                 \textcolor{keywordflow}{break};
+00477                             \}
+00478                             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a01c1bd7db68f90552862eb5d311be408}{MAT\_T\_UINT8}:
+00479                             \{
+00480                                 mat\_uint8\_t tmp2;
+00481                                 ReadUInt8Data(mat, (mat\_uint8\_t*)complex\_data->
+      \hyperlink{group___m_a_t_a484a93607508adac2bce53a0252e0325}{Re},
+00482                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00483                                 ReadUInt8Data(mat, &tmp2, data\_type, 1);
+00484                                 ReadUInt8Data(mat, (mat\_uint8\_t*)complex\_data->
+      \hyperlink{group___m_a_t_a7182d10b0d3598415887376065440946}{Im},
+00485                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00486                                 ReadUInt8Data(mat, &tmp2, data\_type, 1);
+00487                                 \textcolor{keywordflow}{break};
+00488                             \}
+00489                             \textcolor{keywordflow}{default}:
+00490                                 free(complex\_data->\hyperlink{group___m_a_t_a484a93607508adac2bce53a0252e0325}{Re});
+00491                                 free(complex\_data->\hyperlink{group___m_a_t_a7182d10b0d3598415887376065440946}{Im});
+00492                                 free(complex\_data);
+00493                                 free(sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc});
+00494                                 free(sparse->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir});
+00495                                 free(matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data});
+00496                                 matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = NULL;
+00497                                 \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Read4: %d is not a supported data type for "},
+00498                                     \textcolor{stringliteral}{"extended sparse"}, data\_type);
+00499                                 \textcolor{keywordflow}{return};
+00500                         \}
+00501 \textcolor{preprocessor}{#else}
+00502                         ReadDoubleData(mat, (\textcolor{keywordtype}{double}*)complex\_data->\hyperlink{group___m_a_t_a484a93607508adac2bce53a0252e0325}{Re},
+00503                             data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00504                         ReadDoubleData(mat, &tmp, data\_type, 1);
+00505                         ReadDoubleData(mat, (\textcolor{keywordtype}{double}*)complex\_data->\hyperlink{group___m_a_t_a7182d10b0d3598415887376065440946}{Im},
+00506                             data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00507                         ReadDoubleData(mat, &tmp, data\_type, 1);
+00508 \textcolor{preprocessor}{#endif}
+00509                     \}
+00510                     \textcolor{keywordflow}{else} \{
+00511                         free(sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc});
+00512                         free(sparse->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir});
+00513                         free(matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data});
+00514                         matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = NULL;
+00515                         \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Memory allocation failure"});
+00516                         \textcolor{keywordflow}{return};
+00517                     \}
+00518                 \} \textcolor{keywordflow}{else} \{
+00519                     sparse->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data} = malloc(sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata}*\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type));
+00520                     \textcolor{keywordflow}{if} ( sparse->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data} != NULL ) \{
+00521 \textcolor{preprocessor}{#if defined(EXTENDED\_SPARSE)}
+00522                         \textcolor{keywordflow}{switch} ( data\_type ) \{
+00523                             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a31e721ecf7e188196f83c32838288797}{MAT\_T\_DOUBLE}:
+00524                                 ReadDoubleData(mat, (\textcolor{keywordtype}{double}*)sparse->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data},
+00525                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00526                                 ReadDoubleData(mat, &tmp, data\_type, 1);
+00527                                 \textcolor{keywordflow}{break};
+00528                             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a3a3657d40e9212c923d9b9d03531b64c}{MAT\_T\_SINGLE}:
+00529                             \{
+00530                                 \textcolor{keywordtype}{float} tmp2;
+00531                                 ReadSingleData(mat, (\textcolor{keywordtype}{float}*)sparse->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data},
+00532                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00533                                 ReadSingleData(mat, &tmp2, data\_type, 1);
+00534                                 \textcolor{keywordflow}{break};
+00535                             \}
+00536                             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a83e06a68320726c6572bfbb9f3addb1d}{MAT\_T\_INT32}:
+00537                             \{
+00538                                 mat\_int32\_t tmp2;
+00539                                 ReadInt32Data(mat, (mat\_int32\_t*)sparse->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data},
+00540                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00541                                 ReadInt32Data(mat, &tmp2, data\_type, 1);
+00542                                 \textcolor{keywordflow}{break};
+00543                             \}
+00544                             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a8c5b2e381946e95ea8d81ac216743302}{MAT\_T\_INT16}:
+00545                             \{
+00546                                 mat\_int16\_t tmp2;
+00547                                 ReadInt16Data(mat, (mat\_int16\_t*)sparse->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data},
+00548                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00549                                 ReadInt16Data(mat, &tmp2, data\_type, 1);
+00550                                 \textcolor{keywordflow}{break};
+00551                             \}
+00552                             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a05bc7af7680aa68be95126ae0a4c2e31}{MAT\_T\_UINT16}:
+00553                             \{
+00554                                 mat\_uint16\_t tmp2;
+00555                                 ReadUInt16Data(mat, (mat\_uint16\_t*)sparse->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data},
+00556                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00557                                 ReadUInt16Data(mat, &tmp2, data\_type, 1);
+00558                                 \textcolor{keywordflow}{break};
+00559                             \}
+00560                             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a01c1bd7db68f90552862eb5d311be408}{MAT\_T\_UINT8}:
+00561                             \{
+00562                                 mat\_uint8\_t tmp2;
+00563                                 ReadUInt8Data(mat, (mat\_uint8\_t*)sparse->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data},
+00564                                     data\_type, sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00565                                 ReadUInt8Data(mat, &tmp2, data\_type, 1);
+00566                                 \textcolor{keywordflow}{break};
+00567                             \}
+00568                             \textcolor{keywordflow}{default}:
+00569                                 free(sparse->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data});
+00570                                 free(sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc});
+00571                                 free(sparse->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir});
+00572                                 free(matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data});
+00573                                 matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = NULL;
+00574                                 \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Read4: %d is not a supported data type for "},
+00575                                     \textcolor{stringliteral}{"extended sparse"}, data\_type);
+00576                                 \textcolor{keywordflow}{return};
+00577                         \}
+00578 \textcolor{preprocessor}{#else}
+00579                         ReadDoubleData(mat, (\textcolor{keywordtype}{double}*)sparse->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data}, data\_type, sparse->
+      \hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata});
+00580                         ReadDoubleData(mat, &tmp, data\_type, 1);
+00581 \textcolor{preprocessor}{#endif}
+00582                     \} \textcolor{keywordflow}{else} \{
+00583                         free(sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc});
+00584                         free(sparse->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir});
+00585                         free(matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data});
+00586                         matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = NULL;
+00587                         \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Memory allocation failure"});
+00588                         \textcolor{keywordflow}{return};
+00589                     \}
+00590                 \}
+00591                 \textcolor{keywordflow}{break};
+00592             \}
+00593             \textcolor{keywordflow}{else} \{
+00594                 \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Memory allocation failure"});
+00595                 \textcolor{keywordflow}{return};
+00596             \}
+00597         \textcolor{keywordflow}{default}:
+00598             \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"MAT V4 data type error"});
+00599             \textcolor{keywordflow}{return};
+00600     \}
+00601 
+00602     \textcolor{keywordflow}{return};
+00603 \}
+00604 
+00619 \textcolor{keywordtype}{int}
+\Hypertarget{mat4_8c_source_l00620}\hyperlink{mat4_8c_a6c3186af92bf92da475cd4142c325ba5}{00620} \hyperlink{mat4_8c_a6c3186af92bf92da475cd4142c325ba5}{ReadData4}(\hyperlink{struct__mat__t}{mat\_t} *mat,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keywordtype}{void} *data,
+00621       \textcolor{keywordtype}{int} *start,\textcolor{keywordtype}{int} *stride,\textcolor{keywordtype}{int} *edge)
+00622 \{
+00623     \textcolor{keywordtype}{int} err = 0;
+00624 
+00625     (void)fseek((FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp},matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_afd3bfaab126a160bd6855563e1ea0a7e}{datapos},SEEK\_SET);
+00626 
+00627     \textcolor{keywordflow}{switch}( matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type} ) \{
+00628         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a31e721ecf7e188196f83c32838288797}{MAT\_T\_DOUBLE}:
+00629         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a3a3657d40e9212c923d9b9d03531b64c}{MAT\_T\_SINGLE}:
+00630         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a83e06a68320726c6572bfbb9f3addb1d}{MAT\_T\_INT32}:
+00631         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a8c5b2e381946e95ea8d81ac216743302}{MAT\_T\_INT16}:
+00632         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a05bc7af7680aa68be95126ae0a4c2e31}{MAT\_T\_UINT16}:
+00633         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a01c1bd7db68f90552862eb5d311be408}{MAT\_T\_UINT8}:
+00634             \textcolor{keywordflow}{break};
+00635         \textcolor{keywordflow}{default}:
+00636             \textcolor{keywordflow}{return} 1;
+00637     \}
+00638 
+00639     \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} == 2 ) \{
+00640         \textcolor{keywordflow}{if} ( stride[0]*(edge[0]-1)+start[0]+1 > matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0] )
+00641             err = 1;
+00642         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( stride[1]*(edge[1]-1)+start[1]+1 > matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[1] )
+00643             err = 1;
+00644         \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} ) \{
+00645             \hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t} *cdata = (\hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t}*)data;
+00646             \textcolor{keywordtype}{long} nbytes = matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0]*matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[1]*\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(matvar->
+      \hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type});
+00647 
+00648             ReadDataSlab2(mat,cdata->\hyperlink{group___m_a_t_a484a93607508adac2bce53a0252e0325}{Re},matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type},matvar->
+      \hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type},
+00649                 matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims},start,stride,edge);
+00650             (void)fseek((FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp},matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_afd3bfaab126a160bd6855563e1ea0a7e}{datapos}+nbytes,SEEK\_SET);
+00651             ReadDataSlab2(mat,cdata->\hyperlink{group___m_a_t_a7182d10b0d3598415887376065440946}{Im},matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type},
+00652                 matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type},matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims},start,stride,edge);
+00653         \} \textcolor{keywordflow}{else} \{
+00654             ReadDataSlab2(mat,data,matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type},matvar->
+      \hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type},
+00655                 matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims},start,stride,edge);
+00656         \}
+00657     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} ) \{
+00658         \textcolor{keywordtype}{int} i;
+00659         \hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t} *cdata = (\hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t}*)data;
+00660         \textcolor{keywordtype}{long} nbytes = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type});
+00661 
+00662         \textcolor{keywordflow}{for} ( i = 0; i < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; i++ )
+00663             nbytes *= matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[i];
+00664 
+00665         ReadDataSlabN(mat,cdata->\hyperlink{group___m_a_t_a484a93607508adac2bce53a0252e0325}{Re},matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type},matvar->
+      \hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type},
+00666             matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank},matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims},start,stride,edge);
+00667         (void)fseek((FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp},matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_afd3bfaab126a160bd6855563e1ea0a7e}{datapos}+nbytes,SEEK\_SET);
+00668         ReadDataSlabN(mat,cdata->\hyperlink{group___m_a_t_a7182d10b0d3598415887376065440946}{Im},matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type},matvar->
+      \hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type},
+00669             matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank},matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims},start,stride,edge);
+00670     \} \textcolor{keywordflow}{else} \{
+00671         ReadDataSlabN(mat,data,matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type},matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type},
+00672             matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank},matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims},start,stride,edge);
+00673     \}
+00674 
+00675     \textcolor{keywordflow}{return} err;
+00676 \}
+00677 
+00691 \textcolor{keywordtype}{int}
+\Hypertarget{mat4_8c_source_l00692}\hyperlink{group___m_a_t_gab9f3d6b362bfa1fa92ed2afb8281cff4}{00692} \hyperlink{group___m_a_t_gab9f3d6b362bfa1fa92ed2afb8281cff4}{Mat\_VarReadDataLinear4}(\hyperlink{struct__mat__t}{mat\_t} *mat,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keywordtype}{void} *data,\textcolor{keywordtype}{int} start,
+00693                        \textcolor{keywordtype}{int} stride,\textcolor{keywordtype}{int} edge)
+00694 \{
+00695     \textcolor{keywordtype}{size\_t} i, nmemb = 1;
+00696     \textcolor{keywordtype}{int} err = 0;
+00697 
+00698     (void)fseek((FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp},matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_afd3bfaab126a160bd6855563e1ea0a7e}{datapos},SEEK\_SET);
+00699 
+00700     matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size} = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type});
+00701 
+00702     \textcolor{keywordflow}{for} ( i = 0; i < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; i++ )
+00703         nmemb *= matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[i];
+00704 
+00705     if ( stride*(edge-1)+start+1 > nmemb ) \{
+00706         \textcolor{keywordflow}{return} 1;
+00707     \}
+00708     \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} ) \{
+00709             \hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t} *complex\_data = (
+      \hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t}*)data;
+00710             \textcolor{keywordtype}{long} nbytes = nmemb*matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size};
+00711 
+00712             ReadDataSlab1(mat,complex\_data->\hyperlink{group___m_a_t_a484a93607508adac2bce53a0252e0325}{Re},matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type},
+00713                           matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type},start,stride,edge);
+00714             (void)fseek((FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp},matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_afd3bfaab126a160bd6855563e1ea0a7e}{datapos}+nbytes,SEEK\_SET);
+00715             ReadDataSlab1(mat,complex\_data->\hyperlink{group___m_a_t_a7182d10b0d3598415887376065440946}{Im},matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type},
+00716                           matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type},start,stride,edge);
+00717     \} \textcolor{keywordflow}{else} \{
+00718         ReadDataSlab1(mat,data,matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type},matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type},start,
+00719                       stride,edge);
+00720     \}
+00721 
+00722     \textcolor{keywordflow}{return} err;
+00723 \}
+00724 
+00733 \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *
+\Hypertarget{mat4_8c_source_l00734}\hyperlink{mat4_8c_a494a64be8f002874f2048687561f65d3}{00734} \hyperlink{mat4_8c_a494a64be8f002874f2048687561f65d3}{Mat\_VarReadNextInfo4}(\hyperlink{struct__mat__t}{mat\_t} *mat)
+00735 \{
+00736     \textcolor{keywordtype}{int}       tmp,\hyperlink{group___core___module_class_eigen_1_1_matrix}{M},O,data\_type,class\_type;
+00737     \textcolor{keywordtype}{long}      nBytes;
+00738     \textcolor{keywordtype}{size\_t}    err;
+00739     \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar = NULL;
+00740     \textcolor{keyword}{union }\{
+00741         mat\_uint32\_t u;
+00742         mat\_uint8\_t  c[4];
+00743     \} endian;
+00744 
+00745     \textcolor{keywordflow}{if} ( mat == NULL || mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL )
+00746         \textcolor{keywordflow}{return} NULL;
+00747     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( NULL == (matvar = \hyperlink{group___m_a_t_gae7c9c3699f6e9c31a9c490300013098c}{Mat\_VarCalloc}()) )
+00748         \textcolor{keywordflow}{return} NULL;
+00749 
+00750     err = fread(&tmp,\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}),1,(FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00751     \textcolor{keywordflow}{if} ( !err ) \{
+00752         \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+00753         \textcolor{keywordflow}{return} NULL;
+00754     \}
+00755 
+00756     endian.u = 0x01020304;
+00757 
+00758     \textcolor{comment}{/* See if MOPT may need byteswapping */}
+00759     \textcolor{keywordflow}{if} ( tmp < 0 || tmp > 4052 ) \{
+00760         \textcolor{keywordflow}{if} ( \hyperlink{endian_8c_a2e0153996243f0a34df9a5286087cfa3}{Mat\_int32Swap}(&tmp) > 4052 ) \{
+00761             \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+00762             \textcolor{keywordflow}{return} NULL;
+00763         \}
+00764     \}
+00765 
+00766     M = (int)floor(tmp / 1000.0);
+00767     tmp -= M*1000;
+00768     O = (int)floor(tmp / 100.0);
+00769     tmp -= O*100;
+00770     data\_type = (int)floor(tmp / 10.0);
+00771     tmp -= data\_type*10;
+00772     class\_type = (int)floor(tmp / 1.0);
+00773 
+00774     \textcolor{keywordflow}{switch} ( M ) \{
+00775         \textcolor{keywordflow}{case} 0:
+00776             \textcolor{comment}{/* IEEE little endian */}
+00777             mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} = (endian.c[0] != 4);
+00778             \textcolor{keywordflow}{break};
+00779         \textcolor{keywordflow}{case} 1:
+00780             \textcolor{comment}{/* IEEE big endian */}
+00781             mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} = (endian.c[0] != 1);
+00782             \textcolor{keywordflow}{break};
+00783         \textcolor{keywordflow}{default}:
+00784             \textcolor{comment}{/* VAX, Cray, or bogus */}
+00785             \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+00786             \textcolor{keywordflow}{return} NULL;
+00787     \}
+00788     \textcolor{comment}{/* O must be zero */}
+00789     \textcolor{keywordflow}{if} ( 0 != O ) \{
+00790         \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+00791         \textcolor{keywordflow}{return} NULL;
+00792     \}
+00793     \textcolor{comment}{/* Convert the V4 data type */}
+00794     \textcolor{keywordflow}{switch} ( data\_type ) \{
+00795         \textcolor{keywordflow}{case} 0:
+00796             matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type} = \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a31e721ecf7e188196f83c32838288797}{MAT\_T\_DOUBLE};
+00797             \textcolor{keywordflow}{break};
+00798         \textcolor{keywordflow}{case} 1:
+00799             matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type} = \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a3a3657d40e9212c923d9b9d03531b64c}{MAT\_T\_SINGLE};
+00800             \textcolor{keywordflow}{break};
+00801         \textcolor{keywordflow}{case} 2:
+00802             matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type} = \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a83e06a68320726c6572bfbb9f3addb1d}{MAT\_T\_INT32};
+00803             \textcolor{keywordflow}{break};
+00804         \textcolor{keywordflow}{case} 3:
+00805             matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type} = \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a8c5b2e381946e95ea8d81ac216743302}{MAT\_T\_INT16};
+00806             \textcolor{keywordflow}{break};
+00807         \textcolor{keywordflow}{case} 4:
+00808             matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type} = \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a05bc7af7680aa68be95126ae0a4c2e31}{MAT\_T\_UINT16};
+00809             \textcolor{keywordflow}{break};
+00810         \textcolor{keywordflow}{case} 5:
+00811             matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type} = \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a01c1bd7db68f90552862eb5d311be408}{MAT\_T\_UINT8};
+00812             \textcolor{keywordflow}{break};
+00813         \textcolor{keywordflow}{default}:
+00814             \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+00815             \textcolor{keywordflow}{return} NULL;
+00816     \}
+00817     \textcolor{keywordflow}{switch} ( class\_type ) \{
+00818         \textcolor{keywordflow}{case} 0:
+00819             matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} = \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5d70e0862e5bdb7bd86bf7ba5948f307}{MAT\_C\_DOUBLE};
+00820             \textcolor{keywordflow}{break};
+00821         \textcolor{keywordflow}{case} 1:
+00822             matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} = \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40aacdec5834df0861130b393697646119c}{MAT\_C\_CHAR};
+00823             \textcolor{keywordflow}{break};
+00824         \textcolor{keywordflow}{case} 2:
+00825             matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} = \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a0d5655b7e6178a2242cb3bb56ff4c8d2}{MAT\_C\_SPARSE};
+00826             \textcolor{keywordflow}{break};
+00827         \textcolor{keywordflow}{default}:
+00828             \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+00829             \textcolor{keywordflow}{return} NULL;
+00830     \}
+00831     matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} = 2;
+00832     matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} = (\textcolor{keywordtype}{size\_t}*)malloc(2*\textcolor{keyword}{sizeof}(*matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}));
+00833     \textcolor{keywordflow}{if} ( NULL == matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} ) \{
+00834         \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+00835         \textcolor{keywordflow}{return} NULL;
+00836     \}
+00837     err = fread(&tmp,\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}),1,(FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00838     \textcolor{keywordflow}{if} ( mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} )
+00839         \hyperlink{endian_8c_a2e0153996243f0a34df9a5286087cfa3}{Mat\_int32Swap}(&tmp);
+00840     matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0] = tmp;
+00841     \textcolor{keywordflow}{if} ( !err ) \{
+00842         \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+00843         \textcolor{keywordflow}{return} NULL;
+00844     \}
+00845     err = fread(&tmp,\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}),1,(FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00846     \textcolor{keywordflow}{if} ( mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} )
+00847         \hyperlink{endian_8c_a2e0153996243f0a34df9a5286087cfa3}{Mat\_int32Swap}(&tmp);
+00848     matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[1] = tmp;
+00849     \textcolor{keywordflow}{if} ( !err ) \{
+00850         \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+00851         \textcolor{keywordflow}{return} NULL;
+00852     \}
+00853 
+00854     err = fread(&(matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex}),\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}),1,(FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00855     \textcolor{keywordflow}{if} ( !err ) \{
+00856         \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+00857         \textcolor{keywordflow}{return} NULL;
+00858     \}
+00859     \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} && \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40aacdec5834df0861130b393697646119c}{MAT\_C\_CHAR} == matvar->
+      \hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} ) \{
+00860         \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+00861         \textcolor{keywordflow}{return} NULL;
+00862     \}
+00863     err = fread(&tmp,\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}),1,(FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00864     \textcolor{keywordflow}{if} ( !err ) \{
+00865         \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+00866         \textcolor{keywordflow}{return} NULL;
+00867     \}
+00868     \textcolor{keywordflow}{if} ( mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} )
+00869         \hyperlink{endian_8c_a2e0153996243f0a34df9a5286087cfa3}{Mat\_int32Swap}(&tmp);
+00870     \textcolor{comment}{/* Check that the length of the variable name is at least 1 */}
+00871     \textcolor{keywordflow}{if} ( tmp < 1 ) \{
+00872         \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+00873         \textcolor{keywordflow}{return} NULL;
+00874     \}
+00875     matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name} = (\textcolor{keywordtype}{char}*)malloc(tmp);
+00876     \textcolor{keywordflow}{if} ( NULL == matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name} ) \{
+00877         \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+00878         \textcolor{keywordflow}{return} NULL;
+00879     \}
+00880     err = fread(matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name},1,tmp,(FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00881     \textcolor{keywordflow}{if} ( !err ) \{
+00882         \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+00883         \textcolor{keywordflow}{return} NULL;
+00884     \}
+00885 
+00886     matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_afd3bfaab126a160bd6855563e1ea0a7e}{datapos} = ftell((FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00887     \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_afd3bfaab126a160bd6855563e1ea0a7e}{datapos} == -1L ) \{
+00888         \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+00889         \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Couldn't determine file position"});
+00890         \textcolor{keywordflow}{return} NULL;
+00891     \}
+00892     nBytes = matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0]*matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[1]*\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(matvar->
+      \hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type});
+00893     \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} )
+00894         nBytes *= 2;
+00895     (void)fseek((FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp},nBytes,SEEK\_CUR);
+00896 
+00897     \textcolor{keywordflow}{return} matvar;
+00898 \}
+\end{DoxyCode}

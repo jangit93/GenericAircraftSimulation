@@ -1,0 +1,164 @@
+\hypertarget{eigen_2test_2stddeque__overload_8cpp_source}{}\section{eigen/test/stddeque\+\_\+overload.cpp}
+\label{eigen_2test_2stddeque__overload_8cpp_source}\index{stddeque\+\_\+overload.\+cpp@{stddeque\+\_\+overload.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{// Copyright (C) 2010 Hauke Heibel <hauke.heibel@gmail.com>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#include "main.h"}
+00012 
+00013 \textcolor{preprocessor}{#include <Eigen/StdDeque>}
+00014 \textcolor{preprocessor}{#include <Eigen/Geometry>}
+00015 
+00016 EIGEN\_DEFINE\_STL\_DEQUE\_SPECIALIZATION(Vector4f)
+00017 
+00018 EIGEN\_DEFINE\_STL\_DEQUE\_SPECIALIZATION(Matrix2f)
+00019 EIGEN\_DEFINE\_STL\_DEQUE\_SPECIALIZATION(Matrix4f)
+00020 EIGEN\_DEFINE\_STL\_DEQUE\_SPECIALIZATION(Matrix4d)
+00021 
+00022 EIGEN\_DEFINE\_STL\_DEQUE\_SPECIALIZATION(\hyperlink{group___geometry___module_class_eigen_1_1_transform}{Affine3f})
+00023 EIGEN\_DEFINE\_STL\_DEQUE\_SPECIALIZATION(\hyperlink{group___geometry___module_class_eigen_1_1_transform}{Affine3d})
+00024 
+00025 EIGEN\_DEFINE\_STL\_DEQUE\_SPECIALIZATION(\hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternionf})
+00026 EIGEN\_DEFINE\_STL\_DEQUE\_SPECIALIZATION(\hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaterniond})
+00027 
+00028 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00029 \textcolor{keywordtype}{void} check\_stddeque\_matrix(\textcolor{keyword}{const} MatrixType& m)
+00030 \{
+00031   \textcolor{keyword}{typename} MatrixType::Index rows = m.rows();
+00032   \textcolor{keyword}{typename} MatrixType::Index cols = m.cols();
+00033   MatrixType x = MatrixType::Random(rows,cols), y = MatrixType::Random(rows,cols);
+00034   std::deque<MatrixType> v(10, MatrixType(rows,cols)), w(20, y);
+00035   v[5] = x;
+00036   w[6] = v[5];
+00037   VERIFY\_IS\_APPROX(w[6], v[5]);
+00038   v = w;
+00039   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < 20; i++)
+00040   \{
+00041     VERIFY\_IS\_APPROX(w[i], v[i]);
+00042   \}
+00043 
+00044   v.resize(21);
+00045   v[20] = x;
+00046   VERIFY\_IS\_APPROX(v[20], x);
+00047   v.resize(22,y);
+00048   VERIFY\_IS\_APPROX(v[21], y);
+00049   v.push\_back(x);
+00050   VERIFY\_IS\_APPROX(v[22], x);
+00051 
+00052   \textcolor{comment}{// do a lot of push\_back such that the deque gets internally resized}
+00053   \textcolor{comment}{// (with memory reallocation)}
+00054   MatrixType* ref = &w[0];
+00055   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<30 || ((ref==&w[0]) && i<300); ++i)
+00056     v.push\_back(w[i%w.size()]);
+00057   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} i=23; i<v.size(); ++i)
+00058   \{
+00059     VERIFY(v[i]==w[(i-23)%w.size()]);
+00060   \}
+00061 \}
+00062 
+00063 \textcolor{keyword}{template}<\textcolor{keyword}{typename} TransformType>
+00064 \textcolor{keywordtype}{void} check\_stddeque\_transform(\textcolor{keyword}{const} TransformType&)
+00065 \{
+00066   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} TransformType::MatrixType MatrixType;
+00067   TransformType x(MatrixType::Random()), y(MatrixType::Random());
+00068   std::deque<TransformType> v(10), w(20, y);
+00069   v[5] = x;
+00070   w[6] = v[5];
+00071   VERIFY\_IS\_APPROX(w[6], v[5]);
+00072   v = w;
+00073   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < 20; i++)
+00074   \{
+00075     VERIFY\_IS\_APPROX(w[i], v[i]);
+00076   \}
+00077 
+00078   v.resize(21);
+00079   v[20] = x;
+00080   VERIFY\_IS\_APPROX(v[20], x);
+00081   v.resize(22,y);
+00082   VERIFY\_IS\_APPROX(v[21], y);
+00083   v.push\_back(x);
+00084   VERIFY\_IS\_APPROX(v[22], x);
+00085 
+00086   \textcolor{comment}{// do a lot of push\_back such that the deque gets internally resized}
+00087   \textcolor{comment}{// (with memory reallocation)}
+00088   TransformType* ref = &w[0];
+00089   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<30 || ((ref==&w[0]) && i<300); ++i)
+00090     v.push\_back(w[i%w.size()]);
+00091   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} i=23; i<v.size(); ++i)
+00092   \{
+00093     VERIFY(v[i].matrix()==w[(i-23)%w.size()].matrix());
+00094   \}
+00095 \}
+00096 
+00097 \textcolor{keyword}{template}<\textcolor{keyword}{typename} QuaternionType>
+00098 \textcolor{keywordtype}{void} check\_stddeque\_quaternion(\textcolor{keyword}{const} QuaternionType&)
+00099 \{
+00100   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} QuaternionType::Coefficients Coefficients;
+00101   QuaternionType x(Coefficients::Random()), y(Coefficients::Random());
+00102   std::deque<QuaternionType> v(10), w(20, y);
+00103   v[5] = x;
+00104   w[6] = v[5];
+00105   VERIFY\_IS\_APPROX(w[6], v[5]);
+00106   v = w;
+00107   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < 20; i++)
+00108   \{
+00109     VERIFY\_IS\_APPROX(w[i], v[i]);
+00110   \}
+00111 
+00112   v.resize(21);
+00113   v[20] = x;
+00114   VERIFY\_IS\_APPROX(v[20], x);
+00115   v.resize(22,y);
+00116   VERIFY\_IS\_APPROX(v[21], y);
+00117   v.push\_back(x);
+00118   VERIFY\_IS\_APPROX(v[22], x);
+00119 
+00120   \textcolor{comment}{// do a lot of push\_back such that the deque gets internally resized}
+00121   \textcolor{comment}{// (with memory reallocation)}
+00122   QuaternionType* ref = &w[0];
+00123   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<30 || ((ref==&w[0]) && i<300); ++i)
+00124     v.push\_back(w[i%w.size()]);
+00125   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} i=23; i<v.size(); ++i)
+00126   \{
+00127     VERIFY(v[i].coeffs()==w[(i-23)%w.size()].coeffs());
+00128   \}
+00129 \}
+00130 
+00131 \textcolor{keywordtype}{void} test\_stddeque\_overload()
+00132 \{
+00133   \textcolor{comment}{// some non vectorizable fixed sizes}
+00134   CALL\_SUBTEST\_1(check\_stddeque\_matrix(Vector2f()));
+00135   CALL\_SUBTEST\_1(check\_stddeque\_matrix(Matrix3f()));
+00136   CALL\_SUBTEST\_2(check\_stddeque\_matrix(Matrix3d()));
+00137 
+00138   \textcolor{comment}{// some vectorizable fixed sizes}
+00139   CALL\_SUBTEST\_1(check\_stddeque\_matrix(Matrix2f()));
+00140   CALL\_SUBTEST\_1(check\_stddeque\_matrix(Vector4f()));
+00141   CALL\_SUBTEST\_1(check\_stddeque\_matrix(Matrix4f()));
+00142   CALL\_SUBTEST\_2(check\_stddeque\_matrix(Matrix4d()));
+00143 
+00144   \textcolor{comment}{// some dynamic sizes}
+00145   CALL\_SUBTEST\_3(check\_stddeque\_matrix(MatrixXd(1,1)));
+00146   CALL\_SUBTEST\_3(check\_stddeque\_matrix(VectorXd(20)));
+00147   CALL\_SUBTEST\_3(check\_stddeque\_matrix(RowVectorXf(20)));
+00148   CALL\_SUBTEST\_3(check\_stddeque\_matrix(MatrixXcf(10,10)));
+00149 
+00150   \textcolor{comment}{// some Transform}
+00151   CALL\_SUBTEST\_4(check\_stddeque\_transform(\hyperlink{group___geometry___module_ga2c1ea05a21899654ee3a2e3f91fa30e0}{Affine2f}())); \textcolor{comment}{// does not need the specialization (2+1)^2
+       = 9}
+00152   CALL\_SUBTEST\_4(check\_stddeque\_transform(\hyperlink{group___geometry___module_ga17e901de8ff882aea7845c5457db6a4f}{Affine3f}()));
+00153   CALL\_SUBTEST\_4(check\_stddeque\_transform(\hyperlink{group___geometry___module_gaaffa69d3143826efeb84e5d6c56a4c78}{Affine3d}()));
+00154 
+00155   \textcolor{comment}{// some Quaternion}
+00156   CALL\_SUBTEST\_5(check\_stddeque\_quaternion(\hyperlink{group___geometry___module_ga785b13a5a87f9bf55d4eba51ead2dcf0}{Quaternionf}()));
+00157   CALL\_SUBTEST\_5(check\_stddeque\_quaternion(\hyperlink{group___geometry___module_ga6e77eb8b6aae0e04be2db88107dbc642}{Quaterniond}()));
+00158 \}
+\end{DoxyCode}

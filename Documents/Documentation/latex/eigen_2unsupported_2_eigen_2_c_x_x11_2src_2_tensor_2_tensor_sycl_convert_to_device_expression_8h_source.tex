@@ -1,0 +1,116 @@
+\hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_sycl_convert_to_device_expression_8h_source}{}\section{eigen/unsupported/\+Eigen/\+C\+X\+X11/src/\+Tensor/\+Tensor\+Sycl\+Convert\+To\+Device\+Expression.h}
+\label{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_sycl_convert_to_device_expression_8h_source}\index{Tensor\+Sycl\+Convert\+To\+Device\+Expression.\+h@{Tensor\+Sycl\+Convert\+To\+Device\+Expression.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Mehdi Goli    Codeplay Software Ltd.}
+00005 \textcolor{comment}{// Ralph Potter  Codeplay Software Ltd.}
+00006 \textcolor{comment}{// Luke Iwanski  Codeplay Software Ltd.}
+00007 \textcolor{comment}{// Contact: <eigen@codeplay.com>}
+00008 \textcolor{comment}{//}
+00009 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00010 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00011 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00012 
+00013 \textcolor{comment}{/*****************************************************************}
+00014 \textcolor{comment}{ * TensorSyclConvertToDeviceExpression.h}
+00015 \textcolor{comment}{ *}
+00016 \textcolor{comment}{ * \(\backslash\)brief:}
+00017 \textcolor{comment}{ *  Conversion from host pointer to device pointer}
+00018 \textcolor{comment}{ *  inside leaf nodes of the expression.}
+00019 \textcolor{comment}{ *}
+00020 \textcolor{comment}{*****************************************************************/}
+00021 
+00022 \textcolor{preprocessor}{#ifndef UNSUPPORTED\_EIGEN\_CXX11\_SRC\_TENSOR\_TENSORSYCL\_CONVERT\_TO\_DEVICE\_EXPRESSION\_HPP}
+00023 \textcolor{preprocessor}{#define UNSUPPORTED\_EIGEN\_CXX11\_SRC\_TENSOR\_TENSORSYCL\_CONVERT\_TO\_DEVICE\_EXPRESSION\_HPP}
+00024 
+00025 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00026 \textcolor{keyword}{namespace }TensorSycl \{
+00027 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00028 
+00034 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Expr>
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_sycl_convert_to_device_expression_8h_source_l00035}\hyperlink{struct_eigen_1_1_tensor_sycl_1_1internal_1_1_convert_to_device_expression}{00035} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_tensor_sycl_1_1internal_1_1_convert_to_device_expression}{ConvertToDeviceExpression};
+00036 
+00037 \textcolor{keyword}{template}<\textcolor{keyword}{template}<\textcolor{keyword}{class}...> \textcolor{keyword}{class }NonOpCategory, \textcolor{keywordtype}{bool} IsConst, \textcolor{keyword}{typename}... Args>
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_sycl_convert_to_device_expression_8h_source_l00038}\hyperlink{struct_eigen_1_1_tensor_sycl_1_1internal_1_1_non_op_conversion}{00038} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_tensor_sycl_1_1internal_1_1_non_op_conversion}{NonOpConversion}\{
+00039   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} GetType<IsConst, NonOpCategory<typename ConvertToDeviceExpression<Args>::Type...> >
+      ::Type Type;
+00040 \};
+00041 
+00042 
+00043 \textcolor{keyword}{template}<\textcolor{keyword}{template}<\textcolor{keyword}{class}, \textcolor{keyword}{template} <\textcolor{keyword}{class}> \textcolor{keyword}{class }> \textcolor{keyword}{class }NonOpCategory, bool IsConst, typename Args>
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_sycl_convert_to_device_expression_8h_source_l00044}\hyperlink{struct_eigen_1_1_tensor_sycl_1_1internal_1_1_device_convertor}{00044} struct \hyperlink{struct_eigen_1_1_tensor_sycl_1_1internal_1_1_device_convertor}{DeviceConvertor}\{
+00045   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} GetType<IsConst, NonOpCategory<typename ConvertToDeviceExpression<Args>::Type, 
+      MakeGlobalPointer> >::Type Type;
+00046 \};
+00047 
+00050 \textcolor{preprocessor}{#define TENSORMAPCONVERT(CVQual)\(\backslash\)}
+00051 \textcolor{preprocessor}{template <typename Scalar\_, int Options\_, int Options2\_, int NumIndices\_, typename IndexType\_, template
+       <class> class MakePointer\_>\(\backslash\)}
+00052 \textcolor{preprocessor}{struct ConvertToDeviceExpression<CVQual TensorMap<Tensor<Scalar\_, NumIndices\_, Options\_, IndexType\_>,
+       Options2\_, MakePointer\_> > \{\(\backslash\)}
+00053 \textcolor{preprocessor}{  typedef CVQual TensorMap<Tensor<Scalar\_, NumIndices\_, Options\_, IndexType\_>, Options2\_,
+       MakeGlobalPointer> Type;\(\backslash\)}
+00054 \textcolor{preprocessor}{\};}
+00055 
+00056 TENSORMAPCONVERT(\textcolor{keyword}{const})
+00057 TENSORMAPCONVERT()
+00058 \textcolor{preprocessor}{#undef TENSORMAPCONVERT}
+00059 
+00062 \textcolor{preprocessor}{#define CATEGORYCONVERT(CVQual)\(\backslash\)}
+00063 \textcolor{preprocessor}{template <template<class, class...> class Category, typename OP, typename... subExprs>\(\backslash\)}
+00064 \textcolor{preprocessor}{struct ConvertToDeviceExpression<CVQual Category<OP, subExprs...> > \{\(\backslash\)}
+00065 \textcolor{preprocessor}{  typedef CVQual Category<OP, typename ConvertToDeviceExpression<subExprs>::Type... > Type;\(\backslash\)}
+00066 \textcolor{preprocessor}{\};}
+00067 CATEGORYCONVERT(\textcolor{keyword}{const})
+00068 CATEGORYCONVERT()
+00069 \textcolor{preprocessor}{#undef CATEGORYCONVERT}
+00070 
+00071 
+00074 \textcolor{preprocessor}{#define SELECTOPCONVERT(CVQual, Res)\(\backslash\)}
+00075 \textcolor{preprocessor}{template <typename IfExpr, typename ThenExpr, typename ElseExpr>\(\backslash\)}
+00076 \textcolor{preprocessor}{struct ConvertToDeviceExpression<CVQual TensorSelectOp<IfExpr, ThenExpr, ElseExpr> >\(\backslash\)}
+00077 \textcolor{preprocessor}{: NonOpConversion<TensorSelectOp, Res, IfExpr, ThenExpr, ElseExpr> \{\};}
+00078 SELECTOPCONVERT(\textcolor{keyword}{const}, \textcolor{keyword}{true})
+00079 SELECTOPCONVERT(, \textcolor{keyword}{false})
+00080 \textcolor{preprocessor}{#undef SELECTOPCONVERT}
+00081 
+00084 \textcolor{preprocessor}{#define ASSIGNCONVERT(CVQual, Res)\(\backslash\)}
+00085 \textcolor{preprocessor}{template <typename LHSExpr, typename RHSExpr>\(\backslash\)}
+00086 \textcolor{preprocessor}{struct ConvertToDeviceExpression<CVQual TensorAssignOp<LHSExpr, RHSExpr> >\(\backslash\)}
+00087 \textcolor{preprocessor}{: NonOpConversion<TensorAssignOp, Res, LHSExpr, RHSExpr>\{\};}
+00088 
+00089 ASSIGNCONVERT(\textcolor{keyword}{const}, \textcolor{keyword}{true})
+00090 ASSIGNCONVERT(, \textcolor{keyword}{false})
+00091 \textcolor{preprocessor}{#undef ASSIGNCONVERT}
+00092 
+00095 \textcolor{preprocessor}{#define KERNELBROKERCONVERT(CVQual, Res, ExprNode)\(\backslash\)}
+00096 \textcolor{preprocessor}{template <typename Expr>\(\backslash\)}
+00097 \textcolor{preprocessor}{struct ConvertToDeviceExpression<CVQual ExprNode<Expr> > \(\backslash\)}
+00098 \textcolor{preprocessor}{: DeviceConvertor<ExprNode, Res, Expr>\{\};}
+00099 
+00100 KERNELBROKERCONVERT(\textcolor{keyword}{const}, \textcolor{keyword}{true}, \hyperlink{class_eigen_1_1_tensor_forced_eval_op}{TensorForcedEvalOp})
+00101 KERNELBROKERCONVERT(, \textcolor{keyword}{false}, \hyperlink{class_eigen_1_1_tensor_forced_eval_op}{TensorForcedEvalOp})
+00102 KERNELBROKERCONVERT(\textcolor{keyword}{const}, \textcolor{keyword}{true}, \hyperlink{class_eigen_1_1_tensor_eval_to_op}{TensorEvalToOp})
+00103 KERNELBROKERCONVERT(, \textcolor{keyword}{false}, \hyperlink{class_eigen_1_1_tensor_eval_to_op}{TensorEvalToOp})
+00104 \textcolor{preprocessor}{#undef KERNELBROKERCONVERT}
+00105 
+00107 \textcolor{preprocessor}{#define KERNELBROKERCONVERTREDUCTION(CVQual)\(\backslash\)}
+00108 \textcolor{preprocessor}{template <typename OP, typename Dim, typename subExpr, template <class> class MakePointer\_>\(\backslash\)}
+00109 \textcolor{preprocessor}{struct ConvertToDeviceExpression<CVQual TensorReductionOp<OP, Dim, subExpr, MakePointer\_> > \{\(\backslash\)}
+00110 \textcolor{preprocessor}{  typedef CVQual TensorReductionOp<OP, Dim, typename ConvertToDeviceExpression<subExpr>::Type,
+       MakeGlobalPointer> Type;\(\backslash\)}
+00111 \textcolor{preprocessor}{\};}
+00112 
+00113 KERNELBROKERCONVERTREDUCTION(\textcolor{keyword}{const})
+00114 KERNELBROKERCONVERTREDUCTION()
+00115 \textcolor{preprocessor}{#undef KERNELBROKERCONVERTREDUCTION}
+00116 
+00117 \}  \textcolor{comment}{// namespace internal}
+00118 \}  \textcolor{comment}{// namespace TensorSycl}
+00119 \}  \textcolor{comment}{// namespace Eigen}
+00120 
+00121 \textcolor{preprocessor}{#endif  // UNSUPPORTED\_EIGEN\_CXX1}
+\end{DoxyCode}

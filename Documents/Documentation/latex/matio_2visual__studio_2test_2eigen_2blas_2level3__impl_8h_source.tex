@@ -1,0 +1,826 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2blas_2level3__impl_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/blas/level3\+\_\+impl.h}
+\label{matio_2visual__studio_2test_2eigen_2blas_2level3__impl_8h_source}\index{level3\+\_\+impl.\+h@{level3\+\_\+impl.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2009-2010 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 \textcolor{preprocessor}{#include <iostream>}
+00010 \textcolor{preprocessor}{#include "common.h"}
+00011 
+00012 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(gemm)(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *opa, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *opb, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *m, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *n, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *k, \textcolor{keyword}{const}
+       RealScalar *palpha,
+00013                           \textcolor{keyword}{const} RealScalar *pa, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *lda, \textcolor{keyword}{const} RealScalar *pb, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *ldb, \textcolor{keyword}{const}
+       RealScalar *pbeta, RealScalar *pc, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *ldc)
+00014 \{
+00015 \textcolor{comment}{//   std::cerr << "in gemm " << *opa << " " << *opb << " " << *m << " " << *n << " " << *k << " " << *lda
+       << " " << *ldb << " " << *ldc << " " << *palpha << " " << *pbeta << "\(\backslash\)n";}
+00016   \textcolor{keyword}{typedef} void (*functype)(DenseIndex, DenseIndex, DenseIndex, \textcolor{keyword}{const} Scalar *, DenseIndex, \textcolor{keyword}{const} Scalar *, 
+      DenseIndex, Scalar *, DenseIndex, Scalar, internal::level3\_blocking<Scalar,Scalar>&, 
+      \hyperlink{struct_eigen_1_1internal_1_1_gemm_parallel_info}{Eigen::internal::GemmParallelInfo<DenseIndex>}*);
+00017   \textcolor{keyword}{static} \textcolor{keyword}{const} functype \hyperlink{structfunc}{func}[12] = \{
+00018     \textcolor{comment}{// array index: NOTR  | (NOTR << 2)}
+00019     (
+      internal::general\_matrix\_matrix\_product<DenseIndex,Scalar,ColMajor,false,Scalar,ColMajor,false,ColMajor>::run),
+00020     \textcolor{comment}{// array index: TR    | (NOTR << 2)}
+00021     (
+      internal::general\_matrix\_matrix\_product<DenseIndex,Scalar,RowMajor,false,Scalar,ColMajor,false,ColMajor>::run),
+00022     \textcolor{comment}{// array index: ADJ   | (NOTR << 2)}
+00023     (internal::general\_matrix\_matrix\_product<DenseIndex,Scalar,RowMajor,Conj,
+       Scalar,ColMajor,false,ColMajor>::run),
+00024     0,
+00025     \textcolor{comment}{// array index: NOTR  | (TR   << 2)}
+00026     (
+      internal::general\_matrix\_matrix\_product<DenseIndex,Scalar,ColMajor,false,Scalar,RowMajor,false,ColMajor>::run),
+00027     \textcolor{comment}{// array index: TR    | (TR   << 2)}
+00028     (
+      internal::general\_matrix\_matrix\_product<DenseIndex,Scalar,RowMajor,false,Scalar,RowMajor,false,ColMajor>::run),
+00029     \textcolor{comment}{// array index: ADJ   | (TR   << 2)}
+00030     (internal::general\_matrix\_matrix\_product<DenseIndex,Scalar,RowMajor,Conj,
+       Scalar,RowMajor,false,ColMajor>::run),
+00031     0,
+00032     \textcolor{comment}{// array index: NOTR  | (ADJ  << 2)}
+00033     (internal::general\_matrix\_matrix\_product<DenseIndex,Scalar,ColMajor,false,Scalar,RowMajor,Conj,
+       ColMajor>::run),
+00034     \textcolor{comment}{// array index: TR    | (ADJ  << 2)}
+00035     (internal::general\_matrix\_matrix\_product<DenseIndex,Scalar,RowMajor,false,Scalar,RowMajor,Conj,
+       ColMajor>::run),
+00036     \textcolor{comment}{// array index: ADJ   | (ADJ  << 2)}
+00037     (internal::general\_matrix\_matrix\_product<DenseIndex,Scalar,RowMajor,Conj, Scalar,RowMajor,Conj,
+       ColMajor>::run),
+00038     0
+00039   \};
+00040 
+00041   \textcolor{keyword}{const} Scalar* a = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pa);
+00042   \textcolor{keyword}{const} Scalar* b = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pb);
+00043   Scalar* c = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pc);
+00044   Scalar alpha  = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(palpha);
+00045   Scalar beta   = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pbeta);
+00046 
+00047   \textcolor{keywordtype}{int} info = 0;
+00048   \textcolor{keywordflow}{if}(OP(*opa)==INVALID)                                               info = 1;
+00049   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(OP(*opb)==INVALID)                                          info = 2;
+00050   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*m<0)                                                       info = 3;
+00051   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*n<0)                                                       info = 4;
+00052   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*k<0)                                                       info = 5;
+00053   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*lda<std::max(1,(OP(*opa)==NOTR)?*m:*k))                    info = 8;
+00054   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*ldb<std::max(1,(OP(*opb)==NOTR)?*k:*n))                    info = 10;
+00055   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*ldc<std::max(1,*m))                                        info = 13;
+00056   \textcolor{keywordflow}{if}(info)
+00057     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"GEMM "},&info,6);
+00058 
+00059   \textcolor{keywordflow}{if} (*m == 0 || *n == 0)
+00060     \textcolor{keywordflow}{return} 0;
+00061 
+00062   \textcolor{keywordflow}{if}(beta!=Scalar(1))
+00063   \{
+00064     \textcolor{keywordflow}{if}(beta==Scalar(0)) matrix(c, *m, *n, *ldc).setZero();
+00065     \textcolor{keywordflow}{else}                matrix(c, *m, *n, *ldc) *= beta;
+00066   \}
+00067 
+00068   \textcolor{keywordflow}{if}(*k == 0)
+00069     \textcolor{keywordflow}{return} 0;
+00070 
+00071   internal::gemm\_blocking\_space<ColMajor,Scalar,Scalar,Dynamic,Dynamic,Dynamic> blocking(*m,*n,*k,1,\textcolor{keyword}{true});
+00072 
+00073   \textcolor{keywordtype}{int} \hyperlink{structcode}{code} = OP(*opa) | (OP(*opb) << 2);
+00074   func[code](*m, *n, *k, a, *lda, b, *ldb, c, *ldc, alpha, blocking, 0);
+00075   \textcolor{keywordflow}{return} 0;
+00076 \}
+00077 
+00078 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(trsm)(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *side, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *uplo, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *opa, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *diag, \textcolor{keyword}{const} \textcolor{keywordtype}{int} 
+      *m, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *n,
+00079                           \textcolor{keyword}{const} RealScalar *palpha,  \textcolor{keyword}{const} RealScalar *pa, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *lda, RealScalar *pb, \textcolor{keyword}{
+      const} \textcolor{keywordtype}{int} *ldb)
+00080 \{
+00081 \textcolor{comment}{//   std::cerr << "in trsm " << *side << " " << *uplo << " " << *opa << " " << *diag << " " << *m << "," <<
+       *n << " " << *palpha << " " << *lda << " " << *ldb<< "\(\backslash\)n";}
+00082   \textcolor{keyword}{typedef} void (*functype)(DenseIndex, DenseIndex, \textcolor{keyword}{const} Scalar *, DenseIndex, Scalar *, DenseIndex, 
+      internal::level3\_blocking<Scalar,Scalar>&);
+00083   \textcolor{keyword}{static} \textcolor{keyword}{const} functype func[32] = \{
+00084     \textcolor{comment}{// array index: NOTR  | (LEFT  << 2) | (UP << 3) | (NUNIT << 4)}
+00085     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheLeft, Upper|0,         
+       false,ColMajor,ColMajor>::run),
+00086     \textcolor{comment}{// array index: TR    | (LEFT  << 2) | (UP << 3) | (NUNIT << 4)}
+00087     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheLeft, Lower|0,         
+       false,RowMajor,ColMajor>::run),
+00088     \textcolor{comment}{// array index: ADJ   | (LEFT  << 2) | (UP << 3) | (NUNIT << 4)}
+00089     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheLeft, Lower|0,          Conj,
+       RowMajor,ColMajor>::run),\(\backslash\)
+00090     0,
+00091     \textcolor{comment}{// array index: NOTR  | (RIGHT << 2) | (UP << 3) | (NUNIT << 4)}
+00092     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheRight,Upper|0,         
+       false,ColMajor,ColMajor>::run),
+00093     \textcolor{comment}{// array index: TR    | (RIGHT << 2) | (UP << 3) | (NUNIT << 4)}
+00094     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheRight,Lower|0,         
+       false,RowMajor,ColMajor>::run),
+00095     \textcolor{comment}{// array index: ADJ   | (RIGHT << 2) | (UP << 3) | (NUNIT << 4)}
+00096     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheRight,Lower|0,          Conj,
+       RowMajor,ColMajor>::run),
+00097     0,
+00098     \textcolor{comment}{// array index: NOTR  | (LEFT  << 2) | (LO << 3) | (NUNIT << 4)}
+00099     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheLeft, Lower|0,         
+       false,ColMajor,ColMajor>::run),
+00100     \textcolor{comment}{// array index: TR    | (LEFT  << 2) | (LO << 3) | (NUNIT << 4)}
+00101     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheLeft, Upper|0,         
+       false,RowMajor,ColMajor>::run),
+00102     \textcolor{comment}{// array index: ADJ   | (LEFT  << 2) | (LO << 3) | (NUNIT << 4)}
+00103     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheLeft, Upper|0,          Conj,
+       RowMajor,ColMajor>::run),
+00104     0,
+00105     \textcolor{comment}{// array index: NOTR  | (RIGHT << 2) | (LO << 3) | (NUNIT << 4)}
+00106     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheRight,Lower|0,         
+       false,ColMajor,ColMajor>::run),
+00107     \textcolor{comment}{// array index: TR    | (RIGHT << 2) | (LO << 3) | (NUNIT << 4)}
+00108     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheRight,Upper|0,         
+       false,RowMajor,ColMajor>::run),
+00109     \textcolor{comment}{// array index: ADJ   | (RIGHT << 2) | (LO << 3) | (NUNIT << 4)}
+00110     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheRight,Upper|0,          Conj,
+       RowMajor,ColMajor>::run),
+00111     0,
+00112     \textcolor{comment}{// array index: NOTR  | (LEFT  << 2) | (UP << 3) | (UNIT  << 4)}
+00113     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheLeft,
+       Upper|UnitDiag,false,ColMajor,ColMajor>::run),
+00114     \textcolor{comment}{// array index: TR    | (LEFT  << 2) | (UP << 3) | (UNIT  << 4)}
+00115     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheLeft,
+       Lower|UnitDiag,false,RowMajor,ColMajor>::run),
+00116     \textcolor{comment}{// array index: ADJ   | (LEFT  << 2) | (UP << 3) | (UNIT  << 4)}
+00117     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheLeft, Lower|UnitDiag,Conj,
+       RowMajor,ColMajor>::run),
+00118     0,
+00119     \textcolor{comment}{// array index: NOTR  | (RIGHT << 2) | (UP << 3) | (UNIT  << 4)}
+00120     (
+      internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheRight,Upper|UnitDiag,false,ColMajor,ColMajor>::run),
+00121     \textcolor{comment}{// array index: TR    | (RIGHT << 2) | (UP << 3) | (UNIT  << 4)}
+00122     (
+      internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheRight,Lower|UnitDiag,false,RowMajor,ColMajor>::run),
+00123     \textcolor{comment}{// array index: ADJ   | (RIGHT << 2) | (UP << 3) | (UNIT  << 4)}
+00124     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheRight,Lower|UnitDiag,Conj,
+       RowMajor,ColMajor>::run),
+00125     0,
+00126     \textcolor{comment}{// array index: NOTR  | (LEFT  << 2) | (LO << 3) | (UNIT  << 4)}
+00127     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheLeft,
+       Lower|UnitDiag,false,ColMajor,ColMajor>::run),
+00128     \textcolor{comment}{// array index: TR    | (LEFT  << 2) | (LO << 3) | (UNIT  << 4)}
+00129     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheLeft,
+       Upper|UnitDiag,false,RowMajor,ColMajor>::run),
+00130     \textcolor{comment}{// array index: ADJ   | (LEFT  << 2) | (LO << 3) | (UNIT  << 4)}
+00131     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheLeft, Upper|UnitDiag,Conj,
+       RowMajor,ColMajor>::run),
+00132     0,
+00133     \textcolor{comment}{// array index: NOTR  | (RIGHT << 2) | (LO << 3) | (UNIT  << 4)}
+00134     (
+      internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheRight,Lower|UnitDiag,false,ColMajor,ColMajor>::run),
+00135     \textcolor{comment}{// array index: TR    | (RIGHT << 2) | (LO << 3) | (UNIT  << 4)}
+00136     (
+      internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheRight,Upper|UnitDiag,false,RowMajor,ColMajor>::run),
+00137     \textcolor{comment}{// array index: ADJ   | (RIGHT << 2) | (LO << 3) | (UNIT  << 4)}
+00138     (internal::triangular\_solve\_matrix<Scalar,DenseIndex,OnTheRight,Upper|UnitDiag,Conj,
+       RowMajor,ColMajor>::run),
+00139     0
+00140   \};
+00141 
+00142   \textcolor{keyword}{const} Scalar* a = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pa);
+00143   Scalar* b = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pb);
+00144   Scalar  alpha = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(palpha);
+00145 
+00146   \textcolor{keywordtype}{int} info = 0;
+00147   \textcolor{keywordflow}{if}(SIDE(*side)==INVALID)                                            info = 1;
+00148   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(UPLO(*uplo)==INVALID)                                       info = 2;
+00149   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(OP(*opa)==INVALID)                                          info = 3;
+00150   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(DIAG(*diag)==INVALID)                                       info = 4;
+00151   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*m<0)                                                       info = 5;
+00152   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*n<0)                                                       info = 6;
+00153   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*lda<std::max(1,(SIDE(*side)==LEFT)?*m:*n))                 info = 9;
+00154   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*ldb<std::max(1,*m))                                        info = 11;
+00155   \textcolor{keywordflow}{if}(info)
+00156     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"TRSM "},&info,6);
+00157 
+00158   \textcolor{keywordflow}{if}(*m==0 || *n==0)
+00159     \textcolor{keywordflow}{return} 0;
+00160 
+00161   \textcolor{keywordtype}{int} \hyperlink{structcode}{code} = OP(*opa) | (SIDE(*side) << 2) | (UPLO(*uplo) << 3) | (DIAG(*diag) << 4);
+00162 
+00163   \textcolor{keywordflow}{if}(SIDE(*side)==LEFT)
+00164   \{
+00165     internal::gemm\_blocking\_space<ColMajor,Scalar,Scalar,Dynamic,Dynamic,Dynamic,4> blocking(*m,*n,*m,1,\textcolor{keyword}{
+      false});
+00166     func[code](*m, *n, a, *lda, b, *ldb, blocking);
+00167   \}
+00168   \textcolor{keywordflow}{else}
+00169   \{
+00170     internal::gemm\_blocking\_space<ColMajor,Scalar,Scalar,Dynamic,Dynamic,Dynamic,4> blocking(*m,*n,*n,1,\textcolor{keyword}{
+      false});
+00171     func[code](*n, *m, a, *lda, b, *ldb, blocking);
+00172   \}
+00173 
+00174   \textcolor{keywordflow}{if}(alpha!=Scalar(1))
+00175     matrix(b,*m,*n,*ldb) *= alpha;
+00176 
+00177   \textcolor{keywordflow}{return} 0;
+00178 \}
+00179 
+00180 
+00181 \textcolor{comment}{// b = alpha*op(a)*b  for side = 'L'or'l'}
+00182 \textcolor{comment}{// b = alpha*b*op(a)  for side = 'R'or'r'}
+00183 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(trmm)(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *side, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *uplo, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *opa, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *diag, \textcolor{keyword}{const} \textcolor{keywordtype}{int} 
+      *m, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *n,
+00184                           \textcolor{keyword}{const} RealScalar *palpha, \textcolor{keyword}{const} RealScalar *pa, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *lda, RealScalar *pb, \textcolor{keyword}{
+      const} \textcolor{keywordtype}{int} *ldb)
+00185 \{
+00186 \textcolor{comment}{//   std::cerr << "in trmm " << *side << " " << *uplo << " " << *opa << " " << *diag << " " << *m << " " <<
+       *n << " " << *lda << " " << *ldb << " " << *palpha << "\(\backslash\)n";}
+00187   \textcolor{keyword}{typedef} void (*functype)(DenseIndex, DenseIndex, DenseIndex, \textcolor{keyword}{const} Scalar *, DenseIndex, \textcolor{keyword}{const} Scalar *, 
+      DenseIndex, Scalar *, DenseIndex, \textcolor{keyword}{const} Scalar&, internal::level3\_blocking<Scalar,Scalar>&);
+00188   \textcolor{keyword}{static} \textcolor{keyword}{const} functype func[32] = \{
+00189     \textcolor{comment}{// array index: NOTR  | (LEFT  << 2) | (UP << 3) | (NUNIT << 4)}
+00190     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Upper|0,          true,
+       ColMajor,false,ColMajor,false,ColMajor>::run),
+00191     \textcolor{comment}{// array index: TR    | (LEFT  << 2) | (UP << 3) | (NUNIT << 4)}
+00192     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Lower|0,          true,
+       RowMajor,false,ColMajor,false,ColMajor>::run),
+00193     \textcolor{comment}{// array index: ADJ   | (LEFT  << 2) | (UP << 3) | (NUNIT << 4)}
+00194     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Lower|0,          true, RowMajor,Conj,
+       ColMajor,false,ColMajor>::run),
+00195     0,
+00196     \textcolor{comment}{// array index: NOTR  | (RIGHT << 2) | (UP << 3) | (NUNIT << 4)}
+00197     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Upper|0,         
+       false,ColMajor,false,ColMajor,false,ColMajor>::run),
+00198     \textcolor{comment}{// array index: TR    | (RIGHT << 2) | (UP << 3) | (NUNIT << 4)}
+00199     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Lower|0,         
+       false,ColMajor,false,RowMajor,false,ColMajor>::run),
+00200     \textcolor{comment}{// array index: ADJ   | (RIGHT << 2) | (UP << 3) | (NUNIT << 4)}
+00201     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Lower|0,         
+       false,ColMajor,false,RowMajor,Conj, ColMajor>::run),
+00202     0,
+00203     \textcolor{comment}{// array index: NOTR  | (LEFT  << 2) | (LO << 3) | (NUNIT << 4)}
+00204     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Lower|0,          true,
+       ColMajor,false,ColMajor,false,ColMajor>::run),
+00205     \textcolor{comment}{// array index: TR    | (LEFT  << 2) | (LO << 3) | (NUNIT << 4)}
+00206     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Upper|0,          true,
+       RowMajor,false,ColMajor,false,ColMajor>::run),
+00207     \textcolor{comment}{// array index: ADJ   | (LEFT  << 2) | (LO << 3) | (NUNIT << 4)}
+00208     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Upper|0,          true, RowMajor,Conj,
+       ColMajor,false,ColMajor>::run),
+00209     0,
+00210     \textcolor{comment}{// array index: NOTR  | (RIGHT << 2) | (LO << 3) | (NUNIT << 4)}
+00211     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Lower|0,         
+       false,ColMajor,false,ColMajor,false,ColMajor>::run),
+00212     \textcolor{comment}{// array index: TR    | (RIGHT << 2) | (LO << 3) | (NUNIT << 4)}
+00213     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Upper|0,         
+       false,ColMajor,false,RowMajor,false,ColMajor>::run),
+00214     \textcolor{comment}{// array index: ADJ   | (RIGHT << 2) | (LO << 3) | (NUNIT << 4)}
+00215     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Upper|0,         
+       false,ColMajor,false,RowMajor,Conj, ColMajor>::run),
+00216     0,
+00217     \textcolor{comment}{// array index: NOTR  | (LEFT  << 2) | (UP << 3) | (UNIT  << 4)}
+00218     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Upper|UnitDiag,true,
+       ColMajor,false,ColMajor,false,ColMajor>::run),
+00219     \textcolor{comment}{// array index: TR    | (LEFT  << 2) | (UP << 3) | (UNIT  << 4)}
+00220     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Lower|UnitDiag,true,
+       RowMajor,false,ColMajor,false,ColMajor>::run),
+00221     \textcolor{comment}{// array index: ADJ   | (LEFT  << 2) | (UP << 3) | (UNIT  << 4)}
+00222     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Lower|UnitDiag,true, RowMajor,Conj,
+       ColMajor,false,ColMajor>::run),
+00223     0,
+00224     \textcolor{comment}{// array index: NOTR  | (RIGHT << 2) | (UP << 3) | (UNIT  << 4)}
+00225     (
+      internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Upper|UnitDiag,false,ColMajor,false,ColMajor,false,ColMajor>::run),
+00226     \textcolor{comment}{// array index: TR    | (RIGHT << 2) | (UP << 3) | (UNIT  << 4)}
+00227     (
+      internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Lower|UnitDiag,false,ColMajor,false,RowMajor,false,ColMajor>::run),
+00228     \textcolor{comment}{// array index: ADJ   | (RIGHT << 2) | (UP << 3) | (UNIT  << 4)}
+00229     (
+      internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Lower|UnitDiag,false,ColMajor,false,RowMajor,Conj, ColMajor>::run),
+00230     0,
+00231     \textcolor{comment}{// array index: NOTR  | (LEFT  << 2) | (LO << 3) | (UNIT  << 4)}
+00232     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Lower|UnitDiag,true,
+       ColMajor,false,ColMajor,false,ColMajor>::run),
+00233     \textcolor{comment}{// array index: TR    | (LEFT  << 2) | (LO << 3) | (UNIT  << 4)}
+00234     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Upper|UnitDiag,true,
+       RowMajor,false,ColMajor,false,ColMajor>::run),
+00235     \textcolor{comment}{// array index: ADJ   | (LEFT  << 2) | (LO << 3) | (UNIT  << 4)}
+00236     (internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Upper|UnitDiag,true, RowMajor,Conj,
+       ColMajor,false,ColMajor>::run),
+00237     0,
+00238     \textcolor{comment}{// array index: NOTR  | (RIGHT << 2) | (LO << 3) | (UNIT  << 4)}
+00239     (
+      internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Lower|UnitDiag,false,ColMajor,false,ColMajor,false,ColMajor>::run),
+00240     \textcolor{comment}{// array index: TR    | (RIGHT << 2) | (LO << 3) | (UNIT  << 4)}
+00241     (
+      internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Upper|UnitDiag,false,ColMajor,false,RowMajor,false,ColMajor>::run),
+00242     \textcolor{comment}{// array index: ADJ   | (RIGHT << 2) | (LO << 3) | (UNIT  << 4)}
+00243     (
+      internal::product\_triangular\_matrix\_matrix<Scalar,DenseIndex,Upper|UnitDiag,false,ColMajor,false,RowMajor,Conj, ColMajor>::run),
+00244     0
+00245   \};
+00246 
+00247   \textcolor{keyword}{const} Scalar* a = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pa);
+00248   Scalar* b = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pb);
+00249   Scalar  alpha = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(palpha);
+00250 
+00251   \textcolor{keywordtype}{int} info = 0;
+00252   \textcolor{keywordflow}{if}(SIDE(*side)==INVALID)                                            info = 1;
+00253   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(UPLO(*uplo)==INVALID)                                       info = 2;
+00254   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(OP(*opa)==INVALID)                                          info = 3;
+00255   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(DIAG(*diag)==INVALID)                                       info = 4;
+00256   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*m<0)                                                       info = 5;
+00257   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*n<0)                                                       info = 6;
+00258   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*lda<std::max(1,(SIDE(*side)==LEFT)?*m:*n))                 info = 9;
+00259   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*ldb<std::max(1,*m))                                        info = 11;
+00260   \textcolor{keywordflow}{if}(info)
+00261     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"TRMM "},&info,6);
+00262 
+00263   \textcolor{keywordtype}{int} code = OP(*opa) | (SIDE(*side) << 2) | (UPLO(*uplo) << 3) | (DIAG(*diag) << 4);
+00264 
+00265   \textcolor{keywordflow}{if}(*m==0 || *n==0)
+00266     \textcolor{keywordflow}{return} 1;
+00267 
+00268   \textcolor{comment}{// FIXME find a way to avoid this copy}
+00269   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Dynamic,Dynamic,ColMajor>} tmp = matrix(b,*m,*n,*ldb)
+      ;
+00270   matrix(b,*m,*n,*ldb).setZero();
+00271 
+00272   \textcolor{keywordflow}{if}(SIDE(*side)==LEFT)
+00273   \{
+00274     internal::gemm\_blocking\_space<ColMajor,Scalar,Scalar,Dynamic,Dynamic,Dynamic,4> blocking(*m,*n,*m,1,\textcolor{keyword}{
+      false});
+00275     func[code](*m, *n, *m, a, *lda, tmp.\hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}(), tmp.outerStride(), b, *ldb, alpha, blocking);
+00276   \}
+00277   \textcolor{keywordflow}{else}
+00278   \{
+00279     internal::gemm\_blocking\_space<ColMajor,Scalar,Scalar,Dynamic,Dynamic,Dynamic,4> blocking(*m,*n,*n,1,\textcolor{keyword}{
+      false});
+00280     func[code](*m, *n, *n, tmp.\hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}(), tmp.outerStride(), a, *lda, b, *ldb, alpha, blocking);
+00281   \}
+00282   \textcolor{keywordflow}{return} 1;
+00283 \}
+00284 
+00285 \textcolor{comment}{// c = alpha*a*b + beta*c  for side = 'L'or'l'}
+00286 \textcolor{comment}{// c = alpha*b*a + beta*c  for side = 'R'or'r}
+00287 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(symm)(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *side, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *uplo, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *m, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *n, \textcolor{keyword}{const} RealScalar 
+      *palpha,
+00288                           \textcolor{keyword}{const} RealScalar *pa, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *lda, \textcolor{keyword}{const} RealScalar *pb, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *ldb, \textcolor{keyword}{const}
+       RealScalar *pbeta, RealScalar *pc, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *ldc)
+00289 \{
+00290 \textcolor{comment}{//   std::cerr << "in symm " << *side << " " << *uplo << " " << *m << "x" << *n << " lda:" << *lda << "
+       ldb:" << *ldb << " ldc:" << *ldc << " alpha:" << *palpha << " beta:" << *pbeta << "\(\backslash\)n";}
+00291   \textcolor{keyword}{const} Scalar* a = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pa);
+00292   \textcolor{keyword}{const} Scalar* b = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pb);
+00293   Scalar* c = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pc);
+00294   Scalar alpha = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(palpha);
+00295   Scalar beta  = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pbeta);
+00296 
+00297   \textcolor{keywordtype}{int} info = 0;
+00298   \textcolor{keywordflow}{if}(SIDE(*side)==INVALID)                                            info = 1;
+00299   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(UPLO(*uplo)==INVALID)                                       info = 2;
+00300   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*m<0)                                                       info = 3;
+00301   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*n<0)                                                       info = 4;
+00302   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*lda<std::max(1,(SIDE(*side)==LEFT)?*m:*n))                 info = 7;
+00303   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*ldb<std::max(1,*m))                                        info = 9;
+00304   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*ldc<std::max(1,*m))                                        info = 12;
+00305   \textcolor{keywordflow}{if}(info)
+00306     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"SYMM "},&info,6);
+00307 
+00308   \textcolor{keywordflow}{if}(beta!=Scalar(1))
+00309   \{
+00310     \textcolor{keywordflow}{if}(beta==Scalar(0)) matrix(c, *m, *n, *ldc).setZero();
+00311     \textcolor{keywordflow}{else}                matrix(c, *m, *n, *ldc) *= beta;
+00312   \}
+00313 
+00314   \textcolor{keywordflow}{if}(*m==0 || *n==0)
+00315   \{
+00316     \textcolor{keywordflow}{return} 1;
+00317   \}
+00318 
+00319   \textcolor{keywordtype}{int} size = (SIDE(*side)==LEFT) ? (*m) : (*n);
+00320 \textcolor{preprocessor}{  #if ISCOMPLEX}
+00321   \textcolor{comment}{// FIXME add support for symmetric complex matrix}
+00322   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Dynamic,Dynamic,ColMajor>} matA(size,size);
+00323   \textcolor{keywordflow}{if}(UPLO(*uplo)==UP)
+00324   \{
+00325     matA.triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>() = matrix(a,size,size,*lda);
+00326     matA.triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>() = matrix(a,size,size,*lda).transpose();
+00327   \}
+00328   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(UPLO(*uplo)==LO)
+00329   \{
+00330     matA.triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>() = matrix(a,size,size,*lda);
+00331     matA.triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>() = matrix(a,size,size,*lda).transpose();
+00332   \}
+00333   \textcolor{keywordflow}{if}(SIDE(*side)==LEFT)
+00334     matrix(c, *m, *n, *ldc) += alpha * matA * matrix(b, *m, *n, *ldb);
+00335   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(SIDE(*side)==RIGHT)
+00336     matrix(c, *m, *n, *ldc) += alpha * matrix(b, *m, *n, *ldb) * matA;
+00337 \textcolor{preprocessor}{  #else}
+00338   internal::gemm\_blocking\_space<ColMajor,Scalar,Scalar,Dynamic,Dynamic,Dynamic> blocking(*m,*n,size,1,\textcolor{keyword}{false}
+      );
+00339 
+00340   \textcolor{keywordflow}{if}(SIDE(*side)==LEFT)
+00341     \textcolor{keywordflow}{if}(UPLO(*uplo)==UP)       internal::product\_selfadjoint\_matrix<Scalar, DenseIndex, RowMajor,true,false,
+       ColMajor,false,false, ColMajor>::run(*m, *n, a, *lda, b, *ldb, c, *ldc, alpha, blocking);
+00342     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(UPLO(*uplo)==LO)  internal::product\_selfadjoint\_matrix<Scalar, DenseIndex, ColMajor,true,false,
+       ColMajor,false,false, ColMajor>::run(*m, *n, a, *lda, b, *ldb, c, *ldc, alpha, blocking);
+00343     \textcolor{keywordflow}{else}                      \textcolor{keywordflow}{return} 0;
+00344   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(SIDE(*side)==RIGHT)
+00345     \textcolor{keywordflow}{if}(UPLO(*uplo)==UP)       internal::product\_selfadjoint\_matrix<Scalar, DenseIndex,
+       ColMajor,false,false, RowMajor,true,false, ColMajor>::run(*m, *n, b, *ldb, a, *lda, c, *ldc, alpha, blocking);
+00346     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(UPLO(*uplo)==LO)  internal::product\_selfadjoint\_matrix<Scalar, DenseIndex,
+       ColMajor,false,false, ColMajor,true,false, ColMajor>::run(*m, *n, b, *ldb, a, *lda, c, *ldc, alpha, blocking);
+00347     \textcolor{keywordflow}{else}                      \textcolor{keywordflow}{return} 0;
+00348   \textcolor{keywordflow}{else}
+00349     \textcolor{keywordflow}{return} 0;
+00350 \textcolor{preprocessor}{  #endif}
+00351 
+00352   \textcolor{keywordflow}{return} 0;
+00353 \}
+00354 
+00355 \textcolor{comment}{// c = alpha*a*a' + beta*c  for op = 'N'or'n'}
+00356 \textcolor{comment}{// c = alpha*a'*a + beta*c  for op = 'T'or't','C'or'c'}
+00357 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(syrk)(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *uplo, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *op, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *n, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *k,
+00358                           \textcolor{keyword}{const} RealScalar *palpha, \textcolor{keyword}{const} RealScalar *pa, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *lda, \textcolor{keyword}{const} RealScalar 
+      *pbeta, RealScalar *pc, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *ldc)
+00359 \{
+00360 \textcolor{comment}{//   std::cerr << "in syrk " << *uplo << " " << *op << " " << *n << " " << *k << " " << *palpha << " " <<
+       *lda << " " << *pbeta << " " << *ldc << "\(\backslash\)n";}
+00361 \textcolor{preprocessor}{  #if !ISCOMPLEX}
+00362   \textcolor{keyword}{typedef} void (*functype)(DenseIndex, DenseIndex, \textcolor{keyword}{const} Scalar *, DenseIndex, \textcolor{keyword}{const} Scalar *, DenseIndex, 
+      Scalar *, DenseIndex, \textcolor{keyword}{const} Scalar&, internal::level3\_blocking<Scalar,Scalar>&);
+00363   \textcolor{keyword}{static} \textcolor{keyword}{const} functype func[8] = \{
+00364     \textcolor{comment}{// array index: NOTR  | (UP << 2)}
+00365     (
+      internal::general\_matrix\_matrix\_triangular\_product<DenseIndex,Scalar,ColMajor,false,Scalar,RowMajor,ColMajor,Conj, Upper>::run),
+00366     \textcolor{comment}{// array index: TR    | (UP << 2)}
+00367     (
+      internal::general\_matrix\_matrix\_triangular\_product<DenseIndex,Scalar,RowMajor,false,Scalar,ColMajor,ColMajor,Conj, Upper>::run),
+00368     \textcolor{comment}{// array index: ADJ   | (UP << 2)}
+00369     (internal::general\_matrix\_matrix\_triangular\_product<DenseIndex,Scalar,RowMajor,Conj,
+       Scalar,ColMajor,ColMajor,false,Upper>::run),
+00370     0,
+00371     \textcolor{comment}{// array index: NOTR  | (LO << 2)}
+00372     (
+      internal::general\_matrix\_matrix\_triangular\_product<DenseIndex,Scalar,ColMajor,false,Scalar,RowMajor,ColMajor,Conj, Lower>::run),
+00373     \textcolor{comment}{// array index: TR    | (LO << 2)}
+00374     (
+      internal::general\_matrix\_matrix\_triangular\_product<DenseIndex,Scalar,RowMajor,false,Scalar,ColMajor,ColMajor,Conj, Lower>::run),
+00375     \textcolor{comment}{// array index: ADJ   | (LO << 2)}
+00376     (internal::general\_matrix\_matrix\_triangular\_product<DenseIndex,Scalar,RowMajor,Conj,
+       Scalar,ColMajor,ColMajor,false,Lower>::run),
+00377     0
+00378   \};
+00379 \textcolor{preprocessor}{  #endif}
+00380 
+00381   \textcolor{keyword}{const} Scalar* a = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pa);
+00382   Scalar* c = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pc);
+00383   Scalar alpha = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(palpha);
+00384   Scalar beta  = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pbeta);
+00385 
+00386   \textcolor{keywordtype}{int} info = 0;
+00387   \textcolor{keywordflow}{if}(UPLO(*uplo)==INVALID)                                            info = 1;
+00388   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(OP(*op)==INVALID || (ISCOMPLEX && OP(*op)==ADJ) )           info = 2;
+00389   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*n<0)                                                       info = 3;
+00390   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*k<0)                                                       info = 4;
+00391   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*lda<std::max(1,(OP(*op)==NOTR)?*n:*k))                     info = 7;
+00392   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*ldc<std::max(1,*n))                                        info = 10;
+00393   \textcolor{keywordflow}{if}(info)
+00394     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"SYRK "},&info,6);
+00395 
+00396   \textcolor{keywordflow}{if}(beta!=Scalar(1))
+00397   \{
+00398     \textcolor{keywordflow}{if}(UPLO(*uplo)==UP)
+00399       \textcolor{keywordflow}{if}(beta==Scalar(0)) matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>().setZero();
+00400       \textcolor{keywordflow}{else}                matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>() *= beta;
+00401     \textcolor{keywordflow}{else}
+00402       \textcolor{keywordflow}{if}(beta==Scalar(0)) matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>().setZero();
+00403       \textcolor{keywordflow}{else}                matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>() *= beta;
+00404   \}
+00405 
+00406   \textcolor{keywordflow}{if}(*n==0 || *k==0)
+00407     \textcolor{keywordflow}{return} 0;
+00408 
+00409 \textcolor{preprocessor}{  #if ISCOMPLEX}
+00410   \textcolor{comment}{// FIXME add support for symmetric complex matrix}
+00411   \textcolor{keywordflow}{if}(UPLO(*uplo)==UP)
+00412   \{
+00413     \textcolor{keywordflow}{if}(OP(*op)==NOTR)
+00414       matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>() += alpha * matrix(a,*n,*k,*lda) * matrix(a,*n,*k
+      ,*lda).transpose();
+00415     \textcolor{keywordflow}{else}
+00416       matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>() += alpha * matrix(a,*k,*n,*lda).transpose() * 
+      matrix(a,*k,*n,*lda);
+00417   \}
+00418   \textcolor{keywordflow}{else}
+00419   \{
+00420     \textcolor{keywordflow}{if}(OP(*op)==NOTR)
+00421       matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>() += alpha * matrix(a,*n,*k,*lda) * matrix(a,*n,*k
+      ,*lda).transpose();
+00422     \textcolor{keywordflow}{else}
+00423       matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>() += alpha * matrix(a,*k,*n,*lda).transpose() * 
+      matrix(a,*k,*n,*lda);
+00424   \}
+00425 \textcolor{preprocessor}{  #else}
+00426   internal::gemm\_blocking\_space<ColMajor,Scalar,Scalar,Dynamic,Dynamic,Dynamic> blocking(*n,*n,*k,1,\textcolor{keyword}{false});
+00427 
+00428   \textcolor{keywordtype}{int} code = OP(*op) | (UPLO(*uplo) << 2);
+00429   func[code](*n, *k, a, *lda, a, *lda, c, *ldc, alpha, blocking);
+00430 \textcolor{preprocessor}{  #endif}
+00431 
+00432   \textcolor{keywordflow}{return} 0;
+00433 \}
+00434 
+00435 \textcolor{comment}{// c = alpha*a*b' + alpha*b*a' + beta*c  for op = 'N'or'n'}
+00436 \textcolor{comment}{// c = alpha*a'*b + alpha*b'*a + beta*c  for op = 'T'or't'}
+00437 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(syr2k)(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *uplo, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *op, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *n, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *k, \textcolor{keyword}{const} RealScalar *
+      palpha,
+00438                            \textcolor{keyword}{const} RealScalar *pa, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *lda, \textcolor{keyword}{const} RealScalar *pb, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *ldb, \textcolor{keyword}{
+      const} RealScalar *pbeta, RealScalar *pc, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *ldc)
+00439 \{
+00440   \textcolor{keyword}{const} Scalar* a = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pa);
+00441   \textcolor{keyword}{const} Scalar* b = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pb);
+00442   Scalar* c = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pc);
+00443   Scalar alpha = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(palpha);
+00444   Scalar beta  = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pbeta);
+00445 
+00446 \textcolor{comment}{//   std::cerr << "in syr2k " << *uplo << " " << *op << " " << *n << " " << *k << " " << alpha << " " <<
+       *lda << " " << *ldb << " " << beta << " " << *ldc << "\(\backslash\)n";}
+00447 
+00448   \textcolor{keywordtype}{int} info = 0;
+00449   \textcolor{keywordflow}{if}(UPLO(*uplo)==INVALID)                                            info = 1;
+00450   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(OP(*op)==INVALID || (ISCOMPLEX && OP(*op)==ADJ) )           info = 2;
+00451   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*n<0)                                                       info = 3;
+00452   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*k<0)                                                       info = 4;
+00453   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*lda<std::max(1,(OP(*op)==NOTR)?*n:*k))                     info = 7;
+00454   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*ldb<std::max(1,(OP(*op)==NOTR)?*n:*k))                     info = 9;
+00455   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*ldc<std::max(1,*n))                                        info = 12;
+00456   \textcolor{keywordflow}{if}(info)
+00457     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"SYR2K"},&info,6);
+00458 
+00459   \textcolor{keywordflow}{if}(beta!=Scalar(1))
+00460   \{
+00461     \textcolor{keywordflow}{if}(UPLO(*uplo)==UP)
+00462       \textcolor{keywordflow}{if}(beta==Scalar(0)) matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>().setZero();
+00463       \textcolor{keywordflow}{else}                matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>() *= beta;
+00464     \textcolor{keywordflow}{else}
+00465       \textcolor{keywordflow}{if}(beta==Scalar(0)) matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>().setZero();
+00466       \textcolor{keywordflow}{else}                matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>() *= beta;
+00467   \}
+00468 
+00469   \textcolor{keywordflow}{if}(*k==0)
+00470     \textcolor{keywordflow}{return} 1;
+00471 
+00472   \textcolor{keywordflow}{if}(OP(*op)==NOTR)
+00473   \{
+00474     \textcolor{keywordflow}{if}(UPLO(*uplo)==UP)
+00475     \{
+00476       matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>()
+00477         += alpha *matrix(a, *n, *k, *lda)*matrix(b, *n, *k, *ldb).transpose()
+00478         +  alpha*matrix(b, *n, *k, *ldb)*matrix(a, *n, *k, *lda).transpose();
+00479     \}
+00480     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(UPLO(*uplo)==LO)
+00481       matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>()
+00482         += alpha*matrix(a, *n, *k, *lda)*matrix(b, *n, *k, *ldb).transpose()
+00483         +  alpha*matrix(b, *n, *k, *ldb)*matrix(a, *n, *k, *lda).transpose();
+00484   \}
+00485   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(OP(*op)==TR || OP(*op)==ADJ)
+00486   \{
+00487     \textcolor{keywordflow}{if}(UPLO(*uplo)==UP)
+00488       matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>()
+00489         += alpha*matrix(a, *k, *n, *lda).transpose()*matrix(b, *k, *n, *ldb)
+00490         +  alpha*matrix(b, *k, *n, *ldb).transpose()*matrix(a, *k, *n, *lda);
+00491     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(UPLO(*uplo)==LO)
+00492       matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>()
+00493         += alpha*matrix(a, *k, *n, *lda).transpose()*matrix(b, *k, *n, *ldb)
+00494         +  alpha*matrix(b, *k, *n, *ldb).transpose()*matrix(a, *k, *n, *lda);
+00495   \}
+00496 
+00497   \textcolor{keywordflow}{return} 0;
+00498 \}
+00499 
+00500 
+00501 \textcolor{preprocessor}{#if ISCOMPLEX}
+00502 
+00503 \textcolor{comment}{// c = alpha*a*b + beta*c  for side = 'L'or'l'}
+00504 \textcolor{comment}{// c = alpha*b*a + beta*c  for side = 'R'or'r}
+00505 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(hemm)(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *side, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *uplo, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *m, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *n, \textcolor{keyword}{const} RealScalar 
+      *palpha,
+00506                           \textcolor{keyword}{const} RealScalar *pa, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *lda, \textcolor{keyword}{const} RealScalar *pb, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *ldb, \textcolor{keyword}{const}
+       RealScalar *pbeta, RealScalar *pc, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *ldc)
+00507 \{
+00508   \textcolor{keyword}{const} Scalar* a = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pa);
+00509   \textcolor{keyword}{const} Scalar* b = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pb);
+00510   Scalar* c = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pc);
+00511   Scalar alpha = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(palpha);
+00512   Scalar beta  = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pbeta);
+00513 
+00514 \textcolor{comment}{//   std::cerr << "in hemm " << *side << " " << *uplo << " " << *m << " " << *n << " " << alpha << " " <<
+       *lda << " " << beta << " " << *ldc << "\(\backslash\)n";}
+00515 
+00516   \textcolor{keywordtype}{int} info = 0;
+00517   \textcolor{keywordflow}{if}(SIDE(*side)==INVALID)                                            info = 1;
+00518   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(UPLO(*uplo)==INVALID)                                       info = 2;
+00519   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*m<0)                                                       info = 3;
+00520   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*n<0)                                                       info = 4;
+00521   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*lda<std::max(1,(SIDE(*side)==LEFT)?*m:*n))                 info = 7;
+00522   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*ldb<std::max(1,*m))                                        info = 9;
+00523   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*ldc<std::max(1,*m))                                        info = 12;
+00524   \textcolor{keywordflow}{if}(info)
+00525     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"HEMM "},&info,6);
+00526 
+00527   \textcolor{keywordflow}{if}(beta==Scalar(0))       matrix(c, *m, *n, *ldc).setZero();
+00528   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(beta!=Scalar(1))  matrix(c, *m, *n, *ldc) *= beta;
+00529 
+00530   \textcolor{keywordflow}{if}(*m==0 || *n==0)
+00531   \{
+00532     \textcolor{keywordflow}{return} 1;
+00533   \}
+00534 
+00535   \textcolor{keywordtype}{int} size = (SIDE(*side)==LEFT) ? (*m) : (*n);
+00536   internal::gemm\_blocking\_space<ColMajor,Scalar,Scalar,Dynamic,Dynamic,Dynamic> blocking(*m,*n,size,1,\textcolor{keyword}{false}
+      );
+00537 
+00538   \textcolor{keywordflow}{if}(SIDE(*side)==LEFT)
+00539   \{
+00540     \textcolor{keywordflow}{if}(UPLO(*uplo)==UP)       internal::product\_selfadjoint\_matrix<Scalar,DenseIndex,RowMajor,true,Conj, 
+       ColMajor,false,false, ColMajor>
+00541                                 ::run(*m, *n, a, *lda, b, *ldb, c, *ldc, alpha, blocking);
+00542     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(UPLO(*uplo)==LO)  internal::product\_selfadjoint\_matrix<Scalar,DenseIndex,ColMajor,true,false,
+       ColMajor,false,false, ColMajor>
+00543                                 ::run(*m, *n, a, *lda, b, *ldb, c, *ldc, alpha, blocking);
+00544     \textcolor{keywordflow}{else}                      \textcolor{keywordflow}{return} 0;
+00545   \}
+00546   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(SIDE(*side)==RIGHT)
+00547   \{
+00548     \textcolor{keywordflow}{if}(UPLO(*uplo)==UP)       matrix(c,*m,*n,*ldc) += alpha * matrix(b,*m,*n,*ldb) * matrix(a,*n,*n,*lda).
+      selfadjointView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>();\textcolor{comment}{/*internal::product\_selfadjoint\_matrix<Scalar,DenseIndex,ColMajor,false,false,
+       RowMajor,true,Conj,  ColMajor>}
+00549 \textcolor{comment}{                                ::run(*m, *n, b, *ldb, a, *lda, c, *ldc, alpha, blocking);*/}
+00550     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(UPLO(*uplo)==LO)  internal::product\_selfadjoint\_matrix<Scalar,DenseIndex,ColMajor,false,false,
+       ColMajor,true,false, ColMajor>
+00551                                 ::run(*m, *n, b, *ldb, a, *lda, c, *ldc, alpha, blocking);
+00552     \textcolor{keywordflow}{else}                      \textcolor{keywordflow}{return} 0;
+00553   \}
+00554   \textcolor{keywordflow}{else}
+00555   \{
+00556     \textcolor{keywordflow}{return} 0;
+00557   \}
+00558 
+00559   \textcolor{keywordflow}{return} 0;
+00560 \}
+00561 
+00562 \textcolor{comment}{// c = alpha*a*conj(a') + beta*c  for op = 'N'or'n'}
+00563 \textcolor{comment}{// c = alpha*conj(a')*a + beta*c  for op  = 'C'or'c'}
+00564 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(herk)(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *uplo, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *op, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *n, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *k,
+00565                           \textcolor{keyword}{const} RealScalar *palpha, \textcolor{keyword}{const} RealScalar *pa, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *lda, \textcolor{keyword}{const} RealScalar 
+      *pbeta, RealScalar *pc, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *ldc)
+00566 \{
+00567 \textcolor{comment}{//   std::cerr << "in herk " << *uplo << " " << *op << " " << *n << " " << *k << " " << *palpha << " " <<
+       *lda << " " << *pbeta << " " << *ldc << "\(\backslash\)n";}
+00568 
+00569   \textcolor{keyword}{typedef} void (*functype)(DenseIndex, DenseIndex, \textcolor{keyword}{const} Scalar *, DenseIndex, \textcolor{keyword}{const} Scalar *, DenseIndex, 
+      Scalar *, DenseIndex, \textcolor{keyword}{const} Scalar&, internal::level3\_blocking<Scalar,Scalar>&);
+00570   \textcolor{keyword}{static} \textcolor{keyword}{const} functype func[8] = \{
+00571     \textcolor{comment}{// array index: NOTR  | (UP << 2)}
+00572     (
+      internal::general\_matrix\_matrix\_triangular\_product<DenseIndex,Scalar,ColMajor,false,Scalar,RowMajor,Conj, ColMajor,Upper>::run),
+00573     0,
+00574     \textcolor{comment}{// array index: ADJ   | (UP << 2)}
+00575     (internal::general\_matrix\_matrix\_triangular\_product<DenseIndex,Scalar,RowMajor,Conj,
+       Scalar,ColMajor,false,ColMajor,Upper>::run),
+00576     0,
+00577     \textcolor{comment}{// array index: NOTR  | (LO << 2)}
+00578     (
+      internal::general\_matrix\_matrix\_triangular\_product<DenseIndex,Scalar,ColMajor,false,Scalar,RowMajor,Conj, ColMajor,Lower>::run),
+00579     0,
+00580     \textcolor{comment}{// array index: ADJ   | (LO << 2)}
+00581     (internal::general\_matrix\_matrix\_triangular\_product<DenseIndex,Scalar,RowMajor,Conj,
+       Scalar,ColMajor,false,ColMajor,Lower>::run),
+00582     0
+00583   \};
+00584 
+00585   \textcolor{keyword}{const} Scalar* a = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pa);
+00586   Scalar* c = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pc);
+00587   RealScalar alpha = *palpha;
+00588   RealScalar beta  = *pbeta;
+00589 
+00590 \textcolor{comment}{//   std::cerr << "in herk " << *uplo << " " << *op << " " << *n << " " << *k << " " << alpha << " " <<
+       *lda << " " << beta << " " << *ldc << "\(\backslash\)n";}
+00591 
+00592   \textcolor{keywordtype}{int} info = 0;
+00593   \textcolor{keywordflow}{if}(UPLO(*uplo)==INVALID)                                            info = 1;
+00594   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}((OP(*op)==INVALID) || (OP(*op)==TR))                        info = 2;
+00595   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*n<0)                                                       info = 3;
+00596   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*k<0)                                                       info = 4;
+00597   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*lda<std::max(1,(OP(*op)==NOTR)?*n:*k))                     info = 7;
+00598   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*ldc<std::max(1,*n))                                        info = 10;
+00599   \textcolor{keywordflow}{if}(info)
+00600     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"HERK "},&info,6);
+00601 
+00602   \textcolor{keywordtype}{int} code = OP(*op) | (UPLO(*uplo) << 2);
+00603 
+00604   \textcolor{keywordflow}{if}(beta!=RealScalar(1))
+00605   \{
+00606     \textcolor{keywordflow}{if}(UPLO(*uplo)==UP)
+00607       \textcolor{keywordflow}{if}(beta==Scalar(0)) matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>().setZero();
+00608       \textcolor{keywordflow}{else}                matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdae38aad7d66fecfb213fce453edff4c7a}{StrictlyUpper}>() *= beta;
+00609     \textcolor{keywordflow}{else}
+00610       \textcolor{keywordflow}{if}(beta==Scalar(0)) matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>().setZero();
+00611       \textcolor{keywordflow}{else}                matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda00aa79c8865ada1584c4d57bcd93299f}{StrictlyLower}>() *= beta;
+00612 
+00613     \textcolor{keywordflow}{if}(beta!=Scalar(0))
+00614     \{
+00615       matrix(c, *n, *n, *ldc).diagonal().real() *= beta;
+00616       matrix(c, *n, *n, *ldc).diagonal().imag().setZero();
+00617     \}
+00618   \}
+00619 
+00620   \textcolor{keywordflow}{if}(*k>0 && alpha!=RealScalar(0))
+00621   \{
+00622     internal::gemm\_blocking\_space<ColMajor,Scalar,Scalar,Dynamic,Dynamic,Dynamic> blocking(*n,*n,*k,1,\textcolor{keyword}{false}
+      );
+00623     func[code](*n, *k, a, *lda, a, *lda, c, *ldc, alpha, blocking);
+00624     matrix(c, *n, *n, *ldc).diagonal().imag().setZero();
+00625   \}
+00626   \textcolor{keywordflow}{return} 0;
+00627 \}
+00628 
+00629 \textcolor{comment}{// c = alpha*a*conj(b') + conj(alpha)*b*conj(a') + beta*c,  for op = 'N'or'n'}
+00630 \textcolor{comment}{// c = alpha*conj(a')*b + conj(alpha)*conj(b')*a + beta*c,  for op = 'C'or'c'}
+00631 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(her2k)(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *uplo, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *op, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *n, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *k,
+00632                            \textcolor{keyword}{const} RealScalar *palpha, \textcolor{keyword}{const} RealScalar *pa, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *lda, \textcolor{keyword}{const} RealScalar
+       *pb, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *ldb, \textcolor{keyword}{const} RealScalar *pbeta, RealScalar *pc, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *ldc)
+00633 \{
+00634   \textcolor{keyword}{const} Scalar* a = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pa);
+00635   \textcolor{keyword}{const} Scalar* b = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pb);
+00636   Scalar* c = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pc);
+00637   Scalar alpha = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(palpha);
+00638   RealScalar beta  = *pbeta;
+00639 
+00640 \textcolor{comment}{//   std::cerr << "in her2k " << *uplo << " " << *op << " " << *n << " " << *k << " " << alpha << " " <<
+       *lda << " " << *ldb << " " << beta << " " << *ldc << "\(\backslash\)n";}
+00641 
+00642   \textcolor{keywordtype}{int} info = 0;
+00643   \textcolor{keywordflow}{if}(UPLO(*uplo)==INVALID)                                            info = 1;
+00644   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}((OP(*op)==INVALID) || (OP(*op)==TR))                        info = 2;
+00645   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*n<0)                                                       info = 3;
+00646   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*k<0)                                                       info = 4;
+00647   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*lda<std::max(1,(OP(*op)==NOTR)?*n:*k))                     info = 7;
+00648   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*ldb<std::max(1,(OP(*op)==NOTR)?*n:*k))                     info = 9;
+00649   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*ldc<std::max(1,*n))                                        info = 12;
+00650   \textcolor{keywordflow}{if}(info)
+00651     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"HER2K"},&info,6);
+00652 
+00653   \textcolor{keywordflow}{if}(beta!=RealScalar(1))
+00654   \{
+00655     \textcolor{keywordflow}{if}(UPLO(*uplo)==UP)
+00656       \textcolor{keywordflow}{if}(beta==Scalar(0)) matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>().setZero();
+00657       \textcolor{keywordflow}{else}                matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdae38aad7d66fecfb213fce453edff4c7a}{StrictlyUpper}>() *= beta;
+00658     \textcolor{keywordflow}{else}
+00659       \textcolor{keywordflow}{if}(beta==Scalar(0)) matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>().setZero();
+00660       \textcolor{keywordflow}{else}                matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda00aa79c8865ada1584c4d57bcd93299f}{StrictlyLower}>() *= beta;
+00661 
+00662     \textcolor{keywordflow}{if}(beta!=Scalar(0))
+00663     \{
+00664       matrix(c, *n, *n, *ldc).diagonal().real() *= beta;
+00665       matrix(c, *n, *n, *ldc).diagonal().imag().setZero();
+00666     \}
+00667   \}
+00668   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*k>0 && alpha!=Scalar(0))
+00669     matrix(c, *n, *n, *ldc).diagonal().imag().setZero();
+00670 
+00671   \textcolor{keywordflow}{if}(*k==0)
+00672     \textcolor{keywordflow}{return} 1;
+00673 
+00674   \textcolor{keywordflow}{if}(OP(*op)==NOTR)
+00675   \{
+00676     \textcolor{keywordflow}{if}(UPLO(*uplo)==UP)
+00677     \{
+00678       matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>()
+00679         +=            alpha *matrix(a, *n, *k, *lda)*matrix(b, *n, *k, *ldb).adjoint()
+00680         +  numext::conj(alpha)*matrix(b, *n, *k, *ldb)*matrix(a, *n, *k, *lda).adjoint();
+00681     \}
+00682     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(UPLO(*uplo)==LO)
+00683       matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>()
+00684         += alpha*matrix(a, *n, *k, *lda)*matrix(b, *n, *k, *ldb).adjoint()
+00685         +  numext::conj(alpha)*matrix(b, *n, *k, *ldb)*matrix(a, *n, *k, *lda).adjoint();
+00686   \}
+00687   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(OP(*op)==ADJ)
+00688   \{
+00689     \textcolor{keywordflow}{if}(UPLO(*uplo)==UP)
+00690       matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>()
+00691         +=             alpha*matrix(a, *k, *n, *lda).adjoint()*matrix(b, *k, *n, *ldb)
+00692         +  numext::conj(alpha)*matrix(b, *k, *n, *ldb).adjoint()*matrix(a, *k, *n, *lda);
+00693     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(UPLO(*uplo)==LO)
+00694       matrix(c, *n, *n, *ldc).triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>()
+00695         +=             alpha*matrix(a, *k, *n, *lda).adjoint()*matrix(b, *k, *n, *ldb)
+00696         +  numext::conj(alpha)*matrix(b, *k, *n, *ldb).adjoint()*matrix(a, *k, *n, *lda);
+00697   \}
+00698 
+00699   \textcolor{keywordflow}{return} 1;
+00700 \}
+00701 
+00702 \textcolor{preprocessor}{#endif // ISCOMPLEX}
+\end{DoxyCode}

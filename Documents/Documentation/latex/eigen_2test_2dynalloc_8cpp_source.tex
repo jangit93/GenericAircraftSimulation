@@ -1,0 +1,184 @@
+\hypertarget{eigen_2test_2dynalloc_8cpp_source}{}\section{eigen/test/dynalloc.cpp}
+\label{eigen_2test_2dynalloc_8cpp_source}\index{dynalloc.\+cpp@{dynalloc.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 \textcolor{preprocessor}{#if EIGEN\_MAX\_ALIGN\_BYTES>0}
+00013 \textcolor{preprocessor}{#define ALIGNMENT EIGEN\_MAX\_ALIGN\_BYTES}
+00014 \textcolor{preprocessor}{#else}
+00015 \textcolor{preprocessor}{#define ALIGNMENT 1}
+00016 \textcolor{preprocessor}{#endif}
+00017 
+00018 \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<float,8,1>} \hyperlink{group___core___module}{Vector8f};
+00019 
+00020 \textcolor{keywordtype}{void} check\_handmade\_aligned\_malloc()
+00021 \{
+00022   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 1; i < 1000; i++)
+00023   \{
+00024     \textcolor{keywordtype}{char} *p = (\textcolor{keywordtype}{char}*)internal::handmade\_aligned\_malloc(i);
+00025     VERIFY(internal::UIntPtr(p)%ALIGNMENT==0);
+00026     \textcolor{comment}{// if the buffer is wrongly allocated this will give a bad write --> check with valgrind}
+00027     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j = 0; j < i; j++) p[j]=0;
+00028     internal::handmade\_aligned\_free(p);
+00029   \}
+00030 \}
+00031 
+00032 \textcolor{keywordtype}{void} check\_aligned\_malloc()
+00033 \{
+00034   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = ALIGNMENT; i < 1000; i++)
+00035   \{
+00036     \textcolor{keywordtype}{char} *p = (\textcolor{keywordtype}{char}*)internal::aligned\_malloc(i);
+00037     VERIFY(internal::UIntPtr(p)%ALIGNMENT==0);
+00038     \textcolor{comment}{// if the buffer is wrongly allocated this will give a bad write --> check with valgrind}
+00039     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j = 0; j < i; j++) p[j]=0;
+00040     internal::aligned\_free(p);
+00041   \}
+00042 \}
+00043 
+00044 \textcolor{keywordtype}{void} check\_aligned\_new()
+00045 \{
+00046   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = ALIGNMENT; i < 1000; i++)
+00047   \{
+00048     \textcolor{keywordtype}{float} *p = internal::aligned\_new<float>(i);
+00049     VERIFY(internal::UIntPtr(p)%ALIGNMENT==0);
+00050     \textcolor{comment}{// if the buffer is wrongly allocated this will give a bad write --> check with valgrind}
+00051     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j = 0; j < i; j++) p[j]=0;
+00052     internal::aligned\_delete(p,i);
+00053   \}
+00054 \}
+00055 
+00056 \textcolor{keywordtype}{void} check\_aligned\_stack\_alloc()
+00057 \{
+00058   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = ALIGNMENT; i < 400; i++)
+00059   \{
+00060     ei\_declare\_aligned\_stack\_constructed\_variable(\textcolor{keywordtype}{float},p,i,0);
+00061     VERIFY(internal::UIntPtr(p)%ALIGNMENT==0);
+00062     \textcolor{comment}{// if the buffer is wrongly allocated this will give a bad write --> check with valgrind}
+00063     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j = 0; j < i; j++) p[j]=0;
+00064   \}
+00065 \}
+00066 
+00067 
+00068 \textcolor{comment}{// test compilation with both a struct and a class...}
+\Hypertarget{eigen_2test_2dynalloc_8cpp_source_l00069}\hyperlink{struct_my_struct}{00069} \textcolor{keyword}{struct }\hyperlink{struct_my_struct}{MyStruct}
+00070 \{
+00071   EIGEN\_MAKE\_ALIGNED\_OPERATOR\_NEW
+00072   \textcolor{keywordtype}{char} dummychar;
+00073   \hyperlink{group___core___module}{Vector8f} avec;
+00074 \};
+00075 
+\Hypertarget{eigen_2test_2dynalloc_8cpp_source_l00076}\hyperlink{class_my_class_a}{00076} \textcolor{keyword}{class }\hyperlink{class_my_class_a}{MyClassA}
+00077 \{
+00078   \textcolor{keyword}{public}:
+00079     EIGEN\_MAKE\_ALIGNED\_OPERATOR\_NEW
+00080     \textcolor{keywordtype}{char} dummychar;
+00081     \hyperlink{group___core___module}{Vector8f} avec;
+00082 \};
+00083 
+00084 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> \textcolor{keywordtype}{void} check\_dynaligned()
+00085 \{
+00086   \textcolor{comment}{// TODO have to be updated once we support multiple alignment values}
+00087   \textcolor{keywordflow}{if}(T::SizeAtCompileTime % ALIGNMENT == 0)
+00088   \{
+00089     \hyperlink{group___sparse_core___module}{T}* obj = \textcolor{keyword}{new} \hyperlink{group___sparse_core___module}{T};
+00090     VERIFY(T::NeedsToAlign==1);
+00091     VERIFY(internal::UIntPtr(obj)%ALIGNMENT==0);
+00092     \textcolor{keyword}{delete} obj;
+00093   \}
+00094 \}
+00095 
+00096 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> \textcolor{keywordtype}{void} check\_custom\_new\_delete()
+00097 \{
+00098   \{
+00099     \hyperlink{group___sparse_core___module}{T}* t = \textcolor{keyword}{new} \hyperlink{group___sparse_core___module}{T};
+00100     \textcolor{keyword}{delete} t;
+00101   \}
+00102   
+00103   \{
+00104     std::size\_t N = internal::random<std::size\_t>(1,10);
+00105     \hyperlink{group___sparse_core___module}{T}* t = \textcolor{keyword}{new} \hyperlink{group___sparse_core___module}{T}[N];
+00106     \textcolor{keyword}{delete}[] t;
+00107   \}
+00108   
+00109 \textcolor{preprocessor}{#if EIGEN\_MAX\_ALIGN\_BYTES>0}
+00110   \{
+00111     \hyperlink{group___sparse_core___module}{T}* t = \textcolor{keyword}{static\_cast<}\hyperlink{group___sparse_core___module}{T} *\textcolor{keyword}{>}((T::operator \textcolor{keyword}{new})(\textcolor{keyword}{sizeof}(\hyperlink{group___sparse_core___module}{T})));
+00112     (T::operator \textcolor{keyword}{delete})(t, \textcolor{keyword}{sizeof}(\hyperlink{group___sparse_core___module}{T}));
+00113   \}
+00114   
+00115   \{
+00116     \hyperlink{group___sparse_core___module}{T}* t = \textcolor{keyword}{static\_cast<}\hyperlink{group___sparse_core___module}{T} *\textcolor{keyword}{>}((T::operator \textcolor{keyword}{new})(\textcolor{keyword}{sizeof}(\hyperlink{group___sparse_core___module}{T})));
+00117     (T::operator \textcolor{keyword}{delete})(t);
+00118   \}
+00119 \textcolor{preprocessor}{#endif}
+00120 \}
+00121 
+00122 \textcolor{keywordtype}{void} test\_dynalloc()
+00123 \{
+00124   \textcolor{comment}{// low level dynamic memory allocation}
+00125   CALL\_SUBTEST(check\_handmade\_aligned\_malloc());
+00126   CALL\_SUBTEST(check\_aligned\_malloc());
+00127   CALL\_SUBTEST(check\_aligned\_new());
+00128   CALL\_SUBTEST(check\_aligned\_stack\_alloc());
+00129 
+00130   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<g\_repeat*100; ++i)
+00131   \{
+00132     CALL\_SUBTEST( check\_custom\_new\_delete<Vector4f>() );
+00133     CALL\_SUBTEST( check\_custom\_new\_delete<Vector2f>() );
+00134     CALL\_SUBTEST( check\_custom\_new\_delete<Matrix4f>() );
+00135     CALL\_SUBTEST( check\_custom\_new\_delete<MatrixXi>() );
+00136   \}
+00137   
+00138   \textcolor{comment}{// check static allocation, who knows ?}
+00139 \textcolor{preprocessor}{  #if EIGEN\_MAX\_STATIC\_ALIGN\_BYTES}
+00140   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<g\_repeat*100; ++i)
+00141   \{
+00142     CALL\_SUBTEST(check\_dynaligned<Vector4f>() );
+00143     CALL\_SUBTEST(check\_dynaligned<Vector2d>() );
+00144     CALL\_SUBTEST(check\_dynaligned<Matrix4f>() );
+00145     CALL\_SUBTEST(check\_dynaligned<Vector4d>() );
+00146     CALL\_SUBTEST(check\_dynaligned<Vector4i>() );
+00147     CALL\_SUBTEST(check\_dynaligned<Vector8f>() );
+00148   \}
+00149 
+00150   \{
+00151     \hyperlink{struct_my_struct}{MyStruct} foo0;  VERIFY(internal::UIntPtr(foo0.avec.\hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}())%ALIGNMENT==0);
+00152     \hyperlink{class_my_class_a}{MyClassA} fooA;  VERIFY(internal::UIntPtr(fooA.avec.\hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}())%ALIGNMENT==0);
+00153   \}
+00154   
+00155   \textcolor{comment}{// dynamic allocation, single object}
+00156   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<g\_repeat*100; ++i)
+00157   \{
+00158     \hyperlink{struct_my_struct}{MyStruct} *foo0 = \textcolor{keyword}{new} \hyperlink{struct_my_struct}{MyStruct}();  VERIFY(internal::UIntPtr(foo0->avec.
+      \hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}())%ALIGNMENT==0);
+00159     \hyperlink{class_my_class_a}{MyClassA} *fooA = \textcolor{keyword}{new} \hyperlink{class_my_class_a}{MyClassA}();  VERIFY(internal::UIntPtr(fooA->avec.
+      \hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}())%ALIGNMENT==0);
+00160     \textcolor{keyword}{delete} foo0;
+00161     \textcolor{keyword}{delete} fooA;
+00162   \}
+00163 
+00164   \textcolor{comment}{// dynamic allocation, array}
+00165   \textcolor{keyword}{const} \textcolor{keywordtype}{int} N = 10;
+00166   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<g\_repeat*100; ++i)
+00167   \{
+00168     \hyperlink{struct_my_struct}{MyStruct} *foo0 = \textcolor{keyword}{new} \hyperlink{struct_my_struct}{MyStruct}[N];  VERIFY(internal::UIntPtr(foo0->avec.
+      \hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}())%ALIGNMENT==0);
+00169     \hyperlink{class_my_class_a}{MyClassA} *fooA = \textcolor{keyword}{new} \hyperlink{class_my_class_a}{MyClassA}[N];  VERIFY(internal::UIntPtr(fooA->avec.
+      \hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}())%ALIGNMENT==0);
+00170     \textcolor{keyword}{delete}[] foo0;
+00171     \textcolor{keyword}{delete}[] fooA;
+00172   \}
+00173 \textcolor{preprocessor}{  #endif}
+00174   
+00175 \}
+\end{DoxyCode}

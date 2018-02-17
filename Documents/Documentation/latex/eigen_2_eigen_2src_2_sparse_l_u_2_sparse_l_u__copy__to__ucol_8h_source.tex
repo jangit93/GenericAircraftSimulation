@@ -1,0 +1,101 @@
+\hypertarget{eigen_2_eigen_2src_2_sparse_l_u_2_sparse_l_u__copy__to__ucol_8h_source}{}\section{eigen/\+Eigen/src/\+Sparse\+L\+U/\+Sparse\+L\+U\+\_\+copy\+\_\+to\+\_\+ucol.h}
+\label{eigen_2_eigen_2src_2_sparse_l_u_2_sparse_l_u__copy__to__ucol_8h_source}\index{Sparse\+L\+U\+\_\+copy\+\_\+to\+\_\+ucol.\+h@{Sparse\+L\+U\+\_\+copy\+\_\+to\+\_\+ucol.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2012 Désiré Nuentsa-Wakam <desire.nuentsa\_wakam@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 \textcolor{comment}{/* }
+00010 \textcolor{comment}{ }
+00011 \textcolor{comment}{ * NOTE: This file is the modified version of [s,d,c,z]copy\_to\_ucol.c file in SuperLU }
+00012 \textcolor{comment}{ }
+00013 \textcolor{comment}{ * -- SuperLU routine (version 2.0) --}
+00014 \textcolor{comment}{ * Univ. of California Berkeley, Xerox Palo Alto Research Center,}
+00015 \textcolor{comment}{ * and Lawrence Berkeley National Lab.}
+00016 \textcolor{comment}{ * November 15, 1997}
+00017 \textcolor{comment}{ *}
+00018 \textcolor{comment}{ * Copyright (c) 1994 by Xerox Corporation.  All rights reserved.}
+00019 \textcolor{comment}{ *}
+00020 \textcolor{comment}{ * THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY}
+00021 \textcolor{comment}{ * EXPRESSED OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.}
+00022 \textcolor{comment}{ *}
+00023 \textcolor{comment}{ * Permission is hereby granted to use or copy this program for any}
+00024 \textcolor{comment}{ * purpose, provided the above notices are retained on all copies.}
+00025 \textcolor{comment}{ * Permission to modify the code and to distribute modified code is}
+00026 \textcolor{comment}{ * granted, provided the above notices are retained, and a notice that}
+00027 \textcolor{comment}{ * the code was modified is included with the above copyright notice.}
+00028 \textcolor{comment}{ */}
+00029 \textcolor{preprocessor}{#ifndef SPARSELU\_COPY\_TO\_UCOL\_H}
+00030 \textcolor{preprocessor}{#define SPARSELU\_COPY\_TO\_UCOL\_H}
+00031 
+00032 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00033 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00034 
+00049 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} StorageIndex>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_l_u_2_sparse_l_u__copy__to__ucol_8h_source_l00050}\hyperlink{group___sparse_l_u___module_ae4867ed1d5f104f9245411c356416a21}{00050} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \hyperlink{group___sparse_l_u___module_ae4867ed1d5f104f9245411c356416a21}{SparseLUImpl<Scalar,StorageIndex>::copy\_to\_ucol}(\textcolor{keyword}{
+      const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} jcol, \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} nseg, \hyperlink{group___core___module_class_eigen_1_1_matrix}{IndexVector}& segrep,
+00051                                                       \hyperlink{group___core___module_class_eigen_1_1_ref}{BlockIndexVector} repfnz ,
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{IndexVector}& perm\_r, \hyperlink{group___core___module_class_eigen_1_1_ref}{BlockScalarVector} dense, 
+      \hyperlink{struct_eigen_1_1internal_1_1_l_u___global_l_u__t}{GlobalLU\_t}& glu)
+00052 \{  
+00053   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} ksub, krep, ksupno; 
+00054     
+00055   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} jsupno = glu.supno(jcol);
+00056   
+00057   \textcolor{comment}{// For each nonzero supernode segment of U[*,j] in topological order }
+00058   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k = nseg - 1, i; 
+00059   StorageIndex nextu = glu.xusub(jcol); 
+00060   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} kfnz, isub, segsize; 
+00061   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} new\_next,irow; 
+00062   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} fsupc, mem; 
+00063   \textcolor{keywordflow}{for} (ksub = 0; ksub < nseg; ksub++)
+00064   \{
+00065     krep = segrep(k); k--; 
+00066     ksupno = glu.supno(krep); 
+00067     \textcolor{keywordflow}{if} (jsupno != ksupno ) \textcolor{comment}{// should go into ucol(); }
+00068     \{
+00069       kfnz = repfnz(krep); 
+00070       \textcolor{keywordflow}{if} (kfnz != emptyIdxLU)
+00071       \{ \textcolor{comment}{// Nonzero U-segment }
+00072         fsupc = glu.xsup(ksupno); 
+00073         isub = glu.xlsub(fsupc) + kfnz - fsupc; 
+00074         segsize = krep - kfnz + 1; 
+00075         new\_next = nextu + segsize; 
+00076         \textcolor{keywordflow}{while} (new\_next > glu.nzumax) 
+00077         \{
+00078           mem = memXpand<ScalarVector>(glu.ucol, glu.nzumax, nextu, UCOL, glu.num\_expansions); 
+00079           \textcolor{keywordflow}{if} (mem) \textcolor{keywordflow}{return} mem; 
+00080           mem = memXpand<IndexVector>(glu.usub, glu.nzumax, nextu, USUB, glu.num\_expansions); 
+00081           \textcolor{keywordflow}{if} (mem) \textcolor{keywordflow}{return} mem; 
+00082           
+00083         \}
+00084         
+00085         \textcolor{keywordflow}{for} (i = 0; i < segsize; i++)
+00086         \{
+00087           irow = glu.lsub(isub); 
+00088           glu.usub(nextu) = perm\_r(irow); \textcolor{comment}{// Unlike the L part, the U part is stored in its final order}
+00089           glu.ucol(nextu) = dense(irow); 
+00090           dense(irow) = Scalar(0.0); 
+00091           nextu++;
+00092           isub++;
+00093         \}
+00094         
+00095       \} \textcolor{comment}{// end nonzero U-segment }
+00096       
+00097     \} \textcolor{comment}{// end if jsupno }
+00098     
+00099   \} \textcolor{comment}{// end for each segment}
+00100   glu.xusub(jcol + 1) = nextu; \textcolor{comment}{// close U(*,jcol)}
+00101   \textcolor{keywordflow}{return} 0; 
+00102 \}
+00103 
+00104 \} \textcolor{comment}{// namespace internal}
+00105 \} \textcolor{comment}{// end namespace Eigen}
+00106 
+00107 \textcolor{preprocessor}{#endif // SPARSELU\_COPY\_TO\_UCOL\_H}
+\end{DoxyCode}

@@ -1,0 +1,304 @@
+\hypertarget{eigen_2test_2product__small_8cpp_source}{}\section{eigen/test/product\+\_\+small.cpp}
+\label{eigen_2test_2product__small_8cpp_source}\index{product\+\_\+small.\+cpp@{product\+\_\+small.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2006-2008 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#define EIGEN\_NO\_STATIC\_ASSERT}
+00011 \textcolor{preprocessor}{#include "product.h"}
+00012 \textcolor{preprocessor}{#include <Eigen/LU>}
+00013 
+00014 \textcolor{comment}{// regression test for bug 447}
+00015 \textcolor{keyword}{template}<\textcolor{keywordtype}{int}>
+00016 \textcolor{keywordtype}{void} product1x1()
+00017 \{
+00018   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,1,3>} matAstatic;
+00019   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,3,1>} matBstatic;
+00020   matAstatic.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00021   matBstatic.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00022   VERIFY\_IS\_APPROX( (matAstatic * matBstatic).coeff(0,0), 
+00023                     matAstatic.cwiseProduct(matBstatic.transpose()).sum() );
+00024 
+00025   MatrixXf matAdynamic(1,3);
+00026   MatrixXf matBdynamic(3,1);
+00027   matAdynamic.setRandom();
+00028   matBdynamic.setRandom();
+00029   VERIFY\_IS\_APPROX( (matAdynamic * matBdynamic).coeff(0,0), 
+00030                     matAdynamic.cwiseProduct(matBdynamic.transpose()).sum() );
+00031 \}
+00032 
+00033 \textcolor{keyword}{template}<\textcolor{keyword}{typename} TC, \textcolor{keyword}{typename} TA, \textcolor{keyword}{typename} TB>
+00034 \textcolor{keyword}{const} TC& ref\_prod(TC &\hyperlink{group___core___module}{C}, \textcolor{keyword}{const} TA &\hyperlink{group___core___module_class_eigen_1_1_matrix}{A}, \textcolor{keyword}{const} TB &\hyperlink{group___core___module_class_eigen_1_1_matrix}{B})
+00035 \{
+00036   \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=0;i<C.rows();++i)
+00037     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j=0;j<C.cols();++j)
+00038       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=0;k<A.cols();++k)
+00039         C.coeffRef(i,j) += A.coeff(i,k) * B.coeff(k,j);
+00040   \textcolor{keywordflow}{return} C;
+00041 \}
+00042 
+00043 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} Rows, \textcolor{keywordtype}{int} Cols, \textcolor{keywordtype}{int} Depth, \textcolor{keywordtype}{int} OC, \textcolor{keywordtype}{int} OA, \textcolor{keywordtype}{int} OB>
+00044 \textcolor{keyword}{typename} internal::enable\_if<! ( (Rows ==1&&Depth!=1&&OA==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})
+00045                               || (Depth==1&&Rows !=1&&OA==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor})
+00046                               || (Cols ==1&&Depth!=1&&OB==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor})
+00047                               || (Depth==1&&Cols !=1&&OB==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})
+00048                               || (Rows ==1&&Cols !=1&&OC==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})
+00049                               || (Cols ==1&&Rows !=1&&OC==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor})),\textcolor{keywordtype}{void}>::type
+00050 test\_lazy\_single(\textcolor{keywordtype}{int} rows, \textcolor{keywordtype}{int} cols, \textcolor{keywordtype}{int} depth)
+00051 \{
+00052   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<T,Rows,Depth,OA>} A(rows,depth); A.setRandom();
+00053   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<T,Depth,Cols,OB>} B(depth,cols); B.setRandom();
+00054   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<T,Rows,Cols,OC>}  C(rows,cols);  C.setRandom();
+00055   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<T,Rows,Cols,OC>}  D(C);
+00056   VERIFY\_IS\_APPROX(C+=A.lazyProduct(B), ref\_prod(D,A,B));
+00057 \}
+00058 
+00059 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} Rows, \textcolor{keywordtype}{int} Cols, \textcolor{keywordtype}{int} Depth, \textcolor{keywordtype}{int} OC, \textcolor{keywordtype}{int} OA, \textcolor{keywordtype}{int} OB>
+00060 \textcolor{keyword}{typename} internal::enable\_if<  ( (Rows ==1&&Depth!=1&&OA==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})
+00061                               || (Depth==1&&Rows !=1&&OA==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor})
+00062                               || (Cols ==1&&Depth!=1&&OB==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor})
+00063                               || (Depth==1&&Cols !=1&&OB==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})
+00064                               || (Rows ==1&&Cols !=1&&OC==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})
+00065                               || (Cols ==1&&Rows !=1&&OC==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor})),\textcolor{keywordtype}{void}>::type
+00066 test\_lazy\_single(\textcolor{keywordtype}{int}, \textcolor{keywordtype}{int}, \textcolor{keywordtype}{int})
+00067 \{
+00068 \}
+00069 
+00070 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} Rows, \textcolor{keywordtype}{int} Cols, \textcolor{keywordtype}{int} Depth>
+00071 \textcolor{keywordtype}{void} test\_lazy\_all\_layout(\textcolor{keywordtype}{int} rows=Rows, \textcolor{keywordtype}{int} cols=Cols, \textcolor{keywordtype}{int} depth=Depth)
+00072 \{
+00073   CALL\_SUBTEST(( test\_lazy\_single<T,Rows,Cols,Depth,ColMajor,ColMajor,ColMajor>(rows,cols,depth) ));
+00074   CALL\_SUBTEST(( test\_lazy\_single<T,Rows,Cols,Depth,RowMajor,ColMajor,ColMajor>(rows,cols,depth) ));
+00075   CALL\_SUBTEST(( test\_lazy\_single<T,Rows,Cols,Depth,ColMajor,RowMajor,ColMajor>(rows,cols,depth) ));
+00076   CALL\_SUBTEST(( test\_lazy\_single<T,Rows,Cols,Depth,RowMajor,RowMajor,ColMajor>(rows,cols,depth) ));
+00077   CALL\_SUBTEST(( test\_lazy\_single<T,Rows,Cols,Depth,ColMajor,ColMajor,RowMajor>(rows,cols,depth) ));
+00078   CALL\_SUBTEST(( test\_lazy\_single<T,Rows,Cols,Depth,RowMajor,ColMajor,RowMajor>(rows,cols,depth) ));
+00079   CALL\_SUBTEST(( test\_lazy\_single<T,Rows,Cols,Depth,ColMajor,RowMajor,RowMajor>(rows,cols,depth) ));
+00080   CALL\_SUBTEST(( test\_lazy\_single<T,Rows,Cols,Depth,RowMajor,RowMajor,RowMajor>(rows,cols,depth) ));
+00081 \}
+00082 
+00083 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00084 \textcolor{keywordtype}{void} test\_lazy\_l1()
+00085 \{
+00086   \textcolor{keywordtype}{int} rows = internal::random<int>(1,12);
+00087   \textcolor{keywordtype}{int} cols = internal::random<int>(1,12);
+00088   \textcolor{keywordtype}{int} depth = internal::random<int>(1,12);
+00089 
+00090   \textcolor{comment}{// Inner}
+00091   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,1,1>() ));
+00092   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,1,2>() ));
+00093   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,1,3>() ));
+00094   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,1,8>() ));
+00095   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,1,9>() ));
+00096   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,1,-1>(1,1,depth) ));
+00097 
+00098   \textcolor{comment}{// Outer}
+00099   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,2,1,1>() ));
+00100   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,2,1>() ));
+00101   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,2,2,1>() ));
+00102   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,3,3,1>() ));
+00103   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,4,4,1>() ));
+00104   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,4,8,1>() ));
+00105   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,4,-1,1>(4,cols) ));
+00106   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,7,-1,1>(7,cols) ));
+00107   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,-1,8,1>(rows) ));
+00108   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,-1,3,1>(rows) ));
+00109   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,-1,-1,1>(rows,cols) ));
+00110 \}
+00111 
+00112 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00113 \textcolor{keywordtype}{void} test\_lazy\_l2()
+00114 \{
+00115   \textcolor{keywordtype}{int} rows = internal::random<int>(1,12);
+00116   \textcolor{keywordtype}{int} cols = internal::random<int>(1,12);
+00117   \textcolor{keywordtype}{int} depth = internal::random<int>(1,12);
+00118 
+00119   \textcolor{comment}{// mat-vec}
+00120   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,2,1,2>() ));
+00121   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,2,1,4>() ));
+00122   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,4,1,2>() ));
+00123   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,4,1,4>() ));
+00124   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,5,1,4>() ));
+00125   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,4,1,5>() ));
+00126   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,4,1,6>() ));
+00127   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,6,1,4>() ));
+00128   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,8,1,8>() ));
+00129   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,-1,1,4>(rows) ));
+00130   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,4,1,-1>(4,1,depth) ));
+00131   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,-1,1,-1>(rows,1,depth) ));
+00132 
+00133   \textcolor{comment}{// vec-mat}
+00134   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,2,2>() ));
+00135   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,2,4>() ));
+00136   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,4,2>() ));
+00137   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,4,4>() ));
+00138   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,5,4>() ));
+00139   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,4,5>() ));
+00140   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,4,6>() ));
+00141   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,6,4>() ));
+00142   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,8,8>() ));
+00143   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,-1, 4>(1,cols) ));
+00144   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1, 4,-1>(1,4,depth) ));
+00145   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,1,-1,-1>(1,cols,depth) ));
+00146 \}
+00147 
+00148 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00149 \textcolor{keywordtype}{void} test\_lazy\_l3()
+00150 \{
+00151   \textcolor{keywordtype}{int} rows = internal::random<int>(1,12);
+00152   \textcolor{keywordtype}{int} cols = internal::random<int>(1,12);
+00153   \textcolor{keywordtype}{int} depth = internal::random<int>(1,12);
+00154   \textcolor{comment}{// mat-mat}
+00155   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,2,4,2>() ));
+00156   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,2,6,4>() ));
+00157   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,4,3,2>() ));
+00158   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,4,8,4>() ));
+00159   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,5,6,4>() ));
+00160   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,4,2,5>() ));
+00161   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,4,7,6>() ));
+00162   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,6,8,4>() ));
+00163   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,8,3,8>() ));
+00164   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,-1,6,4>(rows) ));
+00165   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,4,3,-1>(4,3,depth) ));
+00166   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,-1,6,-1>(rows,6,depth) ));
+00167   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,8,2,2>() ));
+00168   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,5,2,4>() ));
+00169   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,4,4,2>() ));
+00170   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,8,4,4>() ));
+00171   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,6,5,4>() ));
+00172   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,4,4,5>() ));
+00173   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,3,4,6>() ));
+00174   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,2,6,4>() ));
+00175   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,7,8,8>() ));
+00176   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,8,-1, 4>(8,cols) ));
+00177   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,3, 4,-1>(3,4,depth) ));
+00178   CALL\_SUBTEST(( test\_lazy\_all\_layout<T,4,-1,-1>(4,cols,depth) ));
+00179 \}
+00180 
+00181 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T,\textcolor{keywordtype}{int} N,\textcolor{keywordtype}{int} M,\textcolor{keywordtype}{int} K>
+00182 \textcolor{keywordtype}{void} test\_linear\_but\_not\_vectorizable()
+00183 \{
+00184   \textcolor{comment}{// Check tricky cases for which the result of the product is a vector and thus must exhibit the LinearBit
+       flag,}
+00185   \textcolor{comment}{// but is not vectorizable along the linear dimension.}
+00186   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} n = N==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} ? internal::random<Index>(1,32) : N;
+00187   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m = \hyperlink{group___core___module_class_eigen_1_1_matrix}{M}==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} ? internal::random<Index>(1,32) : \hyperlink{group___core___module_class_eigen_1_1_matrix}{M};
+00188   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k = K==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} ? internal::random<Index>(1,32) : K;
+00189 
+00190   \{
+00191     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<T,N,M+1>} A; A.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}(n,m+1);
+00192     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<T,M*2,K>} B; B.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}(m*2,k);
+00193     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<T,1,K>} C;
+00194     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<T,1,K>} R;
+00195 
+00196     C.noalias() = A.template topLeftCorner<1,M>() * (B.template topRows<M>()+B.template bottomRows<M>());
+00197     R.noalias() = A.template topLeftCorner<1,M>() * (B.template topRows<M>()+B.template bottomRows<M>()).
+      eval();
+00198     VERIFY\_IS\_APPROX(C,R);
+00199   \}
+00200 
+00201   \{
+00202     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<T,M+1,N,RowMajor>} A; A.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}(m+1,n);
+00203     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<T,K,M*2,RowMajor>} B; B.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}(k,m*2);
+00204     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<T,K,1>} C;
+00205     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<T,K,1>} R;
+00206 
+00207     C.noalias() = (B.template leftCols<M>()+B.template rightCols<M>())        * A.template 
+      topLeftCorner<M,1>();
+00208     R.noalias() = (B.template leftCols<M>()+B.template rightCols<M>()).eval() * A.template 
+      topLeftCorner<M,1>();
+00209     VERIFY\_IS\_APPROX(C,R);
+00210   \}
+00211 \}
+00212 
+00213 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Rows>
+00214 \textcolor{keywordtype}{void} bug\_1311()
+00215 \{
+00216   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix< double, Rows, 2 >} A;  A.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00217   Vector2d b = Vector2d::Random() ;
+00218   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,Rows,1>} res;
+00219   res.noalias() = 1. * (A * b);
+00220   VERIFY\_IS\_APPROX(res, A*b);
+00221   res.noalias() = 1.*A * b;
+00222   VERIFY\_IS\_APPROX(res, A*b);
+00223   res.noalias() = (1.*A).lazyProduct(b);
+00224   VERIFY\_IS\_APPROX(res, A*b);
+00225   res.noalias() = (1.*A).lazyProduct(1.*b);
+00226   VERIFY\_IS\_APPROX(res, A*b);
+00227   res.noalias() = (A).lazyProduct(1.*b);
+00228   VERIFY\_IS\_APPROX(res, A*b);
+00229 \}
+00230 
+00231 \textcolor{keywordtype}{void} test\_product\_small()
+00232 \{
+00233   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00234     CALL\_SUBTEST\_1( product(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 3, 2>}()) );
+00235     CALL\_SUBTEST\_2( product(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<int, 3, 17>}()) );
+00236     CALL\_SUBTEST\_8( product(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double, 3, 17>}()) );
+00237     CALL\_SUBTEST\_3( product(Matrix3d()) );
+00238     CALL\_SUBTEST\_4( product(Matrix4d()) );
+00239     CALL\_SUBTEST\_5( product(Matrix4f()) );
+00240     CALL\_SUBTEST\_6( product1x1<0>() );
+00241 
+00242     CALL\_SUBTEST\_11( test\_lazy\_l1<float>() );
+00243     CALL\_SUBTEST\_12( test\_lazy\_l2<float>() );
+00244     CALL\_SUBTEST\_13( test\_lazy\_l3<float>() );
+00245 
+00246     CALL\_SUBTEST\_21( test\_lazy\_l1<double>() );
+00247     CALL\_SUBTEST\_22( test\_lazy\_l2<double>() );
+00248     CALL\_SUBTEST\_23( test\_lazy\_l3<double>() );
+00249 
+00250     CALL\_SUBTEST\_31( test\_lazy\_l1<std::complex<float> >() );
+00251     CALL\_SUBTEST\_32( test\_lazy\_l2<std::complex<float> >() );
+00252     CALL\_SUBTEST\_33( test\_lazy\_l3<std::complex<float> >() );
+00253 
+00254     CALL\_SUBTEST\_41( test\_lazy\_l1<std::complex<double> >() );
+00255     CALL\_SUBTEST\_42( test\_lazy\_l2<std::complex<double> >() );
+00256     CALL\_SUBTEST\_43( test\_lazy\_l3<std::complex<double> >() );
+00257 
+00258     CALL\_SUBTEST\_7(( test\_linear\_but\_not\_vectorizable<float,2,1,Dynamic>() ));
+00259     CALL\_SUBTEST\_7(( test\_linear\_but\_not\_vectorizable<float,3,1,Dynamic>() ));
+00260     CALL\_SUBTEST\_7(( test\_linear\_but\_not\_vectorizable<float,2,1,16>() ));
+00261 
+00262     CALL\_SUBTEST\_6( bug\_1311<3>() );
+00263     CALL\_SUBTEST\_6( bug\_1311<5>() );
+00264   \}
+00265 
+00266 \textcolor{preprocessor}{#ifdef EIGEN\_TEST\_PART\_6}
+00267   \{
+00268     \textcolor{comment}{// test compilation of (outer\_product) * vector}
+00269     Vector3f v = Vector3f::Random();
+00270     VERIFY\_IS\_APPROX( (v * v.transpose()) * v, (v * v.transpose()).eval() * v);
+00271   \}
+00272   
+00273   \{
+00274     \textcolor{comment}{// regression test for pull-request #93}
+00275     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Eigen::Matrix<double, 1, 1>} A;  A.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00276     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Eigen::Matrix<double, 18, 1>} B; B.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00277     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Eigen::Matrix<double, 1, 18>} C; C.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00278     VERIFY\_IS\_APPROX(B * A.inverse(), B * A.inverse()[0]);
+00279     VERIFY\_IS\_APPROX(A.inverse() * C, A.inverse()[0] * C);
+00280   \}
+00281 
+00282   \{
+00283     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Eigen::Matrix<double, 10, 10>} A, B, C;
+00284     A.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00285     C = A;
+00286     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} k=0; k<79; ++k)
+00287       C = C * A;
+00288     B.noalias() = (((A*A)*(A*A))*((A*A)*(A*A))*((A*A)*(A*A))*((A*A)*(A*A))*((A*A)*(A*A)) * ((A*A)*(A*A))*((
+      A*A)*(A*A))*((A*A)*(A*A))*((A*A)*(A*A))*((A*A)*(A*A)))
+00289                 * (((A*A)*(A*A))*((A*A)*(A*A))*((A*A)*(A*A))*((A*A)*(A*A))*((A*A)*(A*A)) * ((A*A)*(A*A))*((
+      A*A)*(A*A))*((A*A)*(A*A))*((A*A)*(A*A))*((A*A)*(A*A)));
+00290     VERIFY\_IS\_APPROX(B,C);
+00291   \}
+00292 \textcolor{preprocessor}{#endif}
+00293 \}
+\end{DoxyCode}

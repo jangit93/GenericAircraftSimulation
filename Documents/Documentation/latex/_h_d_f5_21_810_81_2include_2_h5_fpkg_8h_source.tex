@@ -1,0 +1,486 @@
+\hypertarget{_h_d_f5_21_810_81_2include_2_h5_fpkg_8h_source}{}\section{H\+D\+F5/1.10.1/include/\+H5\+Fpkg.h}
+\label{_h_d_f5_21_810_81_2include_2_h5_fpkg_8h_source}\index{H5\+Fpkg.\+h@{H5\+Fpkg.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+00002 \textcolor{comment}{ * Copyright by The HDF Group.                                               *}
+00003 \textcolor{comment}{ * Copyright by the Board of Trustees of the University of Illinois.         *}
+00004 \textcolor{comment}{ * All rights reserved.                                                      *}
+00005 \textcolor{comment}{ *                                                                           *}
+00006 \textcolor{comment}{ * This file is part of HDF5.  The full HDF5 copyright notice, including     *}
+00007 \textcolor{comment}{ * terms governing use, modification, and redistribution, is contained in    *}
+00008 \textcolor{comment}{ * the COPYING file, which can be found at the root of the source code       *}
+00009 \textcolor{comment}{ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *}
+00010 \textcolor{comment}{ * If you do not have access to either file, you may request a copy from     *}
+00011 \textcolor{comment}{ * help@hdfgroup.org.                                                        *}
+00012 \textcolor{comment}{ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00013 
+00014 \textcolor{comment}{/*}
+00015 \textcolor{comment}{ * Programmer:  Quincey Koziol <koziol@ncsa.uiuc.edu>}
+00016 \textcolor{comment}{ *      Thursday, September 28, 2000}
+00017 \textcolor{comment}{ *}
+00018 \textcolor{comment}{ * Purpose: This file contains declarations which are visible only within}
+00019 \textcolor{comment}{ *      the H5F package.  Source files outside the H5F package should}
+00020 \textcolor{comment}{ *      include H5Fprivate.h instead.}
+00021 \textcolor{comment}{ */}
+00022 \textcolor{preprocessor}{#if !(defined H5F\_FRIEND || defined H5F\_MODULE)}
+00023 \textcolor{preprocessor}{#error "Do not include this file outside the H5F package!"}
+00024 \textcolor{preprocessor}{#endif}
+00025 
+00026 \textcolor{preprocessor}{#ifndef \_H5Fpkg\_H}
+00027 \textcolor{preprocessor}{#define \_H5Fpkg\_H}
+00028 
+00029 \textcolor{comment}{/* Get package's private header */}
+00030 \textcolor{preprocessor}{#include "H5Fprivate.h"}
+00031 
+00032 \textcolor{comment}{/* Other public headers needed by this file */}
+00033 \textcolor{preprocessor}{#include "H5Bpublic.h"}          \textcolor{comment}{/* B-tree header, for H5B\_NUM\_BTREE\_ID */}
+00034 
+00035 \textcolor{comment}{/* Other private headers needed by this file */}
+00036 \textcolor{preprocessor}{#include "H5private.h"}      \textcolor{comment}{/* Generic Functions            */}
+00037 \textcolor{preprocessor}{#include "H5ACprivate.h"}        \textcolor{comment}{/* Metadata cache                       */}
+00038 \textcolor{preprocessor}{#include "H5FLprivate.h"}    \textcolor{comment}{/* Free Lists                           */}
+00039 \textcolor{preprocessor}{#include "H5FOprivate.h"}        \textcolor{comment}{/* File objects                         */}
+00040 \textcolor{preprocessor}{#include "H5FSprivate.h"}    \textcolor{comment}{/* File free space                      */}
+00041 \textcolor{preprocessor}{#include "H5Gprivate.h"}     \textcolor{comment}{/* Groups               */}
+00042 \textcolor{preprocessor}{#include "H5Oprivate.h"}         \textcolor{comment}{/* Object header messages               */}
+00043 \textcolor{preprocessor}{#include "H5PBprivate.h"}        \textcolor{comment}{/* Page buffer                          */}
+00044 \textcolor{preprocessor}{#include "H5UCprivate.h"}    \textcolor{comment}{/* Reference counted object functions   */}
+00045 
+00046 
+00047 \textcolor{comment}{/*}
+00048 \textcolor{comment}{ * Feature: Define this constant on the compiler command-line if you want to}
+00049 \textcolor{comment}{ *      see some debugging messages on the debug stream.}
+00050 \textcolor{comment}{ */}
+00051 \textcolor{preprocessor}{#ifdef NDEBUG}
+00052 \textcolor{preprocessor}{#  undef H5F\_DEBUG}
+00053 \textcolor{preprocessor}{#endif}
+00054 
+00055 \textcolor{comment}{/* Superblock status flags */}
+00056 \textcolor{preprocessor}{#define H5F\_SUPER\_WRITE\_ACCESS          0x01}
+00057 \textcolor{preprocessor}{#define H5F\_SUPER\_FILE\_OK               0x02}
+00058 \textcolor{preprocessor}{#define H5F\_SUPER\_SWMR\_WRITE\_ACCESS     0x04}
+00059 \textcolor{preprocessor}{#define H5F\_SUPER\_ALL\_FLAGS             (H5F\_SUPER\_WRITE\_ACCESS | H5F\_SUPER\_FILE\_OK |
+       H5F\_SUPER\_SWMR\_WRITE\_ACCESS)}
+00060 
+00061 \textcolor{comment}{/* Mask for removing private file access flags */}
+00062 \textcolor{preprocessor}{#define H5F\_ACC\_PUBLIC\_FLAGS            0x007fu}
+00063 
+00064 \textcolor{comment}{/* Free space section+aggregator merge flags */}
+00065 \textcolor{preprocessor}{#define H5F\_FS\_MERGE\_METADATA           0x01    }\textcolor{comment}{/* Section can merge with metadata aggregator */}\textcolor{preprocessor}{}
+00066 \textcolor{preprocessor}{#define H5F\_FS\_MERGE\_RAWDATA            0x02    }\textcolor{comment}{/* Section can merge with small 'raw' data aggregator */}\textcolor{preprocessor}{}
+00067 
+00068 \textcolor{comment}{/* Macro to abstract checking whether file is using a free space manager */}
+00069 \textcolor{preprocessor}{#define H5F\_HAVE\_FREE\_SPACE\_MANAGER(F)  \(\backslash\)}
+00070 \textcolor{preprocessor}{    ((F)->shared->fs\_strategy == H5F\_FSPACE\_STRATEGY\_FSM\_AGGR ||                        \(\backslash\)}
+00071 \textcolor{preprocessor}{     (F)->shared->fs\_strategy == H5F\_FSPACE\_STRATEGY\_PAGE)}
+00072 
+00073 \textcolor{comment}{/* Macros for encoding/decoding superblock */}
+00074 \textcolor{preprocessor}{#define H5F\_MAX\_DRVINFOBLOCK\_SIZE  1024         }\textcolor{comment}{/* Maximum size of superblock driver info buffer */}\textcolor{preprocessor}{}
+00075 \textcolor{preprocessor}{#define H5F\_DRVINFOBLOCK\_HDR\_SIZE 16            }\textcolor{comment}{/* Size of superblock driver info header */}\textcolor{preprocessor}{}
+00076 
+00077 \textcolor{comment}{/* Superblock sizes for various versions */}
+00078 \textcolor{preprocessor}{#define H5F\_SIZEOF\_CHKSUM 4     }\textcolor{comment}{/* Checksum size in the file */}\textcolor{preprocessor}{}
+00079 
+00080 \textcolor{comment}{/* Fixed-size portion at the beginning of all superblocks */}
+00081 \textcolor{preprocessor}{#define H5F\_SUPERBLOCK\_FIXED\_SIZE ( H5F\_SIGNATURE\_LEN                   \(\backslash\)}
+00082 \textcolor{preprocessor}{        + 1) }\textcolor{comment}{/* superblock version */}\textcolor{preprocessor}{}
+00083 
+00084 \textcolor{comment}{/* The H5F\_SUPERBLOCK\_MINIMAL\_VARLEN\_SIZE is the minimal amount of super block}
+00085 \textcolor{comment}{ * variable length data guarnateed to load the sizeof offsets and the sizeof }
+00086 \textcolor{comment}{ * lengths fields in all versions of the superblock.}
+00087 \textcolor{comment}{ *}
+00088 \textcolor{comment}{ * This is necessary in the V3 cache, as on the initial load, we need to }
+00089 \textcolor{comment}{ * get enough of the superblock to determine its version and size so that}
+00090 \textcolor{comment}{ * the metadata cache can load the correct amount of data from file to }
+00091 \textcolor{comment}{ * allow the second deserialization attempt to succeed.}
+00092 \textcolor{comment}{ *}
+00093 \textcolor{comment}{ * The value selected will have to be revisited for each new version }
+00094 \textcolor{comment}{ * of the super block.  Note that the current value is one byte larger}
+00095 \textcolor{comment}{ * than it needs to be. }
+00096 \textcolor{comment}{ */}
+00097 \textcolor{preprocessor}{#define H5F\_SUPERBLOCK\_MINIMAL\_VARLEN\_SIZE  7}
+00098 
+00099 \textcolor{comment}{/* Macros for computing variable-size superblock size */}
+00100 \textcolor{preprocessor}{#define H5F\_SUPERBLOCK\_VARLEN\_SIZE\_COMMON                               \(\backslash\)}
+00101 \textcolor{preprocessor}{        (2  }\textcolor{comment}{/* freespace, and root group versions */}\textcolor{preprocessor}{            \(\backslash\)}
+00102 \textcolor{preprocessor}{        + 1 }\textcolor{comment}{/* reserved */}\textcolor{preprocessor}{                                              \(\backslash\)}
+00103 \textcolor{preprocessor}{        + 3 }\textcolor{comment}{/* shared header vers, size of address, size of lengths */}\textcolor{preprocessor}{  \(\backslash\)}
+00104 \textcolor{preprocessor}{        + 1 }\textcolor{comment}{/* reserved */}\textcolor{preprocessor}{                                              \(\backslash\)}
+00105 \textcolor{preprocessor}{        + 4 }\textcolor{comment}{/* group leaf k, group internal k */}\textcolor{preprocessor}{                        \(\backslash\)}
+00106 \textcolor{preprocessor}{        + 4) }\textcolor{comment}{/* consistency flags */}\textcolor{preprocessor}{}
+00107 \textcolor{preprocessor}{#define H5F\_SUPERBLOCK\_VARLEN\_SIZE\_V0(sizeof\_addr, sizeof\_size)         \(\backslash\)}
+00108 \textcolor{preprocessor}{        ( H5F\_SUPERBLOCK\_VARLEN\_SIZE\_COMMON }\textcolor{comment}{/* Common variable-length info */}\textcolor{preprocessor}{ \(\backslash\)}
+00109 \textcolor{preprocessor}{        + (sizeof\_addr) }\textcolor{comment}{/* base address */}\textcolor{preprocessor}{                              \(\backslash\)}
+00110 \textcolor{preprocessor}{        + (sizeof\_addr) }\textcolor{comment}{/* <unused> */}\textcolor{preprocessor}{                                  \(\backslash\)}
+00111 \textcolor{preprocessor}{        + (sizeof\_addr) }\textcolor{comment}{/* EOF address */}\textcolor{preprocessor}{                               \(\backslash\)}
+00112 \textcolor{preprocessor}{        + (sizeof\_addr) }\textcolor{comment}{/* driver block address */}\textcolor{preprocessor}{                      \(\backslash\)}
+00113 \textcolor{preprocessor}{        + H5G\_SIZEOF\_ENTRY(sizeof\_addr, sizeof\_size)) }\textcolor{comment}{/* root group ptr */}\textcolor{preprocessor}{}
+00114 \textcolor{preprocessor}{#define H5F\_SUPERBLOCK\_VARLEN\_SIZE\_V1(sizeof\_addr, sizeof\_size)         \(\backslash\)}
+00115 \textcolor{preprocessor}{        ( H5F\_SUPERBLOCK\_VARLEN\_SIZE\_COMMON }\textcolor{comment}{/* Common variable-length info */}\textcolor{preprocessor}{ \(\backslash\)}
+00116 \textcolor{preprocessor}{        + 2 }\textcolor{comment}{/* indexed B-tree internal k */}\textcolor{preprocessor}{                             \(\backslash\)}
+00117 \textcolor{preprocessor}{        + 2 }\textcolor{comment}{/* reserved */}\textcolor{preprocessor}{                                              \(\backslash\)}
+00118 \textcolor{preprocessor}{        + (sizeof\_addr) }\textcolor{comment}{/* base address */}\textcolor{preprocessor}{                              \(\backslash\)}
+00119 \textcolor{preprocessor}{        + (sizeof\_addr) }\textcolor{comment}{/* <unused> */}\textcolor{preprocessor}{                                  \(\backslash\)}
+00120 \textcolor{preprocessor}{        + (sizeof\_addr) }\textcolor{comment}{/* EOF address */}\textcolor{preprocessor}{                               \(\backslash\)}
+00121 \textcolor{preprocessor}{        + (sizeof\_addr) }\textcolor{comment}{/* driver block address */}\textcolor{preprocessor}{                      \(\backslash\)}
+00122 \textcolor{preprocessor}{        + H5G\_SIZEOF\_ENTRY(sizeof\_addr, sizeof\_size)) }\textcolor{comment}{/* root group ptr */}\textcolor{preprocessor}{}
+00123 \textcolor{preprocessor}{#define H5F\_SUPERBLOCK\_VARLEN\_SIZE\_V2(sizeof\_addr)                      \(\backslash\)}
+00124 \textcolor{preprocessor}{        ( 2 }\textcolor{comment}{/* size of address, size of lengths */}\textcolor{preprocessor}{                      \(\backslash\)}
+00125 \textcolor{preprocessor}{        + 1 }\textcolor{comment}{/* consistency flags */}\textcolor{preprocessor}{                                     \(\backslash\)}
+00126 \textcolor{preprocessor}{        + (sizeof\_addr) }\textcolor{comment}{/* base address */}\textcolor{preprocessor}{                              \(\backslash\)}
+00127 \textcolor{preprocessor}{        + (sizeof\_addr) }\textcolor{comment}{/* superblock extension address */}\textcolor{preprocessor}{              \(\backslash\)}
+00128 \textcolor{preprocessor}{        + (sizeof\_addr) }\textcolor{comment}{/* EOF address */}\textcolor{preprocessor}{                               \(\backslash\)}
+00129 \textcolor{preprocessor}{        + (sizeof\_addr) }\textcolor{comment}{/* root group object header address */}\textcolor{preprocessor}{          \(\backslash\)}
+00130 \textcolor{preprocessor}{        + H5F\_SIZEOF\_CHKSUM) }\textcolor{comment}{/* superblock checksum (keep this last) */}\textcolor{preprocessor}{}
+00131 \textcolor{preprocessor}{#define H5F\_SUPERBLOCK\_VARLEN\_SIZE(v, sizeof\_addr, sizeof\_size) (   \(\backslash\)}
+00132 \textcolor{preprocessor}{        (v == 0 ? H5F\_SUPERBLOCK\_VARLEN\_SIZE\_V0(sizeof\_addr, sizeof\_size) : 0) \(\backslash\)}
+00133 \textcolor{preprocessor}{        + (v == 1 ? H5F\_SUPERBLOCK\_VARLEN\_SIZE\_V1(sizeof\_addr, sizeof\_size) : 0) \(\backslash\)}
+00134 \textcolor{preprocessor}{        + (v >= 2 ? H5F\_SUPERBLOCK\_VARLEN\_SIZE\_V2(sizeof\_addr) : 0))}
+00135 
+00136 \textcolor{comment}{/* Total size of superblock, depends on superblock version */}
+00137 \textcolor{preprocessor}{#define H5F\_SUPERBLOCK\_SIZE(s) ( H5F\_SUPERBLOCK\_FIXED\_SIZE              \(\backslash\)}
+00138 \textcolor{preprocessor}{        + H5F\_SUPERBLOCK\_VARLEN\_SIZE((s)->super\_vers, (s)->sizeof\_addr, (s)->sizeof\_size))}
+00139 
+00140 \textcolor{comment}{/* For superblock version 0 & 1:}
+00141 \textcolor{comment}{   Offset to the file consistency flags (status\_flags) in the superblock (excluding
+       H5F\_SUPERBLOCK\_FIXED\_SIZE) */}
+00142 \textcolor{preprocessor}{#define H5F\_SUPER\_STATUS\_OFF\_V01                                                \(\backslash\)}
+00143 \textcolor{preprocessor}{        (2  }\textcolor{comment}{/* freespace, and root group versions */}\textcolor{preprocessor}{                    \(\backslash\)}
+00144 \textcolor{preprocessor}{        + 1 }\textcolor{comment}{/* reserved */}\textcolor{preprocessor}{                                              \(\backslash\)}
+00145 \textcolor{preprocessor}{        + 3 }\textcolor{comment}{/* shared header vers, size of address, size of lengths */}\textcolor{preprocessor}{  \(\backslash\)}
+00146 \textcolor{preprocessor}{        + 1 }\textcolor{comment}{/* reserved */}\textcolor{preprocessor}{                                              \(\backslash\)}
+00147 \textcolor{preprocessor}{        + 4) }\textcolor{comment}{/* group leaf k, group internal k */}\textcolor{preprocessor}{}
+00148 
+00149 \textcolor{preprocessor}{#define H5F\_SUPER\_STATUS\_OFF(v)   (v >= 2 ? 2 : H5F\_SUPER\_STATUS\_OFF\_V01)}
+00150 
+00151 \textcolor{comment}{/* Offset to the file consistency flags (status\_flags) in the superblock */}
+00152 \textcolor{preprocessor}{#define H5F\_SUPER\_STATUS\_FLAGS\_OFF(v) (H5F\_SUPERBLOCK\_FIXED\_SIZE + H5F\_SUPER\_STATUS\_OFF(v))}
+00153 
+00154 \textcolor{comment}{/* Size of file consistency flags (status\_flags) in the superblock */}
+00155 \textcolor{preprocessor}{#define H5F\_SUPER\_STATUS\_FLAGS\_SIZE(v)        (v >= 2 ? 1 : 4)}
+00156 
+00157 \textcolor{comment}{/* Forward declaration external file cache struct used below (defined in}
+00158 \textcolor{comment}{ * H5Fefc.c) */}
+00159 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }H5F\_efc\_t H5F\_efc\_t;
+00160 
+00161 \textcolor{comment}{/* Structure for passing 'user data' to superblock cache callbacks */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_fpkg_8h_source_l00162}\hyperlink{struct_h5_f__superblock__cache__ud__t}{00162} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_f__superblock__cache__ud__t}{H5F\_superblock\_cache\_ud\_t} \{
+00163 \textcolor{comment}{/* IN: */}
+00164     \hyperlink{struct_h5_f__t}{H5F\_t} *f;               \textcolor{comment}{/* Pointer to file */}
+00165     hbool\_t ignore\_drvrinfo; \textcolor{comment}{/* Indicate if the driver info should be ignored */}
+00166 \textcolor{comment}{/* OUT: */}
+00167     \textcolor{keywordtype}{unsigned} sym\_leaf\_k;    \textcolor{comment}{/* Symbol table leaf node's 'K' value */}
+00168     \textcolor{keywordtype}{unsigned} btree\_k[H5B\_NUM\_BTREE\_ID]; \textcolor{comment}{/* B-tree key values for each type */}
+00169     haddr\_t stored\_eof;     \textcolor{comment}{/* End-of-file in file */}
+00170     hbool\_t drvrinfo\_removed; \textcolor{comment}{/* Indicate if the driver info was removed */}
+00171     \textcolor{keywordtype}{unsigned}    super\_vers;   \textcolor{comment}{/* Superblock version obtained in get\_load\_size callback. }
+00172 \textcolor{comment}{                   * It will be used later in verify\_chksum callback }
+00173 \textcolor{comment}{                   */}
+00174 \} \hyperlink{struct_h5_f__superblock__cache__ud__t}{H5F\_superblock\_cache\_ud\_t};
+00175 
+00176 \textcolor{comment}{/* Structure for passing 'user data' to driver info block cache callbacks */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_fpkg_8h_source_l00177}\hyperlink{struct_h5_f__drvrinfo__cache__ud__t}{00177} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_f__drvrinfo__cache__ud__t}{H5F\_drvrinfo\_cache\_ud\_t} \{
+00178     \hyperlink{struct_h5_f__t}{H5F\_t}   *f;               \textcolor{comment}{/* Pointer to file */}
+00179     haddr\_t driver\_addr;      \textcolor{comment}{/* address of driver info block */}
+00180 \} \hyperlink{struct_h5_f__drvrinfo__cache__ud__t}{H5F\_drvrinfo\_cache\_ud\_t};
+00181 
+00182 \textcolor{comment}{/* Structure for metadata & "small [raw] data" block aggregation fields */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_fpkg_8h_source_l00183}\hyperlink{struct_h5_f__blk__aggr__t}{00183} \textcolor{keyword}{struct }\hyperlink{struct_h5_f__blk__aggr__t}{H5F\_blk\_aggr\_t} \{
+00184     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long}       feature\_flag;   \textcolor{comment}{/* Feature flag type */}
+00185     hsize\_t             alloc\_size;     \textcolor{comment}{/* Size for allocating new blocks */}
+00186     hsize\_t             tot\_size;       \textcolor{comment}{/* Total amount of bytes aggregated into block */}
+00187     hsize\_t             size;           \textcolor{comment}{/* Current size of block left */}
+00188     haddr\_t             addr;           \textcolor{comment}{/* Location of block left */}
+00189 \};
+00190 
+00191 \textcolor{comment}{/* Structure for metadata accumulator fields */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_fpkg_8h_source_l00192}\hyperlink{struct_h5_f__meta__accum__t}{00192} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_f__meta__accum__t}{H5F\_meta\_accum\_t} \{
+00193     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}      *buf;            \textcolor{comment}{/* Buffer to hold the accumulated metadata */}
+00194     haddr\_t             loc;            \textcolor{comment}{/* File location (offset) of the accumulated metadata */}
+00195     \textcolor{keywordtype}{size\_t}              size;           \textcolor{comment}{/* Size of the accumulated metadata buffer used (in bytes) */}
+00196     \textcolor{keywordtype}{size\_t}              alloc\_size;     \textcolor{comment}{/* Size of the accumulated metadata buffer allocated (in bytes) */}
+00197     \textcolor{keywordtype}{size\_t}              dirty\_off;      \textcolor{comment}{/* Offset of the dirty region in the accumulator buffer */}
+00198     \textcolor{keywordtype}{size\_t}              dirty\_len;      \textcolor{comment}{/* Length of the dirty region in the accumulator buffer */}
+00199     hbool\_t             dirty;          \textcolor{comment}{/* Flag to indicate that the accumulated metadata is dirty */}
+00200 \} \hyperlink{struct_h5_f__meta__accum__t}{H5F\_meta\_accum\_t};
+00201 
+00202 \textcolor{comment}{/* A record of the mount table */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_fpkg_8h_source_l00203}\hyperlink{struct_h5_f__mount__t}{00203} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_f__mount__t}{H5F\_mount\_t} \{
+00204     \textcolor{keyword}{struct }\hyperlink{struct_h5_g__t}{H5G\_t}   *group; \textcolor{comment}{/* Mount point group held open      */}
+00205     \textcolor{keyword}{struct }\hyperlink{struct_h5_f__t}{H5F\_t}   *\hyperlink{structfile}{file};  \textcolor{comment}{/* File mounted at that point       */}
+00206 \} \hyperlink{struct_h5_f__mount__t}{H5F\_mount\_t};
+00207 
+00208 \textcolor{comment}{/*}
+00209 \textcolor{comment}{ * The mount table describes what files are attached to (mounted on) the file}
+00210 \textcolor{comment}{ * to which this table belongs.}
+00211 \textcolor{comment}{ */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_fpkg_8h_source_l00212}\hyperlink{struct_h5_f__mtab__t}{00212} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_f__mtab__t}{H5F\_mtab\_t} \{
+00213     \textcolor{keywordtype}{unsigned}        nmounts;\textcolor{comment}{/* Number of children which are mounted */}
+00214     \textcolor{keywordtype}{unsigned}        nalloc; \textcolor{comment}{/* Number of mount slots allocated  */}
+00215     \hyperlink{struct_h5_f__mount__t}{H5F\_mount\_t}      *child; \textcolor{comment}{/* An array of mount records        */}
+00216 \} \hyperlink{struct_h5_f__mtab__t}{H5F\_mtab\_t};
+00217 
+00218 \textcolor{comment}{/* Structure specifically to store superblock. This was originally}
+00219 \textcolor{comment}{ * maintained entirely within H5F\_file\_t, but is now extracted}
+00220 \textcolor{comment}{ * here because the superblock is now handled by the cache */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_fpkg_8h_source_l00221}\hyperlink{struct_h5_f__super__t}{00221} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_f__super__t}{H5F\_super\_t} \{
+00222     H5AC\_info\_t cache\_info;     \textcolor{comment}{/* Cache entry information structure          */}
+00223     \textcolor{keywordtype}{unsigned}    super\_vers;     \textcolor{comment}{/* Superblock version                         */}
+00224     uint8\_t sizeof\_addr;    \textcolor{comment}{/* Size of addresses in file                  */}
+00225     uint8\_t sizeof\_size;    \textcolor{comment}{/* Size of offsets in file                    */}
+00226     uint8\_t     status\_flags;   \textcolor{comment}{/* File status flags                          */}
+00227     \textcolor{keywordtype}{unsigned}    sym\_leaf\_k;     \textcolor{comment}{/* Size of leaves in symbol tables            */}
+00228     \textcolor{keywordtype}{unsigned}    btree\_k[H5B\_NUM\_BTREE\_ID]; \textcolor{comment}{/* B-tree key values for each type */}
+00229     haddr\_t     base\_addr;      \textcolor{comment}{/* Absolute base address for rel.addrs.       */}
+00230                                 \textcolor{comment}{/* (superblock for file is at this offset)    */}
+00231     haddr\_t     ext\_addr;       \textcolor{comment}{/* Relative address of superblock extension   */}
+00232     haddr\_t     driver\_addr;    \textcolor{comment}{/* File driver information block address      */}
+00233     haddr\_t     root\_addr;      \textcolor{comment}{/* Root group address                         */}
+00234     \hyperlink{struct_h5_g__entry__t}{H5G\_entry\_t} *root\_ent;      \textcolor{comment}{/* Root group symbol table entry              */}
+00235 \} \hyperlink{struct_h5_f__super__t}{H5F\_super\_t};
+00236 
+00237 \textcolor{comment}{/*}
+00238 \textcolor{comment}{ * Define the structure to store the file information for HDF5 files. One of}
+00239 \textcolor{comment}{ * these structures is allocated per file, not per H5Fopen(). That is, set of}
+00240 \textcolor{comment}{ * H5F\_t structs can all point to the same H5F\_file\_t struct. The `nrefs'}
+00241 \textcolor{comment}{ * count in this struct indicates the number of H5F\_t structs which are}
+00242 \textcolor{comment}{ * pointing to this struct.}
+00243 \textcolor{comment}{ */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_fpkg_8h_source_l00244}\hyperlink{struct_h5_f__file__t}{00244} \textcolor{keyword}{struct }\hyperlink{struct_h5_f__file__t}{H5F\_file\_t} \{
+00245     \hyperlink{struct_h5_f_d__t}{H5FD\_t}    *lf;        \textcolor{comment}{/* Lower level file handle for I/O  */}
+00246     \hyperlink{struct_h5_f__super__t}{H5F\_super\_t} *sblock;        \textcolor{comment}{/* Pointer to (pinned) superblock for file */}
+00247     H5O\_drvinfo\_t *drvinfo; \textcolor{comment}{/* Pointer to the (pinned) driver info }
+00248 \textcolor{comment}{                                 * cache entry.  This field is only defined}
+00249 \textcolor{comment}{                                 * for older versions of the super block,}
+00250 \textcolor{comment}{                                 * and then only when a driver information}
+00251 \textcolor{comment}{                                 * block is present.  At all other times}
+00252 \textcolor{comment}{                                 * it should be NULL.}
+00253 \textcolor{comment}{                                 */}
+00254     hbool\_t drvinfo\_sb\_msg\_exists;  \textcolor{comment}{/* Convenience field used to track }
+00255 \textcolor{comment}{                                     * whether the driver info superblock }
+00256 \textcolor{comment}{                                     * extension message has been created }
+00257 \textcolor{comment}{                                     * yet. This field should be TRUE iff the}
+00258 \textcolor{comment}{                                     * superblock extension exists and contains}
+00259 \textcolor{comment}{                                     * a driver info message.  Under all other}
+00260 \textcolor{comment}{                                     * circumstances, it must be set to FALSE.}
+00261 \textcolor{comment}{                                     */}
+00262     \textcolor{keywordtype}{unsigned}    nrefs;      \textcolor{comment}{/* Ref count for times file is opened   */}
+00263     \textcolor{keywordtype}{unsigned}    flags;      \textcolor{comment}{/* Access Permissions for file          */}
+00264     \hyperlink{struct_h5_f__mtab__t}{H5F\_mtab\_t}    mtab;       \textcolor{comment}{/* File mount table                     */}
+00265     H5F\_efc\_t   *efc;           \textcolor{comment}{/* External file cache                  */}
+00266 
+00267     \textcolor{comment}{/* Cached values from FCPL/superblock */}
+00268     uint8\_t sizeof\_addr;    \textcolor{comment}{/* Size of addresses in file            */}
+00269     uint8\_t sizeof\_size;    \textcolor{comment}{/* Size of offsets in file              */}
+00270     haddr\_t sohm\_addr;  \textcolor{comment}{/* Relative address of shared object header message table */}
+00271     \textcolor{keywordtype}{unsigned}    sohm\_vers;  \textcolor{comment}{/* Version of shared message table on disk */}
+00272     \textcolor{keywordtype}{unsigned}    sohm\_nindexes;  \textcolor{comment}{/* Number of shared messages indexes in the table */}
+00273     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} feature\_flags; \textcolor{comment}{/* VFL Driver feature Flags            */}
+00274     haddr\_t maxaddr;    \textcolor{comment}{/* Maximum address for file             */}
+00275 
+00276     H5PB\_t      *page\_buf;                  \textcolor{comment}{/* The page buffer cache                */}
+00277     H5AC\_t      *cache;     \textcolor{comment}{/* The object cache         */}
+00278     \hyperlink{struct_h5_a_c__cache__config__t}{H5AC\_cache\_config\_t}
+00279         mdc\_initCacheCfg; \textcolor{comment}{/* initial configuration for the      */}
+00280                                 \textcolor{comment}{/* metadata cache.  This structure is   */}
+00281                                 \textcolor{comment}{/* fixed at creation time and should    */}
+00282                                 \textcolor{comment}{/* not change thereafter.               */}
+00283     \hyperlink{struct_h5_a_c__cache__image__config__t}{H5AC\_cache\_image\_config\_t} 
+00284         mdc\_initCacheImageCfg;  \textcolor{comment}{/* initial configuration for the */}
+00285                                         \textcolor{comment}{/* generate metadata cache image on     */}
+00286                                         \textcolor{comment}{/* close option.  This structure is     */}
+00287                                         \textcolor{comment}{/* fixed at creation time and should    */}
+00288                                         \textcolor{comment}{/* not change thereafter.               */}
+00289     hbool\_t     use\_mdc\_logging; \textcolor{comment}{/* Set when metadata logging is desired */}
+00290     hbool\_t     start\_mdc\_log\_on\_access; \textcolor{comment}{/* set when mdc logging should  */}
+00291                                 \textcolor{comment}{/* begin on file access/create          */}
+00292     \textcolor{keywordtype}{char}        *mdc\_log\_location; \textcolor{comment}{/* location of mdc log               */}
+00293     hid\_t       fcpl\_id;    \textcolor{comment}{/* File creation property list ID   */}
+00294     H5F\_close\_degree\_t fc\_degree;   \textcolor{comment}{/* File close behavior degree   */}
+00295     hbool\_t evict\_on\_close; \textcolor{comment}{/* If the file's objects should be evicted from the metadata cache on close */}
+00296     \textcolor{keywordtype}{size\_t}  rdcc\_nslots;    \textcolor{comment}{/* Size of raw data chunk cache (slots) */}
+00297     \textcolor{keywordtype}{size\_t}  rdcc\_nbytes;    \textcolor{comment}{/* Size of raw data chunk cache (bytes) */}
+00298     \textcolor{keywordtype}{double}  rdcc\_w0;    \textcolor{comment}{/* Preempt read chunks first? [0.0..1.0]*/}
+00299     \textcolor{keywordtype}{size\_t}      sieve\_buf\_size; \textcolor{comment}{/* Size of the data sieve buffer allocated (in bytes) */}
+00300     hsize\_t threshold;  \textcolor{comment}{/* Threshold for alignment      */}
+00301     hsize\_t alignment;  \textcolor{comment}{/* Alignment                */}
+00302     \textcolor{keywordtype}{unsigned}    gc\_ref;     \textcolor{comment}{/* Garbage-collect references?      */}
+00303     \textcolor{keywordtype}{unsigned}    latest\_flags;   \textcolor{comment}{/* The latest version support */}
+00304     hbool\_t store\_msg\_crt\_idx;  \textcolor{comment}{/* Store creation index for object header messages? */}
+00305     \textcolor{keywordtype}{unsigned}    ncwfs;      \textcolor{comment}{/* Num entries on cwfs list     */}
+00306     \textcolor{keyword}{struct }\hyperlink{struct_h5_h_g__heap__t}{H5HG\_heap\_t} **cwfs;   \textcolor{comment}{/* Global heap cache            */}
+00307     \textcolor{keyword}{struct }\hyperlink{struct_h5_g__t}{H5G\_t} *root\_grp;    \textcolor{comment}{/* Open root group          */}
+00308     H5FO\_t *open\_objs;          \textcolor{comment}{/* Open objects in file                 */}
+00309     H5UC\_t *grp\_btree\_shared;   \textcolor{comment}{/* Ref-counted group B-tree node info   */}
+00310 
+00311     \textcolor{comment}{/* File space allocation information */}
+00312     H5F\_fspace\_strategy\_t fs\_strategy;      \textcolor{comment}{/* File space handling strategy */}
+00313     hsize\_t     fs\_threshold;   \textcolor{comment}{/* Free space section threshold     */}
+00314     hbool\_t fs\_persist;                     \textcolor{comment}{/* Free-space persist or not */}
+00315     hbool\_t     use\_tmp\_space;  \textcolor{comment}{/* Whether temp. file space allocation is allowed */}
+00316     haddr\_t tmp\_addr;       \textcolor{comment}{/* Next address to use for temp. space in the file */}
+00317     hbool\_t point\_of\_no\_return;             \textcolor{comment}{/* flag to indicate that we can't go back and delete a
+       freespace header when it's used up */}
+00318 
+00319     H5F\_fs\_state\_t fs\_state[H5F\_MEM\_PAGE\_NTYPES];   \textcolor{comment}{/* State of free space manager for each type */}
+00320     haddr\_t fs\_addr[H5F\_MEM\_PAGE\_NTYPES];           \textcolor{comment}{/* Address of free space manager info for each type */}
+00321     \hyperlink{struct_h5_f_s__t}{H5FS\_t} *fs\_man[H5F\_MEM\_PAGE\_NTYPES];            \textcolor{comment}{/* Free space manager for each file space type */}
+00322     hbool\_t first\_alloc\_dealloc;            \textcolor{comment}{/* TRUE iff free space managers   */}
+00323                                             \textcolor{comment}{/* are persistant and have not    */}
+00324                                             \textcolor{comment}{/* been used accessed for either  */}
+00325                                             \textcolor{comment}{/* allocation or deallocation     */}
+00326                                             \textcolor{comment}{/* since file open.               */}
+00327     haddr\_t eoa\_pre\_fsm\_fsalloc;        \textcolor{comment}{/* eoa pre file space allocation  */}
+00328                                             \textcolor{comment}{/* for self referential FSMs      */}
+00329     haddr\_t eoa\_post\_fsm\_fsalloc;           \textcolor{comment}{/* eoa post file space allocation */}
+00330                                             \textcolor{comment}{/* for self referential FSMs      */}
+00331     haddr\_t eoa\_post\_mdci\_fsalloc;          \textcolor{comment}{/* eoa past file space allocation */}
+00332                                             \textcolor{comment}{/* for metadata cache image, or   */}
+00333                                             \textcolor{comment}{/* HADDR\_UNDEF if no cache image. */}
+00334 
+00335     \textcolor{comment}{/* Free-space aggregation info */}
+00336     \textcolor{keywordtype}{unsigned} fs\_aggr\_merge[H5FD\_MEM\_NTYPES];    \textcolor{comment}{/* Flags for whether free space can merge with
+       aggregator(s) */}
+00337     H5FD\_mem\_t fs\_type\_map[H5FD\_MEM\_NTYPES];    \textcolor{comment}{/* Mapping of "real" file space type into tracked type */}
+00338     \hyperlink{struct_h5_f__blk__aggr__t}{H5F\_blk\_aggr\_t} meta\_aggr;             \textcolor{comment}{/* Metadata aggregation info (if aggregating
+       metadata allocations) */}
+00339     \hyperlink{struct_h5_f__blk__aggr__t}{H5F\_blk\_aggr\_t} sdata\_aggr;                  \textcolor{comment}{/* "Small data" aggregation info (if
+       aggregating "small data" allocations) */}
+00340 
+00341     \textcolor{comment}{/* Paged aggregation info */}
+00342     hsize\_t fs\_page\_size;                           \textcolor{comment}{/* File space page size */}
+00343     \textcolor{keywordtype}{size\_t} pgend\_meta\_thres;                        \textcolor{comment}{/* Do not track page end meta section <= this threshold
+       */}
+00344 
+00345     \textcolor{comment}{/* Metadata accumulator information */}
+00346     \hyperlink{struct_h5_f__meta__accum__t}{H5F\_meta\_accum\_t} accum;     \textcolor{comment}{/* Metadata accumulator info            */}
+00347 
+00348     \textcolor{comment}{/* Metadata retry info */}
+00349     \textcolor{keywordtype}{unsigned}        read\_attempts;  \textcolor{comment}{/* The # of reads to try when reading metadata with checksum */}
+00350     \textcolor{keywordtype}{unsigned}        retries\_nbins;      \textcolor{comment}{/* # of bins for each retries[] */}
+00351     uint32\_t        *retries[H5AC\_NTYPES];  \textcolor{comment}{/* Track # of read retries for metdata items with checksum */}
+00352 
+00353     \textcolor{comment}{/* Object flush info */}
+00354     H5F\_object\_flush\_t  object\_flush;       \textcolor{comment}{/* Information for object flush callback */}
+00355 \};
+00356 
+00357 \textcolor{comment}{/*}
+00358 \textcolor{comment}{ * This is the top-level file descriptor.  One of these structures is}
+00359 \textcolor{comment}{ * allocated every time H5Fopen() is called although they may contain pointers}
+00360 \textcolor{comment}{ * to shared H5F\_file\_t structs.}
+00361 \textcolor{comment}{ */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_fpkg_8h_source_l00362}\hyperlink{struct_h5_f__t}{00362} \textcolor{keyword}{struct }\hyperlink{struct_h5_f__t}{H5F\_t} \{
+00363     \textcolor{keywordtype}{char}        *open\_name; \textcolor{comment}{/* Name used to open file   */}
+00364     \textcolor{keywordtype}{char}        *actual\_name;   \textcolor{comment}{/* Actual name of the file, after resolving symlinks, etc. */}
+00365     \textcolor{keywordtype}{char}                *extpath;       \textcolor{comment}{/* Path for searching target external link file */}
+00366     \hyperlink{struct_h5_f__file__t}{H5F\_file\_t}        *shared;    \textcolor{comment}{/* The shared file info     */}
+00367     \textcolor{keywordtype}{unsigned}        nopen\_objs; \textcolor{comment}{/* Number of open object headers*/}
+00368     H5FO\_t              *obj\_count;     \textcolor{comment}{/* # of time each object is opened through top file structure */}
+00369     hid\_t               file\_id;        \textcolor{comment}{/* ID of this file              */}
+00370     hbool\_t             closing;        \textcolor{comment}{/* File is in the process of being closed */}
+00371     \textcolor{keyword}{struct }\hyperlink{struct_h5_f__t}{H5F\_t}        *parent;        \textcolor{comment}{/* Parent file that this file is mounted to */}
+00372     \textcolor{keywordtype}{unsigned}            nmounts;        \textcolor{comment}{/* Number of children mounted to this file */}
+00373 \textcolor{preprocessor}{#ifdef H5\_HAVE\_PARALLEL}
+00374     H5P\_coll\_md\_read\_flag\_t coll\_md\_read;  \textcolor{comment}{/* Do all metadata reads collectively */}
+00375     hbool\_t             coll\_md\_write;  \textcolor{comment}{/* Do all metadata writes collectively */}
+00376 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5\_HAVE\_PARALLEL */}\textcolor{preprocessor}{}
+00377 \};
+00378 
+00379 
+00380 \textcolor{comment}{/*****************************/}
+00381 \textcolor{comment}{/* Package Private Variables */}
+00382 \textcolor{comment}{/*****************************/}
+00383 
+00384 \textcolor{comment}{/* Declare a free list to manage the H5F\_t struct */}
+00385 H5FL\_EXTERN(\hyperlink{struct_h5_f__t}{H5F\_t});
+00386 
+00387 \textcolor{comment}{/* Declare a free list to manage the H5F\_file\_t struct */}
+00388 H5FL\_EXTERN(\hyperlink{struct_h5_f__file__t}{H5F\_file\_t});
+00389 
+00390 
+00391 \textcolor{comment}{/******************************/}
+00392 \textcolor{comment}{/* Package Private Prototypes */}
+00393 \textcolor{comment}{/******************************/}
+00394 
+00395 \textcolor{comment}{/* General routines */}
+00396 \hyperlink{struct_h5_f__t}{H5F\_t} *H5F\_new(\hyperlink{struct_h5_f__file__t}{H5F\_file\_t} *shared, \textcolor{keywordtype}{unsigned} flags, hid\_t fcpl\_id,
+00397     hid\_t fapl\_id, \hyperlink{struct_h5_f_d__t}{H5FD\_t} *lf);
+00398 H5\_DLL herr\_t H5F\_\_dest(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t meta\_dxpl\_id, hid\_t raw\_dxpl\_id, hbool\_t flush);
+00399 H5\_DLL herr\_t H5F\_\_flush(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t meta\_dxpl\_id, hid\_t raw\_dxpl\_id, hbool\_t closing);
+00400 H5\_DLL htri\_t H5F\_\_is\_hdf5(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name, hid\_t meta\_dxpl\_id, hid\_t raw\_dxpl\_id);
+00401 H5\_DLL herr\_t H5F\_get\_objects(\textcolor{keyword}{const} \hyperlink{struct_h5_f__t}{H5F\_t} *f, \textcolor{keywordtype}{unsigned} types, \textcolor{keywordtype}{size\_t} max\_index, hid\_t *obj\_id\_list, 
+      hbool\_t app\_ref, \textcolor{keywordtype}{size\_t} *obj\_id\_count\_ptr);
+00402 H5\_DLL ssize\_t H5F\_get\_file\_image(\hyperlink{struct_h5_f__t}{H5F\_t} *f, \textcolor{keywordtype}{void} *buf\_ptr, \textcolor{keywordtype}{size\_t} buf\_len,
+00403     hid\_t meta\_dxpl\_id, hid\_t raw\_dxpl\_id);
+00404 H5\_DLL herr\_t H5F\_close(\hyperlink{struct_h5_f__t}{H5F\_t} *f);
+00405 
+00406 \textcolor{comment}{/* File mount related routines */}
+00407 H5\_DLL herr\_t H5F\_close\_mounts(\hyperlink{struct_h5_f__t}{H5F\_t} *f);
+00408 H5\_DLL \textcolor{keywordtype}{int} H5F\_term\_unmount\_cb(\textcolor{keywordtype}{void} *obj\_ptr, hid\_t obj\_id, \textcolor{keywordtype}{void} *key);
+00409 H5\_DLL herr\_t H5F\_mount\_count\_ids(\hyperlink{struct_h5_f__t}{H5F\_t} *f, \textcolor{keywordtype}{unsigned} *nopen\_files, \textcolor{keywordtype}{unsigned} *nopen\_objs);
+00410 
+00411 \textcolor{comment}{/* Superblock related routines */}
+00412 H5\_DLL herr\_t H5F\_\_super\_init(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id);
+00413 H5\_DLL herr\_t H5F\_\_super\_read(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t meta\_dxpl\_id, hid\_t raw\_dxpl\_id,
+00414     hbool\_t initial\_read);
+00415 H5\_DLL herr\_t H5F\_\_super\_size(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, hsize\_t *super\_size, hsize\_t *super\_ext\_size);
+00416 H5\_DLL herr\_t H5F\_\_super\_free(\hyperlink{struct_h5_f__super__t}{H5F\_super\_t} *sblock);
+00417 
+00418 \textcolor{comment}{/* Superblock extension related routines */}
+00419 H5\_DLL herr\_t H5F\_super\_ext\_open(\hyperlink{struct_h5_f__t}{H5F\_t} *f, haddr\_t ext\_addr, H5O\_loc\_t *ext\_ptr);
+00420 H5\_DLL herr\_t H5F\_super\_ext\_write\_msg(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{id},
+00421     \textcolor{keywordtype}{void} *mesg, hbool\_t may\_create, \textcolor{keywordtype}{unsigned} mesg\_flags);
+00422 H5\_DLL herr\_t H5F\_super\_ext\_remove\_msg(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{id});
+00423 H5\_DLL herr\_t H5F\_super\_ext\_close(\hyperlink{struct_h5_f__t}{H5F\_t} *f, H5O\_loc\_t *ext\_ptr, hid\_t dxpl\_id,
+00424     hbool\_t was\_created);
+00425 
+00426 \textcolor{comment}{/* Metadata accumulator routines */}
+00427 H5\_DLL herr\_t H5F\_\_accum\_read(\textcolor{keyword}{const} H5F\_io\_info2\_t *fio\_info, H5FD\_mem\_t type,
+00428     haddr\_t addr, \textcolor{keywordtype}{size\_t} size, \textcolor{keywordtype}{void} *buf);
+00429 H5\_DLL herr\_t H5F\_\_accum\_write(\textcolor{keyword}{const} H5F\_io\_info2\_t *fio\_info, H5FD\_mem\_t type,
+00430     haddr\_t addr, \textcolor{keywordtype}{size\_t} size, \textcolor{keyword}{const} \textcolor{keywordtype}{void} *buf);
+00431 H5\_DLL herr\_t H5F\_\_accum\_free(\textcolor{keyword}{const} H5F\_io\_info2\_t *fio\_info, H5FD\_mem\_t type,
+00432     haddr\_t addr, hsize\_t size);
+00433 H5\_DLL herr\_t H5F\_\_accum\_flush(\textcolor{keyword}{const} H5F\_io\_info2\_t *fio\_info);
+00434 H5\_DLL herr\_t H5F\_\_accum\_reset(\textcolor{keyword}{const} H5F\_io\_info2\_t *fio\_info, hbool\_t flush);
+00435 
+00436 \textcolor{comment}{/* Shared file list related routines */}
+00437 H5\_DLL herr\_t H5F\_sfile\_add(\hyperlink{struct_h5_f__file__t}{H5F\_file\_t} *shared);
+00438 H5\_DLL \hyperlink{struct_h5_f__file__t}{H5F\_file\_t} * H5F\_sfile\_search(\hyperlink{struct_h5_f_d__t}{H5FD\_t} *lf);
+00439 H5\_DLL herr\_t H5F\_sfile\_remove(\hyperlink{struct_h5_f__file__t}{H5F\_file\_t} *shared);
+00440 
+00441 \textcolor{comment}{/* External file cache routines */}
+00442 H5\_DLL H5F\_efc\_t *H5F\_efc\_create(\textcolor{keywordtype}{unsigned} max\_nfiles);
+00443 H5\_DLL \textcolor{keywordtype}{unsigned} H5F\_efc\_max\_nfiles(H5F\_efc\_t *efc);
+00444 H5\_DLL herr\_t H5F\_efc\_release(H5F\_efc\_t *efc);
+00445 H5\_DLL herr\_t H5F\_efc\_destroy(H5F\_efc\_t *efc);
+00446 H5\_DLL herr\_t H5F\_efc\_try\_close(\hyperlink{struct_h5_f__t}{H5F\_t} *f);
+00447 
+00448 \textcolor{comment}{/* Space allocation routines */}
+00449 H5\_DLL haddr\_t H5F\_alloc(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, H5F\_mem\_t type, hsize\_t size, haddr\_t *frag\_addr, 
+      hsize\_t *frag\_size);
+00450 H5\_DLL herr\_t H5F\_free(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, H5F\_mem\_t type, haddr\_t addr, hsize\_t size);
+00451 H5\_DLL htri\_t H5F\_try\_extend(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, H5FD\_mem\_t type, 
+00452     haddr\_t blk\_end, hsize\_t extra\_requested);
+00453 
+00454 \textcolor{comment}{/* Functions that get/retrieve values from VFD layer */}
+00455 H5\_DLL herr\_t H5F\_\_set\_eoa(\textcolor{keyword}{const} \hyperlink{struct_h5_f__t}{H5F\_t} *f, H5F\_mem\_t type, haddr\_t addr);
+00456 H5\_DLL herr\_t H5F\_\_set\_base\_addr(\textcolor{keyword}{const} \hyperlink{struct_h5_f__t}{H5F\_t} *f, haddr\_t addr);
+00457 H5\_DLL herr\_t H5F\_\_set\_paged\_aggr(\textcolor{keyword}{const} \hyperlink{struct_h5_f__t}{H5F\_t} *f, hbool\_t paged);
+00458 
+00459 \textcolor{comment}{/* Functions that flush or evict */}
+00460 H5\_DLL herr\_t H5F\_\_evict\_cache\_entries(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id);
+00461 
+00462 \textcolor{comment}{/* Testing functions */}
+00463 \textcolor{preprocessor}{#ifdef H5F\_TESTING}
+00464 H5\_DLL herr\_t H5F\_get\_sohm\_mesg\_count\_test(hid\_t fid, \textcolor{keywordtype}{unsigned} type\_id,
+00465     \textcolor{keywordtype}{size\_t} *mesg\_count);
+00466 H5\_DLL herr\_t H5F\_check\_cached\_stab\_test(hid\_t file\_id);
+00467 H5\_DLL herr\_t H5F\_get\_maxaddr\_test(hid\_t file\_id, haddr\_t *maxaddr);
+00468 H5\_DLL herr\_t H5F\_get\_sbe\_addr\_test(hid\_t file\_id, haddr\_t *sbe\_addr);
+00469 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5F\_TESTING */}\textcolor{preprocessor}{}
+00470 
+00471 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* \_H5Fpkg\_H */}\textcolor{preprocessor}{}
+00472 
+\end{DoxyCode}

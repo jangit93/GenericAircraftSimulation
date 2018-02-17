@@ -1,0 +1,526 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2cholesky_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/cholesky.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2cholesky_8cpp_source}\index{cholesky.\+cpp@{cholesky.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_NO\_ASSERTION\_CHECKING}
+00011 \textcolor{preprocessor}{#define EIGEN\_NO\_ASSERTION\_CHECKING}
+00012 \textcolor{preprocessor}{#endif}
+00013 
+00014 \textcolor{preprocessor}{#define TEST\_ENABLE\_TEMPORARY\_TRACKING}
+00015 
+00016 \textcolor{preprocessor}{#include "main.h"}
+00017 \textcolor{preprocessor}{#include <Eigen/Cholesky>}
+00018 \textcolor{preprocessor}{#include <Eigen/QR>}
+00019 
+00020 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keywordtype}{int} UpLo>
+00021 \textcolor{keyword}{typename} MatrixType::RealScalar matrix\_l1\_norm(\textcolor{keyword}{const} MatrixType& m) \{
+00022   MatrixType symm = m.template selfadjointView<UpLo>();
+00023   \textcolor{keywordflow}{return} symm.cwiseAbs().colwise().sum().maxCoeff();
+00024 \}
+00025 
+00026 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType,\textcolor{keyword}{template} <\textcolor{keyword}{typename},\textcolor{keywordtype}{int}> \textcolor{keyword}{class }CholType> \textcolor{keywordtype}{void} test\_chol\_update(\textcolor{keyword}{const} MatrixType
+      & symm)
+00027 \{
+00028   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00029   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00030   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::RowsAtCompileTime, 1>} 
+      \hyperlink{struct_vector_type}{VectorType};
+00031 
+00032   MatrixType symmLo = symm.template triangularView<Lower>();
+00033   MatrixType symmUp = symm.template triangularView<Upper>();
+00034   MatrixType symmCpy = symm;
+00035 
+00036   CholType<MatrixType,Lower> chollo(symmLo);
+00037   CholType<MatrixType,Upper> cholup(symmUp);
+00038 
+00039   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k=0; k<10; ++k)
+00040   \{
+00041     VectorType vec = VectorType::Random(symm.rows());
+00042     RealScalar sigma = internal::random<RealScalar>();
+00043     symmCpy += sigma * vec * vec.adjoint();
+00044 
+00045     \textcolor{comment}{// we are doing some downdates, so it might be the case that the matrix is not SPD anymore}
+00046     CholType<MatrixType,Lower> chol(symmCpy);
+00047     \textcolor{keywordflow}{if}(chol.info()!=\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success})
+00048       \textcolor{keywordflow}{break};
+00049 
+00050     chollo.rankUpdate(vec, sigma);
+00051     VERIFY\_IS\_APPROX(symmCpy, chollo.reconstructedMatrix());
+00052 
+00053     cholup.rankUpdate(vec, sigma);
+00054     VERIFY\_IS\_APPROX(symmCpy, cholup.reconstructedMatrix());
+00055   \}
+00056 \}
+00057 
+00058 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} cholesky(\textcolor{keyword}{const} MatrixType& m)
+00059 \{
+00060   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00061   \textcolor{comment}{/* this test covers the following files:}
+00062 \textcolor{comment}{     LLT.h LDLT.h}
+00063 \textcolor{comment}{  */}
+00064   Index rows = m.rows();
+00065   Index cols = m.cols();
+00066 
+00067   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00068   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00069   \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::RowsAtCompileTime, MatrixType::RowsAtCompileTime>}
+       SquareMatrixType;
+00070   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::RowsAtCompileTime, 1>} 
+      VectorType;
+00071 
+00072   MatrixType a0 = MatrixType::Random(rows,cols);
+00073   VectorType vecB = VectorType::Random(rows), vecX(rows);
+00074   MatrixType matB = MatrixType::Random(rows,cols), matX(rows,cols);
+00075   SquareMatrixType symm =  a0 * a0.adjoint();
+00076   \textcolor{comment}{// let's make sure the matrix is not singular or near singular}
+00077   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k=0; k<3; ++k)
+00078   \{
+00079     MatrixType a1 = MatrixType::Random(rows,cols);
+00080     symm += a1 * a1.adjoint();
+00081   \}
+00082 
+00083   \{
+00084     SquareMatrixType symmUp = symm.template triangularView<Upper>();
+00085     SquareMatrixType symmLo = symm.template triangularView<Lower>();
+00086 
+00087     \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT<SquareMatrixType,Lower>} chollo(symmLo);
+00088     VERIFY\_IS\_APPROX(symm, chollo.reconstructedMatrix());
+00089     vecX = chollo.solve(vecB);
+00090     VERIFY\_IS\_APPROX(symm * vecX, vecB);
+00091     matX = chollo.solve(matB);
+00092     VERIFY\_IS\_APPROX(symm * matX, matB);
+00093 
+00094     \textcolor{keyword}{const} MatrixType symmLo\_inverse = chollo.solve(MatrixType::Identity(rows,cols));
+00095     RealScalar rcond = (RealScalar(1) / matrix\_l1\_norm<MatrixType, Lower>(symmLo)) /
+00096                              matrix\_l1\_norm<MatrixType, Lower>(symmLo\_inverse);
+00097     RealScalar rcond\_est = chollo.rcond();
+00098     \textcolor{comment}{// Verify that the estimated condition number is within a factor of 10 of the}
+00099     \textcolor{comment}{// truth.}
+00100     VERIFY(rcond\_est > rcond / 10 && rcond\_est < rcond * 10);
+00101 
+00102     \textcolor{comment}{// test the upper mode}
+00103     \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT<SquareMatrixType,Upper>} cholup(symmUp);
+00104     VERIFY\_IS\_APPROX(symm, cholup.reconstructedMatrix());
+00105     vecX = cholup.solve(vecB);
+00106     VERIFY\_IS\_APPROX(symm * vecX, vecB);
+00107     matX = cholup.solve(matB);
+00108     VERIFY\_IS\_APPROX(symm * matX, matB);
+00109 
+00110     \textcolor{comment}{// Verify that the estimated condition number is within a factor of 10 of the}
+00111     \textcolor{comment}{// truth.}
+00112     \textcolor{keyword}{const} MatrixType symmUp\_inverse = cholup.solve(MatrixType::Identity(rows,cols));
+00113     rcond = (RealScalar(1) / matrix\_l1\_norm<MatrixType, Upper>(symmUp)) /
+00114                              matrix\_l1\_norm<MatrixType, Upper>(symmUp\_inverse);
+00115     rcond\_est = cholup.rcond();
+00116     VERIFY(rcond\_est > rcond / 10 && rcond\_est < rcond * 10);
+00117 
+00118 
+00119     MatrixType neg = -symmLo;
+00120     chollo.compute(neg);
+00121     VERIFY(chollo.info()==\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaaf9b736d310a664e7729d163a035cc5f}{NumericalIssue});
+00122 
+00123     VERIFY\_IS\_APPROX(MatrixType(chollo.matrixL().transpose().conjugate()), MatrixType(chollo.matrixU()));
+00124     VERIFY\_IS\_APPROX(MatrixType(chollo.matrixU().transpose().conjugate()), MatrixType(chollo.matrixL()));
+00125     VERIFY\_IS\_APPROX(MatrixType(cholup.matrixL().transpose().conjugate()), MatrixType(cholup.matrixU()));
+00126     VERIFY\_IS\_APPROX(MatrixType(cholup.matrixU().transpose().conjugate()), MatrixType(cholup.matrixL()));
+00127 
+00128     \textcolor{comment}{// test some special use cases of SelfCwiseBinaryOp:}
+00129     MatrixType m1 = MatrixType::Random(rows,cols), m2(rows,cols);
+00130     m2 = m1;
+00131     m2 += symmLo.template selfadjointView<Lower>().llt().solve(matB);
+00132     VERIFY\_IS\_APPROX(m2, m1 + symmLo.template selfadjointView<Lower>().llt().solve(matB));
+00133     m2 = m1;
+00134     m2 -= symmLo.template selfadjointView<Lower>().llt().solve(matB);
+00135     VERIFY\_IS\_APPROX(m2, m1 - symmLo.template selfadjointView<Lower>().llt().solve(matB));
+00136     m2 = m1;
+00137     m2.noalias() += symmLo.template selfadjointView<Lower>().llt().solve(matB);
+00138     VERIFY\_IS\_APPROX(m2, m1 + symmLo.template selfadjointView<Lower>().llt().solve(matB));
+00139     m2 = m1;
+00140     m2.noalias() -= symmLo.template selfadjointView<Lower>().llt().solve(matB);
+00141     VERIFY\_IS\_APPROX(m2, m1 - symmLo.template selfadjointView<Lower>().llt().solve(matB));
+00142   \}
+00143 
+00144   \textcolor{comment}{// LDLT}
+00145   \{
+00146     \textcolor{keywordtype}{int} sign = internal::random<int>()%2 ? 1 : -1;
+00147 
+00148     \textcolor{keywordflow}{if}(sign == -1)
+00149     \{
+00150       symm = -symm; \textcolor{comment}{// test a negative matrix}
+00151     \}
+00152 
+00153     SquareMatrixType symmUp = symm.template triangularView<Upper>();
+00154     SquareMatrixType symmLo = symm.template triangularView<Lower>();
+00155 
+00156     \hyperlink{group___cholesky___module_class_eigen_1_1_l_d_l_t}{LDLT<SquareMatrixType,Lower>} ldltlo(symmLo);
+00157     VERIFY(ldltlo.info()==\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00158     VERIFY\_IS\_APPROX(symm, ldltlo.reconstructedMatrix());
+00159     vecX = ldltlo.solve(vecB);
+00160     VERIFY\_IS\_APPROX(symm * vecX, vecB);
+00161     matX = ldltlo.solve(matB);
+00162     VERIFY\_IS\_APPROX(symm * matX, matB);
+00163 
+00164     \textcolor{keyword}{const} MatrixType symmLo\_inverse = ldltlo.solve(MatrixType::Identity(rows,cols));
+00165     RealScalar rcond = (RealScalar(1) / matrix\_l1\_norm<MatrixType, Lower>(symmLo)) /
+00166                              matrix\_l1\_norm<MatrixType, Lower>(symmLo\_inverse);
+00167     RealScalar rcond\_est = ldltlo.rcond();
+00168     \textcolor{comment}{// Verify that the estimated condition number is within a factor of 10 of the}
+00169     \textcolor{comment}{// truth.}
+00170     VERIFY(rcond\_est > rcond / 10 && rcond\_est < rcond * 10);
+00171 
+00172 
+00173     \hyperlink{group___cholesky___module_class_eigen_1_1_l_d_l_t}{LDLT<SquareMatrixType,Upper>} ldltup(symmUp);
+00174     VERIFY(ldltup.info()==\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00175     VERIFY\_IS\_APPROX(symm, ldltup.reconstructedMatrix());
+00176     vecX = ldltup.solve(vecB);
+00177     VERIFY\_IS\_APPROX(symm * vecX, vecB);
+00178     matX = ldltup.solve(matB);
+00179     VERIFY\_IS\_APPROX(symm * matX, matB);
+00180 
+00181     \textcolor{comment}{// Verify that the estimated condition number is within a factor of 10 of the}
+00182     \textcolor{comment}{// truth.}
+00183     \textcolor{keyword}{const} MatrixType symmUp\_inverse = ldltup.solve(MatrixType::Identity(rows,cols));
+00184     rcond = (RealScalar(1) / matrix\_l1\_norm<MatrixType, Upper>(symmUp)) /
+00185                              matrix\_l1\_norm<MatrixType, Upper>(symmUp\_inverse);
+00186     rcond\_est = ldltup.rcond();
+00187     VERIFY(rcond\_est > rcond / 10 && rcond\_est < rcond * 10);
+00188 
+00189     VERIFY\_IS\_APPROX(MatrixType(ldltlo.matrixL().transpose().conjugate()), MatrixType(ldltlo.matrixU()));
+00190     VERIFY\_IS\_APPROX(MatrixType(ldltlo.matrixU().transpose().conjugate()), MatrixType(ldltlo.matrixL()));
+00191     VERIFY\_IS\_APPROX(MatrixType(ldltup.matrixL().transpose().conjugate()), MatrixType(ldltup.matrixU()));
+00192     VERIFY\_IS\_APPROX(MatrixType(ldltup.matrixU().transpose().conjugate()), MatrixType(ldltup.matrixL()));
+00193 
+00194     \textcolor{keywordflow}{if}(MatrixType::RowsAtCompileTime==Dynamic)
+00195     \{
+00196       \textcolor{comment}{// note : each inplace permutation requires a small temporary vector (mask)}
+00197 
+00198       \textcolor{comment}{// check inplace solve}
+00199       matX = matB;
+00200       VERIFY\_EVALUATION\_COUNT(matX = ldltlo.solve(matX), 0);
+00201       VERIFY\_IS\_APPROX(matX, ldltlo.solve(matB).eval());
+00202 
+00203 
+00204       matX = matB;
+00205       VERIFY\_EVALUATION\_COUNT(matX = ldltup.solve(matX), 0);
+00206       VERIFY\_IS\_APPROX(matX, ldltup.solve(matB).eval());
+00207     \}
+00208 
+00209     \textcolor{comment}{// restore}
+00210     \textcolor{keywordflow}{if}(sign == -1)
+00211       symm = -symm;
+00212 
+00213     \textcolor{comment}{// check matrices coming from linear constraints with Lagrange multipliers}
+00214     \textcolor{keywordflow}{if}(rows>=3)
+00215     \{
+00216       SquareMatrixType \hyperlink{group___core___module_class_eigen_1_1_matrix}{A} = symm;
+00217       Index c = internal::random<Index>(0,rows-2);
+00218       A.bottomRightCorner(c,c).setZero();
+00219       \textcolor{comment}{// Make sure a solution exists:}
+00220       vecX.setRandom();
+00221       vecB = A * vecX;
+00222       vecX.\hyperlink{class_eigen_1_1_plain_object_base_ac21ad5f989f320e46958b75ac8d9a1da}{setZero}();
+00223       ldltlo.compute(A);
+00224       VERIFY\_IS\_APPROX(A, ldltlo.reconstructedMatrix());
+00225       vecX = ldltlo.solve(vecB);
+00226       VERIFY\_IS\_APPROX(A * vecX, vecB);
+00227     \}
+00228 
+00229     \textcolor{comment}{// check non-full rank matrices}
+00230     \textcolor{keywordflow}{if}(rows>=3)
+00231     \{
+00232       Index r = internal::random<Index>(1,rows-1);
+00233       \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,Dynamic>} a = 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Dynamic,Dynamic>::Random}(rows,r);
+00234       SquareMatrixType A = a * a.adjoint();
+00235       \textcolor{comment}{// Make sure a solution exists:}
+00236       vecX.setRandom();
+00237       vecB = A * vecX;
+00238       vecX.\hyperlink{class_eigen_1_1_plain_object_base_ac21ad5f989f320e46958b75ac8d9a1da}{setZero}();
+00239       ldltlo.compute(A);
+00240       VERIFY\_IS\_APPROX(A, ldltlo.reconstructedMatrix());
+00241       vecX = ldltlo.solve(vecB);
+00242       VERIFY\_IS\_APPROX(A * vecX, vecB);
+00243     \}
+00244 
+00245     \textcolor{comment}{// check matrices with a wide spectrum}
+00246     \textcolor{keywordflow}{if}(rows>=3)
+00247     \{
+00248       \textcolor{keyword}{using} std::pow;
+00249       \textcolor{keyword}{using} std::sqrt;
+00250       RealScalar s = (std::min)(16,std::numeric\_limits<RealScalar>::max\_exponent10/8);
+00251       \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,Dynamic>} a = 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Dynamic,Dynamic>::Random}(rows,rows);
+00252       \hyperlink{group___core___module}{Matrix<RealScalar,Dynamic,1>} d =  
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<RealScalar,Dynamic,1>::Random}(rows);
+00253       \textcolor{keywordflow}{for}(Index k=0; k<rows; ++k)
+00254         d(k) = d(k)*\hyperlink{group___core___module_ab6dc101d82e8228a19a8840e3a29c1c9}{pow}(RealScalar(10),internal::random<RealScalar>(-s,s));
+00255       SquareMatrixType A = a * d.asDiagonal() * a.adjoint();
+00256       \textcolor{comment}{// Make sure a solution exists:}
+00257       vecX.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00258       vecB = A * vecX;
+00259       vecX.\hyperlink{class_eigen_1_1_plain_object_base_ac21ad5f989f320e46958b75ac8d9a1da}{setZero}();
+00260       ldltlo.compute(A);
+00261       VERIFY\_IS\_APPROX(A, ldltlo.reconstructedMatrix());
+00262       vecX = ldltlo.solve(vecB);
+00263 
+00264       \textcolor{keywordflow}{if}(ldltlo.vectorD().real().cwiseAbs().minCoeff()>RealScalar(0))
+00265       \{
+00266         VERIFY\_IS\_APPROX(A * vecX,vecB);
+00267       \}
+00268       \textcolor{keywordflow}{else}
+00269       \{
+00270         RealScalar large\_tol =  sqrt(test\_precision<RealScalar>());
+00271         VERIFY((A * vecX).isApprox(vecB, large\_tol));
+00272 
+00273         ++g\_test\_level;
+00274         VERIFY\_IS\_APPROX(A * vecX,vecB);
+00275         --g\_test\_level;
+00276       \}
+00277     \}
+00278   \}
+00279 
+00280   \textcolor{comment}{// update/downdate}
+00281   CALL\_SUBTEST(( test\_chol\_update<SquareMatrixType,LLT>(symm)  ));
+00282   CALL\_SUBTEST(( test\_chol\_update<SquareMatrixType,LDLT>(symm) ));
+00283 \}
+00284 
+00285 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} cholesky\_cplx(\textcolor{keyword}{const} MatrixType& m)
+00286 \{
+00287   \textcolor{comment}{// classic test}
+00288   cholesky(m);
+00289 
+00290   \textcolor{comment}{// test mixing real/scalar types}
+00291 
+00292   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index Index;
+00293 
+00294   Index rows = m.rows();
+00295   Index cols = m.cols();
+00296 
+00297   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00298   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00299   \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<RealScalar, MatrixType::RowsAtCompileTime, MatrixType::RowsAtCompileTime>}
+       RealMatrixType;
+00300   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::RowsAtCompileTime, 1>} 
+      VectorType;
+00301 
+00302   RealMatrixType a0 = RealMatrixType::Random(rows,cols);
+00303   VectorType vecB = VectorType::Random(rows), vecX(rows);
+00304   MatrixType matB = MatrixType::Random(rows,cols), matX(rows,cols);
+00305   RealMatrixType symm =  a0 * a0.adjoint();
+00306   \textcolor{comment}{// let's make sure the matrix is not singular or near singular}
+00307   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k=0; k<3; ++k)
+00308   \{
+00309     RealMatrixType a1 = RealMatrixType::Random(rows,cols);
+00310     symm += a1 * a1.adjoint();
+00311   \}
+00312 
+00313   \{
+00314     RealMatrixType symmLo = symm.template triangularView<Lower>();
+00315 
+00316     \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT<RealMatrixType,Lower>} chollo(symmLo);
+00317     VERIFY\_IS\_APPROX(symm, chollo.reconstructedMatrix());
+00318     vecX = chollo.solve(vecB);
+00319     VERIFY\_IS\_APPROX(symm * vecX, vecB);
+00320 \textcolor{comment}{//     matX = chollo.solve(matB);}
+00321 \textcolor{comment}{//     VERIFY\_IS\_APPROX(symm * matX, matB);}
+00322   \}
+00323 
+00324   \textcolor{comment}{// LDLT}
+00325   \{
+00326     \textcolor{keywordtype}{int} sign = internal::random<int>()%2 ? 1 : -1;
+00327 
+00328     \textcolor{keywordflow}{if}(sign == -1)
+00329     \{
+00330       symm = -symm; \textcolor{comment}{// test a negative matrix}
+00331     \}
+00332 
+00333     RealMatrixType symmLo = symm.template triangularView<Lower>();
+00334 
+00335     \hyperlink{group___cholesky___module_class_eigen_1_1_l_d_l_t}{LDLT<RealMatrixType,Lower>} ldltlo(symmLo);
+00336     VERIFY(ldltlo.info()==\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00337     VERIFY\_IS\_APPROX(symm, ldltlo.reconstructedMatrix());
+00338     vecX = ldltlo.solve(vecB);
+00339     VERIFY\_IS\_APPROX(symm * vecX, vecB);
+00340 \textcolor{comment}{//     matX = ldltlo.solve(matB);}
+00341 \textcolor{comment}{//     VERIFY\_IS\_APPROX(symm * matX, matB);}
+00342   \}
+00343 \}
+00344 
+00345 \textcolor{comment}{// regression test for bug 241}
+00346 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} cholesky\_bug241(\textcolor{keyword}{const} MatrixType& m)
+00347 \{
+00348   eigen\_assert(m.rows() == 2 && m.cols() == 2);
+00349 
+00350   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00351   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::RowsAtCompileTime, 1>} 
+      VectorType;
+00352 
+00353   MatrixType matA;
+00354   matA << 1, 1, 1, 1;
+00355   VectorType vecB;
+00356   vecB << 1, 1;
+00357   VectorType vecX = matA.ldlt().solve(vecB);
+00358   VERIFY\_IS\_APPROX(matA * vecX, vecB);
+00359 \}
+00360 
+00361 \textcolor{comment}{// LDLT is not guaranteed to work for indefinite matrices, but happens to work fine if matrix is diagonal.}
+00362 \textcolor{comment}{// This test checks that LDLT reports correctly that matrix is indefinite.}
+00363 \textcolor{comment}{// See http://forum.kde.org/viewtopic.php?f=74&t=106942 and bug 736}
+00364 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} cholesky\_definiteness(\textcolor{keyword}{const} MatrixType& m)
+00365 \{
+00366   eigen\_assert(m.rows() == 2 && m.cols() == 2);
+00367   MatrixType mat;
+00368   \hyperlink{group___cholesky___module_class_eigen_1_1_l_d_l_t}{LDLT<MatrixType>} ldlt(2);
+00369 
+00370   \{
+00371     mat << 1, 0, 0, -1;
+00372     ldlt.compute(mat);
+00373     VERIFY(ldlt.info()==\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00374     VERIFY(!ldlt.isNegative());
+00375     VERIFY(!ldlt.isPositive());
+00376   \}
+00377   \{
+00378     mat << 1, 2, 2, 1;
+00379     ldlt.compute(mat);
+00380     VERIFY(ldlt.info()==\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00381     VERIFY(!ldlt.isNegative());
+00382     VERIFY(!ldlt.isPositive());
+00383   \}
+00384   \{
+00385     mat << 0, 0, 0, 0;
+00386     ldlt.compute(mat);
+00387     VERIFY(ldlt.info()==\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00388     VERIFY(ldlt.isNegative());
+00389     VERIFY(ldlt.isPositive());
+00390   \}
+00391   \{
+00392     mat << 0, 0, 0, 1;
+00393     ldlt.compute(mat);
+00394     VERIFY(ldlt.info()==\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00395     VERIFY(!ldlt.isNegative());
+00396     VERIFY(ldlt.isPositive());
+00397   \}
+00398   \{
+00399     mat << -1, 0, 0, 0;
+00400     ldlt.compute(mat);
+00401     VERIFY(ldlt.info()==\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00402     VERIFY(ldlt.isNegative());
+00403     VERIFY(!ldlt.isPositive());
+00404   \}
+00405 \}
+00406 
+00407 \textcolor{keyword}{template}<\textcolor{keyword}{typename}>
+00408 \textcolor{keywordtype}{void} cholesky\_faillure\_cases()
+00409 \{
+00410   MatrixXd mat;
+00411   \hyperlink{group___cholesky___module_class_eigen_1_1_l_d_l_t}{LDLT<MatrixXd>} ldlt;
+00412 
+00413   \{
+00414     mat.resize(2,2);
+00415     mat << 0, 1, 1, 0;
+00416     ldlt.compute(mat);
+00417     VERIFY\_IS\_NOT\_APPROX(mat,ldlt.\hyperlink{group___cholesky___module_ae3693372ca29f50d87d324dfadaae148}{reconstructedMatrix}());
+00418     VERIFY(ldlt.\hyperlink{group___cholesky___module_a6bd6008501a537d2e16ea672a853bf3e}{info}()==\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaaf9b736d310a664e7729d163a035cc5f}{NumericalIssue});
+00419   \}
+00420 \textcolor{preprocessor}{#if (!EIGEN\_ARCH\_i386) || defined(EIGEN\_VECTORIZE\_SSE2)}
+00421   \{
+00422     mat.resize(3,3);
+00423     mat << -1, -3, 3,
+00424            -3, -8.9999999999999999999, 1,
+00425             3, 1, 0;
+00426     ldlt.compute(mat);
+00427     VERIFY(ldlt.\hyperlink{group___cholesky___module_a6bd6008501a537d2e16ea672a853bf3e}{info}()==\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaaf9b736d310a664e7729d163a035cc5f}{NumericalIssue});
+00428     VERIFY\_IS\_NOT\_APPROX(mat,ldlt.\hyperlink{group___cholesky___module_ae3693372ca29f50d87d324dfadaae148}{reconstructedMatrix}());
+00429   \}
+00430 \textcolor{preprocessor}{#endif}
+00431   \{
+00432     mat.resize(3,3);
+00433     mat <<  1, 2, 3,
+00434             2, 4, 1,
+00435             3, 1, 0;
+00436     ldlt.compute(mat);
+00437     VERIFY(ldlt.\hyperlink{group___cholesky___module_a6bd6008501a537d2e16ea672a853bf3e}{info}()==\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaaf9b736d310a664e7729d163a035cc5f}{NumericalIssue});
+00438     VERIFY\_IS\_NOT\_APPROX(mat,ldlt.\hyperlink{group___cholesky___module_ae3693372ca29f50d87d324dfadaae148}{reconstructedMatrix}());
+00439   \}
+00440 
+00441   \{
+00442     mat.resize(8,8);
+00443     mat <<  0.1, 0, -0.1, 0, 0, 0, 1, 0,
+00444             0, 4.24667, 0, 2.00333, 0, 0, 0, 0,
+00445             -0.1, 0, 0.2, 0, -0.1, 0, 0, 0,
+00446             0, 2.00333, 0, 8.49333, 0, 2.00333, 0, 0,
+00447             0, 0, -0.1, 0, 0.1, 0, 0, 1,
+00448             0, 0, 0, 2.00333, 0, 4.24667, 0, 0,
+00449             1, 0, 0, 0, 0, 0, 0, 0,
+00450             0, 0, 0, 0, 1, 0, 0, 0;
+00451     ldlt.compute(mat);
+00452     VERIFY(ldlt.\hyperlink{group___cholesky___module_a6bd6008501a537d2e16ea672a853bf3e}{info}()==\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaaf9b736d310a664e7729d163a035cc5f}{NumericalIssue});
+00453     VERIFY\_IS\_NOT\_APPROX(mat,ldlt.\hyperlink{group___cholesky___module_ae3693372ca29f50d87d324dfadaae148}{reconstructedMatrix}());
+00454   \}
+00455 \}
+00456 
+00457 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} cholesky\_verify\_assert()
+00458 \{
+00459   MatrixType tmp;
+00460 
+00461   \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT<MatrixType>} llt;
+00462   VERIFY\_RAISES\_ASSERT(llt.\hyperlink{group___cholesky___module_a7f4a3eedbf82e7ce2d6bf0dcd84cdfa3}{matrixL}())
+00463   VERIFY\_RAISES\_ASSERT(llt.\hyperlink{group___cholesky___module_a18a390f085567e650e8345cc7e7c0df8}{matrixU}())
+00464   VERIFY\_RAISES\_ASSERT(llt.\hyperlink{group___cholesky___module_a3738bb3ce6f9b837a2beb432b937499f}{solve}(tmp))
+00465   VERIFY\_RAISES\_ASSERT(llt.solveInPlace(&tmp))
+00466 
+00467   \hyperlink{group___cholesky___module_class_eigen_1_1_l_d_l_t}{LDLT<MatrixType>} ldlt;
+00468   VERIFY\_RAISES\_ASSERT(ldlt.\hyperlink{group___cholesky___module_af0e6a0df5679873b42cf82a372dd8ddb}{matrixL}())
+00469   VERIFY\_RAISES\_ASSERT(ldlt.permutationP())
+00470   VERIFY\_RAISES\_ASSERT(ldlt.\hyperlink{group___cholesky___module_af60b2f826a38a00070e0efccf0572066}{vectorD}())
+00471   VERIFY\_RAISES\_ASSERT(ldlt.\hyperlink{group___cholesky___module_a5e1c6b7ba8d7b82575d6ffdc3bf35bcb}{isPositive}())
+00472   VERIFY\_RAISES\_ASSERT(ldlt.\hyperlink{group___cholesky___module_aabd3e7aebe844034caca4c62dbe9c1eb}{isNegative}())
+00473   VERIFY\_RAISES\_ASSERT(ldlt.\hyperlink{group___cholesky___module_aa257dd7a8acf8b347d5a22a13d6ca3e1}{solve}(tmp))
+00474   VERIFY\_RAISES\_ASSERT(ldlt.solveInPlace(&tmp))
+00475 \}
+00476 
+00477 \textcolor{keywordtype}{void} test\_cholesky()
+00478 \{
+00479   \textcolor{keywordtype}{int} s = 0;
+00480   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00481     CALL\_SUBTEST\_1( cholesky(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,1,1>}()) );
+00482     CALL\_SUBTEST\_3( cholesky(Matrix2d()) );
+00483     CALL\_SUBTEST\_3( cholesky\_bug241(Matrix2d()) );
+00484     CALL\_SUBTEST\_3( cholesky\_definiteness(Matrix2d()) );
+00485     CALL\_SUBTEST\_4( cholesky(Matrix3f()) );
+00486     CALL\_SUBTEST\_5( cholesky(Matrix4d()) );
+00487 
+00488     s = internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE);
+00489     CALL\_SUBTEST\_2( cholesky(MatrixXd(s,s)) );
+00490     TEST\_SET\_BUT\_UNUSED\_VARIABLE(s)
+00491 
+00492     s = internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE/2);
+00493     CALL\_SUBTEST\_6( cholesky\_cplx(MatrixXcd(s,s)) );
+00494     TEST\_SET\_BUT\_UNUSED\_VARIABLE(s)
+00495   \}
+00496 
+00497   CALL\_SUBTEST\_4( cholesky\_verify\_assert<Matrix3f>() );
+00498   CALL\_SUBTEST\_7( cholesky\_verify\_assert<Matrix3d>() );
+00499   CALL\_SUBTEST\_8( cholesky\_verify\_assert<MatrixXf>() );
+00500   CALL\_SUBTEST\_2( cholesky\_verify\_assert<MatrixXd>() );
+00501 
+00502   \textcolor{comment}{// Test problem size constructors}
+00503   CALL\_SUBTEST\_9( \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT<MatrixXf>}(10) );
+00504   CALL\_SUBTEST\_9( \hyperlink{group___cholesky___module_class_eigen_1_1_l_d_l_t}{LDLT<MatrixXf>}(10) );
+00505 
+00506   CALL\_SUBTEST\_2( cholesky\_faillure\_cases<void>() );
+00507 
+00508   TEST\_SET\_BUT\_UNUSED\_VARIABLE(nb\_temporaries)
+00509 \}
+\end{DoxyCode}

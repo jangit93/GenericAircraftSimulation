@@ -1,0 +1,196 @@
+\hypertarget{eigen_2test_2dense_l_m_8cpp_source}{}\section{eigen/test/dense\+LM.cpp}
+\label{eigen_2test_2dense_l_m_8cpp_source}\index{dense\+L\+M.\+cpp@{dense\+L\+M.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2012 Desire Nuentsa <desire.nuentsa\_wakam@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2012 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#include <iostream>}
+00012 \textcolor{preprocessor}{#include <fstream>}
+00013 \textcolor{preprocessor}{#include <iomanip>}
+00014 
+00015 \textcolor{preprocessor}{#include "main.h"}
+00016 \textcolor{preprocessor}{#include <Eigen/LevenbergMarquardt>}
+00017 \textcolor{keyword}{using namespace }\hyperlink{namespacestd}{std};
+00018 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00019 
+00020 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+\Hypertarget{eigen_2test_2dense_l_m_8cpp_source_l00021}\hyperlink{struct_dense_l_m}{00021} \textcolor{keyword}{struct }\hyperlink{struct_dense_l_m}{DenseLM} : \hyperlink{struct_eigen_1_1_dense_functor}{DenseFunctor}<Scalar>
+00022 \{
+00023   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1_dense_functor}{DenseFunctor<Scalar>} \hyperlink{struct_eigen_1_1_dense_functor}{Base};
+00024   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Base::JacobianType} \hyperlink{group___core___module_class_eigen_1_1_matrix}{JacobianType};
+00025   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,1>} \hyperlink{group___core___module}{VectorType};
+00026   
+00027   \hyperlink{struct_dense_l_m}{DenseLM}(\textcolor{keywordtype}{int} n, \textcolor{keywordtype}{int} m) : \hyperlink{struct_eigen_1_1_dense_functor}{DenseFunctor<Scalar>}(n,m) 
+00028   \{ \}
+00029  
+00030   VectorType model(\textcolor{keyword}{const} VectorType& uv, VectorType& x)
+00031   \{
+00032     VectorType y; \textcolor{comment}{// Should change to use expression template}
+00033     \textcolor{keywordtype}{int} m = Base::values(); 
+00034     \textcolor{keywordtype}{int} n = Base::inputs();
+00035     eigen\_assert(uv.size()%2 == 0);
+00036     eigen\_assert(uv.size() == n);
+00037     eigen\_assert(x.size() == m);
+00038     y.\hyperlink{class_eigen_1_1_plain_object_base_ac21ad5f989f320e46958b75ac8d9a1da}{setZero}(m);
+00039     \textcolor{keywordtype}{int} \hyperlink{struct_eigen_1_1half}{half} = n/2;
+00040     \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<const VectorType>} u(uv, 0, half);
+00041     \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<const VectorType>} v(uv, half, half);
+00042     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < m; j++)
+00043     \{
+00044       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < half; i++)
+00045         y(j) += u(i)*std::exp(-(x(j)-i)*(x(j)-i)/(v(i)*v(i)));
+00046     \}
+00047     \textcolor{keywordflow}{return} y;
+00048     
+00049   \}
+00050   \textcolor{keywordtype}{void} initPoints(VectorType& uv\_ref, VectorType& x)
+00051   \{
+00052     m\_x = x;
+00053     m\_y = this->model(uv\_ref, x);
+00054   \}
+00055   
+00056   \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorType& uv, VectorType& fvec)
+00057   \{
+00058     
+00059     \textcolor{keywordtype}{int} m = Base::values(); 
+00060     \textcolor{keywordtype}{int} n = Base::inputs();
+00061     eigen\_assert(uv.size()%2 == 0);
+00062     eigen\_assert(uv.size() == n);
+00063     eigen\_assert(fvec.size() == m);
+00064     \textcolor{keywordtype}{int} \hyperlink{struct_eigen_1_1half}{half} = n/2;
+00065     \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<const VectorType>} u(uv, 0, half);
+00066     \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<const VectorType>} v(uv, half, half);
+00067     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < m; j++)
+00068     \{
+00069       fvec(j) = m\_y(j);
+00070       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < half; i++)
+00071       \{
+00072         fvec(j) -= u(i) *std::exp(-(m\_x(j)-i)*(m\_x(j)-i)/(v(i)*v(i)));
+00073       \}
+00074     \}
+00075     
+00076     \textcolor{keywordflow}{return} 0;
+00077   \}
+00078   \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorType& uv, JacobianType& fjac)
+00079   \{
+00080     \textcolor{keywordtype}{int} m = Base::values(); 
+00081     \textcolor{keywordtype}{int} n = Base::inputs();
+00082     eigen\_assert(n == uv.size());
+00083     eigen\_assert(fjac.rows() == m);
+00084     eigen\_assert(fjac.cols() == n);
+00085     \textcolor{keywordtype}{int} \hyperlink{struct_eigen_1_1half}{half} = n/2;
+00086     \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<const VectorType>} u(uv, 0, half);
+00087     \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<const VectorType>} v(uv, half, half);
+00088     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < m; j++)
+00089     \{
+00090       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < half; i++)
+00091       \{
+00092         fjac.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(j,i) = -std::exp(-(m\_x(j)-i)*(m\_x(j)-i)/(v(i)*v(i)));
+00093         fjac.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(j,i+half) = -2.*u(i)*(m\_x(j)-i)*(m\_x(j)-i)/(std::pow(v(i),3)) * std::exp(-(
+      m\_x(j)-i)*(m\_x(j)-i)/(v(i)*v(i)));
+00094       \}
+00095     \}
+00096     \textcolor{keywordflow}{return} 0;
+00097   \}
+00098   VectorType m\_x, m\_y; \textcolor{comment}{//Data Points}
+00099 \};
+00100 
+00101 \textcolor{keyword}{template}<\textcolor{keyword}{typename} FunctorType, \textcolor{keyword}{typename} VectorType>
+00102 \textcolor{keywordtype}{int} test\_minimizeLM(FunctorType& functor, \hyperlink{group___core___module}{VectorType}& uv)
+00103 \{
+00104   \hyperlink{class_eigen_1_1_levenberg_marquardt}{LevenbergMarquardt<FunctorType>} lm(functor);
+00105   LevenbergMarquardtSpace::Status info; 
+00106   
+00107   info = lm.minimize(uv);
+00108   
+00109   VERIFY\_IS\_EQUAL(info, 1);
+00110   \textcolor{comment}{//FIXME Check other parameters}
+00111   \textcolor{keywordflow}{return} info;
+00112 \}
+00113 
+00114 \textcolor{keyword}{template}<\textcolor{keyword}{typename} FunctorType, \textcolor{keyword}{typename} VectorType>
+00115 \textcolor{keywordtype}{int} test\_lmder(FunctorType& functor, \hyperlink{group___core___module}{VectorType}& uv)
+00116 \{
+00117   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} VectorType::Scalar Scalar;
+00118   LevenbergMarquardtSpace::Status info; 
+00119   \hyperlink{class_eigen_1_1_levenberg_marquardt}{LevenbergMarquardt<FunctorType>} lm(functor);
+00120   info = lm.lmder1(uv);
+00121   
+00122   VERIFY\_IS\_EQUAL(info, 1);
+00123   \textcolor{comment}{//FIXME Check other parameters}
+00124   \textcolor{keywordflow}{return} info;
+00125 \}
+00126 
+00127 \textcolor{keyword}{template}<\textcolor{keyword}{typename} FunctorType, \textcolor{keyword}{typename} VectorType>
+00128 \textcolor{keywordtype}{int} test\_minimizeSteps(FunctorType& functor, \hyperlink{group___core___module}{VectorType}& uv)
+00129 \{
+00130   LevenbergMarquardtSpace::Status info;   
+00131   \hyperlink{class_eigen_1_1_levenberg_marquardt}{LevenbergMarquardt<FunctorType>} lm(functor);
+00132   info = lm.minimizeInit(uv);
+00133   \textcolor{keywordflow}{if} (info==LevenbergMarquardtSpace::ImproperInputParameters)
+00134       \textcolor{keywordflow}{return} info;
+00135   \textcolor{keywordflow}{do} 
+00136   \{
+00137     info = lm.minimizeOneStep(uv);
+00138   \} \textcolor{keywordflow}{while} (info==LevenbergMarquardtSpace::Running);
+00139   
+00140   VERIFY\_IS\_EQUAL(info, 1);
+00141   \textcolor{comment}{//FIXME Check other parameters}
+00142   \textcolor{keywordflow}{return} info;
+00143 \}
+00144 
+00145 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00146 \textcolor{keywordtype}{void} test\_denseLM\_T()
+00147 \{
+00148   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<T,Dynamic,1>} \hyperlink{group___core___module}{VectorType};
+00149   
+00150   \textcolor{keywordtype}{int} inputs = 10; 
+00151   \textcolor{keywordtype}{int} values = 1000; 
+00152   \hyperlink{struct_dense_l_m}{DenseLM<T>} dense\_gaussian(inputs, values);
+00153   VectorType uv(inputs),uv\_ref(inputs);
+00154   VectorType x(values);
+00155   
+00156   \textcolor{comment}{// Generate the reference solution }
+00157   uv\_ref << -2, 1, 4 ,8, 6, 1.8, 1.2, 1.1, 1.9 , 3;
+00158   
+00159   \textcolor{comment}{//Generate the reference data points}
+00160   x.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00161   x = 10*x;
+00162   x.array() += 10;
+00163   dense\_gaussian.initPoints(uv\_ref, x);
+00164   
+00165   \textcolor{comment}{// Generate the initial parameters }
+00166   \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<VectorType>} u(uv, 0, inputs/2); 
+00167   \hyperlink{group___core___module_class_eigen_1_1_vector_block}{VectorBlock<VectorType>} v(uv, inputs/2, inputs/2);
+00168   
+00169   \textcolor{comment}{// Solve the optimization problem}
+00170   
+00171   \textcolor{comment}{//Solve in one go}
+00172   u.setOnes(); v.setOnes();
+00173   test\_minimizeLM(dense\_gaussian, uv);
+00174   
+00175   \textcolor{comment}{//Solve until the machine precision}
+00176   u.setOnes(); v.setOnes();
+00177   test\_lmder(dense\_gaussian, uv); 
+00178   
+00179   \textcolor{comment}{// Solve step by step}
+00180   v.setOnes(); u.setOnes();
+00181   test\_minimizeSteps(dense\_gaussian, uv);
+00182   
+00183 \}
+00184 
+00185 \textcolor{keywordtype}{void} test\_denseLM()
+00186 \{
+00187   CALL\_SUBTEST\_2(test\_denseLM\_T<double>());
+00188   
+00189   \textcolor{comment}{// CALL\_SUBTEST\_2(test\_sparseLM\_T<std::complex<double>());}
+00190 \}
+\end{DoxyCode}

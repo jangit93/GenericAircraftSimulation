@@ -1,0 +1,162 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_t_2h5ex__t__vlenatt___f03_8f90_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+F\+O\+R\+T\+R\+A\+N/\+H5\+T/h5ex\+\_\+t\+\_\+vlenatt\+\_\+\+F03.f90}
+\label{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_t_2h5ex__t__vlenatt___f03_8f90_source}\index{h5ex\+\_\+t\+\_\+vlenatt\+\_\+\+F03.\+f90@{h5ex\+\_\+t\+\_\+vlenatt\+\_\+\+F03.\+f90}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{!************************************************************}
+00002 \textcolor{comment}{!}
+00003 \textcolor{comment}{!  This example shows how to read and write variable-length}
+00004 \textcolor{comment}{!  datatypes to an attribute.  The program first writes two}
+00005 \textcolor{comment}{!  variable-length integer arrays to the attribute then}
+00006 \textcolor{comment}{!  closes the file.  Next, it reopens the file, reads back}
+00007 \textcolor{comment}{!  the data, and outputs it to the screen.}
+00008 \textcolor{comment}{!}
+00009 \textcolor{comment}{!  This file is intended for use with HDF5 Library version 1.8}
+00010 \textcolor{comment}{!  with --enable-fortran2003 }
+00011 \textcolor{comment}{!}
+00012 \textcolor{comment}{! ************************************************************/}
+00013 
+00014 \textcolor{keyword}{PROGRAM} main
+00015 
+00016   \textcolor{keywordtype}{USE }hdf5
+00017   \textcolor{keywordtype}{USE }iso\_c\_binding
+00018   
+00019   \textcolor{keywordtype}{IMPLICIT NONE}
+00020 
+00021   \textcolor{keywordtype}{CHARACTER(LEN=21)}, \textcolor{keywordtype}{PARAMETER} :: filename  = \textcolor{stringliteral}{"h5ex\_t\_vlenatt\_F03.h5"}
+00022   \textcolor{keywordtype}{CHARACTER(LEN=3)} , \textcolor{keywordtype}{PARAMETER} :: dataset   = \textcolor{stringliteral}{"DS1"}
+00023   \textcolor{keywordtype}{CHARACTER(LEN=2)} , \textcolor{keywordtype}{PARAMETER} :: attribute = \textcolor{stringliteral}{"A1"}
+00024   \textcolor{keywordtype}{INTEGER}, \textcolor{keywordtype}{PARAMETER} :: len0 = 3
+00025   \textcolor{keywordtype}{INTEGER}, \textcolor{keywordtype}{PARAMETER} :: len1 = 12
+00026 
+00027   \textcolor{keywordtype}{INTEGER(HID\_T)}  :: \hyperlink{structfile}{file}, filetype, memtype, space, dset, attr \textcolor{comment}{! Handles}
+00028   \textcolor{keywordtype}{INTEGER} :: hdferr
+00029   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:2)}   :: maxdims
+00030   \textcolor{keywordtype}{INTEGER} :: i, j
+00031 
+00032   \textcolor{comment}{! vl data}
+00033   \textcolor{keyword}{TYPE} \hyperlink{structvl}{vl}
+00034      \textcolor{keywordtype}{INTEGER}, \textcolor{keywordtype}{DIMENSION(:)}, \textcolor{keywordtype}{POINTER} :: data
+00035 \textcolor{keyword}{  END TYPE }\hyperlink{structvl}{vl}
+00036   \textcolor{keywordtype}{TYPE}(\hyperlink{structvl}{vl}), \textcolor{keywordtype}{DIMENSION(:)}, \textcolor{keywordtype}{ALLOCATABLE} :: ptr
+00037 
+00038   \textcolor{keywordtype}{TYPE}(\hyperlink{structhvl__t}{hvl\_t}), \textcolor{keywordtype}{DIMENSION(1:2)}, \textcolor{keywordtype}{TARGET} :: wdata \textcolor{comment}{! Array of vlen structures}
+00039   \textcolor{keywordtype}{TYPE}(\hyperlink{structhvl__t}{hvl\_t}), \textcolor{keywordtype}{DIMENSION(1:2)}, \textcolor{keywordtype}{TARGET} :: rdata \textcolor{comment}{! Pointer to vlen structures}
+00040 
+00041   \textcolor{keywordtype}{INTEGER(hsize\_t)}, \textcolor{keywordtype}{DIMENSION(1:1)} :: dims = (/2/)
+00042   \textcolor{keywordtype}{INTEGER}, \textcolor{keywordtype}{DIMENSION(:)}, \textcolor{keywordtype}{POINTER} :: ptr\_r 
+00043   \textcolor{keywordtype}{TYPE}(c\_ptr) :: f\_ptr
+00044   
+00045   \textcolor{comment}{!}
+00046   \textcolor{comment}{! Initialize FORTRAN interface.}
+00047   \textcolor{comment}{!}
+00048   \textcolor{keyword}{CALL }h5open\_f(hdferr)
+00049   \textcolor{comment}{!}
+00050   \textcolor{comment}{! Initialize variable-length data.  wdata(1) is a countdown of}
+00051   \textcolor{comment}{! length LEN0, wdata(2) is a Fibonacci sequence of length LEN1.}
+00052   \textcolor{comment}{!}
+00053   wdata(1)%len = len0
+00054   wdata(2)%len = len1
+00055 
+00056   \textcolor{keyword}{ALLOCATE}( ptr(1:2) )
+00057   \textcolor{keyword}{ALLOCATE}( ptr(1)%data(1:wdata(1)%len) )
+00058   \textcolor{keyword}{ALLOCATE}( ptr(2)%data(1:wdata(2)%len) )
+00059 
+00060   \textcolor{keywordflow}{DO} i=1, wdata(1)%len
+00061      ptr(1)%data(i) = wdata(1)%len - i + 1 \textcolor{comment}{! 3 2 1}
+00062 \textcolor{keywordflow}{  ENDDO}
+00063   wdata(1)%p = c\_loc(ptr(1)%data(1))
+00064 
+00065   ptr(2)%data(1:2) = 1
+00066   \textcolor{keywordflow}{DO} i = 3, wdata(2)%len
+00067      ptr(2)%data(i) = ptr(2)%data(i-1) + ptr(2)%data(i-2) \textcolor{comment}{! (1 1 2 3 5 8 etc.)}
+00068 \textcolor{keywordflow}{  ENDDO}
+00069   wdata(2)%p = c\_loc(ptr(2)%data(1))
+00070 
+00071   \textcolor{comment}{!}
+00072   \textcolor{comment}{! Create a new file using the default properties.}
+00073   \textcolor{comment}{!}
+00074   \textcolor{keyword}{CALL }h5fcreate\_f(filename, h5f\_acc\_trunc\_f, \hyperlink{structfile}{file}, hdferr)
+00075   \textcolor{comment}{!}
+00076   \textcolor{comment}{! Create variable-length datatype for file and memory.}
+00077   \textcolor{comment}{!}
+00078   \textcolor{keyword}{CALL }h5tvlen\_create\_f(h5t\_std\_i32le, filetype, hdferr)
+00079   \textcolor{keyword}{CALL }h5tvlen\_create\_f(h5t\_native\_integer, memtype, hdferr)
+00080   \textcolor{comment}{!}
+00081   \textcolor{comment}{! Create dataset with a null dataspace.}
+00082   \textcolor{comment}{!}
+00083   \textcolor{keyword}{CALL }h5screate\_f(h5s\_null\_f, space, hdferr)
+00084   \textcolor{keyword}{CALL }h5dcreate\_f(\hyperlink{structfile}{file}, dataset, h5t\_std\_i32le, space, dset, hdferr)
+00085   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)  \textcolor{comment}{!}
+00086   \textcolor{comment}{! Create dataspace.}
+00087   \textcolor{comment}{!}
+00088   \textcolor{keyword}{CALL }h5screate\_simple\_f(1, dims, space, hdferr)
+00089 
+00090   \textcolor{comment}{!}
+00091   \textcolor{comment}{! Create the attribute and write the variable-length data to it}
+00092   \textcolor{comment}{!}
+00093   \textcolor{keyword}{CALL }h5acreate\_f(dset, attribute, filetype, space, attr, hdferr)
+00094 
+00095   f\_ptr = c\_loc(wdata(1))
+00096   \textcolor{keyword}{CALL }h5awrite\_f(attr, memtype, f\_ptr, hdferr)
+00097 
+00098   \textcolor{comment}{!}
+00099   \textcolor{comment}{! Close and release resources.  Note the use of H5Dvlen\_reclaim}
+00100   \textcolor{comment}{! removes the need to manually deallocate the previously allocated}
+00101   \textcolor{comment}{! data.}
+00102   \textcolor{comment}{!}
+00103   \textcolor{keyword}{CALL }h5aclose\_f(attr , hdferr)
+00104   \textcolor{keyword}{CALL }h5dclose\_f(dset , hdferr)
+00105   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)
+00106   \textcolor{keyword}{CALL }h5tclose\_f(filetype, hdferr)
+00107   \textcolor{keyword}{CALL }h5tclose\_f(memtype, hdferr)
+00108   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file} , hdferr)
+00109   \textcolor{keyword}{DEALLOCATE}(ptr)
+00110   \textcolor{comment}{!}
+00111   \textcolor{comment}{! Now we begin the read section of this example.}
+00112 
+00113   \textcolor{comment}{!}
+00114   \textcolor{comment}{! Open file and dataset, and attribute.}
+00115   \textcolor{comment}{!}
+00116   \textcolor{keyword}{CALL }h5fopen\_f(filename, h5f\_acc\_rdonly\_f, \hyperlink{structfile}{file}, hdferr)
+00117   \textcolor{keyword}{CALL }h5dopen\_f(\hyperlink{structfile}{file}, dataset, dset, hdferr)
+00118   \textcolor{keyword}{CALL }h5aopen\_f(dset, attribute, attr, hdferr)
+00119   \textcolor{comment}{!}
+00120   \textcolor{comment}{! Get dataspace and allocate memory for array of vlen structures.}
+00121   \textcolor{comment}{! This does not actually allocate memory for the vlen data, that}
+00122   \textcolor{comment}{! will be done by the library.}
+00123   \textcolor{comment}{!}
+00124   \textcolor{keyword}{CALL }h5aget\_space\_f(attr, space, hdferr)
+00125   \textcolor{keyword}{CALL }h5sget\_simple\_extent\_dims\_f(space, dims, maxdims, hdferr)
+00126   \textcolor{comment}{!}
+00127   \textcolor{comment}{! Create the memory datatype.}
+00128   \textcolor{comment}{!}
+00129   \textcolor{keyword}{CALL }h5tvlen\_create\_f(h5t\_native\_integer, memtype, hdferr)
+00130   \textcolor{comment}{!}
+00131   \textcolor{comment}{! Read the data.}
+00132   \textcolor{comment}{!}
+00133   f\_ptr = c\_loc(rdata(1))
+00134   \textcolor{keyword}{CALL }h5aread\_f(attr, memtype, f\_ptr, hdferr)
+00135   \textcolor{comment}{!}
+00136   \textcolor{comment}{! Output the variable-length data to the screen.}
+00137   \textcolor{comment}{!}
+00138   \textcolor{keywordflow}{DO} i = 1, dims(1)
+00139      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(A,"(",I0,"):",/,"\{")'}, advance=\textcolor{stringliteral}{"no"}) attribute,i
+00140      \textcolor{keyword}{CALL }c\_f\_pointer(rdata(i)%p, ptr\_r, [rdata(i)%len] )
+00141      \textcolor{keywordflow}{DO} j = 1, rdata(i)%len
+00142         \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(1X,I0)'}, advance=\textcolor{stringliteral}{'no'}) ptr\_r(j)
+00143         \textcolor{keywordflow}{IF} ( j .LT. rdata(i)%len) \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(",")'}, advance=\textcolor{stringliteral}{'no'})
+00144 \textcolor{keywordflow}{     ENDDO}
+00145      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'( " \}")'})
+00146 \textcolor{keywordflow}{  ENDDO}
+00147   \textcolor{comment}{!}
+00148   \textcolor{comment}{! Close and release resources.}
+00149   \textcolor{comment}{!}
+00150   \textcolor{keyword}{CALL }h5dvlen\_reclaim\_f(memtype, space, h5p\_default\_f, f\_ptr, hdferr)
+00151   \textcolor{keyword}{CALL }h5aclose\_f(attr , hdferr)
+00152   \textcolor{keyword}{CALL }h5dclose\_f(dset , hdferr)
+00153   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)
+00154   \textcolor{keyword}{CALL }h5tclose\_f(memtype, hdferr)
+00155   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file} , hdferr)
+00156 
+00157 \textcolor{keyword}{END PROGRAM }main
+\end{DoxyCode}

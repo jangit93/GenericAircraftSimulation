@@ -1,0 +1,96 @@
+\hypertarget{eigen_2unsupported_2test_2cxx11__tensor__generator_8cpp_source}{}\section{eigen/unsupported/test/cxx11\+\_\+tensor\+\_\+generator.cpp}
+\label{eigen_2unsupported_2test_2cxx11__tensor__generator_8cpp_source}\index{cxx11\+\_\+tensor\+\_\+generator.\+cpp@{cxx11\+\_\+tensor\+\_\+generator.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2015 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 \textcolor{preprocessor}{#include <Eigen/CXX11/Tensor>}
+00013 
+\Hypertarget{eigen_2unsupported_2test_2cxx11__tensor__generator_8cpp_source_l00014}\hyperlink{struct_generator1_d}{00014} \textcolor{keyword}{struct }\hyperlink{struct_generator1_d}{Generator1D} \{
+00015   \hyperlink{struct_generator1_d}{Generator1D}() \{ \}
+00016 
+00017   \textcolor{keywordtype}{float} operator()(\textcolor{keyword}{const} array<Eigen::DenseIndex, 1>& coordinates)\textcolor{keyword}{ const }\{
+00018     \textcolor{keywordflow}{return} coordinates[0];
+00019   \}
+00020 \};
+00021 
+00022 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00023 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_1D()
+00024 \{
+00025   Tensor<float, 1> vec(6);
+00026   Tensor<float, 1> result = vec.generate(\hyperlink{struct_generator1_d}{Generator1D}());
+00027 
+00028   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 6; ++i) \{
+00029     VERIFY\_IS\_EQUAL(result(i), i);
+00030   \}
+00031 \}
+00032 
+00033 
+\Hypertarget{eigen_2unsupported_2test_2cxx11__tensor__generator_8cpp_source_l00034}\hyperlink{struct_generator2_d}{00034} \textcolor{keyword}{struct }\hyperlink{struct_generator2_d}{Generator2D} \{
+00035   \hyperlink{struct_generator2_d}{Generator2D}() \{ \}
+00036 
+00037   \textcolor{keywordtype}{float} operator()(\textcolor{keyword}{const} array<Eigen::DenseIndex, 2>& coordinates)\textcolor{keyword}{ const }\{
+00038     \textcolor{keywordflow}{return} 3 * coordinates[0] + 11 * coordinates[1];
+00039   \}
+00040 \};
+00041 
+00042 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00043 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_2D()
+00044 \{
+00045   Tensor<float, 2> matrix(5, 7);
+00046   Tensor<float, 2> result = matrix.generate(\hyperlink{struct_generator2_d}{Generator2D}());
+00047 
+00048   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 5; ++i) \{
+00049     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 5; ++j) \{
+00050       VERIFY\_IS\_EQUAL(result(i, j), 3*i + 11*j);
+00051     \}
+00052   \}
+00053 \}
+00054 
+00055 
+00056 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00057 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_gaussian()
+00058 \{
+00059   \textcolor{keywordtype}{int} rows = 32;
+00060   \textcolor{keywordtype}{int} cols = 48;
+00061   array<float, 2> means;
+00062   means[0] = rows / 2.0f;
+00063   means[1] = cols / 2.0f;
+00064   array<float, 2> std\_devs;
+00065   std\_devs[0] = 3.14f;
+00066   std\_devs[1] = 2.7f;
+00067   internal::GaussianGenerator<float, Eigen::DenseIndex, 2> gaussian\_gen(means, std\_devs);
+00068 
+00069   Tensor<float, 2> matrix(rows, cols);
+00070   Tensor<float, 2> result = matrix.generate(gaussian\_gen);
+00071 
+00072   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < rows; ++i) \{
+00073     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < cols; ++j) \{
+00074       \textcolor{keywordtype}{float} g\_rows = powf(rows/2.0f - i, 2) / (3.14f * 3.14f) * 0.5f;
+00075       \textcolor{keywordtype}{float} g\_cols = powf(cols/2.0f - j, 2) / (2.7f * 2.7f) * 0.5f;
+00076       \textcolor{keywordtype}{float} gaussian = expf(-g\_rows - g\_cols);
+00077       VERIFY\_IS\_EQUAL(result(i, j), gaussian);
+00078     \}
+00079   \}
+00080 \}
+00081 
+00082 
+00083 \textcolor{keywordtype}{void} test\_cxx11\_tensor\_generator()
+00084 \{
+00085   CALL\_SUBTEST(test\_1D<ColMajor>());
+00086   CALL\_SUBTEST(test\_1D<RowMajor>());
+00087   CALL\_SUBTEST(test\_2D<ColMajor>());
+00088   CALL\_SUBTEST(test\_2D<RowMajor>());
+00089   CALL\_SUBTEST(test\_gaussian<ColMajor>());
+00090   CALL\_SUBTEST(test\_gaussian<RowMajor>());
+00091 \}
+\end{DoxyCode}

@@ -1,0 +1,300 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2geo__quaternion_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/geo\+\_\+quaternion.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2geo__quaternion_8cpp_source}\index{geo\+\_\+quaternion.\+cpp@{geo\+\_\+quaternion.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2009 Mathieu Gautier <mathieu.gautier@cea.fr>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#include "main.h"}
+00012 \textcolor{preprocessor}{#include <Eigen/Geometry>}
+00013 \textcolor{preprocessor}{#include <Eigen/LU>}
+00014 \textcolor{preprocessor}{#include <Eigen/SVD>}
+00015 
+00016 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> \hyperlink{group___sparse_core___module}{T} bounded\_acos(\hyperlink{group___sparse_core___module}{T} v)
+00017 \{
+00018   \textcolor{keyword}{using} std::acos;
+00019   \textcolor{keyword}{using} std::min;
+00020   \textcolor{keyword}{using} std::max;
+00021   \textcolor{keywordflow}{return} acos((max)(\hyperlink{group___sparse_core___module}{T}(-1),(min)(v,\hyperlink{group___sparse_core___module}{T}(1))));
+00022 \}
+00023 
+00024 \textcolor{keyword}{template}<\textcolor{keyword}{typename} QuatType> \textcolor{keywordtype}{void} check\_slerp(\textcolor{keyword}{const} QuatType& q0, \textcolor{keyword}{const} QuatType& q1)
+00025 \{
+00026   \textcolor{keyword}{using} std::abs;
+00027   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} QuatType::Scalar Scalar;
+00028   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_angle_axis}{AngleAxis<Scalar>} AA;
+00029 
+00030   Scalar largeEps = test\_precision<Scalar>();
+00031 
+00032   Scalar theta\_tot = AA(q1*q0.inverse()).angle();
+00033   \textcolor{keywordflow}{if}(theta\_tot>Scalar(EIGEN\_PI))
+00034     theta\_tot = Scalar(2.)*Scalar(EIGEN\_PI)-theta\_tot;
+00035   \textcolor{keywordflow}{for}(Scalar t=0; t<=Scalar(1.001); t+=Scalar(0.1))
+00036   \{
+00037     QuatType q = q0.slerp(t,q1);
+00038     Scalar theta = AA(q*q0.inverse()).angle();
+00039     VERIFY(abs(q.norm() - 1) < largeEps);
+00040     \textcolor{keywordflow}{if}(theta\_tot==0)  VERIFY(theta\_tot==0);
+00041     \textcolor{keywordflow}{else}              VERIFY(abs(theta - t * theta\_tot) < largeEps);
+00042   \}
+00043 \}
+00044 
+00045 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{int} Options> \textcolor{keywordtype}{void} quaternion(\textcolor{keywordtype}{void})
+00046 \{
+00047   \textcolor{comment}{/* this test covers the following files:}
+00048 \textcolor{comment}{     Quaternion.h}
+00049 \textcolor{comment}{  */}
+00050   \textcolor{keyword}{using} std::abs;
+00051   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,3,1>} Vector3;
+00052   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,3,3>} Matrix3;
+00053   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<Scalar,Options>} Quaternionx;
+00054   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_angle_axis}{AngleAxis<Scalar>} AngleAxisx;
+00055 
+00056   Scalar largeEps = test\_precision<Scalar>();
+00057   \textcolor{keywordflow}{if} (internal::is\_same<Scalar,float>::value)
+00058     largeEps = Scalar(1e-3);
+00059 
+00060   Scalar eps = internal::random<Scalar>() * Scalar(1e-2);
+00061 
+00062   Vector3 v0 = Vector3::Random(),
+00063           v1 = Vector3::Random(),
+00064           v2 = Vector3::Random(),
+00065           v3 = Vector3::Random();
+00066 
+00067   Scalar  a = internal::random<Scalar>(-Scalar(EIGEN\_PI), Scalar(EIGEN\_PI)),
+00068           b = internal::random<Scalar>(-Scalar(EIGEN\_PI), Scalar(EIGEN\_PI));
+00069 
+00070   \textcolor{comment}{// Quaternion: Identity(), setIdentity();}
+00071   Quaternionx q1, q2;
+00072   q2.setIdentity();
+00073   VERIFY\_IS\_APPROX(Quaternionx(Quaternionx::Identity()).coeffs(), q2.coeffs());
+00074   q1.coeffs().setRandom();
+00075   VERIFY\_IS\_APPROX(q1.coeffs(), (q1*q2).coeffs());
+00076 
+00077   \textcolor{comment}{// concatenation}
+00078   q1 *= q2;
+00079 
+00080   q1 = AngleAxisx(a, v0.normalized());
+00081   q2 = AngleAxisx(a, v1.normalized());
+00082 
+00083   \textcolor{comment}{// angular distance}
+00084   Scalar refangle = abs(AngleAxisx(q1.inverse()*q2).angle());
+00085   \textcolor{keywordflow}{if} (refangle>Scalar(EIGEN\_PI))
+00086     refangle = Scalar(2)*Scalar(EIGEN\_PI) - refangle;
+00087 
+00088   \textcolor{keywordflow}{if}((q1.coeffs()-q2.coeffs()).norm() > 10*largeEps)
+00089   \{
+00090     VERIFY\_IS\_MUCH\_SMALLER\_THAN(abs(q1.angularDistance(q2) - refangle), Scalar(1));
+00091   \}
+00092 
+00093   \textcolor{comment}{// rotation matrix conversion}
+00094   VERIFY\_IS\_APPROX(q1 * v2, q1.toRotationMatrix() * v2);
+00095   VERIFY\_IS\_APPROX(q1 * q2 * v2,
+00096     q1.toRotationMatrix() * q2.toRotationMatrix() * v2);
+00097 
+00098   VERIFY(  (q2*q1).isApprox(q1*q2, largeEps)
+00099         || !(q2 * q1 * v2).isApprox(q1.toRotationMatrix() * q2.toRotationMatrix() * v2));
+00100 
+00101   q2 = q1.toRotationMatrix();
+00102   VERIFY\_IS\_APPROX(q1*v1,q2*v1);
+00103 
+00104   Matrix3 rot1(q1);
+00105   VERIFY\_IS\_APPROX(q1*v1,rot1*v1);
+00106   Quaternionx q3(rot1.transpose()*rot1);
+00107   VERIFY\_IS\_APPROX(q3*v1,v1);
+00108 
+00109 
+00110   \textcolor{comment}{// angle-axis conversion}
+00111   AngleAxisx aa = AngleAxisx(q1);
+00112   VERIFY\_IS\_APPROX(q1 * v1, Quaternionx(aa) * v1);
+00113 
+00114   \textcolor{comment}{// Do not execute the test if the rotation angle is almost zero, or}
+00115   \textcolor{comment}{// the rotation axis and v1 are almost parallel.}
+00116   \textcolor{keywordflow}{if} (abs(aa.angle()) > 5*test\_precision<Scalar>()
+00117       && (aa.axis() - v1.normalized()).norm() < Scalar(1.99)
+00118       && (aa.axis() + v1.normalized()).norm() < Scalar(1.99))
+00119   \{
+00120     VERIFY\_IS\_NOT\_APPROX(q1 * v1, Quaternionx(AngleAxisx(aa.angle()*2,aa.axis())) * v1);
+00121   \}
+00122 
+00123   \textcolor{comment}{// from two vector creation}
+00124   VERIFY\_IS\_APPROX( v2.normalized(),(q2.setFromTwoVectors(v1, v2)*v1).normalized());
+00125   VERIFY\_IS\_APPROX( v1.normalized(),(q2.setFromTwoVectors(v1, v1)*v1).normalized());
+00126   VERIFY\_IS\_APPROX(-v1.normalized(),(q2.setFromTwoVectors(v1,-v1)*v1).normalized());
+00127   \textcolor{keywordflow}{if} (internal::is\_same<Scalar,double>::value)
+00128   \{
+00129     v3 = (v1.array()+eps).matrix();
+00130     VERIFY\_IS\_APPROX( v3.normalized(),(q2.setFromTwoVectors(v1, v3)*v1).normalized());
+00131     VERIFY\_IS\_APPROX(-v3.normalized(),(q2.setFromTwoVectors(v1,-v3)*v1).normalized());
+00132   \}
+00133 
+00134   \textcolor{comment}{// from two vector creation static function}
+00135   VERIFY\_IS\_APPROX( v2.normalized(),(Quaternionx::FromTwoVectors(v1, v2)*v1).normalized());
+00136   VERIFY\_IS\_APPROX( v1.normalized(),(Quaternionx::FromTwoVectors(v1, v1)*v1).normalized());
+00137   VERIFY\_IS\_APPROX(-v1.normalized(),(Quaternionx::FromTwoVectors(v1,-v1)*v1).normalized());
+00138   \textcolor{keywordflow}{if} (internal::is\_same<Scalar,double>::value)
+00139   \{
+00140     v3 = (v1.array()+eps).matrix();
+00141     VERIFY\_IS\_APPROX( v3.normalized(),(Quaternionx::FromTwoVectors(v1, v3)*v1).normalized());
+00142     VERIFY\_IS\_APPROX(-v3.normalized(),(Quaternionx::FromTwoVectors(v1,-v3)*v1).normalized());
+00143   \}
+00144 
+00145   \textcolor{comment}{// inverse and conjugate}
+00146   VERIFY\_IS\_APPROX(q1 * (q1.inverse() * v1), v1);
+00147   VERIFY\_IS\_APPROX(q1 * (q1.conjugate() * v1), v1);
+00148 
+00149   \textcolor{comment}{// test casting}
+00150   \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<float>} q1f = q1.template cast<float>();
+00151   VERIFY\_IS\_APPROX(q1f.template cast<Scalar>(),q1);
+00152   \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<double>} q1d = q1.template cast<double>();
+00153   VERIFY\_IS\_APPROX(q1d.template cast<Scalar>(),q1);
+00154 
+00155   \textcolor{comment}{// test bug 369 - improper alignment.}
+00156   Quaternionx *q = \textcolor{keyword}{new} Quaternionx;
+00157   \textcolor{keyword}{delete} q;
+00158 
+00159   q1 = Quaternionx::UnitRandom();
+00160   q2 = Quaternionx::UnitRandom();
+00161   check\_slerp(q1,q2);
+00162 
+00163   q1 = AngleAxisx(b, v1.normalized());
+00164   q2 = AngleAxisx(b+Scalar(EIGEN\_PI), v1.normalized());
+00165   check\_slerp(q1,q2);
+00166 
+00167   q1 = AngleAxisx(b,  v1.normalized());
+00168   q2 = AngleAxisx(-b, -v1.normalized());
+00169   check\_slerp(q1,q2);
+00170 
+00171   q1 = Quaternionx::UnitRandom();
+00172   q2.coeffs() = -q1.coeffs();
+00173   check\_slerp(q1,q2);
+00174 \}
+00175 
+00176 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keywordtype}{void} mapQuaternion(\textcolor{keywordtype}{void})\{
+00177   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_map}{Map<Quaternion<Scalar>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Aligned}> MQuaternionA;
+00178   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_map}{Map<const Quaternion<Scalar>}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Aligned}> MCQuaternionA;
+00179   \textcolor{keyword}{typedef} Map<Quaternion<Scalar> > MQuaternionUA;
+00180   \textcolor{keyword}{typedef} Map<const Quaternion<Scalar> > MCQuaternionUA;
+00181   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<Scalar>} Quaternionx;
+00182   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,3,1>} Vector3;
+00183   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_angle_axis}{AngleAxis<Scalar>} AngleAxisx;
+00184   
+00185   Vector3 v0 = Vector3::Random(),
+00186           v1 = Vector3::Random();
+00187   Scalar  a = internal::random<Scalar>(-Scalar(EIGEN\_PI), Scalar(EIGEN\_PI));
+00188 
+00189   EIGEN\_ALIGN\_MAX Scalar array1[4];
+00190   EIGEN\_ALIGN\_MAX Scalar array2[4];
+00191   EIGEN\_ALIGN\_MAX Scalar array3[4+1];
+00192   Scalar* array3unaligned = array3+1;
+00193   
+00194   MQuaternionA    mq1(array1);
+00195   MCQuaternionA   mcq1(array1);
+00196   MQuaternionA    mq2(array2);
+00197   MQuaternionUA   mq3(array3unaligned);
+00198   MCQuaternionUA  mcq3(array3unaligned);
+00199 
+00200 \textcolor{comment}{//  std::cerr << array1 << " " << array2 << " " << array3 << "\(\backslash\)n";}
+00201   mq1 = AngleAxisx(a, v0.normalized());
+00202   mq2 = mq1;
+00203   mq3 = mq1;
+00204 
+00205   Quaternionx q1 = mq1;
+00206   Quaternionx q2 = mq2;
+00207   Quaternionx q3 = mq3;
+00208   Quaternionx q4 = MCQuaternionUA(array3unaligned);
+00209 
+00210   VERIFY\_IS\_APPROX(q1.coeffs(), q2.coeffs());
+00211   VERIFY\_IS\_APPROX(q1.coeffs(), q3.coeffs());
+00212   VERIFY\_IS\_APPROX(q4.coeffs(), q3.coeffs());
+00213 \textcolor{preprocessor}{  #ifdef EIGEN\_VECTORIZE}
+00214   \textcolor{keywordflow}{if}(internal::packet\_traits<Scalar>::Vectorizable)
+00215     VERIFY\_RAISES\_ASSERT((MQuaternionA(array3unaligned)));
+00216 \textcolor{preprocessor}{  #endif}
+00217     
+00218   VERIFY\_IS\_APPROX(mq1 * (mq1.inverse() * v1), v1);
+00219   VERIFY\_IS\_APPROX(mq1 * (mq1.conjugate() * v1), v1);
+00220   
+00221   VERIFY\_IS\_APPROX(mcq1 * (mcq1.inverse() * v1), v1);
+00222   VERIFY\_IS\_APPROX(mcq1 * (mcq1.conjugate() * v1), v1);
+00223   
+00224   VERIFY\_IS\_APPROX(mq3 * (mq3.inverse() * v1), v1);
+00225   VERIFY\_IS\_APPROX(mq3 * (mq3.conjugate() * v1), v1);
+00226   
+00227   VERIFY\_IS\_APPROX(mcq3 * (mcq3.inverse() * v1), v1);
+00228   VERIFY\_IS\_APPROX(mcq3 * (mcq3.conjugate() * v1), v1);
+00229   
+00230   VERIFY\_IS\_APPROX(mq1*mq2, q1*q2);
+00231   VERIFY\_IS\_APPROX(mq3*mq2, q3*q2);
+00232   VERIFY\_IS\_APPROX(mcq1*mq2, q1*q2);
+00233   VERIFY\_IS\_APPROX(mcq3*mq2, q3*q2);
+00234 \}
+00235 
+00236 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keywordtype}{void} quaternionAlignment(\textcolor{keywordtype}{void})\{
+00237   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<Scalar,AutoAlign>} QuaternionA;
+00238   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<Scalar,DontAlign>} QuaternionUA;
+00239 
+00240   EIGEN\_ALIGN\_MAX Scalar array1[4];
+00241   EIGEN\_ALIGN\_MAX Scalar array2[4];
+00242   EIGEN\_ALIGN\_MAX Scalar array3[4+1];
+00243   Scalar* arrayunaligned = array3+1;
+00244 
+00245   QuaternionA *q1 = ::new(reinterpret\_cast<void*>(array1)) QuaternionA;
+00246   QuaternionUA *q2 = ::new(reinterpret\_cast<void*>(array2)) QuaternionUA;
+00247   QuaternionUA *q3 = ::new(reinterpret\_cast<void*>(arrayunaligned)) QuaternionUA;
+00248 
+00249   q1->coeffs().setRandom();
+00250   *q2 = *q1;
+00251   *q3 = *q1;
+00252 
+00253   VERIFY\_IS\_APPROX(q1->coeffs(), q2->coeffs());
+00254   VERIFY\_IS\_APPROX(q1->coeffs(), q3->coeffs());
+00255 \textcolor{preprocessor}{  #if defined(EIGEN\_VECTORIZE) && EIGEN\_MAX\_STATIC\_ALIGN\_BYTES>0}
+00256   \textcolor{keywordflow}{if}(internal::packet\_traits<Scalar>::Vectorizable && internal::packet\_traits<Scalar>::size<=4)
+00257     VERIFY\_RAISES\_ASSERT((::\textcolor{keyword}{new}(reinterpret\_cast<void*>(arrayunaligned)) QuaternionA));
+00258 \textcolor{preprocessor}{  #endif}
+00259 \}
+00260 
+00261 \textcolor{keyword}{template}<\textcolor{keyword}{typename} PlainObjectType> \textcolor{keywordtype}{void} check\_const\_correctness(\textcolor{keyword}{const} PlainObjectType&)
+00262 \{
+00263   \textcolor{comment}{// there's a lot that we can't test here while still having this test compile!}
+00264   \textcolor{comment}{// the only possible approach would be to run a script trying to compile stuff and checking that it
+       fails.}
+00265   \textcolor{comment}{// CMake can help with that.}
+00266 
+00267   \textcolor{comment}{// verify that map-to-const don't have LvalueBit}
+00268   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_transpose}{internal::add\_const<PlainObjectType>::type} 
+      ConstPlainObjectType;
+00269   VERIFY( !(internal::traits<\hyperlink{group___core___module_class_eigen_1_1_map}{Map<ConstPlainObjectType>} >::Flags & 
+      \hyperlink{group__flags_gae2c323957f20dfdc6cb8f44428eaec1a}{LvalueBit}) );
+00270   VERIFY( !(internal::traits<\hyperlink{group___core___module_class_eigen_1_1_map}{Map<ConstPlainObjectType, Aligned>} >::Flags 
+      & \hyperlink{group__flags_gae2c323957f20dfdc6cb8f44428eaec1a}{LvalueBit}) );
+00271   VERIFY( !(\hyperlink{group___core___module_class_eigen_1_1_map}{Map<ConstPlainObjectType>::Flags} & 
+      \hyperlink{group__flags_gae2c323957f20dfdc6cb8f44428eaec1a}{LvalueBit}) );
+00272   VERIFY( !(\hyperlink{group___core___module_class_eigen_1_1_map}{Map<ConstPlainObjectType, Aligned>::Flags} & 
+      \hyperlink{group__flags_gae2c323957f20dfdc6cb8f44428eaec1a}{LvalueBit}) );
+00273 \}
+00274 
+00275 \textcolor{keywordtype}{void} test\_geo\_quaternion()
+00276 \{
+00277   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00278     CALL\_SUBTEST\_1(( quaternion<float,AutoAlign>() ));
+00279     CALL\_SUBTEST\_1( check\_const\_correctness(\hyperlink{group___geometry___module_ga785b13a5a87f9bf55d4eba51ead2dcf0}{Quaternionf}()) );
+00280     CALL\_SUBTEST\_2(( quaternion<double,AutoAlign>() ));
+00281     CALL\_SUBTEST\_2( check\_const\_correctness(\hyperlink{group___geometry___module_ga6e77eb8b6aae0e04be2db88107dbc642}{Quaterniond}()) );
+00282     CALL\_SUBTEST\_3(( quaternion<float,DontAlign>() ));
+00283     CALL\_SUBTEST\_4(( quaternion<double,DontAlign>() ));
+00284     CALL\_SUBTEST\_5(( quaternionAlignment<float>() ));
+00285     CALL\_SUBTEST\_6(( quaternionAlignment<double>() ));
+00286     CALL\_SUBTEST\_1( mapQuaternion<float>() );
+00287     CALL\_SUBTEST\_2( mapQuaternion<double>() );
+00288   \}
+00289 \}
+\end{DoxyCode}

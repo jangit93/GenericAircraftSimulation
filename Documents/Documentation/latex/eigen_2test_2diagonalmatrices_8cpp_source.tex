@@ -1,0 +1,142 @@
+\hypertarget{eigen_2test_2diagonalmatrices_8cpp_source}{}\section{eigen/test/diagonalmatrices.cpp}
+\label{eigen_2test_2diagonalmatrices_8cpp_source}\index{diagonalmatrices.\+cpp@{diagonalmatrices.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2009 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 \textcolor{keyword}{using namespace }\hyperlink{namespacestd}{std};
+00012 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} diagonalmatrices(\textcolor{keyword}{const} MatrixType& m)
+00013 \{
+00014   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00015   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00016   \textcolor{keyword}{enum} \{ Rows = MatrixType::RowsAtCompileTime, Cols = MatrixType::ColsAtCompileTime \};
+00017   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, Rows, 1>} \hyperlink{struct_vector_type}{VectorType};
+00018   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, 1, Cols>} RowVectorType;
+00019   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, Rows, Rows>} SquareMatrixType;
+00020   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar, Dynamic, Dynamic>} DynMatrixType;
+00021   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_diagonal_matrix}{DiagonalMatrix<Scalar, Rows>} LeftDiagonalMatrix;
+00022   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_diagonal_matrix}{DiagonalMatrix<Scalar, Cols>} RightDiagonalMatrix;
+00023   \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, Rows==Dynamic?Dynamic:2*Rows, Cols==Dynamic?Dynamic:2*Cols>}
+       BigMatrix;
+00024   Index rows = m.rows();
+00025   Index cols = m.cols();
+00026 
+00027   MatrixType m1 = MatrixType::Random(rows, cols),
+00028              m2 = MatrixType::Random(rows, cols);
+00029   VectorType v1 = VectorType::Random(rows),
+00030              v2 = VectorType::Random(rows);
+00031   RowVectorType rv1 = RowVectorType::Random(cols),
+00032              rv2 = RowVectorType::Random(cols);
+00033   LeftDiagonalMatrix ldm1(v1), ldm2(v2);
+00034   RightDiagonalMatrix rdm1(rv1), rdm2(rv2);
+00035   
+00036   Scalar s1 = internal::random<Scalar>();
+00037 
+00038   SquareMatrixType sq\_m1 (v1.asDiagonal());
+00039   VERIFY\_IS\_APPROX(sq\_m1, v1.asDiagonal().toDenseMatrix());
+00040   sq\_m1 = v1.asDiagonal();
+00041   VERIFY\_IS\_APPROX(sq\_m1, v1.asDiagonal().toDenseMatrix());
+00042   SquareMatrixType sq\_m2 = v1.asDiagonal();
+00043   VERIFY\_IS\_APPROX(sq\_m1, sq\_m2);
+00044   
+00045   ldm1 = v1.asDiagonal();
+00046   LeftDiagonalMatrix ldm3(v1);
+00047   VERIFY\_IS\_APPROX(ldm1.diagonal(), ldm3.diagonal());
+00048   LeftDiagonalMatrix ldm4 = v1.asDiagonal();
+00049   VERIFY\_IS\_APPROX(ldm1.diagonal(), ldm4.diagonal());
+00050   
+00051   sq\_m1.block(0,0,rows,rows) = ldm1;
+00052   VERIFY\_IS\_APPROX(sq\_m1, ldm1.toDenseMatrix());
+00053   sq\_m1.transpose() = ldm1;
+00054   VERIFY\_IS\_APPROX(sq\_m1, ldm1.toDenseMatrix());
+00055   
+00056   Index i = internal::random<Index>(0, rows-1);
+00057   Index j = internal::random<Index>(0, cols-1);
+00058   
+00059   VERIFY\_IS\_APPROX( ((ldm1 * m1)(i,j))  , ldm1.diagonal()(i) * m1(i,j) );
+00060   VERIFY\_IS\_APPROX( ((ldm1 * (m1+m2))(i,j))  , ldm1.diagonal()(i) * (m1+m2)(i,j) );
+00061   VERIFY\_IS\_APPROX( ((m1 * rdm1)(i,j))  , rdm1.diagonal()(j) * m1(i,j) );
+00062   VERIFY\_IS\_APPROX( ((v1.asDiagonal() * m1)(i,j))  , v1(i) * m1(i,j) );
+00063   VERIFY\_IS\_APPROX( ((m1 * rv1.asDiagonal())(i,j))  , rv1(j) * m1(i,j) );
+00064   VERIFY\_IS\_APPROX( (((v1+v2).asDiagonal() * m1)(i,j))  , (v1+v2)(i) * m1(i,j) );
+00065   VERIFY\_IS\_APPROX( (((v1+v2).asDiagonal() * (m1+m2))(i,j))  , (v1+v2)(i) * (m1+m2)(i,j) );
+00066   VERIFY\_IS\_APPROX( ((m1 * (rv1+rv2).asDiagonal())(i,j))  , (rv1+rv2)(j) * m1(i,j) );
+00067   VERIFY\_IS\_APPROX( (((m1+m2) * (rv1+rv2).asDiagonal())(i,j))  , (rv1+rv2)(j) * (m1+m2)(i,j) );
+00068   
+00069   \textcolor{keywordflow}{if}(rows>1)
+00070   \{
+00071     DynMatrixType tmp = m1.topRows(rows/2), res;
+00072     VERIFY\_IS\_APPROX( (res = m1.topRows(rows/2) * rv1.asDiagonal()), tmp * rv1.asDiagonal() );
+00073     VERIFY\_IS\_APPROX( (res = v1.head(rows/2).asDiagonal()*m1.topRows(rows/2)), v1.head(rows/2).asDiagonal()
+      *tmp );
+00074   \}
+00075 
+00076   BigMatrix big;
+00077   big.setZero(2*rows, 2*cols);
+00078   
+00079   big.block(i,j,rows,cols) = m1;
+00080   big.block(i,j,rows,cols) = v1.asDiagonal() * big.block(i,j,rows,cols);
+00081   
+00082   VERIFY\_IS\_APPROX((big.block(i,j,rows,cols)) , v1.asDiagonal() * m1 );
+00083   
+00084   big.block(i,j,rows,cols) = m1;
+00085   big.block(i,j,rows,cols) = big.block(i,j,rows,cols) * rv1.asDiagonal();
+00086   VERIFY\_IS\_APPROX((big.block(i,j,rows,cols)) , m1 * rv1.asDiagonal() );
+00087   
+00088   
+00089   \textcolor{comment}{// scalar multiple}
+00090   VERIFY\_IS\_APPROX(LeftDiagonalMatrix(ldm1*s1).diagonal(), ldm1.diagonal() * s1);
+00091   VERIFY\_IS\_APPROX(LeftDiagonalMatrix(s1*ldm1).diagonal(), s1 * ldm1.diagonal());
+00092   
+00093   VERIFY\_IS\_APPROX(m1 * (rdm1 * s1), (m1 * rdm1) * s1);
+00094   VERIFY\_IS\_APPROX(m1 * (s1 * rdm1), (m1 * rdm1) * s1);
+00095   
+00096   \textcolor{comment}{// Diagonal to dense}
+00097   sq\_m1.setRandom();
+00098   sq\_m2 = sq\_m1;
+00099   VERIFY\_IS\_APPROX( (sq\_m1 += (s1*v1).asDiagonal()), sq\_m2 += (s1*v1).asDiagonal().toDenseMatrix() );
+00100   VERIFY\_IS\_APPROX( (sq\_m1 -= (s1*v1).asDiagonal()), sq\_m2 -= (s1*v1).asDiagonal().toDenseMatrix() );
+00101   VERIFY\_IS\_APPROX( (sq\_m1 = (s1*v1).asDiagonal()), (s1*v1).asDiagonal().toDenseMatrix() );
+00102 \}
+00103 
+00104 \textcolor{keyword}{template}<\textcolor{keywordtype}{int}>
+00105 \textcolor{keywordtype}{void} bug987()
+00106 \{
+00107   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix3Xd} points = Matrix3Xd::Random(3, 3);
+00108   Vector2d diag = Vector2d::Random();
+00109   Matrix2Xd tmp1 = points.topRows<2>(), res1, res2;
+00110   VERIFY\_IS\_APPROX( res1 = diag.asDiagonal() * points.topRows<2>(), res2 = diag.asDiagonal() * tmp1 );
+00111   Matrix2d tmp2 = points.topLeftCorner<2,2>();
+00112   VERIFY\_IS\_APPROX(( res1 = points.topLeftCorner<2,2>()*diag.asDiagonal()) , res2 = tmp2*diag.asDiagonal() 
+      );
+00113 \}
+00114 
+00115 \textcolor{keywordtype}{void} test\_diagonalmatrices()
+00116 \{
+00117   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00118     CALL\_SUBTEST\_1( diagonalmatrices(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 1, 1>}()) );
+00119     CALL\_SUBTEST\_2( diagonalmatrices(Matrix3f()) );
+00120     CALL\_SUBTEST\_3( diagonalmatrices(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,3,3,RowMajor>}()) );
+00121     CALL\_SUBTEST\_4( diagonalmatrices(Matrix4d()) );
+00122     CALL\_SUBTEST\_5( diagonalmatrices(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,4,4,RowMajor>}()) );
+00123     CALL\_SUBTEST\_6( diagonalmatrices(MatrixXcf(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE), 
+      internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE))) );
+00124     CALL\_SUBTEST\_7( diagonalmatrices(MatrixXi(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE), 
+      internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE))) );
+00125     CALL\_SUBTEST\_8( diagonalmatrices(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,Dynamic,Dynamic,RowMajor>}
+      (internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE), internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE))) );
+00126     CALL\_SUBTEST\_9( diagonalmatrices(MatrixXf(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE), 
+      internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE))) );
+00127   \}
+00128   CALL\_SUBTEST\_10( bug987<0>() );
+00129 \}
+\end{DoxyCode}

@@ -1,0 +1,85 @@
+\hypertarget{eigen_2_eigen_2src_2misc_2_image_8h_source}{}\section{eigen/\+Eigen/src/misc/\+Image.h}
+\label{eigen_2_eigen_2src_2misc_2_image_8h_source}\index{Image.\+h@{Image.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2009 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_MISC\_IMAGE\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_MISC\_IMAGE\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016 
+00020 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DecompositionType>
+\Hypertarget{eigen_2_eigen_2src_2misc_2_image_8h_source_l00021}\hyperlink{struct_eigen_1_1internal_1_1traits_3_01image__retval__base_3_01_decomposition_type_01_4_01_4}{00021} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1traits}{traits}<\hyperlink{struct_eigen_1_1internal_1_1image__retval__base}{image\_retval\_base}<DecompositionType> >
+00022 \{
+00023   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} DecompositionType::MatrixType MatrixType;
+00024   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix}<
+00025     \textcolor{keyword}{typename} MatrixType::Scalar,
+00026     MatrixType::RowsAtCompileTime, \textcolor{comment}{// the image is a subspace of the destination space, whose}
+00027                                    \textcolor{comment}{// dimension is the number of rows of the original matrix}
+00028     \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},                       \textcolor{comment}{// we don't know at compile time the dimension of the image (the
+       rank)}
+00029     MatrixType::Options,
+00030     MatrixType::MaxRowsAtCompileTime, \textcolor{comment}{// the image matrix will consist of columns from the original matrix,}
+00031     MatrixType::MaxColsAtCompileTime  \textcolor{comment}{// so it has the same number of rows and at most as many columns.}
+00032   > \hyperlink{group___core___module_class_eigen_1_1_matrix}{ReturnType};
+00033 \};
+00034 
+00035 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_DecompositionType> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1image__retval__base}{image\_retval\_base}
+00036  : \textcolor{keyword}{public} \hyperlink{group___core___module_class_eigen_1_1_return_by_value}{ReturnByValue}<image\_retval\_base<\_DecompositionType> >
+00037 \{
+00038   \textcolor{keyword}{typedef} \_DecompositionType DecompositionType;
+00039   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} DecompositionType::MatrixType MatrixType;
+00040   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_return_by_value}{ReturnByValue<image\_retval\_base>} Base;
+00041 
+00042   \hyperlink{struct_eigen_1_1internal_1_1image__retval__base}{image\_retval\_base}(\textcolor{keyword}{const} DecompositionType& dec, \textcolor{keyword}{const} MatrixType& originalMatrix)
+00043     : m\_dec(dec), m\_rank(dec.rank()),
+00044       m\_cols(m\_rank == 0 ? 1 : m\_rank),
+00045       m\_originalMatrix(originalMatrix)
+00046   \{\}
+00047 
+00048   \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_dec.rows(); \}
+00049   \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_cols; \}
+00050   \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rank()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_rank; \}
+00051   \textcolor{keyword}{inline} \textcolor{keyword}{const} DecompositionType& dec()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_dec; \}
+00052   \textcolor{keyword}{inline} \textcolor{keyword}{const} MatrixType& originalMatrix()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_originalMatrix; \}
+00053 
+00054   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest> \textcolor{keyword}{inline} \textcolor{keywordtype}{void} evalTo(Dest& dst)\textcolor{keyword}{ const}
+00055 \textcolor{keyword}{  }\{
+00056     \textcolor{keyword}{static\_cast<}\textcolor{keyword}{const }\hyperlink{struct_eigen_1_1internal_1_1image__retval}{image\_retval<DecompositionType>}*\textcolor{keyword}{>}(\textcolor{keyword}{this})->evalTo(dst);
+00057   \}
+00058 
+00059   \textcolor{keyword}{protected}:
+00060     \textcolor{keyword}{const} DecompositionType& m\_dec;
+00061     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_rank, m\_cols;
+00062     \textcolor{keyword}{const} MatrixType& m\_originalMatrix;
+00063 \};
+00064 
+00065 \} \textcolor{comment}{// end namespace internal}
+00066 
+00067 \textcolor{preprocessor}{#define EIGEN\_MAKE\_IMAGE\_HELPERS(DecompositionType) \(\backslash\)}
+00068 \textcolor{preprocessor}{  typedef typename DecompositionType::MatrixType MatrixType; \(\backslash\)}
+00069 \textcolor{preprocessor}{  typedef typename MatrixType::Scalar Scalar; \(\backslash\)}
+00070 \textcolor{preprocessor}{  typedef typename MatrixType::RealScalar RealScalar; \(\backslash\)}
+00071 \textcolor{preprocessor}{  typedef Eigen::internal::image\_retval\_base<DecompositionType> Base; \(\backslash\)}
+00072 \textcolor{preprocessor}{  using Base::dec; \(\backslash\)}
+00073 \textcolor{preprocessor}{  using Base::originalMatrix; \(\backslash\)}
+00074 \textcolor{preprocessor}{  using Base::rank; \(\backslash\)}
+00075 \textcolor{preprocessor}{  using Base::rows; \(\backslash\)}
+00076 \textcolor{preprocessor}{  using Base::cols; \(\backslash\)}
+00077 \textcolor{preprocessor}{  image\_retval(const DecompositionType& dec, const MatrixType& originalMatrix) \(\backslash\)}
+00078 \textcolor{preprocessor}{    : Base(dec, originalMatrix) \{\}}
+00079 
+00080 \} \textcolor{comment}{// end namespace Eigen}
+00081 
+00082 \textcolor{preprocessor}{#endif // EIGEN\_MISC\_IMAGE\_H}
+\end{DoxyCode}

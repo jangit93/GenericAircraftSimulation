@@ -1,0 +1,279 @@
+\hypertarget{eigen_2unsupported_2_eigen_2src_2_f_f_t_2ei__fftw__impl_8h_source}{}\section{eigen/unsupported/\+Eigen/src/\+F\+F\+T/ei\+\_\+fftw\+\_\+impl.h}
+\label{eigen_2unsupported_2_eigen_2src_2_f_f_t_2ei__fftw__impl_8h_source}\index{ei\+\_\+fftw\+\_\+impl.\+h@{ei\+\_\+fftw\+\_\+impl.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra. }
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2009 Mark Borgerding mark a borgerding net}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00011 
+00012 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00013 
+00014   \textcolor{comment}{// FFTW uses non-const arguments}
+00015   \textcolor{comment}{// so we must use ugly const\_cast calls for all the args it uses}
+00016   \textcolor{comment}{//}
+00017   \textcolor{comment}{// This should be safe as long as }
+00018   \textcolor{comment}{// 1. we use FFTW\_ESTIMATE for all our planning}
+00019   \textcolor{comment}{//       see the FFTW docs section 4.3.2 "Planner Flags"}
+00020   \textcolor{comment}{// 2. fftw\_complex is compatible with std::complex}
+00021   \textcolor{comment}{//    This assumes std::complex<T> layout is array of size 2 with real,imag}
+00022   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> 
+00023   \textcolor{keyword}{inline} 
+00024   \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} * fftw\_cast(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}* p)
+00025   \{ 
+00026       \textcolor{keywordflow}{return} \textcolor{keyword}{const\_cast<}\hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}*\textcolor{keyword}{>}( p); 
+00027   \}
+00028 
+00029   \textcolor{keyword}{inline} 
+00030   fftw\_complex * fftw\_cast( \textcolor{keyword}{const} std::complex<double> * p)
+00031   \{
+00032       \textcolor{keywordflow}{return} \textcolor{keyword}{const\_cast<}fftw\_complex*\textcolor{keyword}{>}( \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }fftw\_complex*\textcolor{keyword}{>}(p) ); 
+00033   \}
+00034 
+00035   \textcolor{keyword}{inline} 
+00036   fftwf\_complex * fftw\_cast( \textcolor{keyword}{const} std::complex<float> * p)
+00037   \{ 
+00038       \textcolor{keywordflow}{return} \textcolor{keyword}{const\_cast<}fftwf\_complex*\textcolor{keyword}{>}( \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }fftwf\_complex*\textcolor{keyword}{>}(p) ); 
+00039   \}
+00040 
+00041   \textcolor{keyword}{inline} 
+00042   fftwl\_complex * fftw\_cast( \textcolor{keyword}{const} std::complex<long double> * p)
+00043   \{ 
+00044       \textcolor{keywordflow}{return} \textcolor{keyword}{const\_cast<}fftwl\_complex*\textcolor{keyword}{>}( \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }fftwl\_complex*\textcolor{keyword}{>}(p) ); 
+00045   \}
+00046 
+00047   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_f_f_t_2ei__fftw__impl_8h_source_l00048}\hyperlink{struct_eigen_1_1internal_1_1fftw__plan}{00048}   \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1fftw__plan}{fftw\_plan} \{\};
+00049 
+00050   \textcolor{keyword}{template} <> 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_f_f_t_2ei__fftw__impl_8h_source_l00051}\hyperlink{struct_eigen_1_1internal_1_1fftw__plan_3_01float_01_4}{00051}   \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1fftw__plan}{fftw\_plan}<float>
+00052   \{
+00053       \textcolor{keyword}{typedef} \textcolor{keywordtype}{float} scalar\_type;
+00054       \textcolor{keyword}{typedef} fftwf\_complex complex\_type;
+00055       fftwf\_plan m\_plan;
+00056       \hyperlink{struct_eigen_1_1internal_1_1fftw__plan}{fftw\_plan}() :m\_plan(NULL) \{\}
+00057       ~\hyperlink{struct_eigen_1_1internal_1_1fftw__plan}{fftw\_plan}() \{\textcolor{keywordflow}{if} (m\_plan) fftwf\_destroy\_plan(m\_plan);\}
+00058 
+00059       \textcolor{keyword}{inline}
+00060       \textcolor{keywordtype}{void} fwd(complex\_type * dst,complex\_type * src,\textcolor{keywordtype}{int} nfft) \{
+00061           \textcolor{keywordflow}{if} (m\_plan==NULL) m\_plan = fftwf\_plan\_dft\_1d(nfft,src,dst, FFTW\_FORWARD, FFTW\_ESTIMATE|
+      FFTW\_PRESERVE\_INPUT);
+00062           fftwf\_execute\_dft( m\_plan, src,dst);
+00063       \}
+00064       \textcolor{keyword}{inline}
+00065       \textcolor{keywordtype}{void} inv(complex\_type * dst,complex\_type * src,\textcolor{keywordtype}{int} nfft) \{
+00066           \textcolor{keywordflow}{if} (m\_plan==NULL) m\_plan = fftwf\_plan\_dft\_1d(nfft,src,dst, FFTW\_BACKWARD , FFTW\_ESTIMATE|
+      FFTW\_PRESERVE\_INPUT);
+00067           fftwf\_execute\_dft( m\_plan, src,dst);
+00068       \}
+00069       \textcolor{keyword}{inline}
+00070       \textcolor{keywordtype}{void} fwd(complex\_type * dst,scalar\_type * src,\textcolor{keywordtype}{int} nfft) \{
+00071           \textcolor{keywordflow}{if} (m\_plan==NULL) m\_plan = fftwf\_plan\_dft\_r2c\_1d(nfft,src,dst,FFTW\_ESTIMATE|FFTW\_PRESERVE\_INPUT);
+00072           fftwf\_execute\_dft\_r2c( m\_plan,src,dst);
+00073       \}
+00074       \textcolor{keyword}{inline}
+00075       \textcolor{keywordtype}{void} inv(scalar\_type * dst,complex\_type * src,\textcolor{keywordtype}{int} nfft) \{
+00076           \textcolor{keywordflow}{if} (m\_plan==NULL)
+00077               m\_plan = fftwf\_plan\_dft\_c2r\_1d(nfft,src,dst,FFTW\_ESTIMATE|FFTW\_PRESERVE\_INPUT);
+00078           fftwf\_execute\_dft\_c2r( m\_plan, src,dst);
+00079       \}
+00080 
+00081       \textcolor{keyword}{inline} 
+00082       \textcolor{keywordtype}{void} fwd2( complex\_type * dst,complex\_type * src,\textcolor{keywordtype}{int} n0,\textcolor{keywordtype}{int} n1) \{
+00083           \textcolor{keywordflow}{if} (m\_plan==NULL) m\_plan = fftwf\_plan\_dft\_2d(n0,n1,src,dst,FFTW\_FORWARD,FFTW\_ESTIMATE|
+      FFTW\_PRESERVE\_INPUT);
+00084           fftwf\_execute\_dft( m\_plan, src,dst);
+00085       \}
+00086       \textcolor{keyword}{inline} 
+00087       \textcolor{keywordtype}{void} inv2( complex\_type * dst,complex\_type * src,\textcolor{keywordtype}{int} n0,\textcolor{keywordtype}{int} n1) \{
+00088           \textcolor{keywordflow}{if} (m\_plan==NULL) m\_plan = fftwf\_plan\_dft\_2d(n0,n1,src,dst,FFTW\_BACKWARD,FFTW\_ESTIMATE|
+      FFTW\_PRESERVE\_INPUT);
+00089           fftwf\_execute\_dft( m\_plan, src,dst);
+00090       \}
+00091 
+00092   \};
+00093   \textcolor{keyword}{template} <> 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_f_f_t_2ei__fftw__impl_8h_source_l00094}\hyperlink{struct_eigen_1_1internal_1_1fftw__plan_3_01double_01_4}{00094}   \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1fftw__plan}{fftw\_plan}<double>
+00095   \{
+00096       \textcolor{keyword}{typedef} \textcolor{keywordtype}{double} scalar\_type;
+00097       \textcolor{keyword}{typedef} fftw\_complex complex\_type;
+00098       \hyperlink{struct_eigen_1_1internal_1_1fftw__plan}{::fftw\_plan} m\_plan;
+00099       \hyperlink{struct_eigen_1_1internal_1_1fftw__plan}{fftw\_plan}() :m\_plan(NULL) \{\}
+00100       ~\hyperlink{struct_eigen_1_1internal_1_1fftw__plan}{fftw\_plan}() \{\textcolor{keywordflow}{if} (m\_plan) fftw\_destroy\_plan(m\_plan);\}
+00101 
+00102       \textcolor{keyword}{inline}
+00103       \textcolor{keywordtype}{void} fwd(complex\_type * dst,complex\_type * src,\textcolor{keywordtype}{int} nfft) \{
+00104           \textcolor{keywordflow}{if} (m\_plan==NULL) m\_plan = fftw\_plan\_dft\_1d(nfft,src,dst, FFTW\_FORWARD, FFTW\_ESTIMATE|
+      FFTW\_PRESERVE\_INPUT);
+00105           fftw\_execute\_dft( m\_plan, src,dst);
+00106       \}
+00107       \textcolor{keyword}{inline}
+00108       \textcolor{keywordtype}{void} inv(complex\_type * dst,complex\_type * src,\textcolor{keywordtype}{int} nfft) \{
+00109           \textcolor{keywordflow}{if} (m\_plan==NULL) m\_plan = fftw\_plan\_dft\_1d(nfft,src,dst, FFTW\_BACKWARD , FFTW\_ESTIMATE|
+      FFTW\_PRESERVE\_INPUT);
+00110           fftw\_execute\_dft( m\_plan, src,dst);
+00111       \}
+00112       \textcolor{keyword}{inline}
+00113       \textcolor{keywordtype}{void} fwd(complex\_type * dst,scalar\_type * src,\textcolor{keywordtype}{int} nfft) \{
+00114           \textcolor{keywordflow}{if} (m\_plan==NULL) m\_plan = fftw\_plan\_dft\_r2c\_1d(nfft,src,dst,FFTW\_ESTIMATE|FFTW\_PRESERVE\_INPUT);
+00115           fftw\_execute\_dft\_r2c( m\_plan,src,dst);
+00116       \}
+00117       \textcolor{keyword}{inline}
+00118       \textcolor{keywordtype}{void} inv(scalar\_type * dst,complex\_type * src,\textcolor{keywordtype}{int} nfft) \{
+00119           \textcolor{keywordflow}{if} (m\_plan==NULL)
+00120               m\_plan = fftw\_plan\_dft\_c2r\_1d(nfft,src,dst,FFTW\_ESTIMATE|FFTW\_PRESERVE\_INPUT);
+00121           fftw\_execute\_dft\_c2r( m\_plan, src,dst);
+00122       \}
+00123       \textcolor{keyword}{inline} 
+00124       \textcolor{keywordtype}{void} fwd2( complex\_type * dst,complex\_type * src,\textcolor{keywordtype}{int} n0,\textcolor{keywordtype}{int} n1) \{
+00125           \textcolor{keywordflow}{if} (m\_plan==NULL) m\_plan = fftw\_plan\_dft\_2d(n0,n1,src,dst,FFTW\_FORWARD,FFTW\_ESTIMATE|
+      FFTW\_PRESERVE\_INPUT);
+00126           fftw\_execute\_dft( m\_plan, src,dst);
+00127       \}
+00128       \textcolor{keyword}{inline} 
+00129       \textcolor{keywordtype}{void} inv2( complex\_type * dst,complex\_type * src,\textcolor{keywordtype}{int} n0,\textcolor{keywordtype}{int} n1) \{
+00130           \textcolor{keywordflow}{if} (m\_plan==NULL) m\_plan = fftw\_plan\_dft\_2d(n0,n1,src,dst,FFTW\_BACKWARD,FFTW\_ESTIMATE|
+      FFTW\_PRESERVE\_INPUT);
+00131           fftw\_execute\_dft( m\_plan, src,dst);
+00132       \}
+00133   \};
+00134   \textcolor{keyword}{template} <> 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_f_f_t_2ei__fftw__impl_8h_source_l00135}\hyperlink{struct_eigen_1_1internal_1_1fftw__plan_3_01long_01double_01_4}{00135}   \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1fftw__plan}{fftw\_plan}<long double>
+00136   \{
+00137       \textcolor{keyword}{typedef} \textcolor{keywordtype}{long} \textcolor{keywordtype}{double} scalar\_type;
+00138       \textcolor{keyword}{typedef} fftwl\_complex complex\_type;
+00139       fftwl\_plan m\_plan;
+00140       \hyperlink{struct_eigen_1_1internal_1_1fftw__plan}{fftw\_plan}() :m\_plan(NULL) \{\}
+00141       ~\hyperlink{struct_eigen_1_1internal_1_1fftw__plan}{fftw\_plan}() \{\textcolor{keywordflow}{if} (m\_plan) fftwl\_destroy\_plan(m\_plan);\}
+00142 
+00143       \textcolor{keyword}{inline}
+00144       \textcolor{keywordtype}{void} fwd(complex\_type * dst,complex\_type * src,\textcolor{keywordtype}{int} nfft) \{
+00145           \textcolor{keywordflow}{if} (m\_plan==NULL) m\_plan = fftwl\_plan\_dft\_1d(nfft,src,dst, FFTW\_FORWARD, FFTW\_ESTIMATE|
+      FFTW\_PRESERVE\_INPUT);
+00146           fftwl\_execute\_dft( m\_plan, src,dst);
+00147       \}
+00148       \textcolor{keyword}{inline}
+00149       \textcolor{keywordtype}{void} inv(complex\_type * dst,complex\_type * src,\textcolor{keywordtype}{int} nfft) \{
+00150           \textcolor{keywordflow}{if} (m\_plan==NULL) m\_plan = fftwl\_plan\_dft\_1d(nfft,src,dst, FFTW\_BACKWARD , FFTW\_ESTIMATE|
+      FFTW\_PRESERVE\_INPUT);
+00151           fftwl\_execute\_dft( m\_plan, src,dst);
+00152       \}
+00153       \textcolor{keyword}{inline}
+00154       \textcolor{keywordtype}{void} fwd(complex\_type * dst,scalar\_type * src,\textcolor{keywordtype}{int} nfft) \{
+00155           \textcolor{keywordflow}{if} (m\_plan==NULL) m\_plan = fftwl\_plan\_dft\_r2c\_1d(nfft,src,dst,FFTW\_ESTIMATE|FFTW\_PRESERVE\_INPUT);
+00156           fftwl\_execute\_dft\_r2c( m\_plan,src,dst);
+00157       \}
+00158       \textcolor{keyword}{inline}
+00159       \textcolor{keywordtype}{void} inv(scalar\_type * dst,complex\_type * src,\textcolor{keywordtype}{int} nfft) \{
+00160           \textcolor{keywordflow}{if} (m\_plan==NULL)
+00161               m\_plan = fftwl\_plan\_dft\_c2r\_1d(nfft,src,dst,FFTW\_ESTIMATE|FFTW\_PRESERVE\_INPUT);
+00162           fftwl\_execute\_dft\_c2r( m\_plan, src,dst);
+00163       \}
+00164       \textcolor{keyword}{inline} 
+00165       \textcolor{keywordtype}{void} fwd2( complex\_type * dst,complex\_type * src,\textcolor{keywordtype}{int} n0,\textcolor{keywordtype}{int} n1) \{
+00166           \textcolor{keywordflow}{if} (m\_plan==NULL) m\_plan = fftwl\_plan\_dft\_2d(n0,n1,src,dst,FFTW\_FORWARD,FFTW\_ESTIMATE|
+      FFTW\_PRESERVE\_INPUT);
+00167           fftwl\_execute\_dft( m\_plan, src,dst);
+00168       \}
+00169       \textcolor{keyword}{inline} 
+00170       \textcolor{keywordtype}{void} inv2( complex\_type * dst,complex\_type * src,\textcolor{keywordtype}{int} n0,\textcolor{keywordtype}{int} n1) \{
+00171           \textcolor{keywordflow}{if} (m\_plan==NULL) m\_plan = fftwl\_plan\_dft\_2d(n0,n1,src,dst,FFTW\_BACKWARD,FFTW\_ESTIMATE|
+      FFTW\_PRESERVE\_INPUT);
+00172           fftwl\_execute\_dft( m\_plan, src,dst);
+00173       \}
+00174   \};
+00175 
+00176   \textcolor{keyword}{template} <\textcolor{keyword}{typename} \_Scalar>
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_f_f_t_2ei__fftw__impl_8h_source_l00177}\hyperlink{struct_eigen_1_1internal_1_1fftw__impl}{00177}   \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1fftw__impl}{fftw\_impl}
+00178   \{
+00179       \textcolor{keyword}{typedef} \_Scalar Scalar;
+00180       \textcolor{keyword}{typedef} std::complex<Scalar> Complex;
+00181 
+00182       \textcolor{keyword}{inline}
+00183       \textcolor{keywordtype}{void} clear() 
+00184       \{
+00185         m\_plans.clear();
+00186       \}
+00187 
+00188       \textcolor{comment}{// complex-to-complex forward FFT}
+00189       \textcolor{keyword}{inline}
+00190       \textcolor{keywordtype}{void} fwd( Complex * dst,\textcolor{keyword}{const} Complex *src,\textcolor{keywordtype}{int} nfft)
+00191       \{
+00192         get\_plan(nfft,\textcolor{keyword}{false},dst,src).fwd(fftw\_cast(dst), fftw\_cast(src),nfft );
+00193       \}
+00194 
+00195       \textcolor{comment}{// real-to-complex forward FFT}
+00196       \textcolor{keyword}{inline}
+00197       \textcolor{keywordtype}{void} fwd( Complex * dst,\textcolor{keyword}{const} Scalar * src,\textcolor{keywordtype}{int} nfft) 
+00198       \{
+00199           get\_plan(nfft,\textcolor{keyword}{false},dst,src).fwd(fftw\_cast(dst), fftw\_cast(src) ,nfft);
+00200       \}
+00201 
+00202       \textcolor{comment}{// 2-d complex-to-complex}
+00203       \textcolor{keyword}{inline}
+00204       \textcolor{keywordtype}{void} fwd2(Complex * dst, \textcolor{keyword}{const} Complex * src, \textcolor{keywordtype}{int} n0,\textcolor{keywordtype}{int} n1)
+00205       \{
+00206           get\_plan(n0,n1,\textcolor{keyword}{false},dst,src).fwd2(fftw\_cast(dst), fftw\_cast(src) ,n0,n1);
+00207       \}
+00208 
+00209       \textcolor{comment}{// inverse complex-to-complex}
+00210       \textcolor{keyword}{inline}
+00211       \textcolor{keywordtype}{void} inv(Complex * dst,\textcolor{keyword}{const} Complex  *src,\textcolor{keywordtype}{int} nfft)
+00212       \{
+00213         get\_plan(nfft,\textcolor{keyword}{true},dst,src).inv(fftw\_cast(dst), fftw\_cast(src),nfft );
+00214       \}
+00215 
+00216       \textcolor{comment}{// half-complex to scalar}
+00217       \textcolor{keyword}{inline}
+00218       \textcolor{keywordtype}{void} inv( Scalar * dst,\textcolor{keyword}{const} Complex * src,\textcolor{keywordtype}{int} nfft) 
+00219       \{
+00220         get\_plan(nfft,\textcolor{keyword}{true},dst,src).inv(fftw\_cast(dst), fftw\_cast(src),nfft );
+00221       \}
+00222 
+00223       \textcolor{comment}{// 2-d complex-to-complex}
+00224       \textcolor{keyword}{inline}
+00225       \textcolor{keywordtype}{void} inv2(Complex * dst, \textcolor{keyword}{const} Complex * src, \textcolor{keywordtype}{int} n0,\textcolor{keywordtype}{int} n1)
+00226       \{
+00227         get\_plan(n0,n1,\textcolor{keyword}{true},dst,src).inv2(fftw\_cast(dst), fftw\_cast(src) ,n0,n1);
+00228       \}
+00229 
+00230 
+00231   \textcolor{keyword}{protected}:
+00232       \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1fftw__plan}{fftw\_plan<Scalar>} \hyperlink{struct_eigen_1_1internal_1_1fftw__plan}{PlanData};
+00233 
+00234       \textcolor{keyword}{typedef} std::map<int64\_t,PlanData> PlanMap;
+00235 
+00236       PlanMap m\_plans;
+00237 
+00238       \textcolor{keyword}{inline}
+00239       PlanData & get\_plan(\textcolor{keywordtype}{int} nfft,\textcolor{keywordtype}{bool} inverse,\textcolor{keywordtype}{void} * dst,\textcolor{keyword}{const} \textcolor{keywordtype}{void} * src)
+00240       \{
+00241           \textcolor{keywordtype}{bool} inplace = (dst==src);
+00242           \textcolor{keywordtype}{bool} aligned = ( (\textcolor{keyword}{reinterpret\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(src)&15) | (\textcolor{keyword}{reinterpret\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(dst)&15) ) == 0;
+00243           int64\_t key = ( (nfft<<3 ) | (inverse<<2) | (inplace<<1) | aligned ) << 1;
+00244           \textcolor{keywordflow}{return} m\_plans[key];
+00245       \}
+00246 
+00247       \textcolor{keyword}{inline}
+00248       PlanData & get\_plan(\textcolor{keywordtype}{int} n0,\textcolor{keywordtype}{int} n1,\textcolor{keywordtype}{bool} inverse,\textcolor{keywordtype}{void} * dst,\textcolor{keyword}{const} \textcolor{keywordtype}{void} * src)
+00249       \{
+00250           \textcolor{keywordtype}{bool} inplace = (dst==src);
+00251           \textcolor{keywordtype}{bool} aligned = ( (\textcolor{keyword}{reinterpret\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(src)&15) | (\textcolor{keyword}{reinterpret\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(dst)&15) ) == 0;
+00252           int64\_t key = ( ( (((int64\_t)n0) << 30)|(n1<<3 ) | (inverse<<2) | (inplace<<1) | aligned ) << 1 )
+       + 1;
+00253           \textcolor{keywordflow}{return} m\_plans[key];
+00254       \}
+00255   \};
+00256 
+00257 \} \textcolor{comment}{// end namespace internal}
+00258 
+00259 \} \textcolor{comment}{// end namespace Eigen}
+00260 
+00261 \textcolor{comment}{/* vim: set filetype=cpp et sw=2 ts=2 ai: */}
+\end{DoxyCode}

@@ -1,0 +1,122 @@
+\hypertarget{eigen_2_eigen_2src_2_core_2products_2_general_matrix_matrix___b_l_a_s_8h_source}{}\section{eigen/\+Eigen/src/\+Core/products/\+General\+Matrix\+Matrix\+\_\+\+B\+L\+AS.h}
+\label{eigen_2_eigen_2src_2_core_2products_2_general_matrix_matrix___b_l_a_s_8h_source}\index{General\+Matrix\+Matrix\+\_\+\+B\+L\+A\+S.\+h@{General\+Matrix\+Matrix\+\_\+\+B\+L\+A\+S.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/*}
+00002 \textcolor{comment}{ Copyright (c) 2011, Intel Corporation. All rights reserved.}
+00003 \textcolor{comment}{}
+00004 \textcolor{comment}{ Redistribution and use in source and binary forms, with or without modification,}
+00005 \textcolor{comment}{ are permitted provided that the following conditions are met:}
+00006 \textcolor{comment}{}
+00007 \textcolor{comment}{ * Redistributions of source code must retain the above copyright notice, this}
+00008 \textcolor{comment}{   list of conditions and the following disclaimer.}
+00009 \textcolor{comment}{ * Redistributions in binary form must reproduce the above copyright notice,}
+00010 \textcolor{comment}{   this list of conditions and the following disclaimer in the documentation}
+00011 \textcolor{comment}{   and/or other materials provided with the distribution.}
+00012 \textcolor{comment}{ * Neither the name of Intel Corporation nor the names of its contributors may}
+00013 \textcolor{comment}{   be used to endorse or promote products derived from this software without}
+00014 \textcolor{comment}{   specific prior written permission.}
+00015 \textcolor{comment}{}
+00016 \textcolor{comment}{ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND}
+00017 \textcolor{comment}{ ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED}
+00018 \textcolor{comment}{ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE}
+00019 \textcolor{comment}{ DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR}
+00020 \textcolor{comment}{ ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES}
+00021 \textcolor{comment}{ (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;}
+00022 \textcolor{comment}{ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON}
+00023 \textcolor{comment}{ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}
+00024 \textcolor{comment}{ (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS}
+00025 \textcolor{comment}{ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}
+00026 \textcolor{comment}{}
+00027 \textcolor{comment}{ ********************************************************************************}
+00028 \textcolor{comment}{ *   Content : Eigen bindings to BLAS F77}
+00029 \textcolor{comment}{ *   General matrix-matrix product functionality based on ?GEMM.}
+00030 \textcolor{comment}{ ********************************************************************************}
+00031 \textcolor{comment}{*/}
+00032 
+00033 \textcolor{preprocessor}{#ifndef EIGEN\_GENERAL\_MATRIX\_MATRIX\_BLAS\_H}
+00034 \textcolor{preprocessor}{#define EIGEN\_GENERAL\_MATRIX\_MATRIX\_BLAS\_H}
+00035 
+00036 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00037 
+00038 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00039 
+00040 \textcolor{comment}{/**********************************************************************}
+00041 \textcolor{comment}{* This file implements general matrix-matrix multiplication using BLAS}
+00042 \textcolor{comment}{* gemm function via partial specialization of}
+00043 \textcolor{comment}{* general\_matrix\_matrix\_product::run(..) method for float, double,}
+00044 \textcolor{comment}{* std::complex<float> and std::complex<double> types}
+00045 \textcolor{comment}{**********************************************************************/}
+00046 
+00047 \textcolor{comment}{// gemm specialization}
+00048 
+00049 \textcolor{preprocessor}{#define GEMM\_SPECIALIZATION(EIGTYPE, EIGPREFIX, BLASTYPE, BLASPREFIX) \(\backslash\)}
+00050 \textcolor{preprocessor}{template< \(\backslash\)}
+00051 \textcolor{preprocessor}{  typename Index, \(\backslash\)}
+00052 \textcolor{preprocessor}{  int LhsStorageOrder, bool ConjugateLhs, \(\backslash\)}
+00053 \textcolor{preprocessor}{  int RhsStorageOrder, bool ConjugateRhs> \(\backslash\)}
+00054 \textcolor{preprocessor}{struct
+       general\_matrix\_matrix\_product<Index,EIGTYPE,LhsStorageOrder,ConjugateLhs,EIGTYPE,RhsStorageOrder,ConjugateRhs,ColMajor> \(\backslash\)}
+00055 \textcolor{preprocessor}{\{ \(\backslash\)}
+00056 \textcolor{preprocessor}{typedef gebp\_traits<EIGTYPE,EIGTYPE> Traits; \(\backslash\)}
+00057 \textcolor{preprocessor}{\(\backslash\)}
+00058 \textcolor{preprocessor}{static void run(Index rows, Index cols, Index depth, \(\backslash\)}
+00059 \textcolor{preprocessor}{  const EIGTYPE* \_lhs, Index lhsStride, \(\backslash\)}
+00060 \textcolor{preprocessor}{  const EIGTYPE* \_rhs, Index rhsStride, \(\backslash\)}
+00061 \textcolor{preprocessor}{  EIGTYPE* res, Index resStride, \(\backslash\)}
+00062 \textcolor{preprocessor}{  EIGTYPE alpha, \(\backslash\)}
+00063 \textcolor{preprocessor}{  level3\_blocking<EIGTYPE, EIGTYPE>& }\textcolor{comment}{/*blocking*/}\textcolor{preprocessor}{, \(\backslash\)}
+00064 \textcolor{preprocessor}{  GemmParallelInfo<Index>* }\textcolor{comment}{/*info = 0*/}\textcolor{preprocessor}{) \(\backslash\)}
+00065 \textcolor{preprocessor}{\{ \(\backslash\)}
+00066 \textcolor{preprocessor}{  using std::conj; \(\backslash\)}
+00067 \textcolor{preprocessor}{\(\backslash\)}
+00068 \textcolor{preprocessor}{  char transa, transb; \(\backslash\)}
+00069 \textcolor{preprocessor}{  BlasIndex m, n, k, lda, ldb, ldc; \(\backslash\)}
+00070 \textcolor{preprocessor}{  const EIGTYPE *a, *b; \(\backslash\)}
+00071 \textcolor{preprocessor}{  EIGTYPE beta(1); \(\backslash\)}
+00072 \textcolor{preprocessor}{  MatrixX##EIGPREFIX a\_tmp, b\_tmp; \(\backslash\)}
+00073 \textcolor{preprocessor}{\(\backslash\)}
+00074 \textcolor{preprocessor}{}\textcolor{comment}{/* Set transpose options */}\textcolor{preprocessor}{ \(\backslash\)}
+00075 \textcolor{preprocessor}{  transa = (LhsStorageOrder==RowMajor) ? ((ConjugateLhs) ? 'C' : 'T') : 'N'; \(\backslash\)}
+00076 \textcolor{preprocessor}{  transb = (RhsStorageOrder==RowMajor) ? ((ConjugateRhs) ? 'C' : 'T') : 'N'; \(\backslash\)}
+00077 \textcolor{preprocessor}{\(\backslash\)}
+00078 \textcolor{preprocessor}{}\textcolor{comment}{/* Set m, n, k */}\textcolor{preprocessor}{ \(\backslash\)}
+00079 \textcolor{preprocessor}{  m = convert\_index<BlasIndex>(rows);  \(\backslash\)}
+00080 \textcolor{preprocessor}{  n = convert\_index<BlasIndex>(cols);  \(\backslash\)}
+00081 \textcolor{preprocessor}{  k = convert\_index<BlasIndex>(depth); \(\backslash\)}
+00082 \textcolor{preprocessor}{\(\backslash\)}
+00083 \textcolor{preprocessor}{}\textcolor{comment}{/* Set lda, ldb, ldc */}\textcolor{preprocessor}{ \(\backslash\)}
+00084 \textcolor{preprocessor}{  lda = convert\_index<BlasIndex>(lhsStride); \(\backslash\)}
+00085 \textcolor{preprocessor}{  ldb = convert\_index<BlasIndex>(rhsStride); \(\backslash\)}
+00086 \textcolor{preprocessor}{  ldc = convert\_index<BlasIndex>(resStride); \(\backslash\)}
+00087 \textcolor{preprocessor}{\(\backslash\)}
+00088 \textcolor{preprocessor}{}\textcolor{comment}{/* Set a, b, c */}\textcolor{preprocessor}{ \(\backslash\)}
+00089 \textcolor{preprocessor}{  if ((LhsStorageOrder==ColMajor) && (ConjugateLhs)) \{ \(\backslash\)}
+00090 \textcolor{preprocessor}{    Map<const MatrixX##EIGPREFIX, 0, OuterStride<> > lhs(\_lhs,m,k,OuterStride<>(lhsStride)); \(\backslash\)}
+00091 \textcolor{preprocessor}{    a\_tmp = lhs.conjugate(); \(\backslash\)}
+00092 \textcolor{preprocessor}{    a = a\_tmp.data(); \(\backslash\)}
+00093 \textcolor{preprocessor}{    lda = convert\_index<BlasIndex>(a\_tmp.outerStride()); \(\backslash\)}
+00094 \textcolor{preprocessor}{  \} else a = \_lhs; \(\backslash\)}
+00095 \textcolor{preprocessor}{\(\backslash\)}
+00096 \textcolor{preprocessor}{  if ((RhsStorageOrder==ColMajor) && (ConjugateRhs)) \{ \(\backslash\)}
+00097 \textcolor{preprocessor}{    Map<const MatrixX##EIGPREFIX, 0, OuterStride<> > rhs(\_rhs,k,n,OuterStride<>(rhsStride)); \(\backslash\)}
+00098 \textcolor{preprocessor}{    b\_tmp = rhs.conjugate(); \(\backslash\)}
+00099 \textcolor{preprocessor}{    b = b\_tmp.data(); \(\backslash\)}
+00100 \textcolor{preprocessor}{    ldb = convert\_index<BlasIndex>(b\_tmp.outerStride()); \(\backslash\)}
+00101 \textcolor{preprocessor}{  \} else b = \_rhs; \(\backslash\)}
+00102 \textcolor{preprocessor}{\(\backslash\)}
+00103 \textcolor{preprocessor}{  BLASPREFIX##gemm\_(&transa, &transb, &m, &n, &k, &numext::real\_ref(alpha), (const BLASTYPE*)a, &lda,
+       (const BLASTYPE*)b, &ldb, &numext::real\_ref(beta), (BLASTYPE*)res, &ldc); \(\backslash\)}
+00104 \textcolor{preprocessor}{\}\};}
+00105 
+00106 GEMM\_SPECIALIZATION(\textcolor{keywordtype}{double},   d,  \textcolor{keywordtype}{double}, d)
+00107 GEMM\_SPECIALIZATION(\textcolor{keywordtype}{float},    f,  \textcolor{keywordtype}{float},  s)
+00108 GEMM\_SPECIALIZATION(dcomplex, cd, \textcolor{keywordtype}{double}, z)
+00109 GEMM\_SPECIALIZATION(scomplex, cf, \textcolor{keywordtype}{float},  c)
+00110 
+00111 \} \textcolor{comment}{// end namespase internal}
+00112 
+00113 \} \textcolor{comment}{// end namespace Eigen}
+00114 
+00115 \textcolor{preprocessor}{#endif // EIGEN\_GENERAL\_MATRIX\_MATRIX\_BLAS\_H}
+\end{DoxyCode}

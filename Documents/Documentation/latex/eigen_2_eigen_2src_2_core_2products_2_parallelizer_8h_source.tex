@@ -1,0 +1,165 @@
+\hypertarget{eigen_2_eigen_2src_2_core_2products_2_parallelizer_8h_source}{}\section{eigen/\+Eigen/src/\+Core/products/\+Parallelizer.h}
+\label{eigen_2_eigen_2src_2_core_2products_2_parallelizer_8h_source}\index{Parallelizer.\+h@{Parallelizer.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2010 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_PARALLELIZER\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_PARALLELIZER\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016 
+00018 \textcolor{keyword}{inline} \textcolor{keywordtype}{void} manage\_multi\_threading(Action action, \textcolor{keywordtype}{int}* v)
+00019 \{
+00020   \textcolor{keyword}{static} EIGEN\_UNUSED \textcolor{keywordtype}{int} m\_maxThreads = -1;
+00021 
+00022   \textcolor{keywordflow}{if}(action==SetAction)
+00023   \{
+00024     eigen\_internal\_assert(v!=0);
+00025     m\_maxThreads = *v;
+00026   \}
+00027   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(action==GetAction)
+00028   \{
+00029     eigen\_internal\_assert(v!=0);
+00030 \textcolor{preprocessor}{    #ifdef EIGEN\_HAS\_OPENMP}
+00031     \textcolor{keywordflow}{if}(m\_maxThreads>0)
+00032       *v = m\_maxThreads;
+00033     \textcolor{keywordflow}{else}
+00034       *v = omp\_get\_max\_threads();
+00035 \textcolor{preprocessor}{    #else}
+00036     *v = 1;
+00037 \textcolor{preprocessor}{    #endif}
+00038   \}
+00039   \textcolor{keywordflow}{else}
+00040   \{
+00041     eigen\_internal\_assert(\textcolor{keyword}{false});
+00042   \}
+00043 \}
+00044 
+00045 \}
+00046 
+\Hypertarget{eigen_2_eigen_2src_2_core_2products_2_parallelizer_8h_source_l00048}\hyperlink{namespace_eigen_a820c0e0460934cc17eb6dacbad54a9f5}{00048} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} \hyperlink{namespace_eigen_a820c0e0460934cc17eb6dacbad54a9f5}{initParallel}()
+00049 \{
+00050   \textcolor{keywordtype}{int} nbt;
+00051   internal::manage\_multi\_threading(GetAction, &nbt);
+00052   std::ptrdiff\_t l1, l2, l3;
+00053   internal::manage\_caching\_sizes(GetAction, &l1, &l2, &l3);
+00054 \}
+00055 
+\Hypertarget{eigen_2_eigen_2src_2_core_2products_2_parallelizer_8h_source_l00058}\hyperlink{namespace_eigen_a9aca97d83e21b91a04ec079360dfffeb}{00058} \textcolor{keyword}{inline} \textcolor{keywordtype}{int} \hyperlink{namespace_eigen_a9aca97d83e21b91a04ec079360dfffeb}{nbThreads}()
+00059 \{
+00060   \textcolor{keywordtype}{int} ret;
+00061   internal::manage\_multi\_threading(GetAction, &ret);
+00062   \textcolor{keywordflow}{return} ret;
+00063 \}
+00064 
+\Hypertarget{eigen_2_eigen_2src_2_core_2products_2_parallelizer_8h_source_l00067}\hyperlink{namespace_eigen_af9cd17c2fe18204239cd11c88c120b50}{00067} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} \hyperlink{namespace_eigen_af9cd17c2fe18204239cd11c88c120b50}{setNbThreads}(\textcolor{keywordtype}{int} v)
+00068 \{
+00069   internal::manage\_multi\_threading(SetAction, &v);
+00070 \}
+00071 
+00072 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00073 
+\Hypertarget{eigen_2_eigen_2src_2_core_2products_2_parallelizer_8h_source_l00074}\hyperlink{struct_eigen_1_1internal_1_1_gemm_parallel_info}{00074} \textcolor{keyword}{template}<\textcolor{keyword}{typename} Index> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1_gemm_parallel_info}{GemmParallelInfo}
+00075 \{
+00076   \hyperlink{struct_eigen_1_1internal_1_1_gemm_parallel_info}{GemmParallelInfo}() : sync(-1), users(0), lhs\_start(0), lhs\_length(0) \{\}
+00077 
+00078   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{keyword}{volatile} sync;
+00079   \textcolor{keywordtype}{int} \textcolor{keyword}{volatile} users;
+00080 
+00081   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} lhs\_start;
+00082   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} lhs\_length;
+00083 \};
+00084 
+00085 \textcolor{keyword}{template}<\textcolor{keywordtype}{bool} Condition, \textcolor{keyword}{typename} Functor, \textcolor{keyword}{typename} Index>
+00086 \textcolor{keywordtype}{void} parallelize\_gemm(\textcolor{keyword}{const} \hyperlink{struct_functor}{Functor}& \hyperlink{structfunc}{func}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} depth, \textcolor{keywordtype}{bool} transpose)
+00087 \{
+00088   \textcolor{comment}{// TODO when EIGEN\_USE\_BLAS is defined,}
+00089   \textcolor{comment}{// we should still enable OMP for other scalar types}
+00090 \textcolor{preprocessor}{#if !(defined (EIGEN\_HAS\_OPENMP)) || defined (EIGEN\_USE\_BLAS)}
+00091   \textcolor{comment}{// FIXME the transpose variable is only needed to properly split}
+00092   \textcolor{comment}{// the matrix product when multithreading is enabled. This is a temporary}
+00093   \textcolor{comment}{// fix to support row-major destination matrices. This whole}
+00094   \textcolor{comment}{// parallelizer mechanism has to be redisigned anyway.}
+00095   EIGEN\_UNUSED\_VARIABLE(depth);
+00096   EIGEN\_UNUSED\_VARIABLE(transpose);
+00097   func(0,rows, 0,cols);
+00098 \textcolor{preprocessor}{#else}
+00099 
+00100   \textcolor{comment}{// Dynamically check whether we should enable or disable OpenMP.}
+00101   \textcolor{comment}{// The conditions are:}
+00102   \textcolor{comment}{// - the max number of threads we can create is greater than 1}
+00103   \textcolor{comment}{// - we are not already in a parallel code}
+00104   \textcolor{comment}{// - the sizes are large enough}
+00105 
+00106   \textcolor{comment}{// compute the maximal number of threads from the size of the product:}
+00107   \textcolor{comment}{// This first heuristic takes into account that the product kernel is fully optimized when working with
+       nr columns at once.}
+00108   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = transpose ? rows : cols;
+00109   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} pb\_max\_threads = std::max<Index>(1,size / Functor::Traits::nr);
+00110 
+00111   \textcolor{comment}{// compute the maximal number of threads from the total amount of work:}
+00112   \textcolor{keywordtype}{double} work = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(rows) * static\_cast<double>(cols) *
+00113       \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(depth);
+00114   \textcolor{keywordtype}{double} kMinTaskSize = 50000;  \textcolor{comment}{// FIXME improve this heuristic.}
+00115   pb\_max\_threads = std::max<Index>(1, std::min<Index>(pb\_max\_threads, work / kMinTaskSize));
+00116 
+00117   \textcolor{comment}{// compute the number of threads we are going to use}
+00118   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} threads = std::min<Index>(\hyperlink{namespace_eigen_a9aca97d83e21b91a04ec079360dfffeb}{nbThreads}(), pb\_max\_threads);
+00119 
+00120   \textcolor{comment}{// if multi-threading is explicitely disabled, not useful, or if we already are in a parallel session,}
+00121   \textcolor{comment}{// then abort multi-threading}
+00122   \textcolor{comment}{// FIXME omp\_get\_num\_threads()>1 only works for openmp, what if the user does not use openmp?}
+00123   \textcolor{keywordflow}{if}((!Condition) || (threads==1) || (omp\_get\_num\_threads()>1))
+00124     \textcolor{keywordflow}{return} func(0,rows, 0,cols);
+00125 
+00126   \hyperlink{namespace_eigen_a820c0e0460934cc17eb6dacbad54a9f5}{Eigen::initParallel}();
+00127   func.initParallelSession(threads);
+00128 
+00129   \textcolor{keywordflow}{if}(transpose)
+00130     \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(rows,cols);
+00131 
+00132   ei\_declare\_aligned\_stack\_constructed\_variable(\hyperlink{struct_eigen_1_1internal_1_1_gemm_parallel_info}{GemmParallelInfo<Index>},info,threads
+      ,0);
+00133 
+00134 \textcolor{preprocessor}{  #pragma omp parallel num\_threads(threads)}
+00135   \{
+00136     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i = omp\_get\_thread\_num();
+00137     \textcolor{comment}{// Note that the actual number of threads might be lower than the number of request ones.}
+00138     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} actual\_threads = omp\_get\_num\_threads();
+00139 
+00140     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} blockCols = (cols / actual\_threads) & ~\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(0x3);
+00141     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} blockRows = (rows / actual\_threads);
+00142     blockRows = (blockRows/Functor::Traits::mr)*Functor::Traits::mr;
+00143 
+00144     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} r0 = i*blockRows;
+00145     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} actualBlockRows = (i+1==actual\_threads) ? rows-r0 : blockRows;
+00146 
+00147     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} c0 = i*blockCols;
+00148     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} actualBlockCols = (i+1==actual\_threads) ? cols-c0 : blockCols;
+00149 
+00150     info[i].lhs\_start = r0;
+00151     info[i].lhs\_length = actualBlockRows;
+00152 
+00153     \textcolor{keywordflow}{if}(transpose) func(c0, actualBlockCols, 0, rows, info);
+00154     \textcolor{keywordflow}{else}          func(0, rows, c0, actualBlockCols, info);
+00155   \}
+00156 \textcolor{preprocessor}{#endif}
+00157 \}
+00158 
+00159 \} \textcolor{comment}{// end namespace internal}
+00160 
+00161 \} \textcolor{comment}{// end namespace Eigen}
+00162 
+00163 \textcolor{preprocessor}{#endif // EIGEN\_PARALLELIZER\_H}
+\end{DoxyCode}

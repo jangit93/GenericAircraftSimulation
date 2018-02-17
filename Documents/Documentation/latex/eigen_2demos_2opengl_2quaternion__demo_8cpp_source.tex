@@ -1,0 +1,667 @@
+\hypertarget{eigen_2demos_2opengl_2quaternion__demo_8cpp_source}{}\section{eigen/demos/opengl/quaternion\+\_\+demo.cpp}
+\label{eigen_2demos_2opengl_2quaternion__demo_8cpp_source}\index{quaternion\+\_\+demo.\+cpp@{quaternion\+\_\+demo.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "quaternion\_demo.h"}
+00011 \textcolor{preprocessor}{#include "icosphere.h"}
+00012 
+00013 \textcolor{preprocessor}{#include <Eigen/Geometry>}
+00014 \textcolor{preprocessor}{#include <Eigen/QR>}
+00015 \textcolor{preprocessor}{#include <Eigen/LU>}
+00016 
+00017 \textcolor{preprocessor}{#include <iostream>}
+00018 \textcolor{preprocessor}{#include <QEvent>}
+00019 \textcolor{preprocessor}{#include <QMouseEvent>}
+00020 \textcolor{preprocessor}{#include <QInputDialog>}
+00021 \textcolor{preprocessor}{#include <QGridLayout>}
+00022 \textcolor{preprocessor}{#include <QButtonGroup>}
+00023 \textcolor{preprocessor}{#include <QRadioButton>}
+00024 \textcolor{preprocessor}{#include <QDockWidget>}
+00025 \textcolor{preprocessor}{#include <QPushButton>}
+00026 \textcolor{preprocessor}{#include <QGroupBox>}
+00027 
+00028 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00029 
+\Hypertarget{eigen_2demos_2opengl_2quaternion__demo_8cpp_source_l00030}\hyperlink{class_fancy_spheres}{00030} \textcolor{keyword}{class }\hyperlink{class_fancy_spheres}{FancySpheres}
+00031 \{
+00032   \textcolor{keyword}{public}:
+00033     EIGEN\_MAKE\_ALIGNED\_OPERATOR\_NEW
+00034     
+00035     \hyperlink{class_fancy_spheres}{FancySpheres}()
+00036     \{
+00037       \textcolor{keyword}{const} \textcolor{keywordtype}{int} levels = 4;
+00038       \textcolor{keyword}{const} \textcolor{keywordtype}{float} scale = 0.33;
+00039       \textcolor{keywordtype}{float} radius = 100;
+00040       std::vector<int> parents;
+00041 
+00042       \textcolor{comment}{// leval 0}
+00043       mCenters.push\_back(Vector3f::Zero());
+00044       parents.push\_back(-1);
+00045       mRadii.push\_back(radius);
+00046 
+00047       \textcolor{comment}{// generate level 1 using icosphere vertices}
+00048       radius *= 0.45;
+00049       \{
+00050         \textcolor{keywordtype}{float} dist = mRadii[0]*0.9;
+00051         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<12; ++i)
+00052         \{
+00053           mCenters.push\_back(mIcoSphere.vertices()[i] * dist);
+00054           mRadii.push\_back(radius);
+00055           parents.push\_back(0);
+00056         \}
+00057       \}
+00058 
+00059       \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{float} angles [10] = \{
+00060         0, 0,
+00061         M\_PI, 0.*M\_PI,
+00062         M\_PI, 0.5*M\_PI,
+00063         M\_PI, 1.*M\_PI,
+00064         M\_PI, 1.5*M\_PI
+00065       \};
+00066 
+00067       \textcolor{comment}{// generate other levels}
+00068       \textcolor{keywordtype}{int} start = 1;
+00069       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l=1; l<levels; l++)
+00070       \{
+00071         radius *= scale;
+00072         \textcolor{keywordtype}{int} end = mCenters.size();
+00073         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=start; i<end; ++i)
+00074         \{
+00075           Vector3f c = mCenters[i];
+00076           Vector3f ax0 = (c - mCenters[parents[i]]).normalized();
+00077           Vector3f ax1 = ax0.unitOrthogonal();
+00078           \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternionf} q;
+00079           q.\hyperlink{group___geometry___module_a61ce1b4b1faf6849c9663fd86e9b3a70}{setFromTwoVectors}(Vector3f::UnitZ(), ax0);
+00080           \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Affine3f} t = \hyperlink{group___geometry___module_class_eigen_1_1_translation}{Translation3f}(c) * q * \hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Scaling}(mRadii[i]+radius);
+00081           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<5; ++j)
+00082           \{
+00083             Vector3f newC = c + ( (\hyperlink{group___geometry___module_gadc7128416da41ca99bb8af814b78599e}{AngleAxisf}(angles[j*2+1], ax0)
+00084                                 * \hyperlink{group___geometry___module_gadc7128416da41ca99bb8af814b78599e}{AngleAxisf}(angles[j*2+0] * (l==1 ? 0.35 : 0.5), ax1)) * ax0)
+00085                                 * (mRadii[i] + radius*0.8);
+00086             mCenters.push\_back(newC);
+00087             mRadii.push\_back(radius);
+00088             parents.push\_back(i);
+00089           \}
+00090         \}
+00091         start = end;
+00092       \}
+00093     \}
+00094 
+00095     \textcolor{keywordtype}{void} draw()
+00096     \{
+00097       \textcolor{keywordtype}{int} end = mCenters.size();
+00098       glEnable(GL\_NORMALIZE);
+00099       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<end; ++i)
+00100       \{
+00101         \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Affine3f} t = \hyperlink{group___geometry___module_class_eigen_1_1_translation}{Translation3f}(mCenters[i]) * \hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Scaling}(mRadii[i]);
+00102         gpu.\hyperlink{class_gpu_helper_ac51c8b669a80ca6e4338c87136fb991e}{pushMatrix}(GL\_MODELVIEW);
+00103         gpu.\hyperlink{class_gpu_helper_a3abb45392e7dcf6450fa94bd345d9096}{multMatrix}(t.\hyperlink{group___geometry___module_aec8168000a88a807130d41020af98d47}{matrix}(),GL\_MODELVIEW);
+00104         mIcoSphere.draw(2);
+00105         gpu.\hyperlink{class_gpu_helper_aad0cc23c2eaf0dcc610b180e5c8b195e}{popMatrix}(GL\_MODELVIEW);
+00106       \}
+00107       glDisable(GL\_NORMALIZE);
+00108     \}
+00109   \textcolor{keyword}{protected}:
+00110     std::vector<Vector3f> mCenters;
+00111     std::vector<float> mRadii;
+00112     \hyperlink{class_ico_sphere}{IcoSphere} mIcoSphere;
+00113 \};
+00114 
+00115 
+00116 \textcolor{comment}{// generic linear interpolation method}
+00117 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> \hyperlink{group___sparse_core___module}{T} lerp(\textcolor{keywordtype}{float} t, \textcolor{keyword}{const} \hyperlink{group___sparse_core___module}{T}& a, \textcolor{keyword}{const} \hyperlink{group___sparse_core___module}{T}& b)
+00118 \{
+00119   \textcolor{keywordflow}{return} a*(1-t) + b*t;
+00120 \}
+00121 
+00122 \textcolor{comment}{// quaternion slerp}
+00123 \textcolor{keyword}{template}<> \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternionf} lerp(\textcolor{keywordtype}{float} t, \textcolor{keyword}{const} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternionf}& a, \textcolor{keyword}{const} 
+      \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternionf}& b)
+00124 \{ \textcolor{keywordflow}{return} a.slerp(t,b); \}
+00125 
+00126 \textcolor{comment}{// linear interpolation of a frame using the type OrientationType}
+00127 \textcolor{comment}{// to perform the interpolation of the orientations}
+00128 \textcolor{keyword}{template}<\textcolor{keyword}{typename} OrientationType>
+00129 \textcolor{keyword}{inline} \textcolor{keyword}{static} \hyperlink{class_frame}{Frame} lerpFrame(\textcolor{keywordtype}{float} alpha, \textcolor{keyword}{const} \hyperlink{class_frame}{Frame}& a, \textcolor{keyword}{const} \hyperlink{class_frame}{Frame}& b)
+00130 \{
+00131   \textcolor{keywordflow}{return} \hyperlink{class_frame}{Frame}(lerp(alpha,a.position,b.position),
+00132                \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternionf}(lerp(alpha,OrientationType(a.orientation),OrientationType(b.
+      orientation))));
+00133 \}
+00134 
+\Hypertarget{eigen_2demos_2opengl_2quaternion__demo_8cpp_source_l00135}\hyperlink{class_euler_angles}{00135} \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Scalar> \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_euler_angles}{EulerAngles}
+00136 \{
+00137 \textcolor{keyword}{public}:
+00138   \textcolor{keyword}{enum} \{ Dim = 3 \};
+00139   \textcolor{keyword}{typedef} \_Scalar Scalar;
+00140   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,3,3>} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix3};
+00141   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,3,1>} \hyperlink{group___core___module}{Vector3};
+00142   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<Scalar>} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{QuaternionType};
+00143 
+00144 \textcolor{keyword}{protected}:
+00145 
+00146   Vector3 m\_angles;
+00147 
+00148 \textcolor{keyword}{public}:
+00149 
+00150   \hyperlink{class_eigen_1_1_euler_angles}{EulerAngles}() \{\}
+00151   \textcolor{keyword}{inline} \hyperlink{class_eigen_1_1_euler_angles}{EulerAngles}(Scalar a0, Scalar a1, Scalar a2) : m\_angles(a0, a1, a2) \{\}
+00152   \textcolor{keyword}{inline} \hyperlink{class_eigen_1_1_euler_angles}{EulerAngles}(\textcolor{keyword}{const} QuaternionType& q) \{ *\textcolor{keyword}{this} = q; \}
+00153 
+00154   \textcolor{keyword}{const} Vector3& coeffs()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_angles; \}
+00155   Vector3& coeffs() \{ \textcolor{keywordflow}{return} m\_angles; \}
+00156 
+00157   \hyperlink{class_eigen_1_1_euler_angles}{EulerAngles}& operator=(\textcolor{keyword}{const} QuaternionType& q)
+00158   \{
+00159     Matrix3 m = q.\hyperlink{group___geometry___module_a621c71eec9680bf77342b28a473b6874}{toRotationMatrix}();
+00160     \textcolor{keywordflow}{return} *\textcolor{keyword}{this} = m;
+00161   \}
+00162 
+00163   \hyperlink{class_eigen_1_1_euler_angles}{EulerAngles}& operator=(\textcolor{keyword}{const} Matrix3& m)
+00164   \{
+00165     \textcolor{comment}{// mat =  cy*cz          -cy*sz           sy}
+00166     \textcolor{comment}{//        cz*sx*sy+cx*sz  cx*cz-sx*sy*sz -cy*sx}
+00167     \textcolor{comment}{//       -cx*cz*sy+sx*sz  cz*sx+cx*sy*sz  cx*cy}
+00168     m\_angles.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(1) = std::asin(m.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(0,2));
+00169     m\_angles.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(0) = std::atan2(-m.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(1,2),m.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(2,2));
+00170     m\_angles.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(2) = std::atan2(-m.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(0,1),m.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(0,0));
+00171     \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00172   \}
+00173 
+00174   Matrix3 toRotationMatrix(\textcolor{keywordtype}{void})\textcolor{keyword}{ const}
+00175 \textcolor{keyword}{  }\{
+00176     Vector3 c = m\_angles.array().cos();
+00177     Vector3 s = m\_angles.array().sin();
+00178     Matrix3 res;
+00179     res <<  c.y()*c.z(),                    -c.y()*s.z(),                   s.y(),
+00180             c.z()*s.x()*s.y()+c.x()*s.z(),  c.x()*c.z()-s.x()*s.y()*s.z(),  -c.y()*s.x(),
+00181             -c.x()*c.z()*s.y()+s.x()*s.z(), c.z()*s.x()+c.x()*s.y()*s.z(),  c.x()*c.y();
+00182     \textcolor{keywordflow}{return} res;
+00183   \}
+00184 
+00185   \textcolor{keyword}{operator} QuaternionType() \{ \textcolor{keywordflow}{return} QuaternionType(toRotationMatrix()); \}
+00186 \};
+00187 
+00188 \textcolor{comment}{// Euler angles slerp}
+00189 \textcolor{keyword}{template}<> \hyperlink{class_eigen_1_1_euler_angles}{EulerAngles<float>} lerp(\textcolor{keywordtype}{float} t, \textcolor{keyword}{const} 
+      \hyperlink{class_eigen_1_1_euler_angles}{EulerAngles<float>}& a, \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_euler_angles}{EulerAngles<float>}& b)
+00190 \{
+00191   \hyperlink{class_eigen_1_1_euler_angles}{EulerAngles<float>} res;
+00192   res.coeffs() = lerp(t, a.coeffs(), b.coeffs());
+00193   \textcolor{keywordflow}{return} res;
+00194 \}
+00195 
+00196 
+00197 RenderingWidget::RenderingWidget()
+00198 \{
+00199   mAnimate = \textcolor{keyword}{false};
+00200   mCurrentTrackingMode = TM\_NO\_TRACK;
+00201   mNavMode = NavTurnAround;
+00202   mLerpMode = LerpQuaternion;
+00203   mRotationMode = RotationStable;
+00204   mTrackball.setCamera(&mCamera);
+00205 
+00206   \textcolor{comment}{// required to capture key press events}
+00207   setFocusPolicy(Qt::ClickFocus);
+00208 \}
+00209 
+00210 \textcolor{keywordtype}{void} RenderingWidget::grabFrame(\textcolor{keywordtype}{void})
+00211 \{
+00212     \textcolor{comment}{// ask user for a time}
+00213     \textcolor{keywordtype}{bool} ok = \textcolor{keyword}{false};
+00214     \textcolor{keywordtype}{double} t = 0;
+00215     \textcolor{keywordflow}{if} (!m\_timeline.empty())
+00216       t = (--m\_timeline.end())->first + 1.;
+00217     t = QInputDialog::getDouble(\textcolor{keyword}{this}, \textcolor{stringliteral}{"Eigen's RenderingWidget"}, \textcolor{stringliteral}{"time value: "},
+00218       t, 0, 1e3, 1, &ok);
+00219     \textcolor{keywordflow}{if} (ok)
+00220     \{
+00221       \hyperlink{class_frame}{Frame} aux;
+00222       aux.orientation = mCamera.viewMatrix().linear();
+00223       aux.position = mCamera.viewMatrix().translation();
+00224       m\_timeline[t] = aux;
+00225     \}
+00226 \}
+00227 
+00228 \textcolor{keywordtype}{void} RenderingWidget::drawScene()
+00229 \{
+00230   \textcolor{keyword}{static} \hyperlink{class_fancy_spheres}{FancySpheres} sFancySpheres;
+00231   \textcolor{keywordtype}{float} length = 50;
+00232   gpu.drawVector(Vector3f::Zero(), length*Vector3f::UnitX(), Color(1,0,0,1));
+00233   gpu.drawVector(Vector3f::Zero(), length*Vector3f::UnitY(), Color(0,1,0,1));
+00234   gpu.drawVector(Vector3f::Zero(), length*Vector3f::UnitZ(), Color(0,0,1,1));
+00235 
+00236   \textcolor{comment}{// draw the fractal object}
+00237   \textcolor{keywordtype}{float} sqrt3 = std::sqrt(3.);
+00238   glLightfv(GL\_LIGHT0, GL\_AMBIENT, Vector4f(0.5,0.5,0.5,1).data());
+00239   glLightfv(GL\_LIGHT0, GL\_DIFFUSE, Vector4f(0.5,1,0.5,1).data());
+00240   glLightfv(GL\_LIGHT0, GL\_SPECULAR, Vector4f(1,1,1,1).data());
+00241   glLightfv(GL\_LIGHT0, GL\_POSITION, Vector4f(-sqrt3,-sqrt3,sqrt3,0).data());
+00242 
+00243   glLightfv(GL\_LIGHT1, GL\_AMBIENT, Vector4f(0,0,0,1).data());
+00244   glLightfv(GL\_LIGHT1, GL\_DIFFUSE, Vector4f(1,0.5,0.5,1).data());
+00245   glLightfv(GL\_LIGHT1, GL\_SPECULAR, Vector4f(1,1,1,1).data());
+00246   glLightfv(GL\_LIGHT1, GL\_POSITION, Vector4f(-sqrt3,sqrt3,-sqrt3,0).data());
+00247 
+00248   glMaterialfv(GL\_FRONT\_AND\_BACK, GL\_AMBIENT, Vector4f(0.7, 0.7, 0.7, 1).data());
+00249   glMaterialfv(GL\_FRONT\_AND\_BACK, GL\_DIFFUSE, Vector4f(0.8, 0.75, 0.6, 1).data());
+00250   glMaterialfv(GL\_FRONT\_AND\_BACK, GL\_SPECULAR, Vector4f(1, 1, 1, 1).data());
+00251   glMaterialf(GL\_FRONT\_AND\_BACK, GL\_SHININESS, 64);
+00252 
+00253   glEnable(GL\_LIGHTING);
+00254   glEnable(GL\_LIGHT0);
+00255   glEnable(GL\_LIGHT1);
+00256 
+00257   sFancySpheres.draw();
+00258   glVertexPointer(3, GL\_FLOAT, 0, mVertices[0].data());
+00259   glNormalPointer(GL\_FLOAT, 0, mNormals[0].data());
+00260   glEnableClientState(GL\_VERTEX\_ARRAY);
+00261   glEnableClientState(GL\_NORMAL\_ARRAY);
+00262   glDrawArrays(GL\_TRIANGLES, 0, mVertices.size());
+00263   glDisableClientState(GL\_VERTEX\_ARRAY);
+00264   glDisableClientState(GL\_NORMAL\_ARRAY);
+00265 
+00266   glDisable(GL\_LIGHTING);
+00267 \}
+00268 
+00269 \textcolor{keywordtype}{void} RenderingWidget::animate()
+00270 \{
+00271   m\_alpha += double(m\_timer.interval()) * 1e-3;
+00272 
+00273   TimeLine::const\_iterator hi = m\_timeline.upper\_bound(m\_alpha);
+00274   TimeLine::const\_iterator lo = hi;
+00275   --lo;
+00276 
+00277   \hyperlink{class_frame}{Frame} currentFrame;
+00278 
+00279   \textcolor{keywordflow}{if}(hi==m\_timeline.end())
+00280   \{
+00281     \textcolor{comment}{// end}
+00282     currentFrame = lo->second;
+00283     stopAnimation();
+00284   \}
+00285   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(hi==m\_timeline.begin())
+00286   \{
+00287     \textcolor{comment}{// start}
+00288     currentFrame = hi->second;
+00289   \}
+00290   \textcolor{keywordflow}{else}
+00291   \{
+00292     \textcolor{keywordtype}{float} s = (m\_alpha - lo->first)/(hi->first - lo->first);
+00293     \textcolor{keywordflow}{if} (mLerpMode==LerpEulerAngles)
+00294       currentFrame = ::lerpFrame<EulerAngles<float> >(s, lo->second, hi->second);
+00295     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (mLerpMode==LerpQuaternion)
+00296       currentFrame = ::lerpFrame<Eigen::Quaternionf>(s, lo->second, hi->second);
+00297     \textcolor{keywordflow}{else}
+00298     \{
+00299       std::cerr << \textcolor{stringliteral}{"Invalid rotation interpolation mode (abort)\(\backslash\)n"};
+00300       exit(2);
+00301     \}
+00302     currentFrame.orientation.coeffs().normalize();
+00303   \}
+00304 
+00305   currentFrame.orientation = currentFrame.orientation.\hyperlink{group___geometry___module_a6a1d8af1fe34cb4127f705c0d10ef649}{inverse}();
+00306   currentFrame.position = - (currentFrame.orientation * currentFrame.position);
+00307   mCamera.setFrame(currentFrame);
+00308 
+00309   updateGL();
+00310 \}
+00311 
+00312 \textcolor{keywordtype}{void} RenderingWidget::keyPressEvent(QKeyEvent * e)
+00313 \{
+00314     \textcolor{keywordflow}{switch}(e->key())
+00315     \{
+00316       \textcolor{keywordflow}{case} Qt::Key\_Up:
+00317         mCamera.zoom(2);
+00318         \textcolor{keywordflow}{break};
+00319       \textcolor{keywordflow}{case} Qt::Key\_Down:
+00320         mCamera.zoom(-2);
+00321         \textcolor{keywordflow}{break};
+00322       \textcolor{comment}{// add a frame}
+00323       \textcolor{keywordflow}{case} Qt::Key\_G:
+00324         grabFrame();
+00325         \textcolor{keywordflow}{break};
+00326       \textcolor{comment}{// clear the time line}
+00327       \textcolor{keywordflow}{case} Qt::Key\_C:
+00328         m\_timeline.clear();
+00329         \textcolor{keywordflow}{break};
+00330       \textcolor{comment}{// move the camera to initial pos}
+00331       \textcolor{keywordflow}{case} Qt::Key\_R:
+00332         resetCamera();
+00333         \textcolor{keywordflow}{break};
+00334       \textcolor{comment}{// start/stop the animation}
+00335       \textcolor{keywordflow}{case} Qt::Key\_A:
+00336         \textcolor{keywordflow}{if} (mAnimate)
+00337         \{
+00338           stopAnimation();
+00339         \}
+00340         \textcolor{keywordflow}{else}
+00341         \{
+00342           m\_alpha = 0;
+00343           connect(&m\_timer, SIGNAL(timeout()), \textcolor{keyword}{this}, SLOT(animate()));
+00344           m\_timer.start(1000/30);
+00345           mAnimate = \textcolor{keyword}{true};
+00346         \}
+00347         \textcolor{keywordflow}{break};
+00348       \textcolor{keywordflow}{default}:
+00349         \textcolor{keywordflow}{break};
+00350     \}
+00351 
+00352     updateGL();
+00353 \}
+00354 
+00355 \textcolor{keywordtype}{void} RenderingWidget::stopAnimation()
+00356 \{
+00357   disconnect(&m\_timer, SIGNAL(timeout()), \textcolor{keyword}{this}, SLOT(animate()));
+00358   m\_timer.stop();
+00359   mAnimate = \textcolor{keyword}{false};
+00360   m\_alpha = 0;
+00361 \}
+00362 
+00363 \textcolor{keywordtype}{void} RenderingWidget::mousePressEvent(QMouseEvent* e)
+00364 \{
+00365   mMouseCoords = Vector2i(e->pos().x(), e->pos().y());
+00366   \textcolor{keywordtype}{bool} fly = (mNavMode==NavFly) || (e->modifiers()&Qt::ControlModifier);
+00367   \textcolor{keywordflow}{switch}(e->button())
+00368   \{
+00369     \textcolor{keywordflow}{case} Qt::LeftButton:
+00370       \textcolor{keywordflow}{if}(fly)
+00371       \{
+00372         mCurrentTrackingMode = TM\_LOCAL\_ROTATE;
+00373         mTrackball.start(Trackball::Local);
+00374       \}
+00375       \textcolor{keywordflow}{else}
+00376       \{
+00377         mCurrentTrackingMode = TM\_ROTATE\_AROUND;
+00378         mTrackball.start(Trackball::Around);
+00379       \}
+00380       mTrackball.track(mMouseCoords);
+00381       \textcolor{keywordflow}{break};
+00382     \textcolor{keywordflow}{case} Qt::MidButton:
+00383       \textcolor{keywordflow}{if}(fly)
+00384         mCurrentTrackingMode = TM\_FLY\_Z;
+00385       \textcolor{keywordflow}{else}
+00386         mCurrentTrackingMode = TM\_ZOOM;
+00387       \textcolor{keywordflow}{break};
+00388     \textcolor{keywordflow}{case} Qt::RightButton:
+00389         mCurrentTrackingMode = TM\_FLY\_PAN;
+00390       \textcolor{keywordflow}{break};
+00391     \textcolor{keywordflow}{default}:
+00392       \textcolor{keywordflow}{break};
+00393   \}
+00394 \}
+00395 \textcolor{keywordtype}{void} RenderingWidget::mouseReleaseEvent(QMouseEvent*)
+00396 \{
+00397     mCurrentTrackingMode = TM\_NO\_TRACK;
+00398     updateGL();
+00399 \}
+00400 
+00401 \textcolor{keywordtype}{void} RenderingWidget::mouseMoveEvent(QMouseEvent* e)
+00402 \{
+00403     \textcolor{comment}{// tracking}
+00404     \textcolor{keywordflow}{if}(mCurrentTrackingMode != TM\_NO\_TRACK)
+00405     \{
+00406         \textcolor{keywordtype}{float} dx =   float(e->x() - mMouseCoords.x()) / \textcolor{keywordtype}{float}(mCamera.vpWidth());
+00407         \textcolor{keywordtype}{float} dy = - float(e->y() - mMouseCoords.y()) / \textcolor{keywordtype}{float}(mCamera.vpHeight());
+00408 
+00409         \textcolor{comment}{// speedup the transformations}
+00410         \textcolor{keywordflow}{if}(e->modifiers() & Qt::ShiftModifier)
+00411         \{
+00412           dx *= 10.;
+00413           dy *= 10.;
+00414         \}
+00415 
+00416         \textcolor{keywordflow}{switch}(mCurrentTrackingMode)
+00417         \{
+00418           \textcolor{keywordflow}{case} TM\_ROTATE\_AROUND:
+00419           \textcolor{keywordflow}{case} TM\_LOCAL\_ROTATE:
+00420             \textcolor{keywordflow}{if} (mRotationMode==RotationStable)
+00421             \{
+00422               \textcolor{comment}{// use the stable trackball implementation mapping}
+00423               \textcolor{comment}{// the 2D coordinates to 3D points on a sphere.}
+00424               mTrackball.track(Vector2i(e->pos().x(), e->pos().y()));
+00425             \}
+00426             \textcolor{keywordflow}{else}
+00427             \{
+00428               \textcolor{comment}{// standard approach mapping the x and y displacements as rotations}
+00429               \textcolor{comment}{// around the camera's X and Y axes.}
+00430               \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternionf} q = \hyperlink{group___geometry___module_gadc7128416da41ca99bb8af814b78599e}{AngleAxisf}( dx*M\_PI, Vector3f::UnitY())
+00431                             * \hyperlink{group___geometry___module_gadc7128416da41ca99bb8af814b78599e}{AngleAxisf}(-dy*M\_PI, Vector3f::UnitX());
+00432               \textcolor{keywordflow}{if} (mCurrentTrackingMode==TM\_LOCAL\_ROTATE)
+00433                 mCamera.localRotate(q);
+00434               \textcolor{keywordflow}{else}
+00435                 mCamera.rotateAroundTarget(q);
+00436             \}
+00437             \textcolor{keywordflow}{break};
+00438           \textcolor{keywordflow}{case} TM\_ZOOM :
+00439             mCamera.zoom(dy*100);
+00440             \textcolor{keywordflow}{break};
+00441           \textcolor{keywordflow}{case} TM\_FLY\_Z :
+00442             mCamera.localTranslate(Vector3f(0, 0, -dy*200));
+00443             \textcolor{keywordflow}{break};
+00444           \textcolor{keywordflow}{case} TM\_FLY\_PAN :
+00445             mCamera.localTranslate(Vector3f(dx*200, dy*200, 0));
+00446             \textcolor{keywordflow}{break};
+00447           \textcolor{keywordflow}{default}:
+00448             \textcolor{keywordflow}{break};
+00449         \}
+00450 
+00451         updateGL();
+00452     \}
+00453 
+00454     mMouseCoords = Vector2i(e->pos().x(), e->pos().y());
+00455 \}
+00456 
+00457 \textcolor{keywordtype}{void} RenderingWidget::paintGL()
+00458 \{
+00459   glEnable(GL\_DEPTH\_TEST);
+00460   glDisable(GL\_CULL\_FACE);
+00461   glPolygonMode(GL\_FRONT\_AND\_BACK,GL\_FILL);
+00462   glDisable(GL\_COLOR\_MATERIAL);
+00463   glDisable(GL\_BLEND);
+00464   glDisable(GL\_ALPHA\_TEST);
+00465   glDisable(GL\_TEXTURE\_1D);
+00466   glDisable(GL\_TEXTURE\_2D);
+00467   glDisable(GL\_TEXTURE\_3D);
+00468 
+00469   \textcolor{comment}{// Clear buffers}
+00470   glClear(GL\_COLOR\_BUFFER\_BIT | GL\_DEPTH\_BUFFER\_BIT);
+00471 
+00472   mCamera.activateGL();
+00473 
+00474   drawScene();
+00475 \}
+00476 
+00477 \textcolor{keywordtype}{void} RenderingWidget::initializeGL()
+00478 \{
+00479   glClearColor(1., 1., 1., 0.);
+00480   glLightModeli(GL\_LIGHT\_MODEL\_LOCAL\_VIEWER, 1);
+00481   glDepthMask(GL\_TRUE);
+00482   glColorMask(GL\_TRUE, GL\_TRUE, GL\_TRUE, GL\_TRUE);
+00483 
+00484   mCamera.setPosition(Vector3f(-200, -200, -200));
+00485   mCamera.setTarget(Vector3f(0, 0, 0));
+00486   mInitFrame.orientation = mCamera.orientation().inverse();
+00487   mInitFrame.position = mCamera.viewMatrix().translation();
+00488 \}
+00489 
+00490 \textcolor{keywordtype}{void} RenderingWidget::resizeGL(\textcolor{keywordtype}{int} width, \textcolor{keywordtype}{int} height)
+00491 \{
+00492     mCamera.setViewport(width,height);
+00493 \}
+00494 
+00495 \textcolor{keywordtype}{void} RenderingWidget::setNavMode(\textcolor{keywordtype}{int} m)
+00496 \{
+00497   mNavMode = NavMode(m);
+00498 \}
+00499 
+00500 \textcolor{keywordtype}{void} RenderingWidget::setLerpMode(\textcolor{keywordtype}{int} m)
+00501 \{
+00502   mLerpMode = LerpMode(m);
+00503 \}
+00504 
+00505 \textcolor{keywordtype}{void} RenderingWidget::setRotationMode(\textcolor{keywordtype}{int} m)
+00506 \{
+00507   mRotationMode = RotationMode(m);
+00508 \}
+00509 
+00510 \textcolor{keywordtype}{void} RenderingWidget::resetCamera()
+00511 \{
+00512   \textcolor{keywordflow}{if} (mAnimate)
+00513     stopAnimation();
+00514   m\_timeline.clear();
+00515   \hyperlink{class_frame}{Frame} aux0 = mCamera.frame();
+00516   aux0.orientation = aux0.orientation.\hyperlink{group___geometry___module_a6a1d8af1fe34cb4127f705c0d10ef649}{inverse}();
+00517   aux0.position = mCamera.viewMatrix().translation();
+00518   m\_timeline[0] = aux0;
+00519 
+00520   Vector3f currentTarget = mCamera.target();
+00521   mCamera.setTarget(Vector3f::Zero());
+00522 
+00523   \textcolor{comment}{// compute the rotation duration to move the camera to the target}
+00524   \hyperlink{class_frame}{Frame} aux1 = mCamera.frame();
+00525   aux1.orientation = aux1.orientation.\hyperlink{group___geometry___module_a6a1d8af1fe34cb4127f705c0d10ef649}{inverse}();
+00526   aux1.position = mCamera.viewMatrix().translation();
+00527   \textcolor{keywordtype}{float} duration = aux0.orientation.angularDistance(aux1.orientation) * 0.9;
+00528   \textcolor{keywordflow}{if} (duration<0.1) duration = 0.1;
+00529 
+00530   \textcolor{comment}{// put the camera at that time step:}
+00531   aux1 = aux0.lerp(duration/2,mInitFrame);
+00532   \textcolor{comment}{// and make it look at the target again}
+00533   aux1.orientation = aux1.orientation.\hyperlink{group___geometry___module_a6a1d8af1fe34cb4127f705c0d10ef649}{inverse}();
+00534   aux1.position = - (aux1.orientation * aux1.position);
+00535   mCamera.setFrame(aux1);
+00536   mCamera.setTarget(Vector3f::Zero());
+00537 
+00538   \textcolor{comment}{// add this camera keyframe}
+00539   aux1.orientation = aux1.orientation.\hyperlink{group___geometry___module_a6a1d8af1fe34cb4127f705c0d10ef649}{inverse}();
+00540   aux1.position = mCamera.viewMatrix().translation();
+00541   m\_timeline[duration] = aux1;
+00542 
+00543   m\_timeline[2] = mInitFrame;
+00544   m\_alpha = 0;
+00545   animate();
+00546   connect(&m\_timer, SIGNAL(timeout()), \textcolor{keyword}{this}, SLOT(animate()));
+00547   m\_timer.start(1000/30);
+00548   mAnimate = \textcolor{keyword}{true};
+00549 \}
+00550 
+00551 QWidget* RenderingWidget::createNavigationControlWidget()
+00552 \{
+00553   QWidget* panel = \textcolor{keyword}{new} QWidget();
+00554   QVBoxLayout* layout = \textcolor{keyword}{new} QVBoxLayout();
+00555 
+00556   \{
+00557     QPushButton* but = \textcolor{keyword}{new} QPushButton(\textcolor{stringliteral}{"reset"});
+00558     but->setToolTip(\textcolor{stringliteral}{"move the camera to initial position (with animation)"});
+00559     layout->addWidget(but);
+00560     connect(but, SIGNAL(clicked()), \textcolor{keyword}{this}, SLOT(resetCamera()));
+00561   \}
+00562   \{
+00563     \textcolor{comment}{// navigation mode}
+00564     QGroupBox* box = \textcolor{keyword}{new} QGroupBox(\textcolor{stringliteral}{"navigation mode"});
+00565     QVBoxLayout* boxLayout = \textcolor{keyword}{new} QVBoxLayout;
+00566     QButtonGroup* group = \textcolor{keyword}{new} QButtonGroup(panel);
+00567     QRadioButton* but;
+00568     but = \textcolor{keyword}{new} QRadioButton(\textcolor{stringliteral}{"turn around"});
+00569     but->setToolTip(\textcolor{stringliteral}{"look around an object"});
+00570     group->addButton(but, NavTurnAround);
+00571     boxLayout->addWidget(but);
+00572     but = \textcolor{keyword}{new} QRadioButton(\textcolor{stringliteral}{"fly"});
+00573     but->setToolTip(\textcolor{stringliteral}{"free navigation like a spaceship\(\backslash\)n(this mode can also be enabled pressing the \(\backslash\)"shift
+      \(\backslash\)" key)"});
+00574     group->addButton(but, NavFly);
+00575     boxLayout->addWidget(but);
+00576     group->button(mNavMode)->setChecked(\textcolor{keyword}{true});
+00577     connect(group, SIGNAL(buttonClicked(\textcolor{keywordtype}{int})), \textcolor{keyword}{this}, SLOT(setNavMode(\textcolor{keywordtype}{int})));
+00578     box->setLayout(boxLayout);
+00579     layout->addWidget(box);
+00580   \}
+00581   \{
+00582     \textcolor{comment}{// track ball, rotation mode}
+00583     QGroupBox* box = \textcolor{keyword}{new} QGroupBox(\textcolor{stringliteral}{"rotation mode"});
+00584     QVBoxLayout* boxLayout = \textcolor{keyword}{new} QVBoxLayout;
+00585     QButtonGroup* group = \textcolor{keyword}{new} QButtonGroup(panel);
+00586     QRadioButton* but;
+00587     but = \textcolor{keyword}{new} QRadioButton(\textcolor{stringliteral}{"stable trackball"});
+00588     group->addButton(but, RotationStable);
+00589     boxLayout->addWidget(but);
+00590     but->setToolTip(\textcolor{stringliteral}{"use the stable trackball implementation mapping\(\backslash\)nthe 2D coordinates to 3D points on a
+       sphere"});
+00591     but = \textcolor{keyword}{new} QRadioButton(\textcolor{stringliteral}{"standard rotation"});
+00592     group->addButton(but, RotationStandard);
+00593     boxLayout->addWidget(but);
+00594     but->setToolTip(\textcolor{stringliteral}{"standard approach mapping the x and y displacements\(\backslash\)nas rotations around the camera's
+       X and Y axes"});
+00595     group->button(mRotationMode)->setChecked(\textcolor{keyword}{true});
+00596     connect(group, SIGNAL(buttonClicked(\textcolor{keywordtype}{int})), \textcolor{keyword}{this}, SLOT(setRotationMode(\textcolor{keywordtype}{int})));
+00597     box->setLayout(boxLayout);
+00598     layout->addWidget(box);
+00599   \}
+00600   \{
+00601     \textcolor{comment}{// interpolation mode}
+00602     QGroupBox* box = \textcolor{keyword}{new} QGroupBox(\textcolor{stringliteral}{"spherical interpolation"});
+00603     QVBoxLayout* boxLayout = \textcolor{keyword}{new} QVBoxLayout;
+00604     QButtonGroup* group = \textcolor{keyword}{new} QButtonGroup(panel);
+00605     QRadioButton* but;
+00606     but = \textcolor{keyword}{new} QRadioButton(\textcolor{stringliteral}{"quaternion slerp"});
+00607     group->addButton(but, LerpQuaternion);
+00608     boxLayout->addWidget(but);
+00609     but->setToolTip(\textcolor{stringliteral}{"use quaternion spherical interpolation\(\backslash\)nto interpolate orientations"});
+00610     but = \textcolor{keyword}{new} QRadioButton(\textcolor{stringliteral}{"euler angles"});
+00611     group->addButton(but, LerpEulerAngles);
+00612     boxLayout->addWidget(but);
+00613     but->setToolTip(\textcolor{stringliteral}{"use Euler angles to interpolate orientations"});
+00614     group->button(mNavMode)->setChecked(\textcolor{keyword}{true});
+00615     connect(group, SIGNAL(buttonClicked(\textcolor{keywordtype}{int})), \textcolor{keyword}{this}, SLOT(setLerpMode(\textcolor{keywordtype}{int})));
+00616     box->setLayout(boxLayout);
+00617     layout->addWidget(box);
+00618   \}
+00619   layout->addItem(\textcolor{keyword}{new} QSpacerItem(0,0,QSizePolicy::Minimum,QSizePolicy::Expanding));
+00620   panel->setLayout(layout);
+00621   \textcolor{keywordflow}{return} panel;
+00622 \}
+00623 
+00624 QuaternionDemo::QuaternionDemo()
+00625 \{
+00626   mRenderingWidget = \textcolor{keyword}{new} \hyperlink{class_rendering_widget}{RenderingWidget}();
+00627   setCentralWidget(mRenderingWidget);
+00628 
+00629   QDockWidget* panel = \textcolor{keyword}{new} QDockWidget(\textcolor{stringliteral}{"navigation"}, \textcolor{keyword}{this});
+00630   panel->setAllowedAreas((QFlags<Qt::DockWidgetArea>)(Qt::RightDockWidgetArea | Qt::LeftDockWidgetArea));
+00631   addDockWidget(Qt::RightDockWidgetArea, panel);
+00632   panel->setWidget(mRenderingWidget->createNavigationControlWidget());
+00633 \}
+00634 
+00635 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])
+00636 \{
+00637   std::cout << \textcolor{stringliteral}{"Navigation:\(\backslash\)n"};
+00638   std::cout << \textcolor{stringliteral}{"  left button:           rotate around the target\(\backslash\)n"};
+00639   std::cout << \textcolor{stringliteral}{"  middle button:         zoom\(\backslash\)n"};
+00640   std::cout << \textcolor{stringliteral}{"  left button + ctrl     quake rotate (rotate around camera position)\(\backslash\)n"};
+00641   std::cout << \textcolor{stringliteral}{"  middle button + ctrl   walk (progress along camera's z direction)\(\backslash\)n"};
+00642   std::cout << \textcolor{stringliteral}{"  left button:           pan (translate in the XY camera's plane)\(\backslash\)n\(\backslash\)n"};
+00643   std::cout << \textcolor{stringliteral}{"R : move the camera to initial position\(\backslash\)n"};
+00644   std::cout << \textcolor{stringliteral}{"A : start/stop animation\(\backslash\)n"};
+00645   std::cout << \textcolor{stringliteral}{"C : clear the animation\(\backslash\)n"};
+00646   std::cout << \textcolor{stringliteral}{"G : add a key frame\(\backslash\)n"};
+00647 
+00648   QApplication app(argc, argv);
+00649   \hyperlink{class_quaternion_demo}{QuaternionDemo} demo;
+00650   demo.resize(600,500);
+00651   demo.show();
+00652   \textcolor{keywordflow}{return} app.exec();
+00653 \}
+00654 
+00655 \textcolor{preprocessor}{#include "quaternion\_demo.moc"}
+00656 
+\end{DoxyCode}

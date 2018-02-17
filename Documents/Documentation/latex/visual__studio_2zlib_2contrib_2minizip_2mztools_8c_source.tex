@@ -1,0 +1,296 @@
+\hypertarget{visual__studio_2zlib_2contrib_2minizip_2mztools_8c_source}{}\section{visual\+\_\+studio/zlib/contrib/minizip/mztools.c}
+\label{visual__studio_2zlib_2contrib_2minizip_2mztools_8c_source}\index{mztools.\+c@{mztools.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/*}
+00002 \textcolor{comment}{  Additional tools for Minizip}
+00003 \textcolor{comment}{  Code: Xavier Roche '2004}
+00004 \textcolor{comment}{  License: Same as ZLIB (www.gzip.org)}
+00005 \textcolor{comment}{*/}
+00006 
+00007 \textcolor{comment}{/* Code */}
+00008 \textcolor{preprocessor}{#include <stdio.h>}
+00009 \textcolor{preprocessor}{#include <stdlib.h>}
+00010 \textcolor{preprocessor}{#include <string.h>}
+00011 \textcolor{preprocessor}{#include "zlib.h"}
+00012 \textcolor{preprocessor}{#include "unzip.h"}
+00013 
+00014 \textcolor{preprocessor}{#define READ\_8(adr)  ((unsigned char)*(adr))}
+00015 \textcolor{preprocessor}{#define READ\_16(adr) ( READ\_8(adr) | (READ\_8(adr+1) << 8) )}
+00016 \textcolor{preprocessor}{#define READ\_32(adr) ( READ\_16(adr) | (READ\_16((adr)+2) << 16) )}
+00017 
+00018 \textcolor{preprocessor}{#define WRITE\_8(buff, n) do \{ \(\backslash\)}
+00019 \textcolor{preprocessor}{  *((unsigned char*)(buff)) = (unsigned char) ((n) & 0xff); \(\backslash\)}
+00020 \textcolor{preprocessor}{\} while(0)}
+00021 \textcolor{preprocessor}{#define WRITE\_16(buff, n) do \{ \(\backslash\)}
+00022 \textcolor{preprocessor}{  WRITE\_8((unsigned char*)(buff), n); \(\backslash\)}
+00023 \textcolor{preprocessor}{  WRITE\_8(((unsigned char*)(buff)) + 1, (n) >> 8); \(\backslash\)}
+00024 \textcolor{preprocessor}{\} while(0)}
+00025 \textcolor{preprocessor}{#define WRITE\_32(buff, n) do \{ \(\backslash\)}
+00026 \textcolor{preprocessor}{  WRITE\_16((unsigned char*)(buff), (n) & 0xffff); \(\backslash\)}
+00027 \textcolor{preprocessor}{  WRITE\_16((unsigned char*)(buff) + 2, (n) >> 16); \(\backslash\)}
+00028 \textcolor{preprocessor}{\} while(0)}
+00029 
+00030 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzRepair(\hyperlink{structfile}{file}, fileOut, fileOutTmp, nRecovered, bytesRecovered)
+00031 \textcolor{keyword}{const} \textcolor{keywordtype}{char}* \hyperlink{structfile}{file};
+00032 \textcolor{keyword}{const} \textcolor{keywordtype}{char}* fileOut;
+00033 \textcolor{keyword}{const} \textcolor{keywordtype}{char}* fileOutTmp;
+00034 uLong* nRecovered;
+00035 uLong* bytesRecovered;
+00036 \{
+00037   \textcolor{keywordtype}{int} err = Z\_OK;
+00038   FILE* fpZip = fopen(\hyperlink{structfile}{file}, \textcolor{stringliteral}{"rb"});
+00039   FILE* fpOut = fopen(fileOut, \textcolor{stringliteral}{"wb"});
+00040   FILE* fpOutCD = fopen(fileOutTmp, \textcolor{stringliteral}{"wb"});
+00041   \textcolor{keywordflow}{if} (fpZip != NULL &&  fpOut != NULL) \{
+00042     \textcolor{keywordtype}{int} entries = 0;
+00043     uLong totalBytes = 0;
+00044     \textcolor{keywordtype}{char} header[30];
+00045     \textcolor{keywordtype}{char} filename[1024];
+00046     \textcolor{keywordtype}{char} extra[1024];
+00047     \textcolor{keywordtype}{int} offset = 0;
+00048     \textcolor{keywordtype}{int} offsetCD = 0;
+00049     \textcolor{keywordflow}{while} ( fread(header, 1, 30, fpZip) == 30 ) \{
+00050       \textcolor{keywordtype}{int} currentOffset = offset;
+00051 
+00052       \textcolor{comment}{/* File entry */}
+00053       \textcolor{keywordflow}{if} (READ\_32(header) == 0x04034b50) \{
+00054         \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} version = READ\_16(header + 4);
+00055         \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} gpflag = READ\_16(header + 6);
+00056         \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} method = READ\_16(header + 8);
+00057         \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} filetime = READ\_16(header + 10);
+00058         \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} filedate = READ\_16(header + 12);
+00059         \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} crc = READ\_32(header + 14); \textcolor{comment}{/* crc */}
+00060         \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} cpsize = READ\_32(header + 18); \textcolor{comment}{/* compressed size */}
+00061         \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} uncpsize = READ\_32(header + 22); \textcolor{comment}{/* uncompressed sz */}
+00062         \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} fnsize = READ\_16(header + 26); \textcolor{comment}{/* file name length */}
+00063         \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} extsize = READ\_16(header + 28); \textcolor{comment}{/* extra field length */}
+00064         filename[0] = extra[0] = \textcolor{charliteral}{'\(\backslash\)0'};
+00065 
+00066         \textcolor{comment}{/* Header */}
+00067         \textcolor{keywordflow}{if} (fwrite(header, 1, 30, fpOut) == 30) \{
+00068           offset += 30;
+00069         \} \textcolor{keywordflow}{else} \{
+00070           err = Z\_ERRNO;
+00071           \textcolor{keywordflow}{break};
+00072         \}
+00073 
+00074         \textcolor{comment}{/* Filename */}
+00075         \textcolor{keywordflow}{if} (fnsize > 0) \{
+00076           \textcolor{keywordflow}{if} (fnsize < \textcolor{keyword}{sizeof}(filename)) \{
+00077             \textcolor{keywordflow}{if} (fread(filename, 1, fnsize, fpZip) == fnsize) \{
+00078                 \textcolor{keywordflow}{if} (fwrite(filename, 1, fnsize, fpOut) == fnsize) \{
+00079                 offset += fnsize;
+00080               \} \textcolor{keywordflow}{else} \{
+00081                 err = Z\_ERRNO;
+00082                 \textcolor{keywordflow}{break};
+00083               \}
+00084             \} \textcolor{keywordflow}{else} \{
+00085               err = Z\_ERRNO;
+00086               \textcolor{keywordflow}{break};
+00087             \}
+00088           \} \textcolor{keywordflow}{else} \{
+00089             err = Z\_ERRNO;
+00090             \textcolor{keywordflow}{break};
+00091           \}
+00092         \} \textcolor{keywordflow}{else} \{
+00093           err = Z\_STREAM\_ERROR;
+00094           \textcolor{keywordflow}{break};
+00095         \}
+00096 
+00097         \textcolor{comment}{/* Extra field */}
+00098         \textcolor{keywordflow}{if} (extsize > 0) \{
+00099           \textcolor{keywordflow}{if} (extsize < \textcolor{keyword}{sizeof}(extra)) \{
+00100             \textcolor{keywordflow}{if} (fread(extra, 1, extsize, fpZip) == extsize) \{
+00101               \textcolor{keywordflow}{if} (fwrite(extra, 1, extsize, fpOut) == extsize) \{
+00102                 offset += extsize;
+00103                 \} \textcolor{keywordflow}{else} \{
+00104                 err = Z\_ERRNO;
+00105                 \textcolor{keywordflow}{break};
+00106               \}
+00107             \} \textcolor{keywordflow}{else} \{
+00108               err = Z\_ERRNO;
+00109               \textcolor{keywordflow}{break};
+00110             \}
+00111           \} \textcolor{keywordflow}{else} \{
+00112             err = Z\_ERRNO;
+00113             \textcolor{keywordflow}{break};
+00114           \}
+00115         \}
+00116 
+00117         \textcolor{comment}{/* Data */}
+00118         \{
+00119           \textcolor{keywordtype}{int} dataSize = cpsize;
+00120           \textcolor{keywordflow}{if} (dataSize == 0) \{
+00121             dataSize = uncpsize;
+00122           \}
+00123           \textcolor{keywordflow}{if} (dataSize > 0) \{
+00124             \textcolor{keywordtype}{char}* data = malloc(dataSize);
+00125             \textcolor{keywordflow}{if} (data != NULL) \{
+00126               \textcolor{keywordflow}{if} ((\textcolor{keywordtype}{int})fread(data, 1, dataSize, fpZip) == dataSize) \{
+00127                 \textcolor{keywordflow}{if} ((\textcolor{keywordtype}{int})fwrite(data, 1, dataSize, fpOut) == dataSize) \{
+00128                   offset += dataSize;
+00129                   totalBytes += dataSize;
+00130                 \} \textcolor{keywordflow}{else} \{
+00131                   err = Z\_ERRNO;
+00132                 \}
+00133               \} \textcolor{keywordflow}{else} \{
+00134                 err = Z\_ERRNO;
+00135               \}
+00136               free(data);
+00137               \textcolor{keywordflow}{if} (err != Z\_OK) \{
+00138                 \textcolor{keywordflow}{break};
+00139               \}
+00140             \} \textcolor{keywordflow}{else} \{
+00141               err = Z\_MEM\_ERROR;
+00142               \textcolor{keywordflow}{break};
+00143             \}
+00144           \}
+00145         \}
+00146 
+00147         \textcolor{comment}{/* Central directory entry */}
+00148         \{
+00149           \textcolor{keywordtype}{char} header[46];
+00150           \textcolor{keywordtype}{char}* comment = \textcolor{stringliteral}{""};
+00151           \textcolor{keywordtype}{int} comsize = (int) strlen(comment);
+00152           WRITE\_32(header, 0x02014b50);
+00153           WRITE\_16(header + 4, version);
+00154           WRITE\_16(header + 6, version);
+00155           WRITE\_16(header + 8, gpflag);
+00156           WRITE\_16(header + 10, method);
+00157           WRITE\_16(header + 12, filetime);
+00158           WRITE\_16(header + 14, filedate);
+00159           WRITE\_32(header + 16, crc);
+00160           WRITE\_32(header + 20, cpsize);
+00161           WRITE\_32(header + 24, uncpsize);
+00162           WRITE\_16(header + 28, fnsize);
+00163           WRITE\_16(header + 30, extsize);
+00164           WRITE\_16(header + 32, comsize);
+00165           WRITE\_16(header + 34, 0);     \textcolor{comment}{/* disk # */}
+00166           WRITE\_16(header + 36, 0);     \textcolor{comment}{/* int attrb */}
+00167           WRITE\_32(header + 38, 0);     \textcolor{comment}{/* ext attrb */}
+00168           WRITE\_32(header + 42, currentOffset);
+00169           \textcolor{comment}{/* Header */}
+00170           \textcolor{keywordflow}{if} (fwrite(header, 1, 46, fpOutCD) == 46) \{
+00171             offsetCD += 46;
+00172 
+00173             \textcolor{comment}{/* Filename */}
+00174             \textcolor{keywordflow}{if} (fnsize > 0) \{
+00175               \textcolor{keywordflow}{if} (fwrite(filename, 1, fnsize, fpOutCD) == fnsize) \{
+00176                 offsetCD += fnsize;
+00177               \} \textcolor{keywordflow}{else} \{
+00178                 err = Z\_ERRNO;
+00179                 \textcolor{keywordflow}{break};
+00180               \}
+00181             \} \textcolor{keywordflow}{else} \{
+00182               err = Z\_STREAM\_ERROR;
+00183               \textcolor{keywordflow}{break};
+00184             \}
+00185 
+00186             \textcolor{comment}{/* Extra field */}
+00187             \textcolor{keywordflow}{if} (extsize > 0) \{
+00188               \textcolor{keywordflow}{if} (fwrite(extra, 1, extsize, fpOutCD) == extsize) \{
+00189                 offsetCD += extsize;
+00190               \} \textcolor{keywordflow}{else} \{
+00191                 err = Z\_ERRNO;
+00192                 \textcolor{keywordflow}{break};
+00193               \}
+00194             \}
+00195 
+00196             \textcolor{comment}{/* Comment field */}
+00197             \textcolor{keywordflow}{if} (comsize > 0) \{
+00198               \textcolor{keywordflow}{if} ((\textcolor{keywordtype}{int})fwrite(comment, 1, comsize, fpOutCD) == comsize) \{
+00199                 offsetCD += comsize;
+00200               \} \textcolor{keywordflow}{else} \{
+00201                 err = Z\_ERRNO;
+00202                 \textcolor{keywordflow}{break};
+00203               \}
+00204             \}
+00205 
+00206 
+00207           \} \textcolor{keywordflow}{else} \{
+00208             err = Z\_ERRNO;
+00209             \textcolor{keywordflow}{break};
+00210           \}
+00211         \}
+00212 
+00213         \textcolor{comment}{/* Success */}
+00214         entries++;
+00215 
+00216       \} \textcolor{keywordflow}{else} \{
+00217         \textcolor{keywordflow}{break};
+00218       \}
+00219     \}
+00220 
+00221     \textcolor{comment}{/* Final central directory  */}
+00222     \{
+00223       \textcolor{keywordtype}{int} entriesZip = entries;
+00224       \textcolor{keywordtype}{char} header[22];
+00225       \textcolor{keywordtype}{char}* comment = \textcolor{stringliteral}{""}; \textcolor{comment}{// "ZIP File recovered by zlib/minizip/mztools";}
+00226       \textcolor{keywordtype}{int} comsize = (int) strlen(comment);
+00227       \textcolor{keywordflow}{if} (entriesZip > 0xffff) \{
+00228         entriesZip = 0xffff;
+00229       \}
+00230       WRITE\_32(header, 0x06054b50);
+00231       WRITE\_16(header + 4, 0);    \textcolor{comment}{/* disk # */}
+00232       WRITE\_16(header + 6, 0);    \textcolor{comment}{/* disk # */}
+00233       WRITE\_16(header + 8, entriesZip);   \textcolor{comment}{/* hack */}
+00234       WRITE\_16(header + 10, entriesZip);  \textcolor{comment}{/* hack */}
+00235       WRITE\_32(header + 12, offsetCD);    \textcolor{comment}{/* size of CD */}
+00236       WRITE\_32(header + 16, offset);      \textcolor{comment}{/* offset to CD */}
+00237       WRITE\_16(header + 20, comsize);     \textcolor{comment}{/* comment */}
+00238 
+00239       \textcolor{comment}{/* Header */}
+00240       \textcolor{keywordflow}{if} (fwrite(header, 1, 22, fpOutCD) == 22) \{
+00241 
+00242         \textcolor{comment}{/* Comment field */}
+00243         \textcolor{keywordflow}{if} (comsize > 0) \{
+00244           \textcolor{keywordflow}{if} ((\textcolor{keywordtype}{int})fwrite(comment, 1, comsize, fpOutCD) != comsize) \{
+00245             err = Z\_ERRNO;
+00246           \}
+00247         \}
+00248 
+00249       \} \textcolor{keywordflow}{else} \{
+00250         err = Z\_ERRNO;
+00251       \}
+00252     \}
+00253 
+00254     \textcolor{comment}{/* Final merge (file + central directory) */}
+00255     fclose(fpOutCD);
+00256     \textcolor{keywordflow}{if} (err == Z\_OK) \{
+00257       fpOutCD = fopen(fileOutTmp, \textcolor{stringliteral}{"rb"});
+00258       \textcolor{keywordflow}{if} (fpOutCD != NULL) \{
+00259         \textcolor{keywordtype}{int} nRead;
+00260         \textcolor{keywordtype}{char} buffer[8192];
+00261         \textcolor{keywordflow}{while} ( (nRead = (\textcolor{keywordtype}{int})fread(buffer, 1, \textcolor{keyword}{sizeof}(buffer), fpOutCD)) > 0) \{
+00262           \textcolor{keywordflow}{if} ((\textcolor{keywordtype}{int})fwrite(buffer, 1, nRead, fpOut) != nRead) \{
+00263             err = Z\_ERRNO;
+00264             \textcolor{keywordflow}{break};
+00265           \}
+00266         \}
+00267         fclose(fpOutCD);
+00268       \}
+00269     \}
+00270 
+00271     \textcolor{comment}{/* Close */}
+00272     fclose(fpZip);
+00273     fclose(fpOut);
+00274 
+00275     \textcolor{comment}{/* Wipe temporary file */}
+00276     (void)\textcolor{keyword}{remove}(fileOutTmp);
+00277 
+00278     \textcolor{comment}{/* Number of recovered entries */}
+00279     \textcolor{keywordflow}{if} (err == Z\_OK) \{
+00280       \textcolor{keywordflow}{if} (nRecovered != NULL) \{
+00281         *nRecovered = entries;
+00282       \}
+00283       \textcolor{keywordflow}{if} (bytesRecovered != NULL) \{
+00284         *bytesRecovered = totalBytes;
+00285       \}
+00286     \}
+00287   \} \textcolor{keywordflow}{else} \{
+00288     err = Z\_STREAM\_ERROR;
+00289   \}
+00290   \textcolor{keywordflow}{return} err;
+00291 \}
+\end{DoxyCode}

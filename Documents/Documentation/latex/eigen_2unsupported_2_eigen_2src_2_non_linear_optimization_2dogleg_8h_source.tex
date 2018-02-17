@@ -1,0 +1,113 @@
+\hypertarget{eigen_2unsupported_2_eigen_2src_2_non_linear_optimization_2dogleg_8h_source}{}\section{eigen/unsupported/\+Eigen/src/\+Non\+Linear\+Optimization/dogleg.h}
+\label{eigen_2unsupported_2_eigen_2src_2_non_linear_optimization_2dogleg_8h_source}\index{dogleg.\+h@{dogleg.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00002 
+00003 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00004 
+00005 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar>
+00006 \textcolor{keywordtype}{void} dogleg(
+00007         \textcolor{keyword}{const} \hyperlink{group___core___module}{Matrix< Scalar, Dynamic, Dynamic >}  &qrfac,
+00008         \textcolor{keyword}{const} \hyperlink{group___core___module}{Matrix< Scalar, Dynamic, 1 >}  &diag,
+00009         \textcolor{keyword}{const} \hyperlink{group___core___module}{Matrix< Scalar, Dynamic, 1 >}  &qtb,
+00010         Scalar delta,
+00011         \hyperlink{group___core___module}{Matrix< Scalar, Dynamic, 1 >}  &x)
+00012 \{
+00013     \textcolor{keyword}{using} std::abs;
+00014     \textcolor{keyword}{using} std::sqrt;
+00015     
+00016     \textcolor{keyword}{typedef} DenseIndex \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00017 
+00018     \textcolor{comment}{/* Local variables */}
+00019     Index i, j;
+00020     Scalar sum, temp, alpha, bnorm;
+00021     Scalar gnorm, qnorm;
+00022     Scalar sgnorm;
+00023 
+00024     \textcolor{comment}{/* Function Body */}
+00025     \textcolor{keyword}{const} Scalar epsmch = NumTraits<Scalar>::epsilon();
+00026     \textcolor{keyword}{const} Index n = qrfac.cols();
+00027     eigen\_assert(n==qtb.size());
+00028     eigen\_assert(n==x.size());
+00029     eigen\_assert(n==diag.size());
+00030     \hyperlink{group___core___module}{Matrix< Scalar, Dynamic, 1 >}  wa1(n), wa2(n);
+00031 
+00032     \textcolor{comment}{/* first, calculate the gauss-newton direction. */}
+00033     \textcolor{keywordflow}{for} (j = n-1; j >=0; --j) \{
+00034         temp = qrfac(j,j);
+00035         \textcolor{keywordflow}{if} (temp == 0.) \{
+00036             temp = epsmch * qrfac.col(j).head(j+1).maxCoeff();
+00037             \textcolor{keywordflow}{if} (temp == 0.)
+00038                 temp = epsmch;
+00039         \}
+00040         \textcolor{keywordflow}{if} (j==n-1)
+00041             x[j] = qtb[j] / temp;
+00042         \textcolor{keywordflow}{else}
+00043             x[j] = (qtb[j] - qrfac.row(j).tail(n-j-1).dot(x.tail(n-j-1))) / temp;
+00044     \}
+00045 
+00046     \textcolor{comment}{/* test whether the gauss-newton direction is acceptable. */}
+00047     qnorm = diag.cwiseProduct(x).stableNorm();
+00048     \textcolor{keywordflow}{if} (qnorm <= delta)
+00049         \textcolor{keywordflow}{return};
+00050 
+00051     \textcolor{comment}{// TODO : this path is not tested by Eigen unit tests}
+00052 
+00053     \textcolor{comment}{/* the gauss-newton direction is not acceptable. */}
+00054     \textcolor{comment}{/* next, calculate the scaled gradient direction. */}
+00055 
+00056     wa1.fill(0.);
+00057     \textcolor{keywordflow}{for} (j = 0; j < n; ++j) \{
+00058         wa1.tail(n-j) += qrfac.row(j).tail(n-j) * qtb[j];
+00059         wa1[j] /= diag[j];
+00060     \}
+00061 
+00062     \textcolor{comment}{/* calculate the norm of the scaled gradient and test for */}
+00063     \textcolor{comment}{/* the special case in which the scaled gradient is zero. */}
+00064     gnorm = wa1.stableNorm();
+00065     sgnorm = 0.;
+00066     alpha = delta / qnorm;
+00067     \textcolor{keywordflow}{if} (gnorm == 0.)
+00068         \textcolor{keywordflow}{goto} algo\_end;
+00069 
+00070     \textcolor{comment}{/* calculate the point along the scaled gradient */}
+00071     \textcolor{comment}{/* at which the quadratic is minimized. */}
+00072     wa1.array() /= (diag*gnorm).array();
+00073     \textcolor{comment}{// TODO : once unit tests cover this part,:}
+00074     \textcolor{comment}{// wa2 = qrfac.template triangularView<Upper>() * wa1;}
+00075     \textcolor{keywordflow}{for} (j = 0; j < n; ++j) \{
+00076         sum = 0.;
+00077         \textcolor{keywordflow}{for} (i = j; i < n; ++i) \{
+00078             sum += qrfac(j,i) * wa1[i];
+00079         \}
+00080         wa2[j] = sum;
+00081     \}
+00082     temp = wa2.stableNorm();
+00083     sgnorm = gnorm / temp / temp;
+00084 
+00085     \textcolor{comment}{/* test whether the scaled gradient direction is acceptable. */}
+00086     alpha = 0.;
+00087     \textcolor{keywordflow}{if} (sgnorm >= delta)
+00088         \textcolor{keywordflow}{goto} algo\_end;
+00089 
+00090     \textcolor{comment}{/* the scaled gradient direction is not acceptable. */}
+00091     \textcolor{comment}{/* finally, calculate the point along the dogleg */}
+00092     \textcolor{comment}{/* at which the quadratic is minimized. */}
+00093     bnorm = qtb.stableNorm();
+00094     temp = bnorm / gnorm * (bnorm / qnorm) * (sgnorm / delta);
+00095     temp = temp - delta / qnorm * numext::abs2(sgnorm / delta) + sqrt(numext::abs2(temp - delta / qnorm) + 
+      (1.-numext::abs2(delta / qnorm)) * (1.-numext::abs2(sgnorm / delta)));
+00096     alpha = delta / qnorm * (1. - numext::abs2(sgnorm / delta)) / temp;
+00097 algo\_end:
+00098 
+00099     \textcolor{comment}{/* form appropriate convex combination of the gauss-newton */}
+00100     \textcolor{comment}{/* direction and the scaled gradient direction. */}
+00101     temp = (1.-alpha) * (std::min)(sgnorm,delta);
+00102     x = temp * wa1 + alpha * x;
+00103 \}
+00104 
+00105 \} \textcolor{comment}{// end namespace internal}
+00106 
+00107 \} \textcolor{comment}{// end namespace Eigen}
+\end{DoxyCode}

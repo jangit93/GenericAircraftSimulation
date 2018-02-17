@@ -1,0 +1,127 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_sparse_l_u_2_sparse_l_u__prune_l_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Sparse\+L\+U/\+Sparse\+L\+U\+\_\+pruneL.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_sparse_l_u_2_sparse_l_u__prune_l_8h_source}\index{Sparse\+L\+U\+\_\+prune\+L.\+h@{Sparse\+L\+U\+\_\+prune\+L.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2012 Désiré Nuentsa-Wakam <desire.nuentsa\_wakam@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{comment}{/* }
+00011 \textcolor{comment}{ }
+00012 \textcolor{comment}{ * NOTE: This file is the modified version of [s,d,c,z]pruneL.c file in SuperLU }
+00013 \textcolor{comment}{ }
+00014 \textcolor{comment}{ * -- SuperLU routine (version 2.0) --}
+00015 \textcolor{comment}{ * Univ. of California Berkeley, Xerox Palo Alto Research Center,}
+00016 \textcolor{comment}{ * and Lawrence Berkeley National Lab.}
+00017 \textcolor{comment}{ * November 15, 1997}
+00018 \textcolor{comment}{ *}
+00019 \textcolor{comment}{ * Copyright (c) 1994 by Xerox Corporation.  All rights reserved.}
+00020 \textcolor{comment}{ *}
+00021 \textcolor{comment}{ * THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY}
+00022 \textcolor{comment}{ * EXPRESSED OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.}
+00023 \textcolor{comment}{ *}
+00024 \textcolor{comment}{ * Permission is hereby granted to use or copy this program for any}
+00025 \textcolor{comment}{ * purpose, provided the above notices are retained on all copies.}
+00026 \textcolor{comment}{ * Permission to modify the code and to distribute modified code is}
+00027 \textcolor{comment}{ * granted, provided the above notices are retained, and a notice that}
+00028 \textcolor{comment}{ * the code was modified is included with the above copyright notice.}
+00029 \textcolor{comment}{ */}
+00030 \textcolor{preprocessor}{#ifndef SPARSELU\_PRUNEL\_H}
+00031 \textcolor{preprocessor}{#define SPARSELU\_PRUNEL\_H}
+00032 
+00033 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00034 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00035 
+00052 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} StorageIndex>
+00053 \textcolor{keywordtype}{void} \hyperlink{group___sparse_l_u___module_a350464d1c83182fbd7da8a5a74bdfde8}{SparseLUImpl<Scalar,StorageIndex>::pruneL}(\textcolor{keyword}{const} 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} jcol, \textcolor{keyword}{const} IndexVector& perm\_r, \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} pivrow, \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} nseg,
+00054                                                \textcolor{keyword}{const} IndexVector& segrep, BlockIndexVector repfnz, 
+      IndexVector& xprune, GlobalLU\_t& glu)
+00055 \{
+00056   \textcolor{comment}{// For each supernode-rep irep in U(*,j]}
+00057   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} jsupno = glu.supno(jcol); 
+00058   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i,irep,irep1; 
+00059   \textcolor{keywordtype}{bool} movnum, do\_prune = \textcolor{keyword}{false}; 
+00060   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} kmin = 0, kmax = 0, minloc, maxloc,krow; 
+00061   \textcolor{keywordflow}{for} (i = 0; i < nseg; i++)
+00062   \{
+00063     irep = segrep(i); 
+00064     irep1 = irep + 1; 
+00065     do\_prune = \textcolor{keyword}{false}; 
+00066     
+00067     \textcolor{comment}{// Don't prune with a zero U-segment }
+00068     \textcolor{keywordflow}{if} (repfnz(irep) == emptyIdxLU) \textcolor{keywordflow}{continue}; 
+00069     
+00070     \textcolor{comment}{// If a snode overlaps with the next panel, then the U-segment}
+00071     \textcolor{comment}{// is fragmented into two parts -- irep and irep1. We should let }
+00072     \textcolor{comment}{// pruning occur at the rep-column in irep1s snode. }
+00073     \textcolor{keywordflow}{if} (glu.supno(irep) == glu.supno(irep1) ) \textcolor{keywordflow}{continue}; \textcolor{comment}{// don't prune }
+00074     
+00075     \textcolor{comment}{// If it has not been pruned & it has a nonz in row L(pivrow,i)}
+00076     \textcolor{keywordflow}{if} (glu.supno(irep) != jsupno )
+00077     \{
+00078       \textcolor{keywordflow}{if} ( xprune (irep) >= glu.xlsub(irep1) )
+00079       \{
+00080         kmin = glu.xlsub(irep);
+00081         kmax = glu.xlsub(irep1) - 1; 
+00082         \textcolor{keywordflow}{for} (krow = kmin; krow <= kmax; krow++)
+00083         \{
+00084           \textcolor{keywordflow}{if} (glu.lsub(krow) == pivrow) 
+00085           \{
+00086             do\_prune = \textcolor{keyword}{true}; 
+00087             \textcolor{keywordflow}{break}; 
+00088           \}
+00089         \}
+00090       \}
+00091       
+00092       \textcolor{keywordflow}{if} (do\_prune) 
+00093       \{
+00094         \textcolor{comment}{// do a quicksort-type partition}
+00095         \textcolor{comment}{// movnum=true means that the num values have to be exchanged}
+00096         movnum = \textcolor{keyword}{false}; 
+00097         \textcolor{keywordflow}{if} (irep == glu.xsup(glu.supno(irep)) ) \textcolor{comment}{// Snode of size 1 }
+00098           movnum = \textcolor{keyword}{true}; 
+00099         
+00100         \textcolor{keywordflow}{while} (kmin <= kmax)
+00101         \{
+00102           \textcolor{keywordflow}{if} (perm\_r(glu.lsub(kmax)) == emptyIdxLU)
+00103             kmax--; 
+00104           \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( perm\_r(glu.lsub(kmin)) != emptyIdxLU)
+00105             kmin++;
+00106           \textcolor{keywordflow}{else} 
+00107           \{
+00108             \textcolor{comment}{// kmin below pivrow (not yet pivoted), and kmax}
+00109             \textcolor{comment}{// above pivrow: interchange the two suscripts}
+00110             \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(glu.lsub(kmin), glu.lsub(kmax)); 
+00111             
+00112             \textcolor{comment}{// If the supernode has only one column, then we }
+00113             \textcolor{comment}{// only keep one set of subscripts. For any subscript}
+00114             \textcolor{comment}{// intercnahge performed, similar interchange must be }
+00115             \textcolor{comment}{// done on the numerical values. }
+00116             \textcolor{keywordflow}{if} (movnum) 
+00117             \{
+00118               minloc = glu.xlusup(irep) + ( kmin - glu.xlsub(irep) ); 
+00119               maxloc = glu.xlusup(irep) + ( kmax - glu.xlsub(irep) ); 
+00120               \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(glu.lusup(minloc), glu.lusup(maxloc)); 
+00121             \}
+00122             kmin++;
+00123             kmax--;
+00124           \}
+00125         \} \textcolor{comment}{// end while }
+00126         
+00127         xprune(irep) = StorageIndex(kmin);  \textcolor{comment}{//Pruning }
+00128       \} \textcolor{comment}{// end if do\_prune }
+00129     \} \textcolor{comment}{// end pruning }
+00130   \} \textcolor{comment}{// End for each U-segment}
+00131 \}
+00132 
+00133 \} \textcolor{comment}{// end namespace internal}
+00134 \} \textcolor{comment}{// end namespace Eigen}
+00135 
+00136 \textcolor{preprocessor}{#endif // SPARSELU\_PRUNEL\_H}
+\end{DoxyCode}

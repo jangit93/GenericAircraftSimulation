@@ -1,0 +1,97 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_performance_2h5efc_8c_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+C/\+Performance/h5efc.c}
+\label{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_performance_2h5efc_8c_source}\index{h5efc.\+c@{h5efc.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/************************************************************}
+00002 \textcolor{comment}{}
+00003 \textcolor{comment}{  This example shows how to use the external file cache.}
+00004 \textcolor{comment}{}
+00005 \textcolor{comment}{  This file is intended for use with HDF5 Library version}
+00006 \textcolor{comment}{  1.8.7 or newer}
+00007 \textcolor{comment}{}
+00008 \textcolor{comment}{ ************************************************************/}
+00009 
+00010 \textcolor{preprocessor}{#include "hdf5.h"}
+00011 
+00012 \textcolor{preprocessor}{#define FILE            "h5efc.h5"}
+00013 \textcolor{preprocessor}{#define EXT\_FILE1       "h5efc1.h5"}
+00014 \textcolor{preprocessor}{#define EXT\_FILE2       "h5efc2.h5"}
+00015 \textcolor{preprocessor}{#define EXT\_FILE3       "h5efc3.h5"}
+00016 
+00017 \textcolor{keywordtype}{int}
+00018 main(\textcolor{keywordtype}{void})
+00019 \{
+00020     hid\_t       file1, file2, group, fapl;      \textcolor{comment}{/* Handles */}
+00021     herr\_t      status;
+00022 
+00023     \textcolor{comment}{/*}
+00024 \textcolor{comment}{     * Create file access property list and set it to allow caching of open}
+00025 \textcolor{comment}{     * files visited through external links.}
+00026 \textcolor{comment}{     */}
+00027     fapl = H5Pcreate (H5P\_FILE\_ACCESS);
+00028     status = H5Pset\_elink\_file\_cache\_size (fapl, 8);
+00029 
+00030     \textcolor{comment}{/*}
+00031 \textcolor{comment}{     * Create a new file using the file access property list.}
+00032 \textcolor{comment}{     */}
+00033     file1 = H5Fcreate (FILE, H5F\_ACC\_TRUNC, H5P\_DEFAULT, fapl);
+00034 
+00035     \textcolor{comment}{/*}
+00036 \textcolor{comment}{     * Create files to serve as targets for external links.}
+00037 \textcolor{comment}{     */}
+00038     file2 = H5Fcreate (EXT\_FILE1, H5F\_ACC\_TRUNC, H5P\_DEFAULT, H5P\_DEFAULT);
+00039     status = H5Fclose (file2);
+00040     file2 = H5Fcreate (EXT\_FILE2, H5F\_ACC\_TRUNC, H5P\_DEFAULT, H5P\_DEFAULT);
+00041     status = H5Fclose (file2);
+00042     file2 = H5Fcreate (EXT\_FILE3, H5F\_ACC\_TRUNC, H5P\_DEFAULT, H5P\_DEFAULT);
+00043     status = H5Fclose (file2);
+00044 
+00045     \textcolor{comment}{/*}
+00046 \textcolor{comment}{     * Create external links to the target files.}
+00047 \textcolor{comment}{     */}
+00048     status = H5Lcreate\_external (EXT\_FILE1, \textcolor{stringliteral}{"/"}, file1, \textcolor{stringliteral}{"link\_to\_1"},
+00049             H5P\_DEFAULT, H5P\_DEFAULT);
+00050     status = H5Lcreate\_external (EXT\_FILE2, \textcolor{stringliteral}{"/"}, file1, \textcolor{stringliteral}{"link\_to\_2"},
+00051             H5P\_DEFAULT, H5P\_DEFAULT);
+00052     status = H5Lcreate\_external (EXT\_FILE3, \textcolor{stringliteral}{"/"}, file1, \textcolor{stringliteral}{"link\_to\_3"},
+00053             H5P\_DEFAULT, H5P\_DEFAULT);
+00054 
+00055     \textcolor{comment}{/*}
+00056 \textcolor{comment}{     * Open and close the targets of all three external links (these will be the}
+00057 \textcolor{comment}{     * root groups of the target files).  The target files should be held open}
+00058 \textcolor{comment}{     * by the root file's external file cache after traversal.}
+00059 \textcolor{comment}{     */}
+00060     group = H5Gopen (file1, \textcolor{stringliteral}{"/link\_to\_1"}, H5P\_DEFAULT);
+00061     status = H5Gclose(group);
+00062     group = H5Gopen (file1, \textcolor{stringliteral}{"/link\_to\_2"}, H5P\_DEFAULT);
+00063     status = H5Gclose(group);
+00064     group = H5Gopen (file1, \textcolor{stringliteral}{"/link\_to\_3"}, H5P\_DEFAULT);
+00065     status = H5Gclose(group);
+00066 
+00067     \textcolor{comment}{/*}
+00068 \textcolor{comment}{     * Open and close the targets of all three external links again.  The target}
+00069 \textcolor{comment}{     * files should already be held open by the root file's external file cache,}
+00070 \textcolor{comment}{     * so the library will not actually have to issue an "open" system call.}
+00071 \textcolor{comment}{     */}
+00072     group = H5Gopen (file1, \textcolor{stringliteral}{"/link\_to\_1"}, H5P\_DEFAULT);
+00073     status = H5Gclose(group);
+00074     group = H5Gopen (file1, \textcolor{stringliteral}{"/link\_to\_2"}, H5P\_DEFAULT);
+00075     status = H5Gclose(group);
+00076     group = H5Gopen (file1, \textcolor{stringliteral}{"/link\_to\_3"}, H5P\_DEFAULT);
+00077     status = H5Gclose(group);
+00078 
+00079     \textcolor{comment}{/*}
+00080 \textcolor{comment}{     * Release the root file's external file cache.  This will close all the}
+00081 \textcolor{comment}{     * external link target files.}
+00082 \textcolor{comment}{     */}
+00083     status = H5Frelease\_file\_cache(file1);
+00084 
+00085     \textcolor{comment}{/*}
+00086 \textcolor{comment}{     * Close and release resources.}
+00087 \textcolor{comment}{     */}
+00088     status = H5Pclose (fapl);
+00089     status = H5Fclose (file1);
+00090 
+00091     \textcolor{keywordflow}{return} 0;
+00092 \}
+\end{DoxyCode}

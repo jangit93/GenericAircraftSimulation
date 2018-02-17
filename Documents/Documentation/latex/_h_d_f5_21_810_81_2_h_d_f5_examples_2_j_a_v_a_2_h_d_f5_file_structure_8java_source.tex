@@ -1,0 +1,286 @@
+\hypertarget{_h_d_f5_21_810_81_2_h_d_f5_examples_2_j_a_v_a_2_h_d_f5_file_structure_8java_source}{}\section{H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+J\+A\+V\+A/\+H\+D\+F5\+File\+Structure.java}
+\label{_h_d_f5_21_810_81_2_h_d_f5_examples_2_j_a_v_a_2_h_d_f5_file_structure_8java_source}\index{H\+D\+F5\+File\+Structure.\+java@{H\+D\+F5\+File\+Structure.\+java}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+00002 \textcolor{comment}{ * Copyright by The HDF Group.                                               *}
+00003 \textcolor{comment}{ * Copyright by the Board of Trustees of the University of Illinois.         *}
+00004 \textcolor{comment}{ * All rights reserved.                                                      *}
+00005 \textcolor{comment}{ *                                                                           *}
+00006 \textcolor{comment}{ * This file is part of HDF5.  The full HDF5 copyright notice, including     *}
+00007 \textcolor{comment}{ * terms governing use, modification, and redistribution, is contained in    *}
+00008 \textcolor{comment}{ * the files COPYING and Copyright.html.  COPYING can be found at the root   *}
+00009 \textcolor{comment}{ * of the source code distribution tree; Copyright.html can be found at the  *}
+00010 \textcolor{comment}{ * root level of an installed copy of the electronic HDF5 document set and   *}
+00011 \textcolor{comment}{ * is linked from the top-level documents page.  It can also be found at     *}
+00012 \textcolor{comment}{ * http://hdfgroup.org/HDF5/doc/Copyright.html.  If you do not have          *}
+00013 \textcolor{comment}{ * access to either file, you may request a copy from help@hdfgroup.org.     *}
+00014 \textcolor{comment}{ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00015 
+00016 \textcolor{keyword}{import} hdf.hdf5lib.H5;
+00017 \textcolor{keyword}{import} hdf.hdf5lib.HDF5Constants;
+00018 \textcolor{keyword}{import} hdf.hdf5lib.structs.H5G\_info\_t;
+00019 
+\Hypertarget{_h_d_f5_21_810_81_2_h_d_f5_examples_2_j_a_v_a_2_h_d_f5_file_structure_8java_source_l00041}\hyperlink{class_h_d_f5_file_structure}{00041} \textcolor{keyword}{public} \textcolor{keyword}{class }\hyperlink{class_h_d_f5_file_structure}{HDF5FileStructure} \{
+00042     \textcolor{keyword}{private} \textcolor{keyword}{static} String fname  = \textcolor{stringliteral}{"HDF5FileStructure.h5"};
+00043     \textcolor{keyword}{private} \textcolor{keyword}{static} \textcolor{keywordtype}{long}[] dims2D = \{ 20, 10 \};
+00044     \textcolor{keyword}{private} \textcolor{keyword}{static} \textcolor{keywordtype}{long}[] dims3D = \{ 20, 10, 5 \};
+00045 
+00046     \textcolor{keyword}{public} \textcolor{keyword}{static} \textcolor{keywordtype}{void} main(String args[]) \textcolor{keywordflow}{throws} Exception \{
+00047         \textcolor{keywordtype}{long} file\_id = -1;
+00048         \textcolor{keywordtype}{long} group\_id = -1;
+00049 
+00050         \textcolor{comment}{// create the file and add groups and dataset into the file}
+00051         createFile();
+00052 
+00053 
+00054         \textcolor{comment}{// Open file using the default properties.}
+00055         \textcolor{keywordflow}{try} \{
+00056             file\_id = \hyperlink{namespace_h5}{H5}.H5Fopen(fname, HDF5Constants.H5F\_ACC\_RDWR, HDF5Constants.H5P\_DEFAULT);
+00057         \}
+00058         \textcolor{keywordflow}{catch} (Exception e) \{
+00059             e.printStackTrace();
+00060         \}
+00061 
+00062         \textcolor{comment}{// Open the group, obtaining a new handle.}
+00063         \textcolor{keywordflow}{try} \{
+00064             \textcolor{keywordflow}{if} (file\_id >= 0)
+00065                 group\_id = \hyperlink{namespace_h5}{H5}.H5Gopen(file\_id, \textcolor{stringliteral}{"/"}, HDF5Constants.H5P\_DEFAULT);
+00066         \}
+00067         \textcolor{keywordflow}{catch} (Exception e) \{
+00068             e.printStackTrace();
+00069         \}
+00070 
+00071         printGroup(group\_id, \textcolor{stringliteral}{"/"}, \textcolor{stringliteral}{""});
+00072 
+00073         \textcolor{comment}{// Close the group.}
+00074         \textcolor{keywordflow}{try} \{
+00075             \textcolor{keywordflow}{if} (group\_id >= 0)
+00076                 \hyperlink{namespace_h5}{H5}.H5Gclose(group\_id);
+00077         \}
+00078         \textcolor{keywordflow}{catch} (Exception e) \{
+00079             e.printStackTrace();
+00080         \}
+00081 
+00082         \textcolor{comment}{// Close the file.}
+00083         \textcolor{keywordflow}{try} \{
+00084             \textcolor{keywordflow}{if} (file\_id >= 0)
+00085                 \hyperlink{namespace_h5}{H5}.H5Fclose(file\_id);
+00086         \}
+00087         \textcolor{keywordflow}{catch} (Exception e) \{
+00088             e.printStackTrace();
+00089         \}
+00090     \}
+00091 
+00097     \textcolor{keyword}{private} \textcolor{keyword}{static} \textcolor{keywordtype}{void} printGroup(\textcolor{keywordtype}{long} g\_id, String gname, String indent) \textcolor{keywordflow}{throws} Exception \{
+00098         \textcolor{keywordflow}{if} (g\_id < 0) \textcolor{keywordflow}{return};
+00099 
+00100         \hyperlink{struct_h5_g__info__t}{H5G\_info\_t} members = \hyperlink{namespace_h5}{H5}.H5Gget\_info(g\_id);
+00101         String objNames[] = \textcolor{keyword}{new} String[(int) members.nlinks];
+00102         \textcolor{keywordtype}{int} objTypes[] = \textcolor{keyword}{new} \textcolor{keywordtype}{int}[(\textcolor{keywordtype}{int}) members.nlinks];
+00103         \textcolor{keywordtype}{int} lnkTypes[] = \textcolor{keyword}{new} \textcolor{keywordtype}{int}[(int) members.nlinks];
+00104         \textcolor{keywordtype}{long} objRefs[] = \textcolor{keyword}{new} \textcolor{keywordtype}{long}[(\textcolor{keywordtype}{int}) members.nlinks];
+00105         \textcolor{keywordtype}{int} names\_found = 0;
+00106         \textcolor{keywordflow}{try} \{
+00107             names\_found = \hyperlink{namespace_h5}{H5}.H5Gget\_obj\_info\_all(g\_id, null, objNames,
+00108                     objTypes, lnkTypes, objRefs, HDF5Constants.H5\_INDEX\_NAME);
+00109         \}
+00110         \textcolor{keywordflow}{catch} (Throwable err) \{
+00111             err.printStackTrace();
+00112         \}
+00113 
+00114         indent += \textcolor{stringliteral}{"    "};
+00115         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < names\_found; i++) \{
+00116             \hyperlink{namespace_system}{System}.out.println(indent + objNames[i]);
+00117             \textcolor{keywordtype}{long} group\_id = -1;
+00118             \textcolor{keywordflow}{if} (objTypes[i]==HDF5Constants.H5O\_TYPE\_GROUP) \{
+00119                 \textcolor{comment}{// Open the group, obtaining a new handle.}
+00120                 \textcolor{keywordflow}{try} \{
+00121                     \textcolor{keywordflow}{if} (g\_id >= 0)
+00122                         group\_id = \hyperlink{namespace_h5}{H5}.H5Gopen(g\_id, objNames[i], HDF5Constants.H5P\_DEFAULT);
+00123                 \}
+00124                 \textcolor{keywordflow}{catch} (Exception e) \{
+00125                     e.printStackTrace();
+00126                 \}
+00127 
+00128                 \textcolor{keywordflow}{if} (group\_id >= 0)
+00129                     printGroup(group\_id, objNames[i], indent);
+00130 
+00131                 \textcolor{comment}{// Close the group.}
+00132                 \textcolor{keywordflow}{try} \{
+00133                     \textcolor{keywordflow}{if} (group\_id >= 0)
+00134                         \hyperlink{namespace_h5}{H5}.H5Gclose(group\_id);
+00135                 \}
+00136                 \textcolor{keywordflow}{catch} (Exception e) \{
+00137                     e.printStackTrace();
+00138                 \}
+00139             \}
+00140         \}
+00141     \}
+00142 
+00150     \textcolor{keyword}{private} \textcolor{keyword}{static} \textcolor{keywordtype}{void} createFile() \textcolor{keywordflow}{throws} Exception \{
+00151         \textcolor{keywordtype}{long} file\_id = -1;
+00152         \textcolor{keywordtype}{long} dataset\_id = -1;
+00153         \textcolor{keywordtype}{long} dataspace\_id1 = -1;
+00154         \textcolor{keywordtype}{long} dataspace\_id2 = -1;
+00155         \textcolor{keywordtype}{long} group\_id1 = -1;
+00156         \textcolor{keywordtype}{long} group\_id2 = -1;
+00157 
+00158         \textcolor{comment}{// Create a new file using default properties.}
+00159         \textcolor{keywordflow}{try} \{
+00160             file\_id = \hyperlink{namespace_h5}{H5}.H5Fcreate(fname, HDF5Constants.H5F\_ACC\_TRUNC,
+00161                     HDF5Constants.H5P\_DEFAULT, HDF5Constants.H5P\_DEFAULT);
+00162         \}
+00163         \textcolor{keywordflow}{catch} (Exception e) \{
+00164             e.printStackTrace();
+00165         \}
+00166 
+00167         \textcolor{comment}{// Create groups in the file.}
+00168         \textcolor{keywordflow}{try} \{
+00169             \textcolor{keywordflow}{if} (file\_id >= 0) \{
+00170                 group\_id1 = \hyperlink{namespace_h5}{H5}.H5Gcreate(file\_id, \textcolor{stringliteral}{"/"} + \textcolor{stringliteral}{"integer arrays"},
+00171                         HDF5Constants.H5P\_DEFAULT, HDF5Constants.H5P\_DEFAULT, HDF5Constants.H5P\_DEFAULT);
+00172                 group\_id1 = \hyperlink{namespace_h5}{H5}.H5Gcreate(file\_id, \textcolor{stringliteral}{"/"} + \textcolor{stringliteral}{"float arrays"},
+00173                         HDF5Constants.H5P\_DEFAULT, HDF5Constants.H5P\_DEFAULT, HDF5Constants.H5P\_DEFAULT);
+00174             \}
+00175         \}
+00176         \textcolor{keywordflow}{catch} (Exception e) \{
+00177             e.printStackTrace();
+00178         \}
+00179 
+00180         \textcolor{comment}{// Create the data space for the datasets.}
+00181         \textcolor{keywordflow}{try} \{
+00182             dataspace\_id1 = \hyperlink{namespace_h5}{H5}.H5Screate\_simple(2, dims2D, null);
+00183             dataspace\_id2 = \hyperlink{namespace_h5}{H5}.H5Screate\_simple(3, dims3D, null);
+00184         \}
+00185         \textcolor{keywordflow}{catch} (Exception e) \{
+00186             e.printStackTrace();
+00187         \}
+00188 
+00189         \textcolor{comment}{// create 2D 32-bit (4 bytes) integer dataset of 20 by 10}
+00190         \textcolor{keywordflow}{try} \{
+00191             \textcolor{keywordflow}{if} ((file\_id >= 0) && (dataspace\_id1 >= 0))
+00192                 dataset\_id = \hyperlink{namespace_h5}{H5}.H5Dcreate(file\_id,
+00193                         \textcolor{stringliteral}{"/"} + \textcolor{stringliteral}{"integer arrays"} + \textcolor{stringliteral}{"/"} + \textcolor{stringliteral}{"2D 32-bit integer 20x10"}, HDF5Constants.
+      H5T\_STD\_I32LE,
+00194                         dataspace\_id1, HDF5Constants.H5P\_DEFAULT, HDF5Constants.H5P\_DEFAULT, HDF5Constants.
+      H5P\_DEFAULT);
+00195         \}
+00196         \textcolor{keywordflow}{catch} (Exception e) \{
+00197             e.printStackTrace();
+00198         \}
+00199 
+00200         \textcolor{comment}{// Close the dataset.}
+00201         \textcolor{keywordflow}{try} \{
+00202             \textcolor{keywordflow}{if} (dataset\_id >= 0)
+00203                 \hyperlink{namespace_h5}{H5}.H5Dclose(dataset\_id);
+00204             dataset\_id = -1;
+00205         \}
+00206         \textcolor{keywordflow}{catch} (Exception e) \{
+00207             e.printStackTrace();
+00208         \}
+00209 
+00210         \textcolor{comment}{// create 3D 8-bit (1 byte) unsigned integer dataset of 20 by 10 by 5}
+00211         \textcolor{keywordflow}{try} \{
+00212             \textcolor{keywordflow}{if} ((file\_id >= 0) && (dataspace\_id2 >= 0))
+00213                 dataset\_id = \hyperlink{namespace_h5}{H5}.H5Dcreate(file\_id,
+00214                         \textcolor{stringliteral}{"/"} + \textcolor{stringliteral}{"integer arrays"} + \textcolor{stringliteral}{"/"} + \textcolor{stringliteral}{"3D 8-bit unsigned integer 20x10x5"}, HDF5Constants.
+      H5T\_STD\_I64LE,
+00215                         dataspace\_id2, HDF5Constants.H5P\_DEFAULT, HDF5Constants.H5P\_DEFAULT, HDF5Constants.
+      H5P\_DEFAULT);
+00216         \}
+00217         \textcolor{keywordflow}{catch} (Exception e) \{
+00218             e.printStackTrace();
+00219         \}
+00220 
+00221         \textcolor{comment}{// Close the dataset.}
+00222         \textcolor{keywordflow}{try} \{
+00223             \textcolor{keywordflow}{if} (dataset\_id >= 0)
+00224                 \hyperlink{namespace_h5}{H5}.H5Dclose(dataset\_id);
+00225             dataset\_id = -1;
+00226         \}
+00227         \textcolor{keywordflow}{catch} (Exception e) \{
+00228             e.printStackTrace();
+00229         \}
+00230 
+00231         \textcolor{comment}{// create 2D 64-bit (8 bytes) double dataset of 20 by 10}
+00232         \textcolor{keywordflow}{try} \{
+00233             \textcolor{keywordflow}{if} ((file\_id >= 0) && (dataspace\_id1 >= 0))
+00234                 dataset\_id = \hyperlink{namespace_h5}{H5}.H5Dcreate(file\_id,
+00235                         \textcolor{stringliteral}{"/"} + \textcolor{stringliteral}{"float arrays"} + \textcolor{stringliteral}{"/"} + \textcolor{stringliteral}{"2D 64-bit double 20x10"}, HDF5Constants.
+      H5T\_NATIVE\_DOUBLE,
+00236                         dataspace\_id1, HDF5Constants.H5P\_DEFAULT, HDF5Constants.H5P\_DEFAULT, HDF5Constants.
+      H5P\_DEFAULT);
+00237         \}
+00238         \textcolor{keywordflow}{catch} (Exception e) \{
+00239             e.printStackTrace();
+00240         \}
+00241 
+00242         \textcolor{comment}{// Close the dataset.}
+00243         \textcolor{keywordflow}{try} \{
+00244             \textcolor{keywordflow}{if} (dataset\_id >= 0)
+00245                 \hyperlink{namespace_h5}{H5}.H5Dclose(dataset\_id);
+00246             dataset\_id = -1;
+00247         \}
+00248         \textcolor{keywordflow}{catch} (Exception e) \{
+00249             e.printStackTrace();
+00250         \}
+00251 
+00252         \textcolor{comment}{// create 3D 32-bit (4 bytes) float dataset of 20 by 10 by 5}
+00253         \textcolor{keywordflow}{try} \{
+00254             \textcolor{keywordflow}{if} ((file\_id >= 0) && (dataspace\_id2 >= 0))
+00255                 dataset\_id = \hyperlink{namespace_h5}{H5}.H5Dcreate(file\_id,
+00256                         \textcolor{stringliteral}{"/"} + \textcolor{stringliteral}{"float arrays"} + \textcolor{stringliteral}{"/"} + \textcolor{stringliteral}{"3D 32-bit float  20x10x5"}, HDF5Constants.
+      H5T\_NATIVE\_FLOAT,
+00257                         dataspace\_id2, HDF5Constants.H5P\_DEFAULT, HDF5Constants.H5P\_DEFAULT, HDF5Constants.
+      H5P\_DEFAULT);
+00258         \}
+00259         \textcolor{keywordflow}{catch} (Exception e) \{
+00260             e.printStackTrace();
+00261         \}
+00262 
+00263         \textcolor{comment}{// Close the dataset.}
+00264         \textcolor{keywordflow}{try} \{
+00265             \textcolor{keywordflow}{if} (dataset\_id >= 0)
+00266                 \hyperlink{namespace_h5}{H5}.H5Dclose(dataset\_id);
+00267             dataset\_id = -1;
+00268         \}
+00269         \textcolor{keywordflow}{catch} (Exception e) \{
+00270             e.printStackTrace();
+00271         \}
+00272 
+00273         \textcolor{comment}{// Close the data space.}
+00274         \textcolor{keywordflow}{try} \{
+00275             \textcolor{keywordflow}{if} (dataspace\_id1 >= 0)
+00276                 \hyperlink{namespace_h5}{H5}.H5Sclose(dataspace\_id1);
+00277             dataspace\_id1 = -1;
+00278             \textcolor{keywordflow}{if} (dataspace\_id2 >= 0)
+00279                 \hyperlink{namespace_h5}{H5}.H5Sclose(dataspace\_id2);
+00280             dataspace\_id2 = -1;
+00281         \}
+00282         \textcolor{keywordflow}{catch} (Exception e) \{
+00283             e.printStackTrace();
+00284         \}
+00285 
+00286         \textcolor{comment}{// Close the groups.}
+00287         \textcolor{keywordflow}{try} \{
+00288             \textcolor{keywordflow}{if} (group\_id1 >= 0)
+00289                 \hyperlink{namespace_h5}{H5}.H5Gclose(group\_id1);
+00290             \textcolor{keywordflow}{if} (group\_id2 >= 0)
+00291                 \hyperlink{namespace_h5}{H5}.H5Gclose(group\_id2);
+00292         \}
+00293         \textcolor{keywordflow}{catch} (Exception e) \{
+00294             e.printStackTrace();
+00295         \}
+00296 
+00297         \textcolor{comment}{// Close the file.}
+00298         \textcolor{keywordflow}{try} \{
+00299             \textcolor{keywordflow}{if} (file\_id >= 0)
+00300                 \hyperlink{namespace_h5}{H5}.H5Fclose(file\_id);
+00301         \}
+00302         \textcolor{keywordflow}{catch} (Exception e) \{
+00303             e.printStackTrace();
+00304         \}
+00305     \}
+00306 \}
+\end{DoxyCode}

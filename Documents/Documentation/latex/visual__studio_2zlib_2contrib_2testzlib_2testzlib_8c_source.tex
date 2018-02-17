@@ -1,0 +1,280 @@
+\hypertarget{visual__studio_2zlib_2contrib_2testzlib_2testzlib_8c_source}{}\section{visual\+\_\+studio/zlib/contrib/testzlib/testzlib.c}
+\label{visual__studio_2zlib_2contrib_2testzlib_2testzlib_8c_source}\index{testzlib.\+c@{testzlib.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{preprocessor}{#include <stdio.h>}
+00002 \textcolor{preprocessor}{#include <stdlib.h>}
+00003 \textcolor{preprocessor}{#include <windows.h>}
+00004 
+00005 \textcolor{preprocessor}{#include "zlib.h"}
+00006 
+00007 
+00008 \textcolor{keywordtype}{void} MyDoMinus64(LARGE\_INTEGER *R,LARGE\_INTEGER A,LARGE\_INTEGER B)
+00009 \{
+00010     R->HighPart = A.HighPart - B.HighPart;
+00011     \textcolor{keywordflow}{if} (A.LowPart >= B.LowPart)
+00012         R->LowPart = A.LowPart - B.LowPart;
+00013     \textcolor{keywordflow}{else}
+00014     \{
+00015         R->LowPart = A.LowPart - B.LowPart;
+00016         R->HighPart --;
+00017     \}
+00018 \}
+00019 
+00020 \textcolor{preprocessor}{#ifdef \_M\_X64}
+00021 \textcolor{comment}{// see http://msdn2.microsoft.com/library/twchhe95(en-us,vs.80).aspx for \_\_rdtsc}
+00022 \textcolor{keywordtype}{unsigned} \_\_int64 \_\_rdtsc(\textcolor{keywordtype}{void});
+00023 \textcolor{keywordtype}{void} BeginCountRdtsc(LARGE\_INTEGER * pbeginTime64)
+00024 \{
+00025  \textcolor{comment}{//   printf("rdtsc = %I64x\(\backslash\)n",\_\_rdtsc());}
+00026    pbeginTime64->QuadPart=\_\_rdtsc();
+00027 \}
+00028 
+00029 LARGE\_INTEGER GetResRdtsc(LARGE\_INTEGER beginTime64,BOOL fComputeTimeQueryPerf)
+00030 \{
+00031     LARGE\_INTEGER LIres;
+00032     \textcolor{keywordtype}{unsigned} \_int64 res=\_\_rdtsc()-((\textcolor{keywordtype}{unsigned} \_int64)(beginTime64.QuadPart));
+00033     LIres.QuadPart=res;
+00034    \textcolor{comment}{// printf("rdtsc = %I64x\(\backslash\)n",\_\_rdtsc());}
+00035     \textcolor{keywordflow}{return} LIres;
+00036 \}
+00037 \textcolor{preprocessor}{#else}
+00038 \textcolor{preprocessor}{#ifdef \_M\_IX86}
+00039 \textcolor{keywordtype}{void} myGetRDTSC32(LARGE\_INTEGER * pbeginTime64)
+00040 \{
+00041     DWORD dwEdx,dwEax;
+00042     \_asm
+00043     \{
+00044         rdtsc
+00045         mov dwEax,eax
+00046         mov dwEdx,edx
+00047     \}
+00048     pbeginTime64->LowPart=dwEax;
+00049     pbeginTime64->HighPart=dwEdx;
+00050 \}
+00051 
+00052 \textcolor{keywordtype}{void} BeginCountRdtsc(LARGE\_INTEGER * pbeginTime64)
+00053 \{
+00054     myGetRDTSC32(pbeginTime64);
+00055 \}
+00056 
+00057 LARGE\_INTEGER GetResRdtsc(LARGE\_INTEGER beginTime64,BOOL fComputeTimeQueryPerf)
+00058 \{
+00059     LARGE\_INTEGER LIres,endTime64;
+00060     myGetRDTSC32(&endTime64);
+00061 
+00062     LIres.LowPart=LIres.HighPart=0;
+00063     MyDoMinus64(&LIres,endTime64,beginTime64);
+00064     \textcolor{keywordflow}{return} LIres;
+00065 \}
+00066 \textcolor{preprocessor}{#else}
+00067 \textcolor{keywordtype}{void} myGetRDTSC32(LARGE\_INTEGER * pbeginTime64)
+00068 \{
+00069 \}
+00070 
+00071 \textcolor{keywordtype}{void} BeginCountRdtsc(LARGE\_INTEGER * pbeginTime64)
+00072 \{
+00073 \}
+00074 
+00075 LARGE\_INTEGER GetResRdtsc(LARGE\_INTEGER beginTime64,BOOL fComputeTimeQueryPerf)
+00076 \{
+00077     LARGE\_INTEGER lr;
+00078     lr.QuadPart=0;
+00079     \textcolor{keywordflow}{return} lr;
+00080 \}
+00081 \textcolor{preprocessor}{#endif}
+00082 \textcolor{preprocessor}{#endif}
+00083 
+00084 \textcolor{keywordtype}{void} BeginCountPerfCounter(LARGE\_INTEGER * pbeginTime64,BOOL fComputeTimeQueryPerf)
+00085 \{
+00086     \textcolor{keywordflow}{if} ((!fComputeTimeQueryPerf) || (!QueryPerformanceCounter(pbeginTime64)))
+00087     \{
+00088         pbeginTime64->LowPart = GetTickCount();
+00089         pbeginTime64->HighPart = 0;
+00090     \}
+00091 \}
+00092 
+00093 DWORD GetMsecSincePerfCounter(LARGE\_INTEGER beginTime64,BOOL fComputeTimeQueryPerf)
+00094 \{
+00095     LARGE\_INTEGER endTime64,ticksPerSecond,ticks;
+00096     DWORDLONG ticksShifted,tickSecShifted;
+00097     DWORD dwLog=16+0;
+00098     DWORD dwRet;
+00099     \textcolor{keywordflow}{if} ((!fComputeTimeQueryPerf) || (!QueryPerformanceCounter(&endTime64)))
+00100         dwRet = (GetTickCount() - beginTime64.LowPart)*1;
+00101     \textcolor{keywordflow}{else}
+00102     \{
+00103         MyDoMinus64(&ticks,endTime64,beginTime64);
+00104         QueryPerformanceFrequency(&ticksPerSecond);
+00105 
+00106 
+00107         \{
+00108             ticksShifted = Int64ShrlMod32(*(DWORDLONG*)&ticks,dwLog);
+00109             tickSecShifted = Int64ShrlMod32(*(DWORDLONG*)&ticksPerSecond,dwLog);
+00110 
+00111         \}
+00112 
+00113         dwRet = (DWORD)((((DWORD)ticksShifted)*1000)/(DWORD)(tickSecShifted));
+00114         dwRet *=1;
+00115     \}
+00116     \textcolor{keywordflow}{return} dwRet;
+00117 \}
+00118 
+00119 \textcolor{keywordtype}{int} ReadFileMemory(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* filename,\textcolor{keywordtype}{long}* plFileSize,\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}** pFilePtr)
+00120 \{
+00121     FILE* stream;
+00122     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}* ptr;
+00123     \textcolor{keywordtype}{int} retVal=1;
+00124     stream=fopen(filename, \textcolor{stringliteral}{"rb"});
+00125     \textcolor{keywordflow}{if} (stream==NULL)
+00126         \textcolor{keywordflow}{return} 0;
+00127 
+00128     fseek(stream,0,SEEK\_END);
+00129 
+00130     *plFileSize=ftell(stream);
+00131     fseek(stream,0,SEEK\_SET);
+00132     ptr=malloc((*plFileSize)+1);
+00133     \textcolor{keywordflow}{if} (ptr==NULL)
+00134         retVal=0;
+00135     \textcolor{keywordflow}{else}
+00136     \{
+00137         \textcolor{keywordflow}{if} (fread(ptr, 1, *plFileSize,stream) != (*plFileSize))
+00138             retVal=0;
+00139     \}
+00140     fclose(stream);
+00141     *pFilePtr=ptr;
+00142     \textcolor{keywordflow}{return} retVal;
+00143 \}
+00144 
+00145 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])
+00146 \{
+00147     \textcolor{keywordtype}{int} BlockSizeCompress=0x8000;
+00148     \textcolor{keywordtype}{int} BlockSizeUncompress=0x8000;
+00149     \textcolor{keywordtype}{int} cprLevel=Z\_DEFAULT\_COMPRESSION ;
+00150     \textcolor{keywordtype}{long} lFileSize;
+00151     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}* FilePtr;
+00152     \textcolor{keywordtype}{long} lBufferSizeCpr;
+00153     \textcolor{keywordtype}{long} lBufferSizeUncpr;
+00154     \textcolor{keywordtype}{long} lCompressedSize=0;
+00155     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}* CprPtr;
+00156     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}* UncprPtr;
+00157     \textcolor{keywordtype}{long} lSizeCpr,lSizeUncpr;
+00158     DWORD dwGetTick,dwMsecQP;
+00159     LARGE\_INTEGER li\_qp,li\_rdtsc,dwResRdtsc;
+00160 
+00161     \textcolor{keywordflow}{if} (argc<=1)
+00162     \{
+00163         printf(\textcolor{stringliteral}{"run TestZlib <File> [BlockSizeCompress] [BlockSizeUncompress] [compres. level]\(\backslash\)n"});
+00164         \textcolor{keywordflow}{return} 0;
+00165     \}
+00166 
+00167     \textcolor{keywordflow}{if} (ReadFileMemory(argv[1],&lFileSize,&FilePtr)==0)
+00168     \{
+00169         printf(\textcolor{stringliteral}{"error reading %s\(\backslash\)n"},argv[1]);
+00170         \textcolor{keywordflow}{return} 1;
+00171     \}
+00172     \textcolor{keywordflow}{else} printf(\textcolor{stringliteral}{"file %s read, %u bytes\(\backslash\)n"},argv[1],lFileSize);
+00173 
+00174     \textcolor{keywordflow}{if} (argc>=3)
+00175         BlockSizeCompress=atol(argv[2]);
+00176 
+00177     \textcolor{keywordflow}{if} (argc>=4)
+00178         BlockSizeUncompress=atol(argv[3]);
+00179 
+00180     \textcolor{keywordflow}{if} (argc>=5)
+00181         cprLevel=(int)atol(argv[4]);
+00182 
+00183     lBufferSizeCpr = lFileSize + (lFileSize/0x10) + 0x200;
+00184     lBufferSizeUncpr = lBufferSizeCpr;
+00185 
+00186     CprPtr=(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}*)malloc(lBufferSizeCpr + BlockSizeCompress);
+00187 
+00188     BeginCountPerfCounter(&li\_qp,TRUE);
+00189     dwGetTick=GetTickCount();
+00190     BeginCountRdtsc(&li\_rdtsc);
+00191     \{
+00192         \hyperlink{structz__stream__s}{z\_stream} zcpr;
+00193         \textcolor{keywordtype}{int} ret=Z\_OK;
+00194         \textcolor{keywordtype}{long} lOrigToDo = lFileSize;
+00195         \textcolor{keywordtype}{long} lOrigDone = 0;
+00196         \textcolor{keywordtype}{int} step=0;
+00197         memset(&zcpr,0,\textcolor{keyword}{sizeof}(\hyperlink{structz__stream__s}{z\_stream}));
+00198         deflateInit(&zcpr,cprLevel);
+00199 
+00200         zcpr.next\_in = FilePtr;
+00201         zcpr.next\_out = CprPtr;
+00202 
+00203 
+00204         \textcolor{keywordflow}{do}
+00205         \{
+00206             \textcolor{keywordtype}{long} all\_read\_before = zcpr.total\_in;
+00207             zcpr.avail\_in = min(lOrigToDo,BlockSizeCompress);
+00208             zcpr.avail\_out = BlockSizeCompress;
+00209             ret=deflate(&zcpr,(zcpr.avail\_in==lOrigToDo) ? Z\_FINISH : Z\_SYNC\_FLUSH);
+00210             lOrigDone += (zcpr.total\_in-all\_read\_before);
+00211             lOrigToDo -= (zcpr.total\_in-all\_read\_before);
+00212             step++;
+00213         \} \textcolor{keywordflow}{while} (ret==Z\_OK);
+00214 
+00215         lSizeCpr=zcpr.total\_out;
+00216         deflateEnd(&zcpr);
+00217         dwGetTick=GetTickCount()-dwGetTick;
+00218         dwMsecQP=GetMsecSincePerfCounter(li\_qp,TRUE);
+00219         dwResRdtsc=GetResRdtsc(li\_rdtsc,TRUE);
+00220         printf(\textcolor{stringliteral}{"total compress size = %u, in %u step\(\backslash\)n"},lSizeCpr,step);
+00221         printf(\textcolor{stringliteral}{"time = %u msec = %f sec\(\backslash\)n"},dwGetTick,dwGetTick/(\textcolor{keywordtype}{double})1000.);
+00222         printf(\textcolor{stringliteral}{"defcpr time QP = %u msec = %f sec\(\backslash\)n"},dwMsecQP,dwMsecQP/(\textcolor{keywordtype}{double})1000.);
+00223         printf(\textcolor{stringliteral}{"defcpr result rdtsc = %I64x\(\backslash\)n\(\backslash\)n"},dwResRdtsc.QuadPart);
+00224     \}
+00225 
+00226     CprPtr=(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}*)realloc(CprPtr,lSizeCpr);
+00227     UncprPtr=(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}*)malloc(lBufferSizeUncpr + BlockSizeUncompress);
+00228 
+00229     BeginCountPerfCounter(&li\_qp,TRUE);
+00230     dwGetTick=GetTickCount();
+00231     BeginCountRdtsc(&li\_rdtsc);
+00232     \{
+00233         \hyperlink{structz__stream__s}{z\_stream} zcpr;
+00234         \textcolor{keywordtype}{int} ret=Z\_OK;
+00235         \textcolor{keywordtype}{long} lOrigToDo = lSizeCpr;
+00236         \textcolor{keywordtype}{long} lOrigDone = 0;
+00237         \textcolor{keywordtype}{int} step=0;
+00238         memset(&zcpr,0,\textcolor{keyword}{sizeof}(\hyperlink{structz__stream__s}{z\_stream}));
+00239         inflateInit(&zcpr);
+00240 
+00241         zcpr.next\_in = CprPtr;
+00242         zcpr.next\_out = UncprPtr;
+00243 
+00244 
+00245         \textcolor{keywordflow}{do}
+00246         \{
+00247             \textcolor{keywordtype}{long} all\_read\_before = zcpr.total\_in;
+00248             zcpr.avail\_in = min(lOrigToDo,BlockSizeUncompress);
+00249             zcpr.avail\_out = BlockSizeUncompress;
+00250             ret=inflate(&zcpr,Z\_SYNC\_FLUSH);
+00251             lOrigDone += (zcpr.total\_in-all\_read\_before);
+00252             lOrigToDo -= (zcpr.total\_in-all\_read\_before);
+00253             step++;
+00254         \} \textcolor{keywordflow}{while} (ret==Z\_OK);
+00255 
+00256         lSizeUncpr=zcpr.total\_out;
+00257         inflateEnd(&zcpr);
+00258         dwGetTick=GetTickCount()-dwGetTick;
+00259         dwMsecQP=GetMsecSincePerfCounter(li\_qp,TRUE);
+00260         dwResRdtsc=GetResRdtsc(li\_rdtsc,TRUE);
+00261         printf(\textcolor{stringliteral}{"total uncompress size = %u, in %u step\(\backslash\)n"},lSizeUncpr,step);
+00262         printf(\textcolor{stringliteral}{"time = %u msec = %f sec\(\backslash\)n"},dwGetTick,dwGetTick/(\textcolor{keywordtype}{double})1000.);
+00263         printf(\textcolor{stringliteral}{"uncpr  time QP = %u msec = %f sec\(\backslash\)n"},dwMsecQP,dwMsecQP/(\textcolor{keywordtype}{double})1000.);
+00264         printf(\textcolor{stringliteral}{"uncpr  result rdtsc = %I64x\(\backslash\)n\(\backslash\)n"},dwResRdtsc.QuadPart);
+00265     \}
+00266 
+00267     \textcolor{keywordflow}{if} (lSizeUncpr==lFileSize)
+00268     \{
+00269         \textcolor{keywordflow}{if} (memcmp(FilePtr,UncprPtr,lFileSize)==0)
+00270             printf(\textcolor{stringliteral}{"compare ok\(\backslash\)n"});
+00271 
+00272     \}
+00273 
+00274     \textcolor{keywordflow}{return} 0;
+00275 \}
+\end{DoxyCode}

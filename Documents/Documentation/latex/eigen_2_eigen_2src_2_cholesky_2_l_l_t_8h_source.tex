@@ -1,0 +1,447 @@
+\hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source}{}\section{eigen/\+Eigen/src/\+Cholesky/\+L\+LT.h}
+\label{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source}\index{L\+L\+T.\+h@{L\+L\+T.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_LLT\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_LLT\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal}\{
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00016}\hyperlink{struct_eigen_1_1internal_1_1_l_l_t___traits}{00016} \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keywordtype}{int} UpLo> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1_l_l_t___traits}{LLT\_Traits};
+00017 \}
+00018 
+00048  \textcolor{comment}{/* HEY THIS DOX IS DISABLED BECAUSE THERE's A BUG EITHER HERE OR IN LDLT ABOUT THAT (OR BOTH)}
+00049 \textcolor{comment}{  * Note that during the decomposition, only the upper triangular part of A is considered. Therefore,}
+00050 \textcolor{comment}{  * the strict lower part does not have to store correct values.}
+00051 \textcolor{comment}{  */}
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00052}\hyperlink{group___cholesky___module}{00052} \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{int} \_UpLo> \textcolor{keyword}{class }\hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT}
+00053 \{
+00054   \textcolor{keyword}{public}:
+00055     \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00056     \textcolor{keyword}{enum} \{
+00057       RowsAtCompileTime = MatrixType::RowsAtCompileTime,
+00058       ColsAtCompileTime = MatrixType::ColsAtCompileTime,
+00059       MaxColsAtCompileTime = MatrixType::MaxColsAtCompileTime
+00060     \};
+00061     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00062     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<typename MatrixType::Scalar>::Real}
+       RealScalar;
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00063}\hyperlink{group___cholesky___module_ac7a64274814fa76e8b1e9e945546037f}{00063}     \textcolor{keyword}{typedef} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Eigen::Index} \hyperlink{group___cholesky___module_ac7a64274814fa76e8b1e9e945546037f}{Index}; 
+00064     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::StorageIndex StorageIndex;
+00065 
+00066     \textcolor{keyword}{enum} \{
+00067       PacketSize = \hyperlink{struct_eigen_1_1internal_1_1packet__traits}{internal::packet\_traits<Scalar>::size},
+00068       AlignmentMask = int(PacketSize)-1,
+00069       UpLo = \_UpLo
+00070     \};
+00071 
+00072     \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1_l_l_t___traits}{internal::LLT\_Traits<MatrixType,UpLo>} 
+      \hyperlink{struct_eigen_1_1internal_1_1_l_l_t___traits}{Traits};
+00073 
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00080}\hyperlink{group___cholesky___module_a16d1ec9ea6497ba1febb242c2e8a7a96}{00080}     \hyperlink{group___cholesky___module_a16d1ec9ea6497ba1febb242c2e8a7a96}{LLT}() : m\_matrix(), m\_isInitialized(false) \{\}
+00081 
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00088}\hyperlink{group___cholesky___module_ab3656cfbdf38e03c57d5cf79bf8131b6}{00088}     \textcolor{keyword}{explicit} \hyperlink{group___cholesky___module_ab3656cfbdf38e03c57d5cf79bf8131b6}{LLT}(Index size) : m\_matrix(size, size),
+00089                     m\_isInitialized(false) \{\}
+00090 
+00091     \textcolor{keyword}{template}<\textcolor{keyword}{typename} InputType>
+00092     \textcolor{keyword}{explicit} \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT}(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<InputType>}& matrix)
+00093       : m\_matrix(matrix.\hyperlink{group___core___module_a8141320ba8df384426c298b32b000d8e}{rows}(), matrix.\hyperlink{group___core___module_a7b0b45c7351847696c911ce8aa2abbdb}{cols}()),
+00094         m\_isInitialized(\textcolor{keyword}{false})
+00095     \{
+00096       compute(matrix.\hyperlink{group___core___module_a324b16961a11d2ecfd2d1b7dd7946545}{derived}());
+00097     \}
+00098 
+00106     \textcolor{keyword}{template}<\textcolor{keyword}{typename} InputType>
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00107}\hyperlink{group___cholesky___module_a1848a00addade9a0f7f70493c52ecc9d}{00107}     \textcolor{keyword}{explicit} \hyperlink{group___cholesky___module_a1848a00addade9a0f7f70493c52ecc9d}{LLT}(\hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<InputType>}& matrix)
+00108       : m\_matrix(matrix.derived()),
+00109         m\_isInitialized(false)
+00110     \{
+00111       compute(matrix.\hyperlink{group___core___module_a324b16961a11d2ecfd2d1b7dd7946545}{derived}());
+00112     \}
+00113 
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00115}\hyperlink{group___cholesky___module_a18a390f085567e650e8345cc7e7c0df8}{00115}     \textcolor{keyword}{inline} \textcolor{keyword}{typename} Traits::MatrixU \hyperlink{group___cholesky___module_a18a390f085567e650e8345cc7e7c0df8}{matrixU}()\textcolor{keyword}{ const}
+00116 \textcolor{keyword}{    }\{
+00117       eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"LLT is not initialized."});
+00118       \textcolor{keywordflow}{return} Traits::getU(m\_matrix);
+00119     \}
+00120 
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00122}\hyperlink{group___cholesky___module_a7f4a3eedbf82e7ce2d6bf0dcd84cdfa3}{00122}     \textcolor{keyword}{inline} \textcolor{keyword}{typename} Traits::MatrixL \hyperlink{group___cholesky___module_a7f4a3eedbf82e7ce2d6bf0dcd84cdfa3}{matrixL}()\textcolor{keyword}{ const}
+00123 \textcolor{keyword}{    }\{
+00124       eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"LLT is not initialized."});
+00125       \textcolor{keywordflow}{return} Traits::getL(m\_matrix);
+00126     \}
+00127 
+00138     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs>
+00139     \textcolor{keyword}{inline} \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_solve}{Solve<LLT, Rhs>}
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00140}\hyperlink{group___cholesky___module_a3738bb3ce6f9b837a2beb432b937499f}{00140}     \hyperlink{group___cholesky___module_a3738bb3ce6f9b837a2beb432b937499f}{solve}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Rhs>}& b)\textcolor{keyword}{ const}
+00141 \textcolor{keyword}{    }\{
+00142       eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"LLT is not initialized."});
+00143       eigen\_assert(m\_matrix.rows()==b.rows()
+00144                 && \textcolor{stringliteral}{"LLT::solve(): invalid number of rows of the right hand side matrix b"});
+00145       \textcolor{keywordflow}{return} \hyperlink{group___core___module_class_eigen_1_1_solve}{Solve<LLT, Rhs>}(*\textcolor{keyword}{this}, b.derived());
+00146     \}
+00147 
+00148     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00149     \textcolor{keywordtype}{void} solveInPlace(\hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Derived>} &bAndX) \textcolor{keyword}{const};
+00150 
+00151     \textcolor{keyword}{template}<\textcolor{keyword}{typename} InputType>
+00152     \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT}& compute(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<InputType>}& matrix);
+00153 
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00157}\hyperlink{group___cholesky___module_a59338fa78db171d02fd5a2c9e4f3a30c}{00157}     RealScalar \hyperlink{group___cholesky___module_a59338fa78db171d02fd5a2c9e4f3a30c}{rcond}()\textcolor{keyword}{ const}
+00158 \textcolor{keyword}{    }\{
+00159       eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"LLT is not initialized."});
+00160       eigen\_assert(m\_info == \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success} && \textcolor{stringliteral}{"LLT failed because matrix appears to be negative"});
+00161       \textcolor{keywordflow}{return} \hyperlink{namespace_eigen_1_1internal_ad1de0d785387bfb5435c410bf0554068}{internal::rcond\_estimate\_helper}(m\_l1\_norm, *\textcolor{keyword}{this});
+00162     \}
+00163 
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00168}\hyperlink{group___cholesky___module_af62881fc95c7e54a93b63c20f2c62b46}{00168}     \textcolor{keyword}{inline} \textcolor{keyword}{const} MatrixType& \hyperlink{group___cholesky___module_af62881fc95c7e54a93b63c20f2c62b46}{matrixLLT}()\textcolor{keyword}{ const}
+00169 \textcolor{keyword}{    }\{
+00170       eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"LLT is not initialized."});
+00171       \textcolor{keywordflow}{return} m\_matrix;
+00172     \}
+00173 
+00174     MatrixType reconstructedMatrix() \textcolor{keyword}{const};
+00175 
+00176 
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00182}\hyperlink{group___cholesky___module_adb1295e7d2b1fd825a041345ae08be54}{00182}     \hyperlink{group__enums_ga85fad7b87587764e5cf6b513a9e0ee5e}{ComputationInfo} \hyperlink{group___cholesky___module_adb1295e7d2b1fd825a041345ae08be54}{info}()\textcolor{keyword}{ const}
+00183 \textcolor{keyword}{    }\{
+00184       eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"LLT is not initialized."});
+00185       \textcolor{keywordflow}{return} m\_info;
+00186     \}
+00187 
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00193}\hyperlink{group___cholesky___module_a559aba3a7c41f7fc87ec84327bb72ccd}{00193}     \textcolor{keyword}{const} \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT}& \hyperlink{group___cholesky___module_a559aba3a7c41f7fc87ec84327bb72ccd}{adjoint}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} *\textcolor{keyword}{this}; \};
+00194 
+00195     \textcolor{keyword}{inline} Index rows()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix.rows(); \}
+00196     \textcolor{keyword}{inline} Index cols()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix.cols(); \}
+00197 
+00198     \textcolor{keyword}{template}<\textcolor{keyword}{typename} VectorType>
+00199     \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT} rankUpdate(\textcolor{keyword}{const} \hyperlink{struct_vector_type}{VectorType}& vec, \textcolor{keyword}{const} RealScalar& sigma = 1);
+00200 
+00201 \textcolor{preprocessor}{    #ifndef EIGEN\_PARSED\_BY\_DOXYGEN}
+00202     \textcolor{keyword}{template}<\textcolor{keyword}{typename} RhsType, \textcolor{keyword}{typename} DstType>
+00203     EIGEN\_DEVICE\_FUNC
+00204     \textcolor{keywordtype}{void} \_solve\_impl(\textcolor{keyword}{const} RhsType &rhs, DstType &dst) \textcolor{keyword}{const};
+00205 \textcolor{preprocessor}{    #endif}
+00206 
+00207   \textcolor{keyword}{protected}:
+00208 
+00209     \textcolor{keyword}{static} \textcolor{keywordtype}{void} check\_template\_parameters()
+00210     \{
+00211       EIGEN\_STATIC\_ASSERT\_NON\_INTEGER(Scalar);
+00212     \}
+00213 
+00218     MatrixType m\_matrix;
+00219     RealScalar m\_l1\_norm;
+00220     \textcolor{keywordtype}{bool} m\_isInitialized;
+00221     \hyperlink{group__enums_ga85fad7b87587764e5cf6b513a9e0ee5e}{ComputationInfo} m\_info;
+00222 \};
+00223 
+00224 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00225 
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00226}\hyperlink{struct_eigen_1_1internal_1_1llt__inplace}{00226} \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{int} UpLo> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1llt__inplace}{llt\_inplace};
+00227 
+00228 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} VectorType>
+00229 \textcolor{keyword}{static} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} llt\_rank\_update\_lower(MatrixType& mat, \textcolor{keyword}{const} \hyperlink{struct_vector_type}{VectorType}& vec, \textcolor{keyword}{const} \textcolor{keyword}{typename} 
+      MatrixType::RealScalar& sigma)
+00230 \{
+00231   \textcolor{keyword}{using} std::sqrt;
+00232   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00233   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00234   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::ColXpr ColXpr;
+00235   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{internal::remove\_all<ColXpr>::type} ColXprCleaned;
+00236   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ColXprCleaned::SegmentReturnType ColXprSegment;
+00237   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,1>} TempVectorType;
+00238   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} TempVectorType::SegmentReturnType TempVecSegment;
+00239 
+00240   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} n = mat.cols();
+00241   eigen\_assert(mat.rows()==n && vec.size()==n);
+00242 
+00243   TempVectorType temp;
+00244 
+00245   \textcolor{keywordflow}{if}(sigma>0)
+00246   \{
+00247     \textcolor{comment}{// This version is based on Givens rotations.}
+00248     \textcolor{comment}{// It is faster than the other one below, but only works for updates,}
+00249     \textcolor{comment}{// i.e., for sigma > 0}
+00250     temp = sqrt(sigma) * vec;
+00251 
+00252     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=0; i<n; ++i)
+00253     \{
+00254       \hyperlink{group___jacobi___module_class_eigen_1_1_jacobi_rotation}{JacobiRotation<Scalar>} g;
+00255       g.\hyperlink{group___jacobi___module_af73c81e9cc139b7e0d877ce553b02ec0}{makeGivens}(mat(i,i), -temp(i), &mat(i,i));
+00256 
+00257       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rs = n-i-1;
+00258       \textcolor{keywordflow}{if}(rs>0)
+00259       \{
+00260         ColXprSegment x(mat.col(i).tail(rs));
+00261         TempVecSegment y(temp.tail(rs));
+00262         \hyperlink{namespace_eigen_1_1internal_a5f7738a5c56c9b9decf94d9728ba7906}{apply\_rotation\_in\_the\_plane}(x, y, g);
+00263       \}
+00264     \}
+00265   \}
+00266   \textcolor{keywordflow}{else}
+00267   \{
+00268     temp = vec;
+00269     RealScalar beta = 1;
+00270     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j=0; j<n; ++j)
+00271     \{
+00272       RealScalar Ljj = numext::real(mat.coeff(j,j));
+00273       RealScalar dj = numext::abs2(Ljj);
+00274       Scalar wj = temp.coeff(j);
+00275       RealScalar swj2 = sigma*numext::abs2(wj);
+00276       RealScalar gamma = dj*beta + swj2;
+00277 
+00278       RealScalar x = dj + swj2/beta;
+00279       \textcolor{keywordflow}{if} (x<=RealScalar(0))
+00280         \textcolor{keywordflow}{return} j;
+00281       RealScalar nLjj = sqrt(x);
+00282       mat.coeffRef(j,j) = nLjj;
+00283       beta += swj2/dj;
+00284 
+00285       \textcolor{comment}{// Update the terms of L}
+00286       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rs = n-j-1;
+00287       \textcolor{keywordflow}{if}(rs)
+00288       \{
+00289         temp.tail(rs) -= (wj/Ljj) * mat.col(j).tail(rs);
+00290         \textcolor{keywordflow}{if}(gamma != 0)
+00291           mat.col(j).tail(rs) = (nLjj/Ljj) * mat.col(j).tail(rs) + (nLjj * sigma*numext::conj(wj)/gamma)*
+      temp.tail(rs);
+00292       \}
+00293     \}
+00294   \}
+00295   \textcolor{keywordflow}{return} -1;
+00296 \}
+00297 
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00298}\hyperlink{struct_eigen_1_1internal_1_1llt__inplace_3_01_scalar_00_01_lower_01_4}{00298} \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1llt__inplace}{llt\_inplace}<Scalar, \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>
+00299 \{
+00300   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00301   \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00302   \textcolor{keyword}{static} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} unblocked(MatrixType& mat)
+00303   \{
+00304     \textcolor{keyword}{using} std::sqrt;
+00305 
+00306     eigen\_assert(mat.rows()==mat.cols());
+00307     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = mat.rows();
+00308     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k = 0; k < size; ++k)
+00309     \{
+00310       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rs = size-k-1; \textcolor{comment}{// remaining size}
+00311 
+00312       \hyperlink{group___core___module_class_eigen_1_1_block}{Block<MatrixType,Dynamic,1>} A21(mat,k+1,k,rs,1);
+00313       \hyperlink{group___core___module_class_eigen_1_1_block}{Block<MatrixType,1,Dynamic>} A10(mat,k,0,1,k);
+00314       \hyperlink{group___core___module_class_eigen_1_1_block}{Block<MatrixType,Dynamic,Dynamic>} A20(mat,k+1,0,rs,k);
+00315 
+00316       RealScalar x = numext::real(mat.coeff(k,k));
+00317       \textcolor{keywordflow}{if} (k>0) x -= A10.squaredNorm();
+00318       \textcolor{keywordflow}{if} (x<=RealScalar(0))
+00319         \textcolor{keywordflow}{return} k;
+00320       mat.coeffRef(k,k) = x = sqrt(x);
+00321       \textcolor{keywordflow}{if} (k>0 && rs>0) A21.noalias() -= A20 * A10.adjoint();
+00322       \textcolor{keywordflow}{if} (rs>0) A21 /= x;
+00323     \}
+00324     \textcolor{keywordflow}{return} -1;
+00325   \}
+00326 
+00327   \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00328   \textcolor{keyword}{static} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} blocked(MatrixType& m)
+00329   \{
+00330     eigen\_assert(m.rows()==m.cols());
+00331     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = m.rows();
+00332     \textcolor{keywordflow}{if}(size<32)
+00333       \textcolor{keywordflow}{return} unblocked(m);
+00334 
+00335     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} blockSize = size/8;
+00336     blockSize = (blockSize/16)*16;
+00337     blockSize = (std::min)((std::max)(blockSize,\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(8)), \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(128));
+00338 
+00339     \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=0; k<size; k+=blockSize)
+00340     \{
+00341       \textcolor{comment}{// partition the matrix:}
+00342       \textcolor{comment}{//       A00 |  -  |  -}
+00343       \textcolor{comment}{// lu  = A10 | A11 |  -}
+00344       \textcolor{comment}{//       A20 | A21 | A22}
+00345       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} bs = (std::min)(blockSize, size-k);
+00346       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rs = size - k - bs;
+00347       \hyperlink{group___core___module_class_eigen_1_1_block}{Block<MatrixType,Dynamic,Dynamic>} A11(m,k,   k,   bs,bs);
+00348       \hyperlink{group___core___module_class_eigen_1_1_block}{Block<MatrixType,Dynamic,Dynamic>} A21(m,k+bs,k,   rs,bs);
+00349       \hyperlink{group___core___module_class_eigen_1_1_block}{Block<MatrixType,Dynamic,Dynamic>} A22(m,k+bs,k+bs,rs,rs);
+00350 
+00351       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} ret;
+00352       \textcolor{keywordflow}{if}((ret=unblocked(A11))>=0) \textcolor{keywordflow}{return} k+ret;
+00353       \textcolor{keywordflow}{if}(rs>0) A11.adjoint().template triangularView<Upper>().\textcolor{keyword}{template} solveInPlace<OnTheRight>(A21);
+00354       \textcolor{keywordflow}{if}(rs>0) A22.template selfadjointView<Lower>().rankUpdate(A21,\textcolor{keyword}{typename} 
+      \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<RealScalar>::Literal}(-1)); \textcolor{comment}{// bottleneck}
+00355     \}
+00356     \textcolor{keywordflow}{return} -1;
+00357   \}
+00358 
+00359   \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} VectorType>
+00360   \textcolor{keyword}{static} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rankUpdate(MatrixType& mat, \textcolor{keyword}{const} \hyperlink{struct_vector_type}{VectorType}& vec, \textcolor{keyword}{const} RealScalar& sigma)
+00361   \{
+00362     \textcolor{keywordflow}{return} Eigen::internal::llt\_rank\_update\_lower(mat, vec, sigma);
+00363   \}
+00364 \};
+00365 
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00366}\hyperlink{struct_eigen_1_1internal_1_1llt__inplace_3_01_scalar_00_01_upper_01_4}{00366} \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1llt__inplace}{llt\_inplace}<Scalar, \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>
+00367 \{
+00368   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00369 
+00370   \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00371   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} unblocked(MatrixType& mat)
+00372   \{
+00373     \hyperlink{group___core___module_class_eigen_1_1_transpose}{Transpose<MatrixType>} matt(mat);
+00374     \textcolor{keywordflow}{return} \hyperlink{struct_eigen_1_1internal_1_1llt__inplace}{llt\_inplace<Scalar, Lower>::unblocked}(matt);
+00375   \}
+00376   \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00377   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} blocked(MatrixType& mat)
+00378   \{
+00379     \hyperlink{group___core___module_class_eigen_1_1_transpose}{Transpose<MatrixType>} matt(mat);
+00380     \textcolor{keywordflow}{return} \hyperlink{struct_eigen_1_1internal_1_1llt__inplace}{llt\_inplace<Scalar, Lower>::blocked}(matt);
+00381   \}
+00382   \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} VectorType>
+00383   \textcolor{keyword}{static} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rankUpdate(MatrixType& mat, \textcolor{keyword}{const} \hyperlink{struct_vector_type}{VectorType}& vec, \textcolor{keyword}{const} RealScalar& sigma)
+00384   \{
+00385     \hyperlink{group___core___module_class_eigen_1_1_transpose}{Transpose<MatrixType>} matt(mat);
+00386     \textcolor{keywordflow}{return} \hyperlink{struct_eigen_1_1internal_1_1llt__inplace}{llt\_inplace<Scalar, Lower>::rankUpdate}(matt, vec.conjugate
+      (), sigma);
+00387   \}
+00388 \};
+00389 
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00390}\hyperlink{struct_eigen_1_1internal_1_1_l_l_t___traits_3_01_matrix_type_00_01_lower_01_4}{00390} \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1_l_l_t___traits}{LLT\_Traits}<MatrixType,\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>
+00391 \{
+00392   \textcolor{keyword}{typedef} \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView<const MatrixType, Lower>} 
+      \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{MatrixL};
+00393   \textcolor{keyword}{typedef} \textcolor{keyword}{const} 
+      \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView<const typename MatrixType::AdjointReturnType, Upper>}
+       \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{MatrixU};
+00394   \textcolor{keyword}{static} \textcolor{keyword}{inline} MatrixL getL(\textcolor{keyword}{const} MatrixType& m) \{ \textcolor{keywordflow}{return} MatrixL(m); \}
+00395   \textcolor{keyword}{static} \textcolor{keyword}{inline} MatrixU getU(\textcolor{keyword}{const} MatrixType& m) \{ \textcolor{keywordflow}{return} MatrixU(m.adjoint()); \}
+00396   \textcolor{keyword}{static} \textcolor{keywordtype}{bool} inplace\_decomposition(MatrixType& m)
+00397   \{ \textcolor{keywordflow}{return} \hyperlink{struct_eigen_1_1internal_1_1llt__inplace}{llt\_inplace<typename MatrixType::Scalar, Lower>::blocked}
+      (m)==-1; \}
+00398 \};
+00399 
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00400}\hyperlink{struct_eigen_1_1internal_1_1_l_l_t___traits_3_01_matrix_type_00_01_upper_01_4}{00400} \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1_l_l_t___traits}{LLT\_Traits}<MatrixType,\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>
+00401 \{
+00402   \textcolor{keyword}{typedef} \textcolor{keyword}{const} 
+      \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView<const typename MatrixType::AdjointReturnType, Lower>}
+       \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{MatrixL};
+00403   \textcolor{keyword}{typedef} \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView<const MatrixType, Upper>} 
+      \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{MatrixU};
+00404   \textcolor{keyword}{static} \textcolor{keyword}{inline} MatrixL getL(\textcolor{keyword}{const} MatrixType& m) \{ \textcolor{keywordflow}{return} MatrixL(m.adjoint()); \}
+00405   \textcolor{keyword}{static} \textcolor{keyword}{inline} MatrixU getU(\textcolor{keyword}{const} MatrixType& m) \{ \textcolor{keywordflow}{return} MatrixU(m); \}
+00406   \textcolor{keyword}{static} \textcolor{keywordtype}{bool} inplace\_decomposition(MatrixType& m)
+00407   \{ \textcolor{keywordflow}{return} \hyperlink{struct_eigen_1_1internal_1_1llt__inplace}{llt\_inplace<typename MatrixType::Scalar, Upper>::blocked}
+      (m)==-1; \}
+00408 \};
+00409 
+00410 \} \textcolor{comment}{// end namespace internal}
+00411 
+00419 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keywordtype}{int} \_UpLo>
+00420 \textcolor{keyword}{template}<\textcolor{keyword}{typename} InputType>
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00421}\hyperlink{group___cholesky___module_a2cd165423fe8e1d71066c97bcb488fab}{00421} \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT<MatrixType,\_UpLo>}& \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT<MatrixType,\_UpLo>::compute}(\textcolor{keyword}{
+      const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<InputType>}& a)
+00422 \{
+00423   check\_template\_parameters();
+00424 
+00425   eigen\_assert(a.\hyperlink{group___core___module_a8141320ba8df384426c298b32b000d8e}{rows}()==a.\hyperlink{group___core___module_a7b0b45c7351847696c911ce8aa2abbdb}{cols}());
+00426   \textcolor{keyword}{const} \hyperlink{group___cholesky___module_ac7a64274814fa76e8b1e9e945546037f}{Index} size = a.\hyperlink{group___core___module_a8141320ba8df384426c298b32b000d8e}{rows}();
+00427   m\_matrix.resize(size, size);
+00428   m\_matrix = a.\hyperlink{group___core___module_a324b16961a11d2ecfd2d1b7dd7946545}{derived}();
+00429 
+00430   \textcolor{comment}{// Compute matrix L1 norm = max abs column sum.}
+00431   m\_l1\_norm = RealScalar(0);
+00432   \textcolor{comment}{// TODO move this code to SelfAdjointView}
+00433   \textcolor{keywordflow}{for} (\hyperlink{group___cholesky___module_ac7a64274814fa76e8b1e9e945546037f}{Index} col = 0; col < size; ++col) \{
+00434     RealScalar abs\_col\_sum;
+00435     \textcolor{keywordflow}{if} (\_UpLo == \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower})
+00436       abs\_col\_sum = m\_matrix.col(col).tail(size - col).template lpNorm<1>() + m\_matrix.row(col).head(col).
+      template lpNorm<1>();
+00437     \textcolor{keywordflow}{else}
+00438       abs\_col\_sum = m\_matrix.col(col).head(col).template lpNorm<1>() + m\_matrix.row(col).tail(size - col).
+      template lpNorm<1>();
+00439     \textcolor{keywordflow}{if} (abs\_col\_sum > m\_l1\_norm)
+00440       m\_l1\_norm = abs\_col\_sum;
+00441   \}
+00442 
+00443   m\_isInitialized = \textcolor{keyword}{true};
+00444   \textcolor{keywordtype}{bool} ok = Traits::inplace\_decomposition(m\_matrix);
+00445   m\_info = ok ? \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success} : \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaaf9b736d310a664e7729d163a035cc5f}{NumericalIssue};
+00446 
+00447   \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00448 \}
+00449 
+00455 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{int} \_UpLo>
+00456 \textcolor{keyword}{template}<\textcolor{keyword}{typename} VectorType>
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00457}\hyperlink{group___cholesky___module_ac70d4de31a3626c76c6ea3833af5fa6f}{00457} \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT<\_MatrixType,\_UpLo>} \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT<\_MatrixType,\_UpLo>::rankUpdate}
+      (\textcolor{keyword}{const} \hyperlink{struct_vector_type}{VectorType}& v, \textcolor{keyword}{const} RealScalar& sigma)
+00458 \{
+00459   EIGEN\_STATIC\_ASSERT\_VECTOR\_ONLY(\hyperlink{struct_vector_type}{VectorType});
+00460   eigen\_assert(v.size()==m\_matrix.cols());
+00461   eigen\_assert(m\_isInitialized);
+00462   \textcolor{keywordflow}{if}(\hyperlink{struct_eigen_1_1internal_1_1llt__inplace}{internal::llt\_inplace<typename MatrixType::Scalar, UpLo>::rankUpdate}
+      (m\_matrix,v,sigma)>=0)
+00463     m\_info = \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaaf9b736d310a664e7729d163a035cc5f}{NumericalIssue};
+00464   \textcolor{keywordflow}{else}
+00465     m\_info = \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success};
+00466 
+00467   \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00468 \}
+00469 
+00470 \textcolor{preprocessor}{#ifndef EIGEN\_PARSED\_BY\_DOXYGEN}
+00471 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType,\textcolor{keywordtype}{int} \_UpLo>
+00472 \textcolor{keyword}{template}<\textcolor{keyword}{typename} RhsType, \textcolor{keyword}{typename} DstType>
+00473 \textcolor{keywordtype}{void} \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT<\_MatrixType,\_UpLo>::\_solve\_impl}(\textcolor{keyword}{const} RhsType &rhs, DstType &
+      dst)\textcolor{keyword}{ const}
+00474 \textcolor{keyword}{}\{
+00475   dst = rhs;
+00476   solveInPlace(dst);
+00477 \}
+00478 \textcolor{preprocessor}{#endif}
+00479 
+00490 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keywordtype}{int} \_UpLo>
+00491 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00492 \textcolor{keywordtype}{void} \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT<MatrixType,\_UpLo>::solveInPlace}(
+      \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Derived>} &bAndX)\textcolor{keyword}{ const}
+00493 \textcolor{keyword}{}\{
+00494   eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"LLT is not initialized."});
+00495   eigen\_assert(m\_matrix.rows()==bAndX.rows());
+00496   matrixL().solveInPlace(bAndX);
+00497   matrixU().solveInPlace(bAndX);
+00498 \}
+00499 
+00503 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keywordtype}{int} \_UpLo>
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00504}\hyperlink{group___cholesky___module_a8b6ba1bc41811c50e65cac8db597d802}{00504} MatrixType \hyperlink{group___cholesky___module_a8b6ba1bc41811c50e65cac8db597d802}{LLT<MatrixType,\_UpLo>::reconstructedMatrix}()\textcolor{keyword}{ const}
+00505 \textcolor{keyword}{}\{
+00506   eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"LLT is not initialized."});
+00507   \textcolor{keywordflow}{return} matrixL() * matrixL().adjoint().toDenseMatrix();
+00508 \}
+00509 
+00514 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00515 \textcolor{keyword}{inline} \textcolor{keyword}{const} \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT<typename MatrixBase<Derived>::PlainObject}>
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00516}\hyperlink{group___core___module_a90c45f7a30265df792d5aeaddead2635}{00516} \hyperlink{group___core___module_a90c45f7a30265df792d5aeaddead2635}{MatrixBase<Derived>::llt}()\textcolor{keyword}{ const}
+00517 \textcolor{keyword}{}\{
+00518   \textcolor{keywordflow}{return} \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT<PlainObject>}(derived());
+00519 \}
+00520 
+00525 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} UpLo>
+00526 \textcolor{keyword}{inline} \textcolor{keyword}{const} \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT<typename SelfAdjointView<MatrixType, UpLo>::PlainObject}
+      , UpLo>
+\Hypertarget{eigen_2_eigen_2src_2_cholesky_2_l_l_t_8h_source_l00527}\hyperlink{group___core___module_a405e810491642a7f7b785f2ad6f93619}{00527} \hyperlink{group___core___module_a405e810491642a7f7b785f2ad6f93619}{SelfAdjointView<MatrixType, UpLo>::llt}()\textcolor{keyword}{ const}
+00528 \textcolor{keyword}{}\{
+00529   \textcolor{keywordflow}{return} \hyperlink{group___cholesky___module_class_eigen_1_1_l_l_t}{LLT<PlainObject,UpLo>}(m\_matrix);
+00530 \}
+00531 
+00532 \} \textcolor{comment}{// end namespace Eigen}
+00533 
+00534 \textcolor{preprocessor}{#endif // EIGEN\_LLT\_H}
+\end{DoxyCode}

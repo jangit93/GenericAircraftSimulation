@@ -1,0 +1,2141 @@
+\hypertarget{visual__studio_2zlib_2contrib_2minizip_2unzip_8c_source}{}\section{visual\+\_\+studio/zlib/contrib/minizip/unzip.c}
+\label{visual__studio_2zlib_2contrib_2minizip_2unzip_8c_source}\index{unzip.\+c@{unzip.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* unzip.c -- IO for uncompress .zip files using zlib}
+00002 \textcolor{comment}{   Version 1.1, February 14h, 2010}
+00003 \textcolor{comment}{   part of the MiniZip project - ( http://www.winimage.com/zLibDll/minizip.html )}
+00004 \textcolor{comment}{}
+00005 \textcolor{comment}{         Copyright (C) 1998-2010 Gilles Vollant (minizip) ( http://www.winimage.com/zLibDll/minizip.html )}
+00006 \textcolor{comment}{}
+00007 \textcolor{comment}{         Modifications of Unzip for Zip64}
+00008 \textcolor{comment}{         Copyright (C) 2007-2008 Even Rouault}
+00009 \textcolor{comment}{}
+00010 \textcolor{comment}{         Modifications for Zip64 support on both zip and unzip}
+00011 \textcolor{comment}{         Copyright (C) 2009-2010 Mathias Svensson ( http://result42.com )}
+00012 \textcolor{comment}{}
+00013 \textcolor{comment}{         For more info read MiniZip\_info.txt}
+00014 \textcolor{comment}{}
+00015 \textcolor{comment}{}
+00016 \textcolor{comment}{  ------------------------------------------------------------------------------------}
+00017 \textcolor{comment}{  Decryption code comes from crypt.c by Info-ZIP but has been greatly reduced in terms of}
+00018 \textcolor{comment}{  compatibility with older software. The following is from the original crypt.c.}
+00019 \textcolor{comment}{  Code woven in by Terry Thorsen 1/2003.}
+00020 \textcolor{comment}{}
+00021 \textcolor{comment}{  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.}
+00022 \textcolor{comment}{}
+00023 \textcolor{comment}{  See the accompanying file LICENSE, version 2000-Apr-09 or later}
+00024 \textcolor{comment}{  (the contents of which are also included in zip.h) for terms of use.}
+00025 \textcolor{comment}{  If, for some reason, all these files are missing, the Info-ZIP license}
+00026 \textcolor{comment}{  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html}
+00027 \textcolor{comment}{}
+00028 \textcolor{comment}{        crypt.c (full version) by Info-ZIP.      Last revised:  [see crypt.h]}
+00029 \textcolor{comment}{}
+00030 \textcolor{comment}{  The encryption/decryption parts of this source code (as opposed to the}
+00031 \textcolor{comment}{  non-echoing password parts) were originally written in Europe.  The}
+00032 \textcolor{comment}{  whole source package can be freely distributed, including from the USA.}
+00033 \textcolor{comment}{  (Prior to January 2000, re-export from the US was a violation of US law.)}
+00034 \textcolor{comment}{}
+00035 \textcolor{comment}{        This encryption code is a direct transcription of the algorithm from}
+00036 \textcolor{comment}{  Roger Schlafly, described by Phil Katz in the file appnote.txt.  This}
+00037 \textcolor{comment}{  file (appnote.txt) is distributed with the PKZIP program (even in the}
+00038 \textcolor{comment}{  version without encryption capabilities).}
+00039 \textcolor{comment}{}
+00040 \textcolor{comment}{        ------------------------------------------------------------------------------------}
+00041 \textcolor{comment}{}
+00042 \textcolor{comment}{        Changes in unzip.c}
+00043 \textcolor{comment}{}
+00044 \textcolor{comment}{        2007-2008 - Even Rouault - Addition of cpl\_unzGetCurrentFileZStreamPos}
+00045 \textcolor{comment}{  2007-2008 - Even Rouault - Decoration of symbol names unz* -> cpl\_unz*}
+00046 \textcolor{comment}{  2007-2008 - Even Rouault - Remove old C style function prototypes}
+00047 \textcolor{comment}{  2007-2008 - Even Rouault - Add unzip support for ZIP64}
+00048 \textcolor{comment}{}
+00049 \textcolor{comment}{        Copyright (C) 2007-2008 Even Rouault}
+00050 \textcolor{comment}{}
+00051 \textcolor{comment}{}
+00052 \textcolor{comment}{        Oct-2009 - Mathias Svensson - Removed cpl\_* from symbol names (Even Rouault added them but since
+       this is now moved to a new project (minizip64) I renamed them again).}
+00053 \textcolor{comment}{  Oct-2009 - Mathias Svensson - Fixed problem if uncompressed size was > 4G and compressed size was <4G}
+00054 \textcolor{comment}{                                should only read the compressed/uncompressed size from the Zip64 format if}
+00055 \textcolor{comment}{                                the size from normal header was 0xFFFFFFFF}
+00056 \textcolor{comment}{  Oct-2009 - Mathias Svensson - Applied some bug fixes from paches recived from Gilles Vollant}
+00057 \textcolor{comment}{        Oct-2009 - Mathias Svensson - Applied support to unzip files with compression mathod BZIP2 (bzip2
+       lib is required)}
+00058 \textcolor{comment}{                                Patch created by Daniel Borca}
+00059 \textcolor{comment}{}
+00060 \textcolor{comment}{  Jan-2010 - back to unzip and minizip 1.0 name scheme, with compatibility layer}
+00061 \textcolor{comment}{}
+00062 \textcolor{comment}{  Copyright (C) 1998 - 2010 Gilles Vollant, Even Rouault, Mathias Svensson}
+00063 \textcolor{comment}{}
+00064 \textcolor{comment}{*/}
+00065 
+00066 
+00067 \textcolor{preprocessor}{#include <stdio.h>}
+00068 \textcolor{preprocessor}{#include <stdlib.h>}
+00069 \textcolor{preprocessor}{#include <string.h>}
+00070 
+00071 \textcolor{preprocessor}{#ifndef NOUNCRYPT}
+00072 \textcolor{preprocessor}{        #define NOUNCRYPT}
+00073 \textcolor{preprocessor}{#endif}
+00074 
+00075 \textcolor{preprocessor}{#include "zlib.h"}
+00076 \textcolor{preprocessor}{#include "unzip.h"}
+00077 
+00078 \textcolor{preprocessor}{#ifdef STDC}
+00079 \textcolor{preprocessor}{#  include <stddef.h>}
+00080 \textcolor{preprocessor}{#  include <string.h>}
+00081 \textcolor{preprocessor}{#  include <stdlib.h>}
+00082 \textcolor{preprocessor}{#endif}
+00083 \textcolor{preprocessor}{#ifdef NO\_ERRNO\_H}
+00084     \textcolor{keyword}{extern} \textcolor{keywordtype}{int} errno;
+00085 \textcolor{preprocessor}{#else}
+00086 \textcolor{preprocessor}{#   include <errno.h>}
+00087 \textcolor{preprocessor}{#endif}
+00088 
+00089 
+00090 \textcolor{preprocessor}{#ifndef local}
+00091 \textcolor{preprocessor}{#  define local static}
+00092 \textcolor{preprocessor}{#endif}
+00093 \textcolor{comment}{/* compile with -Dlocal if your debugger can't find static symbols */}
+00094 
+00095 
+00096 \textcolor{preprocessor}{#ifndef CASESENSITIVITYDEFAULT\_NO}
+00097 \textcolor{preprocessor}{#  if !defined(unix) && !defined(CASESENSITIVITYDEFAULT\_YES)}
+00098 \textcolor{preprocessor}{#    define CASESENSITIVITYDEFAULT\_NO}
+00099 \textcolor{preprocessor}{#  endif}
+00100 \textcolor{preprocessor}{#endif}
+00101 
+00102 
+00103 \textcolor{preprocessor}{#ifndef UNZ\_BUFSIZE}
+00104 \textcolor{preprocessor}{#define UNZ\_BUFSIZE (16384)}
+00105 \textcolor{preprocessor}{#endif}
+00106 
+00107 \textcolor{preprocessor}{#ifndef UNZ\_MAXFILENAMEINZIP}
+00108 \textcolor{preprocessor}{#define UNZ\_MAXFILENAMEINZIP (256)}
+00109 \textcolor{preprocessor}{#endif}
+00110 
+00111 \textcolor{preprocessor}{#ifndef ALLOC}
+00112 \textcolor{preprocessor}{# define ALLOC(size) (malloc(size))}
+00113 \textcolor{preprocessor}{#endif}
+00114 \textcolor{preprocessor}{#ifndef TRYFREE}
+00115 \textcolor{preprocessor}{# define TRYFREE(p) \{if (p) free(p);\}}
+00116 \textcolor{preprocessor}{#endif}
+00117 
+00118 \textcolor{preprocessor}{#define SIZECENTRALDIRITEM (0x2e)}
+00119 \textcolor{preprocessor}{#define SIZEZIPLOCALHEADER (0x1e)}
+00120 
+00121 
+00122 \textcolor{keyword}{const} \textcolor{keywordtype}{char} unz\_copyright[] =
+00123    \textcolor{stringliteral}{" unzip 1.01 Copyright 1998-2004 Gilles Vollant - http://www.winimage.com/zLibDll"};
+00124 
+00125 \textcolor{comment}{/* unz\_file\_info\_interntal contain internal info about a file in zipfile*/}
+\Hypertarget{visual__studio_2zlib_2contrib_2minizip_2unzip_8c_source_l00126}\hyperlink{structunz__file__info64__internal__s}{00126} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structunz__file__info64__internal__s}{unz\_file\_info64\_internal\_s}
+00127 \{
+00128     ZPOS64\_T offset\_curfile;\textcolor{comment}{/* relative offset of local header 8 bytes */}
+00129 \} \hyperlink{structunz__file__info64__internal__s}{unz\_file\_info64\_internal};
+00130 
+00131 
+00132 \textcolor{comment}{/* file\_in\_zip\_read\_info\_s contain internal information about a file in zipfile,}
+00133 \textcolor{comment}{    when reading and decompress it */}
+\Hypertarget{visual__studio_2zlib_2contrib_2minizip_2unzip_8c_source_l00134}\hyperlink{structfile__in__zip64__read__info__s}{00134} \textcolor{keyword}{typedef} \textcolor{keyword}{struct}
+00135 \{
+00136     \textcolor{keywordtype}{char}  *read\_buffer;         \textcolor{comment}{/* internal buffer for compressed data */}
+00137     \hyperlink{structz__stream__s}{z\_stream} stream;            \textcolor{comment}{/* zLib stream structure for inflate */}
+00138 
+00139 \textcolor{preprocessor}{#ifdef HAVE\_BZIP2}
+00140     bz\_stream bstream;          \textcolor{comment}{/* bzLib stream structure for bziped */}
+00141 \textcolor{preprocessor}{#endif}
+00142 
+00143     ZPOS64\_T pos\_in\_zipfile;       \textcolor{comment}{/* position in byte on the zipfile, for fseek*/}
+00144     uLong stream\_initialised;   \textcolor{comment}{/* flag set if stream structure is initialised*/}
+00145 
+00146     ZPOS64\_T offset\_local\_extrafield;\textcolor{comment}{/* offset of the local extra field */}
+00147     uInt  size\_local\_extrafield;\textcolor{comment}{/* size of the local extra field */}
+00148     ZPOS64\_T pos\_local\_extrafield;   \textcolor{comment}{/* position in the local extra field in read*/}
+00149     ZPOS64\_T total\_out\_64;
+00150 
+00151     uLong crc32;                \textcolor{comment}{/* crc32 of all data uncompressed */}
+00152     uLong crc32\_wait;           \textcolor{comment}{/* crc32 we must obtain after decompress all */}
+00153     ZPOS64\_T rest\_read\_compressed; \textcolor{comment}{/* number of byte to be decompressed */}
+00154     ZPOS64\_T rest\_read\_uncompressed;\textcolor{comment}{/*number of byte to be obtained after decomp*/}
+00155     \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def} z\_filefunc;
+00156     voidpf filestream;        \textcolor{comment}{/* io structore of the zipfile */}
+00157     uLong compression\_method;   \textcolor{comment}{/* compression method (0==store) */}
+00158     ZPOS64\_T byte\_before\_the\_zipfile;\textcolor{comment}{/* byte before the zipfile, (>0 for sfx)*/}
+00159     \textcolor{keywordtype}{int}   raw;
+00160 \} \hyperlink{structfile__in__zip64__read__info__s}{file\_in\_zip64\_read\_info\_s};
+00161 
+00162 
+00163 \textcolor{comment}{/* unz64\_s contain internal information about the zipfile}
+00164 \textcolor{comment}{*/}
+\Hypertarget{visual__studio_2zlib_2contrib_2minizip_2unzip_8c_source_l00165}\hyperlink{structunz64__s}{00165} \textcolor{keyword}{typedef} \textcolor{keyword}{struct}
+00166 \{
+00167     \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def} z\_filefunc;
+00168     \textcolor{keywordtype}{int} is64bitOpenFunction;
+00169     voidpf filestream;        \textcolor{comment}{/* io structore of the zipfile */}
+00170     \hyperlink{structunz__global__info64__s}{unz\_global\_info64} gi;       \textcolor{comment}{/* public global information */}
+00171     ZPOS64\_T byte\_before\_the\_zipfile;\textcolor{comment}{/* byte before the zipfile, (>0 for sfx)*/}
+00172     ZPOS64\_T num\_file;             \textcolor{comment}{/* number of the current file in the zipfile*/}
+00173     ZPOS64\_T pos\_in\_central\_dir;   \textcolor{comment}{/* pos of the current file in the central dir*/}
+00174     ZPOS64\_T current\_file\_ok;      \textcolor{comment}{/* flag about the usability of the current file*/}
+00175     ZPOS64\_T central\_pos;          \textcolor{comment}{/* position of the beginning of the central dir*/}
+00176 
+00177     ZPOS64\_T size\_central\_dir;     \textcolor{comment}{/* size of the central directory  */}
+00178     ZPOS64\_T offset\_central\_dir;   \textcolor{comment}{/* offset of start of central directory with}
+00179 \textcolor{comment}{                                   respect to the starting disk number */}
+00180 
+00181     \hyperlink{structunz__file__info64__s}{unz\_file\_info64} cur\_file\_info; \textcolor{comment}{/* public info about the current file in zip*/}
+00182     \hyperlink{structunz__file__info64__internal__s}{unz\_file\_info64\_internal} cur\_file\_info\_internal; \textcolor{comment}{/* private info about it*/}
+00183     \hyperlink{structfile__in__zip64__read__info__s}{file\_in\_zip64\_read\_info\_s}* pfile\_in\_zip\_read; \textcolor{comment}{/* structure about the current}
+00184 \textcolor{comment}{                                        file if we are decompressing it */}
+00185     \textcolor{keywordtype}{int} encrypted;
+00186 
+00187     \textcolor{keywordtype}{int} isZip64;
+00188 
+00189 \textcolor{preprocessor}{#    ifndef NOUNCRYPT}
+00190     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} keys[3];     \textcolor{comment}{/* keys defining the pseudo-random sequence */}
+00191     \textcolor{keyword}{const} z\_crc\_t* pcrc\_32\_tab;
+00192 \textcolor{preprocessor}{#    endif}
+00193 \} \hyperlink{structunz64__s}{unz64\_s};
+00194 
+00195 
+00196 \textcolor{preprocessor}{#ifndef NOUNCRYPT}
+00197 \textcolor{preprocessor}{#include "crypt.h"}
+00198 \textcolor{preprocessor}{#endif}
+00199 
+00200 \textcolor{comment}{/* ===========================================================================}
+00201 \textcolor{comment}{     Read a byte from a gz\_stream; update next\_in and avail\_in. Return EOF}
+00202 \textcolor{comment}{   for end of file.}
+00203 \textcolor{comment}{   IN assertion: the stream s has been successfully opened for reading.}
+00204 \textcolor{comment}{*/}
+00205 
+00206 
+00207 local \textcolor{keywordtype}{int} unz64local\_getByte OF((
+00208     \textcolor{keyword}{const} \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* pzlib\_filefunc\_def,
+00209     voidpf filestream,
+00210     \textcolor{keywordtype}{int} *pi));
+00211 
+00212 local \textcolor{keywordtype}{int} unz64local\_getByte(\textcolor{keyword}{const} \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* pzlib\_filefunc\_def, voidpf
+       filestream, \textcolor{keywordtype}{int} *pi)
+00213 \{
+00214     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} c;
+00215     \textcolor{keywordtype}{int} err = (int)ZREAD64(*pzlib\_filefunc\_def,filestream,&c,1);
+00216     \textcolor{keywordflow}{if} (err==1)
+00217     \{
+00218         *pi = (int)c;
+00219         \textcolor{keywordflow}{return} UNZ\_OK;
+00220     \}
+00221     \textcolor{keywordflow}{else}
+00222     \{
+00223         \textcolor{keywordflow}{if} (ZERROR64(*pzlib\_filefunc\_def,filestream))
+00224             \textcolor{keywordflow}{return} UNZ\_ERRNO;
+00225         \textcolor{keywordflow}{else}
+00226             \textcolor{keywordflow}{return} UNZ\_EOF;
+00227     \}
+00228 \}
+00229 
+00230 
+00231 \textcolor{comment}{/* ===========================================================================}
+00232 \textcolor{comment}{   Reads a long in LSB order from the given gz\_stream. Sets}
+00233 \textcolor{comment}{*/}
+00234 local \textcolor{keywordtype}{int} unz64local\_getShort OF((
+00235     \textcolor{keyword}{const} \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* pzlib\_filefunc\_def,
+00236     voidpf filestream,
+00237     uLong *pX));
+00238 
+00239 local \textcolor{keywordtype}{int} unz64local\_getShort (\textcolor{keyword}{const} \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* pzlib\_filefunc\_def,
+00240                              voidpf filestream,
+00241                              uLong *pX)
+00242 \{
+00243     uLong x ;
+00244     \textcolor{keywordtype}{int} i = 0;
+00245     \textcolor{keywordtype}{int} err;
+00246 
+00247     err = unz64local\_getByte(pzlib\_filefunc\_def,filestream,&i);
+00248     x = (uLong)i;
+00249 
+00250     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+00251         err = unz64local\_getByte(pzlib\_filefunc\_def,filestream,&i);
+00252     x |= ((uLong)i)<<8;
+00253 
+00254     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+00255         *pX = x;
+00256     \textcolor{keywordflow}{else}
+00257         *pX = 0;
+00258     \textcolor{keywordflow}{return} err;
+00259 \}
+00260 
+00261 local \textcolor{keywordtype}{int} unz64local\_getLong OF((
+00262     \textcolor{keyword}{const} \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* pzlib\_filefunc\_def,
+00263     voidpf filestream,
+00264     uLong *pX));
+00265 
+00266 local \textcolor{keywordtype}{int} unz64local\_getLong (\textcolor{keyword}{const} \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* pzlib\_filefunc\_def,
+00267                             voidpf filestream,
+00268                             uLong *pX)
+00269 \{
+00270     uLong x ;
+00271     \textcolor{keywordtype}{int} i = 0;
+00272     \textcolor{keywordtype}{int} err;
+00273 
+00274     err = unz64local\_getByte(pzlib\_filefunc\_def,filestream,&i);
+00275     x = (uLong)i;
+00276 
+00277     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+00278         err = unz64local\_getByte(pzlib\_filefunc\_def,filestream,&i);
+00279     x |= ((uLong)i)<<8;
+00280 
+00281     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+00282         err = unz64local\_getByte(pzlib\_filefunc\_def,filestream,&i);
+00283     x |= ((uLong)i)<<16;
+00284 
+00285     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+00286         err = unz64local\_getByte(pzlib\_filefunc\_def,filestream,&i);
+00287     x += ((uLong)i)<<24;
+00288 
+00289     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+00290         *pX = x;
+00291     \textcolor{keywordflow}{else}
+00292         *pX = 0;
+00293     \textcolor{keywordflow}{return} err;
+00294 \}
+00295 
+00296 local \textcolor{keywordtype}{int} unz64local\_getLong64 OF((
+00297     \textcolor{keyword}{const} \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* pzlib\_filefunc\_def,
+00298     voidpf filestream,
+00299     ZPOS64\_T *pX));
+00300 
+00301 
+00302 local \textcolor{keywordtype}{int} unz64local\_getLong64 (\textcolor{keyword}{const} \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* pzlib\_filefunc\_def,
+00303                             voidpf filestream,
+00304                             ZPOS64\_T *pX)
+00305 \{
+00306     ZPOS64\_T x ;
+00307     \textcolor{keywordtype}{int} i = 0;
+00308     \textcolor{keywordtype}{int} err;
+00309 
+00310     err = unz64local\_getByte(pzlib\_filefunc\_def,filestream,&i);
+00311     x = (ZPOS64\_T)i;
+00312 
+00313     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+00314         err = unz64local\_getByte(pzlib\_filefunc\_def,filestream,&i);
+00315     x |= ((ZPOS64\_T)i)<<8;
+00316 
+00317     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+00318         err = unz64local\_getByte(pzlib\_filefunc\_def,filestream,&i);
+00319     x |= ((ZPOS64\_T)i)<<16;
+00320 
+00321     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+00322         err = unz64local\_getByte(pzlib\_filefunc\_def,filestream,&i);
+00323     x |= ((ZPOS64\_T)i)<<24;
+00324 
+00325     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+00326         err = unz64local\_getByte(pzlib\_filefunc\_def,filestream,&i);
+00327     x |= ((ZPOS64\_T)i)<<32;
+00328 
+00329     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+00330         err = unz64local\_getByte(pzlib\_filefunc\_def,filestream,&i);
+00331     x |= ((ZPOS64\_T)i)<<40;
+00332 
+00333     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+00334         err = unz64local\_getByte(pzlib\_filefunc\_def,filestream,&i);
+00335     x |= ((ZPOS64\_T)i)<<48;
+00336 
+00337     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+00338         err = unz64local\_getByte(pzlib\_filefunc\_def,filestream,&i);
+00339     x |= ((ZPOS64\_T)i)<<56;
+00340 
+00341     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+00342         *pX = x;
+00343     \textcolor{keywordflow}{else}
+00344         *pX = 0;
+00345     \textcolor{keywordflow}{return} err;
+00346 \}
+00347 
+00348 \textcolor{comment}{/* My own strcmpi / strcasecmp */}
+00349 local \textcolor{keywordtype}{int} strcmpcasenosensitive\_internal (\textcolor{keyword}{const} \textcolor{keywordtype}{char}* fileName1, \textcolor{keyword}{const} \textcolor{keywordtype}{char}* fileName2)
+00350 \{
+00351     \textcolor{keywordflow}{for} (;;)
+00352     \{
+00353         \textcolor{keywordtype}{char} c1=*(fileName1++);
+00354         \textcolor{keywordtype}{char} c2=*(fileName2++);
+00355         \textcolor{keywordflow}{if} ((c1>=\textcolor{charliteral}{'a'}) && (c1<=\textcolor{charliteral}{'z'}))
+00356             c1 -= 0x20;
+00357         \textcolor{keywordflow}{if} ((c2>=\textcolor{charliteral}{'a'}) && (c2<=\textcolor{charliteral}{'z'}))
+00358             c2 -= 0x20;
+00359         \textcolor{keywordflow}{if} (c1==\textcolor{charliteral}{'\(\backslash\)0'})
+00360             \textcolor{keywordflow}{return} ((c2==\textcolor{charliteral}{'\(\backslash\)0'}) ? 0 : -1);
+00361         \textcolor{keywordflow}{if} (c2==\textcolor{charliteral}{'\(\backslash\)0'})
+00362             \textcolor{keywordflow}{return} 1;
+00363         \textcolor{keywordflow}{if} (c1<c2)
+00364             \textcolor{keywordflow}{return} -1;
+00365         \textcolor{keywordflow}{if} (c1>c2)
+00366             \textcolor{keywordflow}{return} 1;
+00367     \}
+00368 \}
+00369 
+00370 
+00371 \textcolor{preprocessor}{#ifdef  CASESENSITIVITYDEFAULT\_NO}
+00372 \textcolor{preprocessor}{#define CASESENSITIVITYDEFAULTVALUE 2}
+00373 \textcolor{preprocessor}{#else}
+00374 \textcolor{preprocessor}{#define CASESENSITIVITYDEFAULTVALUE 1}
+00375 \textcolor{preprocessor}{#endif}
+00376 
+00377 \textcolor{preprocessor}{#ifndef STRCMPCASENOSENTIVEFUNCTION}
+00378 \textcolor{preprocessor}{#define STRCMPCASENOSENTIVEFUNCTION strcmpcasenosensitive\_internal}
+00379 \textcolor{preprocessor}{#endif}
+00380 
+00381 \textcolor{comment}{/*}
+00382 \textcolor{comment}{   Compare two filename (fileName1,fileName2).}
+00383 \textcolor{comment}{   If iCaseSenisivity = 1, comparision is case sensitivity (like strcmp)}
+00384 \textcolor{comment}{   If iCaseSenisivity = 2, comparision is not case sensitivity (like strcmpi}
+00385 \textcolor{comment}{                                                                or strcasecmp)}
+00386 \textcolor{comment}{   If iCaseSenisivity = 0, case sensitivity is defaut of your operating system}
+00387 \textcolor{comment}{        (like 1 on Unix, 2 on Windows)}
+00388 \textcolor{comment}{}
+00389 \textcolor{comment}{*/}
+00390 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzStringFileNameCompare (\textcolor{keyword}{const} \textcolor{keywordtype}{char}*  fileName1,
+00391                                                  \textcolor{keyword}{const} \textcolor{keywordtype}{char}*  fileName2,
+00392                                                  \textcolor{keywordtype}{int} iCaseSensitivity)
+00393 
+00394 \{
+00395     \textcolor{keywordflow}{if} (iCaseSensitivity==0)
+00396         iCaseSensitivity=CASESENSITIVITYDEFAULTVALUE;
+00397 
+00398     \textcolor{keywordflow}{if} (iCaseSensitivity==1)
+00399         \textcolor{keywordflow}{return} strcmp(fileName1,fileName2);
+00400 
+00401     \textcolor{keywordflow}{return} STRCMPCASENOSENTIVEFUNCTION(fileName1,fileName2);
+00402 \}
+00403 
+00404 \textcolor{preprocessor}{#ifndef BUFREADCOMMENT}
+00405 \textcolor{preprocessor}{#define BUFREADCOMMENT (0x400)}
+00406 \textcolor{preprocessor}{#endif}
+00407 
+00408 \textcolor{comment}{/*}
+00409 \textcolor{comment}{  Locate the Central directory of a zipfile (at the end, just before}
+00410 \textcolor{comment}{    the global comment)}
+00411 \textcolor{comment}{*/}
+00412 local ZPOS64\_T unz64local\_SearchCentralDir OF((\textcolor{keyword}{const} \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* 
+      pzlib\_filefunc\_def, voidpf filestream));
+00413 local ZPOS64\_T unz64local\_SearchCentralDir(\textcolor{keyword}{const} \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* 
+      pzlib\_filefunc\_def, voidpf filestream)
+00414 \{
+00415     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}* buf;
+00416     ZPOS64\_T uSizeFile;
+00417     ZPOS64\_T uBackRead;
+00418     ZPOS64\_T uMaxBack=0xffff; \textcolor{comment}{/* maximum size of global comment */}
+00419     ZPOS64\_T uPosFound=0;
+00420 
+00421     \textcolor{keywordflow}{if} (ZSEEK64(*pzlib\_filefunc\_def,filestream,0,ZLIB\_FILEFUNC\_SEEK\_END) != 0)
+00422         \textcolor{keywordflow}{return} 0;
+00423 
+00424 
+00425     uSizeFile = ZTELL64(*pzlib\_filefunc\_def,filestream);
+00426 
+00427     \textcolor{keywordflow}{if} (uMaxBack>uSizeFile)
+00428         uMaxBack = uSizeFile;
+00429 
+00430     buf = (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}*)ALLOC(BUFREADCOMMENT+4);
+00431     \textcolor{keywordflow}{if} (buf==NULL)
+00432         \textcolor{keywordflow}{return} 0;
+00433 
+00434     uBackRead = 4;
+00435     \textcolor{keywordflow}{while} (uBackRead<uMaxBack)
+00436     \{
+00437         uLong uReadSize;
+00438         ZPOS64\_T uReadPos ;
+00439         \textcolor{keywordtype}{int} i;
+00440         \textcolor{keywordflow}{if} (uBackRead+BUFREADCOMMENT>uMaxBack)
+00441             uBackRead = uMaxBack;
+00442         \textcolor{keywordflow}{else}
+00443             uBackRead+=BUFREADCOMMENT;
+00444         uReadPos = uSizeFile-uBackRead ;
+00445 
+00446         uReadSize = ((BUFREADCOMMENT+4) < (uSizeFile-uReadPos)) ?
+00447                      (BUFREADCOMMENT+4) : (uLong)(uSizeFile-uReadPos);
+00448         \textcolor{keywordflow}{if} (ZSEEK64(*pzlib\_filefunc\_def,filestream,uReadPos,ZLIB\_FILEFUNC\_SEEK\_SET)!=0)
+00449             \textcolor{keywordflow}{break};
+00450 
+00451         \textcolor{keywordflow}{if} (ZREAD64(*pzlib\_filefunc\_def,filestream,buf,uReadSize)!=uReadSize)
+00452             \textcolor{keywordflow}{break};
+00453 
+00454         \textcolor{keywordflow}{for} (i=(\textcolor{keywordtype}{int})uReadSize-3; (i--)>0;)
+00455             \textcolor{keywordflow}{if} (((*(buf+i))==0x50) && ((*(buf+i+1))==0x4b) &&
+00456                 ((*(buf+i+2))==0x05) && ((*(buf+i+3))==0x06))
+00457             \{
+00458                 uPosFound = uReadPos+i;
+00459                 \textcolor{keywordflow}{break};
+00460             \}
+00461 
+00462         \textcolor{keywordflow}{if} (uPosFound!=0)
+00463             \textcolor{keywordflow}{break};
+00464     \}
+00465     TRYFREE(buf);
+00466     \textcolor{keywordflow}{return} uPosFound;
+00467 \}
+00468 
+00469 
+00470 \textcolor{comment}{/*}
+00471 \textcolor{comment}{  Locate the Central directory 64 of a zipfile (at the end, just before}
+00472 \textcolor{comment}{    the global comment)}
+00473 \textcolor{comment}{*/}
+00474 local ZPOS64\_T unz64local\_SearchCentralDir64 OF((
+00475     \textcolor{keyword}{const} \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* pzlib\_filefunc\_def,
+00476     voidpf filestream));
+00477 
+00478 local ZPOS64\_T unz64local\_SearchCentralDir64(\textcolor{keyword}{const} \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* 
+      pzlib\_filefunc\_def,
+00479                                       voidpf filestream)
+00480 \{
+00481     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}* buf;
+00482     ZPOS64\_T uSizeFile;
+00483     ZPOS64\_T uBackRead;
+00484     ZPOS64\_T uMaxBack=0xffff; \textcolor{comment}{/* maximum size of global comment */}
+00485     ZPOS64\_T uPosFound=0;
+00486     uLong uL;
+00487                 ZPOS64\_T relativeOffset;
+00488 
+00489     \textcolor{keywordflow}{if} (ZSEEK64(*pzlib\_filefunc\_def,filestream,0,ZLIB\_FILEFUNC\_SEEK\_END) != 0)
+00490         \textcolor{keywordflow}{return} 0;
+00491 
+00492 
+00493     uSizeFile = ZTELL64(*pzlib\_filefunc\_def,filestream);
+00494 
+00495     \textcolor{keywordflow}{if} (uMaxBack>uSizeFile)
+00496         uMaxBack = uSizeFile;
+00497 
+00498     buf = (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}*)ALLOC(BUFREADCOMMENT+4);
+00499     \textcolor{keywordflow}{if} (buf==NULL)
+00500         \textcolor{keywordflow}{return} 0;
+00501 
+00502     uBackRead = 4;
+00503     \textcolor{keywordflow}{while} (uBackRead<uMaxBack)
+00504     \{
+00505         uLong uReadSize;
+00506         ZPOS64\_T uReadPos;
+00507         \textcolor{keywordtype}{int} i;
+00508         \textcolor{keywordflow}{if} (uBackRead+BUFREADCOMMENT>uMaxBack)
+00509             uBackRead = uMaxBack;
+00510         \textcolor{keywordflow}{else}
+00511             uBackRead+=BUFREADCOMMENT;
+00512         uReadPos = uSizeFile-uBackRead ;
+00513 
+00514         uReadSize = ((BUFREADCOMMENT+4) < (uSizeFile-uReadPos)) ?
+00515                      (BUFREADCOMMENT+4) : (uLong)(uSizeFile-uReadPos);
+00516         \textcolor{keywordflow}{if} (ZSEEK64(*pzlib\_filefunc\_def,filestream,uReadPos,ZLIB\_FILEFUNC\_SEEK\_SET)!=0)
+00517             \textcolor{keywordflow}{break};
+00518 
+00519         \textcolor{keywordflow}{if} (ZREAD64(*pzlib\_filefunc\_def,filestream,buf,uReadSize)!=uReadSize)
+00520             \textcolor{keywordflow}{break};
+00521 
+00522         \textcolor{keywordflow}{for} (i=(\textcolor{keywordtype}{int})uReadSize-3; (i--)>0;)
+00523             \textcolor{keywordflow}{if} (((*(buf+i))==0x50) && ((*(buf+i+1))==0x4b) &&
+00524                 ((*(buf+i+2))==0x06) && ((*(buf+i+3))==0x07))
+00525             \{
+00526                 uPosFound = uReadPos+i;
+00527                 \textcolor{keywordflow}{break};
+00528             \}
+00529 
+00530         \textcolor{keywordflow}{if} (uPosFound!=0)
+00531             \textcolor{keywordflow}{break};
+00532     \}
+00533     TRYFREE(buf);
+00534     \textcolor{keywordflow}{if} (uPosFound == 0)
+00535         \textcolor{keywordflow}{return} 0;
+00536 
+00537     \textcolor{comment}{/* Zip64 end of central directory locator */}
+00538     \textcolor{keywordflow}{if} (ZSEEK64(*pzlib\_filefunc\_def,filestream, uPosFound,ZLIB\_FILEFUNC\_SEEK\_SET)!=0)
+00539         \textcolor{keywordflow}{return} 0;
+00540 
+00541     \textcolor{comment}{/* the signature, already checked */}
+00542     \textcolor{keywordflow}{if} (unz64local\_getLong(pzlib\_filefunc\_def,filestream,&uL)!=UNZ\_OK)
+00543         \textcolor{keywordflow}{return} 0;
+00544 
+00545     \textcolor{comment}{/* number of the disk with the start of the zip64 end of  central directory */}
+00546     \textcolor{keywordflow}{if} (unz64local\_getLong(pzlib\_filefunc\_def,filestream,&uL)!=UNZ\_OK)
+00547         \textcolor{keywordflow}{return} 0;
+00548     \textcolor{keywordflow}{if} (uL != 0)
+00549         \textcolor{keywordflow}{return} 0;
+00550 
+00551     \textcolor{comment}{/* relative offset of the zip64 end of central directory record */}
+00552     \textcolor{keywordflow}{if} (unz64local\_getLong64(pzlib\_filefunc\_def,filestream,&relativeOffset)!=UNZ\_OK)
+00553         \textcolor{keywordflow}{return} 0;
+00554 
+00555     \textcolor{comment}{/* total number of disks */}
+00556     \textcolor{keywordflow}{if} (unz64local\_getLong(pzlib\_filefunc\_def,filestream,&uL)!=UNZ\_OK)
+00557         \textcolor{keywordflow}{return} 0;
+00558     \textcolor{keywordflow}{if} (uL != 1)
+00559         \textcolor{keywordflow}{return} 0;
+00560 
+00561     \textcolor{comment}{/* Goto end of central directory record */}
+00562     \textcolor{keywordflow}{if} (ZSEEK64(*pzlib\_filefunc\_def,filestream, relativeOffset,ZLIB\_FILEFUNC\_SEEK\_SET)!=0)
+00563         \textcolor{keywordflow}{return} 0;
+00564 
+00565      \textcolor{comment}{/* the signature */}
+00566     \textcolor{keywordflow}{if} (unz64local\_getLong(pzlib\_filefunc\_def,filestream,&uL)!=UNZ\_OK)
+00567         \textcolor{keywordflow}{return} 0;
+00568 
+00569     \textcolor{keywordflow}{if} (uL != 0x06064b50)
+00570         \textcolor{keywordflow}{return} 0;
+00571 
+00572     \textcolor{keywordflow}{return} relativeOffset;
+00573 \}
+00574 
+00575 \textcolor{comment}{/*}
+00576 \textcolor{comment}{  Open a Zip file. path contain the full pathname (by example,}
+00577 \textcolor{comment}{     on a Windows NT computer "c:\(\backslash\)\(\backslash\)test\(\backslash\)\(\backslash\)zlib114.zip" or on an Unix computer}
+00578 \textcolor{comment}{     "zlib/zlib114.zip".}
+00579 \textcolor{comment}{     If the zipfile cannot be opened (file doesn't exist or in not valid), the}
+00580 \textcolor{comment}{       return value is NULL.}
+00581 \textcolor{comment}{     Else, the return value is a unzFile Handle, usable with other function}
+00582 \textcolor{comment}{       of this unzip package.}
+00583 \textcolor{comment}{*/}
+00584 local unzFile unzOpenInternal (\textcolor{keyword}{const} \textcolor{keywordtype}{void} *path,
+00585                                \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def}* pzlib\_filefunc64\_32\_def,
+00586                                \textcolor{keywordtype}{int} is64bitOpenFunction)
+00587 \{
+00588     \hyperlink{structunz64__s}{unz64\_s} us;
+00589     \hyperlink{structunz64__s}{unz64\_s} *s;
+00590     ZPOS64\_T central\_pos;
+00591     uLong   uL;
+00592 
+00593     uLong number\_disk;          \textcolor{comment}{/* number of the current dist, used for}
+00594 \textcolor{comment}{                                   spaning ZIP, unsupported, always 0*/}
+00595     uLong number\_disk\_with\_CD;  \textcolor{comment}{/* number the the disk with central dir, used}
+00596 \textcolor{comment}{                                   for spaning ZIP, unsupported, always 0*/}
+00597     ZPOS64\_T number\_entry\_CD;      \textcolor{comment}{/* total number of entries in}
+00598 \textcolor{comment}{                                   the central dir}
+00599 \textcolor{comment}{                                   (same than number\_entry on nospan) */}
+00600 
+00601     \textcolor{keywordtype}{int} err=UNZ\_OK;
+00602 
+00603     \textcolor{keywordflow}{if} (unz\_copyright[0]!=\textcolor{charliteral}{' '})
+00604         \textcolor{keywordflow}{return} NULL;
+00605 
+00606     us.z\_filefunc.zseek32\_file = NULL;
+00607     us.z\_filefunc.ztell32\_file = NULL;
+00608     \textcolor{keywordflow}{if} (pzlib\_filefunc64\_32\_def==NULL)
+00609         fill\_fopen64\_filefunc(&us.z\_filefunc.zfile\_func64);
+00610     \textcolor{keywordflow}{else}
+00611         us.z\_filefunc = *pzlib\_filefunc64\_32\_def;
+00612     us.is64bitOpenFunction = is64bitOpenFunction;
+00613 
+00614 
+00615 
+00616     us.filestream = ZOPEN64(us.z\_filefunc,
+00617                                                  path,
+00618                                                  ZLIB\_FILEFUNC\_MODE\_READ |
+00619                                                  ZLIB\_FILEFUNC\_MODE\_EXISTING);
+00620     \textcolor{keywordflow}{if} (us.filestream==NULL)
+00621         \textcolor{keywordflow}{return} NULL;
+00622 
+00623     central\_pos = unz64local\_SearchCentralDir64(&us.z\_filefunc,us.filestream);
+00624     \textcolor{keywordflow}{if} (central\_pos)
+00625     \{
+00626         uLong uS;
+00627         ZPOS64\_T uL64;
+00628 
+00629         us.isZip64 = 1;
+00630 
+00631         \textcolor{keywordflow}{if} (ZSEEK64(us.z\_filefunc, us.filestream,
+00632                                       central\_pos,ZLIB\_FILEFUNC\_SEEK\_SET)!=0)
+00633         err=UNZ\_ERRNO;
+00634 
+00635         \textcolor{comment}{/* the signature, already checked */}
+00636         \textcolor{keywordflow}{if} (unz64local\_getLong(&us.z\_filefunc, us.filestream,&uL)!=UNZ\_OK)
+00637             err=UNZ\_ERRNO;
+00638 
+00639         \textcolor{comment}{/* size of zip64 end of central directory record */}
+00640         \textcolor{keywordflow}{if} (unz64local\_getLong64(&us.z\_filefunc, us.filestream,&uL64)!=UNZ\_OK)
+00641             err=UNZ\_ERRNO;
+00642 
+00643         \textcolor{comment}{/* version made by */}
+00644         \textcolor{keywordflow}{if} (unz64local\_getShort(&us.z\_filefunc, us.filestream,&uS)!=UNZ\_OK)
+00645             err=UNZ\_ERRNO;
+00646 
+00647         \textcolor{comment}{/* version needed to extract */}
+00648         \textcolor{keywordflow}{if} (unz64local\_getShort(&us.z\_filefunc, us.filestream,&uS)!=UNZ\_OK)
+00649             err=UNZ\_ERRNO;
+00650 
+00651         \textcolor{comment}{/* number of this disk */}
+00652         \textcolor{keywordflow}{if} (unz64local\_getLong(&us.z\_filefunc, us.filestream,&number\_disk)!=UNZ\_OK)
+00653             err=UNZ\_ERRNO;
+00654 
+00655         \textcolor{comment}{/* number of the disk with the start of the central directory */}
+00656         \textcolor{keywordflow}{if} (unz64local\_getLong(&us.z\_filefunc, us.filestream,&number\_disk\_with\_CD)!=UNZ\_OK)
+00657             err=UNZ\_ERRNO;
+00658 
+00659         \textcolor{comment}{/* total number of entries in the central directory on this disk */}
+00660         \textcolor{keywordflow}{if} (unz64local\_getLong64(&us.z\_filefunc, us.filestream,&us.gi.number\_entry)!=UNZ\_OK)
+00661             err=UNZ\_ERRNO;
+00662 
+00663         \textcolor{comment}{/* total number of entries in the central directory */}
+00664         \textcolor{keywordflow}{if} (unz64local\_getLong64(&us.z\_filefunc, us.filestream,&number\_entry\_CD)!=UNZ\_OK)
+00665             err=UNZ\_ERRNO;
+00666 
+00667         \textcolor{keywordflow}{if} ((number\_entry\_CD!=us.gi.number\_entry) ||
+00668             (number\_disk\_with\_CD!=0) ||
+00669             (number\_disk!=0))
+00670             err=UNZ\_BADZIPFILE;
+00671 
+00672         \textcolor{comment}{/* size of the central directory */}
+00673         \textcolor{keywordflow}{if} (unz64local\_getLong64(&us.z\_filefunc, us.filestream,&us.size\_central\_dir)!=UNZ\_OK)
+00674             err=UNZ\_ERRNO;
+00675 
+00676         \textcolor{comment}{/* offset of start of central directory with respect to the}
+00677 \textcolor{comment}{          starting disk number */}
+00678         \textcolor{keywordflow}{if} (unz64local\_getLong64(&us.z\_filefunc, us.filestream,&us.offset\_central\_dir)!=UNZ\_OK)
+00679             err=UNZ\_ERRNO;
+00680 
+00681         us.gi.size\_comment = 0;
+00682     \}
+00683     \textcolor{keywordflow}{else}
+00684     \{
+00685         central\_pos = unz64local\_SearchCentralDir(&us.z\_filefunc,us.filestream);
+00686         \textcolor{keywordflow}{if} (central\_pos==0)
+00687             err=UNZ\_ERRNO;
+00688 
+00689         us.isZip64 = 0;
+00690 
+00691         \textcolor{keywordflow}{if} (ZSEEK64(us.z\_filefunc, us.filestream,
+00692                                         central\_pos,ZLIB\_FILEFUNC\_SEEK\_SET)!=0)
+00693             err=UNZ\_ERRNO;
+00694 
+00695         \textcolor{comment}{/* the signature, already checked */}
+00696         \textcolor{keywordflow}{if} (unz64local\_getLong(&us.z\_filefunc, us.filestream,&uL)!=UNZ\_OK)
+00697             err=UNZ\_ERRNO;
+00698 
+00699         \textcolor{comment}{/* number of this disk */}
+00700         \textcolor{keywordflow}{if} (unz64local\_getShort(&us.z\_filefunc, us.filestream,&number\_disk)!=UNZ\_OK)
+00701             err=UNZ\_ERRNO;
+00702 
+00703         \textcolor{comment}{/* number of the disk with the start of the central directory */}
+00704         \textcolor{keywordflow}{if} (unz64local\_getShort(&us.z\_filefunc, us.filestream,&number\_disk\_with\_CD)!=UNZ\_OK)
+00705             err=UNZ\_ERRNO;
+00706 
+00707         \textcolor{comment}{/* total number of entries in the central dir on this disk */}
+00708         \textcolor{keywordflow}{if} (unz64local\_getShort(&us.z\_filefunc, us.filestream,&uL)!=UNZ\_OK)
+00709             err=UNZ\_ERRNO;
+00710         us.gi.number\_entry = uL;
+00711 
+00712         \textcolor{comment}{/* total number of entries in the central dir */}
+00713         \textcolor{keywordflow}{if} (unz64local\_getShort(&us.z\_filefunc, us.filestream,&uL)!=UNZ\_OK)
+00714             err=UNZ\_ERRNO;
+00715         number\_entry\_CD = uL;
+00716 
+00717         \textcolor{keywordflow}{if} ((number\_entry\_CD!=us.gi.number\_entry) ||
+00718             (number\_disk\_with\_CD!=0) ||
+00719             (number\_disk!=0))
+00720             err=UNZ\_BADZIPFILE;
+00721 
+00722         \textcolor{comment}{/* size of the central directory */}
+00723         \textcolor{keywordflow}{if} (unz64local\_getLong(&us.z\_filefunc, us.filestream,&uL)!=UNZ\_OK)
+00724             err=UNZ\_ERRNO;
+00725         us.size\_central\_dir = uL;
+00726 
+00727         \textcolor{comment}{/* offset of start of central directory with respect to the}
+00728 \textcolor{comment}{            starting disk number */}
+00729         \textcolor{keywordflow}{if} (unz64local\_getLong(&us.z\_filefunc, us.filestream,&uL)!=UNZ\_OK)
+00730             err=UNZ\_ERRNO;
+00731         us.offset\_central\_dir = uL;
+00732 
+00733         \textcolor{comment}{/* zipfile comment length */}
+00734         \textcolor{keywordflow}{if} (unz64local\_getShort(&us.z\_filefunc, us.filestream,&us.gi.size\_comment)!=UNZ\_OK)
+00735             err=UNZ\_ERRNO;
+00736     \}
+00737 
+00738     \textcolor{keywordflow}{if} ((central\_pos<us.offset\_central\_dir+us.size\_central\_dir) &&
+00739         (err==UNZ\_OK))
+00740         err=UNZ\_BADZIPFILE;
+00741 
+00742     \textcolor{keywordflow}{if} (err!=UNZ\_OK)
+00743     \{
+00744         ZCLOSE64(us.z\_filefunc, us.filestream);
+00745         \textcolor{keywordflow}{return} NULL;
+00746     \}
+00747 
+00748     us.byte\_before\_the\_zipfile = central\_pos -
+00749                             (us.offset\_central\_dir+us.size\_central\_dir);
+00750     us.central\_pos = central\_pos;
+00751     us.pfile\_in\_zip\_read = NULL;
+00752     us.encrypted = 0;
+00753 
+00754 
+00755     s=(\hyperlink{structunz64__s}{unz64\_s}*)ALLOC(\textcolor{keyword}{sizeof}(\hyperlink{structunz64__s}{unz64\_s}));
+00756     \textcolor{keywordflow}{if}( s != NULL)
+00757     \{
+00758         *s=us;
+00759         unzGoToFirstFile((unzFile)s);
+00760     \}
+00761     \textcolor{keywordflow}{return} (unzFile)s;
+00762 \}
+00763 
+00764 
+00765 \textcolor{keyword}{extern} unzFile ZEXPORT unzOpen2 (\textcolor{keyword}{const} \textcolor{keywordtype}{char} *path,
+00766                                         \hyperlink{structzlib__filefunc__def__s}{zlib\_filefunc\_def}* pzlib\_filefunc32\_def)
+00767 \{
+00768     \textcolor{keywordflow}{if} (pzlib\_filefunc32\_def != NULL)
+00769     \{
+00770         \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def} zlib\_filefunc64\_32\_def\_fill;
+00771         fill\_zlib\_filefunc64\_32\_def\_from\_filefunc32(&zlib\_filefunc64\_32\_def\_fill,pzlib\_filefunc32\_def);
+00772         \textcolor{keywordflow}{return} unzOpenInternal(path, &zlib\_filefunc64\_32\_def\_fill, 0);
+00773     \}
+00774     \textcolor{keywordflow}{else}
+00775         \textcolor{keywordflow}{return} unzOpenInternal(path, NULL, 0);
+00776 \}
+00777 
+00778 \textcolor{keyword}{extern} unzFile ZEXPORT unzOpen2\_64 (\textcolor{keyword}{const} \textcolor{keywordtype}{void} *path,
+00779                                      \hyperlink{structzlib__filefunc64__def__s}{zlib\_filefunc64\_def}* pzlib\_filefunc\_def)
+00780 \{
+00781     \textcolor{keywordflow}{if} (pzlib\_filefunc\_def != NULL)
+00782     \{
+00783         \hyperlink{structzlib__filefunc64__32__def__s}{zlib\_filefunc64\_32\_def} zlib\_filefunc64\_32\_def\_fill;
+00784         zlib\_filefunc64\_32\_def\_fill.zfile\_func64 = *pzlib\_filefunc\_def;
+00785         zlib\_filefunc64\_32\_def\_fill.ztell32\_file = NULL;
+00786         zlib\_filefunc64\_32\_def\_fill.zseek32\_file = NULL;
+00787         \textcolor{keywordflow}{return} unzOpenInternal(path, &zlib\_filefunc64\_32\_def\_fill, 1);
+00788     \}
+00789     \textcolor{keywordflow}{else}
+00790         \textcolor{keywordflow}{return} unzOpenInternal(path, NULL, 1);
+00791 \}
+00792 
+00793 \textcolor{keyword}{extern} unzFile ZEXPORT unzOpen (\textcolor{keyword}{const} \textcolor{keywordtype}{char} *path)
+00794 \{
+00795     \textcolor{keywordflow}{return} unzOpenInternal(path, NULL, 0);
+00796 \}
+00797 
+00798 \textcolor{keyword}{extern} unzFile ZEXPORT unzOpen64 (\textcolor{keyword}{const} \textcolor{keywordtype}{void} *path)
+00799 \{
+00800     \textcolor{keywordflow}{return} unzOpenInternal(path, NULL, 1);
+00801 \}
+00802 
+00803 \textcolor{comment}{/*}
+00804 \textcolor{comment}{  Close a ZipFile opened with unzOpen.}
+00805 \textcolor{comment}{  If there is files inside the .Zip opened with unzOpenCurrentFile (see later),}
+00806 \textcolor{comment}{    these files MUST be closed with unzCloseCurrentFile before call unzClose.}
+00807 \textcolor{comment}{  return UNZ\_OK if there is no problem. */}
+00808 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzClose (unzFile \hyperlink{structfile}{file})
+00809 \{
+00810     \hyperlink{structunz64__s}{unz64\_s}* s;
+00811     \textcolor{keywordflow}{if} (file==NULL)
+00812         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+00813     s=(\hyperlink{structunz64__s}{unz64\_s}*)file;
+00814 
+00815     \textcolor{keywordflow}{if} (s->pfile\_in\_zip\_read!=NULL)
+00816         unzCloseCurrentFile(file);
+00817 
+00818     ZCLOSE64(s->z\_filefunc, s->filestream);
+00819     TRYFREE(s);
+00820     \textcolor{keywordflow}{return} UNZ\_OK;
+00821 \}
+00822 
+00823 
+00824 \textcolor{comment}{/*}
+00825 \textcolor{comment}{  Write info about the ZipFile in the *pglobal\_info structure.}
+00826 \textcolor{comment}{  No preparation of the structure is needed}
+00827 \textcolor{comment}{  return UNZ\_OK if there is no problem. */}
+00828 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGetGlobalInfo64 (unzFile \hyperlink{structfile}{file}, \hyperlink{structunz__global__info64__s}{unz\_global\_info64}* pglobal\_info)
+00829 \{
+00830     \hyperlink{structunz64__s}{unz64\_s}* s;
+00831     \textcolor{keywordflow}{if} (\hyperlink{structfile}{file}==NULL)
+00832         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+00833     s=(\hyperlink{structunz64__s}{unz64\_s}*)\hyperlink{structfile}{file};
+00834     *pglobal\_info=s->gi;
+00835     \textcolor{keywordflow}{return} UNZ\_OK;
+00836 \}
+00837 
+00838 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGetGlobalInfo (unzFile \hyperlink{structfile}{file}, \hyperlink{structunz__global__info__s}{unz\_global\_info}* pglobal\_info32)
+00839 \{
+00840     \hyperlink{structunz64__s}{unz64\_s}* s;
+00841     \textcolor{keywordflow}{if} (\hyperlink{structfile}{file}==NULL)
+00842         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+00843     s=(\hyperlink{structunz64__s}{unz64\_s}*)\hyperlink{structfile}{file};
+00844     \textcolor{comment}{/* to do : check if number\_entry is not truncated */}
+00845     pglobal\_info32->number\_entry = (uLong)s->gi.number\_entry;
+00846     pglobal\_info32->size\_comment = s->gi.size\_comment;
+00847     \textcolor{keywordflow}{return} UNZ\_OK;
+00848 \}
+00849 \textcolor{comment}{/*}
+00850 \textcolor{comment}{   Translate date/time from Dos format to tm\_unz (readable more easilty)}
+00851 \textcolor{comment}{*/}
+00852 local \textcolor{keywordtype}{void} unz64local\_DosDateToTmuDate (ZPOS64\_T ulDosDate, \hyperlink{structtm__unz__s}{tm\_unz}* ptm)
+00853 \{
+00854     ZPOS64\_T uDate;
+00855     uDate = (ZPOS64\_T)(ulDosDate>>16);
+00856     ptm->tm\_mday = (uInt)(uDate&0x1f) ;
+00857     ptm->tm\_mon =  (uInt)((((uDate)&0x1E0)/0x20)-1) ;
+00858     ptm->tm\_year = (uInt)(((uDate&0x0FE00)/0x0200)+1980) ;
+00859 
+00860     ptm->tm\_hour = (uInt) ((ulDosDate &0xF800)/0x800);
+00861     ptm->tm\_min =  (uInt) ((ulDosDate&0x7E0)/0x20) ;
+00862     ptm->tm\_sec =  (uInt) (2*(ulDosDate&0x1f)) ;
+00863 \}
+00864 
+00865 \textcolor{comment}{/*}
+00866 \textcolor{comment}{  Get Info about the current file in the zipfile, with internal only info}
+00867 \textcolor{comment}{*/}
+00868 local \textcolor{keywordtype}{int} unz64local\_GetCurrentFileInfoInternal OF((unzFile \hyperlink{structfile}{file},
+00869                                                   \hyperlink{structunz__file__info64__s}{unz\_file\_info64} *pfile\_info,
+00870                                                   \hyperlink{structunz__file__info64__internal__s}{unz\_file\_info64\_internal}
+00871                                                   *pfile\_info\_internal,
+00872                                                   \textcolor{keywordtype}{char} *szFileName,
+00873                                                   uLong fileNameBufferSize,
+00874                                                   \textcolor{keywordtype}{void} *extraField,
+00875                                                   uLong extraFieldBufferSize,
+00876                                                   \textcolor{keywordtype}{char} *szComment,
+00877                                                   uLong commentBufferSize));
+00878 
+00879 local \textcolor{keywordtype}{int} unz64local\_GetCurrentFileInfoInternal (unzFile \hyperlink{structfile}{file},
+00880                                                   \hyperlink{structunz__file__info64__s}{unz\_file\_info64} *pfile\_info,
+00881                                                   \hyperlink{structunz__file__info64__internal__s}{unz\_file\_info64\_internal}
+00882                                                   *pfile\_info\_internal,
+00883                                                   \textcolor{keywordtype}{char} *szFileName,
+00884                                                   uLong fileNameBufferSize,
+00885                                                   \textcolor{keywordtype}{void} *extraField,
+00886                                                   uLong extraFieldBufferSize,
+00887                                                   \textcolor{keywordtype}{char} *szComment,
+00888                                                   uLong commentBufferSize)
+00889 \{
+00890     \hyperlink{structunz64__s}{unz64\_s}* s;
+00891     \hyperlink{structunz__file__info64__s}{unz\_file\_info64} file\_info;
+00892     \hyperlink{structunz__file__info64__internal__s}{unz\_file\_info64\_internal} file\_info\_internal;
+00893     \textcolor{keywordtype}{int} err=UNZ\_OK;
+00894     uLong uMagic;
+00895     \textcolor{keywordtype}{long} lSeek=0;
+00896     uLong uL;
+00897 
+00898     \textcolor{keywordflow}{if} (\hyperlink{structfile}{file}==NULL)
+00899         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+00900     s=(\hyperlink{structunz64__s}{unz64\_s}*)\hyperlink{structfile}{file};
+00901     \textcolor{keywordflow}{if} (ZSEEK64(s->z\_filefunc, s->filestream,
+00902               s->pos\_in\_central\_dir+s->byte\_before\_the\_zipfile,
+00903               ZLIB\_FILEFUNC\_SEEK\_SET)!=0)
+00904         err=UNZ\_ERRNO;
+00905 
+00906 
+00907     \textcolor{comment}{/* we check the magic */}
+00908     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+00909     \{
+00910         \textcolor{keywordflow}{if} (unz64local\_getLong(&s->z\_filefunc, s->filestream,&uMagic) != UNZ\_OK)
+00911             err=UNZ\_ERRNO;
+00912         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (uMagic!=0x02014b50)
+00913             err=UNZ\_BADZIPFILE;
+00914     \}
+00915 
+00916     \textcolor{keywordflow}{if} (unz64local\_getShort(&s->z\_filefunc, s->filestream,&file\_info.version) != UNZ\_OK)
+00917         err=UNZ\_ERRNO;
+00918 
+00919     \textcolor{keywordflow}{if} (unz64local\_getShort(&s->z\_filefunc, s->filestream,&file\_info.version\_needed) != UNZ\_OK)
+00920         err=UNZ\_ERRNO;
+00921 
+00922     \textcolor{keywordflow}{if} (unz64local\_getShort(&s->z\_filefunc, s->filestream,&file\_info.flag) != UNZ\_OK)
+00923         err=UNZ\_ERRNO;
+00924 
+00925     \textcolor{keywordflow}{if} (unz64local\_getShort(&s->z\_filefunc, s->filestream,&file\_info.compression\_method) != UNZ\_OK)
+00926         err=UNZ\_ERRNO;
+00927 
+00928     \textcolor{keywordflow}{if} (unz64local\_getLong(&s->z\_filefunc, s->filestream,&file\_info.dosDate) != UNZ\_OK)
+00929         err=UNZ\_ERRNO;
+00930 
+00931     unz64local\_DosDateToTmuDate(file\_info.dosDate,&file\_info.tmu\_date);
+00932 
+00933     \textcolor{keywordflow}{if} (unz64local\_getLong(&s->z\_filefunc, s->filestream,&file\_info.crc) != UNZ\_OK)
+00934         err=UNZ\_ERRNO;
+00935 
+00936     \textcolor{keywordflow}{if} (unz64local\_getLong(&s->z\_filefunc, s->filestream,&uL) != UNZ\_OK)
+00937         err=UNZ\_ERRNO;
+00938     file\_info.compressed\_size = uL;
+00939 
+00940     \textcolor{keywordflow}{if} (unz64local\_getLong(&s->z\_filefunc, s->filestream,&uL) != UNZ\_OK)
+00941         err=UNZ\_ERRNO;
+00942     file\_info.uncompressed\_size = uL;
+00943 
+00944     \textcolor{keywordflow}{if} (unz64local\_getShort(&s->z\_filefunc, s->filestream,&file\_info.size\_filename) != UNZ\_OK)
+00945         err=UNZ\_ERRNO;
+00946 
+00947     \textcolor{keywordflow}{if} (unz64local\_getShort(&s->z\_filefunc, s->filestream,&file\_info.size\_file\_extra) != UNZ\_OK)
+00948         err=UNZ\_ERRNO;
+00949 
+00950     \textcolor{keywordflow}{if} (unz64local\_getShort(&s->z\_filefunc, s->filestream,&file\_info.size\_file\_comment) != UNZ\_OK)
+00951         err=UNZ\_ERRNO;
+00952 
+00953     \textcolor{keywordflow}{if} (unz64local\_getShort(&s->z\_filefunc, s->filestream,&file\_info.disk\_num\_start) != UNZ\_OK)
+00954         err=UNZ\_ERRNO;
+00955 
+00956     \textcolor{keywordflow}{if} (unz64local\_getShort(&s->z\_filefunc, s->filestream,&file\_info.internal\_fa) != UNZ\_OK)
+00957         err=UNZ\_ERRNO;
+00958 
+00959     \textcolor{keywordflow}{if} (unz64local\_getLong(&s->z\_filefunc, s->filestream,&file\_info.external\_fa) != UNZ\_OK)
+00960         err=UNZ\_ERRNO;
+00961 
+00962                 \textcolor{comment}{// relative offset of local header}
+00963     \textcolor{keywordflow}{if} (unz64local\_getLong(&s->z\_filefunc, s->filestream,&uL) != UNZ\_OK)
+00964         err=UNZ\_ERRNO;
+00965     file\_info\_internal.offset\_curfile = uL;
+00966 
+00967     lSeek+=file\_info.size\_filename;
+00968     \textcolor{keywordflow}{if} ((err==UNZ\_OK) && (szFileName!=NULL))
+00969     \{
+00970         uLong uSizeRead ;
+00971         \textcolor{keywordflow}{if} (file\_info.size\_filename<fileNameBufferSize)
+00972         \{
+00973             *(szFileName+file\_info.size\_filename)=\textcolor{charliteral}{'\(\backslash\)0'};
+00974             uSizeRead = file\_info.size\_filename;
+00975         \}
+00976         \textcolor{keywordflow}{else}
+00977             uSizeRead = fileNameBufferSize;
+00978 
+00979         \textcolor{keywordflow}{if} ((file\_info.size\_filename>0) && (fileNameBufferSize>0))
+00980             \textcolor{keywordflow}{if} (ZREAD64(s->z\_filefunc, s->filestream,szFileName,uSizeRead)!=uSizeRead)
+00981                 err=UNZ\_ERRNO;
+00982         lSeek -= uSizeRead;
+00983     \}
+00984 
+00985     \textcolor{comment}{// Read extrafield}
+00986     \textcolor{keywordflow}{if} ((err==UNZ\_OK) && (extraField!=NULL))
+00987     \{
+00988         ZPOS64\_T uSizeRead ;
+00989         \textcolor{keywordflow}{if} (file\_info.size\_file\_extra<extraFieldBufferSize)
+00990             uSizeRead = file\_info.size\_file\_extra;
+00991         \textcolor{keywordflow}{else}
+00992             uSizeRead = extraFieldBufferSize;
+00993 
+00994         \textcolor{keywordflow}{if} (lSeek!=0)
+00995         \{
+00996             \textcolor{keywordflow}{if} (ZSEEK64(s->z\_filefunc, s->filestream,lSeek,ZLIB\_FILEFUNC\_SEEK\_CUR)==0)
+00997                 lSeek=0;
+00998             \textcolor{keywordflow}{else}
+00999                 err=UNZ\_ERRNO;
+01000         \}
+01001 
+01002         \textcolor{keywordflow}{if} ((file\_info.size\_file\_extra>0) && (extraFieldBufferSize>0))
+01003             \textcolor{keywordflow}{if} (ZREAD64(s->z\_filefunc, s->filestream,extraField,(uLong)uSizeRead)!=uSizeRead)
+01004                 err=UNZ\_ERRNO;
+01005 
+01006         lSeek += file\_info.size\_file\_extra - (uLong)uSizeRead;
+01007     \}
+01008     \textcolor{keywordflow}{else}
+01009         lSeek += file\_info.size\_file\_extra;
+01010 
+01011 
+01012     \textcolor{keywordflow}{if} ((err==UNZ\_OK) && (file\_info.size\_file\_extra != 0))
+01013     \{
+01014                                 uLong acc = 0;
+01015 
+01016         \textcolor{comment}{// since lSeek now points to after the extra field we need to move back}
+01017         lSeek -= file\_info.size\_file\_extra;
+01018 
+01019         \textcolor{keywordflow}{if} (lSeek!=0)
+01020         \{
+01021             \textcolor{keywordflow}{if} (ZSEEK64(s->z\_filefunc, s->filestream,lSeek,ZLIB\_FILEFUNC\_SEEK\_CUR)==0)
+01022                 lSeek=0;
+01023             \textcolor{keywordflow}{else}
+01024                 err=UNZ\_ERRNO;
+01025         \}
+01026 
+01027         \textcolor{keywordflow}{while}(acc < file\_info.size\_file\_extra)
+01028         \{
+01029             uLong headerId;
+01030                                                 uLong dataSize;
+01031 
+01032             \textcolor{keywordflow}{if} (unz64local\_getShort(&s->z\_filefunc, s->filestream,&headerId) != UNZ\_OK)
+01033                 err=UNZ\_ERRNO;
+01034 
+01035             \textcolor{keywordflow}{if} (unz64local\_getShort(&s->z\_filefunc, s->filestream,&dataSize) != UNZ\_OK)
+01036                 err=UNZ\_ERRNO;
+01037 
+01038             \textcolor{comment}{/* ZIP64 extra fields */}
+01039             \textcolor{keywordflow}{if} (headerId == 0x0001)
+01040             \{
+01041                                                         uLong uL;
+01042 
+01043                                                                 \textcolor{keywordflow}{if}(file\_info.uncompressed\_size == MAXU32)
+01044                                                                 \{
+01045                                                                         \textcolor{keywordflow}{if} (unz64local\_getLong64(&s->
+      z\_filefunc, s->filestream,&file\_info.uncompressed\_size) != UNZ\_OK)
+01046                                                                                         err=UNZ\_ERRNO;
+01047                                                                 \}
+01048 
+01049                                                                 \textcolor{keywordflow}{if}(file\_info.compressed\_size == MAXU32)
+01050                                                                 \{
+01051                                                                         \textcolor{keywordflow}{if} (unz64local\_getLong64(&s->
+      z\_filefunc, s->filestream,&file\_info.compressed\_size) != UNZ\_OK)
+01052                                                                                   err=UNZ\_ERRNO;
+01053                                                                 \}
+01054 
+01055                                                                 \textcolor{keywordflow}{if}(file\_info\_internal.offset\_curfile == 
+      MAXU32)
+01056                                                                 \{
+01057                                                                         \textcolor{comment}{/* Relative Header offset */}
+01058                                                                         \textcolor{keywordflow}{if} (unz64local\_getLong64(&s->
+      z\_filefunc, s->filestream,&file\_info\_internal.offset\_curfile) != UNZ\_OK)
+01059                                                                                 err=UNZ\_ERRNO;
+01060                                                                 \}
+01061 
+01062                                                                 \textcolor{keywordflow}{if}(file\_info.disk\_num\_start == MAXU32)
+01063                                                                 \{
+01064                                                                         \textcolor{comment}{/* Disk Start Number */}
+01065                                                                         \textcolor{keywordflow}{if} (unz64local\_getLong(&s->
+      z\_filefunc, s->filestream,&uL) != UNZ\_OK)
+01066                                                                                 err=UNZ\_ERRNO;
+01067                                                                 \}
+01068 
+01069             \}
+01070             \textcolor{keywordflow}{else}
+01071             \{
+01072                 \textcolor{keywordflow}{if} (ZSEEK64(s->z\_filefunc, s->filestream,dataSize,ZLIB\_FILEFUNC\_SEEK\_CUR)!=0)
+01073                     err=UNZ\_ERRNO;
+01074             \}
+01075 
+01076             acc += 2 + 2 + dataSize;
+01077         \}
+01078     \}
+01079 
+01080     \textcolor{keywordflow}{if} ((err==UNZ\_OK) && (szComment!=NULL))
+01081     \{
+01082         uLong uSizeRead ;
+01083         \textcolor{keywordflow}{if} (file\_info.size\_file\_comment<commentBufferSize)
+01084         \{
+01085             *(szComment+file\_info.size\_file\_comment)=\textcolor{charliteral}{'\(\backslash\)0'};
+01086             uSizeRead = file\_info.size\_file\_comment;
+01087         \}
+01088         \textcolor{keywordflow}{else}
+01089             uSizeRead = commentBufferSize;
+01090 
+01091         \textcolor{keywordflow}{if} (lSeek!=0)
+01092         \{
+01093             \textcolor{keywordflow}{if} (ZSEEK64(s->z\_filefunc, s->filestream,lSeek,ZLIB\_FILEFUNC\_SEEK\_CUR)==0)
+01094                 lSeek=0;
+01095             \textcolor{keywordflow}{else}
+01096                 err=UNZ\_ERRNO;
+01097         \}
+01098 
+01099         \textcolor{keywordflow}{if} ((file\_info.size\_file\_comment>0) && (commentBufferSize>0))
+01100             \textcolor{keywordflow}{if} (ZREAD64(s->z\_filefunc, s->filestream,szComment,uSizeRead)!=uSizeRead)
+01101                 err=UNZ\_ERRNO;
+01102         lSeek+=file\_info.size\_file\_comment - uSizeRead;
+01103     \}
+01104     \textcolor{keywordflow}{else}
+01105         lSeek+=file\_info.size\_file\_comment;
+01106 
+01107 
+01108     \textcolor{keywordflow}{if} ((err==UNZ\_OK) && (pfile\_info!=NULL))
+01109         *pfile\_info=file\_info;
+01110 
+01111     \textcolor{keywordflow}{if} ((err==UNZ\_OK) && (pfile\_info\_internal!=NULL))
+01112         *pfile\_info\_internal=file\_info\_internal;
+01113 
+01114     \textcolor{keywordflow}{return} err;
+01115 \}
+01116 
+01117 
+01118 
+01119 \textcolor{comment}{/*}
+01120 \textcolor{comment}{  Write info about the ZipFile in the *pglobal\_info structure.}
+01121 \textcolor{comment}{  No preparation of the structure is needed}
+01122 \textcolor{comment}{  return UNZ\_OK if there is no problem.}
+01123 \textcolor{comment}{*/}
+01124 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGetCurrentFileInfo64 (unzFile \hyperlink{structfile}{file},
+01125                                           \hyperlink{structunz__file__info64__s}{unz\_file\_info64} * pfile\_info,
+01126                                           \textcolor{keywordtype}{char} * szFileName, uLong fileNameBufferSize,
+01127                                           \textcolor{keywordtype}{void} *extraField, uLong extraFieldBufferSize,
+01128                                           \textcolor{keywordtype}{char}* szComment,  uLong commentBufferSize)
+01129 \{
+01130     \textcolor{keywordflow}{return} unz64local\_GetCurrentFileInfoInternal(\hyperlink{structfile}{file},pfile\_info,NULL,
+01131                                                 szFileName,fileNameBufferSize,
+01132                                                 extraField,extraFieldBufferSize,
+01133                                                 szComment,commentBufferSize);
+01134 \}
+01135 
+01136 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGetCurrentFileInfo (unzFile \hyperlink{structfile}{file},
+01137                                           \hyperlink{structunz__file__info__s}{unz\_file\_info} * pfile\_info,
+01138                                           \textcolor{keywordtype}{char} * szFileName, uLong fileNameBufferSize,
+01139                                           \textcolor{keywordtype}{void} *extraField, uLong extraFieldBufferSize,
+01140                                           \textcolor{keywordtype}{char}* szComment,  uLong commentBufferSize)
+01141 \{
+01142     \textcolor{keywordtype}{int} err;
+01143     \hyperlink{structunz__file__info64__s}{unz\_file\_info64} file\_info64;
+01144     err = unz64local\_GetCurrentFileInfoInternal(\hyperlink{structfile}{file},&file\_info64,NULL,
+01145                                                 szFileName,fileNameBufferSize,
+01146                                                 extraField,extraFieldBufferSize,
+01147                                                 szComment,commentBufferSize);
+01148     \textcolor{keywordflow}{if} ((err==UNZ\_OK) && (pfile\_info != NULL))
+01149     \{
+01150         pfile\_info->version = file\_info64.version;
+01151         pfile\_info->version\_needed = file\_info64.version\_needed;
+01152         pfile\_info->flag = file\_info64.flag;
+01153         pfile\_info->compression\_method = file\_info64.compression\_method;
+01154         pfile\_info->dosDate = file\_info64.dosDate;
+01155         pfile\_info->crc = file\_info64.crc;
+01156 
+01157         pfile\_info->size\_filename = file\_info64.size\_filename;
+01158         pfile\_info->size\_file\_extra = file\_info64.size\_file\_extra;
+01159         pfile\_info->size\_file\_comment = file\_info64.size\_file\_comment;
+01160 
+01161         pfile\_info->disk\_num\_start = file\_info64.disk\_num\_start;
+01162         pfile\_info->internal\_fa = file\_info64.internal\_fa;
+01163         pfile\_info->external\_fa = file\_info64.external\_fa;
+01164 
+01165         pfile\_info->tmu\_date = file\_info64.tmu\_date,
+01166 
+01167 
+01168         pfile\_info->compressed\_size = (uLong)file\_info64.compressed\_size;
+01169         pfile\_info->uncompressed\_size = (uLong)file\_info64.uncompressed\_size;
+01170 
+01171     \}
+01172     \textcolor{keywordflow}{return} err;
+01173 \}
+01174 \textcolor{comment}{/*}
+01175 \textcolor{comment}{  Set the current file of the zipfile to the first file.}
+01176 \textcolor{comment}{  return UNZ\_OK if there is no problem}
+01177 \textcolor{comment}{*/}
+01178 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGoToFirstFile (unzFile \hyperlink{structfile}{file})
+01179 \{
+01180     \textcolor{keywordtype}{int} err=UNZ\_OK;
+01181     \hyperlink{structunz64__s}{unz64\_s}* s;
+01182     \textcolor{keywordflow}{if} (file==NULL)
+01183         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01184     s=(\hyperlink{structunz64__s}{unz64\_s}*)file;
+01185     s->pos\_in\_central\_dir=s->offset\_central\_dir;
+01186     s->num\_file=0;
+01187     err=unz64local\_GetCurrentFileInfoInternal(file,&s->cur\_file\_info,
+01188                                              &s->cur\_file\_info\_internal,
+01189                                              NULL,0,NULL,0,NULL,0);
+01190     s->current\_file\_ok = (err == UNZ\_OK);
+01191     \textcolor{keywordflow}{return} err;
+01192 \}
+01193 
+01194 \textcolor{comment}{/*}
+01195 \textcolor{comment}{  Set the current file of the zipfile to the next file.}
+01196 \textcolor{comment}{  return UNZ\_OK if there is no problem}
+01197 \textcolor{comment}{  return UNZ\_END\_OF\_LIST\_OF\_FILE if the actual file was the latest.}
+01198 \textcolor{comment}{*/}
+01199 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGoToNextFile (unzFile  \hyperlink{structfile}{file})
+01200 \{
+01201     \hyperlink{structunz64__s}{unz64\_s}* s;
+01202     \textcolor{keywordtype}{int} err;
+01203 
+01204     \textcolor{keywordflow}{if} (file==NULL)
+01205         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01206     s=(\hyperlink{structunz64__s}{unz64\_s}*)file;
+01207     \textcolor{keywordflow}{if} (!s->current\_file\_ok)
+01208         \textcolor{keywordflow}{return} UNZ\_END\_OF\_LIST\_OF\_FILE;
+01209     \textcolor{keywordflow}{if} (s->gi.number\_entry != 0xffff)    \textcolor{comment}{/* 2^16 files overflow hack */}
+01210       \textcolor{keywordflow}{if} (s->num\_file+1==s->gi.number\_entry)
+01211         \textcolor{keywordflow}{return} UNZ\_END\_OF\_LIST\_OF\_FILE;
+01212 
+01213     s->pos\_in\_central\_dir += SIZECENTRALDIRITEM + s->cur\_file\_info.size\_filename +
+01214             s->cur\_file\_info.size\_file\_extra + s->cur\_file\_info.size\_file\_comment ;
+01215     s->num\_file++;
+01216     err = unz64local\_GetCurrentFileInfoInternal(file,&s->cur\_file\_info,
+01217                                                &s->cur\_file\_info\_internal,
+01218                                                NULL,0,NULL,0,NULL,0);
+01219     s->current\_file\_ok = (err == UNZ\_OK);
+01220     \textcolor{keywordflow}{return} err;
+01221 \}
+01222 
+01223 
+01224 \textcolor{comment}{/*}
+01225 \textcolor{comment}{  Try locate the file szFileName in the zipfile.}
+01226 \textcolor{comment}{  For the iCaseSensitivity signification, see unzStringFileNameCompare}
+01227 \textcolor{comment}{}
+01228 \textcolor{comment}{  return value :}
+01229 \textcolor{comment}{  UNZ\_OK if the file is found. It becomes the current file.}
+01230 \textcolor{comment}{  UNZ\_END\_OF\_LIST\_OF\_FILE if the file is not found}
+01231 \textcolor{comment}{*/}
+01232 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzLocateFile (unzFile \hyperlink{structfile}{file}, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *szFileName, \textcolor{keywordtype}{int} iCaseSensitivity)
+01233 \{
+01234     \hyperlink{structunz64__s}{unz64\_s}* s;
+01235     \textcolor{keywordtype}{int} err;
+01236 
+01237     \textcolor{comment}{/* We remember the 'current' position in the file so that we can jump}
+01238 \textcolor{comment}{     * back there if we fail.}
+01239 \textcolor{comment}{     */}
+01240     \hyperlink{structunz__file__info64__s}{unz\_file\_info64} cur\_file\_infoSaved;
+01241     \hyperlink{structunz__file__info64__internal__s}{unz\_file\_info64\_internal} cur\_file\_info\_internalSaved;
+01242     ZPOS64\_T num\_fileSaved;
+01243     ZPOS64\_T pos\_in\_central\_dirSaved;
+01244 
+01245 
+01246     \textcolor{keywordflow}{if} (\hyperlink{structfile}{file}==NULL)
+01247         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01248 
+01249     \textcolor{keywordflow}{if} (strlen(szFileName)>=UNZ\_MAXFILENAMEINZIP)
+01250         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01251 
+01252     s=(\hyperlink{structunz64__s}{unz64\_s}*)\hyperlink{structfile}{file};
+01253     \textcolor{keywordflow}{if} (!s->current\_file\_ok)
+01254         \textcolor{keywordflow}{return} UNZ\_END\_OF\_LIST\_OF\_FILE;
+01255 
+01256     \textcolor{comment}{/* Save the current state */}
+01257     num\_fileSaved = s->num\_file;
+01258     pos\_in\_central\_dirSaved = s->pos\_in\_central\_dir;
+01259     cur\_file\_infoSaved = s->cur\_file\_info;
+01260     cur\_file\_info\_internalSaved = s->cur\_file\_info\_internal;
+01261 
+01262     err = unzGoToFirstFile(\hyperlink{structfile}{file});
+01263 
+01264     \textcolor{keywordflow}{while} (err == UNZ\_OK)
+01265     \{
+01266         \textcolor{keywordtype}{char} szCurrentFileName[UNZ\_MAXFILENAMEINZIP+1];
+01267         err = unzGetCurrentFileInfo64(\hyperlink{structfile}{file},NULL,
+01268                                     szCurrentFileName,\textcolor{keyword}{sizeof}(szCurrentFileName)-1,
+01269                                     NULL,0,NULL,0);
+01270         \textcolor{keywordflow}{if} (err == UNZ\_OK)
+01271         \{
+01272             \textcolor{keywordflow}{if} (unzStringFileNameCompare(szCurrentFileName,
+01273                                             szFileName,iCaseSensitivity)==0)
+01274                 \textcolor{keywordflow}{return} UNZ\_OK;
+01275             err = unzGoToNextFile(\hyperlink{structfile}{file});
+01276         \}
+01277     \}
+01278 
+01279     \textcolor{comment}{/* We failed, so restore the state of the 'current file' to where we}
+01280 \textcolor{comment}{     * were.}
+01281 \textcolor{comment}{     */}
+01282     s->num\_file = num\_fileSaved ;
+01283     s->pos\_in\_central\_dir = pos\_in\_central\_dirSaved ;
+01284     s->cur\_file\_info = cur\_file\_infoSaved;
+01285     s->cur\_file\_info\_internal = cur\_file\_info\_internalSaved;
+01286     \textcolor{keywordflow}{return} err;
+01287 \}
+01288 
+01289 
+01290 \textcolor{comment}{/*}
+01292 \textcolor{comment}{// Contributed by Ryan Haksi (mailto://cryogen@infoserve.net)}
+01293 \textcolor{comment}{// I need random access}
+01294 \textcolor{comment}{//}
+01295 \textcolor{comment}{// Further optimization could be realized by adding an ability}
+01296 \textcolor{comment}{// to cache the directory in memory. The goal being a single}
+01297 \textcolor{comment}{// comprehensive file read to put the file I need in a memory.}
+01298 \textcolor{comment}{*/}
+01299 
+01300 \textcolor{comment}{/*}
+01301 \textcolor{comment}{typedef struct unz\_file\_pos\_s}
+01302 \textcolor{comment}{\{}
+01303 \textcolor{comment}{    ZPOS64\_T pos\_in\_zip\_directory;   // offset in file}
+01304 \textcolor{comment}{    ZPOS64\_T num\_of\_file;            // # of file}
+01305 \textcolor{comment}{\} unz\_file\_pos;}
+01306 \textcolor{comment}{*/}
+01307 
+01308 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGetFilePos64(unzFile \hyperlink{structfile}{file}, \hyperlink{structunz64__file__pos__s}{unz64\_file\_pos}*  file\_pos)
+01309 \{
+01310     \hyperlink{structunz64__s}{unz64\_s}* s;
+01311 
+01312     \textcolor{keywordflow}{if} (\hyperlink{structfile}{file}==NULL || file\_pos==NULL)
+01313         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01314     s=(\hyperlink{structunz64__s}{unz64\_s}*)\hyperlink{structfile}{file};
+01315     \textcolor{keywordflow}{if} (!s->current\_file\_ok)
+01316         \textcolor{keywordflow}{return} UNZ\_END\_OF\_LIST\_OF\_FILE;
+01317 
+01318     file\_pos->pos\_in\_zip\_directory  = s->pos\_in\_central\_dir;
+01319     file\_pos->num\_of\_file           = s->num\_file;
+01320 
+01321     \textcolor{keywordflow}{return} UNZ\_OK;
+01322 \}
+01323 
+01324 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGetFilePos(
+01325     unzFile \hyperlink{structfile}{file},
+01326     \hyperlink{structunz__file__pos__s}{unz\_file\_pos}* file\_pos)
+01327 \{
+01328     \hyperlink{structunz64__file__pos__s}{unz64\_file\_pos} file\_pos64;
+01329     \textcolor{keywordtype}{int} err = unzGetFilePos64(\hyperlink{structfile}{file},&file\_pos64);
+01330     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+01331     \{
+01332         file\_pos->pos\_in\_zip\_directory = (uLong)file\_pos64.pos\_in\_zip\_directory;
+01333         file\_pos->num\_of\_file = (uLong)file\_pos64.num\_of\_file;
+01334     \}
+01335     \textcolor{keywordflow}{return} err;
+01336 \}
+01337 
+01338 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGoToFilePos64(unzFile \hyperlink{structfile}{file}, \textcolor{keyword}{const} \hyperlink{structunz64__file__pos__s}{unz64\_file\_pos}* file\_pos)
+01339 \{
+01340     \hyperlink{structunz64__s}{unz64\_s}* s;
+01341     \textcolor{keywordtype}{int} err;
+01342 
+01343     \textcolor{keywordflow}{if} (\hyperlink{structfile}{file}==NULL || file\_pos==NULL)
+01344         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01345     s=(\hyperlink{structunz64__s}{unz64\_s}*)\hyperlink{structfile}{file};
+01346 
+01347     \textcolor{comment}{/* jump to the right spot */}
+01348     s->pos\_in\_central\_dir = file\_pos->pos\_in\_zip\_directory;
+01349     s->num\_file           = file\_pos->num\_of\_file;
+01350 
+01351     \textcolor{comment}{/* set the current file */}
+01352     err = unz64local\_GetCurrentFileInfoInternal(\hyperlink{structfile}{file},&s->cur\_file\_info,
+01353                                                &s->cur\_file\_info\_internal,
+01354                                                NULL,0,NULL,0,NULL,0);
+01355     \textcolor{comment}{/* return results */}
+01356     s->current\_file\_ok = (err == UNZ\_OK);
+01357     \textcolor{keywordflow}{return} err;
+01358 \}
+01359 
+01360 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGoToFilePos(
+01361     unzFile \hyperlink{structfile}{file},
+01362     \hyperlink{structunz__file__pos__s}{unz\_file\_pos}* file\_pos)
+01363 \{
+01364     \hyperlink{structunz64__file__pos__s}{unz64\_file\_pos} file\_pos64;
+01365     \textcolor{keywordflow}{if} (file\_pos == NULL)
+01366         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01367 
+01368     file\_pos64.pos\_in\_zip\_directory = file\_pos->pos\_in\_zip\_directory;
+01369     file\_pos64.num\_of\_file = file\_pos->num\_of\_file;
+01370     \textcolor{keywordflow}{return} unzGoToFilePos64(\hyperlink{structfile}{file},&file\_pos64);
+01371 \}
+01372 
+01373 \textcolor{comment}{/*}
+01374 \textcolor{comment}{// Unzip Helper Functions - should be here?}
+01376 \textcolor{comment}{*/}
+01377 
+01378 \textcolor{comment}{/*}
+01379 \textcolor{comment}{  Read the local header of the current zipfile}
+01380 \textcolor{comment}{  Check the coherency of the local header and info in the end of central}
+01381 \textcolor{comment}{        directory about this file}
+01382 \textcolor{comment}{  store in *piSizeVar the size of extra info in local header}
+01383 \textcolor{comment}{        (filename and size of extra field data)}
+01384 \textcolor{comment}{*/}
+01385 local \textcolor{keywordtype}{int} unz64local\_CheckCurrentFileCoherencyHeader (\hyperlink{structunz64__s}{unz64\_s}* s, uInt* piSizeVar,
+01386                                                     ZPOS64\_T * poffset\_local\_extrafield,
+01387                                                     uInt  * psize\_local\_extrafield)
+01388 \{
+01389     uLong uMagic,uData,uFlags;
+01390     uLong size\_filename;
+01391     uLong size\_extra\_field;
+01392     \textcolor{keywordtype}{int} err=UNZ\_OK;
+01393 
+01394     *piSizeVar = 0;
+01395     *poffset\_local\_extrafield = 0;
+01396     *psize\_local\_extrafield = 0;
+01397 
+01398     \textcolor{keywordflow}{if} (ZSEEK64(s->z\_filefunc, s->filestream,s->cur\_file\_info\_internal.offset\_curfile +
+01399                                 s->byte\_before\_the\_zipfile,ZLIB\_FILEFUNC\_SEEK\_SET)!=0)
+01400         \textcolor{keywordflow}{return} UNZ\_ERRNO;
+01401 
+01402 
+01403     \textcolor{keywordflow}{if} (err==UNZ\_OK)
+01404     \{
+01405         \textcolor{keywordflow}{if} (unz64local\_getLong(&s->z\_filefunc, s->filestream,&uMagic) != UNZ\_OK)
+01406             err=UNZ\_ERRNO;
+01407         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (uMagic!=0x04034b50)
+01408             err=UNZ\_BADZIPFILE;
+01409     \}
+01410 
+01411     \textcolor{keywordflow}{if} (unz64local\_getShort(&s->z\_filefunc, s->filestream,&uData) != UNZ\_OK)
+01412         err=UNZ\_ERRNO;
+01413 \textcolor{comment}{/*}
+01414 \textcolor{comment}{    else if ((err==UNZ\_OK) && (uData!=s->cur\_file\_info.wVersion))}
+01415 \textcolor{comment}{        err=UNZ\_BADZIPFILE;}
+01416 \textcolor{comment}{*/}
+01417     \textcolor{keywordflow}{if} (unz64local\_getShort(&s->z\_filefunc, s->filestream,&uFlags) != UNZ\_OK)
+01418         err=UNZ\_ERRNO;
+01419 
+01420     \textcolor{keywordflow}{if} (unz64local\_getShort(&s->z\_filefunc, s->filestream,&uData) != UNZ\_OK)
+01421         err=UNZ\_ERRNO;
+01422     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ((err==UNZ\_OK) && (uData!=s->cur\_file\_info.compression\_method))
+01423         err=UNZ\_BADZIPFILE;
+01424 
+01425     \textcolor{keywordflow}{if} ((err==UNZ\_OK) && (s->cur\_file\_info.compression\_method!=0) &&
+01426 \textcolor{comment}{/* #ifdef HAVE\_BZIP2 */}
+01427                          (s->cur\_file\_info.compression\_method!=Z\_BZIP2ED) &&
+01428 \textcolor{comment}{/* #endif */}
+01429                          (s->cur\_file\_info.compression\_method!=Z\_DEFLATED))
+01430         err=UNZ\_BADZIPFILE;
+01431 
+01432     \textcolor{keywordflow}{if} (unz64local\_getLong(&s->z\_filefunc, s->filestream,&uData) != UNZ\_OK) \textcolor{comment}{/* date/time */}
+01433         err=UNZ\_ERRNO;
+01434 
+01435     \textcolor{keywordflow}{if} (unz64local\_getLong(&s->z\_filefunc, s->filestream,&uData) != UNZ\_OK) \textcolor{comment}{/* crc */}
+01436         err=UNZ\_ERRNO;
+01437     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ((err==UNZ\_OK) && (uData!=s->cur\_file\_info.crc) && ((uFlags & 8)==0))
+01438         err=UNZ\_BADZIPFILE;
+01439 
+01440     \textcolor{keywordflow}{if} (unz64local\_getLong(&s->z\_filefunc, s->filestream,&uData) != UNZ\_OK) \textcolor{comment}{/* size compr */}
+01441         err=UNZ\_ERRNO;
+01442     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (uData != 0xFFFFFFFF && (err==UNZ\_OK) && (uData!=s->cur\_file\_info.compressed\_size) && ((uFlags 
+      & 8)==0))
+01443         err=UNZ\_BADZIPFILE;
+01444 
+01445     \textcolor{keywordflow}{if} (unz64local\_getLong(&s->z\_filefunc, s->filestream,&uData) != UNZ\_OK) \textcolor{comment}{/* size uncompr */}
+01446         err=UNZ\_ERRNO;
+01447     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (uData != 0xFFFFFFFF && (err==UNZ\_OK) && (uData!=s->cur\_file\_info.uncompressed\_size) && ((
+      uFlags & 8)==0))
+01448         err=UNZ\_BADZIPFILE;
+01449 
+01450     \textcolor{keywordflow}{if} (unz64local\_getShort(&s->z\_filefunc, s->filestream,&size\_filename) != UNZ\_OK)
+01451         err=UNZ\_ERRNO;
+01452     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ((err==UNZ\_OK) && (size\_filename!=s->cur\_file\_info.size\_filename))
+01453         err=UNZ\_BADZIPFILE;
+01454 
+01455     *piSizeVar += (uInt)size\_filename;
+01456 
+01457     \textcolor{keywordflow}{if} (unz64local\_getShort(&s->z\_filefunc, s->filestream,&size\_extra\_field) != UNZ\_OK)
+01458         err=UNZ\_ERRNO;
+01459     *poffset\_local\_extrafield= s->cur\_file\_info\_internal.offset\_curfile +
+01460                                     SIZEZIPLOCALHEADER + size\_filename;
+01461     *psize\_local\_extrafield = (uInt)size\_extra\_field;
+01462 
+01463     *piSizeVar += (uInt)size\_extra\_field;
+01464 
+01465     \textcolor{keywordflow}{return} err;
+01466 \}
+01467 
+01468 \textcolor{comment}{/*}
+01469 \textcolor{comment}{  Open for reading data the current file in the zipfile.}
+01470 \textcolor{comment}{  If there is no error and the file is opened, the return value is UNZ\_OK.}
+01471 \textcolor{comment}{*/}
+01472 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzOpenCurrentFile3 (unzFile \hyperlink{structfile}{file}, \textcolor{keywordtype}{int}* method,
+01473                                             \textcolor{keywordtype}{int}* level, \textcolor{keywordtype}{int} raw, \textcolor{keyword}{const} \textcolor{keywordtype}{char}* password)
+01474 \{
+01475     \textcolor{keywordtype}{int} err=UNZ\_OK;
+01476     uInt iSizeVar;
+01477     \hyperlink{structunz64__s}{unz64\_s}* s;
+01478     \hyperlink{structfile__in__zip64__read__info__s}{file\_in\_zip64\_read\_info\_s}* pfile\_in\_zip\_read\_info;
+01479     ZPOS64\_T offset\_local\_extrafield;  \textcolor{comment}{/* offset of the local extra field */}
+01480     uInt  size\_local\_extrafield;    \textcolor{comment}{/* size of the local extra field */}
+01481 \textcolor{preprocessor}{#    ifndef NOUNCRYPT}
+01482     \textcolor{keywordtype}{char} source[12];
+01483 \textcolor{preprocessor}{#    else}
+01484     \textcolor{keywordflow}{if} (password != NULL)
+01485         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01486 \textcolor{preprocessor}{#    endif}
+01487 
+01488     \textcolor{keywordflow}{if} (\hyperlink{structfile}{file}==NULL)
+01489         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01490     s=(\hyperlink{structunz64__s}{unz64\_s}*)\hyperlink{structfile}{file};
+01491     \textcolor{keywordflow}{if} (!s->current\_file\_ok)
+01492         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01493 
+01494     \textcolor{keywordflow}{if} (s->pfile\_in\_zip\_read != NULL)
+01495         unzCloseCurrentFile(\hyperlink{structfile}{file});
+01496 
+01497     \textcolor{keywordflow}{if} (unz64local\_CheckCurrentFileCoherencyHeader(s,&iSizeVar, &offset\_local\_extrafield,&
+      size\_local\_extrafield)!=UNZ\_OK)
+01498         \textcolor{keywordflow}{return} UNZ\_BADZIPFILE;
+01499 
+01500     pfile\_in\_zip\_read\_info = (\hyperlink{structfile__in__zip64__read__info__s}{file\_in\_zip64\_read\_info\_s}*)ALLOC(\textcolor{keyword}{sizeof}(
+      \hyperlink{structfile__in__zip64__read__info__s}{file\_in\_zip64\_read\_info\_s}));
+01501     \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info==NULL)
+01502         \textcolor{keywordflow}{return} UNZ\_INTERNALERROR;
+01503 
+01504     pfile\_in\_zip\_read\_info->read\_buffer=(\textcolor{keywordtype}{char}*)ALLOC(UNZ\_BUFSIZE);
+01505     pfile\_in\_zip\_read\_info->offset\_local\_extrafield = offset\_local\_extrafield;
+01506     pfile\_in\_zip\_read\_info->size\_local\_extrafield = size\_local\_extrafield;
+01507     pfile\_in\_zip\_read\_info->pos\_local\_extrafield=0;
+01508     pfile\_in\_zip\_read\_info->raw=raw;
+01509 
+01510     \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info->read\_buffer==NULL)
+01511     \{
+01512         TRYFREE(pfile\_in\_zip\_read\_info);
+01513         \textcolor{keywordflow}{return} UNZ\_INTERNALERROR;
+01514     \}
+01515 
+01516     pfile\_in\_zip\_read\_info->stream\_initialised=0;
+01517 
+01518     \textcolor{keywordflow}{if} (method!=NULL)
+01519         *method = (int)s->cur\_file\_info.compression\_method;
+01520 
+01521     if (level!=NULL)
+01522     \{
+01523         *level = 6;
+01524         \textcolor{keywordflow}{switch} (s->cur\_file\_info.flag & 0x06)
+01525         \{
+01526           \textcolor{keywordflow}{case} 6 : *level = 1; \textcolor{keywordflow}{break};
+01527           \textcolor{keywordflow}{case} 4 : *level = 2; \textcolor{keywordflow}{break};
+01528           \textcolor{keywordflow}{case} 2 : *level = 9; \textcolor{keywordflow}{break};
+01529         \}
+01530     \}
+01531 
+01532     \textcolor{keywordflow}{if} ((s->cur\_file\_info.compression\_method!=0) &&
+01533 \textcolor{comment}{/* #ifdef HAVE\_BZIP2 */}
+01534         (s->cur\_file\_info.compression\_method!=Z\_BZIP2ED) &&
+01535 \textcolor{comment}{/* #endif */}
+01536         (s->cur\_file\_info.compression\_method!=Z\_DEFLATED))
+01537 
+01538         err=UNZ\_BADZIPFILE;
+01539 
+01540     pfile\_in\_zip\_read\_info->crc32\_wait=s->cur\_file\_info.crc;
+01541     pfile\_in\_zip\_read\_info->crc32=0;
+01542     pfile\_in\_zip\_read\_info->total\_out\_64=0;
+01543     pfile\_in\_zip\_read\_info->compression\_method = s->cur\_file\_info.compression\_method;
+01544     pfile\_in\_zip\_read\_info->filestream=s->filestream;
+01545     pfile\_in\_zip\_read\_info->z\_filefunc=s->z\_filefunc;
+01546     pfile\_in\_zip\_read\_info->byte\_before\_the\_zipfile=s->byte\_before\_the\_zipfile;
+01547 
+01548     pfile\_in\_zip\_read\_info->stream.total\_out = 0;
+01549 
+01550     \textcolor{keywordflow}{if} ((s->cur\_file\_info.compression\_method==Z\_BZIP2ED) && (!raw))
+01551     \{
+01552 \textcolor{preprocessor}{#ifdef HAVE\_BZIP2}
+01553       pfile\_in\_zip\_read\_info->bstream.bzalloc = (\textcolor{keywordtype}{void} *(*) (\textcolor{keywordtype}{void} *, int, int))0;
+01554       pfile\_in\_zip\_read\_info->bstream.bzfree = (free\_func)0;
+01555       pfile\_in\_zip\_read\_info->bstream.opaque = (voidpf)0;
+01556       pfile\_in\_zip\_read\_info->bstream.state = (voidpf)0;
+01557 
+01558       pfile\_in\_zip\_read\_info->stream.zalloc = (alloc\_func)0;
+01559       pfile\_in\_zip\_read\_info->stream.zfree = (free\_func)0;
+01560       pfile\_in\_zip\_read\_info->stream.opaque = (voidpf)0;
+01561       pfile\_in\_zip\_read\_info->stream.next\_in = (voidpf)0;
+01562       pfile\_in\_zip\_read\_info->stream.avail\_in = 0;
+01563 
+01564       err=BZ2\_bzDecompressInit(&pfile\_in\_zip\_read\_info->bstream, 0, 0);
+01565       \textcolor{keywordflow}{if} (err == Z\_OK)
+01566         pfile\_in\_zip\_read\_info->stream\_initialised=Z\_BZIP2ED;
+01567       \textcolor{keywordflow}{else}
+01568       \{
+01569         TRYFREE(pfile\_in\_zip\_read\_info);
+01570         \textcolor{keywordflow}{return} err;
+01571       \}
+01572 \textcolor{preprocessor}{#else}
+01573       pfile\_in\_zip\_read\_info->raw=1;
+01574 \textcolor{preprocessor}{#endif}
+01575     \}
+01576     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ((s->cur\_file\_info.compression\_method==Z\_DEFLATED) && (!raw))
+01577     \{
+01578       pfile\_in\_zip\_read\_info->stream.zalloc = (alloc\_func)0;
+01579       pfile\_in\_zip\_read\_info->stream.zfree = (free\_func)0;
+01580       pfile\_in\_zip\_read\_info->stream.opaque = (voidpf)0;
+01581       pfile\_in\_zip\_read\_info->stream.next\_in = 0;
+01582       pfile\_in\_zip\_read\_info->stream.avail\_in = 0;
+01583 
+01584       err=inflateInit2(&pfile\_in\_zip\_read\_info->stream, -MAX\_WBITS);
+01585       \textcolor{keywordflow}{if} (err == Z\_OK)
+01586         pfile\_in\_zip\_read\_info->stream\_initialised=Z\_DEFLATED;
+01587       \textcolor{keywordflow}{else}
+01588       \{
+01589         TRYFREE(pfile\_in\_zip\_read\_info);
+01590         \textcolor{keywordflow}{return} err;
+01591       \}
+01592         \textcolor{comment}{/* windowBits is passed < 0 to tell that there is no zlib header.}
+01593 \textcolor{comment}{         * Note that in this case inflate *requires* an extra "dummy" byte}
+01594 \textcolor{comment}{         * after the compressed stream in order to complete decompression and}
+01595 \textcolor{comment}{         * return Z\_STREAM\_END.}
+01596 \textcolor{comment}{         * In unzip, i don't wait absolutely Z\_STREAM\_END because I known the}
+01597 \textcolor{comment}{         * size of both compressed and uncompressed data}
+01598 \textcolor{comment}{         */}
+01599     \}
+01600     pfile\_in\_zip\_read\_info->rest\_read\_compressed =
+01601             s->cur\_file\_info.compressed\_size ;
+01602     pfile\_in\_zip\_read\_info->rest\_read\_uncompressed =
+01603             s->cur\_file\_info.uncompressed\_size ;
+01604 
+01605 
+01606     pfile\_in\_zip\_read\_info->pos\_in\_zipfile =
+01607             s->cur\_file\_info\_internal.offset\_curfile + SIZEZIPLOCALHEADER +
+01608               iSizeVar;
+01609 
+01610     pfile\_in\_zip\_read\_info->stream.avail\_in = (uInt)0;
+01611 
+01612     s->pfile\_in\_zip\_read = pfile\_in\_zip\_read\_info;
+01613                 s->encrypted = 0;
+01614 
+01615 \textcolor{preprocessor}{#    ifndef NOUNCRYPT}
+01616     \textcolor{keywordflow}{if} (password != NULL)
+01617     \{
+01618         \textcolor{keywordtype}{int} i;
+01619         s->pcrc\_32\_tab = get\_crc\_table();
+01620         init\_keys(password,s->keys,s->pcrc\_32\_tab);
+01621         \textcolor{keywordflow}{if} (ZSEEK64(s->z\_filefunc, s->filestream,
+01622                   s->pfile\_in\_zip\_read->pos\_in\_zipfile +
+01623                      s->pfile\_in\_zip\_read->byte\_before\_the\_zipfile,
+01624                   SEEK\_SET)!=0)
+01625             \textcolor{keywordflow}{return} UNZ\_INTERNALERROR;
+01626         \textcolor{keywordflow}{if}(ZREAD64(s->z\_filefunc, s->filestream,source, 12)<12)
+01627             \textcolor{keywordflow}{return} UNZ\_INTERNALERROR;
+01628 
+01629         \textcolor{keywordflow}{for} (i = 0; i<12; i++)
+01630             zdecode(s->keys,s->pcrc\_32\_tab,source[i]);
+01631 
+01632         s->pfile\_in\_zip\_read->pos\_in\_zipfile+=12;
+01633         s->encrypted=1;
+01634     \}
+01635 \textcolor{preprocessor}{#    endif}
+01636 
+01637 
+01638     \textcolor{keywordflow}{return} UNZ\_OK;
+01639 \}
+01640 
+01641 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzOpenCurrentFile (unzFile \hyperlink{structfile}{file})
+01642 \{
+01643     \textcolor{keywordflow}{return} unzOpenCurrentFile3(file, NULL, NULL, 0, NULL);
+01644 \}
+01645 
+01646 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzOpenCurrentFilePassword (unzFile \hyperlink{structfile}{file}, \textcolor{keyword}{const} \textcolor{keywordtype}{char}*  password)
+01647 \{
+01648     \textcolor{keywordflow}{return} unzOpenCurrentFile3(\hyperlink{structfile}{file}, NULL, NULL, 0, password);
+01649 \}
+01650 
+01651 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzOpenCurrentFile2 (unzFile \hyperlink{structfile}{file}, \textcolor{keywordtype}{int}* method, \textcolor{keywordtype}{int}* level, \textcolor{keywordtype}{int} raw)
+01652 \{
+01653     \textcolor{keywordflow}{return} unzOpenCurrentFile3(\hyperlink{structfile}{file}, method, level, raw, NULL);
+01654 \}
+01655 
+01658 \textcolor{keyword}{extern} ZPOS64\_T ZEXPORT unzGetCurrentFileZStreamPos64( unzFile \hyperlink{structfile}{file})
+01659 \{
+01660     \hyperlink{structunz64__s}{unz64\_s}* s;
+01661     \hyperlink{structfile__in__zip64__read__info__s}{file\_in\_zip64\_read\_info\_s}* pfile\_in\_zip\_read\_info;
+01662     s=(\hyperlink{structunz64__s}{unz64\_s}*)file;
+01663     \textcolor{keywordflow}{if} (file==NULL)
+01664         \textcolor{keywordflow}{return} 0; \textcolor{comment}{//UNZ\_PARAMERROR;}
+01665     pfile\_in\_zip\_read\_info=s->pfile\_in\_zip\_read;
+01666     \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info==NULL)
+01667         \textcolor{keywordflow}{return} 0; \textcolor{comment}{//UNZ\_PARAMERROR;}
+01668     \textcolor{keywordflow}{return} pfile\_in\_zip\_read\_info->pos\_in\_zipfile +
+01669                          pfile\_in\_zip\_read\_info->byte\_before\_the\_zipfile;
+01670 \}
+01671 
+01674 \textcolor{comment}{/*}
+01675 \textcolor{comment}{  Read bytes from the current file.}
+01676 \textcolor{comment}{  buf contain buffer where data must be copied}
+01677 \textcolor{comment}{  len the size of buf.}
+01678 \textcolor{comment}{}
+01679 \textcolor{comment}{  return the number of byte copied if somes bytes are copied}
+01680 \textcolor{comment}{  return 0 if the end of file was reached}
+01681 \textcolor{comment}{  return <0 with error code if there is an error}
+01682 \textcolor{comment}{    (UNZ\_ERRNO for IO error, or zLib error for uncompress error)}
+01683 \textcolor{comment}{*/}
+01684 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzReadCurrentFile  (unzFile \hyperlink{structfile}{file}, voidp buf, \textcolor{keywordtype}{unsigned} len)
+01685 \{
+01686     \textcolor{keywordtype}{int} err=UNZ\_OK;
+01687     uInt iRead = 0;
+01688     \hyperlink{structunz64__s}{unz64\_s}* s;
+01689     \hyperlink{structfile__in__zip64__read__info__s}{file\_in\_zip64\_read\_info\_s}* pfile\_in\_zip\_read\_info;
+01690     \textcolor{keywordflow}{if} (\hyperlink{structfile}{file}==NULL)
+01691         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01692     s=(\hyperlink{structunz64__s}{unz64\_s}*)\hyperlink{structfile}{file};
+01693     pfile\_in\_zip\_read\_info=s->pfile\_in\_zip\_read;
+01694 
+01695     \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info==NULL)
+01696         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01697 
+01698 
+01699     \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info->read\_buffer == NULL)
+01700         \textcolor{keywordflow}{return} UNZ\_END\_OF\_LIST\_OF\_FILE;
+01701     \textcolor{keywordflow}{if} (len==0)
+01702         \textcolor{keywordflow}{return} 0;
+01703 
+01704     pfile\_in\_zip\_read\_info->stream.next\_out = (Bytef*)buf;
+01705 
+01706     pfile\_in\_zip\_read\_info->stream.avail\_out = (uInt)len;
+01707 
+01708     \textcolor{keywordflow}{if} ((len>pfile\_in\_zip\_read\_info->rest\_read\_uncompressed) &&
+01709         (!(pfile\_in\_zip\_read\_info->raw)))
+01710         pfile\_in\_zip\_read\_info->stream.avail\_out =
+01711             (uInt)pfile\_in\_zip\_read\_info->rest\_read\_uncompressed;
+01712 
+01713     \textcolor{keywordflow}{if} ((len>pfile\_in\_zip\_read\_info->rest\_read\_compressed+
+01714            pfile\_in\_zip\_read\_info->stream.avail\_in) &&
+01715          (pfile\_in\_zip\_read\_info->raw))
+01716         pfile\_in\_zip\_read\_info->stream.avail\_out =
+01717             (uInt)pfile\_in\_zip\_read\_info->rest\_read\_compressed+
+01718             pfile\_in\_zip\_read\_info->stream.avail\_in;
+01719 
+01720     while (pfile\_in\_zip\_read\_info->stream.avail\_out>0)
+01721     \{
+01722         \textcolor{keywordflow}{if} ((pfile\_in\_zip\_read\_info->stream.avail\_in==0) &&
+01723             (pfile\_in\_zip\_read\_info->rest\_read\_compressed>0))
+01724         \{
+01725             uInt uReadThis = UNZ\_BUFSIZE;
+01726             \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info->rest\_read\_compressed<uReadThis)
+01727                 uReadThis = (uInt)pfile\_in\_zip\_read\_info->rest\_read\_compressed;
+01728             if (uReadThis == 0)
+01729                 \textcolor{keywordflow}{return} UNZ\_EOF;
+01730             \textcolor{keywordflow}{if} (ZSEEK64(pfile\_in\_zip\_read\_info->z\_filefunc,
+01731                       pfile\_in\_zip\_read\_info->filestream,
+01732                       pfile\_in\_zip\_read\_info->pos\_in\_zipfile +
+01733                          pfile\_in\_zip\_read\_info->byte\_before\_the\_zipfile,
+01734                          ZLIB\_FILEFUNC\_SEEK\_SET)!=0)
+01735                 \textcolor{keywordflow}{return} UNZ\_ERRNO;
+01736             \textcolor{keywordflow}{if} (ZREAD64(pfile\_in\_zip\_read\_info->z\_filefunc,
+01737                       pfile\_in\_zip\_read\_info->filestream,
+01738                       pfile\_in\_zip\_read\_info->read\_buffer,
+01739                       uReadThis)!=uReadThis)
+01740                 \textcolor{keywordflow}{return} UNZ\_ERRNO;
+01741 
+01742 
+01743 \textcolor{preprocessor}{#            ifndef NOUNCRYPT}
+01744             \textcolor{keywordflow}{if}(s->encrypted)
+01745             \{
+01746                 uInt i;
+01747                 \textcolor{keywordflow}{for}(i=0;i<uReadThis;i++)
+01748                   pfile\_in\_zip\_read\_info->read\_buffer[i] =
+01749                       zdecode(s->keys,s->pcrc\_32\_tab,
+01750                               pfile\_in\_zip\_read\_info->read\_buffer[i]);
+01751             \}
+01752 \textcolor{preprocessor}{#            endif}
+01753 
+01754 
+01755             pfile\_in\_zip\_read\_info->pos\_in\_zipfile += uReadThis;
+01756 
+01757             pfile\_in\_zip\_read\_info->rest\_read\_compressed-=uReadThis;
+01758 
+01759             pfile\_in\_zip\_read\_info->stream.next\_in =
+01760                 (Bytef*)pfile\_in\_zip\_read\_info->read\_buffer;
+01761             pfile\_in\_zip\_read\_info->stream.avail\_in = (uInt)uReadThis;
+01762         \}
+01763 
+01764         \textcolor{keywordflow}{if} ((pfile\_in\_zip\_read\_info->compression\_method==0) || (pfile\_in\_zip\_read\_info->raw))
+01765         \{
+01766             uInt uDoCopy,i ;
+01767 
+01768             \textcolor{keywordflow}{if} ((pfile\_in\_zip\_read\_info->stream.avail\_in == 0) &&
+01769                 (pfile\_in\_zip\_read\_info->rest\_read\_compressed == 0))
+01770                 \textcolor{keywordflow}{return} (iRead==0) ? UNZ\_EOF : iRead;
+01771 
+01772             \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info->stream.avail\_out <
+01773                             pfile\_in\_zip\_read\_info->stream.avail\_in)
+01774                 uDoCopy = pfile\_in\_zip\_read\_info->stream.avail\_out ;
+01775             \textcolor{keywordflow}{else}
+01776                 uDoCopy = pfile\_in\_zip\_read\_info->stream.avail\_in ;
+01777 
+01778             \textcolor{keywordflow}{for} (i=0;i<uDoCopy;i++)
+01779                 *(pfile\_in\_zip\_read\_info->stream.next\_out+i) =
+01780                         *(pfile\_in\_zip\_read\_info->stream.next\_in+i);
+01781 
+01782             pfile\_in\_zip\_read\_info->total\_out\_64 = pfile\_in\_zip\_read\_info->total\_out\_64 + uDoCopy;
+01783 
+01784             pfile\_in\_zip\_read\_info->crc32 = crc32(pfile\_in\_zip\_read\_info->crc32,
+01785                                 pfile\_in\_zip\_read\_info->stream.next\_out,
+01786                                 uDoCopy);
+01787             pfile\_in\_zip\_read\_info->rest\_read\_uncompressed-=uDoCopy;
+01788             pfile\_in\_zip\_read\_info->stream.avail\_in -= uDoCopy;
+01789             pfile\_in\_zip\_read\_info->stream.avail\_out -= uDoCopy;
+01790             pfile\_in\_zip\_read\_info->stream.next\_out += uDoCopy;
+01791             pfile\_in\_zip\_read\_info->stream.next\_in += uDoCopy;
+01792             pfile\_in\_zip\_read\_info->stream.total\_out += uDoCopy;
+01793             iRead += uDoCopy;
+01794         \}
+01795         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info->compression\_method==Z\_BZIP2ED)
+01796         \{
+01797 \textcolor{preprocessor}{#ifdef HAVE\_BZIP2}
+01798             uLong uTotalOutBefore,uTotalOutAfter;
+01799             \textcolor{keyword}{const} Bytef *bufBefore;
+01800             uLong uOutThis;
+01801 
+01802             pfile\_in\_zip\_read\_info->bstream.next\_in        = (\textcolor{keywordtype}{char}*)pfile\_in\_zip\_read\_info->stream.next\_in;
+01803             pfile\_in\_zip\_read\_info->bstream.avail\_in       = pfile\_in\_zip\_read\_info->stream.avail\_in;
+01804             pfile\_in\_zip\_read\_info->bstream.total\_in\_lo32  = pfile\_in\_zip\_read\_info->stream.total\_in;
+01805             pfile\_in\_zip\_read\_info->bstream.total\_in\_hi32  = 0;
+01806             pfile\_in\_zip\_read\_info->bstream.next\_out       = (\textcolor{keywordtype}{char}*)pfile\_in\_zip\_read\_info->stream.next\_out
+      ;
+01807             pfile\_in\_zip\_read\_info->bstream.avail\_out      = pfile\_in\_zip\_read\_info->stream.avail\_out;
+01808             pfile\_in\_zip\_read\_info->bstream.total\_out\_lo32 = pfile\_in\_zip\_read\_info->stream.total\_out;
+01809             pfile\_in\_zip\_read\_info->bstream.total\_out\_hi32 = 0;
+01810 
+01811             uTotalOutBefore = pfile\_in\_zip\_read\_info->bstream.total\_out\_lo32;
+01812             bufBefore = (\textcolor{keyword}{const} Bytef *)pfile\_in\_zip\_read\_info->bstream.next\_out;
+01813 
+01814             err=BZ2\_bzDecompress(&pfile\_in\_zip\_read\_info->bstream);
+01815 
+01816             uTotalOutAfter = pfile\_in\_zip\_read\_info->bstream.total\_out\_lo32;
+01817             uOutThis = uTotalOutAfter-uTotalOutBefore;
+01818 
+01819             pfile\_in\_zip\_read\_info->total\_out\_64 = pfile\_in\_zip\_read\_info->total\_out\_64 + uOutThis;
+01820 
+01821             pfile\_in\_zip\_read\_info->crc32 = crc32(pfile\_in\_zip\_read\_info->crc32,bufBefore, (uInt)(uOutThis)
+      );
+01822             pfile\_in\_zip\_read\_info->rest\_read\_uncompressed -= uOutThis;
+01823             iRead += (uInt)(uTotalOutAfter - uTotalOutBefore);
+01824 
+01825             pfile\_in\_zip\_read\_info->stream.next\_in   = (Bytef*)pfile\_in\_zip\_read\_info->bstream.next\_in;
+01826             pfile\_in\_zip\_read\_info->stream.avail\_in  = pfile\_in\_zip\_read\_info->bstream.avail\_in;
+01827             pfile\_in\_zip\_read\_info->stream.total\_in  = pfile\_in\_zip\_read\_info->bstream.total\_in\_lo32;
+01828             pfile\_in\_zip\_read\_info->stream.next\_out  = (Bytef*)pfile\_in\_zip\_read\_info->bstream.next\_out;
+01829             pfile\_in\_zip\_read\_info->stream.avail\_out = pfile\_in\_zip\_read\_info->bstream.avail\_out;
+01830             pfile\_in\_zip\_read\_info->stream.total\_out = pfile\_in\_zip\_read\_info->bstream.total\_out\_lo32;
+01831 
+01832             \textcolor{keywordflow}{if} (err==BZ\_STREAM\_END)
+01833               \textcolor{keywordflow}{return} (iRead==0) ? UNZ\_EOF : iRead;
+01834             \textcolor{keywordflow}{if} (err!=BZ\_OK)
+01835               \textcolor{keywordflow}{break};
+01836 \textcolor{preprocessor}{#endif}
+01837         \} \textcolor{comment}{// end Z\_BZIP2ED}
+01838         \textcolor{keywordflow}{else}
+01839         \{
+01840             ZPOS64\_T uTotalOutBefore,uTotalOutAfter;
+01841             \textcolor{keyword}{const} Bytef *bufBefore;
+01842             ZPOS64\_T uOutThis;
+01843             \textcolor{keywordtype}{int} flush=Z\_SYNC\_FLUSH;
+01844 
+01845             uTotalOutBefore = pfile\_in\_zip\_read\_info->stream.total\_out;
+01846             bufBefore = pfile\_in\_zip\_read\_info->stream.next\_out;
+01847 
+01848             \textcolor{comment}{/*}
+01849 \textcolor{comment}{            if ((pfile\_in\_zip\_read\_info->rest\_read\_uncompressed ==}
+01850 \textcolor{comment}{                     pfile\_in\_zip\_read\_info->stream.avail\_out) &&}
+01851 \textcolor{comment}{                (pfile\_in\_zip\_read\_info->rest\_read\_compressed == 0))}
+01852 \textcolor{comment}{                flush = Z\_FINISH;}
+01853 \textcolor{comment}{            */}
+01854             err=inflate(&pfile\_in\_zip\_read\_info->stream,flush);
+01855 
+01856             \textcolor{keywordflow}{if} ((err>=0) && (pfile\_in\_zip\_read\_info->stream.msg!=NULL))
+01857               err = Z\_DATA\_ERROR;
+01858 
+01859             uTotalOutAfter = pfile\_in\_zip\_read\_info->stream.total\_out;
+01860             uOutThis = uTotalOutAfter-uTotalOutBefore;
+01861 
+01862             pfile\_in\_zip\_read\_info->total\_out\_64 = pfile\_in\_zip\_read\_info->total\_out\_64 + uOutThis;
+01863 
+01864             pfile\_in\_zip\_read\_info->crc32 =
+01865                 crc32(pfile\_in\_zip\_read\_info->crc32,bufBefore,
+01866                         (uInt)(uOutThis));
+01867 
+01868             pfile\_in\_zip\_read\_info->rest\_read\_uncompressed -=
+01869                 uOutThis;
+01870 
+01871             iRead += (uInt)(uTotalOutAfter - uTotalOutBefore);
+01872 
+01873             \textcolor{keywordflow}{if} (err==Z\_STREAM\_END)
+01874                 \textcolor{keywordflow}{return} (iRead==0) ? UNZ\_EOF : iRead;
+01875             \textcolor{keywordflow}{if} (err!=Z\_OK)
+01876                 \textcolor{keywordflow}{break};
+01877         \}
+01878     \}
+01879 
+01880     \textcolor{keywordflow}{if} (err==Z\_OK)
+01881         \textcolor{keywordflow}{return} iRead;
+01882     \textcolor{keywordflow}{return} err;
+01883 \}
+01884 
+01885 
+01886 \textcolor{comment}{/*}
+01887 \textcolor{comment}{  Give the current position in uncompressed data}
+01888 \textcolor{comment}{*/}
+01889 \textcolor{keyword}{extern} z\_off\_t ZEXPORT unztell (unzFile \hyperlink{structfile}{file})
+01890 \{
+01891     \hyperlink{structunz64__s}{unz64\_s}* s;
+01892     \hyperlink{structfile__in__zip64__read__info__s}{file\_in\_zip64\_read\_info\_s}* pfile\_in\_zip\_read\_info;
+01893     \textcolor{keywordflow}{if} (file==NULL)
+01894         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01895     s=(\hyperlink{structunz64__s}{unz64\_s}*)file;
+01896     pfile\_in\_zip\_read\_info=s->pfile\_in\_zip\_read;
+01897 
+01898     \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info==NULL)
+01899         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01900 
+01901     \textcolor{keywordflow}{return} (z\_off\_t)pfile\_in\_zip\_read\_info->stream.total\_out;
+01902 \}
+01903 
+01904 \textcolor{keyword}{extern} ZPOS64\_T ZEXPORT unztell64 (unzFile \hyperlink{structfile}{file})
+01905 \{
+01906 
+01907     \hyperlink{structunz64__s}{unz64\_s}* s;
+01908     \hyperlink{structfile__in__zip64__read__info__s}{file\_in\_zip64\_read\_info\_s}* pfile\_in\_zip\_read\_info;
+01909     \textcolor{keywordflow}{if} (file==NULL)
+01910         \textcolor{keywordflow}{return} (ZPOS64\_T)-1;
+01911     s=(\hyperlink{structunz64__s}{unz64\_s}*)file;
+01912     pfile\_in\_zip\_read\_info=s->pfile\_in\_zip\_read;
+01913 
+01914     \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info==NULL)
+01915         \textcolor{keywordflow}{return} (ZPOS64\_T)-1;
+01916 
+01917     \textcolor{keywordflow}{return} pfile\_in\_zip\_read\_info->total\_out\_64;
+01918 \}
+01919 
+01920 
+01921 \textcolor{comment}{/*}
+01922 \textcolor{comment}{  return 1 if the end of file was reached, 0 elsewhere}
+01923 \textcolor{comment}{*/}
+01924 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzeof (unzFile \hyperlink{structfile}{file})
+01925 \{
+01926     \hyperlink{structunz64__s}{unz64\_s}* s;
+01927     \hyperlink{structfile__in__zip64__read__info__s}{file\_in\_zip64\_read\_info\_s}* pfile\_in\_zip\_read\_info;
+01928     \textcolor{keywordflow}{if} (file==NULL)
+01929         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01930     s=(\hyperlink{structunz64__s}{unz64\_s}*)file;
+01931     pfile\_in\_zip\_read\_info=s->pfile\_in\_zip\_read;
+01932 
+01933     \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info==NULL)
+01934         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01935 
+01936     \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info->rest\_read\_uncompressed == 0)
+01937         \textcolor{keywordflow}{return} 1;
+01938     \textcolor{keywordflow}{else}
+01939         \textcolor{keywordflow}{return} 0;
+01940 \}
+01941 
+01942 
+01943 
+01944 \textcolor{comment}{/*}
+01945 \textcolor{comment}{Read extra field from the current file (opened by unzOpenCurrentFile)}
+01946 \textcolor{comment}{This is the local-header version of the extra field (sometimes, there is}
+01947 \textcolor{comment}{more info in the local-header version than in the central-header)}
+01948 \textcolor{comment}{}
+01949 \textcolor{comment}{  if buf==NULL, it return the size of the local extra field that can be read}
+01950 \textcolor{comment}{}
+01951 \textcolor{comment}{  if buf!=NULL, len is the size of the buffer, the extra header is copied in}
+01952 \textcolor{comment}{    buf.}
+01953 \textcolor{comment}{  the return value is the number of bytes copied in buf, or (if <0)}
+01954 \textcolor{comment}{    the error code}
+01955 \textcolor{comment}{*/}
+01956 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGetLocalExtrafield (unzFile \hyperlink{structfile}{file}, voidp buf, \textcolor{keywordtype}{unsigned} len)
+01957 \{
+01958     \hyperlink{structunz64__s}{unz64\_s}* s;
+01959     \hyperlink{structfile__in__zip64__read__info__s}{file\_in\_zip64\_read\_info\_s}* pfile\_in\_zip\_read\_info;
+01960     uInt read\_now;
+01961     ZPOS64\_T size\_to\_read;
+01962 
+01963     \textcolor{keywordflow}{if} (\hyperlink{structfile}{file}==NULL)
+01964         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01965     s=(\hyperlink{structunz64__s}{unz64\_s}*)\hyperlink{structfile}{file};
+01966     pfile\_in\_zip\_read\_info=s->pfile\_in\_zip\_read;
+01967 
+01968     \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info==NULL)
+01969         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+01970 
+01971     size\_to\_read = (pfile\_in\_zip\_read\_info->size\_local\_extrafield -
+01972                 pfile\_in\_zip\_read\_info->pos\_local\_extrafield);
+01973 
+01974     \textcolor{keywordflow}{if} (buf==NULL)
+01975         \textcolor{keywordflow}{return} (\textcolor{keywordtype}{int})size\_to\_read;
+01976 
+01977     \textcolor{keywordflow}{if} (len>size\_to\_read)
+01978         read\_now = (uInt)size\_to\_read;
+01979     \textcolor{keywordflow}{else}
+01980         read\_now = (uInt)len ;
+01981 
+01982     \textcolor{keywordflow}{if} (read\_now==0)
+01983         \textcolor{keywordflow}{return} 0;
+01984 
+01985     \textcolor{keywordflow}{if} (ZSEEK64(pfile\_in\_zip\_read\_info->z\_filefunc,
+01986               pfile\_in\_zip\_read\_info->filestream,
+01987               pfile\_in\_zip\_read\_info->offset\_local\_extrafield +
+01988               pfile\_in\_zip\_read\_info->pos\_local\_extrafield,
+01989               ZLIB\_FILEFUNC\_SEEK\_SET)!=0)
+01990         \textcolor{keywordflow}{return} UNZ\_ERRNO;
+01991 
+01992     \textcolor{keywordflow}{if} (ZREAD64(pfile\_in\_zip\_read\_info->z\_filefunc,
+01993               pfile\_in\_zip\_read\_info->filestream,
+01994               buf,read\_now)!=read\_now)
+01995         \textcolor{keywordflow}{return} UNZ\_ERRNO;
+01996 
+01997     \textcolor{keywordflow}{return} (\textcolor{keywordtype}{int})read\_now;
+01998 \}
+01999 
+02000 \textcolor{comment}{/*}
+02001 \textcolor{comment}{  Close the file in zip opened with unzOpenCurrentFile}
+02002 \textcolor{comment}{  Return UNZ\_CRCERROR if all the file was read but the CRC is not good}
+02003 \textcolor{comment}{*/}
+02004 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzCloseCurrentFile (unzFile \hyperlink{structfile}{file})
+02005 \{
+02006     \textcolor{keywordtype}{int} err=UNZ\_OK;
+02007 
+02008     \hyperlink{structunz64__s}{unz64\_s}* s;
+02009     \hyperlink{structfile__in__zip64__read__info__s}{file\_in\_zip64\_read\_info\_s}* pfile\_in\_zip\_read\_info;
+02010     \textcolor{keywordflow}{if} (file==NULL)
+02011         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+02012     s=(\hyperlink{structunz64__s}{unz64\_s}*)file;
+02013     pfile\_in\_zip\_read\_info=s->pfile\_in\_zip\_read;
+02014 
+02015     \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info==NULL)
+02016         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+02017 
+02018 
+02019     \textcolor{keywordflow}{if} ((pfile\_in\_zip\_read\_info->rest\_read\_uncompressed == 0) &&
+02020         (!pfile\_in\_zip\_read\_info->raw))
+02021     \{
+02022         \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info->crc32 != pfile\_in\_zip\_read\_info->crc32\_wait)
+02023             err=UNZ\_CRCERROR;
+02024     \}
+02025 
+02026 
+02027     TRYFREE(pfile\_in\_zip\_read\_info->read\_buffer);
+02028     pfile\_in\_zip\_read\_info->read\_buffer = NULL;
+02029     \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info->stream\_initialised == Z\_DEFLATED)
+02030         inflateEnd(&pfile\_in\_zip\_read\_info->stream);
+02031 \textcolor{preprocessor}{#ifdef HAVE\_BZIP2}
+02032     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (pfile\_in\_zip\_read\_info->stream\_initialised == Z\_BZIP2ED)
+02033         BZ2\_bzDecompressEnd(&pfile\_in\_zip\_read\_info->bstream);
+02034 \textcolor{preprocessor}{#endif}
+02035 
+02036 
+02037     pfile\_in\_zip\_read\_info->stream\_initialised = 0;
+02038     TRYFREE(pfile\_in\_zip\_read\_info);
+02039 
+02040     s->pfile\_in\_zip\_read=NULL;
+02041 
+02042     \textcolor{keywordflow}{return} err;
+02043 \}
+02044 
+02045 
+02046 \textcolor{comment}{/*}
+02047 \textcolor{comment}{  Get the global comment string of the ZipFile, in the szComment buffer.}
+02048 \textcolor{comment}{  uSizeBuf is the size of the szComment buffer.}
+02049 \textcolor{comment}{  return the number of byte copied or an error code <0}
+02050 \textcolor{comment}{*/}
+02051 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzGetGlobalComment (unzFile \hyperlink{structfile}{file}, \textcolor{keywordtype}{char} * szComment, uLong uSizeBuf)
+02052 \{
+02053     \hyperlink{structunz64__s}{unz64\_s}* s;
+02054     uLong uReadThis ;
+02055     \textcolor{keywordflow}{if} (\hyperlink{structfile}{file}==NULL)
+02056         \textcolor{keywordflow}{return} (\textcolor{keywordtype}{int})UNZ\_PARAMERROR;
+02057     s=(\hyperlink{structunz64__s}{unz64\_s}*)\hyperlink{structfile}{file};
+02058 
+02059     uReadThis = uSizeBuf;
+02060     \textcolor{keywordflow}{if} (uReadThis>s->gi.size\_comment)
+02061         uReadThis = s->gi.size\_comment;
+02062 
+02063     \textcolor{keywordflow}{if} (ZSEEK64(s->z\_filefunc,s->filestream,s->central\_pos+22,ZLIB\_FILEFUNC\_SEEK\_SET)!=0)
+02064         \textcolor{keywordflow}{return} UNZ\_ERRNO;
+02065 
+02066     \textcolor{keywordflow}{if} (uReadThis>0)
+02067     \{
+02068       *szComment=\textcolor{charliteral}{'\(\backslash\)0'};
+02069       \textcolor{keywordflow}{if} (ZREAD64(s->z\_filefunc,s->filestream,szComment,uReadThis)!=uReadThis)
+02070         \textcolor{keywordflow}{return} UNZ\_ERRNO;
+02071     \}
+02072 
+02073     \textcolor{keywordflow}{if} ((szComment != NULL) && (uSizeBuf > s->gi.size\_comment))
+02074         *(szComment+s->gi.size\_comment)=\textcolor{charliteral}{'\(\backslash\)0'};
+02075     \textcolor{keywordflow}{return} (\textcolor{keywordtype}{int})uReadThis;
+02076 \}
+02077 
+02078 \textcolor{comment}{/* Additions by RX '2004 */}
+02079 \textcolor{keyword}{extern} ZPOS64\_T ZEXPORT unzGetOffset64(unzFile \hyperlink{structfile}{file})
+02080 \{
+02081     \hyperlink{structunz64__s}{unz64\_s}* s;
+02082 
+02083     \textcolor{keywordflow}{if} (file==NULL)
+02084           \textcolor{keywordflow}{return} 0; \textcolor{comment}{//UNZ\_PARAMERROR;}
+02085     s=(\hyperlink{structunz64__s}{unz64\_s}*)file;
+02086     \textcolor{keywordflow}{if} (!s->current\_file\_ok)
+02087       \textcolor{keywordflow}{return} 0;
+02088     \textcolor{keywordflow}{if} (s->gi.number\_entry != 0 && s->gi.number\_entry != 0xffff)
+02089       \textcolor{keywordflow}{if} (s->num\_file==s->gi.number\_entry)
+02090          \textcolor{keywordflow}{return} 0;
+02091     \textcolor{keywordflow}{return} s->pos\_in\_central\_dir;
+02092 \}
+02093 
+02094 \textcolor{keyword}{extern} uLong ZEXPORT unzGetOffset (unzFile \hyperlink{structfile}{file})
+02095 \{
+02096     ZPOS64\_T offset64;
+02097 
+02098     \textcolor{keywordflow}{if} (file==NULL)
+02099           \textcolor{keywordflow}{return} 0; \textcolor{comment}{//UNZ\_PARAMERROR;}
+02100     offset64 = unzGetOffset64(file);
+02101     \textcolor{keywordflow}{return} (uLong)offset64;
+02102 \}
+02103 
+02104 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzSetOffset64(unzFile \hyperlink{structfile}{file}, ZPOS64\_T pos)
+02105 \{
+02106     \hyperlink{structunz64__s}{unz64\_s}* s;
+02107     \textcolor{keywordtype}{int} err;
+02108 
+02109     \textcolor{keywordflow}{if} (\hyperlink{structfile}{file}==NULL)
+02110         \textcolor{keywordflow}{return} UNZ\_PARAMERROR;
+02111     s=(\hyperlink{structunz64__s}{unz64\_s}*)\hyperlink{structfile}{file};
+02112 
+02113     s->pos\_in\_central\_dir = pos;
+02114     s->num\_file = s->gi.number\_entry;      \textcolor{comment}{/* hack */}
+02115     err = unz64local\_GetCurrentFileInfoInternal(\hyperlink{structfile}{file},&s->cur\_file\_info,
+02116                                               &s->cur\_file\_info\_internal,
+02117                                               NULL,0,NULL,0,NULL,0);
+02118     s->current\_file\_ok = (err == UNZ\_OK);
+02119     \textcolor{keywordflow}{return} err;
+02120 \}
+02121 
+02122 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT unzSetOffset (unzFile \hyperlink{structfile}{file}, uLong pos)
+02123 \{
+02124     \textcolor{keywordflow}{return} unzSetOffset64(\hyperlink{structfile}{file},pos);
+02125 \}
+\end{DoxyCode}

@@ -1,0 +1,64 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2demos_2opengl_2trackball_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/demos/opengl/trackball.cpp}
+\label{matio_2visual__studio_2test_2eigen_2demos_2opengl_2trackball_8cpp_source}\index{trackball.\+cpp@{trackball.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "trackball.h"}
+00011 \textcolor{preprocessor}{#include "camera.h"}
+00012 
+00013 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00014 
+00015 \textcolor{keywordtype}{void} Trackball::track(\textcolor{keyword}{const} Vector2i& point2D)
+00016 \{
+00017   \textcolor{keywordflow}{if} (mpCamera==0)
+00018     \textcolor{keywordflow}{return};
+00019   Vector3f newPoint3D;
+00020   \textcolor{keywordtype}{bool} newPointOk = mapToSphere(point2D, newPoint3D);
+00021 
+00022   \textcolor{keywordflow}{if} (mLastPointOk && newPointOk)
+00023   \{
+00024     Vector3f axis = mLastPoint3D.cross(newPoint3D).normalized();
+00025     \textcolor{keywordtype}{float} cos\_angle = mLastPoint3D.dot(newPoint3D);
+00026     \textcolor{keywordflow}{if} ( std::abs(cos\_angle) < 1.0 )
+00027     \{
+00028       \textcolor{keywordtype}{float} angle = 2. * acos(cos\_angle);
+00029       \textcolor{keywordflow}{if} (mMode==Around)
+00030         mpCamera->rotateAroundTarget(\hyperlink{group___geometry___module_ga785b13a5a87f9bf55d4eba51ead2dcf0}{Quaternionf}(\hyperlink{group___geometry___module_gadc7128416da41ca99bb8af814b78599e}{AngleAxisf}(angle, axis)));
+00031       \textcolor{keywordflow}{else}
+00032         mpCamera->localRotate(\hyperlink{group___geometry___module_ga785b13a5a87f9bf55d4eba51ead2dcf0}{Quaternionf}(\hyperlink{group___geometry___module_gadc7128416da41ca99bb8af814b78599e}{AngleAxisf}(-angle, axis)));
+00033     \}
+00034   \}
+00035 
+00036   mLastPoint3D = newPoint3D;
+00037   mLastPointOk = newPointOk;
+00038 \}
+00039 
+00040 \textcolor{keywordtype}{bool} Trackball::mapToSphere(\textcolor{keyword}{const} Vector2i& p2, Vector3f& v3)
+00041 \{
+00042   \textcolor{keywordflow}{if} ((p2.x() >= 0) && (p2.x() <= int(mpCamera->vpWidth())) &&
+00043       (p2.y() >= 0) && (p2.y() <= int(mpCamera->vpHeight())) )
+00044   \{
+00045     \textcolor{keywordtype}{double} x  = (double)(p2.x() - 0.5*mpCamera->vpWidth())  / (\textcolor{keywordtype}{double})mpCamera->vpWidth();
+00046     \textcolor{keywordtype}{double} y  = (double)(0.5*mpCamera->vpHeight() - p2.y()) / (\textcolor{keywordtype}{double})mpCamera->vpHeight();
+00047     \textcolor{keywordtype}{double} sinx         = sin(M\_PI * x * 0.5);
+00048     \textcolor{keywordtype}{double} siny         = sin(M\_PI * y * 0.5);
+00049     \textcolor{keywordtype}{double} sinx2siny2   = sinx * sinx + siny * siny;
+00050 
+00051     v3.x() = sinx;
+00052     v3.y() = siny;
+00053     v3.z() = sinx2siny2 < 1.0 ? sqrt(1.0 - sinx2siny2) : 0.0;
+00054 
+00055     \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00056   \}
+00057   \textcolor{keywordflow}{else}
+00058     \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00059 \}
+\end{DoxyCode}

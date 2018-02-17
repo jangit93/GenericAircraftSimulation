@@ -1,0 +1,670 @@
+\hypertarget{visual__studio_2zlib_2gzwrite_8c_source}{}\section{visual\+\_\+studio/zlib/gzwrite.c}
+\label{visual__studio_2zlib_2gzwrite_8c_source}\index{gzwrite.\+c@{gzwrite.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* gzwrite.c -- zlib functions for writing gzip files}
+00002 \textcolor{comment}{ * Copyright (C) 2004-2017 Mark Adler}
+00003 \textcolor{comment}{ * For conditions of distribution and use, see copyright notice in zlib.h}
+00004 \textcolor{comment}{ */}
+00005 
+00006 \textcolor{preprocessor}{#include "gzguts.h"}
+00007 
+00008 \textcolor{comment}{/* Local functions */}
+00009 local \textcolor{keywordtype}{int} gz\_init OF((gz\_statep));
+00010 local \textcolor{keywordtype}{int} gz\_comp OF((gz\_statep, \textcolor{keywordtype}{int}));
+00011 local \textcolor{keywordtype}{int} gz\_zero OF((gz\_statep, z\_off64\_t));
+00012 local z\_size\_t gz\_write OF((gz\_statep, voidpc, z\_size\_t));
+00013 
+00014 \textcolor{comment}{/* Initialize state for writing a gzip file.  Mark initialization by setting}
+00015 \textcolor{comment}{   state->size to non-zero.  Return -1 on a memory allocation failure, or 0 on}
+00016 \textcolor{comment}{   success. */}
+00017 local \textcolor{keywordtype}{int} gz\_init(\hyperlink{structstate}{state})
+00018     gz\_statep \hyperlink{structstate}{state};
+00019 \{
+00020     \textcolor{keywordtype}{int} ret;
+00021     z\_streamp strm = &(state->strm);
+00022 
+00023     \textcolor{comment}{/* allocate input buffer (double size for gzprintf) */}
+00024     state->in = (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *)malloc(state->want << 1);
+00025     \textcolor{keywordflow}{if} (state->in == NULL) \{
+00026         gz\_error(state, Z\_MEM\_ERROR, \textcolor{stringliteral}{"out of memory"});
+00027         \textcolor{keywordflow}{return} -1;
+00028     \}
+00029 
+00030     \textcolor{comment}{/* only need output buffer and deflate state if compressing */}
+00031     \textcolor{keywordflow}{if} (!state->direct) \{
+00032         \textcolor{comment}{/* allocate output buffer */}
+00033         state->out = (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *)malloc(state->want);
+00034         \textcolor{keywordflow}{if} (state->out == NULL) \{
+00035             free(state->in);
+00036             gz\_error(state, Z\_MEM\_ERROR, \textcolor{stringliteral}{"out of memory"});
+00037             \textcolor{keywordflow}{return} -1;
+00038         \}
+00039 
+00040         \textcolor{comment}{/* allocate deflate memory, set up for gzip compression */}
+00041         strm->zalloc = Z\_NULL;
+00042         strm->zfree = Z\_NULL;
+00043         strm->opaque = Z\_NULL;
+00044         ret = deflateInit2(strm, state->level, Z\_DEFLATED,
+00045                            MAX\_WBITS + 16, DEF\_MEM\_LEVEL, state->strategy);
+00046         \textcolor{keywordflow}{if} (ret != Z\_OK) \{
+00047             free(state->out);
+00048             free(state->in);
+00049             gz\_error(state, Z\_MEM\_ERROR, \textcolor{stringliteral}{"out of memory"});
+00050             \textcolor{keywordflow}{return} -1;
+00051         \}
+00052         strm->next\_in = NULL;
+00053     \}
+00054 
+00055     \textcolor{comment}{/* mark state as initialized */}
+00056     state->size = state->want;
+00057 
+00058     \textcolor{comment}{/* initialize write buffer if compressing */}
+00059     \textcolor{keywordflow}{if} (!state->direct) \{
+00060         strm->avail\_out = state->size;
+00061         strm->next\_out = state->out;
+00062         state->x.next = strm->next\_out;
+00063     \}
+00064     \textcolor{keywordflow}{return} 0;
+00065 \}
+00066 
+00067 \textcolor{comment}{/* Compress whatever is at avail\_in and next\_in and write to the output file.}
+00068 \textcolor{comment}{   Return -1 if there is an error writing to the output file or if gz\_init()}
+00069 \textcolor{comment}{   fails to allocate memory, otherwise 0.  flush is assumed to be a valid}
+00070 \textcolor{comment}{   deflate() flush value.  If flush is Z\_FINISH, then the deflate() state is}
+00071 \textcolor{comment}{   reset to start a new gzip stream.  If gz->direct is true, then simply write}
+00072 \textcolor{comment}{   to the output file without compressing, and ignore flush. */}
+00073 local \textcolor{keywordtype}{int} gz\_comp(state, flush)
+00074     gz\_statep state;
+00075     \textcolor{keywordtype}{int} flush;
+00076 \{
+00077     \textcolor{keywordtype}{int} ret, writ;
+00078     \textcolor{keywordtype}{unsigned} have, put, max = ((unsigned)-1 >> 2) + 1;
+00079     z\_streamp strm = &(state->strm);
+00080 
+00081     \textcolor{comment}{/* allocate memory if this is the first time through */}
+00082     \textcolor{keywordflow}{if} (state->size == 0 && gz\_init(state) == -1)
+00083         \textcolor{keywordflow}{return} -1;
+00084 
+00085     \textcolor{comment}{/* write directly if requested */}
+00086     \textcolor{keywordflow}{if} (state->direct) \{
+00087         \textcolor{keywordflow}{while} (strm->avail\_in) \{
+00088             put = strm->avail\_in > max ? max : strm->avail\_in;
+00089             writ = write(state->fd, strm->next\_in, put);
+00090             \textcolor{keywordflow}{if} (writ < 0) \{
+00091                 gz\_error(state, Z\_ERRNO, zstrerror());
+00092                 \textcolor{keywordflow}{return} -1;
+00093             \}
+00094             strm->avail\_in -= (unsigned)writ;
+00095             strm->next\_in += writ;
+00096         \}
+00097         \textcolor{keywordflow}{return} 0;
+00098     \}
+00099 
+00100     \textcolor{comment}{/* run deflate() on provided input until it produces no more output */}
+00101     ret = Z\_OK;
+00102     \textcolor{keywordflow}{do} \{
+00103         \textcolor{comment}{/* write out current buffer contents if full, or if flushing, but if}
+00104 \textcolor{comment}{           doing Z\_FINISH then don't write until we get to Z\_STREAM\_END */}
+00105         \textcolor{keywordflow}{if} (strm->avail\_out == 0 || (flush != Z\_NO\_FLUSH &&
+00106             (flush != Z\_FINISH || ret == Z\_STREAM\_END))) \{
+00107             \textcolor{keywordflow}{while} (strm->next\_out > state->x.next) \{
+00108                 put = strm->next\_out - state->x.next > (int)max ? max :
+00109                       (\textcolor{keywordtype}{unsigned})(strm->next\_out - state->x.next);
+00110                 writ = write(state->fd, state->x.next, put);
+00111                 \textcolor{keywordflow}{if} (writ < 0) \{
+00112                     gz\_error(state, Z\_ERRNO, zstrerror());
+00113                     \textcolor{keywordflow}{return} -1;
+00114                 \}
+00115                 state->x.next += writ;
+00116             \}
+00117             \textcolor{keywordflow}{if} (strm->avail\_out == 0) \{
+00118                 strm->avail\_out = state->size;
+00119                 strm->next\_out = state->out;
+00120                 state->x.next = state->out;
+00121             \}
+00122         \}
+00123 
+00124         \textcolor{comment}{/* compress */}
+00125         have = strm->avail\_out;
+00126         ret = deflate(strm, flush);
+00127         \textcolor{keywordflow}{if} (ret == Z\_STREAM\_ERROR) \{
+00128             gz\_error(state, Z\_STREAM\_ERROR,
+00129                       \textcolor{stringliteral}{"internal error: deflate stream corrupt"});
+00130             \textcolor{keywordflow}{return} -1;
+00131         \}
+00132         have -= strm->avail\_out;
+00133     \} \textcolor{keywordflow}{while} (have);
+00134 
+00135     \textcolor{comment}{/* if that completed a deflate stream, allow another to start */}
+00136     \textcolor{keywordflow}{if} (flush == Z\_FINISH)
+00137         deflateReset(strm);
+00138 
+00139     \textcolor{comment}{/* all done, no errors */}
+00140     \textcolor{keywordflow}{return} 0;
+00141 \}
+00142 
+00143 \textcolor{comment}{/* Compress len zeros to output.  Return -1 on a write error or memory}
+00144 \textcolor{comment}{   allocation failure by gz\_comp(), or 0 on success. */}
+00145 local \textcolor{keywordtype}{int} gz\_zero(state, len)
+00146     gz\_statep state;
+00147     z\_off64\_t len;
+00148 \{
+00149     \textcolor{keywordtype}{int} first;
+00150     \textcolor{keywordtype}{unsigned} n;
+00151     z\_streamp strm = &(state->strm);
+00152 
+00153     \textcolor{comment}{/* consume whatever's left in the input buffer */}
+00154     \textcolor{keywordflow}{if} (strm->avail\_in && gz\_comp(state, Z\_NO\_FLUSH) == -1)
+00155         \textcolor{keywordflow}{return} -1;
+00156 
+00157     \textcolor{comment}{/* compress len zeros (len guaranteed > 0) */}
+00158     first = 1;
+00159     \textcolor{keywordflow}{while} (len) \{
+00160         n = GT\_OFF(state->size) || (z\_off64\_t)state->size > len ?
+00161             (\textcolor{keywordtype}{unsigned})len : state->size;
+00162         \textcolor{keywordflow}{if} (first) \{
+00163             memset(state->in, 0, n);
+00164             first = 0;
+00165         \}
+00166         strm->avail\_in = n;
+00167         strm->next\_in = state->in;
+00168         state->x.pos += n;
+00169         \textcolor{keywordflow}{if} (gz\_comp(state, Z\_NO\_FLUSH) == -1)
+00170             \textcolor{keywordflow}{return} -1;
+00171         len -= n;
+00172     \}
+00173     \textcolor{keywordflow}{return} 0;
+00174 \}
+00175 
+00176 \textcolor{comment}{/* Write len bytes from buf to file.  Return the number of bytes written.  If}
+00177 \textcolor{comment}{   the returned value is less than len, then there was an error. */}
+00178 local z\_size\_t gz\_write(state, buf, len)
+00179     gz\_statep state;
+00180     voidpc buf;
+00181     z\_size\_t len;
+00182 \{
+00183     z\_size\_t put = len;
+00184 
+00185     \textcolor{comment}{/* if len is zero, avoid unnecessary operations */}
+00186     \textcolor{keywordflow}{if} (len == 0)
+00187         \textcolor{keywordflow}{return} 0;
+00188 
+00189     \textcolor{comment}{/* allocate memory if this is the first time through */}
+00190     \textcolor{keywordflow}{if} (state->size == 0 && gz\_init(state) == -1)
+00191         \textcolor{keywordflow}{return} 0;
+00192 
+00193     \textcolor{comment}{/* check for seek request */}
+00194     \textcolor{keywordflow}{if} (state->seek) \{
+00195         state->seek = 0;
+00196         \textcolor{keywordflow}{if} (gz\_zero(state, state->skip) == -1)
+00197             \textcolor{keywordflow}{return} 0;
+00198     \}
+00199 
+00200     \textcolor{comment}{/* for small len, copy to input buffer, otherwise compress directly */}
+00201     \textcolor{keywordflow}{if} (len < state->size) \{
+00202         \textcolor{comment}{/* copy to input buffer, compress when full */}
+00203         \textcolor{keywordflow}{do} \{
+00204             \textcolor{keywordtype}{unsigned} have, copy;
+00205 
+00206             \textcolor{keywordflow}{if} (state->strm.avail\_in == 0)
+00207                 state->strm.next\_in = state->in;
+00208             have = (unsigned)((state->strm.next\_in + state->strm.avail\_in) -
+00209                               state->in);
+00210             copy = state->size - have;
+00211             \textcolor{keywordflow}{if} (copy > len)
+00212                 copy = len;
+00213             memcpy(state->in + have, buf, copy);
+00214             state->strm.avail\_in += copy;
+00215             state->x.pos += copy;
+00216             buf = (\textcolor{keyword}{const} \textcolor{keywordtype}{char} *)buf + copy;
+00217             len -= copy;
+00218             \textcolor{keywordflow}{if} (len && gz\_comp(state, Z\_NO\_FLUSH) == -1)
+00219                 \textcolor{keywordflow}{return} 0;
+00220         \} \textcolor{keywordflow}{while} (len);
+00221     \}
+00222     \textcolor{keywordflow}{else} \{
+00223         \textcolor{comment}{/* consume whatever's left in the input buffer */}
+00224         \textcolor{keywordflow}{if} (state->strm.avail\_in && gz\_comp(state, Z\_NO\_FLUSH) == -1)
+00225             \textcolor{keywordflow}{return} 0;
+00226 
+00227         \textcolor{comment}{/* directly compress user buffer to file */}
+00228         state->strm.next\_in = (z\_const Bytef *)buf;
+00229         \textcolor{keywordflow}{do} \{
+00230             \textcolor{keywordtype}{unsigned} n = (unsigned)-1;
+00231             \textcolor{keywordflow}{if} (n > len)
+00232                 n = len;
+00233             state->strm.avail\_in = n;
+00234             state->x.pos += n;
+00235             \textcolor{keywordflow}{if} (gz\_comp(state, Z\_NO\_FLUSH) == -1)
+00236                 \textcolor{keywordflow}{return} 0;
+00237             len -= n;
+00238         \} \textcolor{keywordflow}{while} (len);
+00239     \}
+00240 
+00241     \textcolor{comment}{/* input was all buffered or compressed */}
+00242     \textcolor{keywordflow}{return} put;
+00243 \}
+00244 
+00245 \textcolor{comment}{/* -- see zlib.h -- */}
+00246 \textcolor{keywordtype}{int} ZEXPORT gzwrite(\hyperlink{structfile}{file}, buf, len)
+00247     \hyperlink{structgz_file__s}{gzFile} \hyperlink{structfile}{file};
+00248     voidpc buf;
+00249     \textcolor{keywordtype}{unsigned} len;
+00250 \{
+00251     gz\_statep state;
+00252 
+00253     \textcolor{comment}{/* get internal structure */}
+00254     \textcolor{keywordflow}{if} (file == NULL)
+00255         \textcolor{keywordflow}{return} 0;
+00256     state = (gz\_statep)file;
+00257 
+00258     \textcolor{comment}{/* check that we're writing and that there's no error */}
+00259     \textcolor{keywordflow}{if} (state->mode != GZ\_WRITE || state->err != Z\_OK)
+00260         \textcolor{keywordflow}{return} 0;
+00261 
+00262     \textcolor{comment}{/* since an int is returned, make sure len fits in one, otherwise return}
+00263 \textcolor{comment}{       with an error (this avoids a flaw in the interface) */}
+00264     \textcolor{keywordflow}{if} ((\textcolor{keywordtype}{int})len < 0) \{
+00265         gz\_error(state, Z\_DATA\_ERROR, \textcolor{stringliteral}{"requested length does not fit in int"});
+00266         \textcolor{keywordflow}{return} 0;
+00267     \}
+00268 
+00269     \textcolor{comment}{/* write len bytes from buf (the return value will fit in an int) */}
+00270     \textcolor{keywordflow}{return} (\textcolor{keywordtype}{int})gz\_write(state, buf, len);
+00271 \}
+00272 
+00273 \textcolor{comment}{/* -- see zlib.h -- */}
+00274 z\_size\_t ZEXPORT gzfwrite(buf, size, nitems, file)
+00275     voidpc buf;
+00276     z\_size\_t size;
+00277     z\_size\_t nitems;
+00278     \hyperlink{structgz_file__s}{gzFile} file;
+00279 \{
+00280     z\_size\_t len;
+00281     gz\_statep state;
+00282 
+00283     \textcolor{comment}{/* get internal structure */}
+00284     \textcolor{keywordflow}{if} (file == NULL)
+00285         \textcolor{keywordflow}{return} 0;
+00286     state = (gz\_statep)file;
+00287 
+00288     \textcolor{comment}{/* check that we're writing and that there's no error */}
+00289     \textcolor{keywordflow}{if} (state->mode != GZ\_WRITE || state->err != Z\_OK)
+00290         \textcolor{keywordflow}{return} 0;
+00291 
+00292     \textcolor{comment}{/* compute bytes to read -- error on overflow */}
+00293     len = nitems * size;
+00294     \textcolor{keywordflow}{if} (size && len / size != nitems) \{
+00295         gz\_error(state, Z\_STREAM\_ERROR, \textcolor{stringliteral}{"request does not fit in a size\_t"});
+00296         \textcolor{keywordflow}{return} 0;
+00297     \}
+00298 
+00299     \textcolor{comment}{/* write len bytes to buf, return the number of full items written */}
+00300     \textcolor{keywordflow}{return} len ? gz\_write(state, buf, len) / size : 0;
+00301 \}
+00302 
+00303 \textcolor{comment}{/* -- see zlib.h -- */}
+00304 \textcolor{keywordtype}{int} ZEXPORT gzputc(file, c)
+00305     \hyperlink{structgz_file__s}{gzFile} file;
+00306     \textcolor{keywordtype}{int} c;
+00307 \{
+00308     \textcolor{keywordtype}{unsigned} have;
+00309     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} buf[1];
+00310     gz\_statep state;
+00311     z\_streamp strm;
+00312 
+00313     \textcolor{comment}{/* get internal structure */}
+00314     \textcolor{keywordflow}{if} (file == NULL)
+00315         \textcolor{keywordflow}{return} -1;
+00316     state = (gz\_statep)file;
+00317     strm = &(state->strm);
+00318 
+00319     \textcolor{comment}{/* check that we're writing and that there's no error */}
+00320     \textcolor{keywordflow}{if} (state->mode != GZ\_WRITE || state->err != Z\_OK)
+00321         \textcolor{keywordflow}{return} -1;
+00322 
+00323     \textcolor{comment}{/* check for seek request */}
+00324     \textcolor{keywordflow}{if} (state->seek) \{
+00325         state->seek = 0;
+00326         \textcolor{keywordflow}{if} (gz\_zero(state, state->skip) == -1)
+00327             \textcolor{keywordflow}{return} -1;
+00328     \}
+00329 
+00330     \textcolor{comment}{/* try writing to input buffer for speed (state->size == 0 if buffer not}
+00331 \textcolor{comment}{       initialized) */}
+00332     \textcolor{keywordflow}{if} (state->size) \{
+00333         \textcolor{keywordflow}{if} (strm->avail\_in == 0)
+00334             strm->next\_in = state->in;
+00335         have = (unsigned)((strm->next\_in + strm->avail\_in) - state->in);
+00336         \textcolor{keywordflow}{if} (have < state->size) \{
+00337             state->in[have] = (\textcolor{keywordtype}{unsigned} char)c;
+00338             strm->avail\_in++;
+00339             state->x.pos++;
+00340             \textcolor{keywordflow}{return} c & 0xff;
+00341         \}
+00342     \}
+00343 
+00344     \textcolor{comment}{/* no room in buffer or not initialized, use gz\_write() */}
+00345     buf[0] = (\textcolor{keywordtype}{unsigned} char)c;
+00346     \textcolor{keywordflow}{if} (gz\_write(state, buf, 1) != 1)
+00347         \textcolor{keywordflow}{return} -1;
+00348     \textcolor{keywordflow}{return} c & 0xff;
+00349 \}
+00350 
+00351 \textcolor{comment}{/* -- see zlib.h -- */}
+00352 \textcolor{keywordtype}{int} ZEXPORT gzputs(file, str)
+00353     \hyperlink{structgz_file__s}{gzFile} file;
+00354     \textcolor{keyword}{const} \textcolor{keywordtype}{char} *str;
+00355 \{
+00356     \textcolor{keywordtype}{int} ret;
+00357     z\_size\_t len;
+00358     gz\_statep state;
+00359 
+00360     \textcolor{comment}{/* get internal structure */}
+00361     \textcolor{keywordflow}{if} (file == NULL)
+00362         \textcolor{keywordflow}{return} -1;
+00363     state = (gz\_statep)file;
+00364 
+00365     \textcolor{comment}{/* check that we're writing and that there's no error */}
+00366     \textcolor{keywordflow}{if} (state->mode != GZ\_WRITE || state->err != Z\_OK)
+00367         \textcolor{keywordflow}{return} -1;
+00368 
+00369     \textcolor{comment}{/* write string */}
+00370     len = strlen(str);
+00371     ret = gz\_write(state, str, len);
+00372     \textcolor{keywordflow}{return} ret == 0 && len != 0 ? -1 : ret;
+00373 \}
+00374 
+00375 \textcolor{preprocessor}{#if defined(STDC) || defined(Z\_HAVE\_STDARG\_H)}
+00376 \textcolor{preprocessor}{#include <stdarg.h>}
+00377 
+00378 \textcolor{comment}{/* -- see zlib.h -- */}
+00379 \textcolor{keywordtype}{int} ZEXPORTVA gzvprintf(\hyperlink{structgz_file__s}{gzFile} file, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *format, va\_list va)
+00380 \{
+00381     \textcolor{keywordtype}{int} len;
+00382     \textcolor{keywordtype}{unsigned} left;
+00383     \textcolor{keywordtype}{char} *next;
+00384     gz\_statep state;
+00385     z\_streamp strm;
+00386 
+00387     \textcolor{comment}{/* get internal structure */}
+00388     \textcolor{keywordflow}{if} (file == NULL)
+00389         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00390     state = (gz\_statep)file;
+00391     strm = &(state->strm);
+00392 
+00393     \textcolor{comment}{/* check that we're writing and that there's no error */}
+00394     \textcolor{keywordflow}{if} (state->mode != GZ\_WRITE || state->err != Z\_OK)
+00395         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00396 
+00397     \textcolor{comment}{/* make sure we have some buffer space */}
+00398     \textcolor{keywordflow}{if} (state->size == 0 && gz\_init(state) == -1)
+00399         \textcolor{keywordflow}{return} state->err;
+00400 
+00401     \textcolor{comment}{/* check for seek request */}
+00402     if (state->seek) \{
+00403         state->seek = 0;
+00404         \textcolor{keywordflow}{if} (gz\_zero(state, state->skip) == -1)
+00405             \textcolor{keywordflow}{return} state->err;
+00406     \}
+00407 
+00408     \textcolor{comment}{/* do the printf() into the input buffer, put length in len -- the input}
+00409 \textcolor{comment}{       buffer is double-sized just for this function, so there is guaranteed to}
+00410 \textcolor{comment}{       be state->size bytes available after the current contents */}
+00411     \textcolor{keywordflow}{if} (strm->avail\_in == 0)
+00412         strm->next\_in = state->in;
+00413     next = (\textcolor{keywordtype}{char} *)(state->in + (strm->next\_in - state->in) + strm->avail\_in);
+00414     next[state->size - 1] = 0;
+00415 \textcolor{preprocessor}{#ifdef NO\_vsnprintf}
+00416 \textcolor{preprocessor}{#  ifdef HAS\_vsprintf\_void}
+00417     (void)vsprintf(next, format, va);
+00418     \textcolor{keywordflow}{for} (len = 0; len < state->size; len++)
+00419         \textcolor{keywordflow}{if} (next[len] == 0) \textcolor{keywordflow}{break};
+00420 \textcolor{preprocessor}{#  else}
+00421     len = vsprintf(next, format, va);
+00422 \textcolor{preprocessor}{#  endif}
+00423 \textcolor{preprocessor}{#else}
+00424 \textcolor{preprocessor}{#  ifdef HAS\_vsnprintf\_void}
+00425     (void)vsnprintf(next, state->size, format, va);
+00426     len = strlen(next);
+00427 \textcolor{preprocessor}{#  else}
+00428     len = vsnprintf(next, state->size, format, va);
+00429 \textcolor{preprocessor}{#  endif}
+00430 \textcolor{preprocessor}{#endif}
+00431 
+00432     \textcolor{comment}{/* check that printf() results fit in buffer */}
+00433     \textcolor{keywordflow}{if} (len == 0 || (\textcolor{keywordtype}{unsigned})len >= state->size || next[state->size - 1] != 0)
+00434         \textcolor{keywordflow}{return} 0;
+00435 
+00436     \textcolor{comment}{/* update buffer and position, compress first half if past that */}
+00437     strm->avail\_in += (unsigned)len;
+00438     state->x.pos += len;
+00439     \textcolor{keywordflow}{if} (strm->avail\_in >= state->size) \{
+00440         left = strm->avail\_in - state->size;
+00441         strm->avail\_in = state->size;
+00442         \textcolor{keywordflow}{if} (gz\_comp(state, Z\_NO\_FLUSH) == -1)
+00443             \textcolor{keywordflow}{return} state->err;
+00444         memcpy(state->in, state->in + state->size, left);
+00445         strm->next\_in = state->in;
+00446         strm->avail\_in = left;
+00447     \}
+00448     \textcolor{keywordflow}{return} len;
+00449 \}
+00450 
+00451 \textcolor{keywordtype}{int} ZEXPORTVA gzprintf(\hyperlink{structgz_file__s}{gzFile} file, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *format, ...)
+00452 \{
+00453     va\_list va;
+00454     \textcolor{keywordtype}{int} ret;
+00455 
+00456     va\_start(va, format);
+00457     ret = gzvprintf(file, format, va);
+00458     va\_end(va);
+00459     \textcolor{keywordflow}{return} ret;
+00460 \}
+00461 
+00462 \textcolor{preprocessor}{#else }\textcolor{comment}{/* !STDC && !Z\_HAVE\_STDARG\_H */}\textcolor{preprocessor}{}
+00463 
+00464 \textcolor{comment}{/* -- see zlib.h -- */}
+00465 \textcolor{keywordtype}{int} ZEXPORTVA gzprintf (file, format, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10,
+00466                        a11, a12, a13, a14, a15, a16, a17, a18, a19, a20)
+00467     \hyperlink{structgz_file__s}{gzFile} file;
+00468     \textcolor{keyword}{const} \textcolor{keywordtype}{char} *format;
+00469     \textcolor{keywordtype}{int} a1, a2, a3, a4, a5, a6, a7, a8, a9, a10,
+00470         a11, a12, a13, a14, a15, a16, a17, a18, a19, a20;
+00471 \{
+00472     \textcolor{keywordtype}{unsigned} len, left;
+00473     \textcolor{keywordtype}{char} *next;
+00474     gz\_statep state;
+00475     z\_streamp strm;
+00476 
+00477     \textcolor{comment}{/* get internal structure */}
+00478     \textcolor{keywordflow}{if} (file == NULL)
+00479         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00480     state = (gz\_statep)file;
+00481     strm = &(state->strm);
+00482 
+00483     \textcolor{comment}{/* check that can really pass pointer in ints */}
+00484     \textcolor{keywordflow}{if} (\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}) != \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{void} *))
+00485         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00486 
+00487     \textcolor{comment}{/* check that we're writing and that there's no error */}
+00488     \textcolor{keywordflow}{if} (state->mode != GZ\_WRITE || state->err != Z\_OK)
+00489         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00490 
+00491     \textcolor{comment}{/* make sure we have some buffer space */}
+00492     \textcolor{keywordflow}{if} (state->size == 0 && gz\_init(state) == -1)
+00493         \textcolor{keywordflow}{return} state->error;
+00494 
+00495     \textcolor{comment}{/* check for seek request */}
+00496     if (state->seek) \{
+00497         state->seek = 0;
+00498         \textcolor{keywordflow}{if} (gz\_zero(state, state->skip) == -1)
+00499             \textcolor{keywordflow}{return} state->error;
+00500     \}
+00501 
+00502     \textcolor{comment}{/* do the printf() into the input buffer, put length in len -- the input}
+00503 \textcolor{comment}{       buffer is double-sized just for this function, so there is guaranteed to}
+00504 \textcolor{comment}{       be state->size bytes available after the current contents */}
+00505     \textcolor{keywordflow}{if} (strm->avail\_in == 0)
+00506         strm->next\_in = state->in;
+00507     next = (\textcolor{keywordtype}{char} *)(strm->next\_in + strm->avail\_in);
+00508     next[state->size - 1] = 0;
+00509 \textcolor{preprocessor}{#ifdef NO\_snprintf}
+00510 \textcolor{preprocessor}{#  ifdef HAS\_sprintf\_void}
+00511     sprintf(next, format, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12,
+00512             a13, a14, a15, a16, a17, a18, a19, a20);
+00513     \textcolor{keywordflow}{for} (len = 0; len < size; len++)
+00514         \textcolor{keywordflow}{if} (next[len] == 0)
+00515             \textcolor{keywordflow}{break};
+00516 \textcolor{preprocessor}{#  else}
+00517     len = sprintf(next, format, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11,
+00518                   a12, a13, a14, a15, a16, a17, a18, a19, a20);
+00519 \textcolor{preprocessor}{#  endif}
+00520 \textcolor{preprocessor}{#else}
+00521 \textcolor{preprocessor}{#  ifdef HAS\_snprintf\_void}
+00522     snprintf(next, state->size, format, a1, a2, a3, a4, a5, a6, a7, a8, a9,
+00523              a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20);
+00524     len = strlen(next);
+00525 \textcolor{preprocessor}{#  else}
+00526     len = snprintf(next, state->size, format, a1, a2, a3, a4, a5, a6, a7, a8,
+00527                    a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20);
+00528 \textcolor{preprocessor}{#  endif}
+00529 \textcolor{preprocessor}{#endif}
+00530 
+00531     \textcolor{comment}{/* check that printf() results fit in buffer */}
+00532     \textcolor{keywordflow}{if} (len == 0 || len >= state->size || next[state->size - 1] != 0)
+00533         \textcolor{keywordflow}{return} 0;
+00534 
+00535     \textcolor{comment}{/* update buffer and position, compress first half if past that */}
+00536     strm->avail\_in += len;
+00537     state->x.pos += len;
+00538     \textcolor{keywordflow}{if} (strm->avail\_in >= state->size) \{
+00539         left = strm->avail\_in - state->size;
+00540         strm->avail\_in = state->size;
+00541         \textcolor{keywordflow}{if} (gz\_comp(state, Z\_NO\_FLUSH) == -1)
+00542             \textcolor{keywordflow}{return} state->err;
+00543         memcpy(state->in, state->in + state->size, left);
+00544         strm->next\_in = state->in;
+00545         strm->avail\_in = left;
+00546     \}
+00547     \textcolor{keywordflow}{return} (\textcolor{keywordtype}{int})len;
+00548 \}
+00549 
+00550 \textcolor{preprocessor}{#endif}
+00551 
+00552 \textcolor{comment}{/* -- see zlib.h -- */}
+00553 \textcolor{keywordtype}{int} ZEXPORT gzflush(file, flush)
+00554     \hyperlink{structgz_file__s}{gzFile} file;
+00555     \textcolor{keywordtype}{int} flush;
+00556 \{
+00557     gz\_statep state;
+00558 
+00559     \textcolor{comment}{/* get internal structure */}
+00560     \textcolor{keywordflow}{if} (file == NULL)
+00561         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00562     state = (gz\_statep)file;
+00563 
+00564     \textcolor{comment}{/* check that we're writing and that there's no error */}
+00565     \textcolor{keywordflow}{if} (state->mode != GZ\_WRITE || state->err != Z\_OK)
+00566         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00567 
+00568     \textcolor{comment}{/* check flush parameter */}
+00569     \textcolor{keywordflow}{if} (flush < 0 || flush > Z\_FINISH)
+00570         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00571 
+00572     \textcolor{comment}{/* check for seek request */}
+00573     \textcolor{keywordflow}{if} (state->seek) \{
+00574         state->seek = 0;
+00575         \textcolor{keywordflow}{if} (gz\_zero(state, state->skip) == -1)
+00576             \textcolor{keywordflow}{return} state->err;
+00577     \}
+00578 
+00579     \textcolor{comment}{/* compress remaining data with requested flush */}
+00580     (void)gz\_comp(state, flush);
+00581     \textcolor{keywordflow}{return} state->err;
+00582 \}
+00583 
+00584 \textcolor{comment}{/* -- see zlib.h -- */}
+00585 \textcolor{keywordtype}{int} ZEXPORT gzsetparams(file, level, strategy)
+00586     \hyperlink{structgz_file__s}{gzFile} file;
+00587     \textcolor{keywordtype}{int} level;
+00588     \textcolor{keywordtype}{int} strategy;
+00589 \{
+00590     gz\_statep state;
+00591     z\_streamp strm;
+00592 
+00593     \textcolor{comment}{/* get internal structure */}
+00594     \textcolor{keywordflow}{if} (file == NULL)
+00595         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00596     state = (gz\_statep)file;
+00597     strm = &(state->strm);
+00598 
+00599     \textcolor{comment}{/* check that we're writing and that there's no error */}
+00600     \textcolor{keywordflow}{if} (state->mode != GZ\_WRITE || state->err != Z\_OK)
+00601         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00602 
+00603     \textcolor{comment}{/* if no change is requested, then do nothing */}
+00604     \textcolor{keywordflow}{if} (level == state->level && strategy == state->strategy)
+00605         \textcolor{keywordflow}{return} Z\_OK;
+00606 
+00607     \textcolor{comment}{/* check for seek request */}
+00608     \textcolor{keywordflow}{if} (state->seek) \{
+00609         state->seek = 0;
+00610         \textcolor{keywordflow}{if} (gz\_zero(state, state->skip) == -1)
+00611             \textcolor{keywordflow}{return} state->err;
+00612     \}
+00613 
+00614     \textcolor{comment}{/* change compression parameters for subsequent input */}
+00615     \textcolor{keywordflow}{if} (state->size) \{
+00616         \textcolor{comment}{/* flush previous input with previous parameters before changing */}
+00617         \textcolor{keywordflow}{if} (strm->avail\_in && gz\_comp(state, Z\_BLOCK) == -1)
+00618             \textcolor{keywordflow}{return} state->err;
+00619         deflateParams(strm, level, strategy);
+00620     \}
+00621     state->level = level;
+00622     state->strategy = strategy;
+00623     \textcolor{keywordflow}{return} Z\_OK;
+00624 \}
+00625 
+00626 \textcolor{comment}{/* -- see zlib.h -- */}
+00627 \textcolor{keywordtype}{int} ZEXPORT gzclose\_w(file)
+00628     \hyperlink{structgz_file__s}{gzFile} file;
+00629 \{
+00630     \textcolor{keywordtype}{int} ret = Z\_OK;
+00631     gz\_statep state;
+00632 
+00633     \textcolor{comment}{/* get internal structure */}
+00634     \textcolor{keywordflow}{if} (file == NULL)
+00635         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00636     state = (gz\_statep)file;
+00637 
+00638     \textcolor{comment}{/* check that we're writing */}
+00639     \textcolor{keywordflow}{if} (state->mode != GZ\_WRITE)
+00640         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00641 
+00642     \textcolor{comment}{/* check for seek request */}
+00643     \textcolor{keywordflow}{if} (state->seek) \{
+00644         state->seek = 0;
+00645         \textcolor{keywordflow}{if} (gz\_zero(state, state->skip) == -1)
+00646             ret = state->err;
+00647     \}
+00648 
+00649     \textcolor{comment}{/* flush, free memory, and close file */}
+00650     \textcolor{keywordflow}{if} (gz\_comp(state, Z\_FINISH) == -1)
+00651         ret = state->err;
+00652     if (state->size) \{
+00653         \textcolor{keywordflow}{if} (!state->direct) \{
+00654             (void)deflateEnd(&(state->strm));
+00655             free(state->out);
+00656         \}
+00657         free(state->in);
+00658     \}
+00659     gz\_error(state, Z\_OK, NULL);
+00660     free(state->path);
+00661     \textcolor{keywordflow}{if} (close(state->fd) == -1)
+00662         ret = Z\_ERRNO;
+00663     free(state);
+00664     \textcolor{keywordflow}{return} ret;
+00665 \}
+\end{DoxyCode}

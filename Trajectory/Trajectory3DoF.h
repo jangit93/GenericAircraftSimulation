@@ -23,25 +23,49 @@ public:
 
 	~Trajectory3Dof();
 
-	void initTrajectory(AerodynamicStruct & AeroData,
+	virtual void initTrajectory(Float64 FlightTime, 
+								AerodynamicStruct & AeroData,
 								AirframeStruct & AirframeData,
 								ThrustStruct & ThrustData,
 								AircraftStruct &AircraftData,
-								AutopilotStruct & AutopilotData,
-								GuidanceStruct & GuidanceData);
+								GuidanceStruct & GuidanceData,
+								NavigationStruct &NavData,
+								ActuatorStruct &ActuatorData,
+								IMUStruct &IMUData);
 
-	void updateTrajectory(Float64 FlightTime,
+	virtual void updateTrajectory(Float64 FlightTime,
 							AtmosphereStruct & AtmoData,
 							AerodynamicStruct & AeroData,
 							AirframeStruct & AirframeData,
-							ThrustStruct & ThrustData, 
-							AutopilotStruct & AutopilotData,
-							GuidanceStruct & GuidanceData);
+							ThrustStruct & ThrustData,
+							GuidanceStruct & GuidanceData,
+							NavigationStruct &NavData,
+							ActuatorStruct &ActuatorData,
+							IMUStruct &IMUData);
 
+	void initTrajectory3DoF(Float64 FlightTime, 
+							AerodynamicStruct & AeroData,
+							AirframeStruct & AirframeData,
+							ThrustStruct & ThrustData,
+							AircraftStruct &AircraftData);
+
+	void updateTrajectory3DoF(Float64 FlightTime,
+								AtmosphereStruct & AtmoData,
+								AerodynamicStruct & AeroData,
+								AirframeStruct & AirframeData,
+								ThrustStruct & ThrustData);
+
+	void logData(Float64 FlightTime,
+		AtmosphereStruct & AtmoData,
+		AerodynamicStruct & AeroData,
+		AirframeStruct & AirframeData,
+		ThrustStruct & ThrustData);
+protected:
+	Airframe * airframe;
 private:
 	Engine		 *engine;
 	Aerodynamics *aerodynamics;
-	Airframe     *airframe;
+	
 };
 
 #endif // TRAJECTORY3DOF_H

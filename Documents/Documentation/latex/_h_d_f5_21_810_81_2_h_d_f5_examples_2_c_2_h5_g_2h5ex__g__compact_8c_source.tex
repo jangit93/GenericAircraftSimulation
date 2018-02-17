@@ -1,0 +1,130 @@
+\hypertarget{_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_g_2h5ex__g__compact_8c_source}{}\section{H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+C/\+H5\+G/h5ex\+\_\+g\+\_\+compact.c}
+\label{_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_g_2h5ex__g__compact_8c_source}\index{h5ex\+\_\+g\+\_\+compact.\+c@{h5ex\+\_\+g\+\_\+compact.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/************************************************************}
+00002 \textcolor{comment}{}
+00003 \textcolor{comment}{  This example shows how to create "compact-or-indexed"}
+00004 \textcolor{comment}{  format groups, new to 1.8.  This example also illustrates}
+00005 \textcolor{comment}{  the space savings of compact groups by creating 2 files}
+00006 \textcolor{comment}{  which are identical except for the group format, and}
+00007 \textcolor{comment}{  displaying the file size of each.  Both files have one}
+00008 \textcolor{comment}{  empty group in the root group.}
+00009 \textcolor{comment}{}
+00010 \textcolor{comment}{  This file is intended for use with HDF5 Library version 1.8}
+00011 \textcolor{comment}{}
+00012 \textcolor{comment}{ ************************************************************/}
+00013 
+00014 \textcolor{preprocessor}{#include "hdf5.h"}
+00015 \textcolor{preprocessor}{#include <stdio.h>}
+00016 
+00017 \textcolor{preprocessor}{#define FILE1       "h5ex\_g\_compact1.h5"}
+00018 \textcolor{preprocessor}{#define FILE2       "h5ex\_g\_compact2.h5"}
+00019 \textcolor{preprocessor}{#define GROUP       "G1"}
+00020 
+00021 \textcolor{keywordtype}{int}
+00022 main (\textcolor{keywordtype}{void})
+00023 \{
+00024     hid\_t       \hyperlink{structfile}{file}, group, fapl;         \textcolor{comment}{/* Handles */}
+00025     herr\_t      status;
+00026     \hyperlink{struct_h5_g__info__t}{H5G\_info\_t}  ginfo;
+00027     hsize\_t     size;
+00028 
+00029     \textcolor{comment}{/*}
+00030 \textcolor{comment}{     * Create file 1.  This file will use original format groups.}
+00031 \textcolor{comment}{     */}
+00032     file = H5Fcreate (FILE1, H5F\_ACC\_TRUNC, H5P\_DEFAULT, H5P\_DEFAULT);
+00033     group = H5Gcreate (file, GROUP, H5P\_DEFAULT, H5P\_DEFAULT, H5P\_DEFAULT);
+00034 
+00035     \textcolor{comment}{/*}
+00036 \textcolor{comment}{     * Obtain the group info and print the group storage type.}
+00037 \textcolor{comment}{     */}
+00038     status = H5Gget\_info (group, &ginfo);
+00039     printf (\textcolor{stringliteral}{"Group storage type for %s is: "}, FILE1);
+00040     \textcolor{keywordflow}{switch} (ginfo.storage\_type) \{
+00041         \textcolor{keywordflow}{case} H5G\_STORAGE\_TYPE\_COMPACT:
+00042             printf (\textcolor{stringliteral}{"H5G\_STORAGE\_TYPE\_COMPACT\(\backslash\)n"}); \textcolor{comment}{/* New compact format */}
+00043             \textcolor{keywordflow}{break};
+00044         \textcolor{keywordflow}{case} H5G\_STORAGE\_TYPE\_DENSE:
+00045             printf (\textcolor{stringliteral}{"H5G\_STORAGE\_TYPE\_DENSE\(\backslash\)n"}); \textcolor{comment}{/* New dense (indexed) format */}
+00046             \textcolor{keywordflow}{break};
+00047         \textcolor{keywordflow}{case} H5G\_STORAGE\_TYPE\_SYMBOL\_TABLE:
+00048             printf (\textcolor{stringliteral}{"H5G\_STORAGE\_TYPE\_SYMBOL\_TABLE\(\backslash\)n"}); \textcolor{comment}{/* Original format */}
+00049             \textcolor{keywordflow}{break};
+00050         \textcolor{keywordflow}{case} H5G\_STORAGE\_TYPE\_UNKNOWN:
+00051             printf (\textcolor{stringliteral}{"H5G\_STORAGE\_TYPE\_UNKNOWN\(\backslash\)n"}); \textcolor{comment}{/* Unknown format */}
+00052     \}
+00053 
+00054     \textcolor{comment}{/*}
+00055 \textcolor{comment}{     * Close and re-open file.  Needed to get the correct file size.}
+00056 \textcolor{comment}{     */}
+00057     status = H5Gclose (group);
+00058     status = H5Fclose (file);
+00059     file = H5Fopen (FILE1, H5F\_ACC\_RDONLY, H5P\_DEFAULT);
+00060 
+00061     \textcolor{comment}{/*}
+00062 \textcolor{comment}{     * Obtain and print the file size.}
+00063 \textcolor{comment}{     */}
+00064     status = H5Fget\_filesize (file, &size);
+00065     printf (\textcolor{stringliteral}{"File size for %s is: %d bytes\(\backslash\)n\(\backslash\)n"}, FILE1, (\textcolor{keywordtype}{int})size);
+00066 
+00067     \textcolor{comment}{/*}
+00068 \textcolor{comment}{     * Close FILE1.}
+00069 \textcolor{comment}{     */}
+00070     status = H5Fclose (file);
+00071 
+00072     \textcolor{comment}{/*}
+00073 \textcolor{comment}{     * Set file access property list to allow the latest file format.}
+00074 \textcolor{comment}{     * This will allow the library to create new compact format groups.}
+00075 \textcolor{comment}{     */}
+00076     fapl = H5Pcreate (H5P\_FILE\_ACCESS);
+00077     status = H5Pset\_libver\_bounds (fapl, H5F\_LIBVER\_LATEST, H5F\_LIBVER\_LATEST);
+00078 
+00079     \textcolor{comment}{/*}
+00080 \textcolor{comment}{     * Create file 2 using the new file access property list.}
+00081 \textcolor{comment}{     */}
+00082     file = H5Fcreate (FILE2, H5F\_ACC\_TRUNC, H5P\_DEFAULT, fapl );
+00083     group = H5Gcreate (file, GROUP, H5P\_DEFAULT, H5P\_DEFAULT, H5P\_DEFAULT);
+00084 
+00085     \textcolor{comment}{/*}
+00086 \textcolor{comment}{     * Obtain the group info and print the group storage type.}
+00087 \textcolor{comment}{     */}
+00088     status = H5Gget\_info (group, &ginfo);
+00089     printf (\textcolor{stringliteral}{"Group storage type for %s is: "}, FILE2);
+00090     \textcolor{keywordflow}{switch} (ginfo.storage\_type) \{
+00091         \textcolor{keywordflow}{case} H5G\_STORAGE\_TYPE\_COMPACT:
+00092             printf (\textcolor{stringliteral}{"H5G\_STORAGE\_TYPE\_COMPACT\(\backslash\)n"}); \textcolor{comment}{/* New compact format */}
+00093             \textcolor{keywordflow}{break};
+00094         \textcolor{keywordflow}{case} H5G\_STORAGE\_TYPE\_DENSE:
+00095             printf (\textcolor{stringliteral}{"H5G\_STORAGE\_TYPE\_DENSE\(\backslash\)n"}); \textcolor{comment}{/* New dense (indexed) format */}
+00096             \textcolor{keywordflow}{break};
+00097         \textcolor{keywordflow}{case} H5G\_STORAGE\_TYPE\_SYMBOL\_TABLE:
+00098             printf (\textcolor{stringliteral}{"H5G\_STORAGE\_TYPE\_SYMBOL\_TABLE\(\backslash\)n"}); \textcolor{comment}{/* Original format */}
+00099             \textcolor{keywordflow}{break};
+00100         \textcolor{keywordflow}{case} H5G\_STORAGE\_TYPE\_UNKNOWN:
+00101             printf (\textcolor{stringliteral}{"H5G\_STORAGE\_TYPE\_UNKNOWN\(\backslash\)n"}); \textcolor{comment}{/* Unknown format */}
+00102     \}
+00103 
+00104     \textcolor{comment}{/*}
+00105 \textcolor{comment}{     * Close and re-open file.  Needed to get the correct file size.}
+00106 \textcolor{comment}{     */}
+00107     status = H5Gclose (group);
+00108     status = H5Fclose (file);
+00109     file = H5Fopen (FILE2, H5F\_ACC\_RDONLY, fapl);
+00110 
+00111     \textcolor{comment}{/*}
+00112 \textcolor{comment}{     * Obtain and print the file size.}
+00113 \textcolor{comment}{     */}
+00114     status = H5Fget\_filesize (file, &size);
+00115     printf (\textcolor{stringliteral}{"File size for %s is: %d bytes\(\backslash\)n"}, FILE2, (\textcolor{keywordtype}{int})size);
+00116     printf (\textcolor{stringliteral}{"\(\backslash\)n"});
+00117 
+00118     \textcolor{comment}{/*}
+00119 \textcolor{comment}{     * Close and release resources.}
+00120 \textcolor{comment}{     */}
+00121     status = H5Pclose (fapl);
+00122     status = H5Fclose (file);
+00123 
+00124     \textcolor{keywordflow}{return} 0;
+00125 \}
+\end{DoxyCode}

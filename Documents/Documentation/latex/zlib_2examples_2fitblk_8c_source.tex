@@ -1,0 +1,238 @@
+\hypertarget{zlib_2examples_2fitblk_8c_source}{}\section{zlib/examples/fitblk.c}
+\label{zlib_2examples_2fitblk_8c_source}\index{fitblk.\+c@{fitblk.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* fitblk.c: example of fitting compressed output to a specified size}
+00002 \textcolor{comment}{   Not copyrighted -- provided to the public domain}
+00003 \textcolor{comment}{   Version 1.1  25 November 2004  Mark Adler */}
+00004 
+00005 \textcolor{comment}{/* Version history:}
+00006 \textcolor{comment}{   1.0  24 Nov 2004  First version}
+00007 \textcolor{comment}{   1.1  25 Nov 2004  Change deflateInit2() to deflateInit()}
+00008 \textcolor{comment}{                     Use fixed-size, stack-allocated raw buffers}
+00009 \textcolor{comment}{                     Simplify code moving compression to subroutines}
+00010 \textcolor{comment}{                     Use assert() for internal errors}
+00011 \textcolor{comment}{                     Add detailed description of approach}
+00012 \textcolor{comment}{ */}
+00013 
+00014 \textcolor{comment}{/* Approach to just fitting a requested compressed size:}
+00015 \textcolor{comment}{}
+00016 \textcolor{comment}{   fitblk performs three compression passes on a portion of the input}
+00017 \textcolor{comment}{   data in order to determine how much of that input will compress to}
+00018 \textcolor{comment}{   nearly the requested output block size.  The first pass generates}
+00019 \textcolor{comment}{   enough deflate blocks to produce output to fill the requested}
+00020 \textcolor{comment}{   output size plus a specfied excess amount (see the EXCESS define}
+00021 \textcolor{comment}{   below).  The last deflate block may go quite a bit past that, but}
+00022 \textcolor{comment}{   is discarded.  The second pass decompresses and recompresses just}
+00023 \textcolor{comment}{   the compressed data that fit in the requested plus excess sized}
+00024 \textcolor{comment}{   buffer.  The deflate process is terminated after that amount of}
+00025 \textcolor{comment}{   input, which is less than the amount consumed on the first pass.}
+00026 \textcolor{comment}{   The last deflate block of the result will be of a comparable size}
+00027 \textcolor{comment}{   to the final product, so that the header for that deflate block and}
+00028 \textcolor{comment}{   the compression ratio for that block will be about the same as in}
+00029 \textcolor{comment}{   the final product.  The third compression pass decompresses the}
+00030 \textcolor{comment}{   result of the second step, but only the compressed data up to the}
+00031 \textcolor{comment}{   requested size minus an amount to allow the compressed stream to}
+00032 \textcolor{comment}{   complete (see the MARGIN define below).  That will result in a}
+00033 \textcolor{comment}{   final compressed stream whose length is less than or equal to the}
+00034 \textcolor{comment}{   requested size.  Assuming sufficient input and a requested size}
+00035 \textcolor{comment}{   greater than a few hundred bytes, the shortfall will typically be}
+00036 \textcolor{comment}{   less than ten bytes.}
+00037 \textcolor{comment}{}
+00038 \textcolor{comment}{   If the input is short enough that the first compression completes}
+00039 \textcolor{comment}{   before filling the requested output size, then that compressed}
+00040 \textcolor{comment}{   stream is return with no recompression.}
+00041 \textcolor{comment}{}
+00042 \textcolor{comment}{   EXCESS is chosen to be just greater than the shortfall seen in a}
+00043 \textcolor{comment}{   two pass approach similar to the above.  That shortfall is due to}
+00044 \textcolor{comment}{   the last deflate block compressing more efficiently with a smaller}
+00045 \textcolor{comment}{   header on the second pass.  EXCESS is set to be large enough so}
+00046 \textcolor{comment}{   that there is enough uncompressed data for the second pass to fill}
+00047 \textcolor{comment}{   out the requested size, and small enough so that the final deflate}
+00048 \textcolor{comment}{   block of the second pass will be close in size to the final deflate}
+00049 \textcolor{comment}{   block of the third and final pass.  MARGIN is chosen to be just}
+00050 \textcolor{comment}{   large enough to assure that the final compression has enough room}
+00051 \textcolor{comment}{   to complete in all cases.}
+00052 \textcolor{comment}{ */}
+00053 
+00054 \textcolor{preprocessor}{#include <stdio.h>}
+00055 \textcolor{preprocessor}{#include <stdlib.h>}
+00056 \textcolor{preprocessor}{#include <assert.h>}
+00057 \textcolor{preprocessor}{#include "zlib.h"}
+00058 
+00059 \textcolor{preprocessor}{#define local static}
+00060 
+00061 \textcolor{comment}{/* print nastygram and leave */}
+00062 local \textcolor{keywordtype}{void} quit(\textcolor{keywordtype}{char} *why)
+00063 \{
+00064     fprintf(stderr, \textcolor{stringliteral}{"fitblk abort: %s\(\backslash\)n"}, why);
+00065     exit(1);
+00066 \}
+00067 
+00068 \textcolor{preprocessor}{#define RAWLEN 4096    }\textcolor{comment}{/* intermediate uncompressed buffer size */}\textcolor{preprocessor}{}
+00069 
+00070 \textcolor{comment}{/* compress from file to def until provided buffer is full or end of}
+00071 \textcolor{comment}{   input reached; return last deflate() return value, or Z\_ERRNO if}
+00072 \textcolor{comment}{   there was read error on the file */}
+00073 local \textcolor{keywordtype}{int} partcompress(FILE *in, z\_streamp def)
+00074 \{
+00075     \textcolor{keywordtype}{int} ret, flush;
+00076     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} raw[RAWLEN];
+00077 
+00078     flush = Z\_NO\_FLUSH;
+00079     \textcolor{keywordflow}{do} \{
+00080         def->avail\_in = fread(raw, 1, RAWLEN, in);
+00081         \textcolor{keywordflow}{if} (ferror(in))
+00082             \textcolor{keywordflow}{return} Z\_ERRNO;
+00083         def->next\_in = raw;
+00084         \textcolor{keywordflow}{if} (feof(in))
+00085             flush = Z\_FINISH;
+00086         ret = deflate(def, flush);
+00087         assert(ret != Z\_STREAM\_ERROR);
+00088     \} \textcolor{keywordflow}{while} (def->avail\_out != 0 && flush == Z\_NO\_FLUSH);
+00089     \textcolor{keywordflow}{return} ret;
+00090 \}
+00091 
+00092 \textcolor{comment}{/* recompress from inf's input to def's output; the input for inf and}
+00093 \textcolor{comment}{   the output for def are set in those structures before calling;}
+00094 \textcolor{comment}{   return last deflate() return value, or Z\_MEM\_ERROR if inflate()}
+00095 \textcolor{comment}{   was not able to allocate enough memory when it needed to */}
+00096 local \textcolor{keywordtype}{int} recompress(z\_streamp inf, z\_streamp def)
+00097 \{
+00098     \textcolor{keywordtype}{int} ret, flush;
+00099     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} raw[RAWLEN];
+00100 
+00101     flush = Z\_NO\_FLUSH;
+00102     \textcolor{keywordflow}{do} \{
+00103         \textcolor{comment}{/* decompress */}
+00104         inf->avail\_out = RAWLEN;
+00105         inf->next\_out = raw;
+00106         ret = inflate(inf, Z\_NO\_FLUSH);
+00107         assert(ret != Z\_STREAM\_ERROR && ret != Z\_DATA\_ERROR &&
+00108                ret != Z\_NEED\_DICT);
+00109         \textcolor{keywordflow}{if} (ret == Z\_MEM\_ERROR)
+00110             \textcolor{keywordflow}{return} ret;
+00111 
+00112         \textcolor{comment}{/* compress what was decompresed until done or no room */}
+00113         def->avail\_in = RAWLEN - inf->avail\_out;
+00114         def->next\_in = raw;
+00115         \textcolor{keywordflow}{if} (inf->avail\_out != 0)
+00116             flush = Z\_FINISH;
+00117         ret = deflate(def, flush);
+00118         assert(ret != Z\_STREAM\_ERROR);
+00119     \} \textcolor{keywordflow}{while} (ret != Z\_STREAM\_END && def->avail\_out != 0);
+00120     \textcolor{keywordflow}{return} ret;
+00121 \}
+00122 
+00123 \textcolor{preprocessor}{#define EXCESS 256      }\textcolor{comment}{/* empirically determined stream overage */}\textcolor{preprocessor}{}
+00124 \textcolor{preprocessor}{#define MARGIN 8        }\textcolor{comment}{/* amount to back off for completion */}\textcolor{preprocessor}{}
+00125 
+00126 \textcolor{comment}{/* compress from stdin to fixed-size block on stdout */}
+00127 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} **argv)
+00128 \{
+00129     \textcolor{keywordtype}{int} ret;                \textcolor{comment}{/* return code */}
+00130     \textcolor{keywordtype}{unsigned} size;          \textcolor{comment}{/* requested fixed output block size */}
+00131     \textcolor{keywordtype}{unsigned} have;          \textcolor{comment}{/* bytes written by deflate() call */}
+00132     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *blk;     \textcolor{comment}{/* intermediate and final stream */}
+00133     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *tmp;     \textcolor{comment}{/* close to desired size stream */}
+00134     \hyperlink{structz__stream__s}{z\_stream} def, inf;      \textcolor{comment}{/* zlib deflate and inflate states */}
+00135 
+00136     \textcolor{comment}{/* get requested output size */}
+00137     \textcolor{keywordflow}{if} (argc != 2)
+00138         quit(\textcolor{stringliteral}{"need one argument: size of output block"});
+00139     ret = strtol(argv[1], argv + 1, 10);
+00140     \textcolor{keywordflow}{if} (argv[1][0] != 0)
+00141         quit(\textcolor{stringliteral}{"argument must be a number"});
+00142     \textcolor{keywordflow}{if} (ret < 8)            \textcolor{comment}{/* 8 is minimum zlib stream size */}
+00143         quit(\textcolor{stringliteral}{"need positive size of 8 or greater"});
+00144     size = (unsigned)ret;
+00145 
+00146     \textcolor{comment}{/* allocate memory for buffers and compression engine */}
+00147     blk = malloc(size + EXCESS);
+00148     def.zalloc = Z\_NULL;
+00149     def.zfree = Z\_NULL;
+00150     def.opaque = Z\_NULL;
+00151     ret = deflateInit(&def, Z\_DEFAULT\_COMPRESSION);
+00152     \textcolor{keywordflow}{if} (ret != Z\_OK || blk == NULL)
+00153         quit(\textcolor{stringliteral}{"out of memory"});
+00154 
+00155     \textcolor{comment}{/* compress from stdin until output full, or no more input */}
+00156     def.avail\_out = size + EXCESS;
+00157     def.next\_out = blk;
+00158     ret = partcompress(stdin, &def);
+00159     \textcolor{keywordflow}{if} (ret == Z\_ERRNO)
+00160         quit(\textcolor{stringliteral}{"error reading input"});
+00161 
+00162     \textcolor{comment}{/* if it all fit, then size was undersubscribed -- done! */}
+00163     \textcolor{keywordflow}{if} (ret == Z\_STREAM\_END && def.avail\_out >= EXCESS) \{
+00164         \textcolor{comment}{/* write block to stdout */}
+00165         have = size + EXCESS - def.avail\_out;
+00166         \textcolor{keywordflow}{if} (fwrite(blk, 1, have, stdout) != have || ferror(stdout))
+00167             quit(\textcolor{stringliteral}{"error writing output"});
+00168 
+00169         \textcolor{comment}{/* clean up and print results to stderr */}
+00170         ret = deflateEnd(&def);
+00171         assert(ret != Z\_STREAM\_ERROR);
+00172         free(blk);
+00173         fprintf(stderr,
+00174                 \textcolor{stringliteral}{"%u bytes unused out of %u requested (all input)\(\backslash\)n"},
+00175                 size - have, size);
+00176         \textcolor{keywordflow}{return} 0;
+00177     \}
+00178 
+00179     \textcolor{comment}{/* it didn't all fit -- set up for recompression */}
+00180     inf.zalloc = Z\_NULL;
+00181     inf.zfree = Z\_NULL;
+00182     inf.opaque = Z\_NULL;
+00183     inf.avail\_in = 0;
+00184     inf.next\_in = Z\_NULL;
+00185     ret = inflateInit(&inf);
+00186     tmp = malloc(size + EXCESS);
+00187     \textcolor{keywordflow}{if} (ret != Z\_OK || tmp == NULL)
+00188         quit(\textcolor{stringliteral}{"out of memory"});
+00189     ret = deflateReset(&def);
+00190     assert(ret != Z\_STREAM\_ERROR);
+00191 
+00192     \textcolor{comment}{/* do first recompression close to the right amount */}
+00193     inf.avail\_in = size + EXCESS;
+00194     inf.next\_in = blk;
+00195     def.avail\_out = size + EXCESS;
+00196     def.next\_out = tmp;
+00197     ret = recompress(&inf, &def);
+00198     \textcolor{keywordflow}{if} (ret == Z\_MEM\_ERROR)
+00199         quit(\textcolor{stringliteral}{"out of memory"});
+00200 
+00201     \textcolor{comment}{/* set up for next reocmpression */}
+00202     ret = inflateReset(&inf);
+00203     assert(ret != Z\_STREAM\_ERROR);
+00204     ret = deflateReset(&def);
+00205     assert(ret != Z\_STREAM\_ERROR);
+00206 
+00207     \textcolor{comment}{/* do second and final recompression (third compression) */}
+00208     inf.avail\_in = size - MARGIN;   \textcolor{comment}{/* assure stream will complete */}
+00209     inf.next\_in = tmp;
+00210     def.avail\_out = size;
+00211     def.next\_out = blk;
+00212     ret = recompress(&inf, &def);
+00213     \textcolor{keywordflow}{if} (ret == Z\_MEM\_ERROR)
+00214         quit(\textcolor{stringliteral}{"out of memory"});
+00215     assert(ret == Z\_STREAM\_END);    \textcolor{comment}{/* otherwise MARGIN too small */}
+00216 
+00217     \textcolor{comment}{/* done -- write block to stdout */}
+00218     have = size - def.avail\_out;
+00219     \textcolor{keywordflow}{if} (fwrite(blk, 1, have, stdout) != have || ferror(stdout))
+00220         quit(\textcolor{stringliteral}{"error writing output"});
+00221 
+00222     \textcolor{comment}{/* clean up and print results to stderr */}
+00223     free(tmp);
+00224     ret = inflateEnd(&inf);
+00225     assert(ret != Z\_STREAM\_ERROR);
+00226     ret = deflateEnd(&def);
+00227     assert(ret != Z\_STREAM\_ERROR);
+00228     free(blk);
+00229     fprintf(stderr,
+00230             \textcolor{stringliteral}{"%u bytes unused out of %u requested (%lu input)\(\backslash\)n"},
+00231             size - have, size, def.total\_in);
+00232     \textcolor{keywordflow}{return} 0;
+00233 \}
+\end{DoxyCode}

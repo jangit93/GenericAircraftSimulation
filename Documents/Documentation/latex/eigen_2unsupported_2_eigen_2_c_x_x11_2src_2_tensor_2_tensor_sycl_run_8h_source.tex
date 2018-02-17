@@ -1,0 +1,75 @@
+\hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_sycl_run_8h_source}{}\section{eigen/unsupported/\+Eigen/\+C\+X\+X11/src/\+Tensor/\+Tensor\+Sycl\+Run.h}
+\label{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_sycl_run_8h_source}\index{Tensor\+Sycl\+Run.\+h@{Tensor\+Sycl\+Run.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Mehdi Goli    Codeplay Software Ltd.}
+00005 \textcolor{comment}{// Ralph Potter  Codeplay Software Ltd.}
+00006 \textcolor{comment}{// Luke Iwanski  Codeplay Software Ltd.}
+00007 \textcolor{comment}{// Cummins Chris PhD student at The University of Edinburgh.}
+00008 \textcolor{comment}{// Contact: <eigen@codeplay.com>}
+00009 \textcolor{comment}{//}
+00010 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00011 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00012 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00013 
+00014 \textcolor{comment}{/*****************************************************************}
+00015 \textcolor{comment}{ * TensorSyclRun.h}
+00016 \textcolor{comment}{ *}
+00017 \textcolor{comment}{ * \(\backslash\)brief:}
+00018 \textcolor{comment}{ * Schedule\_kernel invoke an specialised version of kernel struct. The}
+00019 \textcolor{comment}{ * specialisation is based on the data dimension in sycl buffer}
+00020 \textcolor{comment}{ *}
+00021 \textcolor{comment}{*****************************************************************/}
+00022 
+00023 \textcolor{preprocessor}{#ifndef UNSUPPORTED\_EIGEN\_CXX11\_SRC\_TENSOR\_TENSORSYCL\_SYCLRUN\_HPP}
+00024 \textcolor{preprocessor}{#define UNSUPPORTED\_EIGEN\_CXX11\_SRC\_TENSOR\_TENSORSYCL\_SYCLRUN\_HPP}
+00025 
+00026 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00027 \textcolor{keyword}{namespace }TensorSycl \{
+00032 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Expr, \textcolor{keyword}{typename} Dev>
+00033 \textcolor{keywordtype}{void} run(Expr &expr, Dev &dev) \{
+00034   \hyperlink{struct_eigen_1_1_tensor_evaluator}{Eigen::TensorEvaluator<Expr, Dev>} evaluator(expr, dev);
+00035   \textcolor{keyword}{const} \textcolor{keywordtype}{bool} needs\_assign = evaluator.evalSubExprsIfNeeded(NULL);
+00036   \textcolor{keywordflow}{if} (needs\_assign) \{
+00037     \textcolor{keyword}{typedef}  \textcolor{keyword}{typename} internal::createPlaceHolderExpression<Expr>::Type PlaceHolderExpr;
+00038     \textcolor{keyword}{auto} functors = internal::extractFunctors(evaluator);
+00039 
+00040     \textcolor{keywordtype}{size\_t} tileSize =dev.m\_queue.get\_device(). \textcolor{keyword}{template} 
+      get\_info<cl::sycl::info::device::max\_work\_group\_size>()/2;
+00041     dev.m\_queue.submit([&](cl::sycl::handler &cgh) \{
+00042 
+00043       \textcolor{comment}{// create a tuple of accessors from Evaluator}
+00044       \textcolor{keyword}{auto} tuple\_of\_accessors = internal::createTupleOfAccessors<decltype(evaluator)>(cgh, evaluator);
+00045       \textcolor{keyword}{const} \textcolor{keyword}{auto} range = utility::tuple::get<0>(tuple\_of\_accessors).get\_range()[0];
+00046       \textcolor{keywordtype}{size\_t} GRange=range;
+00047       \textcolor{keywordflow}{if} (tileSize>GRange) tileSize=GRange;
+00048       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(GRange>tileSize)\{
+00049         \textcolor{keywordtype}{size\_t} xMode = GRange % tileSize;
+00050         \textcolor{keywordflow}{if} (xMode != 0) GRange += (tileSize - xMode);
+00051       \}
+00052       \textcolor{comment}{// run the kernel}
+00053       cgh.parallel\_for<PlaceHolderExpr>( cl::sycl::nd\_range<1>(cl::sycl::range<1>(GRange), 
+      cl::sycl::range<1>(tileSize)), [=](cl::sycl::nd\_item<1> itemID) \{
+00054         \textcolor{keyword}{typedef}  \textcolor{keyword}{typename} internal::ConvertToDeviceExpression<Expr>::Type DevExpr;
+00055         \textcolor{keyword}{auto} device\_expr =internal::createDeviceExpression<DevExpr, PlaceHolderExpr>(functors, 
+      tuple\_of\_accessors);
+00056         \textcolor{keyword}{auto} device\_evaluator = \hyperlink{struct_eigen_1_1_tensor_evaluator}{Eigen::TensorEvaluator}<decltype(device\_expr.expr), 
+      \hyperlink{struct_eigen_1_1_default_device}{Eigen::DefaultDevice}>(device\_expr.expr, \hyperlink{struct_eigen_1_1_default_device}{Eigen::DefaultDevice}());
+00057         \textcolor{keywordflow}{if} (itemID.get\_global\_linear\_id() < range) \{
+00058           device\_evaluator.evalScalar(static\_cast<int>(itemID.get\_global\_linear\_id()));
+00059         \}
+00060       \});
+00061     \});
+00062     dev.m\_queue.throw\_asynchronous();
+00063   \}
+00064 
+00065   evaluator.cleanup();
+00066 \}
+00067 \}  \textcolor{comment}{// namespace TensorSycl}
+00068 \}  \textcolor{comment}{// namespace Eigen}
+00069 
+00070 \textcolor{preprocessor}{#endif  // UNSUPPORTED\_EIGEN\_CXX11\_SRC\_TENSOR\_TENSORSYCL\_SYCLRUN\_HPP}
+\end{DoxyCode}

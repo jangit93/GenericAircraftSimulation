@@ -1,0 +1,217 @@
+\hypertarget{zlib_2contrib_2dotzlib_2_dot_z_lib_2_g_zip_stream_8cs_source}{}\section{zlib/contrib/dotzlib/\+Dot\+Z\+Lib/\+G\+Zip\+Stream.cs}
+\label{zlib_2contrib_2dotzlib_2_dot_z_lib_2_g_zip_stream_8cs_source}\index{G\+Zip\+Stream.\+cs@{G\+Zip\+Stream.\+cs}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{//}
+00002 \textcolor{comment}{// © Copyright Henrik Ravn 2004}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Use, modification and distribution are subject to the Boost Software License, Version 1.0.}
+00005 \textcolor{comment}{// (See accompanying file LICENSE\_1\_0.txt or copy at http://www.boost.org/LICENSE\_1\_0.txt)}
+00006 \textcolor{comment}{//}
+00007 
+00008 \textcolor{keyword}{using} \hyperlink{namespace_system}{System};
+00009 \textcolor{keyword}{using} \hyperlink{namespace_system}{System}.IO;
+00010 \textcolor{keyword}{using} \hyperlink{namespace_system}{System}.Runtime.InteropServices;
+00011 
+00012 \textcolor{keyword}{namespace }\hyperlink{namespace_dot_z_lib}{DotZLib}
+00013 \{
+00017     \textcolor{keyword}{public} \textcolor{keyword}{class }GZipStream : Stream, IDisposable
+00018     \{
+00019 \textcolor{preprocessor}{        #region Dll Imports}
+00020         [DllImport(\textcolor{stringliteral}{"ZLIB1.dll"}, CallingConvention=CallingConvention.Cdecl, CharSet=CharSet.Ansi)]
+00021         \textcolor{keyword}{private} \textcolor{keyword}{static} \textcolor{keyword}{extern} IntPtr gzopen(\textcolor{keywordtype}{string} name, \textcolor{keywordtype}{string} mode);
+00022 
+00023         [DllImport(\textcolor{stringliteral}{"ZLIB1.dll"}, CallingConvention=CallingConvention.Cdecl)]
+00024         \textcolor{keyword}{private} \textcolor{keyword}{static} \textcolor{keyword}{extern} \textcolor{keywordtype}{int} gzclose(IntPtr \hyperlink{structgz_file__s}{gzFile});
+00025 
+00026         [DllImport(\textcolor{stringliteral}{"ZLIB1.dll"}, CallingConvention=CallingConvention.Cdecl)]
+00027         \textcolor{keyword}{private} \textcolor{keyword}{static} \textcolor{keyword}{extern} \textcolor{keywordtype}{int} gzwrite(IntPtr \hyperlink{structgz_file__s}{gzFile}, \textcolor{keywordtype}{int} data, \textcolor{keywordtype}{int} length);
+00028 
+00029         [DllImport(\textcolor{stringliteral}{"ZLIB1.dll"}, CallingConvention=CallingConvention.Cdecl)]
+00030         \textcolor{keyword}{private} \textcolor{keyword}{static} \textcolor{keyword}{extern} \textcolor{keywordtype}{int} gzread(IntPtr \hyperlink{structgz_file__s}{gzFile}, \textcolor{keywordtype}{int} data, \textcolor{keywordtype}{int} length);
+00031 
+00032         [DllImport(\textcolor{stringliteral}{"ZLIB1.dll"}, CallingConvention=CallingConvention.Cdecl)]
+00033         \textcolor{keyword}{private} \textcolor{keyword}{static} \textcolor{keyword}{extern} \textcolor{keywordtype}{int} gzgetc(IntPtr \hyperlink{structgz_file__s}{gzFile});
+00034 
+00035         [DllImport(\textcolor{stringliteral}{"ZLIB1.dll"}, CallingConvention=CallingConvention.Cdecl)]
+00036         \textcolor{keyword}{private} \textcolor{keyword}{static} \textcolor{keyword}{extern} \textcolor{keywordtype}{int} gzputc(IntPtr \hyperlink{structgz_file__s}{gzFile}, \textcolor{keywordtype}{int} c);
+00037 
+00038 \textcolor{preprocessor}{        #endregion}
+00039 
+00040 \textcolor{preprocessor}{        #region Private data}
+00041         \textcolor{keyword}{private} IntPtr \_gzFile;
+00042         \textcolor{keyword}{private} \textcolor{keywordtype}{bool} \_isDisposed = \textcolor{keyword}{false};
+00043         \textcolor{keyword}{private} \textcolor{keywordtype}{bool} \_isWriting;
+00044 \textcolor{preprocessor}{        #endregion}
+00045 
+00046 \textcolor{preprocessor}{        #region Constructors}
+00047         \textcolor{keyword}{public} \hyperlink{class_dot_z_lib_1_1_g_zip_stream_a12d73ef46491a5023b1fd620efb13f1a}{GZipStream}(\textcolor{keywordtype}{string} fileName, \hyperlink{namespace_dot_z_lib_a034f7a1ef9856d8834e6f6b1c53d8a4c}{CompressLevel} level)
+00054         \{
+00055             \_isWriting = \textcolor{keyword}{true};
+00056             \_gzFile = gzopen(fileName, String.Format(\textcolor{stringliteral}{"wb\{0\}"}, (\textcolor{keywordtype}{int})level));
+00057             \textcolor{keywordflow}{if} (\_gzFile == IntPtr.Zero)
+00058                 \textcolor{keywordflow}{throw} \textcolor{keyword}{new} ZLibException(-1, \textcolor{stringliteral}{"Could not open "} + fileName);
+00059         \}
+00060 
+\Hypertarget{zlib_2contrib_2dotzlib_2_dot_z_lib_2_g_zip_stream_8cs_source_l00066}\hyperlink{class_dot_z_lib_1_1_g_zip_stream_aea152a18b8cab1ee3d614fc3799c7e08}{00066}         \textcolor{keyword}{public} \hyperlink{class_dot_z_lib_1_1_g_zip_stream_aea152a18b8cab1ee3d614fc3799c7e08}{GZipStream}(\textcolor{keywordtype}{string} fileName)
+00067         \{
+00068             \_isWriting = \textcolor{keyword}{false};
+00069             \_gzFile = gzopen(fileName, \textcolor{stringliteral}{"rb"});
+00070             \textcolor{keywordflow}{if} (\_gzFile == IntPtr.Zero)
+00071                 \textcolor{keywordflow}{throw} \textcolor{keyword}{new} \hyperlink{class_dot_z_lib_1_1_z_lib_exception}{ZLibException}(-1, \textcolor{stringliteral}{"Could not open "} + fileName);
+00072 
+00073         \}
+00074 \textcolor{preprocessor}{        #endregion}
+00075 
+00076 \textcolor{preprocessor}{        #region Access properties}
+00077         \textcolor{keyword}{public} \textcolor{keyword}{override} \textcolor{keywordtype}{bool} \hyperlink{class_dot_z_lib_1_1_g_zip_stream_a627994338e73782d92b51422a1e36fcc}{CanRead}
+00081         \{
+00082             \textcolor{keyword}{get}
+00083             \{
+00084                 \textcolor{keywordflow}{return} !\_isWriting;
+00085             \}
+00086         \}
+00087 
+00088 
+00092         \textcolor{keyword}{public} \textcolor{keyword}{override} \textcolor{keywordtype}{bool} \hyperlink{class_dot_z_lib_1_1_g_zip_stream_a0444494c95dda0c7218b760af229850a}{CanSeek}
+00093         \{
+00094             \textcolor{keyword}{get}
+00095             \{
+00096                 \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00097             \}
+00098         \}
+00099 
+00103         \textcolor{keyword}{public} \textcolor{keyword}{override} \textcolor{keywordtype}{bool} \hyperlink{class_dot_z_lib_1_1_g_zip_stream_a19296c736675fdc4210a9126431c7bf1}{CanWrite}
+00104         \{
+00105             \textcolor{keyword}{get}
+00106             \{
+00107                 \textcolor{keywordflow}{return} \_isWriting;
+00108             \}
+00109         \}
+00110 \textcolor{preprocessor}{        #endregion}
+00111 
+00112 \textcolor{preprocessor}{        #region Destructor & IDispose stuff}
+00113 
+00117         ~\hyperlink{class_dot_z_lib_1_1_g_zip_stream}{GZipStream}()
+00118         \{
+00119             cleanUp(\textcolor{keyword}{false});
+00120         \}
+00121 
+\Hypertarget{zlib_2contrib_2dotzlib_2_dot_z_lib_2_g_zip_stream_8cs_source_l00125}\hyperlink{class_dot_z_lib_1_1_g_zip_stream_a1fab7340250fa883c12ab08502826d07}{00125}         \textcolor{keyword}{public} \textcolor{keywordtype}{void} \hyperlink{class_dot_z_lib_1_1_g_zip_stream_a1fab7340250fa883c12ab08502826d07}{Dispose}()
+00126         \{
+00127             cleanUp(\textcolor{keyword}{true});
+00128         \}
+00129 
+00130         \textcolor{comment}{// Does the actual closing of the file handle.}
+00131         \textcolor{keyword}{private} \textcolor{keywordtype}{void} cleanUp(\textcolor{keywordtype}{bool} isDisposing)
+00132         \{
+00133             \textcolor{keywordflow}{if} (!\_isDisposed)
+00134             \{
+00135                 gzclose(\_gzFile);
+00136                 \_isDisposed = \textcolor{keyword}{true};
+00137             \}
+00138         \}
+00139 \textcolor{preprocessor}{        #endregion}
+00140 
+00141 \textcolor{preprocessor}{        #region Basic reading and writing}
+00142         \textcolor{keyword}{public} \textcolor{keyword}{override} \textcolor{keywordtype}{int} \hyperlink{class_dot_z_lib_1_1_g_zip_stream_a7f08839f681ed2eec9e3a87a0f1b0b0b}{Read}(byte[] buffer, \textcolor{keywordtype}{int} offset, \textcolor{keywordtype}{int} count)
+00155         \{
+00156             \textcolor{keywordflow}{if} (!\hyperlink{class_dot_z_lib_1_1_g_zip_stream_a627994338e73782d92b51422a1e36fcc}{CanRead}) \textcolor{keywordflow}{throw} \textcolor{keyword}{new} NotSupportedException();
+00157             \textcolor{keywordflow}{if} (buffer == null) \textcolor{keywordflow}{throw} \textcolor{keyword}{new} ArgumentNullException();
+00158             \textcolor{keywordflow}{if} (offset < 0 || count < 0) \textcolor{keywordflow}{throw} \textcolor{keyword}{new} ArgumentOutOfRangeException();
+00159             \textcolor{keywordflow}{if} ((offset+count) > buffer.Length) \textcolor{keywordflow}{throw} \textcolor{keyword}{new} ArgumentException();
+00160             \textcolor{keywordflow}{if} (\_isDisposed) \textcolor{keywordflow}{throw} \textcolor{keyword}{new} ObjectDisposedException(\textcolor{stringliteral}{"GZipStream"});
+00161 
+00162             GCHandle h = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+00163             \textcolor{keywordtype}{int} result;
+00164             \textcolor{keywordflow}{try}
+00165             \{
+00166                 result = gzread(\_gzFile, h.AddrOfPinnedObject().ToInt32() + offset, count);
+00167                 \textcolor{keywordflow}{if} (result < 0)
+00168                     \textcolor{keywordflow}{throw} \textcolor{keyword}{new} IOException();
+00169             \}
+00170             \textcolor{keywordflow}{finally}
+00171             \{
+00172                 h.Free();
+00173             \}
+00174             \textcolor{keywordflow}{return} result;
+00175         \}
+00176 
+\Hypertarget{zlib_2contrib_2dotzlib_2_dot_z_lib_2_g_zip_stream_8cs_source_l00181}\hyperlink{class_dot_z_lib_1_1_g_zip_stream_aedb91212e360ab574bca4745e2189201}{00181}         \textcolor{keyword}{public} \textcolor{keyword}{override} \textcolor{keywordtype}{int} \hyperlink{class_dot_z_lib_1_1_g_zip_stream_aedb91212e360ab574bca4745e2189201}{ReadByte}()
+00182         \{
+00183             \textcolor{keywordflow}{if} (!\hyperlink{class_dot_z_lib_1_1_g_zip_stream_a627994338e73782d92b51422a1e36fcc}{CanRead}) \textcolor{keywordflow}{throw} \textcolor{keyword}{new} NotSupportedException();
+00184             \textcolor{keywordflow}{if} (\_isDisposed) \textcolor{keywordflow}{throw} \textcolor{keyword}{new} ObjectDisposedException(\textcolor{stringliteral}{"GZipStream"});
+00185             \textcolor{keywordflow}{return} gzgetc(\_gzFile);
+00186         \}
+00187 
+\Hypertarget{zlib_2contrib_2dotzlib_2_dot_z_lib_2_g_zip_stream_8cs_source_l00199}\hyperlink{class_dot_z_lib_1_1_g_zip_stream_a844fcf0ab29c0bf26591e206669d485d}{00199}         \textcolor{keyword}{public} \textcolor{keyword}{override} \textcolor{keywordtype}{void} \hyperlink{class_dot_z_lib_1_1_g_zip_stream_a844fcf0ab29c0bf26591e206669d485d}{Write}(byte[] buffer, \textcolor{keywordtype}{int} offset, \textcolor{keywordtype}{int} count)
+00200         \{
+00201             \textcolor{keywordflow}{if} (!\hyperlink{class_dot_z_lib_1_1_g_zip_stream_a19296c736675fdc4210a9126431c7bf1}{CanWrite}) \textcolor{keywordflow}{throw} \textcolor{keyword}{new} NotSupportedException();
+00202             \textcolor{keywordflow}{if} (buffer == null) \textcolor{keywordflow}{throw} \textcolor{keyword}{new} ArgumentNullException();
+00203             \textcolor{keywordflow}{if} (offset < 0 || count < 0) \textcolor{keywordflow}{throw} \textcolor{keyword}{new} ArgumentOutOfRangeException();
+00204             \textcolor{keywordflow}{if} ((offset+count) > buffer.Length) \textcolor{keywordflow}{throw} \textcolor{keyword}{new} ArgumentException();
+00205             \textcolor{keywordflow}{if} (\_isDisposed) \textcolor{keywordflow}{throw} \textcolor{keyword}{new} ObjectDisposedException(\textcolor{stringliteral}{"GZipStream"});
+00206 
+00207             GCHandle h = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+00208             \textcolor{keywordflow}{try}
+00209             \{
+00210                 \textcolor{keywordtype}{int} result = gzwrite(\_gzFile, h.AddrOfPinnedObject().ToInt32() + offset, count);
+00211                 \textcolor{keywordflow}{if} (result < 0)
+00212                     \textcolor{keywordflow}{throw} \textcolor{keyword}{new} IOException();
+00213             \}
+00214             \textcolor{keywordflow}{finally}
+00215             \{
+00216                 h.Free();
+00217             \}
+00218         \}
+00219 
+\Hypertarget{zlib_2contrib_2dotzlib_2_dot_z_lib_2_g_zip_stream_8cs_source_l00226}\hyperlink{class_dot_z_lib_1_1_g_zip_stream_a78b38035956f42bf1c66db34ec2ba2cc}{00226}         \textcolor{keyword}{public} \textcolor{keyword}{override} \textcolor{keywordtype}{void} \hyperlink{class_dot_z_lib_1_1_g_zip_stream_a78b38035956f42bf1c66db34ec2ba2cc}{WriteByte}(byte value)
+00227         \{
+00228             \textcolor{keywordflow}{if} (!\hyperlink{class_dot_z_lib_1_1_g_zip_stream_a19296c736675fdc4210a9126431c7bf1}{CanWrite}) \textcolor{keywordflow}{throw} \textcolor{keyword}{new} NotSupportedException();
+00229             \textcolor{keywordflow}{if} (\_isDisposed) \textcolor{keywordflow}{throw} \textcolor{keyword}{new} ObjectDisposedException(\textcolor{stringliteral}{"GZipStream"});
+00230 
+00231             \textcolor{keywordtype}{int} result = gzputc(\_gzFile, (\textcolor{keywordtype}{int})value);
+00232             \textcolor{keywordflow}{if} (result < 0)
+00233                 \textcolor{keywordflow}{throw} \textcolor{keyword}{new} IOException();
+00234         \}
+00235 \textcolor{preprocessor}{        #endregion}
+00236 
+00237 \textcolor{preprocessor}{        #region Position & length stuff}
+00238         \textcolor{keyword}{public} \textcolor{keyword}{override} \textcolor{keywordtype}{void} \hyperlink{class_dot_z_lib_1_1_g_zip_stream_a05fff98b765251f87b41318781da71c4}{SetLength}(\textcolor{keywordtype}{long} value)
+00244         \{
+00245             \textcolor{keywordflow}{throw} \textcolor{keyword}{new} NotSupportedException();
+00246         \}
+00247 
+\Hypertarget{zlib_2contrib_2dotzlib_2_dot_z_lib_2_g_zip_stream_8cs_source_l00255}\hyperlink{class_dot_z_lib_1_1_g_zip_stream_adbb50684c05ca060cff804c91c63f4a2}{00255}         \textcolor{keyword}{public} \textcolor{keyword}{override} \textcolor{keywordtype}{long} \hyperlink{class_dot_z_lib_1_1_g_zip_stream_adbb50684c05ca060cff804c91c63f4a2}{Seek}(\textcolor{keywordtype}{long} offset, SeekOrigin origin)
+00256         \{
+00257             \textcolor{keywordflow}{throw} \textcolor{keyword}{new} NotSupportedException();
+00258         \}
+00259 
+\Hypertarget{zlib_2contrib_2dotzlib_2_dot_z_lib_2_g_zip_stream_8cs_source_l00265}\hyperlink{class_dot_z_lib_1_1_g_zip_stream_a1e219fd4cc6c0f3c3bbd373f9724e24e}{00265}         \textcolor{keyword}{public} \textcolor{keyword}{override} \textcolor{keywordtype}{void} \hyperlink{class_dot_z_lib_1_1_g_zip_stream_a1e219fd4cc6c0f3c3bbd373f9724e24e}{Flush}()
+00266         \{
+00267             \textcolor{comment}{// left empty on purpose}
+00268         \}
+00269 
+00275         \textcolor{keyword}{public} \textcolor{keyword}{override} \textcolor{keywordtype}{long} \hyperlink{class_dot_z_lib_1_1_g_zip_stream_a408186c8247fd657799518aac256d6d7}{Position}
+00276         \{
+00277             \textcolor{keyword}{get}
+00278             \{
+00279                 \textcolor{keywordflow}{throw} \textcolor{keyword}{new} NotSupportedException();
+00280             \}
+00281             \textcolor{keyword}{set}
+00282             \{
+00283                 \textcolor{keywordflow}{throw} \textcolor{keyword}{new} NotSupportedException();
+00284             \}
+00285         \}
+00286 
+00292         \textcolor{keyword}{public} \textcolor{keyword}{override} \textcolor{keywordtype}{long} \hyperlink{class_dot_z_lib_1_1_g_zip_stream_ad63ba8f24f1661998780789390fef4ac}{Length}
+00293         \{
+00294             \textcolor{keyword}{get}
+00295             \{
+00296                 \textcolor{keywordflow}{throw} \textcolor{keyword}{new} NotSupportedException();
+00297             \}
+00298         \}
+00299 \textcolor{preprocessor}{        #endregion}
+00300     \}
+00301 \}
+\end{DoxyCode}

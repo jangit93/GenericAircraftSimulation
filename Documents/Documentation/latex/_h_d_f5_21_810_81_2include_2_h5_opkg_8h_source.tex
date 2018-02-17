@@ -1,0 +1,689 @@
+\hypertarget{_h_d_f5_21_810_81_2include_2_h5_opkg_8h_source}{}\section{H\+D\+F5/1.10.1/include/\+H5\+Opkg.h}
+\label{_h_d_f5_21_810_81_2include_2_h5_opkg_8h_source}\index{H5\+Opkg.\+h@{H5\+Opkg.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+00002 \textcolor{comment}{ * Copyright by The HDF Group.                                               *}
+00003 \textcolor{comment}{ * Copyright by the Board of Trustees of the University of Illinois.         *}
+00004 \textcolor{comment}{ * All rights reserved.                                                      *}
+00005 \textcolor{comment}{ *                                                                           *}
+00006 \textcolor{comment}{ * This file is part of HDF5.  The full HDF5 copyright notice, including     *}
+00007 \textcolor{comment}{ * terms governing use, modification, and redistribution, is contained in    *}
+00008 \textcolor{comment}{ * the COPYING file, which can be found at the root of the source code       *}
+00009 \textcolor{comment}{ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *}
+00010 \textcolor{comment}{ * If you do not have access to either file, you may request a copy from     *}
+00011 \textcolor{comment}{ * help@hdfgroup.org.                                                        *}
+00012 \textcolor{comment}{ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00013 
+00014 \textcolor{preprocessor}{#if !(defined H5O\_FRIEND || defined H5O\_MODULE)}
+00015 \textcolor{preprocessor}{#error "Do not include this file outside the H5O package!"}
+00016 \textcolor{preprocessor}{#endif}
+00017 
+00018 \textcolor{preprocessor}{#ifndef \_H5Opkg\_H}
+00019 \textcolor{preprocessor}{#define \_H5Opkg\_H}
+00020 
+00021 \textcolor{comment}{/* Get package's private header */}
+00022 \textcolor{preprocessor}{#include "H5Oprivate.h"}     \textcolor{comment}{/* Object headers           */}
+00023 
+00024 \textcolor{comment}{/* Other private headers needed by this file */}
+00025 \textcolor{preprocessor}{#include "H5ACprivate.h"}        \textcolor{comment}{/* Metadata cache                       */}
+00026 \textcolor{preprocessor}{#include "H5FLprivate.h"}    \textcolor{comment}{/* Free Lists                           */}
+00027 
+00028 \textcolor{comment}{/* Object header macros */}
+00029 \textcolor{preprocessor}{#define H5O\_NMESGS  8       }\textcolor{comment}{/*initial number of messages         */}\textcolor{preprocessor}{}
+00030 \textcolor{preprocessor}{#define H5O\_NCHUNKS 2       }\textcolor{comment}{/*initial number of chunks       */}\textcolor{preprocessor}{}
+00031 \textcolor{preprocessor}{#define H5O\_MIN\_SIZE    22      }\textcolor{comment}{/* Min. obj header data size (must be big enough for a message prefix and a
+       continuation message) */}\textcolor{preprocessor}{}
+00032 \textcolor{preprocessor}{#define H5O\_MSG\_TYPES   27              }\textcolor{comment}{/* # of types of messages            */}\textcolor{preprocessor}{}
+00033 \textcolor{preprocessor}{#define H5O\_MAX\_CRT\_ORDER\_IDX 65535     }\textcolor{comment}{/* Max. creation order index value   */}\textcolor{preprocessor}{}
+00034 
+00035 \textcolor{comment}{/* Versions of object header structure */}
+00036 
+00037 \textcolor{comment}{/* Initial version of the object header format */}
+00038 \textcolor{preprocessor}{#define H5O\_VERSION\_1       1}
+00039 
+00040 \textcolor{comment}{/* Revised version - leaves out reserved bytes and alignment padding, and adds}
+00041 \textcolor{comment}{ *      magic number as prefix and checksum as suffix for all chunks.}
+00042 \textcolor{comment}{ */}
+00043 \textcolor{preprocessor}{#define H5O\_VERSION\_2       2}
+00044 
+00045 \textcolor{comment}{/* The latest version of the format.  Look through the 'flush'}
+00046 \textcolor{comment}{ *      and 'size' callback for places to change when updating this. */}
+00047 \textcolor{preprocessor}{#define H5O\_VERSION\_LATEST  H5O\_VERSION\_2}
+00048 
+00049 \textcolor{comment}{/*}
+00050 \textcolor{comment}{ * Align messages on 8-byte boundaries because we would like to copy the}
+00051 \textcolor{comment}{ * object header chunks directly into memory and operate on them there, even}
+00052 \textcolor{comment}{ * on 64-bit architectures.  This allows us to reduce the number of disk I/O}
+00053 \textcolor{comment}{ * requests with a minimum amount of mem-to-mem copies.}
+00054 \textcolor{comment}{ *}
+00055 \textcolor{comment}{ * Note: We no longer attempt to do this. - QAK, 10/16/06}
+00056 \textcolor{comment}{ */}
+00057 \textcolor{preprocessor}{#define H5O\_ALIGN\_OLD(X)    (8 * (((X) + 7) / 8))}
+00058 \textcolor{preprocessor}{#define H5O\_ALIGN\_VERS(V, X)                              \(\backslash\)}
+00059 \textcolor{preprocessor}{    (((V) == H5O\_VERSION\_1) ?                             \(\backslash\)}
+00060 \textcolor{preprocessor}{        H5O\_ALIGN\_OLD(X)                          \(\backslash\)}
+00061 \textcolor{preprocessor}{        :                                     \(\backslash\)}
+00062 \textcolor{preprocessor}{        (X)                               \(\backslash\)}
+00063 \textcolor{preprocessor}{    )}
+00064 \textcolor{preprocessor}{#define H5O\_ALIGN\_OH(O, X)                            \(\backslash\)}
+00065 \textcolor{preprocessor}{     H5O\_ALIGN\_VERS((O)->version, X)}
+00066 \textcolor{preprocessor}{#define H5O\_ALIGN\_F(F, X)                             \(\backslash\)}
+00067 \textcolor{preprocessor}{     H5O\_ALIGN\_VERS((H5F\_USE\_LATEST\_FLAGS(F, H5F\_LATEST\_OBJ\_HEADER) ? H5O\_VERSION\_LATEST : H5O\_VERSION\_1),
+       X)}
+00068 
+00069 \textcolor{comment}{/* Size of checksum (on disk) */}
+00070 \textcolor{preprocessor}{#define H5O\_SIZEOF\_CHKSUM               4}
+00071 
+00072 \textcolor{comment}{/* ========= Object Creation properties ============ */}
+00073 \textcolor{comment}{/* Default values for some of the object creation properties */}
+00074 \textcolor{comment}{/* NOTE: The H5O\_CRT\_ATTR\_MAX\_COMPACT\_DEF & H5O\_CRT\_ATTR\_MIN\_DENSE\_DEF values}
+00075 \textcolor{comment}{ *      are "built into" the file format, make certain existing files with}
+00076 \textcolor{comment}{ *      default attribute phase change storage are handled correctly if they}
+00077 \textcolor{comment}{ *      are changed.}
+00078 \textcolor{comment}{ */}
+00079 \textcolor{preprocessor}{#define H5O\_CRT\_ATTR\_MAX\_COMPACT\_DEF    8}
+00080 \textcolor{preprocessor}{#define H5O\_CRT\_ATTR\_MIN\_DENSE\_DEF      6}
+00081 \textcolor{preprocessor}{#define H5O\_CRT\_OHDR\_FLAGS\_DEF          H5O\_HDR\_STORE\_TIMES}
+00082 
+00083 \textcolor{comment}{/* Object header status flag definitions */}
+00084 \textcolor{preprocessor}{#define H5O\_HDR\_CHUNK0\_1                0x00    }\textcolor{comment}{/* Use 1-byte value for chunk #0 size */}\textcolor{preprocessor}{}
+00085 \textcolor{preprocessor}{#define H5O\_HDR\_CHUNK0\_2                0x01    }\textcolor{comment}{/* Use 2-byte value for chunk #0 size */}\textcolor{preprocessor}{}
+00086 \textcolor{preprocessor}{#define H5O\_HDR\_CHUNK0\_4                0x02    }\textcolor{comment}{/* Use 4-byte value for chunk #0 size */}\textcolor{preprocessor}{}
+00087 \textcolor{preprocessor}{#define H5O\_HDR\_CHUNK0\_8                0x03    }\textcolor{comment}{/* Use 8-byte value for chunk #0 size */}\textcolor{preprocessor}{}
+00088 
+00089 \textcolor{comment}{/*}
+00090 \textcolor{comment}{ * Size of object header prefix.}
+00091 \textcolor{comment}{ */}
+00092 \textcolor{preprocessor}{#define H5O\_SIZEOF\_HDR(O)                             \(\backslash\)}
+00093 \textcolor{preprocessor}{    (((O)->version == H5O\_VERSION\_1)                          \(\backslash\)}
+00094 \textcolor{preprocessor}{        ?                                     \(\backslash\)}
+00095 \textcolor{preprocessor}{            H5O\_ALIGN\_OLD(1 +   }\textcolor{comment}{/*version number    */}\textcolor{preprocessor}{            \(\backslash\)}
+00096 \textcolor{preprocessor}{                1 +     }\textcolor{comment}{/*reserved      */}\textcolor{preprocessor}{            \(\backslash\)}
+00097 \textcolor{preprocessor}{                2 +     }\textcolor{comment}{/*number of messages    */}\textcolor{preprocessor}{            \(\backslash\)}
+00098 \textcolor{preprocessor}{                4 +     }\textcolor{comment}{/*reference count   */}\textcolor{preprocessor}{            \(\backslash\)}
+00099 \textcolor{preprocessor}{                4)      }\textcolor{comment}{/*chunk data size   */}\textcolor{preprocessor}{            \(\backslash\)}
+00100 \textcolor{preprocessor}{        :                                     \(\backslash\)}
+00101 \textcolor{preprocessor}{            (H5\_SIZEOF\_MAGIC +  }\textcolor{comment}{/*magic number      */}\textcolor{preprocessor}{            \(\backslash\)}
+00102 \textcolor{preprocessor}{                1 +     }\textcolor{comment}{/*version number    */}\textcolor{preprocessor}{            \(\backslash\)}
+00103 \textcolor{preprocessor}{                1 +     }\textcolor{comment}{/*flags         */}\textcolor{preprocessor}{            \(\backslash\)}
+00104 \textcolor{preprocessor}{                (((O)->flags & H5O\_HDR\_STORE\_TIMES) ? (               \(\backslash\)}
+00105 \textcolor{preprocessor}{                  4 +       }\textcolor{comment}{/*access time       */}\textcolor{preprocessor}{            \(\backslash\)}
+00106 \textcolor{preprocessor}{                  4 +       }\textcolor{comment}{/*modification time */}\textcolor{preprocessor}{            \(\backslash\)}
+00107 \textcolor{preprocessor}{                  4 +       }\textcolor{comment}{/*change time       */}\textcolor{preprocessor}{            \(\backslash\)}
+00108 \textcolor{preprocessor}{                  4     }\textcolor{comment}{/*birth time        */}\textcolor{preprocessor}{            \(\backslash\)}
+00109 \textcolor{preprocessor}{                ) : 0) +                              \(\backslash\)}
+00110 \textcolor{preprocessor}{                (((O)->flags & H5O\_HDR\_ATTR\_STORE\_PHASE\_CHANGE) ? (       \(\backslash\)}
+00111 \textcolor{preprocessor}{                  2 +       }\textcolor{comment}{/*max compact attributes */}\textcolor{preprocessor}{           \(\backslash\)}
+00112 \textcolor{preprocessor}{                  2     }\textcolor{comment}{/*min dense attributes  */}\textcolor{preprocessor}{            \(\backslash\)}
+00113 \textcolor{preprocessor}{                ) : 0) +                              \(\backslash\)}
+00114 \textcolor{preprocessor}{                (1 << ((O)->flags & H5O\_HDR\_CHUNK0\_SIZE)) + }\textcolor{comment}{/*chunk 0 data size */}\textcolor{preprocessor}{ \(\backslash\)}
+00115 \textcolor{preprocessor}{                H5O\_SIZEOF\_CHKSUM) }\textcolor{comment}{/*checksum size  */}\textcolor{preprocessor}{            \(\backslash\)}
+00116 \textcolor{preprocessor}{    )}
+00117 
+00118 \textcolor{comment}{/*}
+00119 \textcolor{comment}{ * Size of object header message prefix}
+00120 \textcolor{comment}{ */}
+00121 \textcolor{preprocessor}{#define H5O\_SIZEOF\_MSGHDR\_VERS(V,C)                       \(\backslash\)}
+00122 \textcolor{preprocessor}{    (((V) == H5O\_VERSION\_1)                               \(\backslash\)}
+00123 \textcolor{preprocessor}{        ?                                     \(\backslash\)}
+00124 \textcolor{preprocessor}{            H5O\_ALIGN\_OLD(2 +   }\textcolor{comment}{/*message type      */}\textcolor{preprocessor}{            \(\backslash\)}
+00125 \textcolor{preprocessor}{                2 +     }\textcolor{comment}{/*sizeof message data   */}\textcolor{preprocessor}{            \(\backslash\)}
+00126 \textcolor{preprocessor}{                1 +     }\textcolor{comment}{/*flags                 */}\textcolor{preprocessor}{            \(\backslash\)}
+00127 \textcolor{preprocessor}{                3)      }\textcolor{comment}{/*reserved      */}\textcolor{preprocessor}{            \(\backslash\)}
+00128 \textcolor{preprocessor}{        :                                     \(\backslash\)}
+00129 \textcolor{preprocessor}{            (1 +        }\textcolor{comment}{/*message type      */}\textcolor{preprocessor}{            \(\backslash\)}
+00130 \textcolor{preprocessor}{                2 +         }\textcolor{comment}{/*sizeof message data   */}\textcolor{preprocessor}{            \(\backslash\)}
+00131 \textcolor{preprocessor}{                1 +     }\textcolor{comment}{/*flags                 */}\textcolor{preprocessor}{            \(\backslash\)}
+00132 \textcolor{preprocessor}{                ((C) ? (                              \(\backslash\)}
+00133 \textcolor{preprocessor}{                  2     }\textcolor{comment}{/*creation index        */}\textcolor{preprocessor}{            \(\backslash\)}
+00134 \textcolor{preprocessor}{                ) : 0))                               \(\backslash\)}
+00135 \textcolor{preprocessor}{    )}
+00136 \textcolor{preprocessor}{#define H5O\_SIZEOF\_MSGHDR\_OH(O)                           \(\backslash\)}
+00137 \textcolor{preprocessor}{    H5O\_SIZEOF\_MSGHDR\_VERS((O)->version, (O)->flags & H5O\_HDR\_ATTR\_CRT\_ORDER\_TRACKED)}
+00138 \textcolor{preprocessor}{#define H5O\_SIZEOF\_MSGHDR\_F(F, C)                             \(\backslash\)}
+00139 \textcolor{preprocessor}{    H5O\_SIZEOF\_MSGHDR\_VERS((H5F\_USE\_LATEST\_FLAGS(F, H5F\_LATEST\_OBJ\_HEADER) || H5F\_STORE\_MSG\_CRT\_IDX(F)) ?
+       H5O\_VERSION\_LATEST : H5O\_VERSION\_1, (C))}
+00140 
+00141 \textcolor{comment}{/*}
+00142 \textcolor{comment}{ * Size of chunk "header" for each chunk}
+00143 \textcolor{comment}{ */}
+00144 \textcolor{preprocessor}{#define H5O\_SIZEOF\_CHKHDR\_VERS(V)                         \(\backslash\)}
+00145 \textcolor{preprocessor}{    (((V) == H5O\_VERSION\_1)                               \(\backslash\)}
+00146 \textcolor{preprocessor}{        ?                                     \(\backslash\)}
+00147 \textcolor{preprocessor}{            0 +     }\textcolor{comment}{/*no magic #  */}\textcolor{preprocessor}{                      \(\backslash\)}
+00148 \textcolor{preprocessor}{                0   }\textcolor{comment}{/*no checksum */}\textcolor{preprocessor}{                      \(\backslash\)}
+00149 \textcolor{preprocessor}{        :                                     \(\backslash\)}
+00150 \textcolor{preprocessor}{            H5\_SIZEOF\_MAGIC +       }\textcolor{comment}{/*magic #  */}\textcolor{preprocessor}{                 \(\backslash\)}
+00151 \textcolor{preprocessor}{                H5O\_SIZEOF\_CHKSUM   }\textcolor{comment}{/*checksum */}\textcolor{preprocessor}{                 \(\backslash\)}
+00152 \textcolor{preprocessor}{    )}
+00153 \textcolor{preprocessor}{#define H5O\_SIZEOF\_CHKHDR\_OH(O)                           \(\backslash\)}
+00154 \textcolor{preprocessor}{    H5O\_SIZEOF\_CHKHDR\_VERS((O)->version)}
+00155 
+00156 \textcolor{comment}{/*}
+00157 \textcolor{comment}{ * Size of checksum for each chunk}
+00158 \textcolor{comment}{ */}
+00159 \textcolor{preprocessor}{#define H5O\_SIZEOF\_CHKSUM\_VERS(V)                         \(\backslash\)}
+00160 \textcolor{preprocessor}{    (((V) == H5O\_VERSION\_1)                               \(\backslash\)}
+00161 \textcolor{preprocessor}{        ?                                     \(\backslash\)}
+00162 \textcolor{preprocessor}{            0       }\textcolor{comment}{/*no checksum */}\textcolor{preprocessor}{                      \(\backslash\)}
+00163 \textcolor{preprocessor}{        :                                     \(\backslash\)}
+00164 \textcolor{preprocessor}{            H5O\_SIZEOF\_CHKSUM       }\textcolor{comment}{/*checksum */}\textcolor{preprocessor}{                 \(\backslash\)}
+00165 \textcolor{preprocessor}{    )}
+00166 \textcolor{preprocessor}{#define H5O\_SIZEOF\_CHKSUM\_OH(O)                           \(\backslash\)}
+00167 \textcolor{preprocessor}{    H5O\_SIZEOF\_CHKSUM\_VERS((O)->version)}
+00168 
+00169 \textcolor{comment}{/* Input/output flags for decode functions */}
+00170 \textcolor{preprocessor}{#define H5O\_DECODEIO\_NOCHANGE           0x01u   }\textcolor{comment}{/* IN: do not modify values */}\textcolor{preprocessor}{}
+00171 \textcolor{preprocessor}{#define H5O\_DECODEIO\_DIRTY              0x02u   }\textcolor{comment}{/* OUT: message has been changed */}\textcolor{preprocessor}{}
+00172 
+00173 \textcolor{comment}{/* Macro to incremend ndecode\_dirtied (only if we are debugging) */}
+00174 \textcolor{preprocessor}{#ifndef NDEBUG}
+00175 \textcolor{preprocessor}{#define INCR\_NDECODE\_DIRTIED(OH) (OH)->ndecode\_dirtied++;}
+00176 \textcolor{preprocessor}{#else }\textcolor{comment}{/* NDEBUG */}\textcolor{preprocessor}{}
+00177 \textcolor{preprocessor}{#define INCR\_NDECODE\_DIRTIED(OH) ;}
+00178 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* NDEBUG */}\textcolor{preprocessor}{}
+00179 
+00180 \textcolor{comment}{/* Load native information for a message, if it's not already present */}
+00181 \textcolor{comment}{/* (Only works for messages with decode callback) */}
+00182 \textcolor{preprocessor}{#define H5O\_LOAD\_NATIVE(F, DXPL, IOF, OH, MSG, ERR)                           \(\backslash\)}
+00183 \textcolor{preprocessor}{    if(NULL == (MSG)->native) \{                                               \(\backslash\)}
+00184 \textcolor{preprocessor}{        const H5O\_msg\_class\_t   *msg\_type = (MSG)->type;                      \(\backslash\)}
+00185 \textcolor{preprocessor}{        unsigned                ioflags = (IOF);                              \(\backslash\)}
+00186 \textcolor{preprocessor}{                                                                              \(\backslash\)}
+00187 \textcolor{preprocessor}{        }\textcolor{comment}{/* Decode the message */}\textcolor{preprocessor}{                                              \(\backslash\)}
+00188 \textcolor{preprocessor}{        HDassert(msg\_type->decode);                                           \(\backslash\)}
+00189 \textcolor{preprocessor}{        if(NULL == ((MSG)->native = (msg\_type->decode)((F), (DXPL), (OH), (MSG)->flags, &ioflags,
+       (MSG)->raw))) \(\backslash\)}
+00190 \textcolor{preprocessor}{            HGOTO\_ERROR(H5E\_OHDR, H5E\_CANTDECODE, ERR, "unable to decode message") \(\backslash\)}
+00191 \textcolor{preprocessor}{                                                                              \(\backslash\)}
+00192 \textcolor{preprocessor}{        }\textcolor{comment}{/* Mark the message dirty if it was changed by decoding */}\textcolor{preprocessor}{            \(\backslash\)}
+00193 \textcolor{preprocessor}{        if((ioflags & H5O\_DECODEIO\_DIRTY) && (H5F\_get\_intent((F)) & H5F\_ACC\_RDWR)) \{ \(\backslash\)}
+00194 \textcolor{preprocessor}{            (MSG)->dirty = TRUE;                                              \(\backslash\)}
+00195 \textcolor{preprocessor}{            }\textcolor{comment}{/* Increment the count of messages dirtied by decoding, but */}\textcolor{preprocessor}{    \(\backslash\)}
+00196 \textcolor{preprocessor}{            }\textcolor{comment}{/* only ifndef NDEBUG */}\textcolor{preprocessor}{                                          \(\backslash\)}
+00197 \textcolor{preprocessor}{            INCR\_NDECODE\_DIRTIED(OH)                                          \(\backslash\)}
+00198 \textcolor{preprocessor}{        \}                                                                     \(\backslash\)}
+00199 \textcolor{preprocessor}{                                                                              \(\backslash\)}
+00200 \textcolor{preprocessor}{        }\textcolor{comment}{/* Set the message's "shared info", if it's shareable */}\textcolor{preprocessor}{          \(\backslash\)}
+00201 \textcolor{preprocessor}{        if((MSG)->flags & H5O\_MSG\_FLAG\_SHAREABLE) \{                           \(\backslash\)}
+00202 \textcolor{preprocessor}{            HDassert(msg\_type->share\_flags & H5O\_SHARE\_IS\_SHARABLE);          \(\backslash\)}
+00203 \textcolor{preprocessor}{            H5O\_UPDATE\_SHARED((H5O\_shared\_t *)(MSG)->native, H5O\_SHARE\_TYPE\_HERE, (F), msg\_type->id,
+       (MSG)->crt\_idx, (OH)->chunk[0].addr) \(\backslash\)}
+00204 \textcolor{preprocessor}{        \} }\textcolor{comment}{/* end if */}\textcolor{preprocessor}{                                                        \(\backslash\)}
+00205 \textcolor{preprocessor}{                                                                              \(\backslash\)}
+00206 \textcolor{preprocessor}{        }\textcolor{comment}{/* Set the message's "creation index", if it has one */}\textcolor{preprocessor}{           \(\backslash\)}
+00207 \textcolor{preprocessor}{        if(msg\_type->set\_crt\_index) \{                             \(\backslash\)}
+00208 \textcolor{preprocessor}{            }\textcolor{comment}{/* Set the creation index for the message */}\textcolor{preprocessor}{              \(\backslash\)}
+00209 \textcolor{preprocessor}{            if((msg\_type->set\_crt\_index)((MSG)->native, (MSG)->crt\_idx) < 0)  \(\backslash\)}
+00210 \textcolor{preprocessor}{                HGOTO\_ERROR(H5E\_OHDR, H5E\_CANTSET, ERR, "unable to set creation index") \(\backslash\)}
+00211 \textcolor{preprocessor}{        \} }\textcolor{comment}{/* end if */}\textcolor{preprocessor}{                                \(\backslash\)}
+00212 \textcolor{preprocessor}{    \} }\textcolor{comment}{/* end if */}\textcolor{preprocessor}{}
+00213 
+00214 \textcolor{comment}{/* Flags for a message class's "sharability" */}
+00215 \textcolor{preprocessor}{#define H5O\_SHARE\_IS\_SHARABLE   0x01}
+00216 \textcolor{preprocessor}{#define H5O\_SHARE\_IN\_OHDR       0x02}
+00217 
+00218 \textcolor{comment}{/* Set the object header size to speculatively read in */}
+00219 \textcolor{comment}{/* (needs to be more than the object header prefix size to work at all and}
+00220 \textcolor{comment}{ *      should be larger than the largest object type's default object header}
+00221 \textcolor{comment}{ *      size to save the extra I/O operations) */}
+00222 \textcolor{preprocessor}{#define H5O\_SPEC\_READ\_SIZE 512}
+00223 
+00224 
+00225 \textcolor{comment}{/* The "message class" type */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_opkg_8h_source_l00226}\hyperlink{struct_h5_o__msg__class__t}{00226} \textcolor{keyword}{struct }\hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} \{
+00227     \textcolor{keywordtype}{unsigned}    id;             \textcolor{comment}{/*message type ID on disk   */}
+00228     \textcolor{keyword}{const} \textcolor{keywordtype}{char}  *name;              \textcolor{comment}{/*for debugging             */}
+00229     \textcolor{keywordtype}{size\_t}  native\_size;            \textcolor{comment}{/*size of native message    */}
+00230     \textcolor{keywordtype}{unsigned}    share\_flags;            \textcolor{comment}{/* Message sharing settings */}
+00231     \textcolor{keywordtype}{void}    *(*decode)(\hyperlink{struct_h5_f__t}{H5F\_t} *, hid\_t, \hyperlink{struct_h5_o__t}{H5O\_t} *, unsigned, \textcolor{keywordtype}{unsigned} *, \textcolor{keyword}{const} uint8\_t *);
+00232     herr\_t  (*encode)(H5F\_t *, hbool\_t, uint8\_t *, \textcolor{keyword}{const} \textcolor{keywordtype}{void} *);
+00233     \textcolor{keywordtype}{void}    *(*copy)(\textcolor{keyword}{const} \textcolor{keywordtype}{void} *, \textcolor{keywordtype}{void} *); \textcolor{comment}{/*copy native value         */}
+00234     size\_t  (*raw\_size)(\textcolor{keyword}{const} H5F\_t *, hbool\_t, \textcolor{keyword}{const} \textcolor{keywordtype}{void} *);\textcolor{comment}{/*sizeof encoded message  */}
+00235     herr\_t  (*reset)(\textcolor{keywordtype}{void} *);       \textcolor{comment}{/*free nested data structs  */}
+00236     herr\_t  (*free)(\textcolor{keywordtype}{void} *);        \textcolor{comment}{/*free main data struct  */}
+00237     herr\_t  (*del)(H5F\_t *, hid\_t, H5O\_t *, \textcolor{keywordtype}{void} *);    \textcolor{comment}{/* Delete space in file referenced by this message 
+      */}
+00238     herr\_t  (*link)(H5F\_t *, hid\_t, H5O\_t *, \textcolor{keywordtype}{void} *);   \textcolor{comment}{/* Increment any links in file reference by this
+       message */}
+00239     herr\_t  (*set\_share)(\textcolor{keywordtype}{void}*, \textcolor{keyword}{const} H5O\_shared\_t*);   \textcolor{comment}{/* Set shared information */}
+00240     htri\_t  (*can\_share)(\textcolor{keyword}{const} \textcolor{keywordtype}{void} *); \textcolor{comment}{/* Is message allowed to be shared? */}
+00241     herr\_t  (*pre\_copy\_file)(H5F\_t *, \textcolor{keyword}{const} \textcolor{keywordtype}{void} *, hbool\_t *, \textcolor{keyword}{const} H5O\_copy\_t *, \textcolor{keywordtype}{void} *); \textcolor{comment}{/*"pre copy"
+       action when copying native value to file */}
+00242     \textcolor{keywordtype}{void}    *(*copy\_file)(H5F\_t *, \textcolor{keywordtype}{void} *, H5F\_t *, hbool\_t *, \textcolor{keywordtype}{unsigned} *, H5O\_copy\_t *, \textcolor{keywordtype}{void} *, hid\_t); \textcolor{comment}{/*
+      copy native value to file */}
+00243     herr\_t  (*post\_copy\_file)(\textcolor{keyword}{const} H5O\_loc\_t *, \textcolor{keyword}{const} \textcolor{keywordtype}{void} *, H5O\_loc\_t *, \textcolor{keywordtype}{void} *, \textcolor{keywordtype}{unsigned} *, hid\_t, 
+      H5O\_copy\_t *); \textcolor{comment}{/*"post copy" action when copying native value to file */}
+00244     herr\_t      (*get\_crt\_index)(\textcolor{keyword}{const} \textcolor{keywordtype}{void} *, H5O\_msg\_crt\_idx\_t *);    \textcolor{comment}{/* Get message's creation index */}
+00245     herr\_t      (*set\_crt\_index)(\textcolor{keywordtype}{void} *, H5O\_msg\_crt\_idx\_t);    \textcolor{comment}{/* Set message's creation index */}
+00246     herr\_t  (*debug)(H5F\_t*, hid\_t, \textcolor{keyword}{const} \textcolor{keywordtype}{void}*, FILE*, int, int);
+00247 \};
+00248 
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_opkg_8h_source_l00249}\hyperlink{struct_h5_o__mesg__t}{00249} \textcolor{keyword}{struct }\hyperlink{struct_h5_o__mesg__t}{H5O\_mesg\_t} \{
+00250     \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t}    *type;  \textcolor{comment}{/*type of message            */}
+00251     hbool\_t     dirty;      \textcolor{comment}{/*raw out of date wrt native         */}
+00252     uint8\_t     flags;      \textcolor{comment}{/*message flags              */}
+00253     H5O\_msg\_crt\_idx\_t   crt\_idx;        \textcolor{comment}{/*message creation index         */}
+00254     \textcolor{keywordtype}{unsigned}        chunkno;    \textcolor{comment}{/*chunk number for this mesg         */}
+00255     \textcolor{keywordtype}{void}        *native;    \textcolor{comment}{/*native format message          */}
+00256     uint8\_t     *raw;       \textcolor{comment}{/*ptr to raw data            */}
+00257     \textcolor{keywordtype}{size\_t}      raw\_size;   \textcolor{comment}{/*size with alignment            */}
+00258 \};
+00259 
+00260 \textcolor{comment}{/* Struct for storing information about "best" message to move to new chunk */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_opkg_8h_source_l00261}\hyperlink{struct_h5_o__msg__alloc__info__t}{00261} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_o__msg__alloc__info__t}{H5O\_msg\_alloc\_info\_t} \{
+00262     \textcolor{keywordtype}{int} msgno;                      \textcolor{comment}{/* Index in message array */}
+00263     \textcolor{keywordtype}{unsigned} id;            \textcolor{comment}{/* Message type ID on disk */}
+00264     \textcolor{keywordtype}{unsigned} chunkno;               \textcolor{comment}{/* Index in chunk array */}
+00265     \textcolor{keywordtype}{size\_t} gap\_size;                \textcolor{comment}{/* Size of any "gap" in the chunk immediately after message */}
+00266     \textcolor{keywordtype}{size\_t} null\_size;               \textcolor{comment}{/* Size of any null message in the chunk immediately after message */}
+00267     \textcolor{keywordtype}{size\_t} total\_size;              \textcolor{comment}{/* Total size of "available" space around message */}
+00268     \textcolor{keywordtype}{unsigned} null\_msgno;            \textcolor{comment}{/* Message index of null message immediately after message */}
+00269 \} \hyperlink{struct_h5_o__msg__alloc__info__t}{H5O\_msg\_alloc\_info\_t};
+00270 
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_opkg_8h_source_l00271}\hyperlink{struct_h5_o__chunk__t}{00271} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_o__chunk__t}{H5O\_chunk\_t} \{
+00272     haddr\_t addr;           \textcolor{comment}{/*chunk file address             */}
+00273     \textcolor{keywordtype}{size\_t}  size;           \textcolor{comment}{/*chunk size                 */}
+00274     \textcolor{keywordtype}{size\_t}  gap;            \textcolor{comment}{/*space at end of chunk too small for null message */}
+00275     uint8\_t *image;         \textcolor{comment}{/*image of file              */}
+00276     \textcolor{keyword}{struct }\hyperlink{struct_h5_o__chunk__proxy__t}{H5O\_chunk\_proxy\_t} *chunk\_proxy;    \textcolor{comment}{/* Pointer to a chunk's proxy when chunk
+       protected */}
+00277 \} \hyperlink{struct_h5_o__chunk__t}{H5O\_chunk\_t};
+00278 
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_opkg_8h_source_l00279}\hyperlink{struct_h5_o__t}{00279} \textcolor{keyword}{struct }\hyperlink{struct_h5_o__t}{H5O\_t} \{
+00280     H5AC\_info\_t cache\_info; \textcolor{comment}{/* Information for metadata cache functions, \_must\_ be */}
+00281                             \textcolor{comment}{/* first field in structure */}
+00282 
+00283     \textcolor{comment}{/* File-specific information (not stored) */}
+00284     \textcolor{keywordtype}{size\_t}      sizeof\_size;            \textcolor{comment}{/* Size of file sizes            */}
+00285     \textcolor{keywordtype}{size\_t}      sizeof\_addr;            \textcolor{comment}{/* Size of file addresses        */}
+00286     hbool\_t     swmr\_write;             \textcolor{comment}{/* Whether we are doing SWMR writes  */}
+00287 
+00288     \textcolor{comment}{/* Debugging information (not stored) */}
+00289 \textcolor{preprocessor}{#ifdef H5O\_ENABLE\_BAD\_MESG\_COUNT}
+00290     hbool\_t     store\_bad\_mesg\_count;   \textcolor{comment}{/* Flag to indicate that a bad message count should be stored */}
+00291                                         \textcolor{comment}{/* (This is to simulate a bug in earlier}
+00292 \textcolor{comment}{                                         *      versions of the library)}
+00293 \textcolor{comment}{                                         */}
+00294 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_ENABLE\_BAD\_MESG\_COUNT */}\textcolor{preprocessor}{}
+00295 \textcolor{preprocessor}{#ifndef NDEBUG}
+00296     \textcolor{keywordtype}{size\_t}      ndecode\_dirtied;        \textcolor{comment}{/* Number of messages dirtied by decoding */}
+00297 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* NDEBUG */}\textcolor{preprocessor}{}
+00298 
+00299     \textcolor{comment}{/* Chunk management information (not stored) */}
+00300     \textcolor{keywordtype}{size\_t}      rc;                     \textcolor{comment}{/* Reference count of [continuation] chunks using this structure */}
+00301 
+00302     \textcolor{comment}{/* Object information (stored) */}
+00303     hbool\_t     has\_refcount\_msg;       \textcolor{comment}{/* Whether the object has a ref. count message */}
+00304     \textcolor{keywordtype}{unsigned}    nlink;          \textcolor{comment}{/*link count                 */}
+00305     uint8\_t version;        \textcolor{comment}{/*version number             */}
+00306     uint8\_t flags;          \textcolor{comment}{/*flags                  */}
+00307 
+00308     \textcolor{comment}{/* Time information (stored, for versions > 1 & H5O\_HDR\_STORE\_TIMES flag set) */}
+00309     time\_t      atime;                  \textcolor{comment}{/*access time                */}
+00310     time\_t      mtime;                  \textcolor{comment}{/*modification time              */}
+00311     time\_t      ctime;                  \textcolor{comment}{/*change time                */}
+00312     time\_t      btime;                  \textcolor{comment}{/*birth time                 */}
+00313 
+00314     \textcolor{comment}{/* Attribute information (stored, for versions > 1) */}
+00315     \textcolor{keywordtype}{unsigned}    max\_compact;        \textcolor{comment}{/* Maximum # of compact attributes   */}
+00316     \textcolor{keywordtype}{unsigned}    min\_dense;      \textcolor{comment}{/* Minimum # of "dense" attributes   */}
+00317 
+00318     \textcolor{comment}{/* Message management (stored, encoded in chunks) */}
+00319     \textcolor{keywordtype}{size\_t}  nmesgs;         \textcolor{comment}{/*number of messages             */}
+00320     \textcolor{keywordtype}{size\_t}  alloc\_nmesgs;       \textcolor{comment}{/*number of message slots        */}
+00321     \hyperlink{struct_h5_o__mesg__t}{H5O\_mesg\_t}    *mesg;          \textcolor{comment}{/*array of messages          */}
+00322     \textcolor{keywordtype}{size\_t}      link\_msgs\_seen;         \textcolor{comment}{/* # of link messages seen when loading header */}
+00323     \textcolor{keywordtype}{size\_t}      attr\_msgs\_seen;         \textcolor{comment}{/* # of attribute messages seen when loading header */}
+00324 
+00325     \textcolor{comment}{/* Chunk management (not stored) */}
+00326     \textcolor{keywordtype}{size\_t}  nchunks;        \textcolor{comment}{/*number of chunks           */}
+00327     \textcolor{keywordtype}{size\_t}  alloc\_nchunks;      \textcolor{comment}{/*chunks allocated           */}
+00328     \hyperlink{struct_h5_o__chunk__t}{H5O\_chunk\_t} *chunk;          \textcolor{comment}{/*array of chunks            */}
+00329     hbool\_t     chunks\_pinned;          \textcolor{comment}{/* Whether chunks are pinned from ohdr protect */}
+00330 
+00331     \textcolor{comment}{/* Object header proxy information (not stored) */}
+00332     H5AC\_proxy\_entry\_t *proxy;          \textcolor{comment}{/* Proxy cache entry for all ohdr entries */}
+00333 \};
+00334 
+00335 \textcolor{comment}{/* Class for types of objects in file */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_opkg_8h_source_l00336}\hyperlink{struct_h5_o__obj__class__t}{00336} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_o__obj__class__t}{H5O\_obj\_class\_t} \{
+00337     H5O\_type\_t  type;               \textcolor{comment}{/*object type on disk        */}
+00338     \textcolor{keyword}{const} \textcolor{keywordtype}{char}  *name;              \textcolor{comment}{/*for debugging          */}
+00339     \textcolor{keywordtype}{void}       *(*get\_copy\_file\_udata)(void);   \textcolor{comment}{/*retrieve user data for 'copy file' operation */}
+00340     void    (*free\_copy\_file\_udata)(\textcolor{keywordtype}{void} *); \textcolor{comment}{/*free user data for 'copy file' operation */}
+00341     htri\_t  (*isa)(\hyperlink{struct_h5_o__t}{H5O\_t} *);       \textcolor{comment}{/*if a header matches an object class */}
+00342     hid\_t   (*open)(\textcolor{keyword}{const} H5G\_loc\_t *, hid\_t, hid\_t, hbool\_t ); \textcolor{comment}{/*open an object of this class */}
+00343     \textcolor{keywordtype}{void}    *(*create)(\hyperlink{struct_h5_f__t}{H5F\_t} *, \textcolor{keywordtype}{void} *, H5G\_loc\_t *, hid\_t );  \textcolor{comment}{/*create an object of this class */}
+00344     H5O\_loc\_t   *(*get\_oloc)(hid\_t );       \textcolor{comment}{/*get the object header location for an object */}
+00345     herr\_t      (*bh\_info)(\textcolor{keyword}{const} H5O\_loc\_t *loc, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh, 
+      \hyperlink{struct_h5__ih__info__t}{H5\_ih\_info\_t} *bh\_info); \textcolor{comment}{/*get the index & heap info for an object */}
+00346     herr\_t      (*flush)(\textcolor{keywordtype}{void} *obj\_ptr, hid\_t dxpl\_id); \textcolor{comment}{/*flush an opened object of this class */}
+00347 \} \hyperlink{struct_h5_o__obj__class__t}{H5O\_obj\_class\_t};
+00348 
+00349 \textcolor{comment}{/* Node in skip list to map addresses from one file to another during object header copy */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_opkg_8h_source_l00350}\hyperlink{struct_h5_o__addr__map__t}{00350} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_o__addr__map__t}{H5O\_addr\_map\_t} \{
+00351     H5\_obj\_t    src\_obj\_pos;            \textcolor{comment}{/* Location of source object */}
+00352     haddr\_t     dst\_addr;               \textcolor{comment}{/* Address of object in destination file */}
+00353     hbool\_t     is\_locked;              \textcolor{comment}{/* Indicate that the destination object is locked currently */}
+00354     hsize\_t     inc\_ref\_count;          \textcolor{comment}{/* Number of deferred increments to reference count */}
+00355     \textcolor{keyword}{const} \hyperlink{struct_h5_o__obj__class__t}{H5O\_obj\_class\_t} *obj\_class;   \textcolor{comment}{/* Object class */}
+00356     \textcolor{keywordtype}{void}        *udata;                 \textcolor{comment}{/* Object class copy file udata */}
+00357 \} \hyperlink{struct_h5_o__addr__map__t}{H5O\_addr\_map\_t};
+00358 
+00359 \textcolor{comment}{/* Stack of continuation messages to interpret */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_opkg_8h_source_l00360}\hyperlink{struct_h5_o__cont__msgs__t}{00360} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_o__cont__msgs__t}{H5O\_cont\_msgs\_t} \{
+00361     \textcolor{keywordtype}{size\_t}      nmsgs;                  \textcolor{comment}{/* Number of continuation messages found so far */}
+00362     \textcolor{keywordtype}{size\_t}  alloc\_nmsgs;        \textcolor{comment}{/* Continuation messages allocated */}
+00363     H5O\_cont\_t *msgs;           \textcolor{comment}{/* Array of continuation messages */}
+00364 \} \hyperlink{struct_h5_o__cont__msgs__t}{H5O\_cont\_msgs\_t};
+00365 
+00366 \textcolor{comment}{/* Common callback information for loading object header prefix from disk */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_opkg_8h_source_l00367}\hyperlink{struct_h5_o__common__cache__ud__t}{00367} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_o__common__cache__ud__t}{H5O\_common\_cache\_ud\_t} \{
+00368     \hyperlink{struct_h5_f__t}{H5F\_t} *f;                           \textcolor{comment}{/* Pointer to file for object header/chunk */}
+00369     hid\_t dxpl\_id;                      \textcolor{comment}{/* DXPL for operation */}
+00370     \textcolor{keywordtype}{unsigned} file\_intent;               \textcolor{comment}{/* Read/write intent for file */}
+00371     \textcolor{keywordtype}{unsigned} merged\_null\_msgs;          \textcolor{comment}{/* Number of null messages merged together */}
+00372     \hyperlink{struct_h5_o__cont__msgs__t}{H5O\_cont\_msgs\_t} *cont\_msg\_info;     \textcolor{comment}{/* Pointer to continuation messages to work on */}
+00373     haddr\_t addr;                       \textcolor{comment}{/* Address of the prefix or chunk */}
+00374 \} \hyperlink{struct_h5_o__common__cache__ud__t}{H5O\_common\_cache\_ud\_t};
+00375 
+00376 \textcolor{comment}{/* Callback information for loading object header prefix from disk */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_opkg_8h_source_l00377}\hyperlink{struct_h5_o__cache__ud__t}{00377} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_o__cache__ud__t}{H5O\_cache\_ud\_t} \{
+00378     hbool\_t made\_attempt;               \textcolor{comment}{/* Whether the deserialize routine was already attempted */}
+00379     \textcolor{keywordtype}{unsigned} v1\_pfx\_nmesgs;             \textcolor{comment}{/* Number of messages from v1 prefix header */}
+00380     \textcolor{keywordtype}{size\_t} chunk0\_size;                 \textcolor{comment}{/* Size of serialized first chunk    */}
+00381     \hyperlink{struct_h5_o__t}{H5O\_t} *oh;                          \textcolor{comment}{/* Partially deserialized object header, for later use */}
+00382     \hyperlink{struct_h5_o__common__cache__ud__t}{H5O\_common\_cache\_ud\_t} common;       \textcolor{comment}{/* Common object header cache callback info */}
+00383 \} \hyperlink{struct_h5_o__cache__ud__t}{H5O\_cache\_ud\_t};
+00384 
+00385 \textcolor{comment}{/* Structure representing each chunk in the cache */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_opkg_8h_source_l00386}\hyperlink{struct_h5_o__chunk__proxy__t}{00386} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_o__chunk__proxy__t}{H5O\_chunk\_proxy\_t} \{
+00387     H5AC\_info\_t cache\_info;    \textcolor{comment}{/* Information for metadata cache functions, \_must\_ be */}
+00388                                 \textcolor{comment}{/* first field in structure */}
+00389 
+00390     \hyperlink{struct_h5_f__t}{H5F\_t} *f;                           \textcolor{comment}{/* Pointer to file for object header/chunk */}
+00391     \hyperlink{struct_h5_o__t}{H5O\_t}       *oh;                    \textcolor{comment}{/* Object header for this chunk */}
+00392     \textcolor{keywordtype}{unsigned}    chunkno;                \textcolor{comment}{/* Chunk number for this chunk */}
+00393     \textcolor{keywordtype}{unsigned}    cont\_chunkno;           \textcolor{comment}{/* Chunk number for the chunk containing the continuation message
+       that points to this chunk */}
+00394 
+00395     \textcolor{comment}{/* Flush depencency parent information (not stored) }
+00396 \textcolor{comment}{     *}
+00397 \textcolor{comment}{     * The following field is used to store a pointer }
+00398 \textcolor{comment}{     * to the in-core representation of the chunk proxy's flush dependency}
+00399 \textcolor{comment}{     * parent -- if it exists.  If it does not exist, this field will}
+00400 \textcolor{comment}{     * contain NULL.}
+00401 \textcolor{comment}{     *}
+00402 \textcolor{comment}{     * If the file is opened in SWMR write mode, the flush dependency }
+00403 \textcolor{comment}{     * parent of the chunk proxy will be either its object header }
+00404 \textcolor{comment}{     * (if cont\_chunkno == 0) or the chunk proxy indicated by the }
+00405 \textcolor{comment}{     * cont\_chunkno field (if cont\_chunkno > 0).}
+00406 \textcolor{comment}{     */}
+00407     \textcolor{keywordtype}{void} *parent;                       \textcolor{comment}{/* Pointer to flush dependency parent */}
+00408 \} \hyperlink{struct_h5_o__chunk__proxy__t}{H5O\_chunk\_proxy\_t};
+00409 
+00410 \textcolor{comment}{/* Callback information for loading object header chunk from disk */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_opkg_8h_source_l00411}\hyperlink{struct_h5_o__chk__cache__ud__t}{00411} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_o__chk__cache__ud__t}{H5O\_chk\_cache\_ud\_t} \{
+00412     hbool\_t decoding;                   \textcolor{comment}{/* Whether the object header is being decoded */}
+00413     \hyperlink{struct_h5_o__t}{H5O\_t} *oh;                          \textcolor{comment}{/* Object header for this chunk */}
+00414     \textcolor{keywordtype}{unsigned} chunkno;                   \textcolor{comment}{/* Index of chunk being brought in (for re-loads) */}
+00415     \textcolor{keywordtype}{size\_t} size;                        \textcolor{comment}{/* Size of chunk in the file */}
+00416     \hyperlink{struct_h5_o__common__cache__ud__t}{H5O\_common\_cache\_ud\_t} common;       \textcolor{comment}{/* Common object header cache callback info */}
+00417 \} \hyperlink{struct_h5_o__chk__cache__ud__t}{H5O\_chk\_cache\_ud\_t};
+00418 
+00419 
+00420 \textcolor{comment}{/* Header message ID to class mapping */}
+00421 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} *\textcolor{keyword}{const} H5O\_msg\_class\_g[H5O\_MSG\_TYPES];
+00422 
+00423 \textcolor{comment}{/* Declare external the free list for H5O\_t's */}
+00424 H5FL\_EXTERN(\hyperlink{struct_h5_o__t}{H5O\_t});
+00425 
+00426 \textcolor{comment}{/* Declare external the free list for H5O\_mesg\_t sequences */}
+00427 H5FL\_SEQ\_EXTERN(\hyperlink{struct_h5_o__mesg__t}{H5O\_mesg\_t});
+00428 
+00429 \textcolor{comment}{/* Declare external the free list for H5O\_chunk\_t sequences */}
+00430 H5FL\_SEQ\_EXTERN(\hyperlink{struct_h5_o__chunk__t}{H5O\_chunk\_t});
+00431 
+00432 \textcolor{comment}{/* Declare external the free list for chunk\_image blocks */}
+00433 H5FL\_BLK\_EXTERN(chunk\_image);
+00434 
+00435 \textcolor{comment}{/*}
+00436 \textcolor{comment}{ * Object header messages}
+00437 \textcolor{comment}{ */}
+00438 
+00439 \textcolor{comment}{/* Null Message. (0x0000) */}
+00440 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_NULL[1];
+00441 
+00442 \textcolor{comment}{/* Simple Dataspace Message. (0x0001) */}
+00443 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_SDSPACE[1];
+00444 
+00445 \textcolor{comment}{/* Link Information Message. (0x0002) */}
+00446 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_LINFO[1];
+00447 
+00448 \textcolor{comment}{/* Datatype Message. (0x0003) */}
+00449 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_DTYPE[1];
+00450 
+00451 \textcolor{comment}{/* Old Fill Value Message. (0x0004) */}
+00452 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_FILL[1];
+00453 
+00454 \textcolor{comment}{/* New Fill Value Message. (0x0005) */}
+00455 \textcolor{comment}{/*}
+00456 \textcolor{comment}{ * The new fill value message is fill value plus}
+00457 \textcolor{comment}{ * space allocation time and fill value writing time and whether fill}
+00458 \textcolor{comment}{ * value is defined.}
+00459 \textcolor{comment}{ */}
+00460 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_FILL\_NEW[1];
+00461 
+00462 \textcolor{comment}{/* Link Message. (0x0006) */}
+00463 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_LINK[1];
+00464 
+00465 \textcolor{comment}{/* External File List Message. (0x0007) */}
+00466 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_EFL[1];
+00467 
+00468 \textcolor{comment}{/* Data Layout Message. (0x0008) */}
+00469 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_LAYOUT[1];
+00470 
+00471 \textcolor{preprocessor}{#ifdef H5O\_ENABLE\_BOGUS}
+00472 \textcolor{comment}{/* "Bogus valid" Message. (0x0009) */}
+00473 \textcolor{comment}{/* "Bogus invalid" Message. (0x0019) */}
+00474 \textcolor{comment}{/*}
+00475 \textcolor{comment}{ * Used for debugging - should never be found in valid HDF5 file.}
+00476 \textcolor{comment}{ */}
+00477 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_BOGUS\_VALID[1];
+00478 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_BOGUS\_INVALID[1];
+00479 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_ENABLE\_BOGUS */}\textcolor{preprocessor}{}
+00480 
+00481 \textcolor{comment}{/* Group Information Message. (0x000a) */}
+00482 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_GINFO[1];
+00483 
+00484 \textcolor{comment}{/* Filter pipeline message. (0x000b) */}
+00485 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_PLINE[1];
+00486 
+00487 \textcolor{comment}{/* Attribute Message. (0x000c) */}
+00488 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_ATTR[1];
+00489 
+00490 \textcolor{comment}{/* Object name message. (0x000d) */}
+00491 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_NAME[1];
+00492 
+00493 \textcolor{comment}{/* Modification Time Message. (0x000e) */}
+00494 \textcolor{comment}{/*}
+00495 \textcolor{comment}{ * The message is just a `time\_t'.}
+00496 \textcolor{comment}{ * (See also the "new" modification time message)}
+00497 \textcolor{comment}{ */}
+00498 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_MTIME[1];
+00499 
+00500 \textcolor{comment}{/* Shared Message information message (0x000f)}
+00501 \textcolor{comment}{ * A message for the superblock extension, holding information about}
+00502 \textcolor{comment}{ * the file-wide shared message "SOHM" table}
+00503 \textcolor{comment}{ */}
+00504 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_SHMESG[1];
+00505 
+00506 \textcolor{comment}{/* Object Header Continuation Message. (0x0010) */}
+00507 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_CONT[1];
+00508 
+00509 \textcolor{comment}{/* Symbol Table Message. (0x0011) */}
+00510 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_STAB[1];
+00511 
+00512 \textcolor{comment}{/* New Modification Time Message. (0x0012) */}
+00513 \textcolor{comment}{/*}
+00514 \textcolor{comment}{ * The message is just a `time\_t'.}
+00515 \textcolor{comment}{ */}
+00516 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_MTIME\_NEW[1];
+00517 
+00518 \textcolor{comment}{/* v1 B-tree 'K' value message (0x0013)}
+00519 \textcolor{comment}{ * A message for the superblock extension, holding information about}
+00520 \textcolor{comment}{ * the file-wide v1 B-tree 'K' values.}
+00521 \textcolor{comment}{ */}
+00522 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_BTREEK[1];
+00523 
+00524 \textcolor{comment}{/* Driver info message (0x0014)}
+00525 \textcolor{comment}{ * A message for the superblock extension, holding information about}
+00526 \textcolor{comment}{ * the file driver settings}
+00527 \textcolor{comment}{ */}
+00528 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_DRVINFO[1];
+00529 
+00530 \textcolor{comment}{/* Attribute Information Message. (0x0015) */}
+00531 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_AINFO[1];
+00532 
+00533 \textcolor{comment}{/* Reference Count Message. (0x0016) */}
+00534 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_REFCOUNT[1];
+00535 
+00536 \textcolor{comment}{/* Free-space Manager Info message. (0x0017) */}
+00537 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_FSINFO[1];
+00538 
+00539 \textcolor{comment}{/* Metadata Cache Image message. (0x0018) */}
+00540 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_MDCI[1];
+00541 
+00542 \textcolor{comment}{/* Placeholder for unknown message. (0x0019) */}
+00543 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} H5O\_MSG\_UNKNOWN[1];
+00544 
+00545 
+00546 \textcolor{comment}{/*}
+00547 \textcolor{comment}{ * Object header "object" types}
+00548 \textcolor{comment}{ */}
+00549 
+00550 \textcolor{comment}{/* Group Object. (H5O\_TYPE\_GROUP - 0) */}
+00551 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__obj__class__t}{H5O\_obj\_class\_t} H5O\_OBJ\_GROUP[1];
+00552 
+00553 \textcolor{comment}{/* Dataset Object. (H5O\_TYPE\_DATASET - 1) */}
+00554 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__obj__class__t}{H5O\_obj\_class\_t} H5O\_OBJ\_DATASET[1];
+00555 
+00556 \textcolor{comment}{/* Datatype Object. (H5O\_TYPE\_NAMED\_DATATYPE - 2) */}
+00557 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_o__obj__class__t}{H5O\_obj\_class\_t} H5O\_OBJ\_DATATYPE[1];
+00558 
+00559 
+00560 \textcolor{comment}{/* Package-local function prototypes */}
+00561 H5\_DLL herr\_t H5O\_msg\_flush(\hyperlink{struct_h5_f__t}{H5F\_t} *f, \hyperlink{struct_h5_o__t}{H5O\_t} *oh, \hyperlink{struct_h5_o__mesg__t}{H5O\_mesg\_t} *mesg);
+00562 H5\_DLL herr\_t H5O\_flush\_msgs(\hyperlink{struct_h5_f__t}{H5F\_t} *f, \hyperlink{struct_h5_o__t}{H5O\_t} *oh);
+00563 H5\_DLL hid\_t H5O\_open\_by\_loc(\textcolor{keyword}{const} H5G\_loc\_t *obj\_loc, hid\_t lapl\_id, hid\_t dxpl\_id, hbool\_t app\_ref);
+00564 H5\_DLL herr\_t H5O\_delete\_mesg(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *open\_oh, 
+      \hyperlink{struct_h5_o__mesg__t}{H5O\_mesg\_t} *mesg);
+00565 H5\_DLL \textcolor{keyword}{const} \hyperlink{struct_h5_o__obj__class__t}{H5O\_obj\_class\_t} * H5O\_obj\_class(\textcolor{keyword}{const} H5O\_loc\_t *loc, hid\_t dxpl\_id);
+00566 H5\_DLL \textcolor{keywordtype}{int} H5O\_link\_oh(\hyperlink{struct_h5_f__t}{H5F\_t} *f, \textcolor{keywordtype}{int} adjust, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh, hbool\_t *deleted);
+00567 H5\_DLL herr\_t H5O\_inc\_rc(\hyperlink{struct_h5_o__t}{H5O\_t} *oh);
+00568 H5\_DLL herr\_t H5O\_dec\_rc(\hyperlink{struct_h5_o__t}{H5O\_t} *oh);
+00569 H5\_DLL herr\_t H5O\_\_free(\hyperlink{struct_h5_o__t}{H5O\_t} *oh);
+00570 
+00571 \textcolor{comment}{/* Object header message routines */}
+00572 H5\_DLL herr\_t H5O\_msg\_alloc(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh,
+00573     \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} *type, \textcolor{keywordtype}{unsigned} *mesg\_flags, \textcolor{keywordtype}{void} *mesg,
+00574     \textcolor{keywordtype}{size\_t} *mesg\_idx);
+00575 H5\_DLL herr\_t H5O\_msg\_append\_real(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh,
+00576     \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} *type, \textcolor{keywordtype}{unsigned} mesg\_flags, \textcolor{keywordtype}{unsigned} update\_flags,
+00577     \textcolor{keywordtype}{void} *mesg);
+00578 H5\_DLL herr\_t H5O\_msg\_write\_real(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh,
+00579     \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} *type, \textcolor{keywordtype}{unsigned} mesg\_flags, \textcolor{keywordtype}{unsigned} update\_flags,
+00580     \textcolor{keywordtype}{void} *mesg);
+00581 H5\_DLL \textcolor{keywordtype}{void} *H5O\_msg\_free\_real(\textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} *type, \textcolor{keywordtype}{void} *mesg);
+00582 H5\_DLL herr\_t H5O\_msg\_free\_mesg(\hyperlink{struct_h5_o__mesg__t}{H5O\_mesg\_t} *mesg);
+00583 H5\_DLL \textcolor{keywordtype}{unsigned} H5O\_msg\_count\_real(\textcolor{keyword}{const} \hyperlink{struct_h5_o__t}{H5O\_t} *oh, \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} *type);
+00584 H5\_DLL herr\_t H5O\_msg\_remove\_real(\hyperlink{struct_h5_f__t}{H5F\_t} *f, \hyperlink{struct_h5_o__t}{H5O\_t} *oh, \textcolor{keyword}{const} 
+      \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} *type,
+00585     \textcolor{keywordtype}{int} sequence, H5O\_operator\_t op, \textcolor{keywordtype}{void} *op\_data, hbool\_t adj\_link, hid\_t dxpl\_id);
+00586 H5\_DLL \textcolor{keywordtype}{void} *H5O\_msg\_copy\_file(\textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} *type, \hyperlink{struct_h5_f__t}{H5F\_t} *file\_src,
+00587     \textcolor{keywordtype}{void} *mesg\_src, \hyperlink{struct_h5_f__t}{H5F\_t} *file\_dst, hbool\_t *recompute\_size,
+00588     \textcolor{keywordtype}{unsigned} *mesg\_flags, H5O\_copy\_t *cpy\_info, \textcolor{keywordtype}{void} *udata, hid\_t dxpl\_id);
+00589 H5\_DLL herr\_t H5O\_msg\_iterate\_real(\hyperlink{struct_h5_f__t}{H5F\_t} *f, \hyperlink{struct_h5_o__t}{H5O\_t} *oh, \textcolor{keyword}{const} 
+      \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} *type,
+00590     \textcolor{keyword}{const} H5O\_mesg\_operator\_t *op, \textcolor{keywordtype}{void} *op\_data, hid\_t dxpl\_id);
+00591 
+00592 \textcolor{comment}{/* Object header chunk routines */}
+00593 H5\_DLL herr\_t H5O\_chunk\_add(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh, \textcolor{keywordtype}{unsigned} idx,
+00594     \textcolor{keywordtype}{unsigned} cont\_chunkno);
+00595 H5\_DLL \hyperlink{struct_h5_o__chunk__proxy__t}{H5O\_chunk\_proxy\_t} *H5O\_chunk\_protect(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, 
+      \hyperlink{struct_h5_o__t}{H5O\_t} *oh,
+00596     \textcolor{keywordtype}{unsigned} idx);
+00597 H5\_DLL herr\_t H5O\_chunk\_unprotect(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id,
+00598     \hyperlink{struct_h5_o__chunk__proxy__t}{H5O\_chunk\_proxy\_t} *chk\_proxy, hbool\_t chk\_dirtied);
+00599 H5\_DLL herr\_t H5O\_chunk\_update\_idx(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh, \textcolor{keywordtype}{unsigned} idx);
+00600 H5\_DLL herr\_t H5O\_chunk\_resize(\hyperlink{struct_h5_o__t}{H5O\_t} *oh, \hyperlink{struct_h5_o__chunk__proxy__t}{H5O\_chunk\_proxy\_t} *chk\_proxy);
+00601 H5\_DLL herr\_t H5O\_chunk\_delete(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh, \textcolor{keywordtype}{unsigned} idx);
+00602 H5\_DLL herr\_t H5O\_\_chunk\_dest(\hyperlink{struct_h5_o__chunk__proxy__t}{H5O\_chunk\_proxy\_t} *chunk\_proxy);
+00603 
+00604 \textcolor{comment}{/* Collect storage info for btree and heap */}
+00605 H5\_DLL herr\_t H5O\_attr\_bh\_info(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh,
+00606     \hyperlink{struct_h5__ih__info__t}{H5\_ih\_info\_t} *bh\_info);
+00607 
+00608 \textcolor{comment}{/* Object header allocation routines */}
+00609 H5\_DLL herr\_t H5O\_alloc\_msgs(\hyperlink{struct_h5_o__t}{H5O\_t} *oh, \textcolor{keywordtype}{size\_t} min\_alloc);
+00610 H5\_DLL herr\_t H5O\_\_alloc\_chunk(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh, \textcolor{keywordtype}{size\_t} size,
+00611     \textcolor{keywordtype}{size\_t} found\_null, \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__alloc__info__t}{H5O\_msg\_alloc\_info\_t} *found\_msg, \textcolor{keywordtype}{size\_t} *new\_idx);
+00612 H5\_DLL herr\_t  H5O\_alloc(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh,
+00613     \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} *type, \textcolor{keyword}{const} \textcolor{keywordtype}{void} *mesg, \textcolor{keywordtype}{size\_t} *mesg\_idx);
+00614 H5\_DLL herr\_t H5O\_condense\_header(\hyperlink{struct_h5_f__t}{H5F\_t} *f, \hyperlink{struct_h5_o__t}{H5O\_t} *oh, hid\_t dxpl\_id);
+00615 H5\_DLL herr\_t H5O\_release\_mesg(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh,
+00616     \hyperlink{struct_h5_o__mesg__t}{H5O\_mesg\_t} *mesg, hbool\_t adj\_link);
+00617 
+00618 \textcolor{comment}{/* Shared object operators */}
+00619 H5\_DLL \textcolor{keywordtype}{void} * H5O\_shared\_decode(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *open\_oh,
+00620     \textcolor{keywordtype}{unsigned} *ioflags, \textcolor{keyword}{const} uint8\_t *buf, \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} *type);
+00621 H5\_DLL herr\_t H5O\_shared\_encode(\textcolor{keyword}{const} \hyperlink{struct_h5_f__t}{H5F\_t} *f, uint8\_t *buf\textcolor{comment}{/*out*/}, \textcolor{keyword}{const} H5O\_shared\_t *sh\_mesg);
+00622 H5\_DLL \textcolor{keywordtype}{size\_t} H5O\_shared\_size(\textcolor{keyword}{const} \hyperlink{struct_h5_f__t}{H5F\_t} *f, \textcolor{keyword}{const} H5O\_shared\_t *sh\_mesg);
+00623 H5\_DLL herr\_t H5O\_shared\_delete(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *open\_oh,
+00624     \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} *mesg\_type, H5O\_shared\_t *sh\_mesg);
+00625 H5\_DLL herr\_t H5O\_shared\_link(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *open\_oh,
+00626     \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} *mesg\_type, H5O\_shared\_t *sh\_mesg);
+00627 H5\_DLL herr\_t H5O\_shared\_copy\_file(\hyperlink{struct_h5_f__t}{H5F\_t} *file\_src, \hyperlink{struct_h5_f__t}{H5F\_t} *file\_dst,
+00628     \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} *mesg\_type, \textcolor{keyword}{const} \textcolor{keywordtype}{void} *\_native\_src, \textcolor{keywordtype}{void} *\_native\_dst,
+00629     hbool\_t *recompute\_size, \textcolor{keywordtype}{unsigned} *mesg\_flags, H5O\_copy\_t *cpy\_info,
+00630     \textcolor{keywordtype}{void} *udata, hid\_t dxpl\_id);
+00631 H5\_DLL herr\_t H5O\_shared\_post\_copy\_file (\hyperlink{struct_h5_f__t}{H5F\_t} *f,
+00632     \textcolor{keyword}{const} \hyperlink{struct_h5_o__msg__class__t}{H5O\_msg\_class\_t} *mesg\_type, \textcolor{keyword}{const} H5O\_shared\_t *shared\_src,
+00633     H5O\_shared\_t *shared\_dst, \textcolor{keywordtype}{unsigned} *mesg\_flags, hid\_t dxpl\_id,
+00634     H5O\_copy\_t *cpy\_info);
+00635 H5\_DLL herr\_t H5O\_shared\_debug(\textcolor{keyword}{const} H5O\_shared\_t *mesg, FILE *stream,
+00636     \textcolor{keywordtype}{int} indent, \textcolor{keywordtype}{int} fwidth);
+00637 
+00638 \textcolor{comment}{/* Attribute message operators */}
+00639 H5\_DLL herr\_t H5O\_attr\_reset(\textcolor{keywordtype}{void} *\_mesg);
+00640 H5\_DLL herr\_t H5O\_attr\_delete(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *open\_oh, \textcolor{keywordtype}{void} *\_mesg);
+00641 H5\_DLL herr\_t H5O\_attr\_link(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *open\_oh, \textcolor{keywordtype}{void} *\_mesg);
+00642 H5\_DLL herr\_t H5O\_attr\_count\_real(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh,
+00643     hsize\_t *nattrs);
+00644 
+00645 \textcolor{comment}{/* Testing functions */}
+00646 \textcolor{preprocessor}{#ifdef H5O\_TESTING}
+00647 H5\_DLL htri\_t H5O\_is\_attr\_empty\_test(hid\_t oid);
+00648 H5\_DLL htri\_t H5O\_is\_attr\_dense\_test(hid\_t oid);
+00649 H5\_DLL herr\_t H5O\_num\_attrs\_test(hid\_t oid, hsize\_t *nattrs);
+00650 H5\_DLL herr\_t H5O\_attr\_dense\_info\_test(hid\_t oid, hsize\_t *name\_count, hsize\_t *corder\_count);
+00651 H5\_DLL herr\_t H5O\_check\_msg\_marked\_test(hid\_t oid, hbool\_t flag\_val);
+00652 H5\_DLL herr\_t H5O\_expunge\_chunks\_test(\textcolor{keyword}{const} H5O\_loc\_t *oloc, hid\_t dxpl\_id);
+00653 H5\_DLL herr\_t H5O\_get\_rc(\textcolor{keyword}{const} H5O\_loc\_t *oloc, hid\_t dxpl\_id, \textcolor{keywordtype}{unsigned} *rc);
+00654 H5\_DLL herr\_t H5O\_msg\_get\_chunkno\_test(hid\_t oid, \textcolor{keywordtype}{unsigned} msg\_type,
+00655     \textcolor{keywordtype}{unsigned} *chunk\_num);
+00656 H5\_DLL herr\_t H5O\_msg\_move\_to\_new\_chunk\_test(hid\_t oid, \textcolor{keywordtype}{unsigned} msg\_type);
+00657 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_TESTING */}\textcolor{preprocessor}{}
+00658 
+00659 \textcolor{comment}{/* Object header debugging routines */}
+00660 \textcolor{preprocessor}{#ifdef H5O\_DEBUG}
+00661 H5\_DLL herr\_t H5O\_assert(\textcolor{keyword}{const} \hyperlink{struct_h5_o__t}{H5O\_t} *oh);
+00662 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_DEBUG */}\textcolor{preprocessor}{}
+00663 H5\_DLL herr\_t H5O\_debug\_real(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh, haddr\_t addr, FILE *stream, \textcolor{keywordtype}{int} 
+      indent, \textcolor{keywordtype}{int} fwidth);
+00664 
+00665 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* \_H5Opkg\_H */}\textcolor{preprocessor}{}
+00666 
+\end{DoxyCode}

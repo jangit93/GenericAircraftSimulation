@@ -1,0 +1,180 @@
+\hypertarget{eigen_2test_2integer__types_8cpp_source}{}\section{eigen/test/integer\+\_\+types.cpp}
+\label{eigen_2test_2integer__types_8cpp_source}\index{integer\+\_\+types.\+cpp@{integer\+\_\+types.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2010 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#define EIGEN\_NO\_STATIC\_ASSERT}
+00011 
+00012 \textcolor{preprocessor}{#include "main.h"}
+00013 
+00014 \textcolor{preprocessor}{#undef VERIFY\_IS\_APPROX}
+00015 \textcolor{preprocessor}{#define VERIFY\_IS\_APPROX(a, b) VERIFY((a)==(b));}
+00016 \textcolor{preprocessor}{#undef VERIFY\_IS\_NOT\_APPROX}
+00017 \textcolor{preprocessor}{#define VERIFY\_IS\_NOT\_APPROX(a, b) VERIFY((a)!=(b));}
+00018 
+00019 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} signed\_integer\_type\_tests(\textcolor{keyword}{const} MatrixType& m)
+00020 \{
+00021   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00022   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00023 
+00024   \textcolor{keyword}{enum} \{ is\_signed = (Scalar(-1) > Scalar(0)) ? 0 : 1 \};
+00025   VERIFY(is\_signed == 1);
+00026 
+00027   Index rows = m.rows();
+00028   Index cols = m.cols();
+00029 
+00030   MatrixType m1(rows, cols),
+00031              m2 = MatrixType::Random(rows, cols),
+00032              mzero = MatrixType::Zero(rows, cols);
+00033 
+00034   \textcolor{keywordflow}{do} \{
+00035     m1 = MatrixType::Random(rows, cols);
+00036   \} \textcolor{keywordflow}{while}(m1 == mzero || m1 == m2);
+00037 
+00038   \textcolor{comment}{// check linear structure}
+00039 
+00040   Scalar s1;
+00041   \textcolor{keywordflow}{do} \{
+00042     s1 = internal::random<Scalar>();
+00043   \} \textcolor{keywordflow}{while}(s1 == 0);
+00044 
+00045   VERIFY\_IS\_EQUAL(-(-m1),                  m1);
+00046   VERIFY\_IS\_EQUAL(-m2+m1+m2,               m1);
+00047   VERIFY\_IS\_EQUAL((-m1+m2)*s1,             -s1*m1+s1*m2);
+00048 \}
+00049 
+00050 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} integer\_type\_tests(\textcolor{keyword}{const} MatrixType& m)
+00051 \{
+00052   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index Index;
+00053   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00054 
+00055   VERIFY(\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsInteger});
+00056   \textcolor{keyword}{enum} \{ is\_signed = (Scalar(-1) > Scalar(0)) ? 0 : 1 \};
+00057   VERIFY(\textcolor{keywordtype}{int}(\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsSigned}) == is\_signed);
+00058 
+00059   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::RowsAtCompileTime, 1>} 
+      \hyperlink{struct_vector_type}{VectorType};
+00060 
+00061   Index rows = m.rows();
+00062   Index cols = m.cols();
+00063 
+00064   \textcolor{comment}{// this test relies a lot on Random.h, and there's not much more that we can do}
+00065   \textcolor{comment}{// to test it, hence I consider that we will have tested Random.h}
+00066   MatrixType m1(rows, cols),
+00067              m2 = MatrixType::Random(rows, cols),
+00068              m3(rows, cols),
+00069              mzero = MatrixType::Zero(rows, cols);
+00070 
+00071   \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::RowsAtCompileTime, MatrixType::RowsAtCompileTime>}
+       SquareMatrixType;
+00072   SquareMatrixType identity = SquareMatrixType::Identity(rows, rows),
+00073                    square = SquareMatrixType::Random(rows, rows);
+00074   VectorType v1(rows),
+00075              v2 = VectorType::Random(rows),
+00076              vzero = VectorType::Zero(rows);
+00077 
+00078   \textcolor{keywordflow}{do} \{
+00079     m1 = MatrixType::Random(rows, cols);
+00080   \} \textcolor{keywordflow}{while}(m1 == mzero || m1 == m2);
+00081 
+00082   \textcolor{keywordflow}{do} \{
+00083     v1 = VectorType::Random(rows);
+00084   \} \textcolor{keywordflow}{while}(v1 == vzero || v1 == v2);
+00085 
+00086   VERIFY\_IS\_APPROX(               v1,    v1);
+00087   VERIFY\_IS\_NOT\_APPROX(           v1,    2*v1);
+00088   VERIFY\_IS\_APPROX(               vzero, v1-v1);
+00089   VERIFY\_IS\_APPROX(               m1,    m1);
+00090   VERIFY\_IS\_NOT\_APPROX(           m1,    2*m1);
+00091   VERIFY\_IS\_APPROX(               mzero, m1-m1);
+00092 
+00093   VERIFY\_IS\_APPROX(m3 = m1,m1);
+00094   MatrixType m4;
+00095   VERIFY\_IS\_APPROX(m4 = m1,m1);
+00096 
+00097   m3.real() = m1.real();
+00098   VERIFY\_IS\_APPROX(static\_cast<const MatrixType&>(m3).real(), static\_cast<const MatrixType&>(m1).real());
+00099   VERIFY\_IS\_APPROX(static\_cast<const MatrixType&>(m3).real(), m1.real());
+00100 
+00101   \textcolor{comment}{// check == / != operators}
+00102   VERIFY(m1==m1);
+00103   VERIFY(m1!=m2);
+00104   VERIFY(!(m1==m2));
+00105   VERIFY(!(m1!=m1));
+00106   m1 = m2;
+00107   VERIFY(m1==m2);
+00108   VERIFY(!(m1!=m2));
+00109 
+00110   \textcolor{comment}{// check linear structure}
+00111 
+00112   Scalar s1;
+00113   \textcolor{keywordflow}{do} \{
+00114     s1 = internal::random<Scalar>();
+00115   \} \textcolor{keywordflow}{while}(s1 == 0);
+00116 
+00117   VERIFY\_IS\_EQUAL(m1+m1,                   2*m1);
+00118   VERIFY\_IS\_EQUAL(m1+m2-m1,                m2);
+00119   VERIFY\_IS\_EQUAL(m1*s1,                   s1*m1);
+00120   VERIFY\_IS\_EQUAL((m1+m2)*s1,              s1*m1+s1*m2);
+00121   m3 = m2; m3 += m1;
+00122   VERIFY\_IS\_EQUAL(m3,                      m1+m2);
+00123   m3 = m2; m3 -= m1;
+00124   VERIFY\_IS\_EQUAL(m3,                      m2-m1);
+00125   m3 = m2; m3 *= s1;
+00126   VERIFY\_IS\_EQUAL(m3,                      s1*m2);
+00127 
+00128   \textcolor{comment}{// check matrix product.}
+00129 
+00130   VERIFY\_IS\_APPROX(identity * m1, m1);
+00131   VERIFY\_IS\_APPROX(square * (m1 + m2), square * m1 + square * m2);
+00132   VERIFY\_IS\_APPROX((m1 + m2).transpose() * square, m1.transpose() * square + m2.transpose() * square);
+00133   VERIFY\_IS\_APPROX((m1 * m2.transpose()) * m1, m1 * (m2.transpose() * m1));
+00134 \}
+00135 
+00136 \textcolor{keywordtype}{void} test\_integer\_types()
+00137 \{
+00138   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00139     CALL\_SUBTEST\_1( integer\_type\_tests(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<unsigned int, 1, 1>}()) );
+00140     CALL\_SUBTEST\_1( integer\_type\_tests(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<unsigned long, 3, 4>}()) );
+00141 
+00142     CALL\_SUBTEST\_2( integer\_type\_tests(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<long, 2, 2>}()) );
+00143     CALL\_SUBTEST\_2( signed\_integer\_type\_tests(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<long, 2, 2>}()) );
+00144 
+00145     CALL\_SUBTEST\_3( integer\_type\_tests(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<char, 2, Dynamic>}(2, 10)) );
+00146     CALL\_SUBTEST\_3( signed\_integer\_type\_tests(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<signed char, 2, Dynamic>}
+      (2, 10)) );
+00147 
+00148     CALL\_SUBTEST\_4( integer\_type\_tests(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<unsigned char, 3, 3>}()) );
+00149     CALL\_SUBTEST\_4( integer\_type\_tests(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<unsigned char, Dynamic, Dynamic>}
+      (20, 20)) );
+00150 
+00151     CALL\_SUBTEST\_5( integer\_type\_tests(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<short, Dynamic, 4>}(7, 4)) );
+00152     CALL\_SUBTEST\_5( signed\_integer\_type\_tests(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<short, Dynamic, 4>}(7, 4)) );
+00153 
+00154     CALL\_SUBTEST\_6( integer\_type\_tests(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<unsigned short, 4, 4>}()) );
+00155 
+00156     CALL\_SUBTEST\_7( integer\_type\_tests(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<long long, 11, 13>}()) );
+00157     CALL\_SUBTEST\_7( signed\_integer\_type\_tests(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<long long, 11, 13>}()) );
+00158 
+00159     CALL\_SUBTEST\_8( integer\_type\_tests(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<unsigned long long, Dynamic, 5>}
+      (1, 5)) );
+00160   \}
+00161 \textcolor{preprocessor}{#ifdef EIGEN\_TEST\_PART\_9}
+00162   VERIFY\_IS\_EQUAL(internal::scalar\_div\_cost<int>::value, 8);
+00163   VERIFY\_IS\_EQUAL(internal::scalar\_div\_cost<unsigned int>::value, 8);
+00164   \textcolor{keywordflow}{if}(\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{long})>\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int})) \{
+00165     VERIFY(internal::scalar\_div\_cost<long>::value > internal::scalar\_div\_cost<int>::value);
+00166     VERIFY(internal::scalar\_div\_cost<unsigned long>::value > internal::scalar\_div\_cost<int>::value);
+00167   \}
+00168 \textcolor{preprocessor}{#endif}
+00169 \}
+\end{DoxyCode}

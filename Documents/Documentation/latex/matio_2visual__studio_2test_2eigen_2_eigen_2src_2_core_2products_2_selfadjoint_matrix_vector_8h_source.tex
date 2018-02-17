@@ -1,0 +1,280 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2products_2_selfadjoint_matrix_vector_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Core/products/\+Selfadjoint\+Matrix\+Vector.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2products_2_selfadjoint_matrix_vector_8h_source}\index{Selfadjoint\+Matrix\+Vector.\+h@{Selfadjoint\+Matrix\+Vector.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_SELFADJOINT\_MATRIX\_VECTOR\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_SELFADJOINT\_MATRIX\_VECTOR\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016 
+00017 \textcolor{comment}{/* Optimized selfadjoint matrix * vector product:}
+00018 \textcolor{comment}{ * This algorithm processes 2 columns at onces that allows to both reduce}
+00019 \textcolor{comment}{ * the number of load/stores of the result by a factor 2 and to reduce}
+00020 \textcolor{comment}{ * the instruction dependency.}
+00021 \textcolor{comment}{ */}
+00022 
+00023 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} Index, \textcolor{keywordtype}{int} StorageOrder, \textcolor{keywordtype}{int} UpLo, \textcolor{keywordtype}{bool} ConjugateLhs, \textcolor{keywordtype}{bool} ConjugateRhs,
+       \textcolor{keywordtype}{int} Version=Specialized>
+00024 \textcolor{keyword}{struct }selfadjoint\_matrix\_vector\_product;
+00025 
+00026 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} Index, \textcolor{keywordtype}{int} StorageOrder, \textcolor{keywordtype}{int} UpLo, \textcolor{keywordtype}{bool} ConjugateLhs, \textcolor{keywordtype}{bool} ConjugateRhs,
+       \textcolor{keywordtype}{int} Version>
+00027 \textcolor{keyword}{struct }selfadjoint\_matrix\_vector\_product
+00028 
+00029 \{
+00030 \textcolor{keyword}{static} EIGEN\_DONT\_INLINE \textcolor{keywordtype}{void} run(
+00031   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size,
+00032   \textcolor{keyword}{const} Scalar*  lhs, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} lhsStride,
+00033   \textcolor{keyword}{const} Scalar*  rhs,
+00034   Scalar* res,
+00035   Scalar alpha);
+00036 \};
+00037 
+00038 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} Index, \textcolor{keywordtype}{int} StorageOrder, \textcolor{keywordtype}{int} UpLo, \textcolor{keywordtype}{bool} ConjugateLhs, \textcolor{keywordtype}{bool} ConjugateRhs,
+       \textcolor{keywordtype}{int} Version>
+00039 EIGEN\_DONT\_INLINE \textcolor{keywordtype}{void} 
+      selfadjoint\_matrix\_vector\_product<Scalar,Index,StorageOrder,UpLo,ConjugateLhs,ConjugateRhs,Version>::run(
+00040   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size,
+00041   \textcolor{keyword}{const} Scalar*  lhs, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} lhsStride,
+00042   \textcolor{keyword}{const} Scalar*  rhs,
+00043   Scalar* res,
+00044   Scalar alpha)
+00045 \{
+00046   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} packet\_traits<Scalar>::type Packet;
+00047   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00048   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} PacketSize = \textcolor{keyword}{sizeof}(Packet)/\textcolor{keyword}{sizeof}(Scalar);
+00049 
+00050   \textcolor{keyword}{enum} \{
+00051     IsRowMajor = StorageOrder==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor} ? 1 : 0,
+00052     IsLower = UpLo == \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower} ? 1 : 0,
+00053     FirstTriangular = IsRowMajor == IsLower
+00054   \};
+00055 
+00056   conj\_helper<Scalar,Scalar,NumTraits<Scalar>::IsComplex && EIGEN\_LOGICAL\_XOR(ConjugateLhs,  IsRowMajor), 
+      ConjugateRhs> cj0;
+00057   conj\_helper<Scalar,Scalar,NumTraits<Scalar>::IsComplex && EIGEN\_LOGICAL\_XOR(ConjugateLhs, !IsRowMajor), 
+      ConjugateRhs> cj1;
+00058   conj\_helper<RealScalar,Scalar,false, ConjugateRhs> cjd;
+00059 
+00060   conj\_helper<Packet,Packet,NumTraits<Scalar>::IsComplex && EIGEN\_LOGICAL\_XOR(ConjugateLhs,  IsRowMajor), 
+      ConjugateRhs> pcj0;
+00061   conj\_helper<Packet,Packet,NumTraits<Scalar>::IsComplex && EIGEN\_LOGICAL\_XOR(ConjugateLhs, !IsRowMajor), 
+      ConjugateRhs> pcj1;
+00062 
+00063   Scalar cjAlpha = ConjugateRhs ? numext::conj(alpha) : alpha;
+00064 
+00065 
+00066   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} bound = (std::max)(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(0),size-8) & 0xfffffffe;
+00067   \textcolor{keywordflow}{if} (FirstTriangular)
+00068     bound = size - bound;
+00069 
+00070   \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j=FirstTriangular ? bound : 0;
+00071        j<(FirstTriangular ? size : bound);j+=2)
+00072   \{
+00073     \textcolor{keyword}{const} Scalar* EIGEN\_RESTRICT A0 = lhs + j*lhsStride;
+00074     \textcolor{keyword}{const} Scalar* EIGEN\_RESTRICT A1 = lhs + (j+1)*lhsStride;
+00075 
+00076     Scalar t0 = cjAlpha * rhs[j];
+00077     Packet ptmp0 = pset1<Packet>(t0);
+00078     Scalar t1 = cjAlpha * rhs[j+1];
+00079     Packet ptmp1 = pset1<Packet>(t1);
+00080 
+00081     Scalar t2(0);
+00082     Packet ptmp2 = pset1<Packet>(t2);
+00083     Scalar t3(0);
+00084     Packet ptmp3 = pset1<Packet>(t3);
+00085 
+00086     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} starti = FirstTriangular ? 0 : j+2;
+00087     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} endi   = FirstTriangular ? j : size;
+00088     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} alignedStart = (starti) + internal::first\_default\_aligned(&res[starti], endi-starti);
+00089     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} alignedEnd = alignedStart + ((endi-alignedStart)/(PacketSize))*(PacketSize);
+00090 
+00091     res[j]   += cjd.pmul(numext::real(A0[j]), t0);
+00092     res[j+1] += cjd.pmul(numext::real(A1[j+1]), t1);
+00093     \textcolor{keywordflow}{if}(FirstTriangular)
+00094     \{
+00095       res[j]   += cj0.pmul(A1[j],   t1);
+00096       t3       += cj1.pmul(A1[j],   rhs[j]);
+00097     \}
+00098     \textcolor{keywordflow}{else}
+00099     \{
+00100       res[j+1] += cj0.pmul(A0[j+1],t0);
+00101       t2 += cj1.pmul(A0[j+1], rhs[j+1]);
+00102     \}
+00103 
+00104     \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=starti; i<alignedStart; ++i)
+00105     \{
+00106       res[i] += cj0.pmul(A0[i], t0) + cj0.pmul(A1[i],t1);
+00107       t2 += cj1.pmul(A0[i], rhs[i]);
+00108       t3 += cj1.pmul(A1[i], rhs[i]);
+00109     \}
+00110     \textcolor{comment}{// Yes this an optimization for gcc 4.3 and 4.4 (=> huge speed up)}
+00111     \textcolor{comment}{// gcc 4.2 does this optimization automatically.}
+00112     \textcolor{keyword}{const} Scalar* EIGEN\_RESTRICT a0It  = A0  + alignedStart;
+00113     \textcolor{keyword}{const} Scalar* EIGEN\_RESTRICT a1It  = A1  + alignedStart;
+00114     \textcolor{keyword}{const} Scalar* EIGEN\_RESTRICT rhsIt = rhs + alignedStart;
+00115           Scalar* EIGEN\_RESTRICT resIt = res + alignedStart;
+00116     \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=alignedStart; i<alignedEnd; i+=PacketSize)
+00117     \{
+00118       Packet A0i = ploadu<Packet>(a0It);  a0It  += PacketSize;
+00119       Packet A1i = ploadu<Packet>(a1It);  a1It  += PacketSize;
+00120       Packet Bi  = ploadu<Packet>(rhsIt); rhsIt += PacketSize; \textcolor{comment}{// FIXME should be aligned in most cases}
+00121       Packet Xi  = pload <Packet>(resIt);
+00122 
+00123       Xi    = pcj0.pmadd(A0i,ptmp0, pcj0.pmadd(A1i,ptmp1,Xi));
+00124       ptmp2 = pcj1.pmadd(A0i,  Bi, ptmp2);
+00125       ptmp3 = pcj1.pmadd(A1i,  Bi, ptmp3);
+00126       pstore(resIt,Xi); resIt += PacketSize;
+00127     \}
+00128     \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=alignedEnd; i<endi; i++)
+00129     \{
+00130       res[i] += cj0.pmul(A0[i], t0) + cj0.pmul(A1[i],t1);
+00131       t2 += cj1.pmul(A0[i], rhs[i]);
+00132       t3 += cj1.pmul(A1[i], rhs[i]);
+00133     \}
+00134 
+00135     res[j]   += alpha * (t2 + predux(ptmp2));
+00136     res[j+1] += alpha * (t3 + predux(ptmp3));
+00137   \}
+00138   \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j=FirstTriangular ? 0 : bound;j<(FirstTriangular ? bound : size);j++)
+00139   \{
+00140     \textcolor{keyword}{const} Scalar* EIGEN\_RESTRICT A0 = lhs + j*lhsStride;
+00141 
+00142     Scalar t1 = cjAlpha * rhs[j];
+00143     Scalar t2(0);
+00144     res[j] += cjd.pmul(numext::real(A0[j]), t1);
+00145     \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=FirstTriangular ? 0 : j+1; i<(FirstTriangular ? j : size); i++)
+00146     \{
+00147       res[i] += cj0.pmul(A0[i], t1);
+00148       t2 += cj1.pmul(A0[i], rhs[i]);
+00149     \}
+00150     res[j] += alpha * t2;
+00151   \}
+00152 \}
+00153 
+00154 \} \textcolor{comment}{// end namespace internal }
+00155 
+00156 \textcolor{comment}{/***************************************************************************}
+00157 \textcolor{comment}{* Wrapper to product\_selfadjoint\_vector}
+00158 \textcolor{comment}{***************************************************************************/}
+00159 
+00160 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00161 
+00162 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keywordtype}{int} LhsMode, \textcolor{keyword}{typename} Rhs>
+00163 \textcolor{keyword}{struct }selfadjoint\_product\_impl<Lhs,LhsMode,false,Rhs,0,true>
+00164 \{
+00165   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Product<Lhs,Rhs>::Scalar Scalar;
+00166   
+00167   \textcolor{keyword}{typedef} internal::blas\_traits<Lhs> LhsBlasTraits;
+00168   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} LhsBlasTraits::DirectLinearAccessType ActualLhsType;
+00169   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_all<ActualLhsType>::type ActualLhsTypeCleaned;
+00170   
+00171   \textcolor{keyword}{typedef} internal::blas\_traits<Rhs> RhsBlasTraits;
+00172   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} RhsBlasTraits::DirectLinearAccessType ActualRhsType;
+00173   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_all<ActualRhsType>::type ActualRhsTypeCleaned;
+00174 
+00175   \textcolor{keyword}{enum} \{ LhsUpLo = LhsMode&(\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}|\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}) \};
+00176 
+00177   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00178   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(Dest& dest, \textcolor{keyword}{const} Lhs &a\_lhs, \textcolor{keyword}{const} Rhs &a\_rhs, \textcolor{keyword}{const} Scalar& alpha)
+00179   \{
+00180     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Dest::Scalar ResScalar;
+00181     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Rhs::Scalar RhsScalar;
+00182     \textcolor{keyword}{typedef} Map<Matrix<ResScalar,Dynamic,1>, EIGEN\_PLAIN\_ENUM\_MIN(AlignedMax,
+      internal::packet\_traits<ResScalar>::size)> MappedDest;
+00183     
+00184     eigen\_assert(dest.rows()==a\_lhs.rows() && dest.cols()==a\_rhs.cols());
+00185 
+00186     \textcolor{keyword}{typename} internal::add\_const\_on\_value\_type<ActualLhsType>::type lhs = LhsBlasTraits::extract(a\_lhs);
+00187     \textcolor{keyword}{typename} internal::add\_const\_on\_value\_type<ActualRhsType>::type rhs = RhsBlasTraits::extract(a\_rhs);
+00188 
+00189     Scalar actualAlpha = alpha * LhsBlasTraits::extractScalarFactor(a\_lhs)
+00190                                * RhsBlasTraits::extractScalarFactor(a\_rhs);
+00191 
+00192     \textcolor{keyword}{enum} \{
+00193       EvalToDest = (Dest::InnerStrideAtCompileTime==1),
+00194       UseRhs = (ActualRhsTypeCleaned::InnerStrideAtCompileTime==1)
+00195     \};
+00196     
+00197     
+      internal::gemv\_static\_vector\_if<ResScalar,Dest::SizeAtCompileTime,Dest::MaxSizeAtCompileTime,!EvalToDest> static\_dest;
+00198     
+      internal::gemv\_static\_vector\_if<RhsScalar,ActualRhsTypeCleaned::SizeAtCompileTime,ActualRhsTypeCleaned::MaxSizeAtCompileTime,!UseRhs> static\_rhs;
+00199 
+00200     ei\_declare\_aligned\_stack\_constructed\_variable(ResScalar,actualDestPtr,dest.size(),
+00201                                                   EvalToDest ? dest.data() : static\_dest.data());
+00202                                                   
+00203     ei\_declare\_aligned\_stack\_constructed\_variable(RhsScalar,actualRhsPtr,rhs.size(),
+00204         UseRhs ? \textcolor{keyword}{const\_cast<}RhsScalar*\textcolor{keyword}{>}(rhs.data()) : static\_rhs.data());
+00205     
+00206     \textcolor{keywordflow}{if}(!EvalToDest)
+00207     \{
+00208 \textcolor{preprocessor}{      #ifdef EIGEN\_DENSE\_STORAGE\_CTOR\_PLUGIN}
+00209       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = dest.size();
+00210       EIGEN\_DENSE\_STORAGE\_CTOR\_PLUGIN
+00211 \textcolor{preprocessor}{      #endif}
+00212       MappedDest(actualDestPtr, dest.size()) = dest;
+00213     \}
+00214       
+00215     \textcolor{keywordflow}{if}(!UseRhs)
+00216     \{
+00217 \textcolor{preprocessor}{      #ifdef EIGEN\_DENSE\_STORAGE\_CTOR\_PLUGIN}
+00218       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = rhs.size();
+00219       EIGEN\_DENSE\_STORAGE\_CTOR\_PLUGIN
+00220 \textcolor{preprocessor}{      #endif}
+00221       Map<typename ActualRhsTypeCleaned::PlainObject>(actualRhsPtr, rhs.size()) = rhs;
+00222     \}
+00223       
+00224       
+00225     internal::selfadjoint\_matrix\_vector\_product<Scalar, Index,
+       (internal::traits<ActualLhsTypeCleaned>::Flags&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}) ? \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor} : \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor},
+00226                                                 \textcolor{keywordtype}{int}(LhsUpLo), bool(LhsBlasTraits::NeedToConjugate), bool(
+      RhsBlasTraits::NeedToConjugate)>::run
+00227       (
+00228         lhs.rows(),                             \textcolor{comment}{// size}
+00229         &lhs.coeffRef(0,0),  lhs.outerStride(), \textcolor{comment}{// lhs info}
+00230         actualRhsPtr,                           \textcolor{comment}{// rhs info}
+00231         actualDestPtr,                          \textcolor{comment}{// result info}
+00232         actualAlpha                             \textcolor{comment}{// scale factor}
+00233       );
+00234     
+00235     \textcolor{keywordflow}{if}(!EvalToDest)
+00236       dest = MappedDest(actualDestPtr, dest.size());
+00237   \}
+00238 \};
+00239 
+00240 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} RhsMode>
+00241 \textcolor{keyword}{struct }selfadjoint\_product\_impl<Lhs,0,true,Rhs,RhsMode,false>
+00242 \{
+00243   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Product<Lhs,Rhs>::Scalar Scalar;
+00244   \textcolor{keyword}{enum} \{ RhsUpLo = RhsMode&(\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}|\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower})  \};
+00245 
+00246   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00247   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(Dest& dest, \textcolor{keyword}{const} Lhs &a\_lhs, \textcolor{keyword}{const} Rhs &a\_rhs, \textcolor{keyword}{const} Scalar& alpha)
+00248   \{
+00249     \textcolor{comment}{// let's simply transpose the product}
+00250     Transpose<Dest> destT(dest);
+00251     selfadjoint\_product\_impl<Transpose<const Rhs>, int(RhsUpLo)==\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper} ? 
+      \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower} : \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}, \textcolor{keyword}{false},
+00252                              Transpose<const Lhs>, 0, \textcolor{keyword}{true}>::run(destT, a\_rhs.transpose(), a\_lhs.transpose(
+      ), alpha);
+00253   \}
+00254 \};
+00255 
+00256 \} \textcolor{comment}{// end namespace internal}
+00257 
+00258 \} \textcolor{comment}{// end namespace Eigen}
+00259 
+00260 \textcolor{preprocessor}{#endif // EIGEN\_SELFADJOINT\_MATRIX\_VECTOR\_H}
+\end{DoxyCode}

@@ -1,0 +1,53 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_performance_2h5slabread_8c_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+C/\+Performance/h5slabread.c}
+\label{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_performance_2h5slabread_8c_source}\index{h5slabread.\+c@{h5slabread.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+00002 \textcolor{comment}{ * Copyright by The HDF Group.                                               *}
+00003 \textcolor{comment}{ * All rights reserved.                                                      *}
+00004 \textcolor{comment}{ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00005 
+00006 \textcolor{preprocessor}{#include <stdlib.h>}
+00007 \textcolor{preprocessor}{#include <string.h>}
+00008 \textcolor{preprocessor}{#include "hdf5.h"}
+00009 \textcolor{preprocessor}{#include "h5slab.h"}
+00010 
+00011 \textcolor{comment}{/* Read the chunks in a row pattern.}
+00012 \textcolor{comment}{ *}
+00013 \textcolor{comment}{ * Created by Albert Cheng and Christian Chilan 2010/7/13.}
+00014 \textcolor{comment}{ */}
+00015 \textcolor{keywordtype}{int} main (\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} **argv) \{
+00016     hid\_t   file\_id, dset\_id, filespace, memspace, fapl, dxpl;
+00017     hsize\_t dimsf[2], count[2], offset[2], chunk\_dims[2]=\{CX, CY\};
+00018     \textcolor{keywordtype}{char}    *data, table[RC];               
+00019     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} i, j, cx;
+00020 
+00021     fapl = H5Pcreate(H5P\_FILE\_ACCESS);
+00022     dxpl = H5Pcreate(H5P\_DATASET\_XFER);
+00023     fapl = dxpl = H5P\_DEFAULT;
+00024     file\_id = H5Fopen(argv[1], H5F\_ACC\_RDONLY, fapl);
+00025     dset\_id = H5Dopen(file\_id, \textcolor{stringliteral}{"dataset1"}, H5P\_DEFAULT);
+00026     filespace = H5Dget\_space(dset\_id); 
+00027     count[0] = CX;
+00028     count[1] = NY;
+00029     memspace = H5Screate\_simple(2, count, NULL);
+00030 
+00031     data = (\textcolor{keywordtype}{char} *)malloc(count[0]*count[1]*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{char}));
+00032     \textcolor{keywordflow}{for} (i=0; i<RC; i++)\{
+00033         offset[0] = i*CX;
+00034         offset[1] = 0;
+00035         H5Sselect\_hyperslab(filespace, H5S\_SELECT\_SET, offset, NULL, count, NULL);
+00036         H5Dread(dset\_id, H5T\_NATIVE\_CHAR, memspace, filespace, dxpl, data);
+00037     
+00038     \}
+00039     free(data);
+00040     H5Dclose(dset\_id);
+00041     H5Sclose(filespace);
+00042     H5Sclose(memspace);
+00043     H5Pclose(dxpl);
+00044     H5Pclose(fapl);
+00045     H5Fclose(file\_id);
+00046     \textcolor{keywordflow}{return} 0;
+00047 \}     
+00048 
+\end{DoxyCode}

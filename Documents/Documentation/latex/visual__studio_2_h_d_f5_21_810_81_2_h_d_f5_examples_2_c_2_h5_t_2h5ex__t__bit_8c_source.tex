@@ -1,0 +1,148 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_t_2h5ex__t__bit_8c_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+C/\+H5\+T/h5ex\+\_\+t\+\_\+bit.c}
+\label{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_t_2h5ex__t__bit_8c_source}\index{h5ex\+\_\+t\+\_\+bit.\+c@{h5ex\+\_\+t\+\_\+bit.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/************************************************************}
+00002 \textcolor{comment}{}
+00003 \textcolor{comment}{  This example shows how to read and write bitfield}
+00004 \textcolor{comment}{  datatypes to a dataset.  The program first writes bit}
+00005 \textcolor{comment}{  fields to a dataset with a dataspace of DIM0xDIM1, then}
+00006 \textcolor{comment}{  closes the file.  Next, it reopens the file, reads back}
+00007 \textcolor{comment}{  the data, and outputs it to the screen.}
+00008 \textcolor{comment}{}
+00009 \textcolor{comment}{  This file is intended for use with HDF5 Library version 1.8}
+00010 \textcolor{comment}{}
+00011 \textcolor{comment}{ ************************************************************/}
+00012 
+00013 \textcolor{preprocessor}{#include "hdf5.h"}
+00014 \textcolor{preprocessor}{#include <stdio.h>}
+00015 \textcolor{preprocessor}{#include <stdlib.h>}
+00016 
+00017 \textcolor{preprocessor}{#define FILE            "h5ex\_t\_bit.h5"}
+00018 \textcolor{preprocessor}{#define DATASET         "DS1"}
+00019 \textcolor{preprocessor}{#define DIM0            4}
+00020 \textcolor{preprocessor}{#define DIM1            7}
+00021 
+00022 \textcolor{keywordtype}{int}
+00023 main (\textcolor{keywordtype}{void})
+00024 \{
+00025     hid\_t           \hyperlink{structfile}{file}, space, dset;          \textcolor{comment}{/* Handles */}
+00026     herr\_t          status;
+00027     hsize\_t         dims[2] = \{DIM0, DIM1\};
+00028     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}   wdata[DIM0][DIM1],          \textcolor{comment}{/* Write buffer */}
+00029                     **rdata;                    \textcolor{comment}{/* Read buffer */}
+00030     \textcolor{keywordtype}{int}             ndims, A, B, C, D,
+00031                     i, j;
+00032 
+00033     \textcolor{comment}{/*}
+00034 \textcolor{comment}{     * Initialize data.  We will manually pack 4 2-bit integers into}
+00035 \textcolor{comment}{     * each unsigned char data element.}
+00036 \textcolor{comment}{     */}
+00037     \textcolor{keywordflow}{for} (i=0; i<DIM0; i++)
+00038         \textcolor{keywordflow}{for} (j=0; j<DIM1; j++) \{
+00039             wdata[i][j] = 0;
+00040             wdata[i][j] |= (i * j - j) & 0x03;          \textcolor{comment}{/* Field "A" */}
+00041             wdata[i][j] |= (i & 0x03) << 2;             \textcolor{comment}{/* Field "B" */}
+00042             wdata[i][j] |= (j & 0x03) << 4;             \textcolor{comment}{/* Field "C" */}
+00043             wdata[i][j] |= ( (i + j) & 0x03 ) <<6;      \textcolor{comment}{/* Field "D" */}
+00044         \}
+00045 
+00046     \textcolor{comment}{/*}
+00047 \textcolor{comment}{     * Create a new file using the default properties.}
+00048 \textcolor{comment}{     */}
+00049     file = H5Fcreate (FILE, H5F\_ACC\_TRUNC, H5P\_DEFAULT, H5P\_DEFAULT);
+00050 
+00051     \textcolor{comment}{/*}
+00052 \textcolor{comment}{     * Create dataspace.  Setting maximum size to NULL sets the maximum}
+00053 \textcolor{comment}{     * size to be the current size.}
+00054 \textcolor{comment}{     */}
+00055     space = H5Screate\_simple (2, dims, NULL);
+00056 
+00057     \textcolor{comment}{/*}
+00058 \textcolor{comment}{     * Create the dataset and write the bitfield data to it.}
+00059 \textcolor{comment}{     */}
+00060     dset = H5Dcreate (file, DATASET, H5T\_STD\_B8BE, space, H5P\_DEFAULT,
+00061                 H5P\_DEFAULT, H5P\_DEFAULT);
+00062     status = H5Dwrite (dset, H5T\_NATIVE\_B8, H5S\_ALL, H5S\_ALL, H5P\_DEFAULT,
+00063                 wdata[0]);
+00064 
+00065     \textcolor{comment}{/*}
+00066 \textcolor{comment}{     * Close and release resources.}
+00067 \textcolor{comment}{     */}
+00068     status = H5Dclose (dset);
+00069     status = H5Sclose (space);
+00070     status = H5Fclose (file);
+00071 
+00072 
+00073     \textcolor{comment}{/*}
+00074 \textcolor{comment}{     * Now we begin the read section of this example.  Here we assume}
+00075 \textcolor{comment}{     * the dataset has the same name and rank, but can have any size.}
+00076 \textcolor{comment}{     * Therefore we must allocate a new array to read in data using}
+00077 \textcolor{comment}{     * malloc().}
+00078 \textcolor{comment}{     */}
+00079 
+00080     \textcolor{comment}{/*}
+00081 \textcolor{comment}{     * Open file and dataset.}
+00082 \textcolor{comment}{     */}
+00083     file = H5Fopen (FILE, H5F\_ACC\_RDONLY, H5P\_DEFAULT);
+00084     dset = H5Dopen (file, DATASET, H5P\_DEFAULT);
+00085 
+00086     \textcolor{comment}{/*}
+00087 \textcolor{comment}{     * Get dataspace and allocate memory for read buffer.  This is a}
+00088 \textcolor{comment}{     * two dimensional dataset so the dynamic allocation must be done}
+00089 \textcolor{comment}{     * in steps.}
+00090 \textcolor{comment}{     */}
+00091     space = H5Dget\_space (dset);
+00092     ndims = H5Sget\_simple\_extent\_dims (space, dims, NULL);
+00093 
+00094     \textcolor{comment}{/*}
+00095 \textcolor{comment}{     * Allocate array of pointers to rows.}
+00096 \textcolor{comment}{     */}
+00097     rdata = (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} **) malloc (dims[0] * \textcolor{keyword}{sizeof} (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *));
+00098 
+00099     \textcolor{comment}{/*}
+00100 \textcolor{comment}{     * Allocate space for bitfield data.}
+00101 \textcolor{comment}{     */}
+00102     rdata[0] = (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *) malloc (dims[0] * dims[1] *
+00103                 \textcolor{keyword}{sizeof} (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}));
+00104 
+00105     \textcolor{comment}{/*}
+00106 \textcolor{comment}{     * Set the rest of the pointers to rows to the correct addresses.}
+00107 \textcolor{comment}{     */}
+00108     \textcolor{keywordflow}{for} (i=1; i<dims[0]; i++)
+00109         rdata[i] = rdata[0] + i * dims[1];
+00110 
+00111     \textcolor{comment}{/*}
+00112 \textcolor{comment}{     * Read the data.}
+00113 \textcolor{comment}{     */}
+00114     status = H5Dread (dset, H5T\_NATIVE\_B8, H5S\_ALL, H5S\_ALL, H5P\_DEFAULT,
+00115                 rdata[0]);
+00116 
+00117     \textcolor{comment}{/*}
+00118 \textcolor{comment}{     * Output the data to the screen.}
+00119 \textcolor{comment}{     */}
+00120     printf (\textcolor{stringliteral}{"%s:\(\backslash\)n"}, DATASET);
+00121     \textcolor{keywordflow}{for} (i=0; i<dims[0]; i++) \{
+00122         printf (\textcolor{stringliteral}{" ["});
+00123         \textcolor{keywordflow}{for} (j=0; j<dims[1]; j++)\{
+00124             A = rdata[i][j] & 0x03;         \textcolor{comment}{/* Retrieve field "A" */}
+00125             B = (rdata[i][j] >> 2) & 0x03;  \textcolor{comment}{/* Retrieve field "B" */}
+00126             C = (rdata[i][j] >> 4) & 0x03;  \textcolor{comment}{/* Retrieve field "C" */}
+00127             D = (rdata[i][j] >> 6) & 0x03;  \textcolor{comment}{/* Retrieve field "D" */}
+00128             printf (\textcolor{stringliteral}{" \{%d, %d, %d, %d\}"}, A, B, C, D);
+00129         \}
+00130         printf (\textcolor{stringliteral}{" ]\(\backslash\)n"});
+00131     \}
+00132 
+00133     \textcolor{comment}{/*}
+00134 \textcolor{comment}{     * Close and release resources.}
+00135 \textcolor{comment}{     */}
+00136     free (rdata[0]);
+00137     free (rdata);
+00138     status = H5Dclose (dset);
+00139     status = H5Sclose (space);
+00140     status = H5Fclose (file);
+00141 
+00142     \textcolor{keywordflow}{return} 0;
+00143 \}
+\end{DoxyCode}

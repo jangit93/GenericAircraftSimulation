@@ -1,0 +1,199 @@
+\hypertarget{eigen_2_eigen_2src_2_core_2_product_8h_source}{}\section{eigen/\+Eigen/src/\+Core/\+Product.h}
+\label{eigen_2_eigen_2src_2_core_2_product_8h_source}\index{Product.\+h@{Product.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2011 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_PRODUCT\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_PRODUCT\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+\Hypertarget{eigen_2_eigen_2src_2_core_2_product_8h_source_l00015}\hyperlink{class_eigen_1_1_product_impl}{00015} \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Option, \textcolor{keyword}{typename} StorageKind> \textcolor{keyword}{class }
+      \hyperlink{class_eigen_1_1_product_impl}{ProductImpl};
+00016 
+00017 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00018 
+00019 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Option>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_product_8h_source_l00020}\hyperlink{struct_eigen_1_1internal_1_1traits_3_01_product_3_01_lhs_00_01_rhs_00_01_option_01_4_01_4}{00020} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1traits}{traits}<\hyperlink{group___core___module_class_eigen_1_1_product}{Product}<Lhs, Rhs, Option> >
+00021 \{
+00022   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{remove\_all<Lhs>::type} \hyperlink{group___sparse_core___module}{LhsCleaned};
+00023   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{remove\_all<Rhs>::type} \hyperlink{group___sparse_core___module}{RhsCleaned};
+00024   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1traits}{traits<LhsCleaned>} \hyperlink{struct_eigen_1_1internal_1_1traits}{LhsTraits};
+00025   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1traits}{traits<RhsCleaned>} \hyperlink{struct_eigen_1_1internal_1_1traits}{RhsTraits};
+00026   
+00027   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1_matrix_xpr}{MatrixXpr} \hyperlink{struct_eigen_1_1_matrix_xpr}{XprKind};
+00028   
+00029   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_scalar_binary_op_traits}{ScalarBinaryOpTraits<typename traits<LhsCleaned>::Scalar}
+      , \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{traits<RhsCleaned>::Scalar}>::ReturnType Scalar;
+00030   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1product__promote__storage__type}{product\_promote\_storage\_type}<\textcolor{keyword}{typename} LhsTraits::StorageKind
+      ,
+00031                                                 \textcolor{keyword}{typename} RhsTraits::StorageKind,
+00032                                                 
+      \hyperlink{struct_eigen_1_1internal_1_1product__type}{internal::product\_type<Lhs,Rhs>::ret}>::ret StorageKind;
+00033   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1promote__index__type}{promote\_index\_type}<\textcolor{keyword}{typename} LhsTraits::StorageIndex,
+00034                                       \textcolor{keyword}{typename} RhsTraits::StorageIndex>::type 
+      \hyperlink{struct_eigen_1_1internal_1_1conditional}{StorageIndex};
+00035   
+00036   \textcolor{keyword}{enum} \{
+00037     RowsAtCompileTime    = LhsTraits::RowsAtCompileTime,
+00038     ColsAtCompileTime    = RhsTraits::ColsAtCompileTime,
+00039     MaxRowsAtCompileTime = LhsTraits::MaxRowsAtCompileTime,
+00040     MaxColsAtCompileTime = RhsTraits::MaxColsAtCompileTime,
+00041     
+00042     \textcolor{comment}{// FIXME: only needed by GeneralMatrixMatrixTriangular}
+00043     InnerSize = EIGEN\_SIZE\_MIN\_PREFER\_FIXED(LhsTraits::ColsAtCompileTime, RhsTraits::RowsAtCompileTime),
+00044     
+00045     \textcolor{comment}{// The storage order is somewhat arbitrary here. The correct one will be determined through the
+       evaluator.}
+00046     Flags = (MaxRowsAtCompileTime==1 && MaxColsAtCompileTime!=1) ? \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}
+00047           : (MaxColsAtCompileTime==1 && MaxRowsAtCompileTime!=1) ? 0
+00048           : (   ((LhsTraits::Flags&\hyperlink{group__flags_ga3c186ad80ddcf5e2ed3d7ee31cca1860}{NoPreferredStorageOrderBit}) && (
+      RhsTraits::Flags&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}))
+00049              || ((RhsTraits::Flags&\hyperlink{group__flags_ga3c186ad80ddcf5e2ed3d7ee31cca1860}{NoPreferredStorageOrderBit}) && (
+      LhsTraits::Flags&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit})) ) ? RowMajorBit
+00050           : NoPreferredStorageOrderBit
+00051   \};
+00052 \};
+00053 
+00054 \} \textcolor{comment}{// end namespace internal}
+00055 
+00070 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Lhs, \textcolor{keyword}{typename} \_Rhs, \textcolor{keywordtype}{int} Option>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_product_8h_source_l00071}\hyperlink{group___core___module}{00071} \textcolor{keyword}{class }\hyperlink{group___core___module_class_eigen_1_1_product}{Product} : \textcolor{keyword}{public} \hyperlink{class_eigen_1_1_product_impl}{ProductImpl}<\_Lhs,\_Rhs,Option,
+00072                                    typename internal::product\_promote\_storage\_type<typename internal::trait
+      s<\_Lhs>::StorageKind,
+00073                                                                                    typename internal::trait
+      s<\_Rhs>::StorageKind,
+00074                                                                                    internal::product\_type<\_
+      Lhs,\_Rhs>::ret>::ret>
+00075 \{
+00076   \textcolor{keyword}{public}:
+00077     
+00078     \textcolor{keyword}{typedef} \_Lhs Lhs;
+00079     \textcolor{keyword}{typedef} \_Rhs Rhs;
+00080     
+00081     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1_product_impl}{ProductImpl}<
+00082         Lhs, Rhs, Option,
+00083         \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1product__promote__storage__type}{internal::product\_promote\_storage\_type<typename internal::traits<Lhs>::StorageKind}
+      ,
+00084                                                         \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Rhs>::StorageKind},
+00085                                                         
+      \hyperlink{struct_eigen_1_1internal_1_1product__type}{internal::product\_type<Lhs,Rhs>::ret}>::ret>::Base Base;
+00086     EIGEN\_GENERIC\_PUBLIC\_INTERFACE(\hyperlink{group___core___module_class_eigen_1_1_product}{Product})
+00087 
+00088     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{internal::ref\_selector<Lhs>::type} 
+      \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{LhsNested};
+00089     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{internal::ref\_selector<Rhs>::type} 
+      \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{RhsNested};
+00090     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{internal::remove\_all<LhsNested>::type} 
+      \hyperlink{group___sparse_core___module}{LhsNestedCleaned};
+00091     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{internal::remove\_all<RhsNested>::type} 
+      \hyperlink{group___sparse_core___module}{RhsNestedCleaned};
+00092 
+00093     EIGEN\_DEVICE\_FUNC \hyperlink{group___core___module_class_eigen_1_1_product}{Product}(\textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs) : m\_lhs(lhs), m\_rhs(rhs)
+00094     \{
+00095       eigen\_assert(lhs.cols() == rhs.rows()
+00096         && \textcolor{stringliteral}{"invalid matrix product"}
+00097         && \textcolor{stringliteral}{"if you wanted a coeff-wise or a dot product use the respective explicit functions"});
+00098     \}
+00099 
+00100     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_lhs.rows(); \}
+00101     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_rhs.cols(); \}
+00102 
+00103     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} LhsNestedCleaned& lhs()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_lhs; \}
+00104     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} RhsNestedCleaned& rhs()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_rhs; \}
+00105 
+00106   \textcolor{keyword}{protected}:
+00107 
+00108     LhsNested m\_lhs;
+00109     RhsNested m\_rhs;
+00110 \};
+00111 
+00112 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00113   
+00114 template<typename Lhs, typename Rhs, int Option, int ProductTag = internal::product\_type<Lhs,Rhs>::ret>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_product_8h_source_l00115}\hyperlink{class_eigen_1_1internal_1_1dense__product__base}{00115} \textcolor{keyword}{class }\hyperlink{class_eigen_1_1internal_1_1dense__product__base}{dense\_product\_base}
+00116  : \textcolor{keyword}{public} \hyperlink{struct_eigen_1_1internal_1_1dense__xpr__base}{internal::dense\_xpr\_base}<Product<Lhs,Rhs,Option> >::type
+00117 \{\};
+00118 
+00120 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Option>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_product_8h_source_l00121}\hyperlink{class_eigen_1_1internal_1_1dense__product__base_3_01_lhs_00_01_rhs_00_01_option_00_01_inner_product_01_4}{00121} \textcolor{keyword}{class }\hyperlink{class_eigen_1_1internal_1_1dense__product__base}{dense\_product\_base}<Lhs, Rhs, Option, InnerProduct>
+00122  : \textcolor{keyword}{public} \hyperlink{struct_eigen_1_1internal_1_1dense__xpr__base}{internal::dense\_xpr\_base}<Product<Lhs,Rhs,Option> >::type
+00123 \{
+00124   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_product}{Product<Lhs,Rhs,Option>} \hyperlink{group___core___module_class_eigen_1_1_product}{ProductXpr};
+00125   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1dense__xpr__base}{internal::dense\_xpr\_base<ProductXpr>::type} 
+      Base;
+00126 \textcolor{keyword}{public}:
+00127   \textcolor{keyword}{using} Base::derived;
+00128   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Base::Scalar Scalar;
+00129   
+00130   \textcolor{keyword}{operator} \textcolor{keyword}{const} Scalar()\textcolor{keyword}{ const}
+00131 \textcolor{keyword}{  }\{
+00132     \textcolor{keywordflow}{return} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{internal::evaluator<ProductXpr>}(derived()).coeff(0,0);
+00133   \}
+00134 \};
+00135 
+00136 \} \textcolor{comment}{// namespace internal}
+00137 
+00138 \textcolor{comment}{// Generic API dispatcher}
+00139 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Option, \textcolor{keyword}{typename} StorageKind>
+00140 \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_product_impl}{ProductImpl} : \textcolor{keyword}{public} \hyperlink{struct_eigen_1_1internal_1_1generic__xpr__base}{internal::generic\_xpr\_base}<Product<Lhs,Rhs,
+      Option>, MatrixXpr, StorageKind>::type
+00141 \{
+00142   \textcolor{keyword}{public}:
+00143     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1generic__xpr__base}{internal::generic\_xpr\_base<Product<Lhs,Rhs,Option>}
+      , \hyperlink{struct_eigen_1_1_matrix_xpr}{MatrixXpr}, StorageKind>::type Base;
+00144 \};
+00145 
+00146 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Option>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_product_8h_source_l00147}\hyperlink{class_eigen_1_1_product_impl_3_01_lhs_00_01_rhs_00_01_option_00_01_dense_01_4}{00147} \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_product_impl}{ProductImpl}<Lhs,Rhs,Option,\hyperlink{struct_eigen_1_1_dense}{Dense}>
+00148   : \textcolor{keyword}{public} \hyperlink{class_eigen_1_1internal_1_1dense__product__base}{internal::dense\_product\_base}<Lhs,Rhs,Option>
+00149 \{
+00150     \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_product}{Product<Lhs, Rhs, Option>} \hyperlink{group___core___module_class_eigen_1_1_product}{Derived};
+00151     
+00152   \textcolor{keyword}{public}:
+00153     
+00154     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1dense__product__base}{internal::dense\_product\_base<Lhs, Rhs, Option>}
+       \hyperlink{class_eigen_1_1internal_1_1dense__product__base}{Base};
+00155     EIGEN\_DENSE\_PUBLIC\_INTERFACE(Derived)
+00156   \textcolor{keyword}{protected}:
+00157     \textcolor{keyword}{enum} \{
+00158       IsOneByOne = (RowsAtCompileTime == 1 || RowsAtCompileTime == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) && 
+00159                    (ColsAtCompileTime == 1 || ColsAtCompileTime == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}),
+00160       EnableCoeff = IsOneByOne || Option==LazyProduct
+00161     \};
+00162     
+00163   \textcolor{keyword}{public}:
+00164   
+00165     EIGEN\_DEVICE\_FUNC Scalar coeff(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} row, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col)\textcolor{keyword}{ const}
+00166 \textcolor{keyword}{    }\{
+00167       EIGEN\_STATIC\_ASSERT(EnableCoeff, THIS\_METHOD\_IS\_ONLY\_FOR\_INNER\_OR\_LAZY\_PRODUCTS);
+00168       eigen\_assert( (Option==LazyProduct) || (this->rows() == 1 && this->cols() == 1) );
+00169       
+00170       \textcolor{keywordflow}{return} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{internal::evaluator<Derived>}(derived()).coeff(row,col);
+00171     \}
+00172 
+00173     EIGEN\_DEVICE\_FUNC Scalar coeff(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i)\textcolor{keyword}{ const}
+00174 \textcolor{keyword}{    }\{
+00175       EIGEN\_STATIC\_ASSERT(EnableCoeff, THIS\_METHOD\_IS\_ONLY\_FOR\_INNER\_OR\_LAZY\_PRODUCTS);
+00176       eigen\_assert( (Option==LazyProduct) || (this->rows() == 1 && this->cols() == 1) );
+00177       
+00178       \textcolor{keywordflow}{return} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{internal::evaluator<Derived>}(derived()).coeff(i);
+00179     \}
+00180     
+00181   
+00182 \};
+00183 
+00184 \} \textcolor{comment}{// end namespace Eigen}
+00185 
+00186 \textcolor{preprocessor}{#endif // EIGEN\_PRODUCT\_H}
+\end{DoxyCode}

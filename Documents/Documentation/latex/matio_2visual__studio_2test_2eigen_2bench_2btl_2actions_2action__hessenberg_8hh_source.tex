@@ -1,0 +1,239 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2bench_2btl_2actions_2action__hessenberg_8hh_source}{}\section{matio/visual\+\_\+studio/test/eigen/bench/btl/actions/action\+\_\+hessenberg.hh}
+\label{matio_2visual__studio_2test_2eigen_2bench_2btl_2actions_2action__hessenberg_8hh_source}\index{action\+\_\+hessenberg.\+hh@{action\+\_\+hessenberg.\+hh}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{//=====================================================}
+00002 \textcolor{comment}{// File   :  action\_hessenberg.hh}
+00003 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00004 \textcolor{comment}{//=====================================================}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This program is free software; you can redistribute it and/or}
+00007 \textcolor{comment}{// modify it under the terms of the GNU General Public License}
+00008 \textcolor{comment}{// as published by the Free Software Foundation; either version 2}
+00009 \textcolor{comment}{// of the License, or (at your option) any later version.}
+00010 \textcolor{comment}{//}
+00011 \textcolor{comment}{// This program is distributed in the hope that it will be useful,}
+00012 \textcolor{comment}{// but WITHOUT ANY WARRANTY; without even the implied warranty of}
+00013 \textcolor{comment}{// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the}
+00014 \textcolor{comment}{// GNU General Public License for more details.}
+00015 \textcolor{comment}{// You should have received a copy of the GNU General Public License}
+00016 \textcolor{comment}{// along with this program; if not, write to the Free Software}
+00017 \textcolor{comment}{// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.}
+00018 \textcolor{comment}{//}
+00019 \textcolor{preprocessor}{#ifndef ACTION\_HESSENBERG}
+00020 \textcolor{preprocessor}{#define ACTION\_HESSENBERG}
+00021 \textcolor{preprocessor}{#include "utilities.h"}
+00022 \textcolor{preprocessor}{#include "STL\_interface.hh"}
+00023 \textcolor{preprocessor}{#include <string>}
+00024 \textcolor{preprocessor}{#include "init/init\_function.hh"}
+00025 \textcolor{preprocessor}{#include "init/init\_vector.hh"}
+00026 \textcolor{preprocessor}{#include "init/init\_matrix.hh"}
+00027 
+00028 \textcolor{keyword}{using namespace }\hyperlink{namespacestd}{std};
+00029 
+00030 \textcolor{keyword}{template}<\textcolor{keyword}{class} Interface>
+00031 \textcolor{keyword}{class }\hyperlink{class_action__hessenberg}{Action\_hessenberg} \{
+00032 
+00033 public :
+00034 
+00035   \textcolor{comment}{// Ctor}
+00036 
+00037   \hyperlink{class_action__hessenberg}{Action\_hessenberg}( \textcolor{keywordtype}{int} size ):\_size(size)
+00038   \{
+00039     MESSAGE(\textcolor{stringliteral}{"Action\_hessenberg Ctor"});
+00040 
+00041     \textcolor{comment}{// STL vector initialization}
+00042     init\_matrix<pseudo\_random>(X\_stl,\_size);
+00043 
+00044     init\_matrix<null\_function>(C\_stl,\_size);
+00045     init\_matrix<null\_function>(resu\_stl,\_size);
+00046 
+00047     \textcolor{comment}{// generic matrix and vector initialization}
+00048     Interface::matrix\_from\_stl(X\_ref,X\_stl);
+00049     Interface::matrix\_from\_stl(X,X\_stl);
+00050     Interface::matrix\_from\_stl(C,C\_stl);
+00051 
+00052     \_cost = 0;
+00053     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<\_size-2; ++j)
+00054     \{
+00055       \textcolor{keywordtype}{double} r = std::max(0,\_size-j-1);
+00056       \textcolor{keywordtype}{double} b = std::max(0,\_size-j-2);
+00057       \_cost += 6 + 3*b + r*r*4 + r*\_size*4;
+00058     \}
+00059   \}
+00060 
+00061   \textcolor{comment}{// invalidate copy ctor}
+00062 
+00063   \hyperlink{class_action__hessenberg}{Action\_hessenberg}( \textcolor{keyword}{const}  \hyperlink{class_action__hessenberg}{Action\_hessenberg} & )
+00064   \{
+00065     INFOS(\textcolor{stringliteral}{"illegal call to Action\_hessenberg Copy Ctor"});
+00066     exit(1);
+00067   \}
+00068 
+00069   \textcolor{comment}{// Dtor}
+00070 
+00071   ~\hyperlink{class_action__hessenberg}{Action\_hessenberg}( \textcolor{keywordtype}{void} )\{
+00072 
+00073     MESSAGE(\textcolor{stringliteral}{"Action\_hessenberg Dtor"});
+00074 
+00075     \textcolor{comment}{// deallocation}
+00076     Interface::free\_matrix(X\_ref,\_size);
+00077     Interface::free\_matrix(X,\_size);
+00078     Interface::free\_matrix(C,\_size);
+00079   \}
+00080 
+00081   \textcolor{comment}{// action name}
+00082 
+00083   \textcolor{keyword}{static} \textcolor{keyword}{inline} std::string name( \textcolor{keywordtype}{void} )
+00084   \{
+00085     \textcolor{keywordflow}{return} \textcolor{stringliteral}{"hessenberg\_"}+Interface::name();
+00086   \}
+00087 
+00088   \textcolor{keywordtype}{double} nb\_op\_base( \textcolor{keywordtype}{void} )\{
+00089     \textcolor{keywordflow}{return} \_cost;
+00090   \}
+00091 
+00092   \textcolor{keyword}{inline} \textcolor{keywordtype}{void} initialize( \textcolor{keywordtype}{void} )\{
+00093     Interface::copy\_matrix(X\_ref,X,\_size);
+00094   \}
+00095 
+00096   \textcolor{keyword}{inline} \textcolor{keywordtype}{void} calculate( \textcolor{keywordtype}{void} ) \{
+00097       Interface::hessenberg(X,C,\_size);
+00098   \}
+00099 
+00100   \textcolor{keywordtype}{void} check\_result( \textcolor{keywordtype}{void} )\{
+00101     \textcolor{comment}{// calculation check}
+00102     Interface::matrix\_to\_stl(C,resu\_stl);
+00103 
+00104 \textcolor{comment}{//     STL\_interface<typename Interface::real\_type>::hessenberg(X\_stl,C\_stl,\_size);}
+00105 \textcolor{comment}{//}
+00106 \textcolor{comment}{//     typename Interface::real\_type error=}
+00107 \textcolor{comment}{//       STL\_interface<typename Interface::real\_type>::norm\_diff(C\_stl,resu\_stl);}
+00108 \textcolor{comment}{//}
+00109 \textcolor{comment}{//     if (error>1.e-6)\{}
+00110 \textcolor{comment}{//       INFOS("WRONG CALCULATION...residual=" << error);}
+00111 \textcolor{comment}{//       exit(0);}
+00112 \textcolor{comment}{//     \}}
+00113 
+00114   \}
+00115 
+00116 private :
+00117 
+00118   \textcolor{keyword}{typename} Interface::stl\_matrix X\_stl;
+00119   \textcolor{keyword}{typename} Interface::stl\_matrix C\_stl;
+00120   \textcolor{keyword}{typename} Interface::stl\_matrix resu\_stl;
+00121 
+00122   \textcolor{keyword}{typename} Interface::gene\_matrix X\_ref;
+00123   \textcolor{keyword}{typename} Interface::gene\_matrix X;
+00124   \textcolor{keyword}{typename} Interface::gene\_matrix C;
+00125 
+00126   \textcolor{keywordtype}{int} \_size;
+00127   \textcolor{keywordtype}{double} \_cost;
+00128 \};
+00129 
+00130 \textcolor{keyword}{template}<\textcolor{keyword}{class} Interface>
+00131 \textcolor{keyword}{class }\hyperlink{class_action__tridiagonalization}{Action\_tridiagonalization} \{
+00132 
+00133 public :
+00134 
+00135   \textcolor{comment}{// Ctor}
+00136 
+00137   \hyperlink{class_action__tridiagonalization}{Action\_tridiagonalization}( \textcolor{keywordtype}{int} size ):\_size(size)
+00138   \{
+00139     MESSAGE(\textcolor{stringliteral}{"Action\_tridiagonalization Ctor"});
+00140 
+00141     \textcolor{comment}{// STL vector initialization}
+00142     init\_matrix<pseudo\_random>(X\_stl,\_size);
+00143     
+00144     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<\_size; ++i)
+00145     \{
+00146       \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j=0; j<i; ++j)
+00147         X\_stl[i][j] = X\_stl[j][i];
+00148     \}
+00149     
+00150     init\_matrix<null\_function>(C\_stl,\_size);
+00151     init\_matrix<null\_function>(resu\_stl,\_size);
+00152 
+00153     \textcolor{comment}{// generic matrix and vector initialization}
+00154     Interface::matrix\_from\_stl(X\_ref,X\_stl);
+00155     Interface::matrix\_from\_stl(X,X\_stl);
+00156     Interface::matrix\_from\_stl(C,C\_stl);
+00157 
+00158     \_cost = 0;
+00159     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<\_size-2; ++j)
+00160     \{
+00161       \textcolor{keywordtype}{double} r = std::max(0,\_size-j-1);
+00162       \textcolor{keywordtype}{double} b = std::max(0,\_size-j-2);
+00163       \_cost += 6. + 3.*b + r*r*8.;
+00164     \}
+00165   \}
+00166 
+00167   \textcolor{comment}{// invalidate copy ctor}
+00168 
+00169   \hyperlink{class_action__tridiagonalization}{Action\_tridiagonalization}( \textcolor{keyword}{const}  
+      \hyperlink{class_action__tridiagonalization}{Action\_tridiagonalization} & )
+00170   \{
+00171     INFOS(\textcolor{stringliteral}{"illegal call to Action\_tridiagonalization Copy Ctor"});
+00172     exit(1);
+00173   \}
+00174 
+00175   \textcolor{comment}{// Dtor}
+00176 
+00177   ~\hyperlink{class_action__tridiagonalization}{Action\_tridiagonalization}( \textcolor{keywordtype}{void} )\{
+00178 
+00179     MESSAGE(\textcolor{stringliteral}{"Action\_tridiagonalization Dtor"});
+00180 
+00181     \textcolor{comment}{// deallocation}
+00182     Interface::free\_matrix(X\_ref,\_size);
+00183     Interface::free\_matrix(X,\_size);
+00184     Interface::free\_matrix(C,\_size);
+00185   \}
+00186 
+00187   \textcolor{comment}{// action name}
+00188 
+00189   \textcolor{keyword}{static} \textcolor{keyword}{inline} std::string name( \textcolor{keywordtype}{void} ) \{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"tridiagonalization\_"}+Interface::name(); \}
+00190 
+00191   \textcolor{keywordtype}{double} nb\_op\_base( \textcolor{keywordtype}{void} )\{
+00192     \textcolor{keywordflow}{return} \_cost;
+00193   \}
+00194 
+00195   \textcolor{keyword}{inline} \textcolor{keywordtype}{void} initialize( \textcolor{keywordtype}{void} )\{
+00196     Interface::copy\_matrix(X\_ref,X,\_size);
+00197   \}
+00198 
+00199   \textcolor{keyword}{inline} \textcolor{keywordtype}{void} calculate( \textcolor{keywordtype}{void} ) \{
+00200       Interface::tridiagonalization(X,C,\_size);
+00201   \}
+00202 
+00203   \textcolor{keywordtype}{void} check\_result( \textcolor{keywordtype}{void} )\{
+00204     \textcolor{comment}{// calculation check}
+00205     Interface::matrix\_to\_stl(C,resu\_stl);
+00206 
+00207 \textcolor{comment}{//     STL\_interface<typename Interface::real\_type>::tridiagonalization(X\_stl,C\_stl,\_size);}
+00208 \textcolor{comment}{//}
+00209 \textcolor{comment}{//     typename Interface::real\_type error=}
+00210 \textcolor{comment}{//       STL\_interface<typename Interface::real\_type>::norm\_diff(C\_stl,resu\_stl);}
+00211 \textcolor{comment}{//}
+00212 \textcolor{comment}{//     if (error>1.e-6)\{}
+00213 \textcolor{comment}{//       INFOS("WRONG CALCULATION...residual=" << error);}
+00214 \textcolor{comment}{//       exit(0);}
+00215 \textcolor{comment}{//     \}}
+00216 
+00217   \}
+00218 
+00219 private :
+00220 
+00221   \textcolor{keyword}{typename} Interface::stl\_matrix X\_stl;
+00222   \textcolor{keyword}{typename} Interface::stl\_matrix C\_stl;
+00223   \textcolor{keyword}{typename} Interface::stl\_matrix resu\_stl;
+00224 
+00225   \textcolor{keyword}{typename} Interface::gene\_matrix X\_ref;
+00226   \textcolor{keyword}{typename} Interface::gene\_matrix X;
+00227   \textcolor{keyword}{typename} Interface::gene\_matrix C;
+00228 
+00229   \textcolor{keywordtype}{int} \_size;
+00230   \textcolor{keywordtype}{double} \_cost;
+00231 \};
+00232 
+00233 \textcolor{preprocessor}{#endif}
+\end{DoxyCode}

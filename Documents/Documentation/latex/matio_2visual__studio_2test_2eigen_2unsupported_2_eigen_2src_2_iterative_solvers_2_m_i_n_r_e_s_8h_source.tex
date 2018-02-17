@@ -1,0 +1,245 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_m_i_n_r_e_s_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/src/\+Iterative\+Solvers/\+M\+I\+N\+R\+ES.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_m_i_n_r_e_s_8h_source}\index{M\+I\+N\+R\+E\+S.\+h@{M\+I\+N\+R\+E\+S.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2012 Giacomo Po <gpo@ucla.edu>}
+00005 \textcolor{comment}{// Copyright (C) 2011-2014 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 
+00012 \textcolor{preprocessor}{#ifndef EIGEN\_MINRES\_H\_}
+00013 \textcolor{preprocessor}{#define EIGEN\_MINRES\_H\_}
+00014 
+00015 
+00016 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00017     
+00018     \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00019         
+00029         \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Dest, \textcolor{keyword}{typename} Preconditioner>
+00030         EIGEN\_DONT\_INLINE
+00031         \textcolor{keywordtype}{void} minres(\textcolor{keyword}{const} MatrixType& mat, \textcolor{keyword}{const} Rhs& rhs, Dest& x,
+00032                     \textcolor{keyword}{const} Preconditioner& precond, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& iters,
+00033                     \textcolor{keyword}{typename} Dest::RealScalar& tol\_error)
+00034         \{
+00035             \textcolor{keyword}{using} std::sqrt;
+00036             \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Dest::RealScalar RealScalar;
+00037             \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Dest::Scalar Scalar;
+00038             \textcolor{keyword}{typedef} Matrix<Scalar,Dynamic,1> \hyperlink{struct_vector_type}{VectorType};
+00039 
+00040             \textcolor{comment}{// Check for zero rhs}
+00041             \textcolor{keyword}{const} RealScalar rhsNorm2(rhs.squaredNorm());
+00042             \textcolor{keywordflow}{if}(rhsNorm2 == 0)
+00043             \{
+00044                 x.setZero();
+00045                 iters = 0;
+00046                 tol\_error = 0;
+00047                 \textcolor{keywordflow}{return};
+00048             \}
+00049             
+00050             \textcolor{comment}{// initialize}
+00051             \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} maxIters(iters);  \textcolor{comment}{// initialize maxIters to iters}
+00052             \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} N(mat.cols());    \textcolor{comment}{// the size of the matrix}
+00053             \textcolor{keyword}{const} RealScalar threshold2(tol\_error*tol\_error*rhsNorm2); \textcolor{comment}{// convergence threshold (compared
+       to residualNorm2)}
+00054             
+00055             \textcolor{comment}{// Initialize preconditioned Lanczos}
+00056             VectorType v\_old(N); \textcolor{comment}{// will be initialized inside loop}
+00057             VectorType v( VectorType::Zero(N) ); \textcolor{comment}{//initialize v}
+00058             VectorType v\_new(rhs-mat*x); \textcolor{comment}{//initialize v\_new}
+00059             RealScalar residualNorm2(v\_new.squaredNorm());
+00060             VectorType w(N); \textcolor{comment}{// will be initialized inside loop}
+00061             VectorType w\_new(precond.solve(v\_new)); \textcolor{comment}{// initialize w\_new}
+00062 \textcolor{comment}{//            RealScalar beta; // will be initialized inside loop}
+00063             RealScalar beta\_new2(v\_new.dot(w\_new));
+00064             eigen\_assert(beta\_new2 >= 0.0 && \textcolor{stringliteral}{"PRECONDITIONER IS NOT POSITIVE DEFINITE"});
+00065             RealScalar beta\_new(sqrt(beta\_new2));
+00066             \textcolor{keyword}{const} RealScalar beta\_one(beta\_new);
+00067             v\_new /= beta\_new;
+00068             w\_new /= beta\_new;
+00069             \textcolor{comment}{// Initialize other variables}
+00070             RealScalar c(1.0); \textcolor{comment}{// the cosine of the Givens rotation}
+00071             RealScalar c\_old(1.0);
+00072             RealScalar s(0.0); \textcolor{comment}{// the sine of the Givens rotation}
+00073             RealScalar s\_old(0.0); \textcolor{comment}{// the sine of the Givens rotation}
+00074             VectorType p\_oold(N); \textcolor{comment}{// will be initialized in loop}
+00075             VectorType p\_old(VectorType::Zero(N)); \textcolor{comment}{// initialize p\_old=0}
+00076             VectorType p(p\_old); \textcolor{comment}{// initialize p=0}
+00077             RealScalar eta(1.0);
+00078                         
+00079             iters = 0; \textcolor{comment}{// reset iters}
+00080             \textcolor{keywordflow}{while} ( iters < maxIters )
+00081             \{
+00082                 \textcolor{comment}{// Preconditioned Lanczos}
+00083                 \textcolor{comment}{/* Note that there are 4 variants on the Lanczos algorithm. These are}
+00084 \textcolor{comment}{                 * described in Paige, C. C. (1972). Computational variants of}
+00085 \textcolor{comment}{                 * the Lanczos method for the eigenproblem. IMA Journal of Applied}
+00086 \textcolor{comment}{                 * Mathematics, 10(3), 373–381. The current implementation corresponds }
+00087 \textcolor{comment}{                 * to the case A(2,7) in the paper. It also corresponds to }
+00088 \textcolor{comment}{                 * algorithm 6.14 in Y. Saad, Iterative Methods ￼￼￼for Sparse Linear}
+00089 \textcolor{comment}{                 * Systems, 2003 p.173. For the preconditioned version see }
+00090 \textcolor{comment}{                 * A. Greenbaum, Iterative Methods for Solving Linear Systems, SIAM (1987).}
+00091 \textcolor{comment}{                 */}
+00092                 \textcolor{keyword}{const} RealScalar beta(beta\_new);
+00093                 v\_old = v; \textcolor{comment}{// update: at first time step, this makes v\_old = 0 so value of beta doesn't
+       matter}
+00094 \textcolor{comment}{//                const VectorType v\_old(v); // NOT SURE IF CREATING v\_old EVERY ITERATION IS EFFICIENT}
+00095                 v = v\_new; \textcolor{comment}{// update}
+00096                 w = w\_new; \textcolor{comment}{// update}
+00097 \textcolor{comment}{//                const VectorType w(w\_new); // NOT SURE IF CREATING w EVERY ITERATION IS EFFICIENT}
+00098                 v\_new.noalias() = mat*w - beta*v\_old; \textcolor{comment}{// compute v\_new}
+00099                 \textcolor{keyword}{const} RealScalar alpha = v\_new.dot(w);
+00100                 v\_new -= alpha*v; \textcolor{comment}{// overwrite v\_new}
+00101                 w\_new = precond.solve(v\_new); \textcolor{comment}{// overwrite w\_new}
+00102                 beta\_new2 = v\_new.dot(w\_new); \textcolor{comment}{// compute beta\_new}
+00103                 eigen\_assert(beta\_new2 >= 0.0 && \textcolor{stringliteral}{"PRECONDITIONER IS NOT POSITIVE DEFINITE"});
+00104                 beta\_new = sqrt(beta\_new2); \textcolor{comment}{// compute beta\_new}
+00105                 v\_new /= beta\_new; \textcolor{comment}{// overwrite v\_new for next iteration}
+00106                 w\_new /= beta\_new; \textcolor{comment}{// overwrite w\_new for next iteration}
+00107                 
+00108                 \textcolor{comment}{// Givens rotation}
+00109                 \textcolor{keyword}{const} RealScalar r2 =s*alpha+c*c\_old*beta; \textcolor{comment}{// s, s\_old, c and c\_old are still from previous
+       iteration}
+00110                 \textcolor{keyword}{const} RealScalar r3 =s\_old*beta; \textcolor{comment}{// s, s\_old, c and c\_old are still from previous iteration}
+00111                 \textcolor{keyword}{const} RealScalar r1\_hat=c*alpha-c\_old*s*beta;
+00112                 \textcolor{keyword}{const} RealScalar r1 =sqrt( std::pow(r1\_hat,2) + std::pow(beta\_new,2) );
+00113                 c\_old = c; \textcolor{comment}{// store for next iteration}
+00114                 s\_old = s; \textcolor{comment}{// store for next iteration}
+00115                 c=r1\_hat/r1; \textcolor{comment}{// new cosine}
+00116                 s=beta\_new/r1; \textcolor{comment}{// new sine}
+00117                 
+00118                 \textcolor{comment}{// Update solution}
+00119                 p\_oold = p\_old;
+00120 \textcolor{comment}{//                const VectorType p\_oold(p\_old); // NOT SURE IF CREATING p\_oold EVERY ITERATION IS
+       EFFICIENT}
+00121                 p\_old = p;
+00122                 p.noalias()=(w-r2*p\_old-r3*p\_oold) /r1; \textcolor{comment}{// IS NOALIAS REQUIRED?}
+00123                 x += beta\_one*c*eta*p;
+00124                 
+00125                 \textcolor{comment}{/* Update the squared residual. Note that this is the estimated residual.}
+00126 \textcolor{comment}{                The real residual |Ax-b|^2 may be slightly larger */}
+00127                 residualNorm2 *= s*s;
+00128                 
+00129                 \textcolor{keywordflow}{if} ( residualNorm2 < threshold2)
+00130                 \{
+00131                     \textcolor{keywordflow}{break};
+00132                 \}
+00133                 
+00134                 eta=-s*eta; \textcolor{comment}{// update eta}
+00135                 iters++; \textcolor{comment}{// increment iteration number (for output purposes)}
+00136             \}
+00137             
+00138             \textcolor{comment}{/* Compute error. Note that this is the estimated error. The real }
+00139 \textcolor{comment}{             error |Ax-b|/|b| may be slightly larger */}
+00140             tol\_error = std::sqrt(residualNorm2 / rhsNorm2);
+00141         \}
+00142         
+00143     \}
+00144     
+00145     \textcolor{keyword}{template}< \textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{int} \_UpLo=\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower},
+00146     \textcolor{keyword}{typename} \_Preconditioner = IdentityPreconditioner>
+00147     \textcolor{keyword}{class }MINRES;
+00148     
+00149     \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00150         
+00151         \textcolor{keyword}{template}< \textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{int} \_UpLo, \textcolor{keyword}{typename} \_Preconditioner>
+00152         \textcolor{keyword}{struct }traits<MINRES<\_MatrixType,\_UpLo,\_Preconditioner> >
+00153         \{
+00154             \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00155             \textcolor{keyword}{typedef} \_Preconditioner Preconditioner;
+00156         \};
+00157         
+00158     \}
+00159     
+00198     \textcolor{keyword}{template}< \textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{int} \_UpLo, \textcolor{keyword}{typename} \_Preconditioner>
+00199     \textcolor{keyword}{class }MINRES : \textcolor{keyword}{public} IterativeSolverBase<MINRES<\_MatrixType,\_UpLo,\_Preconditioner> >
+00200     \{
+00201         
+00202         \textcolor{keyword}{typedef} IterativeSolverBase<MINRES> Base;
+00203         \textcolor{keyword}{using} Base::matrix;
+00204         \textcolor{keyword}{using} Base::m\_error;
+00205         \textcolor{keyword}{using} Base::m\_iterations;
+00206         \textcolor{keyword}{using} Base::m\_info;
+00207         \textcolor{keyword}{using} Base::m\_isInitialized;
+00208     \textcolor{keyword}{public}:
+00209         \textcolor{keyword}{using} Base::\_solve\_impl;
+00210         \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00211         \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00212         \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00213         \textcolor{keyword}{typedef} \_Preconditioner Preconditioner;
+00214         
+00215         \textcolor{keyword}{enum} \{UpLo = \_UpLo\};
+00216         
+00217     \textcolor{keyword}{public}:
+00218         
+\Hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_m_i_n_r_e_s_8h_source_l00220}\hyperlink{group___iterative_linear_solvers___module_aa519021be1178a99f5f9ec633de9fc09}{00220}         \hyperlink{group___iterative_linear_solvers___module_aa519021be1178a99f5f9ec633de9fc09}{MINRES}() : Base() \{\}
+00221         
+00232         \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixDerived>
+\Hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_m_i_n_r_e_s_8h_source_l00233}\hyperlink{group___iterative_linear_solvers___module_a971bc758d11d1795d9e0abd3c958030b}{00233}         \textcolor{keyword}{explicit} \hyperlink{group___iterative_linear_solvers___module_a971bc758d11d1795d9e0abd3c958030b}{MINRES}(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<MatrixDerived>}& 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}) : Base(A.derived()) \{\}
+00234         
+\Hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_m_i_n_r_e_s_8h_source_l00236}\hyperlink{group___iterative_linear_solvers___module_a3f40ba58caac8b10ae7df474af93a05b}{00236}         \hyperlink{group___iterative_linear_solvers___module_a3f40ba58caac8b10ae7df474af93a05b}{~MINRES}()\{\}
+00237 
+00239         \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs,\textcolor{keyword}{typename} Dest>
+00240         \textcolor{keywordtype}{void} \_solve\_with\_guess\_impl(\textcolor{keyword}{const} Rhs& b, Dest& x)\textcolor{keyword}{ const}
+00241 \textcolor{keyword}{        }\{
+00242             \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1generic__matrix__wrapper}{Base::MatrixWrapper} 
+      \hyperlink{class_eigen_1_1internal_1_1generic__matrix__wrapper}{MatrixWrapper};
+00243             \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Base::ActualMatrixType ActualMatrixType;
+00244             \textcolor{keyword}{enum} \{
+00245               TransposeInput  =   (!MatrixWrapper::MatrixFree)
+00246                               &&  (UpLo==(\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}|\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}))
+00247                               &&  (!MatrixType::IsRowMajor)
+00248                               &&  (!\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsComplex})
+00249             \};
+00250             \textcolor{keyword}{typedef} \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1conditional}{internal::conditional<TransposeInput,Transpose<const ActualMatrixType>}
+      , ActualMatrixType \textcolor{keyword}{const}&>::type RowMajorWrapper;
+00251             EIGEN\_STATIC\_ASSERT(EIGEN\_IMPLIES(MatrixWrapper::MatrixFree,UpLo==(
+      \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}|\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper})),MATRIX\_FREE\_CONJUGATE\_GRADIENT\_IS\_COMPATIBLE\_WITH\_UPPER\_UNION\_LOWER\_MODE\_ONLY);
+00252             \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1conditional}{internal::conditional}<UpLo==(
+      \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}|\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}),
+00253                                                   RowMajorWrapper,
+00254                                                   \textcolor{keyword}{typename} MatrixWrapper::template 
+      ConstSelfAdjointViewReturnType<UpLo>::Type
+00255                                             >::type SelfAdjointWrapper;
+00256 
+00257             m\_iterations = Base::maxIterations();
+00258             m\_error = Base::m\_tolerance;
+00259             RowMajorWrapper row\_mat(matrix());
+00260             \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j=0; j<b.cols(); ++j)
+00261             \{
+00262                 m\_iterations = Base::maxIterations();
+00263                 m\_error = Base::m\_tolerance;
+00264                 
+00265                 \textcolor{keyword}{typename} Dest::ColXpr xj(x,j);
+00266                 internal::minres(SelfAdjointWrapper(row\_mat), b.col(j), xj,
+00267                                  Base::m\_preconditioner, m\_iterations, m\_error);
+00268             \}
+00269             
+00270             m\_isInitialized = \textcolor{keyword}{true};
+00271             m\_info = m\_error <= Base::m\_tolerance ? \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success} : 
+      \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaba1c8763d1179778070f365ecc4157a8}{NoConvergence};
+00272         \}
+00273         
+00275         \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs,\textcolor{keyword}{typename} Dest>
+00276         \textcolor{keywordtype}{void} \_solve\_impl(\textcolor{keyword}{const} Rhs& b, \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Dest>} &x)\textcolor{keyword}{ const}
+00277 \textcolor{keyword}{        }\{
+00278             x.\hyperlink{group___core___module_ac74411ddeea2545bf20baf14613be47e}{setZero}();
+00279             \_solve\_with\_guess\_impl(b,x.derived());
+00280         \}
+00281         
+00282     \textcolor{keyword}{protected}:
+00283         
+00284     \};
+00285 
+00286 \} \textcolor{comment}{// end namespace Eigen}
+00287 
+00288 \textcolor{preprocessor}{#endif // EIGEN\_MINRES\_H}
+00289 
+\end{DoxyCode}

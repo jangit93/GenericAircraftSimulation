@@ -1,0 +1,845 @@
+\hypertarget{zlib_2contrib_2puff_2puff_8c_source}{}\section{zlib/contrib/puff/puff.c}
+\label{zlib_2contrib_2puff_2puff_8c_source}\index{puff.\+c@{puff.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/*}
+00002 \textcolor{comment}{ * puff.c}
+00003 \textcolor{comment}{ * Copyright (C) 2002-2013 Mark Adler}
+00004 \textcolor{comment}{ * For conditions of distribution and use, see copyright notice in puff.h}
+00005 \textcolor{comment}{ * version 2.3, 21 Jan 2013}
+00006 \textcolor{comment}{ *}
+00007 \textcolor{comment}{ * puff.c is a simple inflate written to be an unambiguous way to specify the}
+00008 \textcolor{comment}{ * deflate format.  It is not written for speed but rather simplicity.  As a}
+00009 \textcolor{comment}{ * side benefit, this code might actually be useful when small code is more}
+00010 \textcolor{comment}{ * important than speed, such as bootstrap applications.  For typical deflate}
+00011 \textcolor{comment}{ * data, zlib's inflate() is about four times as fast as puff().  zlib's}
+00012 \textcolor{comment}{ * inflate compiles to around 20K on my machine, whereas puff.c compiles to}
+00013 \textcolor{comment}{ * around 4K on my machine (a PowerPC using GNU cc).  If the faster decode()}
+00014 \textcolor{comment}{ * function here is used, then puff() is only twice as slow as zlib's}
+00015 \textcolor{comment}{ * inflate().}
+00016 \textcolor{comment}{ *}
+00017 \textcolor{comment}{ * All dynamically allocated memory comes from the stack.  The stack required}
+00018 \textcolor{comment}{ * is less than 2K bytes.  This code is compatible with 16-bit int's and}
+00019 \textcolor{comment}{ * assumes that long's are at least 32 bits.  puff.c uses the short data type,}
+00020 \textcolor{comment}{ * assumed to be 16 bits, for arrays in order to conserve memory.  The code}
+00021 \textcolor{comment}{ * works whether integers are stored big endian or little endian.}
+00022 \textcolor{comment}{ *}
+00023 \textcolor{comment}{ * In the comments below are "Format notes" that describe the inflate process}
+00024 \textcolor{comment}{ * and document some of the less obvious aspects of the format.  This source}
+00025 \textcolor{comment}{ * code is meant to supplement RFC 1951, which formally describes the deflate}
+00026 \textcolor{comment}{ * format:}
+00027 \textcolor{comment}{ *}
+00028 \textcolor{comment}{ *    http://www.zlib.org/rfc-deflate.html}
+00029 \textcolor{comment}{ */}
+00030 
+00031 \textcolor{comment}{/*}
+00032 \textcolor{comment}{ * Change history:}
+00033 \textcolor{comment}{ *}
+00034 \textcolor{comment}{ * 1.0  10 Feb 2002     - First version}
+00035 \textcolor{comment}{ * 1.1  17 Feb 2002     - Clarifications of some comments and notes}
+00036 \textcolor{comment}{ *                      - Update puff() dest and source pointers on negative}
+00037 \textcolor{comment}{ *                        errors to facilitate debugging deflators}
+00038 \textcolor{comment}{ *                      - Remove longest from struct huffman -- not needed}
+00039 \textcolor{comment}{ *                      - Simplify offs[] index in construct()}
+00040 \textcolor{comment}{ *                      - Add input size and checking, using longjmp() to}
+00041 \textcolor{comment}{ *                        maintain easy readability}
+00042 \textcolor{comment}{ *                      - Use short data type for large arrays}
+00043 \textcolor{comment}{ *                      - Use pointers instead of long to specify source and}
+00044 \textcolor{comment}{ *                        destination sizes to avoid arbitrary 4 GB limits}
+00045 \textcolor{comment}{ * 1.2  17 Mar 2002     - Add faster version of decode(), doubles speed (!),}
+00046 \textcolor{comment}{ *                        but leave simple version for readabilty}
+00047 \textcolor{comment}{ *                      - Make sure invalid distances detected if pointers}
+00048 \textcolor{comment}{ *                        are 16 bits}
+00049 \textcolor{comment}{ *                      - Fix fixed codes table error}
+00050 \textcolor{comment}{ *                      - Provide a scanning mode for determining size of}
+00051 \textcolor{comment}{ *                        uncompressed data}
+00052 \textcolor{comment}{ * 1.3  20 Mar 2002     - Go back to lengths for puff() parameters [Gailly]}
+00053 \textcolor{comment}{ *                      - Add a puff.h file for the interface}
+00054 \textcolor{comment}{ *                      - Add braces in puff() for else do [Gailly]}
+00055 \textcolor{comment}{ *                      - Use indexes instead of pointers for readability}
+00056 \textcolor{comment}{ * 1.4  31 Mar 2002     - Simplify construct() code set check}
+00057 \textcolor{comment}{ *                      - Fix some comments}
+00058 \textcolor{comment}{ *                      - Add FIXLCODES #define}
+00059 \textcolor{comment}{ * 1.5   6 Apr 2002     - Minor comment fixes}
+00060 \textcolor{comment}{ * 1.6   7 Aug 2002     - Minor format changes}
+00061 \textcolor{comment}{ * 1.7   3 Mar 2003     - Added test code for distribution}
+00062 \textcolor{comment}{ *                      - Added zlib-like license}
+00063 \textcolor{comment}{ * 1.8   9 Jan 2004     - Added some comments on no distance codes case}
+00064 \textcolor{comment}{ * 1.9  21 Feb 2008     - Fix bug on 16-bit integer architectures [Pohland]}
+00065 \textcolor{comment}{ *                      - Catch missing end-of-block symbol error}
+00066 \textcolor{comment}{ * 2.0  25 Jul 2008     - Add #define to permit distance too far back}
+00067 \textcolor{comment}{ *                      - Add option in TEST code for puff to write the data}
+00068 \textcolor{comment}{ *                      - Add option in TEST code to skip input bytes}
+00069 \textcolor{comment}{ *                      - Allow TEST code to read from piped stdin}
+00070 \textcolor{comment}{ * 2.1   4 Apr 2010     - Avoid variable initialization for happier compilers}
+00071 \textcolor{comment}{ *                      - Avoid unsigned comparisons for even happier compilers}
+00072 \textcolor{comment}{ * 2.2  25 Apr 2010     - Fix bug in variable initializations [Oberhumer]}
+00073 \textcolor{comment}{ *                      - Add const where appropriate [Oberhumer]}
+00074 \textcolor{comment}{ *                      - Split if's and ?'s for coverage testing}
+00075 \textcolor{comment}{ *                      - Break out test code to separate file}
+00076 \textcolor{comment}{ *                      - Move NIL to puff.h}
+00077 \textcolor{comment}{ *                      - Allow incomplete code only if single code length is 1}
+00078 \textcolor{comment}{ *                      - Add full code coverage test to Makefile}
+00079 \textcolor{comment}{ * 2.3  21 Jan 2013     - Check for invalid code length codes in dynamic blocks}
+00080 \textcolor{comment}{ */}
+00081 
+00082 \textcolor{preprocessor}{#include <setjmp.h>}             \textcolor{comment}{/* for setjmp(), longjmp(), and jmp\_buf */}
+00083 \textcolor{preprocessor}{#include "puff.h"}               \textcolor{comment}{/* prototype for puff() */}
+00084 
+00085 \textcolor{preprocessor}{#define local static            }\textcolor{comment}{/* for local function definitions */}\textcolor{preprocessor}{}
+00086 
+00087 \textcolor{comment}{/*}
+00088 \textcolor{comment}{ * Maximums for allocations and loops.  It is not useful to change these --}
+00089 \textcolor{comment}{ * they are fixed by the deflate format.}
+00090 \textcolor{comment}{ */}
+00091 \textcolor{preprocessor}{#define MAXBITS 15              }\textcolor{comment}{/* maximum bits in a code */}\textcolor{preprocessor}{}
+00092 \textcolor{preprocessor}{#define MAXLCODES 286           }\textcolor{comment}{/* maximum number of literal/length codes */}\textcolor{preprocessor}{}
+00093 \textcolor{preprocessor}{#define MAXDCODES 30            }\textcolor{comment}{/* maximum number of distance codes */}\textcolor{preprocessor}{}
+00094 \textcolor{preprocessor}{#define MAXCODES (MAXLCODES+MAXDCODES)  }\textcolor{comment}{/* maximum codes lengths to read */}\textcolor{preprocessor}{}
+00095 \textcolor{preprocessor}{#define FIXLCODES 288           }\textcolor{comment}{/* number of fixed literal/length codes */}\textcolor{preprocessor}{}
+00096 
+00097 \textcolor{comment}{/* input and output state */}
+00098 \textcolor{keyword}{struct }\hyperlink{structstate}{state} \{
+00099     \textcolor{comment}{/* output state */}
+00100     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *out;         \textcolor{comment}{/* output buffer */}
+00101     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} outlen;       \textcolor{comment}{/* available space at out */}
+00102     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} outcnt;       \textcolor{comment}{/* bytes written to out so far */}
+00103 
+00104     \textcolor{comment}{/* input state */}
+00105     \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *in;    \textcolor{comment}{/* input buffer */}
+00106     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} inlen;        \textcolor{comment}{/* available input at in */}
+00107     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} incnt;        \textcolor{comment}{/* bytes read so far */}
+00108     \textcolor{keywordtype}{int} bitbuf;                 \textcolor{comment}{/* bit buffer */}
+00109     \textcolor{keywordtype}{int} bitcnt;                 \textcolor{comment}{/* number of bits in bit buffer */}
+00110 
+00111     \textcolor{comment}{/* input limit error return state for bits() and decode() */}
+00112     jmp\_buf env;
+00113 \};
+00114 
+00115 \textcolor{comment}{/*}
+00116 \textcolor{comment}{ * Return need bits from the input stream.  This always leaves less than}
+00117 \textcolor{comment}{ * eight bits in the buffer.  bits() works properly for need == 0.}
+00118 \textcolor{comment}{ *}
+00119 \textcolor{comment}{ * Format notes:}
+00120 \textcolor{comment}{ *}
+00121 \textcolor{comment}{ * - Bits are stored in bytes from the least significant bit to the most}
+00122 \textcolor{comment}{ *   significant bit.  Therefore bits are dropped from the bottom of the bit}
+00123 \textcolor{comment}{ *   buffer, using shift right, and new bytes are appended to the top of the}
+00124 \textcolor{comment}{ *   bit buffer, using shift left.}
+00125 \textcolor{comment}{ */}
+00126 local \textcolor{keywordtype}{int} bits(\textcolor{keyword}{struct} \hyperlink{structstate}{state} *s, \textcolor{keywordtype}{int} need)
+00127 \{
+00128     \textcolor{keywordtype}{long} val;           \textcolor{comment}{/* bit accumulator (can use up to 20 bits) */}
+00129 
+00130     \textcolor{comment}{/* load at least need bits into val */}
+00131     val = s->bitbuf;
+00132     \textcolor{keywordflow}{while} (s->bitcnt < need) \{
+00133         \textcolor{keywordflow}{if} (s->incnt == s->inlen)
+00134             longjmp(s->env, 1);         \textcolor{comment}{/* out of input */}
+00135         val |= (long)(s->in[s->incnt++]) << s->bitcnt;  \textcolor{comment}{/* load eight bits */}
+00136         s->bitcnt += 8;
+00137     \}
+00138 
+00139     \textcolor{comment}{/* drop need bits and update buffer, always zero to seven bits left */}
+00140     s->bitbuf = (int)(val >> need);
+00141     s->bitcnt -= need;
+00142 
+00143     \textcolor{comment}{/* return need bits, zeroing the bits above that */}
+00144     \textcolor{keywordflow}{return} (\textcolor{keywordtype}{int})(val & ((1L << need) - 1));
+00145 \}
+00146 
+00147 \textcolor{comment}{/*}
+00148 \textcolor{comment}{ * Process a stored block.}
+00149 \textcolor{comment}{ *}
+00150 \textcolor{comment}{ * Format notes:}
+00151 \textcolor{comment}{ *}
+00152 \textcolor{comment}{ * - After the two-bit stored block type (00), the stored block length and}
+00153 \textcolor{comment}{ *   stored bytes are byte-aligned for fast copying.  Therefore any leftover}
+00154 \textcolor{comment}{ *   bits in the byte that has the last bit of the type, as many as seven, are}
+00155 \textcolor{comment}{ *   discarded.  The value of the discarded bits are not defined and should not}
+00156 \textcolor{comment}{ *   be checked against any expectation.}
+00157 \textcolor{comment}{ *}
+00158 \textcolor{comment}{ * - The second inverted copy of the stored block length does not have to be}
+00159 \textcolor{comment}{ *   checked, but it's probably a good idea to do so anyway.}
+00160 \textcolor{comment}{ *}
+00161 \textcolor{comment}{ * - A stored block can have zero length.  This is sometimes used to byte-align}
+00162 \textcolor{comment}{ *   subsets of the compressed data for random access or partial recovery.}
+00163 \textcolor{comment}{ */}
+00164 local \textcolor{keywordtype}{int} stored(\textcolor{keyword}{struct} \hyperlink{structstate}{state} *s)
+00165 \{
+00166     \textcolor{keywordtype}{unsigned} len;       \textcolor{comment}{/* length of stored block */}
+00167 
+00168     \textcolor{comment}{/* discard leftover bits from current byte (assumes s->bitcnt < 8) */}
+00169     s->bitbuf = 0;
+00170     s->bitcnt = 0;
+00171 
+00172     \textcolor{comment}{/* get length and check against its one's complement */}
+00173     \textcolor{keywordflow}{if} (s->incnt + 4 > s->inlen)
+00174         \textcolor{keywordflow}{return} 2;                               \textcolor{comment}{/* not enough input */}
+00175     len = s->in[s->incnt++];
+00176     len |= s->in[s->incnt++] << 8;
+00177     \textcolor{keywordflow}{if} (s->in[s->incnt++] != (~len & 0xff) ||
+00178         s->in[s->incnt++] != ((~len >> 8) & 0xff))
+00179         \textcolor{keywordflow}{return} -2;                              \textcolor{comment}{/* didn't match complement! */}
+00180 
+00181     \textcolor{comment}{/* copy len bytes from in to out */}
+00182     \textcolor{keywordflow}{if} (s->incnt + len > s->inlen)
+00183         \textcolor{keywordflow}{return} 2;                               \textcolor{comment}{/* not enough input */}
+00184     \textcolor{keywordflow}{if} (s->out != NIL) \{
+00185         \textcolor{keywordflow}{if} (s->outcnt + len > s->outlen)
+00186             \textcolor{keywordflow}{return} 1;                           \textcolor{comment}{/* not enough output space */}
+00187         \textcolor{keywordflow}{while} (len--)
+00188             s->out[s->outcnt++] = s->in[s->incnt++];
+00189     \}
+00190     \textcolor{keywordflow}{else} \{                                      \textcolor{comment}{/* just scanning */}
+00191         s->outcnt += len;
+00192         s->incnt += len;
+00193     \}
+00194 
+00195     \textcolor{comment}{/* done with a valid stored block */}
+00196     \textcolor{keywordflow}{return} 0;
+00197 \}
+00198 
+00199 \textcolor{comment}{/*}
+00200 \textcolor{comment}{ * Huffman code decoding tables.  count[1..MAXBITS] is the number of symbols of}
+00201 \textcolor{comment}{ * each length, which for a canonical code are stepped through in order.}
+00202 \textcolor{comment}{ * symbol[] are the symbol values in canonical order, where the number of}
+00203 \textcolor{comment}{ * entries is the sum of the counts in count[].  The decoding process can be}
+00204 \textcolor{comment}{ * seen in the function decode() below.}
+00205 \textcolor{comment}{ */}
+00206 \textcolor{keyword}{struct }\hyperlink{structhuffman}{huffman} \{
+00207     \textcolor{keywordtype}{short} *count;       \textcolor{comment}{/* number of symbols of each length */}
+00208     \textcolor{keywordtype}{short} *symbol;      \textcolor{comment}{/* canonically ordered symbols */}
+00209 \};
+00210 
+00211 \textcolor{comment}{/*}
+00212 \textcolor{comment}{ * Decode a code from the stream s using huffman table h.  Return the symbol or}
+00213 \textcolor{comment}{ * a negative value if there is an error.  If all of the lengths are zero, i.e.}
+00214 \textcolor{comment}{ * an empty code, or if the code is incomplete and an invalid code is received,}
+00215 \textcolor{comment}{ * then -10 is returned after reading MAXBITS bits.}
+00216 \textcolor{comment}{ *}
+00217 \textcolor{comment}{ * Format notes:}
+00218 \textcolor{comment}{ *}
+00219 \textcolor{comment}{ * - The codes as stored in the compressed data are bit-reversed relative to}
+00220 \textcolor{comment}{ *   a simple integer ordering of codes of the same lengths.  Hence below the}
+00221 \textcolor{comment}{ *   bits are pulled from the compressed data one at a time and used to}
+00222 \textcolor{comment}{ *   build the code value reversed from what is in the stream in order to}
+00223 \textcolor{comment}{ *   permit simple integer comparisons for decoding.  A table-based decoding}
+00224 \textcolor{comment}{ *   scheme (as used in zlib) does not need to do this reversal.}
+00225 \textcolor{comment}{ *}
+00226 \textcolor{comment}{ * - The first code for the shortest length is all zeros.  Subsequent codes of}
+00227 \textcolor{comment}{ *   the same length are simply integer increments of the previous code.  When}
+00228 \textcolor{comment}{ *   moving up a length, a zero bit is appended to the code.  For a complete}
+00229 \textcolor{comment}{ *   code, the last code of the longest length will be all ones.}
+00230 \textcolor{comment}{ *}
+00231 \textcolor{comment}{ * - Incomplete codes are handled by this decoder, since they are permitted}
+00232 \textcolor{comment}{ *   in the deflate format.  See the format notes for fixed() and dynamic().}
+00233 \textcolor{comment}{ */}
+00234 \textcolor{preprocessor}{#ifdef SLOW}
+00235 local \textcolor{keywordtype}{int} decode(\textcolor{keyword}{struct} \hyperlink{structstate}{state} *s, \textcolor{keyword}{const} \textcolor{keyword}{struct} \hyperlink{structhuffman}{huffman} *h)
+00236 \{
+00237     \textcolor{keywordtype}{int} len;            \textcolor{comment}{/* current number of bits in code */}
+00238     \textcolor{keywordtype}{int} \hyperlink{structcode}{code};           \textcolor{comment}{/* len bits being decoded */}
+00239     \textcolor{keywordtype}{int} first;          \textcolor{comment}{/* first code of length len */}
+00240     \textcolor{keywordtype}{int} count;          \textcolor{comment}{/* number of codes of length len */}
+00241     \textcolor{keywordtype}{int} index;          \textcolor{comment}{/* index of first code of length len in symbol table */}
+00242 
+00243     code = first = index = 0;
+00244     \textcolor{keywordflow}{for} (len = 1; len <= MAXBITS; len++) \{
+00245         code |= bits(s, 1);             \textcolor{comment}{/* get next bit */}
+00246         count = h->count[len];
+00247         \textcolor{keywordflow}{if} (code - count < first)       \textcolor{comment}{/* if length len, return symbol */}
+00248             \textcolor{keywordflow}{return} h->symbol[index + (code - first)];
+00249         index += count;                 \textcolor{comment}{/* else update for next length */}
+00250         first += count;
+00251         first <<= 1;
+00252         code <<= 1;
+00253     \}
+00254     \textcolor{keywordflow}{return} -10;                         \textcolor{comment}{/* ran out of codes */}
+00255 \}
+00256 
+00257 \textcolor{comment}{/*}
+00258 \textcolor{comment}{ * A faster version of decode() for real applications of this code.   It's not}
+00259 \textcolor{comment}{ * as readable, but it makes puff() twice as fast.  And it only makes the code}
+00260 \textcolor{comment}{ * a few percent larger.}
+00261 \textcolor{comment}{ */}
+00262 \textcolor{preprocessor}{#else }\textcolor{comment}{/* !SLOW */}\textcolor{preprocessor}{}
+00263 local \textcolor{keywordtype}{int} decode(\textcolor{keyword}{struct} \hyperlink{structstate}{state} *s, \textcolor{keyword}{const} \textcolor{keyword}{struct} \hyperlink{structhuffman}{huffman} *h)
+00264 \{
+00265     \textcolor{keywordtype}{int} len;            \textcolor{comment}{/* current number of bits in code */}
+00266     \textcolor{keywordtype}{int} code;           \textcolor{comment}{/* len bits being decoded */}
+00267     \textcolor{keywordtype}{int} first;          \textcolor{comment}{/* first code of length len */}
+00268     \textcolor{keywordtype}{int} count;          \textcolor{comment}{/* number of codes of length len */}
+00269     \textcolor{keywordtype}{int} index;          \textcolor{comment}{/* index of first code of length len in symbol table */}
+00270     \textcolor{keywordtype}{int} bitbuf;         \textcolor{comment}{/* bits from stream */}
+00271     \textcolor{keywordtype}{int} left;           \textcolor{comment}{/* bits left in next or left to process */}
+00272     \textcolor{keywordtype}{short} *next;        \textcolor{comment}{/* next number of codes */}
+00273 
+00274     bitbuf = s->bitbuf;
+00275     left = s->bitcnt;
+00276     code = first = index = 0;
+00277     len = 1;
+00278     next = h->count + 1;
+00279     \textcolor{keywordflow}{while} (1) \{
+00280         \textcolor{keywordflow}{while} (left--) \{
+00281             code |= bitbuf & 1;
+00282             bitbuf >>= 1;
+00283             count = *next++;
+00284             \textcolor{keywordflow}{if} (code - count < first) \{ \textcolor{comment}{/* if length len, return symbol */}
+00285                 s->bitbuf = bitbuf;
+00286                 s->bitcnt = (s->bitcnt - len) & 7;
+00287                 \textcolor{keywordflow}{return} h->symbol[index + (code - first)];
+00288             \}
+00289             index += count;             \textcolor{comment}{/* else update for next length */}
+00290             first += count;
+00291             first <<= 1;
+00292             code <<= 1;
+00293             len++;
+00294         \}
+00295         left = (MAXBITS+1) - len;
+00296         \textcolor{keywordflow}{if} (left == 0)
+00297             \textcolor{keywordflow}{break};
+00298         \textcolor{keywordflow}{if} (s->incnt == s->inlen)
+00299             longjmp(s->env, 1);         \textcolor{comment}{/* out of input */}
+00300         bitbuf = s->in[s->incnt++];
+00301         \textcolor{keywordflow}{if} (left > 8)
+00302             left = 8;
+00303     \}
+00304     \textcolor{keywordflow}{return} -10;                         \textcolor{comment}{/* ran out of codes */}
+00305 \}
+00306 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* SLOW */}\textcolor{preprocessor}{}
+00307 
+00308 \textcolor{comment}{/*}
+00309 \textcolor{comment}{ * Given the list of code lengths length[0..n-1] representing a canonical}
+00310 \textcolor{comment}{ * Huffman code for n symbols, construct the tables required to decode those}
+00311 \textcolor{comment}{ * codes.  Those tables are the number of codes of each length, and the symbols}
+00312 \textcolor{comment}{ * sorted by length, retaining their original order within each length.  The}
+00313 \textcolor{comment}{ * return value is zero for a complete code set, negative for an over-}
+00314 \textcolor{comment}{ * subscribed code set, and positive for an incomplete code set.  The tables}
+00315 \textcolor{comment}{ * can be used if the return value is zero or positive, but they cannot be used}
+00316 \textcolor{comment}{ * if the return value is negative.  If the return value is zero, it is not}
+00317 \textcolor{comment}{ * possible for decode() using that table to return an error--any stream of}
+00318 \textcolor{comment}{ * enough bits will resolve to a symbol.  If the return value is positive, then}
+00319 \textcolor{comment}{ * it is possible for decode() using that table to return an error for received}
+00320 \textcolor{comment}{ * codes past the end of the incomplete lengths.}
+00321 \textcolor{comment}{ *}
+00322 \textcolor{comment}{ * Not used by decode(), but used for error checking, h->count[0] is the number}
+00323 \textcolor{comment}{ * of the n symbols not in the code.  So n - h->count[0] is the number of}
+00324 \textcolor{comment}{ * codes.  This is useful for checking for incomplete codes that have more than}
+00325 \textcolor{comment}{ * one symbol, which is an error in a dynamic block.}
+00326 \textcolor{comment}{ *}
+00327 \textcolor{comment}{ * Assumption: for all i in 0..n-1, 0 <= length[i] <= MAXBITS}
+00328 \textcolor{comment}{ * This is assured by the construction of the length arrays in dynamic() and}
+00329 \textcolor{comment}{ * fixed() and is not verified by construct().}
+00330 \textcolor{comment}{ *}
+00331 \textcolor{comment}{ * Format notes:}
+00332 \textcolor{comment}{ *}
+00333 \textcolor{comment}{ * - Permitted and expected examples of incomplete codes are one of the fixed}
+00334 \textcolor{comment}{ *   codes and any code with a single symbol which in deflate is coded as one}
+00335 \textcolor{comment}{ *   bit instead of zero bits.  See the format notes for fixed() and dynamic().}
+00336 \textcolor{comment}{ *}
+00337 \textcolor{comment}{ * - Within a given code length, the symbols are kept in ascending order for}
+00338 \textcolor{comment}{ *   the code bits definition.}
+00339 \textcolor{comment}{ */}
+00340 local \textcolor{keywordtype}{int} construct(\textcolor{keyword}{struct} \hyperlink{structhuffman}{huffman} *h, \textcolor{keyword}{const} \textcolor{keywordtype}{short} *length, \textcolor{keywordtype}{int} n)
+00341 \{
+00342     \textcolor{keywordtype}{int} symbol;         \textcolor{comment}{/* current symbol when stepping through length[] */}
+00343     \textcolor{keywordtype}{int} len;            \textcolor{comment}{/* current length when stepping through h->count[] */}
+00344     \textcolor{keywordtype}{int} left;           \textcolor{comment}{/* number of possible codes left of current length */}
+00345     \textcolor{keywordtype}{short} offs[MAXBITS+1];      \textcolor{comment}{/* offsets in symbol table for each length */}
+00346 
+00347     \textcolor{comment}{/* count number of codes of each length */}
+00348     \textcolor{keywordflow}{for} (len = 0; len <= MAXBITS; len++)
+00349         h->count[len] = 0;
+00350     for (symbol = 0; symbol < n; symbol++)
+00351         (h->count[length[symbol]])++;   \textcolor{comment}{/* assumes lengths are within bounds */}
+00352     \textcolor{keywordflow}{if} (h->count[0] == n)               \textcolor{comment}{/* no codes! */}
+00353         \textcolor{keywordflow}{return} 0;                       \textcolor{comment}{/* complete, but decode() will fail */}
+00354 
+00355     \textcolor{comment}{/* check for an over-subscribed or incomplete set of lengths */}
+00356     left = 1;                           \textcolor{comment}{/* one possible code of zero length */}
+00357     \textcolor{keywordflow}{for} (len = 1; len <= MAXBITS; len++) \{
+00358         left <<= 1;                     \textcolor{comment}{/* one more bit, double codes left */}
+00359         left -= h->count[len];          \textcolor{comment}{/* deduct count from possible codes */}
+00360         \textcolor{keywordflow}{if} (left < 0)
+00361             \textcolor{keywordflow}{return} left;                \textcolor{comment}{/* over-subscribed--return negative */}
+00362     \}                                   \textcolor{comment}{/* left > 0 means incomplete */}
+00363 
+00364     \textcolor{comment}{/* generate offsets into symbol table for each length for sorting */}
+00365     offs[1] = 0;
+00366     \textcolor{keywordflow}{for} (len = 1; len < MAXBITS; len++)
+00367         offs[len + 1] = offs[len] + h->count[len];
+00368 
+00369     \textcolor{comment}{/*}
+00370 \textcolor{comment}{     * put symbols in table sorted by length, by symbol order within each}
+00371 \textcolor{comment}{     * length}
+00372 \textcolor{comment}{     */}
+00373     for (symbol = 0; symbol < n; symbol++)
+00374         \textcolor{keywordflow}{if} (length[symbol] != 0)
+00375             h->symbol[offs[length[symbol]]++] = symbol;
+00376 
+00377     \textcolor{comment}{/* return zero for complete set, positive for incomplete set */}
+00378     \textcolor{keywordflow}{return} left;
+00379 \}
+00380 
+00381 \textcolor{comment}{/*}
+00382 \textcolor{comment}{ * Decode literal/length and distance codes until an end-of-block code.}
+00383 \textcolor{comment}{ *}
+00384 \textcolor{comment}{ * Format notes:}
+00385 \textcolor{comment}{ *}
+00386 \textcolor{comment}{ * - Compressed data that is after the block type if fixed or after the code}
+00387 \textcolor{comment}{ *   description if dynamic is a combination of literals and length/distance}
+00388 \textcolor{comment}{ *   pairs terminated by and end-of-block code.  Literals are simply Huffman}
+00389 \textcolor{comment}{ *   coded bytes.  A length/distance pair is a coded length followed by a}
+00390 \textcolor{comment}{ *   coded distance to represent a string that occurs earlier in the}
+00391 \textcolor{comment}{ *   uncompressed data that occurs again at the current location.}
+00392 \textcolor{comment}{ *}
+00393 \textcolor{comment}{ * - Literals, lengths, and the end-of-block code are combined into a single}
+00394 \textcolor{comment}{ *   code of up to 286 symbols.  They are 256 literals (0..255), 29 length}
+00395 \textcolor{comment}{ *   symbols (257..285), and the end-of-block symbol (256).}
+00396 \textcolor{comment}{ *}
+00397 \textcolor{comment}{ * - There are 256 possible lengths (3..258), and so 29 symbols are not enough}
+00398 \textcolor{comment}{ *   to represent all of those.  Lengths 3..10 and 258 are in fact represented}
+00399 \textcolor{comment}{ *   by just a length symbol.  Lengths 11..257 are represented as a symbol and}
+00400 \textcolor{comment}{ *   some number of extra bits that are added as an integer to the base length}
+00401 \textcolor{comment}{ *   of the length symbol.  The number of extra bits is determined by the base}
+00402 \textcolor{comment}{ *   length symbol.  These are in the static arrays below, lens[] for the base}
+00403 \textcolor{comment}{ *   lengths and lext[] for the corresponding number of extra bits.}
+00404 \textcolor{comment}{ *}
+00405 \textcolor{comment}{ * - The reason that 258 gets its own symbol is that the longest length is used}
+00406 \textcolor{comment}{ *   often in highly redundant files.  Note that 258 can also be coded as the}
+00407 \textcolor{comment}{ *   base value 227 plus the maximum extra value of 31.  While a good deflate}
+00408 \textcolor{comment}{ *   should never do this, it is not an error, and should be decoded properly.}
+00409 \textcolor{comment}{ *}
+00410 \textcolor{comment}{ * - If a length is decoded, including its extra bits if any, then it is}
+00411 \textcolor{comment}{ *   followed a distance code.  There are up to 30 distance symbols.  Again}
+00412 \textcolor{comment}{ *   there are many more possible distances (1..32768), so extra bits are added}
+00413 \textcolor{comment}{ *   to a base value represented by the symbol.  The distances 1..4 get their}
+00414 \textcolor{comment}{ *   own symbol, but the rest require extra bits.  The base distances and}
+00415 \textcolor{comment}{ *   corresponding number of extra bits are below in the static arrays dist[]}
+00416 \textcolor{comment}{ *   and dext[].}
+00417 \textcolor{comment}{ *}
+00418 \textcolor{comment}{ * - Literal bytes are simply written to the output.  A length/distance pair is}
+00419 \textcolor{comment}{ *   an instruction to copy previously uncompressed bytes to the output.  The}
+00420 \textcolor{comment}{ *   copy is from distance bytes back in the output stream, copying for length}
+00421 \textcolor{comment}{ *   bytes.}
+00422 \textcolor{comment}{ *}
+00423 \textcolor{comment}{ * - Distances pointing before the beginning of the output data are not}
+00424 \textcolor{comment}{ *   permitted.}
+00425 \textcolor{comment}{ *}
+00426 \textcolor{comment}{ * - Overlapped copies, where the length is greater than the distance, are}
+00427 \textcolor{comment}{ *   allowed and common.  For example, a distance of one and a length of 258}
+00428 \textcolor{comment}{ *   simply copies the last byte 258 times.  A distance of four and a length of}
+00429 \textcolor{comment}{ *   twelve copies the last four bytes three times.  A simple forward copy}
+00430 \textcolor{comment}{ *   ignoring whether the length is greater than the distance or not implements}
+00431 \textcolor{comment}{ *   this correctly.  You should not use memcpy() since its behavior is not}
+00432 \textcolor{comment}{ *   defined for overlapped arrays.  You should not use memmove() or bcopy()}
+00433 \textcolor{comment}{ *   since though their behavior -is- defined for overlapping arrays, it is}
+00434 \textcolor{comment}{ *   defined to do the wrong thing in this case.}
+00435 \textcolor{comment}{ */}
+00436 local \textcolor{keywordtype}{int} codes(\textcolor{keyword}{struct} \hyperlink{structstate}{state} *s,
+00437                 \textcolor{keyword}{const} \textcolor{keyword}{struct} \hyperlink{structhuffman}{huffman} *lencode,
+00438                 \textcolor{keyword}{const} \textcolor{keyword}{struct} \hyperlink{structhuffman}{huffman} *distcode)
+00439 \{
+00440     \textcolor{keywordtype}{int} symbol;         \textcolor{comment}{/* decoded symbol */}
+00441     \textcolor{keywordtype}{int} len;            \textcolor{comment}{/* length for copy */}
+00442     \textcolor{keywordtype}{unsigned} dist;      \textcolor{comment}{/* distance for copy */}
+00443     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{short} lens[29] = \{ \textcolor{comment}{/* Size base for length codes 257..285 */}
+00444         3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
+00445         35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258\};
+00446     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{short} lext[29] = \{ \textcolor{comment}{/* Extra bits for length codes 257..285 */}
+00447         0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
+00448         3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0\};
+00449     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{short} dists[30] = \{ \textcolor{comment}{/* Offset base for distance codes 0..29 */}
+00450         1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
+00451         257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
+00452         8193, 12289, 16385, 24577\};
+00453     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{short} dext[30] = \{ \textcolor{comment}{/* Extra bits for distance codes 0..29 */}
+00454         0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
+00455         7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
+00456         12, 12, 13, 13\};
+00457 
+00458     \textcolor{comment}{/* decode literals and length/distance pairs */}
+00459     \textcolor{keywordflow}{do} \{
+00460         symbol = decode(s, lencode);
+00461         \textcolor{keywordflow}{if} (symbol < 0)
+00462             \textcolor{keywordflow}{return} symbol;              \textcolor{comment}{/* invalid symbol */}
+00463         \textcolor{keywordflow}{if} (symbol < 256) \{             \textcolor{comment}{/* literal: symbol is the byte */}
+00464             \textcolor{comment}{/* write out the literal */}
+00465             \textcolor{keywordflow}{if} (s->out != NIL) \{
+00466                 \textcolor{keywordflow}{if} (s->outcnt == s->outlen)
+00467                     \textcolor{keywordflow}{return} 1;
+00468                 s->out[s->outcnt] = symbol;
+00469             \}
+00470             s->outcnt++;
+00471         \}
+00472         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (symbol > 256) \{        \textcolor{comment}{/* length */}
+00473             \textcolor{comment}{/* get and compute length */}
+00474             symbol -= 257;
+00475             \textcolor{keywordflow}{if} (symbol >= 29)
+00476                 \textcolor{keywordflow}{return} -10;             \textcolor{comment}{/* invalid fixed code */}
+00477             len = lens[symbol] + bits(s, lext[symbol]);
+00478 
+00479             \textcolor{comment}{/* get and check distance */}
+00480             symbol = decode(s, distcode);
+00481             \textcolor{keywordflow}{if} (symbol < 0)
+00482                 \textcolor{keywordflow}{return} symbol;          \textcolor{comment}{/* invalid symbol */}
+00483             dist = dists[symbol] + bits(s, dext[symbol]);
+00484 \textcolor{preprocessor}{#ifndef INFLATE\_ALLOW\_INVALID\_DISTANCE\_TOOFAR\_ARRR}
+00485             \textcolor{keywordflow}{if} (dist > s->outcnt)
+00486                 \textcolor{keywordflow}{return} -11;     \textcolor{comment}{/* distance too far back */}
+00487 \textcolor{preprocessor}{#endif}
+00488 
+00489             \textcolor{comment}{/* copy length bytes from distance bytes back */}
+00490             \textcolor{keywordflow}{if} (s->out != NIL) \{
+00491                 \textcolor{keywordflow}{if} (s->outcnt + len > s->outlen)
+00492                     \textcolor{keywordflow}{return} 1;
+00493                 \textcolor{keywordflow}{while} (len--) \{
+00494                     s->out[s->outcnt] =
+00495 \textcolor{preprocessor}{#ifdef INFLATE\_ALLOW\_INVALID\_DISTANCE\_TOOFAR\_ARRR}
+00496                         dist > s->outcnt ?
+00497                             0 :
+00498 \textcolor{preprocessor}{#endif}
+00499                             s->out[s->outcnt - dist];
+00500                     s->outcnt++;
+00501                 \}
+00502             \}
+00503             \textcolor{keywordflow}{else}
+00504                 s->outcnt += len;
+00505         \}
+00506     \} \textcolor{keywordflow}{while} (symbol != 256);            \textcolor{comment}{/* end of block symbol */}
+00507 
+00508     \textcolor{comment}{/* done with a valid fixed or dynamic block */}
+00509     \textcolor{keywordflow}{return} 0;
+00510 \}
+00511 
+00512 \textcolor{comment}{/*}
+00513 \textcolor{comment}{ * Process a fixed codes block.}
+00514 \textcolor{comment}{ *}
+00515 \textcolor{comment}{ * Format notes:}
+00516 \textcolor{comment}{ *}
+00517 \textcolor{comment}{ * - This block type can be useful for compressing small amounts of data for}
+00518 \textcolor{comment}{ *   which the size of the code descriptions in a dynamic block exceeds the}
+00519 \textcolor{comment}{ *   benefit of custom codes for that block.  For fixed codes, no bits are}
+00520 \textcolor{comment}{ *   spent on code descriptions.  Instead the code lengths for literal/length}
+00521 \textcolor{comment}{ *   codes and distance codes are fixed.  The specific lengths for each symbol}
+00522 \textcolor{comment}{ *   can be seen in the "for" loops below.}
+00523 \textcolor{comment}{ *}
+00524 \textcolor{comment}{ * - The literal/length code is complete, but has two symbols that are invalid}
+00525 \textcolor{comment}{ *   and should result in an error if received.  This cannot be implemented}
+00526 \textcolor{comment}{ *   simply as an incomplete code since those two symbols are in the "middle"}
+00527 \textcolor{comment}{ *   of the code.  They are eight bits long and the longest literal/length\(\backslash\)}
+00528 \textcolor{comment}{ *   code is nine bits.  Therefore the code must be constructed with those}
+00529 \textcolor{comment}{ *   symbols, and the invalid symbols must be detected after decoding.}
+00530 \textcolor{comment}{ *}
+00531 \textcolor{comment}{ * - The fixed distance codes also have two invalid symbols that should result}
+00532 \textcolor{comment}{ *   in an error if received.  Since all of the distance codes are the same}
+00533 \textcolor{comment}{ *   length, this can be implemented as an incomplete code.  Then the invalid}
+00534 \textcolor{comment}{ *   codes are detected while decoding.}
+00535 \textcolor{comment}{ */}
+00536 local \textcolor{keywordtype}{int} fixed(\textcolor{keyword}{struct} \hyperlink{structstate}{state} *s)
+00537 \{
+00538     \textcolor{keyword}{static} \textcolor{keywordtype}{int} virgin = 1;
+00539     \textcolor{keyword}{static} \textcolor{keywordtype}{short} lencnt[MAXBITS+1], lensym[FIXLCODES];
+00540     \textcolor{keyword}{static} \textcolor{keywordtype}{short} distcnt[MAXBITS+1], distsym[MAXDCODES];
+00541     \textcolor{keyword}{static} \textcolor{keyword}{struct }\hyperlink{structhuffman}{huffman} lencode, distcode;
+00542 
+00543     \textcolor{comment}{/* build fixed huffman tables if first call (may not be thread safe) */}
+00544     \textcolor{keywordflow}{if} (virgin) \{
+00545         \textcolor{keywordtype}{int} symbol;
+00546         \textcolor{keywordtype}{short} lengths[FIXLCODES];
+00547 
+00548         \textcolor{comment}{/* construct lencode and distcode */}
+00549         lencode.count = lencnt;
+00550         lencode.symbol = lensym;
+00551         distcode.count = distcnt;
+00552         distcode.symbol = distsym;
+00553 
+00554         \textcolor{comment}{/* literal/length table */}
+00555         \textcolor{keywordflow}{for} (symbol = 0; symbol < 144; symbol++)
+00556             lengths[symbol] = 8;
+00557         \textcolor{keywordflow}{for} (; symbol < 256; symbol++)
+00558             lengths[symbol] = 9;
+00559         \textcolor{keywordflow}{for} (; symbol < 280; symbol++)
+00560             lengths[symbol] = 7;
+00561         \textcolor{keywordflow}{for} (; symbol < FIXLCODES; symbol++)
+00562             lengths[symbol] = 8;
+00563         construct(&lencode, lengths, FIXLCODES);
+00564 
+00565         \textcolor{comment}{/* distance table */}
+00566         \textcolor{keywordflow}{for} (symbol = 0; symbol < MAXDCODES; symbol++)
+00567             lengths[symbol] = 5;
+00568         construct(&distcode, lengths, MAXDCODES);
+00569 
+00570         \textcolor{comment}{/* do this just once */}
+00571         virgin = 0;
+00572     \}
+00573 
+00574     \textcolor{comment}{/* decode data until end-of-block code */}
+00575     \textcolor{keywordflow}{return} codes(s, &lencode, &distcode);
+00576 \}
+00577 
+00578 \textcolor{comment}{/*}
+00579 \textcolor{comment}{ * Process a dynamic codes block.}
+00580 \textcolor{comment}{ *}
+00581 \textcolor{comment}{ * Format notes:}
+00582 \textcolor{comment}{ *}
+00583 \textcolor{comment}{ * - A dynamic block starts with a description of the literal/length and}
+00584 \textcolor{comment}{ *   distance codes for that block.  New dynamic blocks allow the compressor to}
+00585 \textcolor{comment}{ *   rapidly adapt to changing data with new codes optimized for that data.}
+00586 \textcolor{comment}{ *}
+00587 \textcolor{comment}{ * - The codes used by the deflate format are "canonical", which means that}
+00588 \textcolor{comment}{ *   the actual bits of the codes are generated in an unambiguous way simply}
+00589 \textcolor{comment}{ *   from the number of bits in each code.  Therefore the code descriptions}
+00590 \textcolor{comment}{ *   are simply a list of code lengths for each symbol.}
+00591 \textcolor{comment}{ *}
+00592 \textcolor{comment}{ * - The code lengths are stored in order for the symbols, so lengths are}
+00593 \textcolor{comment}{ *   provided for each of the literal/length symbols, and for each of the}
+00594 \textcolor{comment}{ *   distance symbols.}
+00595 \textcolor{comment}{ *}
+00596 \textcolor{comment}{ * - If a symbol is not used in the block, this is represented by a zero as}
+00597 \textcolor{comment}{ *   as the code length.  This does not mean a zero-length code, but rather}
+00598 \textcolor{comment}{ *   that no code should be created for this symbol.  There is no way in the}
+00599 \textcolor{comment}{ *   deflate format to represent a zero-length code.}
+00600 \textcolor{comment}{ *}
+00601 \textcolor{comment}{ * - The maximum number of bits in a code is 15, so the possible lengths for}
+00602 \textcolor{comment}{ *   any code are 1..15.}
+00603 \textcolor{comment}{ *}
+00604 \textcolor{comment}{ * - The fact that a length of zero is not permitted for a code has an}
+00605 \textcolor{comment}{ *   interesting consequence.  Normally if only one symbol is used for a given}
+00606 \textcolor{comment}{ *   code, then in fact that code could be represented with zero bits.  However}
+00607 \textcolor{comment}{ *   in deflate, that code has to be at least one bit.  So for example, if}
+00608 \textcolor{comment}{ *   only a single distance base symbol appears in a block, then it will be}
+00609 \textcolor{comment}{ *   represented by a single code of length one, in particular one 0 bit.  This}
+00610 \textcolor{comment}{ *   is an incomplete code, since if a 1 bit is received, it has no meaning,}
+00611 \textcolor{comment}{ *   and should result in an error.  So incomplete distance codes of one symbol}
+00612 \textcolor{comment}{ *   should be permitted, and the receipt of invalid codes should be handled.}
+00613 \textcolor{comment}{ *}
+00614 \textcolor{comment}{ * - It is also possible to have a single literal/length code, but that code}
+00615 \textcolor{comment}{ *   must be the end-of-block code, since every dynamic block has one.  This}
+00616 \textcolor{comment}{ *   is not the most efficient way to create an empty block (an empty fixed}
+00617 \textcolor{comment}{ *   block is fewer bits), but it is allowed by the format.  So incomplete}
+00618 \textcolor{comment}{ *   literal/length codes of one symbol should also be permitted.}
+00619 \textcolor{comment}{ *}
+00620 \textcolor{comment}{ * - If there are only literal codes and no lengths, then there are no distance}
+00621 \textcolor{comment}{ *   codes.  This is represented by one distance code with zero bits.}
+00622 \textcolor{comment}{ *}
+00623 \textcolor{comment}{ * - The list of up to 286 length/literal lengths and up to 30 distance lengths}
+00624 \textcolor{comment}{ *   are themselves compressed using Huffman codes and run-length encoding.  In}
+00625 \textcolor{comment}{ *   the list of code lengths, a 0 symbol means no code, a 1..15 symbol means}
+00626 \textcolor{comment}{ *   that length, and the symbols 16, 17, and 18 are run-length instructions.}
+00627 \textcolor{comment}{ *   Each of 16, 17, and 18 are follwed by extra bits to define the length of}
+00628 \textcolor{comment}{ *   the run.  16 copies the last length 3 to 6 times.  17 represents 3 to 10}
+00629 \textcolor{comment}{ *   zero lengths, and 18 represents 11 to 138 zero lengths.  Unused symbols}
+00630 \textcolor{comment}{ *   are common, hence the special coding for zero lengths.}
+00631 \textcolor{comment}{ *}
+00632 \textcolor{comment}{ * - The symbols for 0..18 are Huffman coded, and so that code must be}
+00633 \textcolor{comment}{ *   described first.  This is simply a sequence of up to 19 three-bit values}
+00634 \textcolor{comment}{ *   representing no code (0) or the code length for that symbol (1..7).}
+00635 \textcolor{comment}{ *}
+00636 \textcolor{comment}{ * - A dynamic block starts with three fixed-size counts from which is computed}
+00637 \textcolor{comment}{ *   the number of literal/length code lengths, the number of distance code}
+00638 \textcolor{comment}{ *   lengths, and the number of code length code lengths (ok, you come up with}
+00639 \textcolor{comment}{ *   a better name!) in the code descriptions.  For the literal/length and}
+00640 \textcolor{comment}{ *   distance codes, lengths after those provided are considered zero, i.e. no}
+00641 \textcolor{comment}{ *   code.  The code length code lengths are received in a permuted order (see}
+00642 \textcolor{comment}{ *   the order[] array below) to make a short code length code length list more}
+00643 \textcolor{comment}{ *   likely.  As it turns out, very short and very long codes are less likely}
+00644 \textcolor{comment}{ *   to be seen in a dynamic code description, hence what may appear initially}
+00645 \textcolor{comment}{ *   to be a peculiar ordering.}
+00646 \textcolor{comment}{ *}
+00647 \textcolor{comment}{ * - Given the number of literal/length code lengths (nlen) and distance code}
+00648 \textcolor{comment}{ *   lengths (ndist), then they are treated as one long list of nlen + ndist}
+00649 \textcolor{comment}{ *   code lengths.  Therefore run-length coding can and often does cross the}
+00650 \textcolor{comment}{ *   boundary between the two sets of lengths.}
+00651 \textcolor{comment}{ *}
+00652 \textcolor{comment}{ * - So to summarize, the code description at the start of a dynamic block is}
+00653 \textcolor{comment}{ *   three counts for the number of code lengths for the literal/length codes,}
+00654 \textcolor{comment}{ *   the distance codes, and the code length codes.  This is followed by the}
+00655 \textcolor{comment}{ *   code length code lengths, three bits each.  This is used to construct the}
+00656 \textcolor{comment}{ *   code length code which is used to read the remainder of the lengths.  Then}
+00657 \textcolor{comment}{ *   the literal/length code lengths and distance lengths are read as a single}
+00658 \textcolor{comment}{ *   set of lengths using the code length codes.  Codes are constructed from}
+00659 \textcolor{comment}{ *   the resulting two sets of lengths, and then finally you can start}
+00660 \textcolor{comment}{ *   decoding actual compressed data in the block.}
+00661 \textcolor{comment}{ *}
+00662 \textcolor{comment}{ * - For reference, a "typical" size for the code description in a dynamic}
+00663 \textcolor{comment}{ *   block is around 80 bytes.}
+00664 \textcolor{comment}{ */}
+00665 local \textcolor{keywordtype}{int} dynamic(\textcolor{keyword}{struct} \hyperlink{structstate}{state} *s)
+00666 \{
+00667     \textcolor{keywordtype}{int} nlen, ndist, ncode;             \textcolor{comment}{/* number of lengths in descriptor */}
+00668     \textcolor{keywordtype}{int} index;                          \textcolor{comment}{/* index of lengths[] */}
+00669     \textcolor{keywordtype}{int} err;                            \textcolor{comment}{/* construct() return value */}
+00670     \textcolor{keywordtype}{short} lengths[MAXCODES];            \textcolor{comment}{/* descriptor code lengths */}
+00671     \textcolor{keywordtype}{short} lencnt[MAXBITS+1], lensym[MAXLCODES];         \textcolor{comment}{/* lencode memory */}
+00672     \textcolor{keywordtype}{short} distcnt[MAXBITS+1], distsym[MAXDCODES];       \textcolor{comment}{/* distcode memory */}
+00673     \textcolor{keyword}{struct }\hyperlink{structhuffman}{huffman} lencode, distcode;   \textcolor{comment}{/* length and distance codes */}
+00674     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{short} order[19] =      \textcolor{comment}{/* permutation of code length codes */}
+00675         \{16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15\};
+00676 
+00677     \textcolor{comment}{/* construct lencode and distcode */}
+00678     lencode.count = lencnt;
+00679     lencode.symbol = lensym;
+00680     distcode.count = distcnt;
+00681     distcode.symbol = distsym;
+00682 
+00683     \textcolor{comment}{/* get number of lengths in each table, check lengths */}
+00684     nlen = bits(s, 5) + 257;
+00685     ndist = bits(s, 5) + 1;
+00686     ncode = bits(s, 4) + 4;
+00687     \textcolor{keywordflow}{if} (nlen > MAXLCODES || ndist > MAXDCODES)
+00688         \textcolor{keywordflow}{return} -3;                      \textcolor{comment}{/* bad counts */}
+00689 
+00690     \textcolor{comment}{/* read code length code lengths (really), missing lengths are zero */}
+00691     \textcolor{keywordflow}{for} (index = 0; index < ncode; index++)
+00692         lengths[order[index]] = bits(s, 3);
+00693     \textcolor{keywordflow}{for} (; index < 19; index++)
+00694         lengths[order[index]] = 0;
+00695 
+00696     \textcolor{comment}{/* build huffman table for code lengths codes (use lencode temporarily) */}
+00697     err = construct(&lencode, lengths, 19);
+00698     \textcolor{keywordflow}{if} (err != 0)               \textcolor{comment}{/* require complete code set here */}
+00699         \textcolor{keywordflow}{return} -4;
+00700 
+00701     \textcolor{comment}{/* read length/literal and distance code length tables */}
+00702     index = 0;
+00703     \textcolor{keywordflow}{while} (index < nlen + ndist) \{
+00704         \textcolor{keywordtype}{int} symbol;             \textcolor{comment}{/* decoded value */}
+00705         \textcolor{keywordtype}{int} len;                \textcolor{comment}{/* last length to repeat */}
+00706 
+00707         symbol = decode(s, &lencode);
+00708         \textcolor{keywordflow}{if} (symbol < 0)
+00709             \textcolor{keywordflow}{return} symbol;          \textcolor{comment}{/* invalid symbol */}
+00710         \textcolor{keywordflow}{if} (symbol < 16)                \textcolor{comment}{/* length in 0..15 */}
+00711             lengths[index++] = symbol;
+00712         \textcolor{keywordflow}{else} \{                          \textcolor{comment}{/* repeat instruction */}
+00713             len = 0;                    \textcolor{comment}{/* assume repeating zeros */}
+00714             \textcolor{keywordflow}{if} (symbol == 16) \{         \textcolor{comment}{/* repeat last length 3..6 times */}
+00715                 \textcolor{keywordflow}{if} (index == 0)
+00716                     \textcolor{keywordflow}{return} -5;          \textcolor{comment}{/* no last length! */}
+00717                 len = lengths[index - 1];       \textcolor{comment}{/* last length */}
+00718                 symbol = 3 + bits(s, 2);
+00719             \}
+00720             \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (symbol == 17)      \textcolor{comment}{/* repeat zero 3..10 times */}
+00721                 symbol = 3 + bits(s, 3);
+00722             \textcolor{keywordflow}{else}                        \textcolor{comment}{/* == 18, repeat zero 11..138 times */}
+00723                 symbol = 11 + bits(s, 7);
+00724             \textcolor{keywordflow}{if} (index + symbol > nlen + ndist)
+00725                 \textcolor{keywordflow}{return} -6;              \textcolor{comment}{/* too many lengths! */}
+00726             \textcolor{keywordflow}{while} (symbol--)            \textcolor{comment}{/* repeat last or zero symbol times */}
+00727                 lengths[index++] = len;
+00728         \}
+00729     \}
+00730 
+00731     \textcolor{comment}{/* check for end-of-block code -- there better be one! */}
+00732     \textcolor{keywordflow}{if} (lengths[256] == 0)
+00733         \textcolor{keywordflow}{return} -9;
+00734 
+00735     \textcolor{comment}{/* build huffman table for literal/length codes */}
+00736     err = construct(&lencode, lengths, nlen);
+00737     \textcolor{keywordflow}{if} (err && (err < 0 || nlen != lencode.count[0] + lencode.count[1]))
+00738         \textcolor{keywordflow}{return} -7;      \textcolor{comment}{/* incomplete code ok only for single length 1 code */}
+00739 
+00740     \textcolor{comment}{/* build huffman table for distance codes */}
+00741     err = construct(&distcode, lengths + nlen, ndist);
+00742     \textcolor{keywordflow}{if} (err && (err < 0 || ndist != distcode.count[0] + distcode.count[1]))
+00743         \textcolor{keywordflow}{return} -8;      \textcolor{comment}{/* incomplete code ok only for single length 1 code */}
+00744 
+00745     \textcolor{comment}{/* decode data until end-of-block code */}
+00746     \textcolor{keywordflow}{return} codes(s, &lencode, &distcode);
+00747 \}
+00748 
+00749 \textcolor{comment}{/*}
+00750 \textcolor{comment}{ * Inflate source to dest.  On return, destlen and sourcelen are updated to the}
+00751 \textcolor{comment}{ * size of the uncompressed data and the size of the deflate data respectively.}
+00752 \textcolor{comment}{ * On success, the return value of puff() is zero.  If there is an error in the}
+00753 \textcolor{comment}{ * source data, i.e. it is not in the deflate format, then a negative value is}
+00754 \textcolor{comment}{ * returned.  If there is not enough input available or there is not enough}
+00755 \textcolor{comment}{ * output space, then a positive error is returned.  In that case, destlen and}
+00756 \textcolor{comment}{ * sourcelen are not updated to facilitate retrying from the beginning with the}
+00757 \textcolor{comment}{ * provision of more input data or more output space.  In the case of invalid}
+00758 \textcolor{comment}{ * inflate data (a negative error), the dest and source pointers are updated to}
+00759 \textcolor{comment}{ * facilitate the debugging of deflators.}
+00760 \textcolor{comment}{ *}
+00761 \textcolor{comment}{ * puff() also has a mode to determine the size of the uncompressed output with}
+00762 \textcolor{comment}{ * no output written.  For this dest must be (unsigned char *)0.  In this case,}
+00763 \textcolor{comment}{ * the input value of *destlen is ignored, and on return *destlen is set to the}
+00764 \textcolor{comment}{ * size of the uncompressed output.}
+00765 \textcolor{comment}{ *}
+00766 \textcolor{comment}{ * The return codes are:}
+00767 \textcolor{comment}{ *}
+00768 \textcolor{comment}{ *   2:  available inflate data did not terminate}
+00769 \textcolor{comment}{ *   1:  output space exhausted before completing inflate}
+00770 \textcolor{comment}{ *   0:  successful inflate}
+00771 \textcolor{comment}{ *  -1:  invalid block type (type == 3)}
+00772 \textcolor{comment}{ *  -2:  stored block length did not match one's complement}
+00773 \textcolor{comment}{ *  -3:  dynamic block code description: too many length or distance codes}
+00774 \textcolor{comment}{ *  -4:  dynamic block code description: code lengths codes incomplete}
+00775 \textcolor{comment}{ *  -5:  dynamic block code description: repeat lengths with no first length}
+00776 \textcolor{comment}{ *  -6:  dynamic block code description: repeat more than specified lengths}
+00777 \textcolor{comment}{ *  -7:  dynamic block code description: invalid literal/length code lengths}
+00778 \textcolor{comment}{ *  -8:  dynamic block code description: invalid distance code lengths}
+00779 \textcolor{comment}{ *  -9:  dynamic block code description: missing end-of-block code}
+00780 \textcolor{comment}{ * -10:  invalid literal/length or distance code in fixed or dynamic block}
+00781 \textcolor{comment}{ * -11:  distance is too far back in fixed or dynamic block}
+00782 \textcolor{comment}{ *}
+00783 \textcolor{comment}{ * Format notes:}
+00784 \textcolor{comment}{ *}
+00785 \textcolor{comment}{ * - Three bits are read for each block to determine the kind of block and}
+00786 \textcolor{comment}{ *   whether or not it is the last block.  Then the block is decoded and the}
+00787 \textcolor{comment}{ *   process repeated if it was not the last block.}
+00788 \textcolor{comment}{ *}
+00789 \textcolor{comment}{ * - The leftover bits in the last byte of the deflate data after the last}
+00790 \textcolor{comment}{ *   block (if it was a fixed or dynamic block) are undefined and have no}
+00791 \textcolor{comment}{ *   expected values to check.}
+00792 \textcolor{comment}{ */}
+00793 \textcolor{keywordtype}{int} puff(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *dest,           \textcolor{comment}{/* pointer to destination pointer */}
+00794          \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} *destlen,        \textcolor{comment}{/* amount of output space */}
+00795          \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *source,   \textcolor{comment}{/* pointer to source data pointer */}
+00796          \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} *sourcelen)      \textcolor{comment}{/* amount of input available */}
+00797 \{
+00798     \textcolor{keyword}{struct }\hyperlink{structstate}{state} s;             \textcolor{comment}{/* input/output state */}
+00799     \textcolor{keywordtype}{int} last, type;             \textcolor{comment}{/* block information */}
+00800     \textcolor{keywordtype}{int} err;                    \textcolor{comment}{/* return value */}
+00801 
+00802     \textcolor{comment}{/* initialize output state */}
+00803     s.out = dest;
+00804     s.outlen = *destlen;                \textcolor{comment}{/* ignored if dest is NIL */}
+00805     s.outcnt = 0;
+00806 
+00807     \textcolor{comment}{/* initialize input state */}
+00808     s.in = source;
+00809     s.inlen = *sourcelen;
+00810     s.incnt = 0;
+00811     s.bitbuf = 0;
+00812     s.bitcnt = 0;
+00813 
+00814     \textcolor{comment}{/* return if bits() or decode() tries to read past available input */}
+00815     \textcolor{keywordflow}{if} (setjmp(s.env) != 0)             \textcolor{comment}{/* if came back here via longjmp() */}
+00816         err = 2;                        \textcolor{comment}{/* then skip do-loop, return error */}
+00817     \textcolor{keywordflow}{else} \{
+00818         \textcolor{comment}{/* process blocks until last block or error */}
+00819         \textcolor{keywordflow}{do} \{
+00820             last = bits(&s, 1);         \textcolor{comment}{/* one if last block */}
+00821             type = bits(&s, 2);         \textcolor{comment}{/* block type 0..3 */}
+00822             err = type == 0 ?
+00823                     stored(&s) :
+00824                     (type == 1 ?
+00825                         fixed(&s) :
+00826                         (type == 2 ?
+00827                             dynamic(&s) :
+00828                             -1));       \textcolor{comment}{/* type == 3, invalid */}
+00829             \textcolor{keywordflow}{if} (err != 0)
+00830                 \textcolor{keywordflow}{break};                  \textcolor{comment}{/* return with error */}
+00831         \} \textcolor{keywordflow}{while} (!last);
+00832     \}
+00833 
+00834     \textcolor{comment}{/* update the lengths and return */}
+00835     \textcolor{keywordflow}{if} (err <= 0) \{
+00836         *destlen = s.outcnt;
+00837         *sourcelen = s.incnt;
+00838     \}
+00839     \textcolor{keywordflow}{return} err;
+00840 \}
+\end{DoxyCode}

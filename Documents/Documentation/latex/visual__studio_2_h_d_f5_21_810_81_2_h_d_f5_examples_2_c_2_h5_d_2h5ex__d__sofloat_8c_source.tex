@@ -1,0 +1,212 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_d_2h5ex__d__sofloat_8c_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+C/\+H5\+D/h5ex\+\_\+d\+\_\+sofloat.c}
+\label{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_d_2h5ex__d__sofloat_8c_source}\index{h5ex\+\_\+d\+\_\+sofloat.\+c@{h5ex\+\_\+d\+\_\+sofloat.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/************************************************************}
+00002 \textcolor{comment}{}
+00003 \textcolor{comment}{  This example shows how to read and write data to a dataset}
+00004 \textcolor{comment}{  using the Scale-Offset filter.  The program first checks}
+00005 \textcolor{comment}{  if the Scale-Offset filter is available, then if it is it}
+00006 \textcolor{comment}{  writes floating point numbers to a dataset using}
+00007 \textcolor{comment}{  Scale-Offset, then closes the file Next, it reopens the}
+00008 \textcolor{comment}{  file, reads back the data, and outputs the type of filter}
+00009 \textcolor{comment}{  and the maximum value in the dataset to the screen.}
+00010 \textcolor{comment}{}
+00011 \textcolor{comment}{  This file is intended for use with HDF5 Library version 1.8}
+00012 \textcolor{comment}{}
+00013 \textcolor{comment}{ ************************************************************/}
+00014 
+00015 \textcolor{preprocessor}{#include "hdf5.h"}
+00016 \textcolor{preprocessor}{#include <stdio.h>}
+00017 \textcolor{preprocessor}{#include <stdlib.h>}
+00018 
+00019 \textcolor{preprocessor}{#define FILE            "h5ex\_d\_sofloat.h5"}
+00020 \textcolor{preprocessor}{#define DATASET         "DS1"}
+00021 \textcolor{preprocessor}{#define DIM0            32}
+00022 \textcolor{preprocessor}{#define DIM1            64}
+00023 \textcolor{preprocessor}{#define CHUNK0          4}
+00024 \textcolor{preprocessor}{#define CHUNK1          8}
+00025 
+00026 \textcolor{keywordtype}{int}
+00027 main (\textcolor{keywordtype}{void})
+00028 \{
+00029     hid\_t           \hyperlink{structfile}{file}, space, dset, dcpl;
+00030                                                 \textcolor{comment}{/* Handles */}
+00031     herr\_t          status;
+00032     htri\_t          avail;
+00033     H5Z\_filter\_t    filter\_type;
+00034     hsize\_t         dims[2] = \{DIM0, DIM1\},
+00035                     chunk[2] = \{CHUNK0, CHUNK1\};
+00036     \textcolor{keywordtype}{size\_t}          nelmts;
+00037     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int}    flags,
+00038                     filter\_info;
+00039     \textcolor{keywordtype}{double}          wdata[DIM0][DIM1],          \textcolor{comment}{/* Write buffer */}
+00040                     rdata[DIM0][DIM1],          \textcolor{comment}{/* Read buffer */}
+00041                     max,
+00042                     min;
+00043     \textcolor{keywordtype}{int}             i, j;
+00044 
+00045     \textcolor{comment}{/*}
+00046 \textcolor{comment}{     * Check if Scale-Offset compression is available and can be used}
+00047 \textcolor{comment}{     * for both compression and decompression.  Normally we do not}
+00048 \textcolor{comment}{     * perform error checking in these examples for the sake of}
+00049 \textcolor{comment}{     * clarity, but in this case we will make an exception because this}
+00050 \textcolor{comment}{     * filter is an optional part of the hdf5 library.}
+00051 \textcolor{comment}{     */}
+00052     avail = H5Zfilter\_avail(H5Z\_FILTER\_SCALEOFFSET);
+00053     \textcolor{keywordflow}{if} (!avail) \{
+00054         printf (\textcolor{stringliteral}{"Scale-Offset filter not available.\(\backslash\)n"});
+00055         \textcolor{keywordflow}{return} 1;
+00056     \}
+00057     status = H5Zget\_filter\_info (H5Z\_FILTER\_SCALEOFFSET, &filter\_info);
+00058     \textcolor{keywordflow}{if} ( !(filter\_info & H5Z\_FILTER\_CONFIG\_ENCODE\_ENABLED) ||
+00059                 !(filter\_info & H5Z\_FILTER\_CONFIG\_DECODE\_ENABLED) ) \{
+00060         printf (\textcolor{stringliteral}{"Scale-Offset filter not available for encoding and decoding.\(\backslash\)n"});
+00061         \textcolor{keywordflow}{return} 1;
+00062     \}
+00063 
+00064     \textcolor{comment}{/*}
+00065 \textcolor{comment}{     * Initialize data.}
+00066 \textcolor{comment}{     */}
+00067     \textcolor{keywordflow}{for} (i=0; i<DIM0; i++)
+00068         \textcolor{keywordflow}{for} (j=0; j<DIM1; j++)
+00069             wdata[i][j] = (\textcolor{keywordtype}{double}) (i + 1) / (j + 0.3) + j;
+00070 
+00071     \textcolor{comment}{/*}
+00072 \textcolor{comment}{     * Find the maximum value in the dataset, to verify that it was}
+00073 \textcolor{comment}{     * read correctly.}
+00074 \textcolor{comment}{     */}
+00075     max = wdata[0][0];
+00076     min = wdata[0][0];
+00077     \textcolor{keywordflow}{for} (i=0; i<DIM0; i++)
+00078         \textcolor{keywordflow}{for} (j=0; j<DIM1; j++) \{
+00079             \textcolor{keywordflow}{if} (max < wdata[i][j])
+00080                 max = wdata[i][j];
+00081             \textcolor{keywordflow}{if} (min > wdata[i][j])
+00082                 min = wdata[i][j];
+00083         \}
+00084 
+00085     \textcolor{comment}{/*}
+00086 \textcolor{comment}{     * Print the maximum value.}
+00087 \textcolor{comment}{     */}
+00088     printf (\textcolor{stringliteral}{"Maximum value in write buffer is: %f\(\backslash\)n"}, max);
+00089     printf (\textcolor{stringliteral}{"Minimum value in write buffer is: %f\(\backslash\)n"}, min);
+00090 
+00091     \textcolor{comment}{/*}
+00092 \textcolor{comment}{     * Create a new file using the default properties.}
+00093 \textcolor{comment}{     */}
+00094     file = H5Fcreate (FILE, H5F\_ACC\_TRUNC, H5P\_DEFAULT, H5P\_DEFAULT);
+00095 
+00096     \textcolor{comment}{/*}
+00097 \textcolor{comment}{     * Create dataspace.  Setting maximum size to NULL sets the maximum}
+00098 \textcolor{comment}{     * size to be the current size.}
+00099 \textcolor{comment}{     */}
+00100     space = H5Screate\_simple (2, dims, NULL);
+00101 
+00102     \textcolor{comment}{/*}
+00103 \textcolor{comment}{     * Create the dataset creation property list, add the Scale-Offset}
+00104 \textcolor{comment}{     * filter and set the chunk size.}
+00105 \textcolor{comment}{     */}
+00106     dcpl = H5Pcreate (H5P\_DATASET\_CREATE);
+00107     status = H5Pset\_scaleoffset (dcpl, H5Z\_SO\_FLOAT\_DSCALE, 2);
+00108     status = H5Pset\_chunk (dcpl, 2, chunk);
+00109 
+00110     \textcolor{comment}{/*}
+00111 \textcolor{comment}{     * Create the dataset.}
+00112 \textcolor{comment}{     */}
+00113     dset = H5Dcreate (file, DATASET, H5T\_IEEE\_F64LE, space, H5P\_DEFAULT, dcpl,
+00114                 H5P\_DEFAULT);
+00115 
+00116     \textcolor{comment}{/*}
+00117 \textcolor{comment}{     * Write the data to the dataset.}
+00118 \textcolor{comment}{     */}
+00119     status = H5Dwrite (dset, H5T\_NATIVE\_DOUBLE, H5S\_ALL, H5S\_ALL, H5P\_DEFAULT,
+00120                 wdata[0]);
+00121 
+00122     \textcolor{comment}{/*}
+00123 \textcolor{comment}{     * Close and release resources.}
+00124 \textcolor{comment}{     */}
+00125     status = H5Pclose (dcpl);
+00126     status = H5Dclose (dset);
+00127     status = H5Sclose (space);
+00128     status = H5Fclose (file);
+00129 
+00130 
+00131     \textcolor{comment}{/*}
+00132 \textcolor{comment}{     * Now we begin the read section of this example.}
+00133 \textcolor{comment}{     */}
+00134 
+00135     \textcolor{comment}{/*}
+00136 \textcolor{comment}{     * Open file and dataset using the default properties.}
+00137 \textcolor{comment}{     */}
+00138     file = H5Fopen (FILE, H5F\_ACC\_RDONLY, H5P\_DEFAULT);
+00139     dset = H5Dopen (file, DATASET, H5P\_DEFAULT);
+00140 
+00141     \textcolor{comment}{/*}
+00142 \textcolor{comment}{     * Retrieve dataset creation property list.}
+00143 \textcolor{comment}{     */}
+00144     dcpl = H5Dget\_create\_plist (dset);
+00145 
+00146     \textcolor{comment}{/*}
+00147 \textcolor{comment}{     * Retrieve and print the filter type.  Here we only retrieve the}
+00148 \textcolor{comment}{     * first filter because we know that we only added one filter.}
+00149 \textcolor{comment}{     */}
+00150     nelmts = 0;
+00151     filter\_type = H5Pget\_filter (dcpl, 0, &flags, &nelmts, NULL, 0, NULL, &filter\_info);
+00152     printf (\textcolor{stringliteral}{"Filter type is: "});
+00153     \textcolor{keywordflow}{switch} (filter\_type) \{
+00154         \textcolor{keywordflow}{case} H5Z\_FILTER\_DEFLATE:
+00155             printf (\textcolor{stringliteral}{"H5Z\_FILTER\_DEFLATE\(\backslash\)n"});
+00156             \textcolor{keywordflow}{break};
+00157         \textcolor{keywordflow}{case} H5Z\_FILTER\_SHUFFLE:
+00158             printf (\textcolor{stringliteral}{"H5Z\_FILTER\_SHUFFLE\(\backslash\)n"});
+00159             \textcolor{keywordflow}{break};
+00160         \textcolor{keywordflow}{case} H5Z\_FILTER\_FLETCHER32:
+00161             printf (\textcolor{stringliteral}{"H5Z\_FILTER\_FLETCHER32\(\backslash\)n"});
+00162             \textcolor{keywordflow}{break};
+00163         \textcolor{keywordflow}{case} H5Z\_FILTER\_SZIP:
+00164             printf (\textcolor{stringliteral}{"H5Z\_FILTER\_SZIP\(\backslash\)n"});
+00165             \textcolor{keywordflow}{break};
+00166         \textcolor{keywordflow}{case} H5Z\_FILTER\_NBIT:
+00167             printf (\textcolor{stringliteral}{"H5Z\_FILTER\_NBIT\(\backslash\)n"});
+00168             \textcolor{keywordflow}{break};
+00169         \textcolor{keywordflow}{case} H5Z\_FILTER\_SCALEOFFSET:
+00170             printf (\textcolor{stringliteral}{"H5Z\_FILTER\_SCALEOFFSET\(\backslash\)n"});
+00171     \}
+00172 
+00173     \textcolor{comment}{/*}
+00174 \textcolor{comment}{     * Read the data using the default properties.}
+00175 \textcolor{comment}{     */}
+00176     status = H5Dread (dset, H5T\_NATIVE\_DOUBLE, H5S\_ALL, H5S\_ALL, H5P\_DEFAULT,
+00177                 rdata[0]);
+00178 
+00179     \textcolor{comment}{/*}
+00180 \textcolor{comment}{     * Find the maximum value in the dataset, to verify that it was}
+00181 \textcolor{comment}{     * read correctly.}
+00182 \textcolor{comment}{     */}
+00183     max = rdata[0][0];
+00184     min = rdata[0][0];
+00185     \textcolor{keywordflow}{for} (i=0; i<DIM0; i++)
+00186         \textcolor{keywordflow}{for} (j=0; j<DIM1; j++) \{
+00187             \textcolor{keywordflow}{if} (max < rdata[i][j])
+00188                 max = rdata[i][j];
+00189             \textcolor{keywordflow}{if} (min > rdata[i][j])
+00190                 min = rdata[i][j];
+00191         \}
+00192 
+00193     \textcolor{comment}{/*}
+00194 \textcolor{comment}{     * Print the maximum value.}
+00195 \textcolor{comment}{     */}
+00196     printf (\textcolor{stringliteral}{"Maximum value in %s is: %f\(\backslash\)n"}, DATASET, max);
+00197     printf (\textcolor{stringliteral}{"Minimum value in %s is: %f\(\backslash\)n"}, DATASET, min);
+00198 
+00199     \textcolor{comment}{/*}
+00200 \textcolor{comment}{     * Close and release resources.}
+00201 \textcolor{comment}{     */}
+00202     status = H5Pclose (dcpl);
+00203     status = H5Dclose (dset);
+00204     status = H5Fclose (file);
+00205 
+00206     \textcolor{keywordflow}{return} 0;
+00207 \}
+\end{DoxyCode}

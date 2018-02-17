@@ -1,0 +1,136 @@
+\hypertarget{zlib_2contrib_2minizip_2crypt_8h_source}{}\section{zlib/contrib/minizip/crypt.h}
+\label{zlib_2contrib_2minizip_2crypt_8h_source}\index{crypt.\+h@{crypt.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* crypt.h -- base code for crypt/uncrypt ZIPfile}
+00002 \textcolor{comment}{}
+00003 \textcolor{comment}{}
+00004 \textcolor{comment}{   Version 1.01e, February 12th, 2005}
+00005 \textcolor{comment}{}
+00006 \textcolor{comment}{   Copyright (C) 1998-2005 Gilles Vollant}
+00007 \textcolor{comment}{}
+00008 \textcolor{comment}{   This code is a modified version of crypting code in Infozip distribution}
+00009 \textcolor{comment}{}
+00010 \textcolor{comment}{   The encryption/decryption parts of this source code (as opposed to the}
+00011 \textcolor{comment}{   non-echoing password parts) were originally written in Europe.  The}
+00012 \textcolor{comment}{   whole source package can be freely distributed, including from the USA.}
+00013 \textcolor{comment}{   (Prior to January 2000, re-export from the US was a violation of US law.)}
+00014 \textcolor{comment}{}
+00015 \textcolor{comment}{   This encryption code is a direct transcription of the algorithm from}
+00016 \textcolor{comment}{   Roger Schlafly, described by Phil Katz in the file appnote.txt.  This}
+00017 \textcolor{comment}{   file (appnote.txt) is distributed with the PKZIP program (even in the}
+00018 \textcolor{comment}{   version without encryption capabilities).}
+00019 \textcolor{comment}{}
+00020 \textcolor{comment}{   If you don't need crypting in your application, just define symbols}
+00021 \textcolor{comment}{   NOCRYPT and NOUNCRYPT.}
+00022 \textcolor{comment}{}
+00023 \textcolor{comment}{   This code support the "Traditional PKWARE Encryption".}
+00024 \textcolor{comment}{}
+00025 \textcolor{comment}{   The new AES encryption added on Zip format by Winzip (see the page}
+00026 \textcolor{comment}{   http://www.winzip.com/aes\_info.htm ) and PKWare PKZip 5.x Strong}
+00027 \textcolor{comment}{   Encryption is not supported.}
+00028 \textcolor{comment}{*/}
+00029 
+00030 \textcolor{preprocessor}{#define CRC32(c, b) ((*(pcrc\_32\_tab+(((int)(c) ^ (b)) & 0xff))) ^ ((c) >> 8))}
+00031 
+00032 \textcolor{comment}{/***********************************************************************}
+00033 \textcolor{comment}{ * Return the next byte in the pseudo-random sequence}
+00034 \textcolor{comment}{ */}
+00035 \textcolor{keyword}{static} \textcolor{keywordtype}{int} decrypt\_byte(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long}* pkeys, \textcolor{keyword}{const} z\_crc\_t* pcrc\_32\_tab)
+00036 \{
+00037     \textcolor{keywordtype}{unsigned} temp;  \textcolor{comment}{/* POTENTIAL BUG:  temp*(temp^1) may overflow in an}
+00038 \textcolor{comment}{                     * unpredictable manner on 16-bit systems; not a problem}
+00039 \textcolor{comment}{                     * with any known compiler so far, though */}
+00040 
+00041     temp = ((unsigned)(*(pkeys+2)) & 0xffff) | 2;
+00042     \textcolor{keywordflow}{return} (\textcolor{keywordtype}{int})(((temp * (temp ^ 1)) >> 8) & 0xff);
+00043 \}
+00044 
+00045 \textcolor{comment}{/***********************************************************************}
+00046 \textcolor{comment}{ * Update the encryption keys with the next byte of plain text}
+00047 \textcolor{comment}{ */}
+00048 \textcolor{keyword}{static} \textcolor{keywordtype}{int} update\_keys(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long}* pkeys,\textcolor{keyword}{const} z\_crc\_t* pcrc\_32\_tab,\textcolor{keywordtype}{int} c)
+00049 \{
+00050     (*(pkeys+0)) = CRC32((*(pkeys+0)), c);
+00051     (*(pkeys+1)) += (*(pkeys+0)) & 0xff;
+00052     (*(pkeys+1)) = (*(pkeys+1)) * 134775813L + 1;
+00053     \{
+00054       \textcolor{keyword}{register} \textcolor{keywordtype}{int} keyshift = (int)((*(pkeys+1)) >> 24);
+00055       (*(pkeys+2)) = CRC32((*(pkeys+2)), keyshift);
+00056     \}
+00057     \textcolor{keywordflow}{return} c;
+00058 \}
+00059 
+00060 
+00061 \textcolor{comment}{/***********************************************************************}
+00062 \textcolor{comment}{ * Initialize the encryption keys and the random header according to}
+00063 \textcolor{comment}{ * the given password.}
+00064 \textcolor{comment}{ */}
+00065 \textcolor{keyword}{static} \textcolor{keywordtype}{void} init\_keys(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* passwd,\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long}* pkeys,\textcolor{keyword}{const} z\_crc\_t* pcrc\_32\_tab)
+00066 \{
+00067     *(pkeys+0) = 305419896L;
+00068     *(pkeys+1) = 591751049L;
+00069     *(pkeys+2) = 878082192L;
+00070     \textcolor{keywordflow}{while} (*passwd != \textcolor{charliteral}{'\(\backslash\)0'}) \{
+00071         update\_keys(pkeys,pcrc\_32\_tab,(\textcolor{keywordtype}{int})*passwd);
+00072         passwd++;
+00073     \}
+00074 \}
+00075 
+00076 \textcolor{preprocessor}{#define zdecode(pkeys,pcrc\_32\_tab,c) \(\backslash\)}
+00077 \textcolor{preprocessor}{    (update\_keys(pkeys,pcrc\_32\_tab,c ^= decrypt\_byte(pkeys,pcrc\_32\_tab)))}
+00078 
+00079 \textcolor{preprocessor}{#define zencode(pkeys,pcrc\_32\_tab,c,t) \(\backslash\)}
+00080 \textcolor{preprocessor}{    (t=decrypt\_byte(pkeys,pcrc\_32\_tab), update\_keys(pkeys,pcrc\_32\_tab,c), t^(c))}
+00081 
+00082 \textcolor{preprocessor}{#ifdef INCLUDECRYPTINGCODE\_IFCRYPTALLOWED}
+00083 
+00084 \textcolor{preprocessor}{#define RAND\_HEAD\_LEN  12}
+00085    \textcolor{comment}{/* "last resort" source for second part of crypt seed pattern */}
+00086 \textcolor{preprocessor}{#  ifndef ZCR\_SEED2}
+00087 \textcolor{preprocessor}{#    define ZCR\_SEED2 3141592654UL     }\textcolor{comment}{/* use PI as default pattern */}\textcolor{preprocessor}{}
+00088 \textcolor{preprocessor}{#  endif}
+00089 
+00090 \textcolor{keyword}{static} \textcolor{keywordtype}{int} crypthead(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* passwd,      \textcolor{comment}{/* password string */}
+00091                      \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}* buf,      \textcolor{comment}{/* where to write header */}
+00092                      \textcolor{keywordtype}{int} bufSize,
+00093                      \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long}* pkeys,
+00094                      \textcolor{keyword}{const} z\_crc\_t* pcrc\_32\_tab,
+00095                      \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} crcForCrypting)
+00096 \{
+00097     \textcolor{keywordtype}{int} n;                       \textcolor{comment}{/* index in random header */}
+00098     \textcolor{keywordtype}{int} t;                       \textcolor{comment}{/* temporary */}
+00099     \textcolor{keywordtype}{int} c;                       \textcolor{comment}{/* random byte */}
+00100     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} header[RAND\_HEAD\_LEN-2]; \textcolor{comment}{/* random header */}
+00101     \textcolor{keyword}{static} \textcolor{keywordtype}{unsigned} calls = 0;   \textcolor{comment}{/* ensure different random header each time */}
+00102 
+00103     \textcolor{keywordflow}{if} (bufSize<RAND\_HEAD\_LEN)
+00104       \textcolor{keywordflow}{return} 0;
+00105 
+00106     \textcolor{comment}{/* First generate RAND\_HEAD\_LEN-2 random bytes. We encrypt the}
+00107 \textcolor{comment}{     * output of rand() to get less predictability, since rand() is}
+00108 \textcolor{comment}{     * often poorly implemented.}
+00109 \textcolor{comment}{     */}
+00110     \textcolor{keywordflow}{if} (++calls == 1)
+00111     \{
+00112         srand((\textcolor{keywordtype}{unsigned})(time(NULL) ^ ZCR\_SEED2));
+00113     \}
+00114     init\_keys(passwd, pkeys, pcrc\_32\_tab);
+00115     \textcolor{keywordflow}{for} (n = 0; n < RAND\_HEAD\_LEN-2; n++)
+00116     \{
+00117         c = (rand() >> 7) & 0xff;
+00118         header[n] = (\textcolor{keywordtype}{unsigned} char)zencode(pkeys, pcrc\_32\_tab, c, t);
+00119     \}
+00120     \textcolor{comment}{/* Encrypt random header (last two bytes is high word of crc) */}
+00121     init\_keys(passwd, pkeys, pcrc\_32\_tab);
+00122     \textcolor{keywordflow}{for} (n = 0; n < RAND\_HEAD\_LEN-2; n++)
+00123     \{
+00124         buf[n] = (\textcolor{keywordtype}{unsigned} char)zencode(pkeys, pcrc\_32\_tab, header[n], t);
+00125     \}
+00126     buf[n++] = (\textcolor{keywordtype}{unsigned} char)zencode(pkeys, pcrc\_32\_tab, (\textcolor{keywordtype}{int})(crcForCrypting >> 16) & 0xff, t);
+00127     buf[n++] = (\textcolor{keywordtype}{unsigned} char)zencode(pkeys, pcrc\_32\_tab, (\textcolor{keywordtype}{int})(crcForCrypting >> 24) & 0xff, t);
+00128     \textcolor{keywordflow}{return} n;
+00129 \}
+00130 
+00131 \textcolor{preprocessor}{#endif}
+\end{DoxyCode}

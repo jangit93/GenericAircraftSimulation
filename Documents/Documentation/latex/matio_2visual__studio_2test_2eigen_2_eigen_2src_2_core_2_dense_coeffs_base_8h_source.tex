@@ -1,0 +1,499 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Core/\+Dense\+Coeffs\+Base.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source}\index{Dense\+Coeffs\+Base.\+h@{Dense\+Coeffs\+Base.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2006-2010 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_DENSECOEFFSBASE\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_DENSECOEFFSBASE\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> \textcolor{keyword}{struct }add\_const\_on\_value\_type\_if\_arithmetic
+00017 \{
+00018   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} conditional<is\_arithmetic<T>::value, \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}, \textcolor{keyword}{typename} add\_const\_on\_value\_type<T>::type>
+      ::type type;
+00019 \};
+00020 \}
+00021 
+00033 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00034 \textcolor{keyword}{class }DenseCoeffsBase<Derived,\hyperlink{group__enums_gga9f93eac38eb83deb0e8dbd42ddf11d5da42865f87356ad7e585a1bfbfd1b81699}{ReadOnlyAccessors}> : \textcolor{keyword}{public} EigenBase<Derived>
+00035 \{
+00036   \textcolor{keyword}{public}:
+00037     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::traits<Derived>::StorageKind StorageKind;
+00038     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::traits<Derived>::Scalar Scalar;
+00039     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::packet\_traits<Scalar>::type PacketScalar;
+00040 
+00041     \textcolor{comment}{// Explanation for this CoeffReturnType typedef.}
+00042     \textcolor{comment}{// - This is the return type of the coeff() method.}
+00043     \textcolor{comment}{// - The LvalueBit means exactly that we can offer a coeffRef() method, which means exactly that we can
+       get references}
+00044     \textcolor{comment}{// to coeffs, which means exactly that we can have coeff() return a const reference (as opposed to
+       returning a value).}
+00045     \textcolor{comment}{// - The is\_artihmetic check is required since "const int", "const double", etc. will cause warnings on
+       some systems}
+00046     \textcolor{comment}{// while the declaration of "const T", where T is a non arithmetic type does not. Always returning
+       "const Scalar&" is}
+00047     \textcolor{comment}{// not possible, since the underlying expressions might not offer a valid address the reference could
+       be referring to.}
+00048     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::conditional<bool(internal::traits<Derived>::Flags&
+      \hyperlink{group__flags_gae2c323957f20dfdc6cb8f44428eaec1a}{LvalueBit}),
+00049                          \textcolor{keyword}{const} Scalar&,
+00050                          \textcolor{keyword}{typename} internal::conditional<internal::is\_arithmetic<Scalar>::value, Scalar, \textcolor{keyword}{
+      const} Scalar>::type
+00051                      >::type CoeffReturnType;
+00052 
+00053     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::add\_const\_on\_value\_type\_if\_arithmetic<
+00054                          \textcolor{keyword}{typename} internal::packet\_traits<Scalar>::type
+00055                      >::type PacketReturnType;
+00056 
+00057     \textcolor{keyword}{typedef} EigenBase<Derived> Base;
+00058     \textcolor{keyword}{using} Base::rows;
+00059     \textcolor{keyword}{using} Base::cols;
+00060     \textcolor{keyword}{using} Base::size;
+00061     \textcolor{keyword}{using} Base::derived;
+00062 
+00063     EIGEN\_DEVICE\_FUNC
+00064     EIGEN\_STRONG\_INLINE \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rowIndexByOuterInner(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} outer, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} inner)\textcolor{keyword}{ const}
+00065 \textcolor{keyword}{    }\{
+00066       \textcolor{keywordflow}{return} int(Derived::RowsAtCompileTime) == 1 ? 0
+00067           : int(Derived::ColsAtCompileTime) == 1 ? inner
+00068           : int(Derived::Flags)&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit} ? outer
+00069           : inner;
+00070     \}
+00071 
+00072     EIGEN\_DEVICE\_FUNC
+00073     EIGEN\_STRONG\_INLINE \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} colIndexByOuterInner(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} outer, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} inner)\textcolor{keyword}{ const}
+00074 \textcolor{keyword}{    }\{
+00075       \textcolor{keywordflow}{return} int(Derived::ColsAtCompileTime) == 1 ? 0
+00076           : int(Derived::RowsAtCompileTime) == 1 ? inner
+00077           : int(Derived::Flags)&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit} ? inner
+00078           : outer;
+00079     \}
+00080 
+00095     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00096}\hyperlink{group___core___module_ad41647ef695f9a5a58a9a0f50e2ae064}{00096}     EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{CoeffReturnType} \hyperlink{group___core___module_ad41647ef695f9a5a58a9a0f50e2ae064}{coeff}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} row, 
+      \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} col)\textcolor{keyword}{ const}
+00097 \textcolor{keyword}{    }\{
+00098       eigen\_internal\_assert(row >= 0 && row < rows()
+00099                          && col >= 0 && col < cols());
+00100       \textcolor{keywordflow}{return} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{internal::evaluator<Derived>}(derived()).coeff(row,col);
+00101     \}
+00102 
+00103     EIGEN\_DEVICE\_FUNC
+00104     EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{CoeffReturnType} coeffByOuterInner(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} outer, 
+      \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} inner)\textcolor{keyword}{ const}
+00105 \textcolor{keyword}{    }\{
+00106       \textcolor{keywordflow}{return} coeff(rowIndexByOuterInner(outer, inner),
+00107                    colIndexByOuterInner(outer, inner));
+00108     \}
+00109 
+00114     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00115}\hyperlink{group___core___module_a29ac34389e098ec963ebb2ebd351335a}{00115}     EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{CoeffReturnType} \hyperlink{group___core___module_a29ac34389e098ec963ebb2ebd351335a}{operator()}(
+      \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} row, \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} col)\textcolor{keyword}{ const}
+00116 \textcolor{keyword}{    }\{
+00117       eigen\_assert(row >= 0 && row < rows()
+00118           && col >= 0 && col < cols());
+00119       \textcolor{keywordflow}{return} coeff(row, col);
+00120     \}
+00121 
+00137     EIGEN\_DEVICE\_FUNC
+00138     EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{CoeffReturnType}
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00139}\hyperlink{group___core___module_ad52344ad1f42852db71996590d2de0de}{00139}     \hyperlink{group___core___module_ad52344ad1f42852db71996590d2de0de}{coeff}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} index)\textcolor{keyword}{ const}
+00140 \textcolor{keyword}{    }\{
+00141       EIGEN\_STATIC\_ASSERT(\hyperlink{struct_eigen_1_1internal_1_1evaluator}{internal::evaluator<Derived>::Flags} & 
+      \hyperlink{group__flags_ga4b983a15d57cd55806df618ac544d09e}{LinearAccessBit},
+00142                           
+      THIS\_COEFFICIENT\_ACCESSOR\_TAKING\_ONE\_ACCESS\_IS\_ONLY\_FOR\_EXPRESSIONS\_ALLOWING\_LINEAR\_ACCESS)
+00143       eigen\_internal\_assert(index >= 0 && index < size());
+00144       \textcolor{keywordflow}{return} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{internal::evaluator<Derived>}(derived()).coeff(index);
+00145     \}
+00146 
+00147 
+00156     EIGEN\_DEVICE\_FUNC
+00157     EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{CoeffReturnType}
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00158}\hyperlink{group___core___module_ad26422dfa7b2bf859d4304663c36de10}{00158}     \hyperlink{group___core___module_ad26422dfa7b2bf859d4304663c36de10}{operator[]}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} index)\textcolor{keyword}{ const}
+00159 \textcolor{keyword}{    }\{
+00160       EIGEN\_STATIC\_ASSERT(Derived::IsVectorAtCompileTime,
+00161                           THE\_BRACKET\_OPERATOR\_IS\_ONLY\_FOR\_VECTORS\_\_USE\_THE\_PARENTHESIS\_OPERATOR\_INSTEAD)
+00162       eigen\_assert(index >= 0 && index < size());
+00163       \textcolor{keywordflow}{return} coeff(index);
+00164     \}
+00165 
+00176     EIGEN\_DEVICE\_FUNC
+00177     EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{CoeffReturnType}
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00178}\hyperlink{group___core___module_a679c7e69917baa1abf2c2f82725ae470}{00178}     \hyperlink{group___core___module_a679c7e69917baa1abf2c2f82725ae470}{operator()}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} index)\textcolor{keyword}{ const}
+00179 \textcolor{keyword}{    }\{
+00180       eigen\_assert(index >= 0 && index < size());
+00181       \textcolor{keywordflow}{return} coeff(index);
+00182     \}
+00183 
+00186     EIGEN\_DEVICE\_FUNC
+00187     EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{CoeffReturnType}
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00188}\hyperlink{group___core___module_a36fb246141b6ea5ab5289d7eb6afdf6e}{00188}     \hyperlink{group___core___module_a36fb246141b6ea5ab5289d7eb6afdf6e}{x}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} (*\textcolor{keyword}{this})[0]; \}
+00189 
+00192     EIGEN\_DEVICE\_FUNC
+00193     EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{CoeffReturnType}
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00194}\hyperlink{group___core___module_af2cb257225cf4348136a37fa9333ccda}{00194}     \hyperlink{group___core___module_af2cb257225cf4348136a37fa9333ccda}{y}()\textcolor{keyword}{ const}
+00195 \textcolor{keyword}{    }\{
+00196       EIGEN\_STATIC\_ASSERT(Derived::SizeAtCompileTime==-1 || Derived::SizeAtCompileTime>=2, 
+      OUT\_OF\_RANGE\_ACCESS);
+00197       \textcolor{keywordflow}{return} (*\textcolor{keyword}{this})[1];
+00198     \}
+00199 
+00202     EIGEN\_DEVICE\_FUNC
+00203     EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{CoeffReturnType}
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00204}\hyperlink{group___core___module_a9040af2dcad8961168daafe09c1b1dc4}{00204}     \hyperlink{group___core___module_a9040af2dcad8961168daafe09c1b1dc4}{z}()\textcolor{keyword}{ const}
+00205 \textcolor{keyword}{    }\{
+00206       EIGEN\_STATIC\_ASSERT(Derived::SizeAtCompileTime==-1 || Derived::SizeAtCompileTime>=3, 
+      OUT\_OF\_RANGE\_ACCESS);
+00207       \textcolor{keywordflow}{return} (*\textcolor{keyword}{this})[2];
+00208     \}
+00209 
+00212     EIGEN\_DEVICE\_FUNC
+00213     EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{CoeffReturnType}
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00214}\hyperlink{group___core___module_a422892fbb6b2eecce243776c3b8452ab}{00214}     \hyperlink{group___core___module_a422892fbb6b2eecce243776c3b8452ab}{w}()\textcolor{keyword}{ const}
+00215 \textcolor{keyword}{    }\{
+00216       EIGEN\_STATIC\_ASSERT(Derived::SizeAtCompileTime==-1 || Derived::SizeAtCompileTime>=4, 
+      OUT\_OF\_RANGE\_ACCESS);
+00217       \textcolor{keywordflow}{return} (*\textcolor{keyword}{this})[3];
+00218     \}
+00219 
+00230     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode>
+00231     EIGEN\_STRONG\_INLINE PacketReturnType packet(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} row, \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} col)\textcolor{keyword}{ const}
+00232 \textcolor{keyword}{    }\{
+00233       \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{internal::packet\_traits<Scalar>::type} 
+      DefaultPacketType;
+00234       eigen\_internal\_assert(row >= 0 && row < rows() && col >= 0 && col < cols());
+00235       \textcolor{keywordflow}{return} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{internal::evaluator<Derived>}(derived()).\textcolor{keyword}{template} 
+      packet<LoadMode,DefaultPacketType>(row,col);
+00236     \}
+00237 
+00238 
+00240     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode>
+00241     EIGEN\_STRONG\_INLINE PacketReturnType packetByOuterInner(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} outer, 
+      \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} inner)\textcolor{keyword}{ const}
+00242 \textcolor{keyword}{    }\{
+00243       \textcolor{keywordflow}{return} packet<LoadMode>(rowIndexByOuterInner(outer, inner),
+00244                               colIndexByOuterInner(outer, inner));
+00245     \}
+00246 
+00257     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode>
+00258     EIGEN\_STRONG\_INLINE PacketReturnType packet(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} index)\textcolor{keyword}{ const}
+00259 \textcolor{keyword}{    }\{
+00260       EIGEN\_STATIC\_ASSERT(\hyperlink{struct_eigen_1_1internal_1_1evaluator}{internal::evaluator<Derived>::Flags} & 
+      \hyperlink{group__flags_ga4b983a15d57cd55806df618ac544d09e}{LinearAccessBit},
+00261                           
+      THIS\_COEFFICIENT\_ACCESSOR\_TAKING\_ONE\_ACCESS\_IS\_ONLY\_FOR\_EXPRESSIONS\_ALLOWING\_LINEAR\_ACCESS)
+00262       \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{internal::packet\_traits<Scalar>::type} 
+      DefaultPacketType;
+00263       eigen\_internal\_assert(index >= 0 && index < size());
+00264       \textcolor{keywordflow}{return} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{internal::evaluator<Derived>}(derived()).\textcolor{keyword}{template} 
+      packet<LoadMode,DefaultPacketType>(index);
+00265     \}
+00266 
+00267   \textcolor{keyword}{protected}:
+00268     \textcolor{comment}{// explanation: DenseBase is doing "using ..." on the methods from DenseCoeffsBase.}
+00269     \textcolor{comment}{// But some methods are only available in the DirectAccess case.}
+00270     \textcolor{comment}{// So we add dummy methods here with these names, so that "using... " doesn't fail.}
+00271     \textcolor{comment}{// It's not private so that the child class DenseBase can access them, and it's not public}
+00272     \textcolor{comment}{// either since it's an implementation detail, so has to be protected.}
+00273     \textcolor{keywordtype}{void} coeffRef();
+00274     \textcolor{keywordtype}{void} coeffRefByOuterInner();
+00275     \textcolor{keywordtype}{void} writePacket();
+00276     \textcolor{keywordtype}{void} writePacketByOuterInner();
+00277     \textcolor{keywordtype}{void} copyCoeff();
+00278     \textcolor{keywordtype}{void} copyCoeffByOuterInner();
+00279     \textcolor{keywordtype}{void} copyPacket();
+00280     \textcolor{keywordtype}{void} copyPacketByOuterInner();
+00281     \textcolor{keywordtype}{void} stride();
+00282     \textcolor{keywordtype}{void} innerStride();
+00283     \textcolor{keywordtype}{void} outerStride();
+00284     \textcolor{keywordtype}{void} rowStride();
+00285     \textcolor{keywordtype}{void} colStride();
+00286 \};
+00287 
+00299 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00300 \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_dense_coeffs_base}{DenseCoeffsBase}<Derived, WriteAccessors> : \textcolor{keyword}{public} 
+      \hyperlink{class_eigen_1_1_dense_coeffs_base}{DenseCoeffsBase}<Derived, ReadOnlyAccessors>
+00301 \{
+00302   \textcolor{keyword}{public}:
+00303 
+00304     \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_dense_coeffs_base_3_01_derived_00_01_read_only_accessors_01_4}{DenseCoeffsBase<Derived, ReadOnlyAccessors>} 
+      \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{Base};
+00305 
+00306     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::StorageKind} 
+      StorageKind;
+00307     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::Scalar} Scalar;
+00308     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{internal::packet\_traits<Scalar>::type} 
+      \hyperlink{group___sparse_core___module}{PacketScalar};
+00309     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00310 
+00311     \textcolor{keyword}{using} Base::coeff;
+00312     \textcolor{keyword}{using} Base::rows;
+00313     \textcolor{keyword}{using} Base::cols;
+00314     \textcolor{keyword}{using} Base::size;
+00315     \textcolor{keyword}{using} Base::derived;
+00316     \textcolor{keyword}{using} Base::rowIndexByOuterInner;
+00317     \textcolor{keyword}{using} Base::colIndexByOuterInner;
+00318     \textcolor{keyword}{using} Base::operator[];
+00319     \textcolor{keyword}{using} Base::operator();
+00320     \textcolor{keyword}{using} Base::x;
+00321     \textcolor{keyword}{using} Base::y;
+00322     \textcolor{keyword}{using} Base::z;
+00323     \textcolor{keyword}{using} Base::w;
+00324 
+00339     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00340}\hyperlink{group___core___module_adf14e9563a1d2a39a6fee334dfcfb105}{00340}     EIGEN\_STRONG\_INLINE Scalar& \hyperlink{group___core___module_adf14e9563a1d2a39a6fee334dfcfb105}{coeffRef}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} row, \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} col)
+00341     \{
+00342       eigen\_internal\_assert(row >= 0 && row < rows()
+00343                          && col >= 0 && col < cols());
+00344       \textcolor{keywordflow}{return} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{internal::evaluator<Derived>}(derived()).coeffRef(row,col);
+00345     \}
+00346 
+00347     EIGEN\_DEVICE\_FUNC
+00348     EIGEN\_STRONG\_INLINE Scalar&
+00349     coeffRefByOuterInner(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} outer, \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} inner)
+00350     \{
+00351       \textcolor{keywordflow}{return} coeffRef(rowIndexByOuterInner(outer, inner),
+00352                       colIndexByOuterInner(outer, inner));
+00353     \}
+00354 
+00360     EIGEN\_DEVICE\_FUNC
+00361     EIGEN\_STRONG\_INLINE Scalar&
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00362}\hyperlink{group___core___module_ab0c40ee1944059a3e32a125cf794d547}{00362}     \hyperlink{group___core___module_ab0c40ee1944059a3e32a125cf794d547}{operator()}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} row, \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} col)
+00363     \{
+00364       eigen\_assert(row >= 0 && row < rows()
+00365           && col >= 0 && col < cols());
+00366       \textcolor{keywordflow}{return} coeffRef(row, col);
+00367     \}
+00368 
+00369 
+00385     EIGEN\_DEVICE\_FUNC
+00386     EIGEN\_STRONG\_INLINE Scalar&
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00387}\hyperlink{group___core___module_a3187593ec72fc6f4fa64a86e0383375b}{00387}     \hyperlink{group___core___module_a3187593ec72fc6f4fa64a86e0383375b}{coeffRef}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} index)
+00388     \{
+00389       EIGEN\_STATIC\_ASSERT(\hyperlink{struct_eigen_1_1internal_1_1evaluator}{internal::evaluator<Derived>::Flags} & 
+      \hyperlink{group__flags_ga4b983a15d57cd55806df618ac544d09e}{LinearAccessBit},
+00390                           
+      THIS\_COEFFICIENT\_ACCESSOR\_TAKING\_ONE\_ACCESS\_IS\_ONLY\_FOR\_EXPRESSIONS\_ALLOWING\_LINEAR\_ACCESS)
+00391       eigen\_internal\_assert(index >= 0 && index < size());
+00392       \textcolor{keywordflow}{return} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{internal::evaluator<Derived>}(derived()).coeffRef(index);
+00393     \}
+00394 
+00402     EIGEN\_DEVICE\_FUNC
+00403     EIGEN\_STRONG\_INLINE Scalar&
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00404}\hyperlink{group___core___module_a38f5d78476b3db56db98853af750cf31}{00404}     \hyperlink{group___core___module_a38f5d78476b3db56db98853af750cf31}{operator[]}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} index)
+00405     \{
+00406       EIGEN\_STATIC\_ASSERT(Derived::IsVectorAtCompileTime,
+00407                           THE\_BRACKET\_OPERATOR\_IS\_ONLY\_FOR\_VECTORS\_\_USE\_THE\_PARENTHESIS\_OPERATOR\_INSTEAD)
+00408       eigen\_assert(index >= 0 && index < size());
+00409       \textcolor{keywordflow}{return} coeffRef(index);
+00410     \}
+00411 
+00421     EIGEN\_DEVICE\_FUNC
+00422     EIGEN\_STRONG\_INLINE Scalar&
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00423}\hyperlink{group___core___module_a49d29adf378f99cd8ab048bff8a3f881}{00423}     \hyperlink{group___core___module_a49d29adf378f99cd8ab048bff8a3f881}{operator()}(\hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} index)
+00424     \{
+00425       eigen\_assert(index >= 0 && index < size());
+00426       \textcolor{keywordflow}{return} coeffRef(index);
+00427     \}
+00428 
+00431     EIGEN\_DEVICE\_FUNC
+00432     EIGEN\_STRONG\_INLINE Scalar&
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00433}\hyperlink{group___core___module_a2a9ca10b9ee750cefc5f914f215cba18}{00433}     \hyperlink{group___core___module_a2a9ca10b9ee750cefc5f914f215cba18}{x}() \{ \textcolor{keywordflow}{return} (*\textcolor{keyword}{this})[0]; \}
+00434 
+00437     EIGEN\_DEVICE\_FUNC
+00438     EIGEN\_STRONG\_INLINE Scalar&
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00439}\hyperlink{group___core___module_ac04b8e2ab263c3901d72c5240ad017b5}{00439}     \hyperlink{group___core___module_ac04b8e2ab263c3901d72c5240ad017b5}{y}()
+00440     \{
+00441       EIGEN\_STATIC\_ASSERT(Derived::SizeAtCompileTime==-1 || Derived::SizeAtCompileTime>=2, 
+      OUT\_OF\_RANGE\_ACCESS);
+00442       \textcolor{keywordflow}{return} (*\textcolor{keyword}{this})[1];
+00443     \}
+00444 
+00447     EIGEN\_DEVICE\_FUNC
+00448     EIGEN\_STRONG\_INLINE Scalar&
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00449}\hyperlink{group___core___module_ad64b8fa3ee1cda9eb3df918eaf8b0396}{00449}     \hyperlink{group___core___module_ad64b8fa3ee1cda9eb3df918eaf8b0396}{z}()
+00450     \{
+00451       EIGEN\_STATIC\_ASSERT(Derived::SizeAtCompileTime==-1 || Derived::SizeAtCompileTime>=3, 
+      OUT\_OF\_RANGE\_ACCESS);
+00452       \textcolor{keywordflow}{return} (*\textcolor{keyword}{this})[2];
+00453     \}
+00454 
+00457     EIGEN\_DEVICE\_FUNC
+00458     EIGEN\_STRONG\_INLINE Scalar&
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00459}\hyperlink{group___core___module_a225a129a5f2d8863068bd5629a6144a6}{00459}     \hyperlink{group___core___module_a225a129a5f2d8863068bd5629a6144a6}{w}()
+00460     \{
+00461       EIGEN\_STATIC\_ASSERT(Derived::SizeAtCompileTime==-1 || Derived::SizeAtCompileTime>=4, 
+      OUT\_OF\_RANGE\_ACCESS);
+00462       \textcolor{keywordflow}{return} (*\textcolor{keyword}{this})[3];
+00463     \}
+00464 \};
+00465 
+00477 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00478 \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_dense_coeffs_base}{DenseCoeffsBase}<Derived, DirectAccessors> : \textcolor{keyword}{public} 
+      \hyperlink{class_eigen_1_1_dense_coeffs_base}{DenseCoeffsBase}<Derived, ReadOnlyAccessors>
+00479 \{
+00480   \textcolor{keyword}{public}:
+00481 
+00482     \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_dense_coeffs_base_3_01_derived_00_01_read_only_accessors_01_4}{DenseCoeffsBase<Derived, ReadOnlyAccessors>} 
+      \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{Base};
+00483     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::Scalar} Scalar;
+00484     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00485 
+00486     \textcolor{keyword}{using} Base::rows;
+00487     \textcolor{keyword}{using} Base::cols;
+00488     \textcolor{keyword}{using} Base::size;
+00489     \textcolor{keyword}{using} Base::derived;
+00490 
+00495     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00496}\hyperlink{group___core___module_a4f877f649686a935771dceaf3569b1fc}{00496}     \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} \hyperlink{group___core___module_a4f877f649686a935771dceaf3569b1fc}{innerStride}()\textcolor{keyword}{ const}
+00497 \textcolor{keyword}{    }\{
+00498       \textcolor{keywordflow}{return} derived().innerStride();
+00499     \}
+00500 
+00506     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00507}\hyperlink{group___core___module_aa5b9d836576cb6fa037d32a7414b1110}{00507}     \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} \hyperlink{group___core___module_aa5b9d836576cb6fa037d32a7414b1110}{outerStride}()\textcolor{keyword}{ const}
+00508 \textcolor{keyword}{    }\{
+00509       \textcolor{keywordflow}{return} derived().outerStride();
+00510     \}
+00511 
+00512     \textcolor{comment}{// FIXME shall we remove it ?}
+00513     \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} stride()\textcolor{keyword}{ const}
+00514 \textcolor{keyword}{    }\{
+00515       \textcolor{keywordflow}{return} Derived::IsVectorAtCompileTime ? innerStride() : outerStride();
+00516     \}
+00517 
+00522     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00523}\hyperlink{group___core___module_aaf7d19edb8f92962ab2e3ab475d2a879}{00523}     \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} \hyperlink{group___core___module_aaf7d19edb8f92962ab2e3ab475d2a879}{rowStride}()\textcolor{keyword}{ const}
+00524 \textcolor{keyword}{    }\{
+00525       \textcolor{keywordflow}{return} Derived::IsRowMajor ? outerStride() : innerStride();
+00526     \}
+00527 
+00532     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00533}\hyperlink{group___core___module_ab4ec982807214e8e7ce4d27f7009a43d}{00533}     \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} \hyperlink{group___core___module_ab4ec982807214e8e7ce4d27f7009a43d}{colStride}()\textcolor{keyword}{ const}
+00534 \textcolor{keyword}{    }\{
+00535       \textcolor{keywordflow}{return} Derived::IsRowMajor ? innerStride() : outerStride();
+00536     \}
+00537 \};
+00538 
+00550 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00551 \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_dense_coeffs_base}{DenseCoeffsBase}<Derived, DirectWriteAccessors>
+00552   : \textcolor{keyword}{public} \hyperlink{class_eigen_1_1_dense_coeffs_base}{DenseCoeffsBase}<Derived, WriteAccessors>
+00553 \{
+00554   \textcolor{keyword}{public}:
+00555 
+00556     \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_dense_coeffs_base_3_01_derived_00_01_write_accessors_01_4}{DenseCoeffsBase<Derived, WriteAccessors>} 
+      \hyperlink{group___core___module_class_eigen_1_1_dense_coeffs_base_3_01_derived_00_01_read_only_accessors_01_4}{Base};
+00557     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::Scalar} Scalar;
+00558     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00559 
+00560     \textcolor{keyword}{using} Base::rows;
+00561     \textcolor{keyword}{using} Base::cols;
+00562     \textcolor{keyword}{using} Base::size;
+00563     \textcolor{keyword}{using} Base::derived;
+00564 
+00569     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00570}\hyperlink{group___core___module_a28016205b69c3df8152680fea9390937}{00570}     \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} \hyperlink{group___core___module_a28016205b69c3df8152680fea9390937}{innerStride}()\textcolor{keyword}{ const}
+00571 \textcolor{keyword}{    }\{
+00572       \textcolor{keywordflow}{return} derived().innerStride();
+00573     \}
+00574 
+00580     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00581}\hyperlink{group___core___module_a024394b03623c6ce5a2aab5eb94d78a8}{00581}     \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} \hyperlink{group___core___module_a024394b03623c6ce5a2aab5eb94d78a8}{outerStride}()\textcolor{keyword}{ const}
+00582 \textcolor{keyword}{    }\{
+00583       \textcolor{keywordflow}{return} derived().outerStride();
+00584     \}
+00585 
+00586     \textcolor{comment}{// FIXME shall we remove it ?}
+00587     \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} stride()\textcolor{keyword}{ const}
+00588 \textcolor{keyword}{    }\{
+00589       \textcolor{keywordflow}{return} Derived::IsVectorAtCompileTime ? innerStride() : outerStride();
+00590     \}
+00591 
+00596     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00597}\hyperlink{group___core___module_a922802af1c7db5993a8af2fb7634592f}{00597}     \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} \hyperlink{group___core___module_a922802af1c7db5993a8af2fb7634592f}{rowStride}()\textcolor{keyword}{ const}
+00598 \textcolor{keyword}{    }\{
+00599       \textcolor{keywordflow}{return} Derived::IsRowMajor ? outerStride() : innerStride();
+00600     \}
+00601 
+00606     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_coeffs_base_8h_source_l00607}\hyperlink{group___core___module_af7fa6b77bd024be97c02766261e52714}{00607}     \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} \hyperlink{group___core___module_af7fa6b77bd024be97c02766261e52714}{colStride}()\textcolor{keyword}{ const}
+00608 \textcolor{keyword}{    }\{
+00609       \textcolor{keywordflow}{return} Derived::IsRowMajor ? innerStride() : outerStride();
+00610     \}
+00611 \};
+00612 
+00613 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00614 
+00615 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Alignment, \textcolor{keyword}{typename} Derived, \textcolor{keywordtype}{bool} JustReturnZero>
+00616 \textcolor{keyword}{struct }first\_aligned\_impl
+00617 \{
+00618   \textcolor{keyword}{static} \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} run(\textcolor{keyword}{const} Derived&)
+00619   \{ \textcolor{keywordflow}{return} 0; \}
+00620 \};
+00621 
+00622 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Alignment, \textcolor{keyword}{typename} Derived>
+00623 \textcolor{keyword}{struct }first\_aligned\_impl<Alignment, Derived, false>
+00624 \{
+00625   \textcolor{keyword}{static} \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} run(\textcolor{keyword}{const} Derived& m)
+00626   \{
+00627     \textcolor{keywordflow}{return} internal::first\_aligned<Alignment>(m.data(), m.size());
+00628   \}
+00629 \};
+00630 
+00638 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Alignment, \textcolor{keyword}{typename} Derived>
+00639 \textcolor{keyword}{static} \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} first\_aligned(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<Derived>}& m)
+00640 \{
+00641   \textcolor{keyword}{enum} \{ ReturnZero = (int(evaluator<Derived>::Alignment) >= Alignment) || !(Derived::Flags & 
+      \hyperlink{group__flags_gabf1e9d0516a933445a4c307ad8f14915}{DirectAccessBit}) \};
+00642   \textcolor{keywordflow}{return} first\_aligned\_impl<Alignment, Derived, ReturnZero>::run(m.derived());
+00643 \}
+00644 
+00645 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00646 \textcolor{keyword}{static} \textcolor{keyword}{inline} \hyperlink{group___core___module_a554f30542cc2316add4b1ea0a492ff02}{Index} first\_default\_aligned(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<Derived>}& m)
+00647 \{
+00648   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Derived::Scalar Scalar;
+00649   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} packet\_traits<Scalar>::type DefaultPacketType;
+00650   \textcolor{keywordflow}{return} internal::first\_aligned<int(unpacket\_traits<DefaultPacketType>::alignment),Derived>(m);
+00651 \}
+00652 
+00653 template<typename Derived, bool HasDirectAccess = has\_direct\_access<Derived>::ret>
+00654 \textcolor{keyword}{struct }inner\_stride\_at\_compile\_time
+00655 \{
+00656   \textcolor{keyword}{enum} \{ ret = traits<Derived>::InnerStrideAtCompileTime \};
+00657 \};
+00658 
+00659 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00660 \textcolor{keyword}{struct }inner\_stride\_at\_compile\_time<Derived, false>
+00661 \{
+00662   \textcolor{keyword}{enum} \{ ret = 0 \};
+00663 \};
+00664 
+00665 template<typename Derived, bool HasDirectAccess = has\_direct\_access<Derived>::ret>
+00666 \textcolor{keyword}{struct }outer\_stride\_at\_compile\_time
+00667 \{
+00668   \textcolor{keyword}{enum} \{ ret = traits<Derived>::OuterStrideAtCompileTime \};
+00669 \};
+00670 
+00671 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00672 \textcolor{keyword}{struct }outer\_stride\_at\_compile\_time<Derived, false>
+00673 \{
+00674   \textcolor{keyword}{enum} \{ ret = 0 \};
+00675 \};
+00676 
+00677 \} \textcolor{comment}{// end namespace internal}
+00678 
+00679 \} \textcolor{comment}{// end namespace Eigen}
+00680 
+00681 \textcolor{preprocessor}{#endif // EIGEN\_DENSECOEFFSBASE\_H}
+\end{DoxyCode}

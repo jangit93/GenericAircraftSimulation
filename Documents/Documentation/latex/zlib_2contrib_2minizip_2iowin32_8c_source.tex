@@ -1,0 +1,475 @@
+\hypertarget{zlib_2contrib_2minizip_2iowin32_8c_source}{}\section{zlib/contrib/minizip/iowin32.c}
+\label{zlib_2contrib_2minizip_2iowin32_8c_source}\index{iowin32.\+c@{iowin32.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* iowin32.c -- IO base function header for compress/uncompress .zip}
+00002 \textcolor{comment}{     Version 1.1, February 14h, 2010}
+00003 \textcolor{comment}{     part of the MiniZip project - ( http://www.winimage.com/zLibDll/minizip.html )}
+00004 \textcolor{comment}{}
+00005 \textcolor{comment}{         Copyright (C) 1998-2010 Gilles Vollant (minizip) ( http://www.winimage.com/zLibDll/minizip.html )}
+00006 \textcolor{comment}{}
+00007 \textcolor{comment}{         Modifications for Zip64 support}
+00008 \textcolor{comment}{         Copyright (C) 2009-2010 Mathias Svensson ( http://result42.com )}
+00009 \textcolor{comment}{}
+00010 \textcolor{comment}{     For more info read MiniZip\_info.txt}
+00011 \textcolor{comment}{}
+00012 \textcolor{comment}{*/}
+00013 
+00014 \textcolor{preprocessor}{#include <stdlib.h>}
+00015 
+00016 \textcolor{preprocessor}{#include "zlib.h"}
+00017 \textcolor{preprocessor}{#include "ioapi.h"}
+00018 \textcolor{preprocessor}{#include "iowin32.h"}
+00019 
+00020 \textcolor{preprocessor}{#ifndef INVALID\_HANDLE\_VALUE}
+00021 \textcolor{preprocessor}{#define INVALID\_HANDLE\_VALUE (0xFFFFFFFF)}
+00022 \textcolor{preprocessor}{#endif}
+00023 
+00024 \textcolor{preprocessor}{#ifndef INVALID\_SET\_FILE\_POINTER}
+00025 \textcolor{preprocessor}{#define INVALID\_SET\_FILE\_POINTER ((DWORD)-1)}
+00026 \textcolor{preprocessor}{#endif}
+00027 
+00028 
+00029 \textcolor{comment}{// see Include/shared/winapifamily.h in the Windows Kit}
+00030 \textcolor{preprocessor}{#if defined(WINAPI\_FAMILY\_PARTITION) && (!(defined(IOWIN32\_USING\_WINRT\_API)))}
+00031 \textcolor{preprocessor}{#if WINAPI\_FAMILY\_ONE\_PARTITION(WINAPI\_FAMILY, WINAPI\_PARTITION\_APP)}
+00032 \textcolor{preprocessor}{#define IOWIN32\_USING\_WINRT\_API 1}
+00033 \textcolor{preprocessor}{#endif}
+00034 \textcolor{preprocessor}{#endif}
+00035 
+00036 voidpf  ZCALLBACK win32\_open\_file\_func  OF((voidpf opaque, \textcolor{keyword}{const} \textcolor{keywordtype}{char}* filename, \textcolor{keywordtype}{int} mode));
+00037 uLong   ZCALLBACK win32\_read\_file\_func  OF((voidpf opaque, voidpf stream, \textcolor{keywordtype}{void}* buf, uLong size));
+00038 uLong   ZCALLBACK win32\_write\_file\_func OF((voidpf opaque, voidpf stream, \textcolor{keyword}{const} \textcolor{keywordtype}{void}* buf, uLong size));
+00039 ZPOS64\_T ZCALLBACK win32\_tell64\_file\_func  OF((voidpf opaque, voidpf stream));
+00040 \textcolor{keywordtype}{long}    ZCALLBACK win32\_seek64\_file\_func  OF((voidpf opaque, voidpf stream, ZPOS64\_T offset, \textcolor{keywordtype}{int} origin));
+00041 \textcolor{keywordtype}{int}     ZCALLBACK win32\_close\_file\_func OF((voidpf opaque, voidpf stream));
+00042 \textcolor{keywordtype}{int}     ZCALLBACK win32\_error\_file\_func OF((voidpf opaque, voidpf stream));
+00043 
+00044 \textcolor{keyword}{typedef} \textcolor{keyword}{struct}
+00045 \{
+00046     HANDLE hf;
+00047     \textcolor{keywordtype}{int} error;
+00048 \} \hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN};
+00049 
+00050 
+00051 \textcolor{keyword}{static} \textcolor{keywordtype}{void} win32\_translate\_open\_mode(\textcolor{keywordtype}{int} mode,
+00052                                       DWORD* lpdwDesiredAccess,
+00053                                       DWORD* lpdwCreationDisposition,
+00054                                       DWORD* lpdwShareMode,
+00055                                       DWORD* lpdwFlagsAndAttributes)
+00056 \{
+00057     *lpdwDesiredAccess = *lpdwShareMode = *lpdwFlagsAndAttributes = *lpdwCreationDisposition = 0;
+00058 
+00059     \textcolor{keywordflow}{if} ((mode & ZLIB\_FILEFUNC\_MODE\_READWRITEFILTER)==ZLIB\_FILEFUNC\_MODE\_READ)
+00060     \{
+00061         *lpdwDesiredAccess = GENERIC\_READ;
+00062         *lpdwCreationDisposition = OPEN\_EXISTING;
+00063         *lpdwShareMode = FILE\_SHARE\_READ;
+00064     \}
+00065     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (mode & ZLIB\_FILEFUNC\_MODE\_EXISTING)
+00066     \{
+00067         *lpdwDesiredAccess = GENERIC\_WRITE | GENERIC\_READ;
+00068         *lpdwCreationDisposition = OPEN\_EXISTING;
+00069     \}
+00070     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (mode & ZLIB\_FILEFUNC\_MODE\_CREATE)
+00071     \{
+00072         *lpdwDesiredAccess = GENERIC\_WRITE | GENERIC\_READ;
+00073         *lpdwCreationDisposition = CREATE\_ALWAYS;
+00074     \}
+00075 \}
+00076 
+00077 \textcolor{keyword}{static} voidpf win32\_build\_iowin(HANDLE hFile)
+00078 \{
+00079     voidpf ret=NULL;
+00080 
+00081     \textcolor{keywordflow}{if} ((hFile != NULL) && (hFile != INVALID\_HANDLE\_VALUE))
+00082     \{
+00083         \hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN} w32fiow;
+00084         w32fiow.hf = hFile;
+00085         w32fiow.error = 0;
+00086         ret = malloc(\textcolor{keyword}{sizeof}(\hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN}));
+00087 
+00088         \textcolor{keywordflow}{if} (ret==NULL)
+00089             CloseHandle(hFile);
+00090         \textcolor{keywordflow}{else}
+00091             *((\hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN}*)ret) = w32fiow;
+00092     \}
+00093     \textcolor{keywordflow}{return} ret;
+00094 \}
+00095 
+00096 voidpf ZCALLBACK win32\_open64\_file\_func (voidpf opaque,\textcolor{keyword}{const} \textcolor{keywordtype}{void}* filename,\textcolor{keywordtype}{int} mode)
+00097 \{
+00098     \textcolor{keyword}{const} \textcolor{keywordtype}{char}* mode\_fopen = NULL;
+00099     DWORD dwDesiredAccess,dwCreationDisposition,dwShareMode,dwFlagsAndAttributes ;
+00100     HANDLE hFile = NULL;
+00101 
+00102     win32\_translate\_open\_mode(mode,&dwDesiredAccess,&dwCreationDisposition,&dwShareMode,&
+      dwFlagsAndAttributes);
+00103 
+00104 \textcolor{preprocessor}{#ifdef IOWIN32\_USING\_WINRT\_API}
+00105 \textcolor{preprocessor}{#ifdef UNICODE}
+00106     \textcolor{keywordflow}{if} ((filename!=NULL) && (dwDesiredAccess != 0))
+00107         hFile = CreateFile2((LPCTSTR)filename, dwDesiredAccess, dwShareMode, dwCreationDisposition, NULL);
+00108 \textcolor{preprocessor}{#else}
+00109     \textcolor{keywordflow}{if} ((filename!=NULL) && (dwDesiredAccess != 0))
+00110     \{
+00111         WCHAR filenameW[FILENAME\_MAX + 0x200 + 1];
+00112         MultiByteToWideChar(CP\_ACP,0,(\textcolor{keyword}{const} \textcolor{keywordtype}{char}*)filename,-1,filenameW,FILENAME\_MAX + 0x200);
+00113         hFile = CreateFile2(filenameW, dwDesiredAccess, dwShareMode, dwCreationDisposition, NULL);
+00114     \}
+00115 \textcolor{preprocessor}{#endif}
+00116 \textcolor{preprocessor}{#else}
+00117     \textcolor{keywordflow}{if} ((filename!=NULL) && (dwDesiredAccess != 0))
+00118         hFile = CreateFile((LPCTSTR)filename, dwDesiredAccess, dwShareMode, NULL, dwCreationDisposition, 
+      dwFlagsAndAttributes, NULL);
+00119 \textcolor{preprocessor}{#endif}
+00120 
+00121     \textcolor{keywordflow}{return} win32\_build\_iowin(hFile);
+00122 \}
+00123 
+00124 
+00125 voidpf ZCALLBACK win32\_open64\_file\_funcA (voidpf opaque,\textcolor{keyword}{const} \textcolor{keywordtype}{void}* filename,\textcolor{keywordtype}{int} mode)
+00126 \{
+00127     \textcolor{keyword}{const} \textcolor{keywordtype}{char}* mode\_fopen = NULL;
+00128     DWORD dwDesiredAccess,dwCreationDisposition,dwShareMode,dwFlagsAndAttributes ;
+00129     HANDLE hFile = NULL;
+00130 
+00131     win32\_translate\_open\_mode(mode,&dwDesiredAccess,&dwCreationDisposition,&dwShareMode,&
+      dwFlagsAndAttributes);
+00132 
+00133 \textcolor{preprocessor}{#ifdef IOWIN32\_USING\_WINRT\_API}
+00134     \textcolor{keywordflow}{if} ((filename!=NULL) && (dwDesiredAccess != 0))
+00135     \{
+00136         WCHAR filenameW[FILENAME\_MAX + 0x200 + 1];
+00137         MultiByteToWideChar(CP\_ACP,0,(\textcolor{keyword}{const} \textcolor{keywordtype}{char}*)filename,-1,filenameW,FILENAME\_MAX + 0x200);
+00138         hFile = CreateFile2(filenameW, dwDesiredAccess, dwShareMode, dwCreationDisposition, NULL);
+00139     \}
+00140 \textcolor{preprocessor}{#else}
+00141     \textcolor{keywordflow}{if} ((filename!=NULL) && (dwDesiredAccess != 0))
+00142         hFile = CreateFileA((LPCSTR)filename, dwDesiredAccess, dwShareMode, NULL, dwCreationDisposition, 
+      dwFlagsAndAttributes, NULL);
+00143 \textcolor{preprocessor}{#endif}
+00144 
+00145     \textcolor{keywordflow}{return} win32\_build\_iowin(hFile);
+00146 \}
+00147 
+00148 
+00149 voidpf ZCALLBACK win32\_open64\_file\_funcW (voidpf opaque,\textcolor{keyword}{const} \textcolor{keywordtype}{void}* filename,\textcolor{keywordtype}{int} mode)
+00150 \{
+00151     \textcolor{keyword}{const} \textcolor{keywordtype}{char}* mode\_fopen = NULL;
+00152     DWORD dwDesiredAccess,dwCreationDisposition,dwShareMode,dwFlagsAndAttributes ;
+00153     HANDLE hFile = NULL;
+00154 
+00155     win32\_translate\_open\_mode(mode,&dwDesiredAccess,&dwCreationDisposition,&dwShareMode,&
+      dwFlagsAndAttributes);
+00156 
+00157 \textcolor{preprocessor}{#ifdef IOWIN32\_USING\_WINRT\_API}
+00158     \textcolor{keywordflow}{if} ((filename!=NULL) && (dwDesiredAccess != 0))
+00159         hFile = CreateFile2((LPCWSTR)filename, dwDesiredAccess, dwShareMode, dwCreationDisposition,NULL);
+00160 \textcolor{preprocessor}{#else}
+00161     \textcolor{keywordflow}{if} ((filename!=NULL) && (dwDesiredAccess != 0))
+00162         hFile = CreateFileW((LPCWSTR)filename, dwDesiredAccess, dwShareMode, NULL, dwCreationDisposition, 
+      dwFlagsAndAttributes, NULL);
+00163 \textcolor{preprocessor}{#endif}
+00164 
+00165     \textcolor{keywordflow}{return} win32\_build\_iowin(hFile);
+00166 \}
+00167 
+00168 
+00169 voidpf ZCALLBACK win32\_open\_file\_func (voidpf opaque,\textcolor{keyword}{const} \textcolor{keywordtype}{char}* filename,\textcolor{keywordtype}{int} mode)
+00170 \{
+00171     \textcolor{keyword}{const} \textcolor{keywordtype}{char}* mode\_fopen = NULL;
+00172     DWORD dwDesiredAccess,dwCreationDisposition,dwShareMode,dwFlagsAndAttributes ;
+00173     HANDLE hFile = NULL;
+00174 
+00175     win32\_translate\_open\_mode(mode,&dwDesiredAccess,&dwCreationDisposition,&dwShareMode,&
+      dwFlagsAndAttributes);
+00176 
+00177 \textcolor{preprocessor}{#ifdef IOWIN32\_USING\_WINRT\_API}
+00178 \textcolor{preprocessor}{#ifdef UNICODE}
+00179     \textcolor{keywordflow}{if} ((filename!=NULL) && (dwDesiredAccess != 0))
+00180         hFile = CreateFile2((LPCTSTR)filename, dwDesiredAccess, dwShareMode, dwCreationDisposition, NULL);
+00181 \textcolor{preprocessor}{#else}
+00182     \textcolor{keywordflow}{if} ((filename!=NULL) && (dwDesiredAccess != 0))
+00183     \{
+00184         WCHAR filenameW[FILENAME\_MAX + 0x200 + 1];
+00185         MultiByteToWideChar(CP\_ACP,0,(\textcolor{keyword}{const} \textcolor{keywordtype}{char}*)filename,-1,filenameW,FILENAME\_MAX + 0x200);
+00186         hFile = CreateFile2(filenameW, dwDesiredAccess, dwShareMode, dwCreationDisposition, NULL);
+00187     \}
+00188 \textcolor{preprocessor}{#endif}
+00189 \textcolor{preprocessor}{#else}
+00190     \textcolor{keywordflow}{if} ((filename!=NULL) && (dwDesiredAccess != 0))
+00191         hFile = CreateFile((LPCTSTR)filename, dwDesiredAccess, dwShareMode, NULL, dwCreationDisposition, 
+      dwFlagsAndAttributes, NULL);
+00192 \textcolor{preprocessor}{#endif}
+00193 
+00194     \textcolor{keywordflow}{return} win32\_build\_iowin(hFile);
+00195 \}
+00196 
+00197 
+00198 uLong ZCALLBACK win32\_read\_file\_func (voidpf opaque, voidpf stream, \textcolor{keywordtype}{void}* buf,uLong size)
+00199 \{
+00200     uLong ret=0;
+00201     HANDLE hFile = NULL;
+00202     \textcolor{keywordflow}{if} (stream!=NULL)
+00203         hFile = ((\hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN}*)stream) -> hf;
+00204 
+00205     \textcolor{keywordflow}{if} (hFile != NULL)
+00206     \{
+00207         \textcolor{keywordflow}{if} (!ReadFile(hFile, buf, size, &ret, NULL))
+00208         \{
+00209             DWORD dwErr = GetLastError();
+00210             \textcolor{keywordflow}{if} (dwErr == ERROR\_HANDLE\_EOF)
+00211                 dwErr = 0;
+00212             ((\hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN}*)stream) -> error=(int)dwErr;
+00213         \}
+00214     \}
+00215 
+00216     \textcolor{keywordflow}{return} ret;
+00217 \}
+00218 
+00219 
+00220 uLong ZCALLBACK win32\_write\_file\_func (voidpf opaque,voidpf stream,\textcolor{keyword}{const} \textcolor{keywordtype}{void}* buf,uLong size)
+00221 \{
+00222     uLong ret=0;
+00223     HANDLE hFile = NULL;
+00224     \textcolor{keywordflow}{if} (stream!=NULL)
+00225         hFile = ((\hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN}*)stream) -> hf;
+00226 
+00227     \textcolor{keywordflow}{if} (hFile != NULL)
+00228     \{
+00229         \textcolor{keywordflow}{if} (!WriteFile(hFile, buf, size, &ret, NULL))
+00230         \{
+00231             DWORD dwErr = GetLastError();
+00232             \textcolor{keywordflow}{if} (dwErr == ERROR\_HANDLE\_EOF)
+00233                 dwErr = 0;
+00234             ((\hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN}*)stream) -> error=(int)dwErr;
+00235         \}
+00236     \}
+00237 
+00238     \textcolor{keywordflow}{return} ret;
+00239 \}
+00240 
+00241 \textcolor{keyword}{static} BOOL MySetFilePointerEx(HANDLE hFile, LARGE\_INTEGER pos, LARGE\_INTEGER *newPos,  DWORD dwMoveMethod)
+00242 \{
+00243 \textcolor{preprocessor}{#ifdef IOWIN32\_USING\_WINRT\_API}
+00244     \textcolor{keywordflow}{return} SetFilePointerEx(hFile, pos, newPos, dwMoveMethod);
+00245 \textcolor{preprocessor}{#else}
+00246     LONG lHigh = pos.HighPart;
+00247     DWORD dwNewPos = SetFilePointer(hFile, pos.LowPart, &lHigh, dwMoveMethod);
+00248     BOOL fOk = TRUE;
+00249     \textcolor{keywordflow}{if} (dwNewPos == 0xFFFFFFFF)
+00250         \textcolor{keywordflow}{if} (GetLastError() != NO\_ERROR)
+00251             fOk = FALSE;
+00252     \textcolor{keywordflow}{if} ((newPos != NULL) && (fOk))
+00253     \{
+00254         newPos->LowPart = dwNewPos;
+00255         newPos->HighPart = lHigh;
+00256     \}
+00257     \textcolor{keywordflow}{return} fOk;
+00258 \textcolor{preprocessor}{#endif}
+00259 \}
+00260 
+00261 \textcolor{keywordtype}{long} ZCALLBACK win32\_tell\_file\_func (voidpf opaque,voidpf stream)
+00262 \{
+00263     \textcolor{keywordtype}{long} ret=-1;
+00264     HANDLE hFile = NULL;
+00265     \textcolor{keywordflow}{if} (stream!=NULL)
+00266         hFile = ((\hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN}*)stream) -> hf;
+00267     \textcolor{keywordflow}{if} (hFile != NULL)
+00268     \{
+00269         LARGE\_INTEGER pos;
+00270         pos.QuadPart = 0;
+00271 
+00272         \textcolor{keywordflow}{if} (!MySetFilePointerEx(hFile, pos, &pos, FILE\_CURRENT))
+00273         \{
+00274             DWORD dwErr = GetLastError();
+00275             ((\hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN}*)stream) -> error=(int)dwErr;
+00276             ret = -1;
+00277         \}
+00278         \textcolor{keywordflow}{else}
+00279             ret=(long)pos.LowPart;
+00280     \}
+00281     \textcolor{keywordflow}{return} ret;
+00282 \}
+00283 
+00284 ZPOS64\_T ZCALLBACK win32\_tell64\_file\_func (voidpf opaque, voidpf stream)
+00285 \{
+00286     ZPOS64\_T ret= (ZPOS64\_T)-1;
+00287     HANDLE hFile = NULL;
+00288     \textcolor{keywordflow}{if} (stream!=NULL)
+00289         hFile = ((\hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN}*)stream)->hf;
+00290 
+00291     \textcolor{keywordflow}{if} (hFile)
+00292     \{
+00293         LARGE\_INTEGER pos;
+00294         pos.QuadPart = 0;
+00295 
+00296         \textcolor{keywordflow}{if} (!MySetFilePointerEx(hFile, pos, &pos, FILE\_CURRENT))
+00297         \{
+00298             DWORD dwErr = GetLastError();
+00299             ((\hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN}*)stream) -> error=(int)dwErr;
+00300             ret = (ZPOS64\_T)-1;
+00301         \}
+00302         \textcolor{keywordflow}{else}
+00303             ret=pos.QuadPart;
+00304     \}
+00305     \textcolor{keywordflow}{return} ret;
+00306 \}
+00307 
+00308 
+00309 \textcolor{keywordtype}{long} ZCALLBACK win32\_seek\_file\_func (voidpf opaque,voidpf stream,uLong offset,\textcolor{keywordtype}{int} origin)
+00310 \{
+00311     DWORD dwMoveMethod=0xFFFFFFFF;
+00312     HANDLE hFile = NULL;
+00313 
+00314     \textcolor{keywordtype}{long} ret=-1;
+00315     \textcolor{keywordflow}{if} (stream!=NULL)
+00316         hFile = ((\hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN}*)stream) -> hf;
+00317     \textcolor{keywordflow}{switch} (origin)
+00318     \{
+00319     \textcolor{keywordflow}{case} ZLIB\_FILEFUNC\_SEEK\_CUR :
+00320         dwMoveMethod = FILE\_CURRENT;
+00321         \textcolor{keywordflow}{break};
+00322     \textcolor{keywordflow}{case} ZLIB\_FILEFUNC\_SEEK\_END :
+00323         dwMoveMethod = FILE\_END;
+00324         \textcolor{keywordflow}{break};
+00325     \textcolor{keywordflow}{case} ZLIB\_FILEFUNC\_SEEK\_SET :
+00326         dwMoveMethod = FILE\_BEGIN;
+00327         \textcolor{keywordflow}{break};
+00328     \textcolor{keywordflow}{default}: \textcolor{keywordflow}{return} -1;
+00329     \}
+00330 
+00331     \textcolor{keywordflow}{if} (hFile != NULL)
+00332     \{
+00333         LARGE\_INTEGER pos;
+00334         pos.QuadPart = offset;
+00335         \textcolor{keywordflow}{if} (!MySetFilePointerEx(hFile, pos, NULL, dwMoveMethod))
+00336         \{
+00337             DWORD dwErr = GetLastError();
+00338             ((\hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN}*)stream) -> error=(int)dwErr;
+00339             ret = -1;
+00340         \}
+00341         \textcolor{keywordflow}{else}
+00342             ret=0;
+00343     \}
+00344     \textcolor{keywordflow}{return} ret;
+00345 \}
+00346 
+00347 \textcolor{keywordtype}{long} ZCALLBACK win32\_seek64\_file\_func (voidpf opaque, voidpf stream,ZPOS64\_T offset,\textcolor{keywordtype}{int} origin)
+00348 \{
+00349     DWORD dwMoveMethod=0xFFFFFFFF;
+00350     HANDLE hFile = NULL;
+00351     \textcolor{keywordtype}{long} ret=-1;
+00352 
+00353     \textcolor{keywordflow}{if} (stream!=NULL)
+00354         hFile = ((\hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN}*)stream)->hf;
+00355 
+00356     \textcolor{keywordflow}{switch} (origin)
+00357     \{
+00358         \textcolor{keywordflow}{case} ZLIB\_FILEFUNC\_SEEK\_CUR :
+00359             dwMoveMethod = FILE\_CURRENT;
+00360             \textcolor{keywordflow}{break};
+00361         \textcolor{keywordflow}{case} ZLIB\_FILEFUNC\_SEEK\_END :
+00362             dwMoveMethod = FILE\_END;
+00363             \textcolor{keywordflow}{break};
+00364         \textcolor{keywordflow}{case} ZLIB\_FILEFUNC\_SEEK\_SET :
+00365             dwMoveMethod = FILE\_BEGIN;
+00366             \textcolor{keywordflow}{break};
+00367         \textcolor{keywordflow}{default}: \textcolor{keywordflow}{return} -1;
+00368     \}
+00369 
+00370     \textcolor{keywordflow}{if} (hFile)
+00371     \{
+00372         LARGE\_INTEGER pos;
+00373         pos.QuadPart = offset;
+00374         \textcolor{keywordflow}{if} (!MySetFilePointerEx(hFile, pos, NULL, dwMoveMethod))
+00375         \{
+00376             DWORD dwErr = GetLastError();
+00377             ((\hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN}*)stream) -> error=(int)dwErr;
+00378             ret = -1;
+00379         \}
+00380         \textcolor{keywordflow}{else}
+00381             ret=0;
+00382     \}
+00383     \textcolor{keywordflow}{return} ret;
+00384 \}
+00385 
+00386 \textcolor{keywordtype}{int} ZCALLBACK win32\_close\_file\_func (voidpf opaque, voidpf stream)
+00387 \{
+00388     \textcolor{keywordtype}{int} ret=-1;
+00389 
+00390     \textcolor{keywordflow}{if} (stream!=NULL)
+00391     \{
+00392         HANDLE hFile;
+00393         hFile = ((\hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN}*)stream) -> hf;
+00394         \textcolor{keywordflow}{if} (hFile != NULL)
+00395         \{
+00396             CloseHandle(hFile);
+00397             ret=0;
+00398         \}
+00399         free(stream);
+00400     \}
+00401     \textcolor{keywordflow}{return} ret;
+00402 \}
+00403 
+00404 \textcolor{keywordtype}{int} ZCALLBACK win32\_error\_file\_func (voidpf opaque,voidpf stream)
+00405 \{
+00406     \textcolor{keywordtype}{int} ret=-1;
+00407     \textcolor{keywordflow}{if} (stream!=NULL)
+00408     \{
+00409         ret = ((\hyperlink{struct_w_i_n32_f_i_l_e___i_o_w_i_n}{WIN32FILE\_IOWIN}*)stream) -> error;
+00410     \}
+00411     \textcolor{keywordflow}{return} ret;
+00412 \}
+00413 
+00414 \textcolor{keywordtype}{void} fill\_win32\_filefunc (\hyperlink{structzlib__filefunc__def__s}{zlib\_filefunc\_def}* pzlib\_filefunc\_def)
+00415 \{
+00416     pzlib\_filefunc\_def->zopen\_file = win32\_open\_file\_func;
+00417     pzlib\_filefunc\_def->zread\_file = win32\_read\_file\_func;
+00418     pzlib\_filefunc\_def->zwrite\_file = win32\_write\_file\_func;
+00419     pzlib\_filefunc\_def->ztell\_file = win32\_tell\_file\_func;
+00420     pzlib\_filefunc\_def->zseek\_file = win32\_seek\_file\_func;
+00421     pzlib\_filefunc\_def->zclose\_file = win32\_close\_file\_func;
+00422     pzlib\_filefunc\_def->zerror\_file = win32\_error\_file\_func;
+00423     pzlib\_filefunc\_def->opaque = NULL;
+00424 \}
+00425 
+00426 \textcolor{keywordtype}{void} fill\_win32\_filefunc64(\hyperlink{structzlib__filefunc64__def__s}{zlib\_filefunc64\_def}* pzlib\_filefunc\_def)
+00427 \{
+00428     pzlib\_filefunc\_def->zopen64\_file = win32\_open64\_file\_func;
+00429     pzlib\_filefunc\_def->zread\_file = win32\_read\_file\_func;
+00430     pzlib\_filefunc\_def->zwrite\_file = win32\_write\_file\_func;
+00431     pzlib\_filefunc\_def->ztell64\_file = win32\_tell64\_file\_func;
+00432     pzlib\_filefunc\_def->zseek64\_file = win32\_seek64\_file\_func;
+00433     pzlib\_filefunc\_def->zclose\_file = win32\_close\_file\_func;
+00434     pzlib\_filefunc\_def->zerror\_file = win32\_error\_file\_func;
+00435     pzlib\_filefunc\_def->opaque = NULL;
+00436 \}
+00437 
+00438 
+00439 \textcolor{keywordtype}{void} fill\_win32\_filefunc64A(\hyperlink{structzlib__filefunc64__def__s}{zlib\_filefunc64\_def}* pzlib\_filefunc\_def)
+00440 \{
+00441     pzlib\_filefunc\_def->zopen64\_file = win32\_open64\_file\_funcA;
+00442     pzlib\_filefunc\_def->zread\_file = win32\_read\_file\_func;
+00443     pzlib\_filefunc\_def->zwrite\_file = win32\_write\_file\_func;
+00444     pzlib\_filefunc\_def->ztell64\_file = win32\_tell64\_file\_func;
+00445     pzlib\_filefunc\_def->zseek64\_file = win32\_seek64\_file\_func;
+00446     pzlib\_filefunc\_def->zclose\_file = win32\_close\_file\_func;
+00447     pzlib\_filefunc\_def->zerror\_file = win32\_error\_file\_func;
+00448     pzlib\_filefunc\_def->opaque = NULL;
+00449 \}
+00450 
+00451 
+00452 \textcolor{keywordtype}{void} fill\_win32\_filefunc64W(\hyperlink{structzlib__filefunc64__def__s}{zlib\_filefunc64\_def}* pzlib\_filefunc\_def)
+00453 \{
+00454     pzlib\_filefunc\_def->zopen64\_file = win32\_open64\_file\_funcW;
+00455     pzlib\_filefunc\_def->zread\_file = win32\_read\_file\_func;
+00456     pzlib\_filefunc\_def->zwrite\_file = win32\_write\_file\_func;
+00457     pzlib\_filefunc\_def->ztell64\_file = win32\_tell64\_file\_func;
+00458     pzlib\_filefunc\_def->zseek64\_file = win32\_seek64\_file\_func;
+00459     pzlib\_filefunc\_def->zclose\_file = win32\_close\_file\_func;
+00460     pzlib\_filefunc\_def->zerror\_file = win32\_error\_file\_func;
+00461     pzlib\_filefunc\_def->opaque = NULL;
+00462 \}
+\end{DoxyCode}

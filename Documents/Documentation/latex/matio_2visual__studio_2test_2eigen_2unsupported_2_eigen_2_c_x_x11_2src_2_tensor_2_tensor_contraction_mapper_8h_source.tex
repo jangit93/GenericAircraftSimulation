@@ -1,0 +1,489 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_contraction_mapper_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/\+C\+X\+X11/src/\+Tensor/\+Tensor\+Contraction\+Mapper.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_contraction_mapper_8h_source}\index{Tensor\+Contraction\+Mapper.\+h@{Tensor\+Contraction\+Mapper.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2014 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_CXX11\_TENSOR\_TENSOR\_CONTRACTION\_MAPPER\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_CXX11\_TENSOR\_TENSOR\_CONTRACTION\_MAPPER\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016 
+00017 \textcolor{keyword}{enum} \{
+00018   Rhs = 0,
+00019   Lhs = 1
+00020 \};
+00021 
+00022 \textcolor{comment}{/*}
+00023 \textcolor{comment}{ * Implementation of the Eigen blas\_data\_mapper class for tensors.}
+00024 \textcolor{comment}{ */}
+00025 
+00026 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Tensor, \textcolor{keywordtype}{bool} HasRawAccess> \textcolor{keyword}{struct }CoeffLoader \{
+00027   \textcolor{keyword}{enum} \{
+00028     DirectOffsets = \textcolor{keyword}{false}
+00029   \};
+00030 
+00031   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE CoeffLoader(\textcolor{keyword}{const} Tensor& tensor) : m\_tensor(tensor) \{ \}
+00032 
+00033   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE \textcolor{keywordtype}{void} offsetBuffer(\textcolor{keyword}{typename} Tensor::Index) \{
+00034     eigen\_assert(\textcolor{keyword}{false} && \textcolor{stringliteral}{"unsupported"});
+00035   \}
+00036 
+00037   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE \textcolor{keyword}{typename} Tensor::Scalar coeff(\textcolor{keyword}{typename} Tensor::Index index)\textcolor{keyword}{ const }\{
+       \textcolor{keywordflow}{return} m\_tensor.coeff(index); \}
+00038 
+00039  \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00040  \textcolor{keyword}{typename} Tensor::PacketReturnType packet(\textcolor{keyword}{typename} Tensor::Index index)\textcolor{keyword}{ const}
+00041 \textcolor{keyword}{  }\{
+00042     \textcolor{keywordflow}{return} m\_tensor.template packet<LoadMode>(index);
+00043   \}
+00044 
+00045 
+00046  \textcolor{keyword}{private}:
+00047   \textcolor{keyword}{const} Tensor m\_tensor;
+00048 \};
+00049 
+00050 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Tensor> \textcolor{keyword}{struct }CoeffLoader<Tensor, true> \{
+00051   \textcolor{keyword}{enum} \{
+00052     DirectOffsets = \textcolor{keyword}{true}
+00053   \};
+00054 
+00055   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE CoeffLoader(\textcolor{keyword}{const} Tensor& tensor) : m\_data(tensor.data()) \{\}
+00056 
+00057   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE \textcolor{keywordtype}{void} offsetBuffer(\textcolor{keyword}{typename} Tensor::Index offset) \{
+00058     m\_data += offset;
+00059   \}
+00060 
+00061   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE \textcolor{keyword}{typename} Tensor::Scalar coeff(\textcolor{keyword}{typename} Tensor::Index index)\textcolor{keyword}{ const }\{
+       \textcolor{keywordflow}{return} loadConstant(m\_data+index); \}
+00062 
+00063  \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00064  \textcolor{keyword}{typename} Tensor::PacketReturnType packet(\textcolor{keyword}{typename} Tensor::Index index)\textcolor{keyword}{ const}
+00065 \textcolor{keyword}{  }\{
+00066     \textcolor{keywordflow}{return} internal::ploadt\_ro<typename Tensor::PacketReturnType, LoadMode>(m\_data + index);
+00067   \}
+00068  \textcolor{keyword}{private}:
+00069   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Tensor::Scalar Scalar;
+00070   \textcolor{keyword}{const} Scalar* m\_data;
+00071 \};
+00072 
+00073 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \textcolor{keywordtype}{int} side,
+00074          \textcolor{keyword}{typename} Tensor,
+00075          \textcolor{keyword}{typename} nocontract\_t, \textcolor{keyword}{typename} contract\_t,
+00076          \textcolor{keywordtype}{int} packet\_size, \textcolor{keywordtype}{bool} inner\_dim\_contiguous, \textcolor{keywordtype}{int} Alignment>
+00077 \textcolor{keyword}{class }SimpleTensorContractionMapper \{
+00078   \textcolor{keyword}{public}:
+00079   EIGEN\_DEVICE\_FUNC
+00080   SimpleTensorContractionMapper(\textcolor{keyword}{const} Tensor& tensor,
+00081                                 \textcolor{keyword}{const} nocontract\_t& nocontract\_strides,
+00082                                 \textcolor{keyword}{const} nocontract\_t& ij\_strides,
+00083                                 \textcolor{keyword}{const} contract\_t& contract\_strides,
+00084                                 \textcolor{keyword}{const} contract\_t& k\_strides) :
+00085       m\_tensor(tensor),
+00086       m\_nocontract\_strides(nocontract\_strides),
+00087       m\_ij\_strides(ij\_strides),
+00088       m\_contract\_strides(contract\_strides),
+00089       m\_k\_strides(k\_strides) \{ \}
+00090 
+00091   \textcolor{keyword}{enum} \{
+00092     DirectOffsets = CoeffLoader<Tensor, Tensor::RawAccess>::DirectOffsets
+00093   \};
+00094 
+00095   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE \textcolor{keywordtype}{void} offsetBuffer(\textcolor{keyword}{typename} Tensor::Index offset) \{
+00096     m\_tensor.offsetBuffer(offset);
+00097   \}
+00098 
+00099   EIGEN\_DEVICE\_FUNC
+00100   EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} prefetch(Index \textcolor{comment}{/*i*/}) \{ \}
+00101 
+00102   EIGEN\_DEVICE\_FUNC
+00103   EIGEN\_STRONG\_INLINE Scalar operator()(Index row)\textcolor{keyword}{ const }\{
+00104     \textcolor{comment}{// column major assumption}
+00105     \textcolor{keywordflow}{return} operator()(row, 0);
+00106   \}
+00107 
+00108   EIGEN\_DEVICE\_FUNC
+00109   EIGEN\_STRONG\_INLINE Scalar operator()(Index row, Index col)\textcolor{keyword}{ const }\{
+00110     \textcolor{keywordflow}{return} m\_tensor.coeff(computeIndex(row, col));
+00111   \}
+00112 
+00113   EIGEN\_DEVICE\_FUNC
+00114   EIGEN\_STRONG\_INLINE Index computeIndex(Index row, Index col)\textcolor{keyword}{ const }\{
+00115     \textcolor{keyword}{const} \textcolor{keywordtype}{bool} left = (side == Lhs);
+00116     Index nocontract\_val = left ? row : col;
+00117     Index linidx = 0;
+00118     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = static\_cast<int>(array\_size<nocontract\_t>::value) - 1; i > 0; i--) \{
+00119       \textcolor{keyword}{const} Index idx = nocontract\_val / m\_ij\_strides[i];
+00120       linidx += idx * m\_nocontract\_strides[i];
+00121       nocontract\_val -= idx * m\_ij\_strides[i];
+00122     \}
+00123     \textcolor{keywordflow}{if} (array\_size<typename Tensor::Dimensions>::value > array\_size<contract\_t>::value) \{
+00124       \textcolor{keywordflow}{if} (side == Lhs && inner\_dim\_contiguous) \{
+00125         eigen\_assert(m\_nocontract\_strides[0] == 1);
+00126         linidx += nocontract\_val;
+00127       \} \textcolor{keywordflow}{else} \{
+00128         linidx += nocontract\_val * m\_nocontract\_strides[0];
+00129       \}
+00130     \}
+00131 
+00132     Index contract\_val = left ? col : row;
+00133     \textcolor{keywordflow}{if}(array\_size<contract\_t>::value > 0) \{
+00134       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = static\_cast<int>(array\_size<contract\_t>::value) - 1; i > 0; i--) \{
+00135         \textcolor{keyword}{const} Index idx = contract\_val / m\_k\_strides[i];
+00136         linidx += idx * m\_contract\_strides[i];
+00137         contract\_val -= idx * m\_k\_strides[i];
+00138       \}
+00139 
+00140       \textcolor{keywordflow}{if} (side == Rhs && inner\_dim\_contiguous) \{
+00141         eigen\_assert(m\_contract\_strides[0] == 1);
+00142         linidx += contract\_val;
+00143       \} \textcolor{keywordflow}{else} \{
+00144         linidx += contract\_val * m\_contract\_strides[0];
+00145       \}
+00146     \}
+00147 
+00148     \textcolor{keywordflow}{return} linidx;
+00149   \}
+00150 
+00151   EIGEN\_DEVICE\_FUNC
+00152   EIGEN\_STRONG\_INLINE IndexPair<Index> computeIndexPair(Index row, Index col, \textcolor{keyword}{const} Index distance)\textcolor{keyword}{ const }\{
+00153     \textcolor{keyword}{const} \textcolor{keywordtype}{bool} left = (side == Lhs);
+00154     Index nocontract\_val[2] = \{left ? row : col, left ? row + distance : col\};
+00155     Index linidx[2] = \{0, 0\};
+00156     \textcolor{keywordflow}{if} (array\_size<typename Tensor::Dimensions>::value > array\_size<contract\_t>::value) \{
+00157       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = static\_cast<int>(array\_size<nocontract\_t>::value) - 1; i > 0; i--) \{
+00158         \textcolor{keyword}{const} Index idx0 = nocontract\_val[0] / m\_ij\_strides[i];
+00159         \textcolor{keyword}{const} Index idx1 = nocontract\_val[1] / m\_ij\_strides[i];
+00160         linidx[0] += idx0 * m\_nocontract\_strides[i];
+00161         linidx[1] += idx1 * m\_nocontract\_strides[i];
+00162         nocontract\_val[0] -= idx0 * m\_ij\_strides[i];
+00163         nocontract\_val[1] -= idx1 * m\_ij\_strides[i];
+00164       \}
+00165       \textcolor{keywordflow}{if} (side == Lhs && inner\_dim\_contiguous) \{
+00166         eigen\_assert(m\_nocontract\_strides[0] == 1);
+00167         linidx[0] += nocontract\_val[0];
+00168         linidx[1] += nocontract\_val[1];
+00169       \} \textcolor{keywordflow}{else} \{
+00170         linidx[0] += nocontract\_val[0] * m\_nocontract\_strides[0];
+00171         linidx[1] += nocontract\_val[1] * m\_nocontract\_strides[0];
+00172       \}
+00173     \}
+00174 
+00175     Index contract\_val[2] = \{left ? col : row, left ? col : row + distance\};
+00176     \textcolor{keywordflow}{if} (array\_size<contract\_t>::value> 0) \{
+00177       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = static\_cast<int>(array\_size<contract\_t>::value) - 1; i > 0; i--) \{
+00178         \textcolor{keyword}{const} Index idx0 = contract\_val[0] / m\_k\_strides[i];
+00179         \textcolor{keyword}{const} Index idx1 = contract\_val[1] / m\_k\_strides[i];
+00180         linidx[0] += idx0 * m\_contract\_strides[i];
+00181         linidx[1] += idx1 * m\_contract\_strides[i];
+00182         contract\_val[0] -= idx0 * m\_k\_strides[i];
+00183         contract\_val[1] -= idx1 * m\_k\_strides[i];
+00184       \}
+00185 
+00186       \textcolor{keywordflow}{if} (side == Rhs && inner\_dim\_contiguous) \{
+00187         eigen\_assert(m\_contract\_strides[0] == 1);
+00188         linidx[0] += contract\_val[0];
+00189         linidx[1] += contract\_val[1];
+00190       \} \textcolor{keywordflow}{else} \{
+00191         linidx[0] += contract\_val[0] * m\_contract\_strides[0];
+00192         linidx[1] += contract\_val[1] * m\_contract\_strides[0];
+00193       \}
+00194     \}
+00195     \textcolor{keywordflow}{return} IndexPair<Index>(linidx[0], linidx[1]);
+00196   \}
+00197 
+00198   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE Index firstAligned(Index size)\textcolor{keyword}{ const }\{
+00199     \textcolor{comment}{// Only claim alignment when we can compute the actual stride (ie when we're}
+00200     \textcolor{comment}{// dealing with the lhs with inner\_dim\_contiguous. This is because the}
+00201     \textcolor{comment}{// matrix-vector product relies on the stride when dealing with aligned inputs.}
+00202     \textcolor{keywordflow}{return} (Alignment == \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Aligned}) && (side == Lhs) && inner\_dim\_contiguous ? 0 : size;
+00203   \}
+00204   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE Index stride()\textcolor{keyword}{ const }\{
+00205     \textcolor{keywordflow}{return} ((side == Lhs) && inner\_dim\_contiguous && array\_size<contract\_t>::value > 0) ? 
+      m\_contract\_strides[0] : 1;
+00206   \}
+00207 
+00208  \textcolor{keyword}{protected}:
+00209   CoeffLoader<Tensor, Tensor::RawAccess> m\_tensor;
+00210   \textcolor{keyword}{const} nocontract\_t m\_nocontract\_strides;
+00211   \textcolor{keyword}{const} nocontract\_t m\_ij\_strides;
+00212   \textcolor{keyword}{const} contract\_t m\_contract\_strides;
+00213   \textcolor{keyword}{const} contract\_t m\_k\_strides;
+00214 \};
+00215 
+00216 
+00217 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \textcolor{keywordtype}{int} side,
+00218          \textcolor{keyword}{typename} Tensor,
+00219          \textcolor{keyword}{typename} nocontract\_t, \textcolor{keyword}{typename} contract\_t,
+00220          \textcolor{keywordtype}{int} packet\_size, \textcolor{keywordtype}{bool} inner\_dim\_contiguous,
+00221          \textcolor{keywordtype}{bool} inner\_dim\_reordered, \textcolor{keywordtype}{int} Alignment>
+00222 \textcolor{keyword}{class }BaseTensorContractionMapper : \textcolor{keyword}{public} SimpleTensorContractionMapper<Scalar, Index, side, Tensor, nocon
+      tract\_t, contract\_t, packet\_size, inner\_dim\_contiguous, Alignment>
+00223 \{
+00224  \textcolor{keyword}{public}:
+00225   \textcolor{keyword}{typedef} SimpleTensorContractionMapper<Scalar, Index, side, Tensor, nocontract\_t, contract\_t, packet\_size,
+       inner\_dim\_contiguous, Alignment> ParentMapper;
+00226 
+00227   EIGEN\_DEVICE\_FUNC
+00228   BaseTensorContractionMapper(\textcolor{keyword}{const} Tensor& tensor,
+00229                               \textcolor{keyword}{const} nocontract\_t& nocontract\_strides,
+00230                               \textcolor{keyword}{const} nocontract\_t& ij\_strides,
+00231                               \textcolor{keyword}{const} contract\_t& contract\_strides,
+00232                               \textcolor{keyword}{const} contract\_t& k\_strides) :
+00233   ParentMapper(tensor, nocontract\_strides, ij\_strides, contract\_strides, k\_strides) \{ \}
+00234 
+00235   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Tensor::PacketReturnType Packet;
+00236   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} unpacket\_traits<Packet>::half HalfPacket;
+00237 
+00238   \textcolor{keyword}{template} <\textcolor{keywordtype}{int} AlignmentType>
+00239   EIGEN\_DEVICE\_FUNC
+00240   EIGEN\_STRONG\_INLINE Packet loadPacket(Index i, Index j)\textcolor{keyword}{ const }\{
+00241     \textcolor{comment}{// whole method makes column major assumption}
+00242 
+00243     \textcolor{comment}{// don't need to add offsets for now (because operator handles that)}
+00244     \textcolor{comment}{// current code assumes packet size must be a multiple of 2}
+00245     EIGEN\_STATIC\_ASSERT(packet\_size % 2 == 0, YOU\_MADE\_A\_PROGRAMMING\_MISTAKE);
+00246 
+00247     \textcolor{keywordflow}{if} (Tensor::PacketAccess && inner\_dim\_contiguous && !inner\_dim\_reordered) \{
+00248       \textcolor{keyword}{const} Index index = this->computeIndex(i, j);
+00249       eigen\_assert(this->computeIndex(i+packet\_size-1, j) == index + packet\_size-1);
+00250       \textcolor{keywordflow}{return} this->m\_tensor.template packet<AlignmentType>(index);
+00251     \}
+00252 
+00253     \textcolor{keyword}{const} IndexPair<Index> indexPair = this->computeIndexPair(i, j, packet\_size - 1);
+00254     \textcolor{keyword}{const} Index first = indexPair.first;
+00255     \textcolor{keyword}{const} Index last = indexPair.second;
+00256 
+00257     \textcolor{comment}{// We can always do optimized packet reads from left hand side right now, because}
+00258     \textcolor{comment}{// the vertical matrix dimension on the left hand side is never contracting.}
+00259     \textcolor{comment}{// On the right hand side we need to check if the contracting dimensions may have}
+00260     \textcolor{comment}{// been shuffled first.}
+00261     \textcolor{keywordflow}{if} (Tensor::PacketAccess &&
+00262         (side == Lhs || internal::array\_size<contract\_t>::value <= 1 || !inner\_dim\_reordered) &&
+00263         (last - first) == (packet\_size - 1)) \{
+00264 
+00265       \textcolor{keywordflow}{return} this->m\_tensor.template packet<AlignmentType>(first);
+00266     \}
+00267 
+00268     EIGEN\_ALIGN\_MAX Scalar data[packet\_size];
+00269 
+00270     data[0] = this->m\_tensor.coeff(first);
+00271     \textcolor{keywordflow}{for} (Index k = 1; k < packet\_size - 1; k += 2) \{
+00272       \textcolor{keyword}{const} IndexPair<Index> internal\_pair = this->computeIndexPair(i + k, j, 1);
+00273       data[k] = this->m\_tensor.coeff(internal\_pair.first);
+00274       data[k + 1] = this->m\_tensor.coeff(internal\_pair.second);
+00275     \}
+00276     data[packet\_size - 1] = this->m\_tensor.coeff(last);
+00277 
+00278     \textcolor{keywordflow}{return} pload<Packet>(data);
+00279   \}
+00280 
+00281   \textcolor{keyword}{template} <\textcolor{keywordtype}{int} AlignmentType>
+00282   EIGEN\_DEVICE\_FUNC
+00283   EIGEN\_STRONG\_INLINE HalfPacket loadHalfPacket(Index i, Index j)\textcolor{keyword}{ const }\{
+00284     \textcolor{comment}{// whole method makes column major assumption}
+00285 
+00286     \textcolor{comment}{// don't need to add offsets for now (because operator handles that)}
+00287     \textcolor{keyword}{const} Index half\_packet\_size = unpacket\_traits<HalfPacket>::size;
+00288     \textcolor{keywordflow}{if} (half\_packet\_size == packet\_size) \{
+00289       \textcolor{keywordflow}{return} loadPacket<AlignmentType>(i, j);
+00290     \}
+00291     EIGEN\_ALIGN\_MAX Scalar data[half\_packet\_size];
+00292     \textcolor{keywordflow}{for} (Index k = 0; k < half\_packet\_size; k++) \{
+00293       data[k] = operator()(i + k, j);
+00294     \}
+00295     \textcolor{keywordflow}{return} pload<HalfPacket>(data);
+00296   \}
+00297 \};
+00298 
+00299 
+00300 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \textcolor{keywordtype}{int} side,
+00301          \textcolor{keyword}{typename} Tensor,
+00302          \textcolor{keyword}{typename} nocontract\_t, \textcolor{keyword}{typename} contract\_t,
+00303          \textcolor{keywordtype}{bool} inner\_dim\_contiguous,
+00304          \textcolor{keywordtype}{bool} inner\_dim\_reordered, \textcolor{keywordtype}{int} Alignment>
+00305 \textcolor{keyword}{class }BaseTensorContractionMapper<Scalar, Index, side, Tensor, nocontract\_t, contract\_t, 1, 
+      inner\_dim\_contiguous, inner\_dim\_reordered, Alignment> : \textcolor{keyword}{public} SimpleTensorContractionMapper<Scalar, Index, side, Tensor, n
+      ocontract\_t, contract\_t, 1, inner\_dim\_contiguous, Alignment>
+00306 \{
+00307  \textcolor{keyword}{public}:
+00308   \textcolor{keyword}{typedef} SimpleTensorContractionMapper<Scalar, Index, side, Tensor, nocontract\_t, contract\_t, 1,
+       inner\_dim\_contiguous, Alignment> ParentMapper;
+00309 
+00310   EIGEN\_DEVICE\_FUNC
+00311   BaseTensorContractionMapper(\textcolor{keyword}{const} Tensor& tensor,
+00312                               \textcolor{keyword}{const} nocontract\_t& nocontract\_strides,
+00313                               \textcolor{keyword}{const} nocontract\_t& ij\_strides,
+00314                               \textcolor{keyword}{const} contract\_t& contract\_strides,
+00315                               \textcolor{keyword}{const} contract\_t& k\_strides) :
+00316   ParentMapper(tensor, nocontract\_strides, ij\_strides, contract\_strides, k\_strides) \{ \}
+00317 
+00318   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Tensor::PacketReturnType Packet;
+00319   \textcolor{keyword}{template} <\textcolor{keywordtype}{int}> EIGEN\_DEVICE\_FUNC
+00320   EIGEN\_STRONG\_INLINE Packet loadPacket(Index i, Index j)\textcolor{keyword}{ const }\{
+00321     EIGEN\_ALIGN\_MAX Scalar data[1];
+00322     data[0] = this->m\_tensor.coeff(this->computeIndex(i, j));
+00323     \textcolor{keywordflow}{return} pload<typename Tensor::PacketReturnType>(data);
+00324   \}
+00325   \textcolor{keyword}{template} <\textcolor{keywordtype}{int}> EIGEN\_DEVICE\_FUNC
+00326   EIGEN\_STRONG\_INLINE Packet loadHalfPacket(Index i, Index j)\textcolor{keyword}{ const }\{
+00327     \textcolor{keywordflow}{return} loadPacket(i, j);
+00328   \}
+00329 \};
+00330 
+00331 
+00332 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \textcolor{keywordtype}{int} side,
+00333          \textcolor{keyword}{typename} Tensor,
+00334          \textcolor{keyword}{typename} nocontract\_t, \textcolor{keyword}{typename} contract\_t,
+00335          \textcolor{keywordtype}{int} packet\_size,
+00336          \textcolor{keywordtype}{bool} inner\_dim\_contiguous, \textcolor{keywordtype}{bool} inner\_dim\_reordered, \textcolor{keywordtype}{int} Alignment>
+00337 \textcolor{keyword}{class }TensorContractionSubMapper \{
+00338  \textcolor{keyword}{public}:
+00339   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Tensor::PacketReturnType Packet;
+00340   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} unpacket\_traits<Packet>::half HalfPacket;
+00341 
+00342   \textcolor{keyword}{typedef} BaseTensorContractionMapper<Scalar, Index, side, Tensor, nocontract\_t, contract\_t, packet\_size,
+       inner\_dim\_contiguous, inner\_dim\_reordered, Alignment> ParentMapper;
+00343   \textcolor{keyword}{typedef} TensorContractionSubMapper<Scalar, Index, side, Tensor, nocontract\_t, contract\_t, packet\_size,
+       inner\_dim\_contiguous, inner\_dim\_reordered, Alignment> Self;
+00344   \textcolor{keyword}{typedef} Self LinearMapper;
+00345 
+00346   \textcolor{keyword}{enum} \{
+00347     \textcolor{comment}{// We can use direct offsets iff the parent mapper supports then and we can compute the strides.}
+00348     \textcolor{comment}{// TODO: we should also enable direct offsets for the Rhs case.}
+00349     UseDirectOffsets = ParentMapper::DirectOffsets && (side == Lhs) && inner\_dim\_contiguous && (
+      array\_size<contract\_t>::value > 0)
+00350   \};
+00351 
+00352   EIGEN\_DEVICE\_FUNC TensorContractionSubMapper(\textcolor{keyword}{const} ParentMapper& base\_mapper, Index vert\_offset, Index 
+      horiz\_offset)
+00353       : m\_base\_mapper(base\_mapper), m\_vert\_offset(vert\_offset), m\_horiz\_offset(horiz\_offset) \{
+00354     \textcolor{comment}{// Bake the offsets into the buffer used by the base mapper whenever possible. This avoids the need to
+       recompute}
+00355     \textcolor{comment}{// this offset every time we attempt to access a coefficient.}
+00356     \textcolor{keywordflow}{if} (UseDirectOffsets) \{
+00357       Index stride = m\_base\_mapper.stride();
+00358       m\_base\_mapper.offsetBuffer(vert\_offset + horiz\_offset * stride);
+00359     \}
+00360   \}
+00361 
+00362   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE Scalar operator()(Index i)\textcolor{keyword}{ const }\{
+00363     \textcolor{keywordflow}{if} (UseDirectOffsets) \{
+00364       \textcolor{keywordflow}{return} m\_base\_mapper(i, 0);
+00365     \}
+00366     \textcolor{keywordflow}{return} m\_base\_mapper(i + m\_vert\_offset, m\_horiz\_offset);
+00367   \}
+00368   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE Scalar operator()(Index i, Index j)\textcolor{keyword}{ const }\{
+00369     \textcolor{keywordflow}{if} (UseDirectOffsets) \{
+00370       \textcolor{keywordflow}{return} m\_base\_mapper(i, j);
+00371     \}
+00372     \textcolor{keywordflow}{return} m\_base\_mapper(i + m\_vert\_offset, j + m\_horiz\_offset);
+00373   \}
+00374 
+00375   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE Packet loadPacket(Index i)\textcolor{keyword}{ const }\{
+00376     \textcolor{keywordflow}{if} (UseDirectOffsets) \{
+00377       \textcolor{keywordflow}{return} m\_base\_mapper.template loadPacket<Alignment>(i, 0);
+00378     \}
+00379     \textcolor{keywordflow}{return} m\_base\_mapper.template loadPacket<Alignment>(i + m\_vert\_offset, m\_horiz\_offset);
+00380   \}
+00381   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE Packet loadPacket(Index i, Index j)\textcolor{keyword}{ const }\{
+00382     \textcolor{keywordflow}{if} (UseDirectOffsets) \{
+00383       \textcolor{keywordflow}{return} m\_base\_mapper.template loadPacket<Alignment>(i, j);
+00384     \}
+00385     \textcolor{keywordflow}{return} m\_base\_mapper.template loadPacket<Alignment>(i + m\_vert\_offset, j + m\_horiz\_offset);
+00386   \}
+00387 
+00388   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE HalfPacket loadHalfPacket(Index i)\textcolor{keyword}{ const }\{
+00389     \textcolor{keywordflow}{if} (UseDirectOffsets) \{
+00390       \textcolor{keywordflow}{return} m\_base\_mapper.template loadHalfPacket<Alignment>(i, 0);
+00391     \}
+00392     \textcolor{keywordflow}{return} m\_base\_mapper.template loadHalfPacket<Alignment>(i + m\_vert\_offset, m\_horiz\_offset);
+00393   \}
+00394 
+00395   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE \textcolor{keywordtype}{void} storePacket(Index i, Packet p)\textcolor{keyword}{ const }\{
+00396     \textcolor{keywordflow}{if} (UseDirectOffsets) \{
+00397       m\_base\_mapper.storePacket(i, 0, p);
+00398     \}
+00399     m\_base\_mapper.storePacket(i + m\_vert\_offset, m\_horiz\_offset, p);
+00400   \}
+00401 
+00402   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE LinearMapper getLinearMapper(Index i, Index j)\textcolor{keyword}{ const }\{
+00403     \textcolor{keywordflow}{if} (UseDirectOffsets) \{
+00404       \textcolor{keywordflow}{return} LinearMapper(m\_base\_mapper, i, j);
+00405     \}
+00406     \textcolor{keywordflow}{return} LinearMapper(m\_base\_mapper, i + m\_vert\_offset, j + m\_horiz\_offset);
+00407   \}
+00408 
+00409   \textcolor{keyword}{template} <\textcolor{keyword}{typename} PacketT, \textcolor{keywordtype}{int} AlignmentType>
+00410   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE PacketT load(Index i)\textcolor{keyword}{ const }\{
+00411     EIGEN\_STATIC\_ASSERT((internal::is\_same<PacketT, Packet>::value), YOU\_MADE\_A\_PROGRAMMING\_MISTAKE);
+00412     \textcolor{keyword}{const} \textcolor{keywordtype}{int} ActualAlignment = (\hyperlink{group__enums_ga45fe06e29902b7a2773de05ba27b47a1}{AlignmentType} == \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Aligned}) && (Alignment == 
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Aligned}) ? \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ad37d4c71425bb286e9b4103830538fbf}{Aligned} : \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ac935220b4c844108e183ebe30a4d5204}{Unaligned};
+00413     \textcolor{keywordflow}{if} (UseDirectOffsets) \{
+00414      \textcolor{keywordflow}{return} m\_base\_mapper.template loadPacket<ActualAlignment>(i, 0);
+00415     \}
+00416     \textcolor{keywordflow}{return} m\_base\_mapper.template loadPacket<ActualAlignment>(i + m\_vert\_offset, m\_horiz\_offset);
+00417   \}
+00418 
+00419   \textcolor{keyword}{template} <\textcolor{keyword}{typename} Packet>
+00420   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE \textcolor{keywordtype}{bool} aligned(Index)\textcolor{keyword}{ const }\{
+00421     \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00422   \}
+00423 
+00424  \textcolor{keyword}{private}:
+00425   ParentMapper m\_base\_mapper;
+00426   \textcolor{keyword}{const} Index m\_vert\_offset;
+00427   \textcolor{keyword}{const} Index m\_horiz\_offset;
+00428 \};
+00429 
+00430 
+00431 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar\_, \textcolor{keyword}{typename} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \textcolor{keywordtype}{int} side,
+00432          \textcolor{keyword}{typename} Tensor,
+00433          \textcolor{keyword}{typename} nocontract\_t, \textcolor{keyword}{typename} contract\_t,
+00434          \textcolor{keywordtype}{int} packet\_size,
+00435          \textcolor{keywordtype}{bool} inner\_dim\_contiguous, \textcolor{keywordtype}{bool} inner\_dim\_reordered, \textcolor{keywordtype}{int} Alignment>
+00436 \textcolor{keyword}{class }TensorContractionInputMapper
+00437   : \textcolor{keyword}{public} BaseTensorContractionMapper<Scalar\_, Index, side, Tensor, nocontract\_t, contract\_t, packet\_size,
+       inner\_dim\_contiguous, inner\_dim\_reordered, Alignment> \{
+00438 
+00439  \textcolor{keyword}{public}:
+00440   \textcolor{keyword}{typedef} Scalar\_ Scalar;
+00441   \textcolor{keyword}{typedef} BaseTensorContractionMapper<Scalar, Index, side, Tensor, nocontract\_t, contract\_t, packet\_size,
+       inner\_dim\_contiguous, inner\_dim\_reordered, Alignment> Base;
+00442   \textcolor{keyword}{typedef} TensorContractionSubMapper<Scalar, Index, side, Tensor, nocontract\_t, contract\_t, packet\_size,
+       inner\_dim\_contiguous, inner\_dim\_reordered, Alignment> SubMapper;
+00443   \textcolor{keyword}{typedef} SubMapper VectorMapper;
+00444 
+00445   EIGEN\_DEVICE\_FUNC TensorContractionInputMapper(\textcolor{keyword}{const} Tensor& tensor,
+00446                                \textcolor{keyword}{const} nocontract\_t& nocontract\_strides,
+00447                                \textcolor{keyword}{const} nocontract\_t& ij\_strides,
+00448                                \textcolor{keyword}{const} contract\_t& contract\_strides,
+00449                                \textcolor{keyword}{const} contract\_t& k\_strides)
+00450       : Base(tensor, nocontract\_strides, ij\_strides, contract\_strides, k\_strides) \{ \}
+00451 
+00452   EIGEN\_DEVICE\_FUNC
+00453   EIGEN\_STRONG\_INLINE SubMapper getSubMapper(Index i, Index j)\textcolor{keyword}{ const }\{
+00454     \textcolor{keywordflow}{return} SubMapper(*\textcolor{keyword}{this}, i, j);
+00455   \}
+00456 
+00457   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE VectorMapper getVectorMapper(Index i, Index j)\textcolor{keyword}{ const }\{
+00458     \textcolor{keywordflow}{return} VectorMapper(*\textcolor{keyword}{this}, i, j);
+00459   \}
+00460 \};
+00461 
+00462 
+00463 
+00464 \}  \textcolor{comment}{// end namespace internal}
+00465 \}  \textcolor{comment}{// end namespace Eigen}
+00466 
+00467 \textcolor{preprocessor}{#endif // EIGEN\_CXX11\_TENSOR\_TENSOR\_CONTRACTION\_MAPPER\_H}
+\end{DoxyCode}

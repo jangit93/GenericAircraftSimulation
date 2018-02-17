@@ -1,0 +1,264 @@
+\hypertarget{eigen_2test_2_product_8h_source}{}\section{eigen/test/\+Product.h}
+\label{eigen_2test_2_product_8h_source}\index{product.\+h@{product.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2006-2008 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 \textcolor{preprocessor}{#include <Eigen/QR>}
+00012 
+00013 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived1, \textcolor{keyword}{typename} Derived2>
+00014 \textcolor{keywordtype}{bool} areNotApprox(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Derived1>}& m1, \textcolor{keyword}{const} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Derived2>}& m2, \textcolor{keyword}{typename} Derived1::RealScalar epsilon = 
+      \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<typename Derived1::RealScalar>::dummy\_precision}
+      ())
+00015 \{
+00016   \textcolor{keywordflow}{return} !((m1-m2).cwiseAbs2().maxCoeff() < epsilon * epsilon
+00017                           * (std::max)(m1.\hyperlink{group___core___module_a60808fcf09547e14952957bbdf75d3c6}{cwiseAbs2}().maxCoeff(), m2.
+      \hyperlink{group___core___module_a60808fcf09547e14952957bbdf75d3c6}{cwiseAbs2}().maxCoeff()));
+00018 \}
+00019 
+00020 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} product(\textcolor{keyword}{const} MatrixType& m)
+00021 \{
+00022   \textcolor{comment}{/* this test covers the following files:}
+00023 \textcolor{comment}{     Identity.h Product.h}
+00024 \textcolor{comment}{  */}
+00025   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00026   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::RowsAtCompileTime, 1>} 
+      RowVectorType;
+00027   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::ColsAtCompileTime, 1>} 
+      ColVectorType;
+00028   \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::RowsAtCompileTime, MatrixType::RowsAtCompileTime>}
+       RowSquareMatrixType;
+00029   \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::ColsAtCompileTime, MatrixType::ColsAtCompileTime>}
+       ColSquareMatrixType;
+00030   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix}<Scalar, MatrixType::RowsAtCompileTime, MatrixType::ColsAtCompileTime,
+00031                          MatrixType::Flags&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}?\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}:
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}> OtherMajorMatrixType;
+00032 
+00033   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows = m.rows();
+00034   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols = m.cols();
+00035 
+00036   \textcolor{comment}{// this test relies a lot on Random.h, and there's not much more that we can do}
+00037   \textcolor{comment}{// to test it, hence I consider that we will have tested Random.h}
+00038   MatrixType m1 = MatrixType::Random(rows, cols),
+00039              m2 = MatrixType::Random(rows, cols),
+00040              m3(rows, cols);
+00041   RowSquareMatrixType
+00042              identity = RowSquareMatrixType::Identity(rows, rows),
+00043              square = RowSquareMatrixType::Random(rows, rows),
+00044              res = RowSquareMatrixType::Random(rows, rows);
+00045   ColSquareMatrixType
+00046              square2 = ColSquareMatrixType::Random(cols, cols),
+00047              res2 = ColSquareMatrixType::Random(cols, cols);
+00048   RowVectorType v1 = RowVectorType::Random(rows);
+00049   ColVectorType vc2 = ColVectorType::Random(cols), vcres(cols);
+00050   OtherMajorMatrixType tm1 = m1;
+00051 
+00052   Scalar s1 = internal::random<Scalar>();
+00053 
+00054   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} r  = internal::random<Index>(0, rows-1),
+00055         c  = internal::random<Index>(0, cols-1),
+00056         c2 = internal::random<Index>(0, cols-1);
+00057 
+00058   \textcolor{comment}{// begin testing Product.h: only associativity for now}
+00059   \textcolor{comment}{// (we use Transpose.h but this doesn't count as a test for it)}
+00060   VERIFY\_IS\_APPROX((m1*m1.transpose())*m2,  m1*(m1.transpose()*m2));
+00061   m3 = m1;
+00062   m3 *= m1.transpose() * m2;
+00063   VERIFY\_IS\_APPROX(m3,                      m1 * (m1.transpose()*m2));
+00064   VERIFY\_IS\_APPROX(m3,                      m1 * (m1.transpose()*m2));
+00065 
+00066   \textcolor{comment}{// continue testing Product.h: distributivity}
+00067   VERIFY\_IS\_APPROX(square*(m1 + m2),        square*m1+square*m2);
+00068   VERIFY\_IS\_APPROX(square*(m1 - m2),        square*m1-square*m2);
+00069 
+00070   \textcolor{comment}{// continue testing Product.h: compatibility with ScalarMultiple.h}
+00071   VERIFY\_IS\_APPROX(s1*(square*m1),          (s1*square)*m1);
+00072   VERIFY\_IS\_APPROX(s1*(square*m1),          square*(m1*s1));
+00073 
+00074   \textcolor{comment}{// test Product.h together with Identity.h}
+00075   VERIFY\_IS\_APPROX(v1,                      identity*v1);
+00076   VERIFY\_IS\_APPROX(v1.transpose(),          v1.transpose() * identity);
+00077   \textcolor{comment}{// again, test operator() to check const-qualification}
+00078   VERIFY\_IS\_APPROX(MatrixType::Identity(rows, cols)(r,c), static\_cast<Scalar>(r==c));
+00079 
+00080   \textcolor{keywordflow}{if} (rows!=cols)
+00081      VERIFY\_RAISES\_ASSERT(m3 = m1*m1);
+00082 
+00083   \textcolor{comment}{// test the previous tests were not screwed up because operator* returns 0}
+00084   \textcolor{comment}{// (we use the more accurate default epsilon)}
+00085   \textcolor{keywordflow}{if} (!\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsInteger} && (std::min)(rows,cols)>1)
+00086   \{
+00087     VERIFY(areNotApprox(m1.transpose()*m2,m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}()*m1));
+00088   \}
+00089 
+00090   \textcolor{comment}{// test optimized operator+= path}
+00091   res = square;
+00092   res.noalias() += m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}();
+00093   VERIFY\_IS\_APPROX(res, square + m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}());
+00094   \textcolor{keywordflow}{if} (!\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsInteger} && (std::min)(rows,cols)>1)
+00095   \{
+00096     VERIFY(areNotApprox(res,square + m2 * m1.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}()));
+00097   \}
+00098   vcres = vc2;
+00099   vcres.noalias() += m1.transpose() * v1;
+00100   VERIFY\_IS\_APPROX(vcres, vc2 + m1.transpose() * v1);
+00101 
+00102   \textcolor{comment}{// test optimized operator-= path}
+00103   res = square;
+00104   res.noalias() -= m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}();
+00105   VERIFY\_IS\_APPROX(res, square - (m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}()));
+00106   \textcolor{keywordflow}{if} (!\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsInteger} && (std::min)(rows,cols)>1)
+00107   \{
+00108     VERIFY(areNotApprox(res,square - m2 * m1.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}()));
+00109   \}
+00110   vcres = vc2;
+00111   vcres.noalias() -= m1.transpose() * v1;
+00112   VERIFY\_IS\_APPROX(vcres, vc2 - m1.transpose() * v1);
+00113 
+00114   \textcolor{comment}{// test d ?= a+b*c rules}
+00115   res.noalias() = square + m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}();
+00116   VERIFY\_IS\_APPROX(res, square + m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}());
+00117   res.noalias() += square + m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}();
+00118   VERIFY\_IS\_APPROX(res, 2*(square + m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}()));
+00119   res.noalias() -= square + m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}();
+00120   VERIFY\_IS\_APPROX(res, square + m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}());
+00121 
+00122   \textcolor{comment}{// test d ?= a-b*c rules}
+00123   res.noalias() = square - m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}();
+00124   VERIFY\_IS\_APPROX(res, square - m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}());
+00125   res.noalias() += square - m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}();
+00126   VERIFY\_IS\_APPROX(res, 2*(square - m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}()));
+00127   res.noalias() -= square - m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}();
+00128   VERIFY\_IS\_APPROX(res, square - m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}());
+00129 
+00130 
+00131   tm1 = m1;
+00132   VERIFY\_IS\_APPROX(tm1.transpose() * v1, m1.transpose() * v1);
+00133   VERIFY\_IS\_APPROX(v1.transpose() * tm1, v1.transpose() * m1);
+00134 
+00135   \textcolor{comment}{// test submatrix and matrix/vector product}
+00136   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<rows; ++i)
+00137     res.row(i) = m1.row(i) * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}();
+00138   VERIFY\_IS\_APPROX(res, m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}());
+00139   \textcolor{comment}{// the other way round:}
+00140   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<rows; ++i)
+00141     res.col(i) = m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}().col(i);
+00142   VERIFY\_IS\_APPROX(res, m1 * m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}());
+00143 
+00144   res2 = square2;
+00145   res2.noalias() += m1.transpose() * m2;
+00146   VERIFY\_IS\_APPROX(res2, square2 + m1.transpose() * m2);
+00147   \textcolor{keywordflow}{if} (!\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsInteger} && (std::min)(rows,cols)>1)
+00148   \{
+00149     VERIFY(areNotApprox(res2,square2 + m2.\hyperlink{group___core___module_ac8952c19644a4ac7e41bea45c19b909c}{transpose}() * m1));
+00150   \}
+00151 
+00152   VERIFY\_IS\_APPROX(res.col(r).noalias() = square.adjoint() * square.col(r), (square.adjoint() * square.col(
+      r)).eval());
+00153   VERIFY\_IS\_APPROX(res.col(r).noalias() = square * square.col(r), (square * square.col(r)).eval());
+00154 
+00155   \textcolor{comment}{// vector at runtime (see bug 1166)}
+00156   \{
+00157     RowSquareMatrixType ref(square);
+00158     ColSquareMatrixType ref2(square2);
+00159     ref = res = square;
+00160     VERIFY\_IS\_APPROX(res.block(0,0,1,rows).noalias() = m1.col(0).transpose() * square.transpose(),         
+         (ref.row(0) = m1.col(0).transpose() * square.transpose()));
+00161     VERIFY\_IS\_APPROX(res.block(0,0,1,rows).noalias() = m1.block(0,0,rows,1).transpose() * square.transpose(
+      ), (ref.row(0) = m1.col(0).transpose() * square.transpose()));
+00162     VERIFY\_IS\_APPROX(res.block(0,0,1,rows).noalias() = m1.col(0).transpose() * square,                     
+         (ref.row(0) = m1.col(0).transpose() * square));
+00163     VERIFY\_IS\_APPROX(res.block(0,0,1,rows).noalias() = m1.block(0,0,rows,1).transpose() * square,          
+         (ref.row(0) = m1.col(0).transpose() * square));
+00164     ref2 = res2 = square2;
+00165     VERIFY\_IS\_APPROX(res2.block(0,0,1,cols).noalias() = m1.row(0) * square2.transpose(),                   
+         (ref2.row(0) = m1.row(0) * square2.transpose()));
+00166     VERIFY\_IS\_APPROX(res2.block(0,0,1,cols).noalias() = m1.block(0,0,1,cols) * square2.transpose(),        
+         (ref2.row(0) = m1.row(0) * square2.transpose()));
+00167     VERIFY\_IS\_APPROX(res2.block(0,0,1,cols).noalias() = m1.row(0) * square2,                               
+         (ref2.row(0) = m1.row(0) * square2));
+00168     VERIFY\_IS\_APPROX(res2.block(0,0,1,cols).noalias() = m1.block(0,0,1,cols) * square2,                    
+         (ref2.row(0) = m1.row(0) * square2));
+00169   \}
+00170 
+00171   \textcolor{comment}{// vector.block() (see bug 1283)}
+00172   \{
+00173     RowVectorType w1(rows);
+00174     VERIFY\_IS\_APPROX(square * v1.block(0,0,rows,1), square * v1);
+00175     VERIFY\_IS\_APPROX(w1.noalias() = square * v1.block(0,0,rows,1), square * v1);
+00176     VERIFY\_IS\_APPROX(w1.block(0,0,rows,1).noalias() = square * v1.block(0,0,rows,1), square * v1);
+00177 
+00178     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,1,MatrixType::ColsAtCompileTime>} w2(cols);
+00179     VERIFY\_IS\_APPROX(vc2.block(0,0,cols,1).transpose() * square2, vc2.transpose() * square2);
+00180     VERIFY\_IS\_APPROX(w2.noalias() = vc2.block(0,0,cols,1).transpose() * square2, vc2.transpose() * square2)
+      ;
+00181     VERIFY\_IS\_APPROX(w2.block(0,0,1,cols).noalias() = vc2.block(0,0,cols,1).transpose() * square2, vc2.
+      transpose() * square2);
+00182 
+00183     vc2 = square2.block(0,0,1,cols).transpose();
+00184     VERIFY\_IS\_APPROX(square2.block(0,0,1,cols) * square2, vc2.transpose() * square2);
+00185     VERIFY\_IS\_APPROX(w2.noalias() = square2.block(0,0,1,cols) * square2, vc2.transpose() * square2);
+00186     VERIFY\_IS\_APPROX(w2.block(0,0,1,cols).noalias() = square2.block(0,0,1,cols) * square2, vc2.transpose() 
+      * square2);
+00187 
+00188     vc2 = square2.block(0,0,cols,1);
+00189     VERIFY\_IS\_APPROX(square2.block(0,0,cols,1).transpose() * square2, vc2.transpose() * square2);
+00190     VERIFY\_IS\_APPROX(w2.noalias() = square2.block(0,0,cols,1).transpose() * square2, vc2.transpose() * 
+      square2);
+00191     VERIFY\_IS\_APPROX(w2.block(0,0,1,cols).noalias() = square2.block(0,0,cols,1).transpose() * square2, vc2.
+      transpose() * square2);
+00192   \}
+00193 
+00194   \textcolor{comment}{// inner product}
+00195   \{
+00196     Scalar x = square2.row(c) * square2.col(c2);
+00197     VERIFY\_IS\_APPROX(x, square2.row(c).transpose().cwiseProduct(square2.col(c2)).sum());
+00198   \}
+00199 
+00200   \textcolor{comment}{// outer product}
+00201   \{
+00202     VERIFY\_IS\_APPROX(m1.col(c) * m1.row(r), m1.block(0,c,rows,1) * m1.block(r,0,1,cols));
+00203     VERIFY\_IS\_APPROX(m1.row(r).transpose() * m1.col(c).transpose(), m1.block(r,0,1,cols).transpose() * m1.
+      block(0,c,rows,1).transpose());
+00204     VERIFY\_IS\_APPROX(m1.block(0,c,rows,1) * m1.row(r), m1.block(0,c,rows,1) * m1.block(r,0,1,cols));
+00205     VERIFY\_IS\_APPROX(m1.col(c) * m1.block(r,0,1,cols), m1.block(0,c,rows,1) * m1.block(r,0,1,cols));
+00206     VERIFY\_IS\_APPROX(m1.leftCols(1) * m1.row(r), m1.block(0,0,rows,1) * m1.block(r,0,1,cols));
+00207     VERIFY\_IS\_APPROX(m1.col(c) * m1.topRows(1), m1.block(0,c,rows,1) * m1.block(0,0,1,cols));
+00208   \}
+00209 
+00210   \textcolor{comment}{// Aliasing}
+00211   \{
+00212     ColVectorType x(cols); x.setRandom();
+00213     ColVectorType z(x);
+00214     ColVectorType y(cols); y.setZero();
+00215     ColSquareMatrixType \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}(cols,cols); \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00216     \textcolor{comment}{// CwiseBinaryOp}
+00217     VERIFY\_IS\_APPROX(x = y + \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}*x, \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}*z);
+00218     x = z;
+00219     \textcolor{comment}{// CwiseUnaryOp}
+00220     VERIFY\_IS\_APPROX(x = Scalar(1.)*(\hyperlink{group___core___module_class_eigen_1_1_matrix}{A}*x), \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}*z);
+00221   \}
+00222 
+00223   \textcolor{comment}{// regression for blas\_trais}
+00224   \{
+00225     VERIFY\_IS\_APPROX(square * (square*square).transpose(), square * square.transpose() * square.transpose()
+      );
+00226     VERIFY\_IS\_APPROX(square * (-(square*square)), -square * square * square);
+00227     VERIFY\_IS\_APPROX(square * (s1*(square*square)), s1 * square * square * square);
+00228     VERIFY\_IS\_APPROX(square * (square*square).conjugate(), square * square.conjugate() * square.conjugate()
+      );
+00229   \}
+00230 
+00231 \}
+\end{DoxyCode}

@@ -1,0 +1,97 @@
+\hypertarget{eigen_2bench_2_bench_util_8h_source}{}\section{eigen/bench/\+Bench\+Util.h}
+\label{eigen_2bench_2_bench_util_8h_source}\index{Bench\+Util.\+h@{Bench\+Util.\+h}}
+
+\begin{DoxyCode}
+00001 
+00002 \textcolor{preprocessor}{#ifndef EIGEN\_BENCH\_UTIL\_H}
+00003 \textcolor{preprocessor}{#define EIGEN\_BENCH\_UTIL\_H}
+00004 
+00005 \textcolor{preprocessor}{#include <Eigen/Core>}
+00006 \textcolor{preprocessor}{#include "BenchTimer.h"}
+00007 
+00008 \textcolor{keyword}{using namespace }\hyperlink{namespacestd}{std};
+00009 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00010 
+00011 \textcolor{preprocessor}{#include <boost/preprocessor/repetition/enum\_params.hpp>}
+00012 \textcolor{preprocessor}{#include <boost/preprocessor/repetition.hpp>}
+00013 \textcolor{preprocessor}{#include <boost/preprocessor/seq.hpp>}
+00014 \textcolor{preprocessor}{#include <boost/preprocessor/array.hpp>}
+00015 \textcolor{preprocessor}{#include <boost/preprocessor/arithmetic.hpp>}
+00016 \textcolor{preprocessor}{#include <boost/preprocessor/comparison.hpp>}
+00017 \textcolor{preprocessor}{#include <boost/preprocessor/punctuation.hpp>}
+00018 \textcolor{preprocessor}{#include <boost/preprocessor/punctuation/comma.hpp>}
+00019 \textcolor{preprocessor}{#include <boost/preprocessor/stringize.hpp>}
+00020 
+00021 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} initMatrix\_random(MatrixType& mat) \_\_attribute\_\_((noinline));
+00022 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} initMatrix\_random(MatrixType& mat)
+00023 \{
+00024   mat.setRandom();\textcolor{comment}{// = MatrixType::random(mat.rows(), mat.cols());}
+00025 \}
+00026 
+00027 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} initMatrix\_identity(MatrixType& mat) \_\_attribute\_\_((noinline));
+00028 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} initMatrix\_identity(MatrixType& mat)
+00029 \{
+00030   mat.setIdentity();
+00031 \}
+00032 
+00033 \textcolor{preprocessor}{#ifndef \_\_INTEL\_COMPILER}
+00034 \textcolor{preprocessor}{#define DISABLE\_SSE\_EXCEPTIONS()  \{ \(\backslash\)}
+00035 \textcolor{preprocessor}{  int aux; \(\backslash\)}
+00036 \textcolor{preprocessor}{  asm( \(\backslash\)}
+00037 \textcolor{preprocessor}{  "stmxcsr   %[aux]           \(\backslash\)n\(\backslash\)t" \(\backslash\)}
+00038 \textcolor{preprocessor}{  "orl       $32832, %[aux]   \(\backslash\)n\(\backslash\)t" \(\backslash\)}
+00039 \textcolor{preprocessor}{  "ldmxcsr   %[aux]           \(\backslash\)n\(\backslash\)t" \(\backslash\)}
+00040 \textcolor{preprocessor}{  : : [aux] "m" (aux)); \(\backslash\)}
+00041 \textcolor{preprocessor}{\}}
+00042 \textcolor{preprocessor}{#else}
+00043 \textcolor{preprocessor}{#define DISABLE\_SSE\_EXCEPTIONS()  }
+00044 \textcolor{preprocessor}{#endif}
+00045 
+00046 \textcolor{preprocessor}{#ifdef BENCH\_GMM}
+00047 \textcolor{preprocessor}{#include <gmm/gmm.h>}
+00048 \textcolor{keyword}{template} <\textcolor{keyword}{typename} EigenMatrixType, \textcolor{keyword}{typename} GmmMatrixType>
+00049 \textcolor{keywordtype}{void} eiToGmm(\textcolor{keyword}{const} EigenMatrixType& src, GmmMatrixType& dst)
+00050 \{
+00051   dst.resize(src.rows(),src.cols());
+00052   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<src.cols(); ++j)
+00053     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<src.rows(); ++i)
+00054       dst(i,j) = src.coeff(i,j);
+00055 \}
+00056 \textcolor{preprocessor}{#endif}
+00057 
+00058 
+00059 \textcolor{preprocessor}{#ifdef BENCH\_GSL}
+00060 \textcolor{preprocessor}{#include <gsl/gsl\_matrix.h>}
+00061 \textcolor{preprocessor}{#include <gsl/gsl\_linalg.h>}
+00062 \textcolor{preprocessor}{#include <gsl/gsl\_eigen.h>}
+00063 \textcolor{keyword}{template} <\textcolor{keyword}{typename} EigenMatrixType>
+00064 \textcolor{keywordtype}{void} eiToGsl(\textcolor{keyword}{const} EigenMatrixType& src, gsl\_matrix** dst)
+00065 \{
+00066   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<src.cols(); ++j)
+00067     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<src.rows(); ++i)
+00068       gsl\_matrix\_set(*dst, i, j, src.coeff(i,j));
+00069 \}
+00070 \textcolor{preprocessor}{#endif}
+00071 
+00072 \textcolor{preprocessor}{#ifdef BENCH\_UBLAS}
+00073 \textcolor{preprocessor}{#include <boost/numeric/ublas/matrix.hpp>}
+00074 \textcolor{preprocessor}{#include <boost/numeric/ublas/vector.hpp>}
+00075 \textcolor{keyword}{template} <\textcolor{keyword}{typename} EigenMatrixType, \textcolor{keyword}{typename} UblasMatrixType>
+00076 \textcolor{keywordtype}{void} eiToUblas(\textcolor{keyword}{const} EigenMatrixType& src, UblasMatrixType& dst)
+00077 \{
+00078   dst.resize(src.rows(),src.cols());
+00079   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<src.cols(); ++j)
+00080     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<src.rows(); ++i)
+00081       dst(i,j) = src.coeff(i,j);
+00082 \}
+00083 \textcolor{keyword}{template} <\textcolor{keyword}{typename} EigenType, \textcolor{keyword}{typename} UblasType>
+00084 \textcolor{keywordtype}{void} eiToUblasVec(\textcolor{keyword}{const} EigenType& src, UblasType& dst)
+00085 \{
+00086   dst.resize(src.size());
+00087   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<src.size(); ++j)
+00088       dst[j] = src.coeff(j);
+00089 \}
+00090 \textcolor{preprocessor}{#endif}
+00091 
+00092 \textcolor{preprocessor}{#endif // EIGEN\_BENCH\_UTIL\_H}
+\end{DoxyCode}

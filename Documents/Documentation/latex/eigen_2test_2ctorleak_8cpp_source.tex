@@ -1,0 +1,76 @@
+\hypertarget{eigen_2test_2ctorleak_8cpp_source}{}\section{eigen/test/ctorleak.cpp}
+\label{eigen_2test_2ctorleak_8cpp_source}\index{ctorleak.\+cpp@{ctorleak.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{preprocessor}{#include "main.h"}
+00002 
+00003 \textcolor{preprocessor}{#include <exception>}  \textcolor{comment}{// std::exception}
+00004 
+\Hypertarget{eigen_2test_2ctorleak_8cpp_source_l00005}\hyperlink{struct_foo}{00005} \textcolor{keyword}{struct }\hyperlink{struct_foo}{Foo}
+00006 \{
+00007   \textcolor{keyword}{static} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} object\_count;
+00008   \textcolor{keyword}{static} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} object\_limit;
+00009   \textcolor{keywordtype}{int} dummy;
+00010 
+00011   \hyperlink{struct_foo}{Foo}()
+00012   \{
+00013 \textcolor{preprocessor}{#ifdef EIGEN\_EXCEPTIONS}
+00014     \textcolor{comment}{// TODO: Is this the correct way to handle this?}
+00015     \textcolor{keywordflow}{if} (Foo::object\_count > Foo::object\_limit) \{ std::cout << \textcolor{stringliteral}{"\(\backslash\)nThrow!\(\backslash\)n"}; \textcolor{keywordflow}{throw} 
+      \hyperlink{class_foo_1_1_fail}{Foo::Fail}(); \}
+00016 \textcolor{preprocessor}{#endif}
+00017       std::cout << \textcolor{charliteral}{'+'};
+00018     ++Foo::object\_count;
+00019   \}
+00020 
+00021   ~\hyperlink{struct_foo}{Foo}()
+00022   \{
+00023       std::cout << \textcolor{charliteral}{'-'};
+00024     --Foo::object\_count;
+00025   \}
+00026 
+\Hypertarget{eigen_2test_2ctorleak_8cpp_source_l00027}\hyperlink{class_foo_1_1_fail}{00027}   \textcolor{keyword}{class }\hyperlink{class_foo_1_1_fail}{Fail} : \textcolor{keyword}{public} std::exception \{\};
+00028 \};
+00029 
+00030 \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} Foo::object\_count = 0;
+00031 \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} Foo::object\_limit = 0;
+00032 
+00033 \textcolor{preprocessor}{#undef EIGEN\_TEST\_MAX\_SIZE}
+00034 \textcolor{preprocessor}{#define EIGEN\_TEST\_MAX\_SIZE 3}
+00035 
+00036 \textcolor{keywordtype}{void} test\_ctorleak()
+00037 \{
+00038   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Foo, Dynamic, Dynamic>} MatrixX;
+00039   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Foo, Dynamic, 1>} \hyperlink{group___core___module}{VectorX};
+00040   Foo::object\_count = 0;
+00041   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00042     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows = internal::random<Index>(2,EIGEN\_TEST\_MAX\_SIZE), cols = internal::random<Index>(2,
+      EIGEN\_TEST\_MAX\_SIZE);
+00043     Foo::object\_limit = internal::random<Index>(0, rows*cols - 2);
+00044     std::cout << \textcolor{stringliteral}{"object\_limit ="} << Foo::object\_limit << std::endl;
+00045 \textcolor{preprocessor}{#ifdef EIGEN\_EXCEPTIONS}
+00046     \textcolor{keywordflow}{try}
+00047     \{
+00048 \textcolor{preprocessor}{#endif}
+00049         std::cout <<       \textcolor{stringliteral}{"\(\backslash\)nMatrixX m("} << rows << \textcolor{stringliteral}{", "} << cols << \textcolor{stringliteral}{");\(\backslash\)n"};
+00050       MatrixX m(rows, cols);
+00051 \textcolor{preprocessor}{#ifdef EIGEN\_EXCEPTIONS}
+00052       VERIFY(\textcolor{keyword}{false});  \textcolor{comment}{// not reached if exceptions are enabled}
+00053     \}
+00054     \textcolor{keywordflow}{catch} (\textcolor{keyword}{const} \hyperlink{class_foo_1_1_fail}{Foo::Fail}&) \{ \textcolor{comment}{/* ignore */} \}
+00055 \textcolor{preprocessor}{#endif}
+00056     VERIFY\_IS\_EQUAL(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(0), Foo::object\_count);
+00057 
+00058     \{
+00059       Foo::object\_limit = (rows+1)*(cols+1);
+00060       MatrixX \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}(rows, cols);
+00061       VERIFY\_IS\_EQUAL(Foo::object\_count, rows*cols);
+00062       VectorX v=A.row(0);
+00063       VERIFY\_IS\_EQUAL(Foo::object\_count, (rows+1)*cols);
+00064       v = A.col(0);
+00065       VERIFY\_IS\_EQUAL(Foo::object\_count, rows*(cols+1));
+00066     \}
+00067     VERIFY\_IS\_EQUAL(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(0), Foo::object\_count);
+00068   \}
+00069 \}
+\end{DoxyCode}

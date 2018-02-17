@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['genericaircraftsimulation',['GenericAircraftSimulation',['../md__c_1__users_janol__desktop__generic_aircraft_simulation__r_e_a_d_m_e.html',1,'']]]
+  ['assertions',['Assertions',['../_topic_assertions.html',1,'UserManual_Generalities']]],
+  ['adding_20a_20new_20expression_20type',['Adding a new expression type',['../_topic_new_expression_type.html',1,'UserManual_CustomizingEigen']]]
 ];

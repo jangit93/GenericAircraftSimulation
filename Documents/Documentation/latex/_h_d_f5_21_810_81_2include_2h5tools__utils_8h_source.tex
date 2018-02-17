@@ -1,0 +1,187 @@
+\hypertarget{_h_d_f5_21_810_81_2include_2h5tools__utils_8h_source}{}\section{H\+D\+F5/1.10.1/include/h5tools\+\_\+utils.h}
+\label{_h_d_f5_21_810_81_2include_2h5tools__utils_8h_source}\index{h5tools\+\_\+utils.\+h@{h5tools\+\_\+utils.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+00002 \textcolor{comment}{ * Copyright by The HDF Group.                                               *}
+00003 \textcolor{comment}{ * Copyright by the Board of Trustees of the University of Illinois.         *}
+00004 \textcolor{comment}{ * All rights reserved.                                                      *}
+00005 \textcolor{comment}{ *                                                                           *}
+00006 \textcolor{comment}{ * This file is part of HDF5.  The full HDF5 copyright notice, including     *}
+00007 \textcolor{comment}{ * terms governing use, modification, and redistribution, is contained in    *}
+00008 \textcolor{comment}{ * the COPYING file, which can be found at the root of the source code       *}
+00009 \textcolor{comment}{ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *}
+00010 \textcolor{comment}{ * If you do not have access to either file, you may request a copy from     *}
+00011 \textcolor{comment}{ * help@hdfgroup.org.                                                        *}
+00012 \textcolor{comment}{ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00013 
+00014 \textcolor{comment}{/*}
+00015 \textcolor{comment}{ * Programmer:  Bill Wendling <wendling@ncsa.uiuc.edu>}
+00016 \textcolor{comment}{ *              Tuesday, 6. March 2001}
+00017 \textcolor{comment}{ *}
+00018 \textcolor{comment}{ * Purpose:     Support functions for the various tools.}
+00019 \textcolor{comment}{ */}
+00020 \textcolor{preprocessor}{#ifndef H5TOOLS\_UTILS\_H\_\_}
+00021 \textcolor{preprocessor}{#define H5TOOLS\_UTILS\_H\_\_}
+00022 
+00023 \textcolor{preprocessor}{#include "hdf5.h"}
+00024 
+00025 \textcolor{preprocessor}{#ifdef \_\_cplusplus}
+00026 \textcolor{keyword}{extern} \textcolor{stringliteral}{"C"} \{
+00027 \textcolor{preprocessor}{#endif}
+00028 
+00029 \textcolor{comment}{/* ``parallel\_print'' information */}
+00030 \textcolor{preprocessor}{#define PRINT\_DATA\_MAX\_SIZE     512}
+00031 \textcolor{preprocessor}{#define OUTBUFF\_SIZE        (PRINT\_DATA\_MAX\_SIZE*4)}
+00032 
+00033 H5TOOLS\_DLLVAR \textcolor{keywordtype}{int}  g\_nTasks;
+00034 H5TOOLS\_DLLVAR \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} g\_Parallel;
+00035 H5TOOLS\_DLLVAR \textcolor{keywordtype}{char}    outBuff[];
+00036 H5TOOLS\_DLLVAR \textcolor{keywordtype}{unsigned} outBuffOffset;
+00037 H5TOOLS\_DLLVAR FILE *   overflow\_file;
+00038 
+00039 \textcolor{comment}{/* Maximum size used in a call to malloc for a dataset */}
+00040 H5TOOLS\_DLLVAR hsize\_t H5TOOLS\_MALLOCSIZE;
+00041 \textcolor{comment}{/* size of hyperslab buffer when a dataset is bigger than H5TOOLS\_MALLOCSIZE */}
+00042 H5TOOLS\_DLLVAR hsize\_t H5TOOLS\_BUFSIZE;
+00043 \textcolor{comment}{/*}
+00044 \textcolor{comment}{ * begin get\_option section}
+00045 \textcolor{comment}{ */}
+00046 H5TOOLS\_DLLVAR \textcolor{keywordtype}{int}         opt\_err;     \textcolor{comment}{/* getoption prints errors if this is on    */}
+00047 H5TOOLS\_DLLVAR \textcolor{keywordtype}{int}         opt\_ind;     \textcolor{comment}{/* token pointer                            */}
+00048 H5TOOLS\_DLLVAR \textcolor{keyword}{const} \textcolor{keywordtype}{char} *opt\_arg;     \textcolor{comment}{/* flag argument (or value)                 */}
+00049 
+00050 \textcolor{keyword}{enum} \{
+00051     no\_arg = 0,         \textcolor{comment}{/* doesn't take an argument     */}
+00052     require\_arg,        \textcolor{comment}{/* requires an argument          */}
+00053     optional\_arg        \textcolor{comment}{/* argument is optional         */}
+00054 \};
+00055 
+00056 \textcolor{comment}{/*}
+00057 \textcolor{comment}{ * get\_option determines which options are specified on the command line and}
+00058 \textcolor{comment}{ * returns a pointer to any arguments possibly associated with the option in}
+00059 \textcolor{comment}{ * the ``opt\_arg'' variable. get\_option returns the shortname equivalent of}
+00060 \textcolor{comment}{ * the option. The long options are specified in the following way:}
+00061 \textcolor{comment}{ *}
+00062 \textcolor{comment}{ * struct long\_options foo[] = \{}
+00063 \textcolor{comment}{ *   \{ "filename", require\_arg, 'f' \},}
+00064 \textcolor{comment}{ *   \{ "append", no\_arg, 'a' \},}
+00065 \textcolor{comment}{ *   \{ "width", require\_arg, 'w' \},}
+00066 \textcolor{comment}{ *   \{ NULL, 0, 0 \}}
+00067 \textcolor{comment}{ * \};}
+00068 \textcolor{comment}{ *}
+00069 \textcolor{comment}{ * Long named options can have arguments specified as either:}
+00070 \textcolor{comment}{ *}
+00071 \textcolor{comment}{ *   ``--param=arg'' or ``--param arg''}
+00072 \textcolor{comment}{ *}
+00073 \textcolor{comment}{ * Short named options can have arguments specified as either:}
+00074 \textcolor{comment}{ *}
+00075 \textcolor{comment}{ *   ``-w80'' or ``-w 80''}
+00076 \textcolor{comment}{ *}
+00077 \textcolor{comment}{ * and can have more than one short named option specified at one time:}
+00078 \textcolor{comment}{ *}
+00079 \textcolor{comment}{ *   -aw80}
+00080 \textcolor{comment}{ *}
+00081 \textcolor{comment}{ * in which case those options which expect an argument need to come at the}
+00082 \textcolor{comment}{ * end.}
+00083 \textcolor{comment}{ */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2h5tools__utils_8h_source_l00084}\hyperlink{structlong__options}{00084} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structlong__options}{long\_options} \{
+00085     \textcolor{keyword}{const} \textcolor{keywordtype}{char}  *name;          \textcolor{comment}{/* name of the long option              */}
+00086     \textcolor{keywordtype}{int}          has\_arg;       \textcolor{comment}{/* whether we should look for an arg    */}
+00087     \textcolor{keywordtype}{char}         shortval;      \textcolor{comment}{/* the shortname equivalent of long arg}
+00088 \textcolor{comment}{                                 * this gets returned from get\_option   */}
+00089 \} \hyperlink{structlong__options}{long\_options};
+00090 
+00091 H5TOOLS\_DLL \textcolor{keywordtype}{int}    get\_option(\textcolor{keywordtype}{int} argc, \textcolor{keyword}{const} \textcolor{keywordtype}{char} **argv, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *opt,
+00092                          \textcolor{keyword}{const} \textcolor{keyword}{struct} \hyperlink{structlong__options}{long\_options} *l\_opt);
+00093 \textcolor{comment}{/*}
+00094 \textcolor{comment}{ * end get\_option section}
+00095 \textcolor{comment}{ */}
+00096 
+00097 \textcolor{comment}{/*struct taken from the dumper. needed in table struct*/}
+\Hypertarget{_h_d_f5_21_810_81_2include_2h5tools__utils_8h_source_l00098}\hyperlink{structobj__t}{00098} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structobj__t}{obj\_t} \{
+00099     haddr\_t objno;
+00100     \textcolor{keywordtype}{char} *objname;
+00101     hbool\_t displayed;          \textcolor{comment}{/* Flag to indicate that the object has been displayed */}
+00102     hbool\_t recorded;           \textcolor{comment}{/* Flag for named datatypes to indicate they were found in the group
+       hierarchy */}
+00103 \} \hyperlink{structobj__t}{obj\_t};
+00104 
+00105 \textcolor{comment}{/*struct for the tables that the find\_objs function uses*/}
+\Hypertarget{_h_d_f5_21_810_81_2include_2h5tools__utils_8h_source_l00106}\hyperlink{structtable__t}{00106} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structtable__t}{table\_t} \{
+00107     \textcolor{keywordtype}{size\_t} size;
+00108     \textcolor{keywordtype}{size\_t} nobjs;
+00109     \hyperlink{structobj__t}{obj\_t} *objs;
+00110 \} \hyperlink{structtable__t}{table\_t};
+00111 
+00112 \textcolor{comment}{/*this struct stores the information that is passed to the find\_objs function*/}
+\Hypertarget{_h_d_f5_21_810_81_2include_2h5tools__utils_8h_source_l00113}\hyperlink{structfind__objs__t}{00113} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structfind__objs__t}{find\_objs\_t} \{
+00114     hid\_t fid;
+00115     \hyperlink{structtable__t}{table\_t} *group\_table;
+00116     \hyperlink{structtable__t}{table\_t} *type\_table;
+00117     \hyperlink{structtable__t}{table\_t} *dset\_table;
+00118 \} \hyperlink{structfind__objs__t}{find\_objs\_t};
+00119 
+00120 H5TOOLS\_DLLVAR \textcolor{keywordtype}{unsigned} h5tools\_nCols;               \textcolor{comment}{/*max number of columns for outputting  */}
+00121 
+00122 \textcolor{comment}{/* Definitions of useful routines */}
+00123 H5TOOLS\_DLL \textcolor{keywordtype}{void}     indentation(\textcolor{keywordtype}{unsigned});
+00124 H5TOOLS\_DLL \textcolor{keywordtype}{void}     print\_version(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *progname);
+00125 H5TOOLS\_DLL \textcolor{keywordtype}{void}     parallel\_print(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* format, ... );
+00126 H5TOOLS\_DLL \textcolor{keywordtype}{void}     error\_msg(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *fmt, ...);
+00127 H5TOOLS\_DLL \textcolor{keywordtype}{void}     warn\_msg(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *fmt, ...);
+00128 H5TOOLS\_DLL \textcolor{keywordtype}{void}     help\_ref\_msg(FILE *output);
+00129 H5TOOLS\_DLL \textcolor{keywordtype}{void}     free\_table(\hyperlink{structtable__t}{table\_t} *table);
+00130 \textcolor{preprocessor}{#ifdef H5DUMP\_DEBUG}
+00131 H5TOOLS\_DLL \textcolor{keywordtype}{void}     dump\_tables(\hyperlink{structfind__objs__t}{find\_objs\_t} *info)
+00132 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* H5DUMP\_DEBUG */}\textcolor{preprocessor}{}
+00133 H5TOOLS\_DLL herr\_t init\_objs(hid\_t fid, \hyperlink{structfind__objs__t}{find\_objs\_t} *info, \hyperlink{structtable__t}{table\_t} **group\_table,
+00134     \hyperlink{structtable__t}{table\_t} **dset\_table, \hyperlink{structtable__t}{table\_t} **type\_table);
+00135 H5TOOLS\_DLL \hyperlink{structobj__t}{obj\_t}   *search\_obj(\hyperlink{structtable__t}{table\_t} *temp, haddr\_t objno);
+00136 \textcolor{preprocessor}{#ifndef H5\_HAVE\_TMPFILE}
+00137 H5TOOLS\_DLL FILE *  tmpfile(\textcolor{keywordtype}{void});
+00138 \textcolor{preprocessor}{#endif}
+00139 
+00140 \textcolor{comment}{/*************************************************************}
+00141 \textcolor{comment}{ *}
+00142 \textcolor{comment}{ * candidate functions to be public}
+00143 \textcolor{comment}{ *}
+00144 \textcolor{comment}{ *************************************************************/}
+00145 
+00146 \textcolor{comment}{/* This code is layout for common code among tools */}
+00147 \textcolor{keyword}{typedef} \textcolor{keyword}{enum} toolname\_t \{
+00148     TOOL\_H5DIFF, TOOL\_H5LS, TOOL\_\_H5DUMP \textcolor{comment}{/* add as necessary */}
+00149 \} h5tool\_toolname\_t;
+00150 
+00151 \textcolor{comment}{/* this struct can be used to differntiate among tools */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2h5tools__utils_8h_source_l00152}\hyperlink{structh5tool__opt__t}{00152} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\{
+00153     h5tool\_toolname\_t toolname;
+00154     \textcolor{keywordtype}{int} msg\_mode;
+00155 \} \hyperlink{structh5tool__opt__t}{h5tool\_opt\_t};
+00156 
+00157 \textcolor{comment}{/* obtain link info from H5tools\_get\_symlink\_info() */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2h5tools__utils_8h_source_l00158}\hyperlink{structh5tool__link__info__t}{00158} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\{
+00159     H5O\_type\_t  trg\_type;  \textcolor{comment}{/* OUT: target type */}
+00160     \textcolor{keywordtype}{char} *trg\_path;        \textcolor{comment}{/* OUT: target obj path. This must be freed }
+00161 \textcolor{comment}{                            *      when used with H5tools\_get\_symlink\_info() */}
+00162     haddr\_t     objno;     \textcolor{comment}{/* OUT: target object address */}
+00163     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long}  fileno; \textcolor{comment}{/* OUT: File number that target object is located in */}
+00164     \hyperlink{struct_h5_l__info__t}{H5L\_info\_t} linfo;      \textcolor{comment}{/* OUT: link info */}
+00165     \hyperlink{structh5tool__opt__t}{h5tool\_opt\_t} opt;      \textcolor{comment}{/* IN: options */}
+00166 \} \hyperlink{structh5tool__link__info__t}{h5tool\_link\_info\_t};
+00167 
+00168 
+00169 \textcolor{comment}{/* Definitions of routines */}
+00170 H5TOOLS\_DLL \textcolor{keywordtype}{int} H5tools\_get\_symlink\_info(hid\_t file\_id, \textcolor{keyword}{const} \textcolor{keywordtype}{char} * linkpath,
+00171     \hyperlink{structh5tool__link__info__t}{h5tool\_link\_info\_t} *link\_info, hbool\_t get\_obj\_type);
+00172 H5TOOLS\_DLL \textcolor{keyword}{const} \textcolor{keywordtype}{char} *h5tools\_getprogname(\textcolor{keywordtype}{void});
+00173 H5TOOLS\_DLL \textcolor{keywordtype}{void}     h5tools\_setprogname(\textcolor{keyword}{const} \textcolor{keywordtype}{char}*progname);
+00174 H5TOOLS\_DLL \textcolor{keywordtype}{int}      h5tools\_getstatus(\textcolor{keywordtype}{void});
+00175 H5TOOLS\_DLL \textcolor{keywordtype}{void}     h5tools\_setstatus(\textcolor{keywordtype}{int} d\_status);
+00176 H5TOOLS\_DLL \textcolor{keywordtype}{int} h5tools\_getenv\_update\_hyperslab\_bufsize(\textcolor{keywordtype}{void});
+00177 \textcolor{preprocessor}{#ifdef \_\_cplusplus}
+00178 \}
+00179 \textcolor{preprocessor}{#endif}
+00180 
+00181 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* H5TOOLS\_UTILS\_H\_\_ */}\textcolor{preprocessor}{}
+\end{DoxyCode}

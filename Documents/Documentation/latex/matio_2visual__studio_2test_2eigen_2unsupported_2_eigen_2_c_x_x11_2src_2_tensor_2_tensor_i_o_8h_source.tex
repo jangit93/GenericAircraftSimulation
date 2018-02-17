@@ -1,0 +1,85 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_i_o_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/\+C\+X\+X11/src/\+Tensor/\+Tensor\+IO.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_i_o_8h_source}\index{Tensor\+I\+O.\+h@{Tensor\+I\+O.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2014 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_CXX11\_TENSOR\_TENSOR\_IO\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_CXX11\_TENSOR\_TENSOR\_IO\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016 
+00017 \textcolor{comment}{// Print the tensor as a 2d matrix}
+00018 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Tensor, \textcolor{keywordtype}{int} Rank>
+00019 \textcolor{keyword}{struct }TensorPrinter \{
+00020   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run (std::ostream& os, \textcolor{keyword}{const} Tensor& tensor) \{
+00021     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_const<typename Tensor::Scalar>::type Scalar;
+00022     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Tensor::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00023     \textcolor{keyword}{const} Index total\_size = internal::array\_prod(tensor.dimensions());
+00024     \textcolor{keywordflow}{if} (total\_size > 0) \{
+00025       \textcolor{keyword}{const} Index first\_dim = Eigen::internal::array\_get<0>(tensor.dimensions());
+00026       \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} layout = Tensor::Layout;
+00027       Map<const Array<Scalar, Dynamic, Dynamic, layout> > matrix(const\_cast<Scalar*>(tensor.data()), 
+      first\_dim, total\_size/first\_dim);
+00028       os << matrix;
+00029     \}
+00030   \}
+00031 \};
+00032 
+00033 
+00034 \textcolor{comment}{// Print the tensor as a vector}
+00035 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Tensor>
+00036 \textcolor{keyword}{struct }TensorPrinter<Tensor, 1> \{
+00037   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run (std::ostream& os, \textcolor{keyword}{const} Tensor& tensor) \{
+00038     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_const<typename Tensor::Scalar>::type Scalar;
+00039     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Tensor::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00040     \textcolor{keyword}{const} Index total\_size = internal::array\_prod(tensor.dimensions());
+00041     \textcolor{keywordflow}{if} (total\_size > 0) \{
+00042       Map<const Array<Scalar, Dynamic, 1> > array(const\_cast<Scalar*>(tensor.data()), total\_size);
+00043       os << array;
+00044     \}
+00045   \}
+00046 \};
+00047 
+00048 
+00049 \textcolor{comment}{// Print the tensor as a scalar}
+00050 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Tensor>
+00051 \textcolor{keyword}{struct }TensorPrinter<Tensor, 0> \{
+00052   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run (std::ostream& os, \textcolor{keyword}{const} Tensor& tensor) \{
+00053     os << tensor.coeff(0);
+00054   \}
+00055 \};
+00056 \}
+00057 
+00058 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00059 std::ostream& operator << (std::ostream& os, const TensorBase<T, ReadOnlyAccessors>& expr) \{
+00060   \textcolor{keyword}{typedef} TensorEvaluator<const TensorForcedEvalOp<const T>, DefaultDevice> Evaluator;
+00061   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Evaluator::Dimensions Dimensions;
+00062 
+00063   \textcolor{comment}{// Evaluate the expression if needed}
+00064   TensorForcedEvalOp<const T> eval = expr.eval();
+00065   Evaluator tensor(eval, DefaultDevice());
+00066   tensor.evalSubExprsIfNeeded(NULL);
+00067 
+00068   \textcolor{comment}{// Print the result}
+00069   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} rank = internal::array\_size<Dimensions>::value;
+00070   internal::TensorPrinter<Evaluator, rank>::run(os, tensor);
+00071 
+00072   \textcolor{comment}{// Cleanup.}
+00073   tensor.cleanup();
+00074   \textcolor{keywordflow}{return} os;
+00075 \}
+00076 
+00077 \} \textcolor{comment}{// end namespace Eigen}
+00078 
+00079 \textcolor{preprocessor}{#endif // EIGEN\_CXX11\_TENSOR\_TENSOR\_IO\_H}
+\end{DoxyCode}

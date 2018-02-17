@@ -1,0 +1,521 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_symmetry_2util_2_template_group_theory_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/\+C\+X\+X11/src/\+Tensor\+Symmetry/util/\+Template\+Group\+Theory.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_symmetry_2util_2_template_group_theory_8h_source}\index{Template\+Group\+Theory.\+h@{Template\+Group\+Theory.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2013 Christian Seiler <christian@iwakd.de>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_CXX11\_TENSORSYMMETRY\_TEMPLATEGROUPTHEORY\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_CXX11\_TENSORSYMMETRY\_TEMPLATEGROUPTHEORY\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016 
+00017 \textcolor{keyword}{namespace }group\_theory \{
+00018 
+00031 \textcolor{comment}{/**********************************************************************}
+00032 \textcolor{comment}{ *                "Ok kid, here is where it gets complicated."}
+00033 \textcolor{comment}{ *                         - Amelia Pond in the "Doctor Who" episode}
+00034 \textcolor{comment}{ *                           "The Big Bang"}
+00035 \textcolor{comment}{ *}
+00036 \textcolor{comment}{ * Dimino's algorithm}
+00037 \textcolor{comment}{ * ==================}
+00038 \textcolor{comment}{ *}
+00039 \textcolor{comment}{ * The following is Dimino's algorithm in sequential form:}
+00040 \textcolor{comment}{ *}
+00041 \textcolor{comment}{ * Input: identity element, list of generators, equality check,}
+00042 \textcolor{comment}{ *        multiplication operation}
+00043 \textcolor{comment}{ * Output: list of group elements}
+00044 \textcolor{comment}{ *}
+00045 \textcolor{comment}{ * 1. add identity element}
+00046 \textcolor{comment}{ * 2. remove identities from list of generators}
+00047 \textcolor{comment}{ * 3. add all powers of first generator that aren't the}
+00048 \textcolor{comment}{ *    identity element}
+00049 \textcolor{comment}{ * 4. go through all remaining generators:}
+00050 \textcolor{comment}{ *        a. if generator is already in the list of elements}
+00051 \textcolor{comment}{ *                -> do nothing}
+00052 \textcolor{comment}{ *        b. otherwise}
+00053 \textcolor{comment}{ *                i.   remember current # of elements}
+00054 \textcolor{comment}{ *                     (i.e. the size of the current subgroup)}
+00055 \textcolor{comment}{ *                ii.  add all current elements (which includes}
+00056 \textcolor{comment}{ *                     the identity) each multiplied from right}
+00057 \textcolor{comment}{ *                     with the current generator to the group}
+00058 \textcolor{comment}{ *                iii. add all remaining cosets that are generated}
+00059 \textcolor{comment}{ *                     by products of the new generator with itself}
+00060 \textcolor{comment}{ *                     and all other generators seen so far}
+00061 \textcolor{comment}{ *}
+00062 \textcolor{comment}{ * In functional form, this is implemented as a long set of recursive}
+00063 \textcolor{comment}{ * templates that have a complicated relationship.}
+00064 \textcolor{comment}{ *}
+00065 \textcolor{comment}{ * The main interface for Dimino's algorithm is the template}
+00066 \textcolor{comment}{ * enumerate\_group\_elements. All lists are implemented as variadic}
+00067 \textcolor{comment}{ * type\_list<typename...> and numeric\_list<typename = int, int...>}
+00068 \textcolor{comment}{ * templates.}
+00069 \textcolor{comment}{ *}
+00070 \textcolor{comment}{ * 'Calling' templates is usually done via typedefs.}
+00071 \textcolor{comment}{ *}
+00072 \textcolor{comment}{ * This algorithm is an extended version of the basic version. The}
+00073 \textcolor{comment}{ * extension consists in the fact that each group element has a set}
+00074 \textcolor{comment}{ * of flags associated with it. Multiplication of two group elements}
+00075 \textcolor{comment}{ * with each other results in a group element whose flags are the}
+00076 \textcolor{comment}{ * XOR of the flags of the previous elements. Each time the algorithm}
+00077 \textcolor{comment}{ * notices that a group element it just calculated is already in the}
+00078 \textcolor{comment}{ * list of current elements, the flags of both will be compared and}
+00079 \textcolor{comment}{ * added to the so-called 'global flags' of the group.}
+00080 \textcolor{comment}{ *}
+00081 \textcolor{comment}{ * The rationale behind this extension is that this allows not only}
+00082 \textcolor{comment}{ * for the description of symmetries between tensor indices, but}
+00083 \textcolor{comment}{ * also allows for the description of hermiticity, antisymmetry and}
+00084 \textcolor{comment}{ * antihermiticity. Negation and conjugation each are specific bit}
+00085 \textcolor{comment}{ * in the flags value and if two different ways to reach a group}
+00086 \textcolor{comment}{ * element lead to two different flags, this poses a constraint on}
+00087 \textcolor{comment}{ * the allowed values of the resulting tensor. For example, if a}
+00088 \textcolor{comment}{ * group element is reach both with and without the conjugation}
+00089 \textcolor{comment}{ * flags, it is clear that the resulting tensor has to be real.}
+00090 \textcolor{comment}{ *}
+00091 \textcolor{comment}{ * Note that this flag mechanism is quite generic and may have other}
+00092 \textcolor{comment}{ * uses beyond tensor properties.}
+00093 \textcolor{comment}{ *}
+00094 \textcolor{comment}{ * IMPORTANT: }
+00095 \textcolor{comment}{ *     This algorithm assumes the group to be finite. If you try to}
+00096 \textcolor{comment}{ *     run it with a group that's infinite, the algorithm will only}
+00097 \textcolor{comment}{ *     terminate once you hit a compiler limit (max template depth).}
+00098 \textcolor{comment}{ *     Also note that trying to use this implementation to create a}
+00099 \textcolor{comment}{ *     very large group will probably either make you hit the same}
+00100 \textcolor{comment}{ *     limit, cause the compiler to segfault or at the very least}
+00101 \textcolor{comment}{ *     take a *really* long time (hours, days, weeks - sic!) to}
+00102 \textcolor{comment}{ *     compile. It is not recommended to plug in more than 4}
+00103 \textcolor{comment}{ *     generators, unless they are independent of each other.}
+00104 \textcolor{comment}{ */}
+00105 
+00119 \textcolor{keyword}{template}<\textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality, \textcolor{keyword}{typename} id, \textcolor{keyword}{typename} L> \textcolor{keyword}{struct }strip\_identities;
+00120 
+00121 \textcolor{keyword}{template}<
+00122   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00123   \textcolor{keyword}{typename} id,
+00124   \textcolor{keyword}{typename} t,
+00125   \textcolor{keyword}{typename}... ts
+00126 >
+00127 \textcolor{keyword}{struct }strip\_identities<Equality, id, type\_list<t, ts...>>
+00128 \{
+00129   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} conditional<
+00130     Equality<id, t>::value,
+00131     \textcolor{keyword}{typename} strip\_identities<Equality, id, type\_list<ts...>>::type,
+00132     \textcolor{keyword}{typename} concat<type\_list<t>, \textcolor{keyword}{typename} strip\_identities<Equality, id, type\_list<ts...>>::type>::type
+00133   >::type type;
+00134   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{int} global\_flags = Equality<id, t>::global\_flags | strip\_identities<Equality, id, 
+      type\_list<ts...>>::global\_flags;
+00135 \};
+00136 
+00137 \textcolor{keyword}{template}<
+00138   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00139   \textcolor{keyword}{typename} \textcolor{keywordtype}{id}
+00140   EIGEN\_TPL\_PP\_SPEC\_HACK\_DEFC(\textcolor{keyword}{typename}, ts)
+00141 >
+00142 \textcolor{keyword}{struct }strip\_identities<Equality, id, type\_list<EIGEN\_TPL\_PP\_SPEC\_HACK\_USE(ts)>>
+00143 \{
+00144   \textcolor{keyword}{typedef} type\_list<> type;
+00145   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{int} global\_flags = 0;
+00146 \};
+00147 
+00161 \textcolor{keyword}{template}<
+00162   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00163   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00164   \textcolor{keyword}{typename} id,
+00165   \textcolor{keyword}{typename} g,
+00166   \textcolor{keyword}{typename} current\_element,
+00167   \textcolor{keyword}{typename} elements,
+00168   \textcolor{keywordtype}{bool} dont\_add\_current\_element   \textcolor{comment}{// = false}
+00169 >
+00170 \textcolor{keyword}{struct }dimino\_first\_step\_elements\_helper :
+00171   \textcolor{keyword}{public} dimino\_first\_step\_elements\_helper<
+00172     Multiply,
+00173     Equality,
+00174     id,
+00175     g,
+00176     typename Multiply<current\_element, g>::type,
+00177     typename concat<elements, type\_list<current\_element>>::type,
+00178     Equality<typename Multiply<current\_element, g>::type, id>::value
+00179   > \{\};
+00180 
+00181 \textcolor{keyword}{template}<
+00182   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00183   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00184   \textcolor{keyword}{typename} id,
+00185   \textcolor{keyword}{typename} g,
+00186   \textcolor{keyword}{typename} current\_element,
+00187   \textcolor{keyword}{typename} elements
+00188 >
+00189 \textcolor{keyword}{struct }dimino\_first\_step\_elements\_helper<Multiply, Equality, id, g, current\_element, elements, true>
+00190 \{
+00191   \textcolor{keyword}{typedef} elements type;
+00192   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{int} global\_flags = Equality<current\_element, id>::global\_flags;
+00193 \};
+00194 
+00208 \textcolor{keyword}{template}<
+00209   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00210   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00211   \textcolor{keyword}{typename} id,
+00212   \textcolor{keyword}{typename} generators
+00213 >
+00214 \textcolor{keyword}{struct }dimino\_first\_step\_elements
+00215 \{
+00216   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} get<0, generators>::type first\_generator;
+00217   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} skip<1, generators>::type next\_generators;
+00218   \textcolor{keyword}{typedef} type\_list<first\_generator> generators\_done;
+00219 
+00220   \textcolor{keyword}{typedef} dimino\_first\_step\_elements\_helper<
+00221     Multiply,
+00222     Equality,
+00223     id,
+00224     first\_generator,
+00225     first\_generator,
+00226     type\_list<id>,
+00227     \textcolor{keyword}{false}
+00228   > helper;
+00229   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} helper::type type;
+00230   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{int} global\_flags = helper::global\_flags;
+00231 \};
+00232 
+00253 \textcolor{keyword}{template}<
+00254   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00255   \textcolor{keyword}{typename} sub\_group\_elements,
+00256   \textcolor{keyword}{typename} new\_coset\_rep,
+00257   \textcolor{keywordtype}{bool} generate\_coset      \textcolor{comment}{// = true}
+00258 >
+00259 \textcolor{keyword}{struct }dimino\_get\_coset\_elements
+00260 \{
+00261   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} apply\_op\_from\_right<Multiply, new\_coset\_rep, sub\_group\_elements>::type type;
+00262 \};
+00263 
+00264 \textcolor{keyword}{template}<
+00265   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00266   \textcolor{keyword}{typename} sub\_group\_elements,
+00267   \textcolor{keyword}{typename} new\_coset\_rep
+00268 >
+00269 \textcolor{keyword}{struct }dimino\_get\_coset\_elements<Multiply, sub\_group\_elements, new\_coset\_rep, false>
+00270 \{
+00271   \textcolor{keyword}{typedef} type\_list<> type;
+00272 \};
+00273 
+00288 \textcolor{keyword}{template}<
+00289   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00290   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00291   \textcolor{keyword}{typename} id,
+00292   \textcolor{keyword}{typename} sub\_group\_elements,
+00293   \textcolor{keyword}{typename} elements,
+00294   \textcolor{keyword}{typename} generators,
+00295   \textcolor{keyword}{typename} rep\_element,
+00296   \textcolor{keywordtype}{int} sub\_group\_size
+00297 >
+00298 \textcolor{keyword}{struct }dimino\_add\_cosets\_for\_rep;
+00299 
+00300 \textcolor{keyword}{template}<
+00301   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00302   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00303   \textcolor{keyword}{typename} id,
+00304   \textcolor{keyword}{typename} sub\_group\_elements,
+00305   \textcolor{keyword}{typename} elements,
+00306   \textcolor{keyword}{typename} g,
+00307   \textcolor{keyword}{typename}... gs,
+00308   \textcolor{keyword}{typename} rep\_element,
+00309   \textcolor{keywordtype}{int} sub\_group\_size
+00310 >
+00311 \textcolor{keyword}{struct }dimino\_add\_cosets\_for\_rep<Multiply, Equality, id, sub\_group\_elements, elements, type\_list<g, gs...>,
+       rep\_element, sub\_group\_size>
+00312 \{
+00313   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Multiply<rep\_element, g>::type new\_coset\_rep;
+00314   \textcolor{keyword}{typedef} contained\_in\_list\_gf<Equality, new\_coset\_rep, elements> \_cil;
+00315   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{bool} add\_coset = !\_cil::value;
+00316 
+00317   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} dimino\_get\_coset\_elements<
+00318     Multiply,
+00319     sub\_group\_elements,
+00320     new\_coset\_rep,
+00321     add\_coset
+00322   >::type coset\_elements;
+00323 
+00324   \textcolor{keyword}{typedef} dimino\_add\_cosets\_for\_rep<
+00325     Multiply,
+00326     Equality,
+00327     id,
+00328     sub\_group\_elements,
+00329     \textcolor{keyword}{typename} concat<elements, coset\_elements>::type,
+00330     type\_list<gs...>,
+00331     rep\_element,
+00332     sub\_group\_size
+00333   > \_helper;
+00334 
+00335   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \_helper::type type;
+00336   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{int} global\_flags = \_cil::global\_flags | \_helper::global\_flags;
+00337 
+00338   \textcolor{comment}{/* Note that we don't have to update global flags here, since}
+00339 \textcolor{comment}{   * we will only add these elements if they are not part of}
+00340 \textcolor{comment}{   * the group already. But that only happens if the coset rep}
+00341 \textcolor{comment}{   * is not already in the group, so the check for the coset rep}
+00342 \textcolor{comment}{   * will catch this.}
+00343 \textcolor{comment}{   */}
+00344 \};
+00345 
+00346 \textcolor{keyword}{template}<
+00347   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00348   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00349   \textcolor{keyword}{typename} id,
+00350   \textcolor{keyword}{typename} sub\_group\_elements,
+00351   \textcolor{keyword}{typename} elements
+00352   EIGEN\_TPL\_PP\_SPEC\_HACK\_DEFC(\textcolor{keyword}{typename}, empty),
+00353   \textcolor{keyword}{typename} rep\_element,
+00354   \textcolor{keywordtype}{int} sub\_group\_size
+00355 >
+00356 \textcolor{keyword}{struct }dimino\_add\_cosets\_for\_rep<Multiply, Equality, id, sub\_group\_elements, elements, type\_list<
+      EIGEN\_TPL\_PP\_SPEC\_HACK\_USE(empty)>, rep\_element, sub\_group\_size>
+00357 \{
+00358   \textcolor{keyword}{typedef} elements type;
+00359   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{int} global\_flags = 0;
+00360 \};
+00361 
+00376 \textcolor{keyword}{template}<
+00377   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00378   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00379   \textcolor{keyword}{typename} id,
+00380   \textcolor{keyword}{typename} sub\_group\_elements,
+00381   \textcolor{keyword}{typename} elements,
+00382   \textcolor{keyword}{typename} generators,
+00383   \textcolor{keywordtype}{int} sub\_group\_size,
+00384   \textcolor{keywordtype}{int} rep\_pos,
+00385   \textcolor{keywordtype}{bool} stop\_condition        \textcolor{comment}{// = false}
+00386 >
+00387 \textcolor{keyword}{struct }dimino\_add\_all\_coset\_spaces
+00388 \{
+00389   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} get<rep\_pos, elements>::type rep\_element;
+00390   \textcolor{keyword}{typedef} dimino\_add\_cosets\_for\_rep<
+00391     Multiply,
+00392     Equality,
+00393     id,
+00394     sub\_group\_elements,
+00395     elements,
+00396     generators,
+00397     rep\_element,
+00398     sub\_group\_elements::count
+00399   > \_ac4r;
+00400   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \_ac4r::type new\_elements;
+00401   
+00402   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{int} new\_rep\_pos = rep\_pos + sub\_group\_elements::count;
+00403   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{bool} new\_stop\_condition = new\_rep\_pos >= new\_elements::count;
+00404 
+00405   \textcolor{keyword}{typedef} dimino\_add\_all\_coset\_spaces<
+00406     Multiply,
+00407     Equality,
+00408     id,
+00409     sub\_group\_elements,
+00410     new\_elements,
+00411     generators,
+00412     sub\_group\_size,
+00413     new\_rep\_pos,
+00414     new\_stop\_condition
+00415   > \_helper;
+00416 
+00417   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \_helper::type type;
+00418   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{int} global\_flags = \_helper::global\_flags | \_ac4r::global\_flags;
+00419 \};
+00420 
+00421 \textcolor{keyword}{template}<
+00422   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00423   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00424   \textcolor{keyword}{typename} id,
+00425   \textcolor{keyword}{typename} sub\_group\_elements,
+00426   \textcolor{keyword}{typename} elements,
+00427   \textcolor{keyword}{typename} generators,
+00428   \textcolor{keywordtype}{int} sub\_group\_size,
+00429   \textcolor{keywordtype}{int} rep\_pos
+00430 >
+00431 \textcolor{keyword}{struct }dimino\_add\_all\_coset\_spaces<Multiply, Equality, id, sub\_group\_elements, elements, generators, 
+      sub\_group\_size, rep\_pos, true>
+00432 \{
+00433   \textcolor{keyword}{typedef} elements type;
+00434   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{int} global\_flags = 0;
+00435 \};
+00436 
+00449 \textcolor{keyword}{template}<
+00450   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00451   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00452   \textcolor{keyword}{typename} id,
+00453   \textcolor{keyword}{typename} elements,
+00454   \textcolor{keyword}{typename} generators\_done,
+00455   \textcolor{keyword}{typename} current\_generator,
+00456   \textcolor{keywordtype}{bool} redundant          \textcolor{comment}{// = false}
+00457 >
+00458 \textcolor{keyword}{struct }dimino\_add\_generator
+00459 \{
+00460   \textcolor{comment}{/* this template is only called if the generator is not redundant}
+00461 \textcolor{comment}{   * => all elements of the group multiplied with the new generator}
+00462 \textcolor{comment}{   *    are going to be new elements of the most trivial coset space}
+00463 \textcolor{comment}{   */}
+00464   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} apply\_op\_from\_right<Multiply, current\_generator, elements>::type multiplied\_elements;
+00465   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} concat<elements, multiplied\_elements>::type new\_elements;
+00466 
+00467   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{int} rep\_pos = elements::count;
+00468 
+00469   \textcolor{keyword}{typedef} dimino\_add\_all\_coset\_spaces<
+00470     Multiply,
+00471     Equality,
+00472     id,
+00473     elements, \textcolor{comment}{// elements of previous subgroup}
+00474     new\_elements,
+00475     \textcolor{keyword}{typename} concat<generators\_done, type\_list<current\_generator>>::type,
+00476     elements::count, \textcolor{comment}{// size of previous subgroup}
+00477     rep\_pos,
+00478     \textcolor{keyword}{false} \textcolor{comment}{// don't stop (because rep\_pos >= new\_elements::count is always false at this point)}
+00479   > \_helper;
+00480   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \_helper::type type;
+00481   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{int} global\_flags = \_helper::global\_flags;
+00482 \};
+00483 
+00484 \textcolor{keyword}{template}<
+00485   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00486   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00487   \textcolor{keyword}{typename} id,
+00488   \textcolor{keyword}{typename} elements,
+00489   \textcolor{keyword}{typename} generators\_done,
+00490   \textcolor{keyword}{typename} current\_generator
+00491 >
+00492 \textcolor{keyword}{struct }dimino\_add\_generator<Multiply, Equality, id, elements, generators\_done, current\_generator, true>
+00493 \{
+00494   \textcolor{comment}{// redundant case}
+00495   \textcolor{keyword}{typedef} elements type;
+00496   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{int} global\_flags = 0;
+00497 \};
+00498 
+00511 \textcolor{keyword}{template}<
+00512   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00513   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00514   \textcolor{keyword}{typename} id,
+00515   \textcolor{keyword}{typename} generators\_done,
+00516   \textcolor{keyword}{typename} remaining\_generators,
+00517   \textcolor{keyword}{typename} elements
+00518 >
+00519 \textcolor{keyword}{struct }dimino\_add\_remaining\_generators
+00520 \{
+00521   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} get<0, remaining\_generators>::type first\_generator;
+00522   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} skip<1, remaining\_generators>::type next\_generators;
+00523 
+00524   \textcolor{keyword}{typedef} contained\_in\_list\_gf<Equality, first\_generator, elements> \_cil;
+00525 
+00526   \textcolor{keyword}{typedef} dimino\_add\_generator<
+00527     Multiply,
+00528     Equality,
+00529     id,
+00530     elements,
+00531     generators\_done,
+00532     first\_generator,
+00533     \_cil::value
+00534   > \_helper;
+00535 
+00536   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \_helper::type new\_elements;
+00537 
+00538   \textcolor{keyword}{typedef} dimino\_add\_remaining\_generators<
+00539     Multiply,
+00540     Equality,
+00541     id,
+00542     \textcolor{keyword}{typename} concat<generators\_done, type\_list<first\_generator>>::type,
+00543     next\_generators,
+00544     new\_elements
+00545   > \_next\_iter;
+00546 
+00547   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \_next\_iter::type type;
+00548   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{int} global\_flags =
+00549     \_cil::global\_flags |
+00550     \_helper::global\_flags |
+00551     \_next\_iter::global\_flags;
+00552 \};
+00553 
+00554 \textcolor{keyword}{template}<
+00555   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00556   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00557   \textcolor{keyword}{typename} id,
+00558   \textcolor{keyword}{typename} generators\_done,
+00559   \textcolor{keyword}{typename} elements
+00560 >
+00561 \textcolor{keyword}{struct }dimino\_add\_remaining\_generators<Multiply, Equality, id, generators\_done, type\_list<>, elements>
+00562 \{
+00563   \textcolor{keyword}{typedef} elements type;
+00564   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{int} global\_flags = 0;
+00565 \};
+00566 
+00581 \textcolor{keyword}{template}<
+00582   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00583   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00584   \textcolor{keyword}{typename} id,
+00585   \textcolor{keyword}{typename} generators,
+00586   \textcolor{keywordtype}{int} initial\_global\_flags = 0
+00587 >
+00588 \textcolor{keyword}{struct }enumerate\_group\_elements\_noid
+00589 \{
+00590   \textcolor{keyword}{typedef} dimino\_first\_step\_elements<Multiply, Equality, id, generators> first\_step;
+00591   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} first\_step::type first\_step\_elements;
+00592 
+00593   \textcolor{keyword}{typedef} dimino\_add\_remaining\_generators<
+00594     Multiply,
+00595     Equality,
+00596     id,
+00597     \textcolor{keyword}{typename} first\_step::generators\_done,
+00598     \textcolor{keyword}{typename} first\_step::next\_generators, \textcolor{comment}{// remaining\_generators}
+00599     \textcolor{keyword}{typename} first\_step::type \textcolor{comment}{// first\_step elements}
+00600   > \_helper;
+00601 
+00602   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \_helper::type type;
+00603   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{int} global\_flags =
+00604     initial\_global\_flags |
+00605     first\_step::global\_flags |
+00606     \_helper::global\_flags;
+00607 \};
+00608 
+00609 \textcolor{comment}{// in case when no generators are specified}
+00610 \textcolor{keyword}{template}<
+00611   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00612   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00613   \textcolor{keyword}{typename} id,
+00614   \textcolor{keywordtype}{int} initial\_global\_flags
+00615 >
+00616 \textcolor{keyword}{struct }enumerate\_group\_elements\_noid<Multiply, Equality, id, type\_list<>, initial\_global\_flags>
+00617 \{
+00618   \textcolor{keyword}{typedef} type\_list<id> type;
+00619   constexpr \textcolor{keyword}{static} \textcolor{keywordtype}{int} global\_flags = initial\_global\_flags;
+00620 \};
+00621 
+00639 \textcolor{keyword}{template}<
+00640   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Multiply,
+00641   \textcolor{keyword}{template}<\textcolor{keyword}{typename}, \textcolor{keyword}{typename}> \textcolor{keyword}{class }Equality,
+00642   \textcolor{keyword}{typename} id,
+00643   \textcolor{keyword}{typename} \_generators
+00644 >
+00645 \textcolor{keyword}{struct }enumerate\_group\_elements
+00646   : \textcolor{keyword}{public} enumerate\_group\_elements\_noid<
+00647       Multiply,
+00648       Equality,
+00649       id,
+00650       typename strip\_identities<Equality, id, \_generators>::type,
+00651       strip\_identities<Equality, id, \_generators>::global\_flags
+00652     >
+00653 \{
+00654 \};
+00655 
+00656 \} \textcolor{comment}{// end namespace group\_theory}
+00657 
+00658 \} \textcolor{comment}{// end namespace internal}
+00659 
+00660 \} \textcolor{comment}{// end namespace Eigen}
+00661 
+00662 \textcolor{preprocessor}{#endif // EIGEN\_CXX11\_TENSORSYMMETRY\_TEMPLATEGROUPTHEORY\_H}
+00663 
+00664 \textcolor{comment}{/*}
+00665 \textcolor{comment}{ * kate: space-indent on; indent-width 2; mixedindent off; indent-mode cstyle;}
+00666 \textcolor{comment}{ */}
+\end{DoxyCode}

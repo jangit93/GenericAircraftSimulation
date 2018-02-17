@@ -1,0 +1,464 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_eigen_solver_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Eigenvalues/\+Eigen\+Solver.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_eigen_solver_8h_source}\index{Eigen\+Solver.\+h@{Eigen\+Solver.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2010,2012 Jitse Niesen <jitse@maths.leeds.ac.uk>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_EIGENSOLVER\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_EIGENSOLVER\_H}
+00013 
+00014 \textcolor{preprocessor}{#include "./RealSchur.h"}
+00015 
+00016 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00017 
+00064 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType> \textcolor{keyword}{class }EigenSolver
+00065 \{
+00066   \textcolor{keyword}{public}:
+00067 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_eigen_solver_8h_source_l00069}\hyperlink{group___eigenvalues___module_a83acd180404ddaac8a678fa65a6b632b}{00069}     \textcolor{keyword}{typedef} \_MatrixType \hyperlink{group___eigenvalues___module_a83acd180404ddaac8a678fa65a6b632b}{MatrixType};
+00070 
+00071     \textcolor{keyword}{enum} \{
+00072       RowsAtCompileTime = MatrixType::RowsAtCompileTime,
+00073       ColsAtCompileTime = MatrixType::ColsAtCompileTime,
+00074       Options = MatrixType::Options,
+00075       MaxRowsAtCompileTime = MatrixType::MaxRowsAtCompileTime,
+00076       MaxColsAtCompileTime = MatrixType::MaxColsAtCompileTime
+00077     \};
+00078 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_eigen_solver_8h_source_l00080}\hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{00080}     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar};
+00081     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_eigen_solver_8h_source_l00082}\hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{00082}     \textcolor{keyword}{typedef} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Eigen::Index} \hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index}; 
+00083 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_eigen_solver_8h_source_l00090}\hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{00090}     \textcolor{keyword}{typedef} std::complex<RealScalar> \hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{ComplexScalar};
+00091 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_eigen_solver_8h_source_l00097}\hyperlink{group___eigenvalues___module_adc446bcb60572758fa64515f2825db62}{00097}     \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module}{Matrix<ComplexScalar, ColsAtCompileTime, 1, Options & ~RowMajor, MaxColsAtCompileTime, 1>}
+       \hyperlink{group___eigenvalues___module_adc446bcb60572758fa64515f2825db62}{EigenvalueType};
+00098 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_eigen_solver_8h_source_l00104}\hyperlink{group___eigenvalues___module_aa140354e2f7d5ce34c6488c39e19f2c2}{00104}     \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module}{Matrix<ComplexScalar, RowsAtCompileTime, ColsAtCompileTime, Options, MaxRowsAtCompileTime,
+       MaxColsAtCompileTime>}
+       \hyperlink{group___eigenvalues___module_aa140354e2f7d5ce34c6488c39e19f2c2}{EigenvectorsType};
+00105 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_eigen_solver_8h_source_l00113}\hyperlink{group___eigenvalues___module_a3af22d721a6401365881b2ef252d26aa}{00113}     \hyperlink{group___eigenvalues___module_a3af22d721a6401365881b2ef252d26aa}{EigenSolver}() : m\_eivec(), m\_eivalues(), m\_isInitialized(false), m\_realSchur(), m\_matT(), 
+      m\_tmp() \{\}
+00114 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_eigen_solver_8h_source_l00121}\hyperlink{group___eigenvalues___module_aa4edf56ecc178b277b75c13a2ca1089f}{00121}     \textcolor{keyword}{explicit} \hyperlink{group___eigenvalues___module_aa4edf56ecc178b277b75c13a2ca1089f}{EigenSolver}(Index size)
+00122       : m\_eivec(size, size),
+00123         m\_eivalues(size),
+00124         m\_isInitialized(false),
+00125         m\_eigenvectorsOk(false),
+00126         m\_realSchur(size),
+00127         m\_matT(size, size), 
+00128         m\_tmp(size)
+00129     \{\}
+00130 
+00146     \textcolor{keyword}{template}<\textcolor{keyword}{typename} InputType>
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_eigen_solver_8h_source_l00147}\hyperlink{group___eigenvalues___module_a7e8ab3d89ea525af5f27f1a8e805fae1}{00147}     \textcolor{keyword}{explicit} \hyperlink{group___eigenvalues___module_a7e8ab3d89ea525af5f27f1a8e805fae1}{EigenSolver}(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<InputType>}& matrix, \textcolor{keywordtype}{bool} 
+      computeEigenvectors = \textcolor{keyword}{true})
+00148       : m\_eivec(matrix.rows(), matrix.cols()),
+00149         m\_eivalues(matrix.cols()),
+00150         m\_isInitialized(false),
+00151         m\_eigenvectorsOk(false),
+00152         m\_realSchur(matrix.cols()),
+00153         m\_matT(matrix.rows(), matrix.cols()), 
+00154         m\_tmp(matrix.cols())
+00155     \{
+00156       \hyperlink{group___eigenvalues___module_a38d032b75b3e75640e3db42e7ab20c24}{compute}(matrix.\hyperlink{group___core___module_a324b16961a11d2ecfd2d1b7dd7946545}{derived}(), computeEigenvectors);
+00157     \}
+00158 
+00179     EigenvectorsType \hyperlink{group___eigenvalues___module_a66288022802172e3ee059283b26201d7}{eigenvectors}() \textcolor{keyword}{const};
+00180 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_eigen_solver_8h_source_l00199}\hyperlink{group___eigenvalues___module_a4e796226f06e1f7347cf03a38755a155}{00199}     \textcolor{keyword}{const} MatrixType& \hyperlink{group___eigenvalues___module_a4e796226f06e1f7347cf03a38755a155}{pseudoEigenvectors}()\textcolor{keyword}{ const}
+00200 \textcolor{keyword}{    }\{
+00201       eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"EigenSolver is not initialized."});
+00202       eigen\_assert(m\_eigenvectorsOk && \textcolor{stringliteral}{"The eigenvectors have not been computed together with the
+       eigenvalues."});
+00203       \textcolor{keywordflow}{return} m\_eivec;
+00204     \}
+00205 
+00224     MatrixType \hyperlink{group___eigenvalues___module_a4979eafe0aeef06b19ada7fa5e19db17}{pseudoEigenvalueMatrix}() \textcolor{keyword}{const};
+00225 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_eigen_solver_8h_source_l00244}\hyperlink{group___eigenvalues___module_a114189009e42f5e03372a7a3dfa33b97}{00244}     \textcolor{keyword}{const} EigenvalueType& \hyperlink{group___eigenvalues___module_a114189009e42f5e03372a7a3dfa33b97}{eigenvalues}()\textcolor{keyword}{ const}
+00245 \textcolor{keyword}{    }\{
+00246       eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"EigenSolver is not initialized."});
+00247       \textcolor{keywordflow}{return} m\_eivalues;
+00248     \}
+00249 
+00277     \textcolor{keyword}{template}<\textcolor{keyword}{typename} InputType>
+00278     \hyperlink{group___eigenvalues___module_class_eigen_1_1_eigen_solver}{EigenSolver}& \hyperlink{group___eigenvalues___module_a38d032b75b3e75640e3db42e7ab20c24}{compute}(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<InputType>}& matrix, \textcolor{keywordtype}{bool} 
+      computeEigenvectors = \textcolor{keyword}{true});
+00279 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_eigen_solver_8h_source_l00281}\hyperlink{group___eigenvalues___module_ac4af54fadc33abcdd1778c87bfbf005b}{00281}     \hyperlink{group__enums_ga85fad7b87587764e5cf6b513a9e0ee5e}{ComputationInfo} \hyperlink{group___eigenvalues___module_ac4af54fadc33abcdd1778c87bfbf005b}{info}()\textcolor{keyword}{ const}
+00282 \textcolor{keyword}{    }\{
+00283       eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"EigenSolver is not initialized."});
+00284       \textcolor{keywordflow}{return} m\_info;
+00285     \}
+00286 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_eigen_solver_8h_source_l00288}\hyperlink{group___eigenvalues___module_a6cff220aadfd8d8c1366b915ddefd164}{00288}     \hyperlink{group___eigenvalues___module_class_eigen_1_1_eigen_solver}{EigenSolver}& \hyperlink{group___eigenvalues___module_a6cff220aadfd8d8c1366b915ddefd164}{setMaxIterations}(Index maxIters)
+00289     \{
+00290       m\_realSchur.\hyperlink{group___eigenvalues___module_ad189e8776ee20a12046694f98b354322}{setMaxIterations}(maxIters);
+00291       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00292     \}
+00293 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_eigenvalues_2_eigen_solver_8h_source_l00295}\hyperlink{group___eigenvalues___module_aa7668af4bcb47cd92cfe10640589d88f}{00295}     Index \hyperlink{group___eigenvalues___module_aa7668af4bcb47cd92cfe10640589d88f}{getMaxIterations}()
+00296     \{
+00297       \textcolor{keywordflow}{return} m\_realSchur.\hyperlink{group___eigenvalues___module_a99453076a9617a6af353b5b1f3220c25}{getMaxIterations}();
+00298     \}
+00299 
+00300   \textcolor{keyword}{private}:
+00301     \textcolor{keywordtype}{void} doComputeEigenvectors();
+00302 
+00303   \textcolor{keyword}{protected}:
+00304     
+00305     \textcolor{keyword}{static} \textcolor{keywordtype}{void} check\_template\_parameters()
+00306     \{
+00307       EIGEN\_STATIC\_ASSERT\_NON\_INTEGER(Scalar);
+00308       EIGEN\_STATIC\_ASSERT(!\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsComplex}, 
+      NUMERIC\_TYPE\_MUST\_BE\_REAL);
+00309     \}
+00310     
+00311     MatrixType m\_eivec;
+00312     EigenvalueType m\_eivalues;
+00313     \textcolor{keywordtype}{bool} m\_isInitialized;
+00314     \textcolor{keywordtype}{bool} m\_eigenvectorsOk;
+00315     \hyperlink{group__enums_ga85fad7b87587764e5cf6b513a9e0ee5e}{ComputationInfo} m\_info;
+00316     \hyperlink{group___eigenvalues___module}{RealSchur<MatrixType>} m\_realSchur;
+00317     MatrixType m\_matT;
+00318 
+00319     \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module}{Matrix<Scalar, ColsAtCompileTime, 1, Options & ~RowMajor, MaxColsAtCompileTime, 1>}
+       \hyperlink{group___core___module}{ColumnVectorType};
+00320     ColumnVectorType m\_tmp;
+00321 \};
+00322 
+00323 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00324 \hyperlink{group___eigenvalues___module_a83acd180404ddaac8a678fa65a6b632b}{MatrixType} \hyperlink{group___eigenvalues___module_a4979eafe0aeef06b19ada7fa5e19db17}{EigenSolver<MatrixType>::pseudoEigenvalueMatrix}
+      ()\textcolor{keyword}{ const}
+00325 \textcolor{keyword}{}\{
+00326   eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"EigenSolver is not initialized."});
+00327   \textcolor{keyword}{const} RealScalar precision = RealScalar(2)*\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<RealScalar>::epsilon}()
+      ;
+00328   \hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index} n = m\_eivalues.rows();
+00329   \hyperlink{group___eigenvalues___module_a83acd180404ddaac8a678fa65a6b632b}{MatrixType} matD = MatrixType::Zero(n,n);
+00330   \textcolor{keywordflow}{for} (\hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index} i=0; i<n; ++i)
+00331   \{
+00332     \textcolor{keywordflow}{if} (internal::isMuchSmallerThan(numext::imag(m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i)), numext::real(m\_eivalues.
+      \hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i)), precision))
+00333       matD.coeffRef(i,i) = numext::real(m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i));
+00334     \textcolor{keywordflow}{else}
+00335     \{
+00336       matD.template block<2,2>(i,i) <<  numext::real(m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i)), numext::imag(m\_eivalues.
+      \hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i)),
+00337                                        -numext::imag(m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i)), numext::real(m\_eivalues.
+      \hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i));
+00338       ++i;
+00339     \}
+00340   \}
+00341   \textcolor{keywordflow}{return} matD;
+00342 \}
+00343 
+00344 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00345 \textcolor{keyword}{typename} \hyperlink{group___core___module}{EigenSolver<MatrixType>::EigenvectorsType} 
+      \hyperlink{group___eigenvalues___module_a66288022802172e3ee059283b26201d7}{EigenSolver<MatrixType>::eigenvectors}()\textcolor{keyword}{ const}
+00346 \textcolor{keyword}{}\{
+00347   eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"EigenSolver is not initialized."});
+00348   eigen\_assert(m\_eigenvectorsOk && \textcolor{stringliteral}{"The eigenvectors have not been computed together with the eigenvalues."}
+      );
+00349   \textcolor{keyword}{const} RealScalar precision = RealScalar(2)*\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<RealScalar>::epsilon}()
+      ;
+00350   \hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index} n = m\_eivec.cols();
+00351   \hyperlink{group___core___module}{EigenvectorsType} matV(n,n);
+00352   \textcolor{keywordflow}{for} (\hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index} j=0; j<n; ++j)
+00353   \{
+00354     \textcolor{keywordflow}{if} (internal::isMuchSmallerThan(numext::imag(m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(j)), numext::real(m\_eivalues.
+      \hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(j)), precision) || j+1==n)
+00355     \{
+00356       \textcolor{comment}{// we have a real eigen value}
+00357       matV.col(j) = m\_eivec.col(j).template cast<ComplexScalar>();
+00358       matV.col(j).normalize();
+00359     \}
+00360     \textcolor{keywordflow}{else}
+00361     \{
+00362       \textcolor{comment}{// we have a pair of complex eigen values}
+00363       \textcolor{keywordflow}{for} (\hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index} i=0; i<n; ++i)
+00364       \{
+00365         matV.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(i,j)   = \hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{ComplexScalar}(m\_eivec.coeff(i,j),  m\_eivec.coeff(i,j+1)
+      );
+00366         matV.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(i,j+1) = \hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{ComplexScalar}(m\_eivec.coeff(i,j), -m\_eivec.coeff(i,j+1)
+      );
+00367       \}
+00368       matV.col(j).normalize();
+00369       matV.col(j+1).normalize();
+00370       ++j;
+00371     \}
+00372   \}
+00373   \textcolor{keywordflow}{return} matV;
+00374 \}
+00375 
+00376 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00377 \textcolor{keyword}{template}<\textcolor{keyword}{typename} InputType>
+00378 \hyperlink{group___eigenvalues___module_class_eigen_1_1_eigen_solver}{EigenSolver<MatrixType>}& 
+00379 \hyperlink{group___eigenvalues___module_a38d032b75b3e75640e3db42e7ab20c24}{EigenSolver<MatrixType>::compute}(\textcolor{keyword}{const} 
+      \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<InputType>}& matrix, \textcolor{keywordtype}{bool} computeEigenvectors)
+00380 \{
+00381   check\_template\_parameters();
+00382   
+00383   \textcolor{keyword}{using} std::sqrt;
+00384   \textcolor{keyword}{using} std::abs;
+00385   \textcolor{keyword}{using} numext::isfinite;
+00386   eigen\_assert(matrix.\hyperlink{group___core___module_a7b0b45c7351847696c911ce8aa2abbdb}{cols}() == matrix.\hyperlink{group___core___module_a8141320ba8df384426c298b32b000d8e}{rows}());
+00387 
+00388   \textcolor{comment}{// Reduce to real Schur form.}
+00389   m\_realSchur.\hyperlink{group___eigenvalues___module_a60caf9ffad11d728ea458c4dd36d0a98}{compute}(matrix.\hyperlink{group___core___module_a324b16961a11d2ecfd2d1b7dd7946545}{derived}(), computeEigenvectors);
+00390   
+00391   m\_info = m\_realSchur.\hyperlink{group___eigenvalues___module_a386fd2b1a3a8401eca7183ac074deec8}{info}();
+00392 
+00393   \textcolor{keywordflow}{if} (m\_info == \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success})
+00394   \{
+00395     m\_matT = m\_realSchur.\hyperlink{group___eigenvalues___module_abb78996b43b8642a5f507415730445cb}{matrixT}();
+00396     \textcolor{keywordflow}{if} (computeEigenvectors)
+00397       m\_eivec = m\_realSchur.\hyperlink{group___eigenvalues___module_a85622ccbecff99c8933d21f0a22b22bb}{matrixU}();
+00398   
+00399     \textcolor{comment}{// Compute eigenvalues from matT}
+00400     m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_a99d9054ee2d5a40c6e00ded0265e9cea}{resize}(matrix.\hyperlink{group___core___module_a7b0b45c7351847696c911ce8aa2abbdb}{cols}());
+00401     \hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index} i = 0;
+00402     \textcolor{keywordflow}{while} (i < matrix.\hyperlink{group___core___module_a7b0b45c7351847696c911ce8aa2abbdb}{cols}()) 
+00403     \{
+00404       \textcolor{keywordflow}{if} (i == matrix.\hyperlink{group___core___module_a7b0b45c7351847696c911ce8aa2abbdb}{cols}() - 1 || m\_matT.coeff(i+1, i) == \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(0)) 
+00405       \{
+00406         m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(i) = m\_matT.coeff(i, i);
+00407         \textcolor{keywordflow}{if}(!(isfinite)(m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(i)))
+00408         \{
+00409           m\_isInitialized = \textcolor{keyword}{true};
+00410           m\_eigenvectorsOk = \textcolor{keyword}{false};
+00411           m\_info = \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaaf9b736d310a664e7729d163a035cc5f}{NumericalIssue};
+00412           \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00413         \}
+00414         ++i;
+00415       \}
+00416       \textcolor{keywordflow}{else}
+00417       \{
+00418         \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} p = \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(0.5) * (m\_matT.coeff(i, i) - m\_matT.coeff(i+1, i+1));
+00419         \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} z;
+00420         \textcolor{comment}{// Compute z = sqrt(abs(p * p + m\_matT.coeff(i+1, i) * m\_matT.coeff(i, i+1)));}
+00421         \textcolor{comment}{// without overflow}
+00422         \{
+00423           \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} t0 = m\_matT.coeff(i+1, i);
+00424           \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} t1 = m\_matT.coeff(i, i+1);
+00425           \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} maxval = numext::maxi<Scalar>(abs(p),numext::maxi<Scalar>(abs(t0),abs(t1)));
+00426           t0 /= maxval;
+00427           t1 /= maxval;
+00428           \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} p0 = p/maxval;
+00429           z = maxval * sqrt(abs(p0 * p0 + t0 * t1));
+00430         \}
+00431         
+00432         m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(i)   = \hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{ComplexScalar}(m\_matT.coeff(i+1, i+1) + p, z);
+00433         m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(i+1) = \hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{ComplexScalar}(m\_matT.coeff(i+1, i+1) + p, -z);
+00434         \textcolor{keywordflow}{if}(!((isfinite)(m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(i)) && (isfinite)(m\_eivalues.
+      \hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(i+1))))
+00435         \{
+00436           m\_isInitialized = \textcolor{keyword}{true};
+00437           m\_eigenvectorsOk = \textcolor{keyword}{false};
+00438           m\_info = \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaaf9b736d310a664e7729d163a035cc5f}{NumericalIssue};
+00439           \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00440         \}
+00441         i += 2;
+00442       \}
+00443     \}
+00444     
+00445     \textcolor{comment}{// Compute eigenvectors.}
+00446     \textcolor{keywordflow}{if} (computeEigenvectors)
+00447       doComputeEigenvectors();
+00448   \}
+00449 
+00450   m\_isInitialized = \textcolor{keyword}{true};
+00451   m\_eigenvectorsOk = computeEigenvectors;
+00452 
+00453   \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00454 \}
+00455 
+00456 
+00457 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00458 \textcolor{keywordtype}{void} \hyperlink{group___eigenvalues___module_class_eigen_1_1_eigen_solver}{EigenSolver<MatrixType>::doComputeEigenvectors}()
+00459 \{
+00460   \textcolor{keyword}{using} std::abs;
+00461   \textcolor{keyword}{const} \hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index} size = m\_eivec.cols();
+00462   \textcolor{keyword}{const} \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} eps = \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::epsilon}();
+00463 
+00464   \textcolor{comment}{// inefficient! this is already computed in RealSchur}
+00465   \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} norm(0);
+00466   \textcolor{keywordflow}{for} (\hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index} j = 0; j < size; ++j)
+00467   \{
+00468     norm += m\_matT.row(j).segment((std::max)(j-1,\hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index}(0)), size-(std::max)(j-1,
+      \hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index}(0))).cwiseAbs().sum();
+00469   \}
+00470   
+00471   \textcolor{comment}{// Backsubstitute to find vectors of upper triangular form}
+00472   \textcolor{keywordflow}{if} (norm == \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(0))
+00473   \{
+00474     \textcolor{keywordflow}{return};
+00475   \}
+00476 
+00477   \textcolor{keywordflow}{for} (\hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index} n = size-1; n >= 0; n--)
+00478   \{
+00479     \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} p = m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(n).real();
+00480     \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} q = m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(n).imag();
+00481 
+00482     \textcolor{comment}{// Scalar vector}
+00483     \textcolor{keywordflow}{if} (q == \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(0))
+00484     \{
+00485       \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} lastr(0), lastw(0);
+00486       \hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index} l = n;
+00487 
+00488       m\_matT.coeffRef(n,n) = \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(1);
+00489       \textcolor{keywordflow}{for} (\hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index} i = n-1; i >= 0; i--)
+00490       \{
+00491         \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} w = m\_matT.coeff(i,i) - p;
+00492         \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} r = m\_matT.row(i).segment(l,n-l+1).dot(m\_matT.col(n).segment(l, n-l+1));
+00493 
+00494         \textcolor{keywordflow}{if} (m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i).imag() < \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(0))
+00495         \{
+00496           lastw = w;
+00497           lastr = r;
+00498         \}
+00499         \textcolor{keywordflow}{else}
+00500         \{
+00501           l = i;
+00502           \textcolor{keywordflow}{if} (m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i).imag() == \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(0))
+00503           \{
+00504             \textcolor{keywordflow}{if} (w != \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(0))
+00505               m\_matT.coeffRef(i,n) = -r / w;
+00506             \textcolor{keywordflow}{else}
+00507               m\_matT.coeffRef(i,n) = -r / (eps * norm);
+00508           \}
+00509           \textcolor{keywordflow}{else} \textcolor{comment}{// Solve real equations}
+00510           \{
+00511             \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} x = m\_matT.coeff(i,i+1);
+00512             \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} y = m\_matT.coeff(i+1,i);
+00513             \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} denom = (m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i).real() - p) * (m\_eivalues.
+      \hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i).real() - p) + m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i).imag() * m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i).imag();
+00514             \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} t = (x * lastr - lastw * r) / denom;
+00515             m\_matT.coeffRef(i,n) = t;
+00516             \textcolor{keywordflow}{if} (abs(x) > abs(lastw))
+00517               m\_matT.coeffRef(i+1,n) = (-r - w * t) / x;
+00518             \textcolor{keywordflow}{else}
+00519               m\_matT.coeffRef(i+1,n) = (-lastr - y * t) / lastw;
+00520           \}
+00521 
+00522           \textcolor{comment}{// Overflow control}
+00523           \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} t = abs(m\_matT.coeff(i,n));
+00524           \textcolor{keywordflow}{if} ((eps * t) * t > \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(1))
+00525             m\_matT.col(n).tail(size-i) /= t;
+00526         \}
+00527       \}
+00528     \}
+00529     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (q < \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(0) && n > 0) \textcolor{comment}{// Complex vector}
+00530     \{
+00531       \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} lastra(0), lastsa(0), lastw(0);
+00532       \hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index} l = n-1;
+00533 
+00534       \textcolor{comment}{// Last vector component imaginary so matrix is triangular}
+00535       \textcolor{keywordflow}{if} (abs(m\_matT.coeff(n,n-1)) > abs(m\_matT.coeff(n-1,n)))
+00536       \{
+00537         m\_matT.coeffRef(n-1,n-1) = q / m\_matT.coeff(n,n-1);
+00538         m\_matT.coeffRef(n-1,n) = -(m\_matT.coeff(n,n) - p) / m\_matT.coeff(n,n-1);
+00539       \}
+00540       \textcolor{keywordflow}{else}
+00541       \{
+00542         \hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{ComplexScalar} cc = \hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{ComplexScalar}(\hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(0),-m\_matT.coeff(n-1,n)) / 
+      \hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{ComplexScalar}(m\_matT.coeff(n-1,n-1)-p,q);
+00543         m\_matT.coeffRef(n-1,n-1) = numext::real(cc);
+00544         m\_matT.coeffRef(n-1,n) = numext::imag(cc);
+00545       \}
+00546       m\_matT.coeffRef(n,n-1) = \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(0);
+00547       m\_matT.coeffRef(n,n) = \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(1);
+00548       \textcolor{keywordflow}{for} (\hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index} i = n-2; i >= 0; i--)
+00549       \{
+00550         \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} ra = m\_matT.row(i).segment(l, n-l+1).dot(m\_matT.col(n-1).segment(l, n-l+1));
+00551         \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} sa = m\_matT.row(i).segment(l, n-l+1).dot(m\_matT.col(n).segment(l, n-l+1));
+00552         \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} w = m\_matT.coeff(i,i) - p;
+00553 
+00554         \textcolor{keywordflow}{if} (m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i).imag() < \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(0))
+00555         \{
+00556           lastw = w;
+00557           lastra = ra;
+00558           lastsa = sa;
+00559         \}
+00560         \textcolor{keywordflow}{else}
+00561         \{
+00562           l = i;
+00563           \textcolor{keywordflow}{if} (m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i).imag() == RealScalar(0))
+00564           \{
+00565             \hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{ComplexScalar} cc = \hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{ComplexScalar}(-ra,-sa) / 
+      \hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{ComplexScalar}(w,q);
+00566             m\_matT.coeffRef(i,n-1) = numext::real(cc);
+00567             m\_matT.coeffRef(i,n) = numext::imag(cc);
+00568           \}
+00569           \textcolor{keywordflow}{else}
+00570           \{
+00571             \textcolor{comment}{// Solve complex equations}
+00572             \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} x = m\_matT.coeff(i,i+1);
+00573             \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} y = m\_matT.coeff(i+1,i);
+00574             \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} vr = (m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i).real() - p) * (m\_eivalues.
+      \hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i).real() - p) + m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i).imag() * m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i).imag() - q * q;
+00575             \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} vi = (m\_eivalues.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i).real() - p) * \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(2) * q;
+00576             \textcolor{keywordflow}{if} ((vr == \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(0)) && (vi == \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(0)))
+00577               vr = eps * norm * (abs(w) + abs(q) + abs(x) + abs(y) + abs(lastw));
+00578 
+00579             \hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{ComplexScalar} cc = \hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{ComplexScalar}(x*lastra-lastw*ra+q*sa,x*lastsa-
+      lastw*sa-q*ra) / \hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{ComplexScalar}(vr,vi);
+00580             m\_matT.coeffRef(i,n-1) = numext::real(cc);
+00581             m\_matT.coeffRef(i,n) = numext::imag(cc);
+00582             \textcolor{keywordflow}{if} (abs(x) > (abs(lastw) + abs(q)))
+00583             \{
+00584               m\_matT.coeffRef(i+1,n-1) = (-ra - w * m\_matT.coeff(i,n-1) + q * m\_matT.coeff(i,n)) / x;
+00585               m\_matT.coeffRef(i+1,n) = (-sa - w * m\_matT.coeff(i,n) - q * m\_matT.coeff(i,n-1)) / x;
+00586             \}
+00587             \textcolor{keywordflow}{else}
+00588             \{
+00589               cc = \hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{ComplexScalar}(-lastra-y*m\_matT.coeff(i,n-1),-lastsa-y*m\_matT.coeff(i,n)) / 
+      \hyperlink{group___eigenvalues___module_a4d0b2a773357d0a6ec98e026f04002ed}{ComplexScalar}(lastw,q);
+00590               m\_matT.coeffRef(i+1,n-1) = numext::real(cc);
+00591               m\_matT.coeffRef(i+1,n) = numext::imag(cc);
+00592             \}
+00593           \}
+00594 
+00595           \textcolor{comment}{// Overflow control}
+00596           \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar} t = numext::maxi<Scalar>(abs(m\_matT.coeff(i,n-1)),abs(m\_matT.coeff(i,n)));
+00597           \textcolor{keywordflow}{if} ((eps * t) * t > \hyperlink{group___eigenvalues___module_a017d49fe0d59874b70a2fcf35e5aa373}{Scalar}(1))
+00598             m\_matT.block(i, n-1, size-i, 2) /= t;
+00599 
+00600         \}
+00601       \}
+00602       
+00603       \textcolor{comment}{// We handled a pair of complex conjugate eigenvalues, so need to skip them both}
+00604       n--;
+00605     \}
+00606     \textcolor{keywordflow}{else}
+00607     \{
+00608       eigen\_assert(0 && \textcolor{stringliteral}{"Internal bug in EigenSolver (INF or NaN has not been detected)"}); \textcolor{comment}{// this should
+       not happen}
+00609     \}
+00610   \}
+00611 
+00612   \textcolor{comment}{// Back transformation to get eigenvectors of original matrix}
+00613   \textcolor{keywordflow}{for} (\hyperlink{group___eigenvalues___module_a5bff6a6bc0efac67d52c60c2c3deb9ee}{Index} j = size-1; j >= 0; j--)
+00614   \{
+00615     m\_tmp.noalias() = m\_eivec.leftCols(j+1) * m\_matT.col(j).segment(0, j+1);
+00616     m\_eivec.col(j) = m\_tmp;
+00617   \}
+00618 \}
+00619 
+00620 \} \textcolor{comment}{// end namespace Eigen}
+00621 
+00622 \textcolor{preprocessor}{#endif // EIGEN\_EIGENSOLVER\_H}
+\end{DoxyCode}

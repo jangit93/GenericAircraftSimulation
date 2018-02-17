@@ -18,7 +18,7 @@ class Trajectory {
 
 public:
 
-	Trajectory();
+	Trajectory(SimDPreference &SimPref);
 
 	~Trajectory();
 
@@ -29,15 +29,21 @@ public:
 						AerodynamicStruct & AeroData,
 						AirframeStruct & AirframeData,
 						ThrustStruct & ThrustData,
-						AutopilotStruct & AutopilotData,
-						GuidanceStruct & GuidanceData);
+						GuidanceStruct & GuidanceData, 
+						NavigationStruct &NavData, 
+						ActuatorStruct &ActuatorData, 
+						IMUStruct &IMUData);
 
-	void initTrajectory(AerodynamicStruct & AeroData,
+	void initTrajectory(Float64 FlightTime, 
+						AerodynamicStruct & AeroData,
 						AirframeStruct & AirframeData,
 						ThrustStruct & ThrustData,
 						AircraftStruct &AircraftData,
-						AutopilotStruct &AutopilotData,
-						GuidanceStruct &GuidanceData);
+						GuidanceStruct &GuidanceData,
+						NavigationStruct &NavData,
+						ActuatorStruct &ActuatorData,
+						IMUStruct &IMUData);
+
 
 private:
 	BaseTrajectory *traj;

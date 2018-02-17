@@ -1,0 +1,86 @@
+\hypertarget{eigen_2unsupported_2test_2cxx11__tensor__notification_8cpp_source}{}\section{eigen/unsupported/test/cxx11\+\_\+tensor\+\_\+notification.cpp}
+\label{eigen_2unsupported_2test_2cxx11__tensor__notification_8cpp_source}\index{cxx11\+\_\+tensor\+\_\+notification.\+cpp@{cxx11\+\_\+tensor\+\_\+notification.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2015 Vijay Vasudevan <vrv@google.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#define EIGEN\_USE\_THREADS}
+00011 
+00012 \textcolor{preprocessor}{#include <stdlib.h>}
+00013 \textcolor{preprocessor}{#include "main.h"}
+00014 \textcolor{preprocessor}{#include <Eigen/CXX11/Tensor>}
+00015 
+00016 \textcolor{preprocessor}{#if EIGEN\_OS\_WIN || EIGEN\_OS\_WIN64}
+00017 \textcolor{preprocessor}{#include <windows.h>}
+00018 \textcolor{keywordtype}{void} sleep(\textcolor{keywordtype}{int} seconds) \{
+00019   Sleep(seconds*1000);
+00020 \}
+00021 \textcolor{preprocessor}{#else}
+00022 \textcolor{preprocessor}{#include <unistd.h>}
+00023 \textcolor{preprocessor}{#endif}
+00024 
+00025 
+00026 \textcolor{keyword}{namespace }\{
+00027 
+00028 \textcolor{keywordtype}{void} WaitAndAdd(Eigen::Notification* n, \textcolor{keywordtype}{int}* counter) \{
+00029   n->Wait();
+00030   *counter = *counter + 1;
+00031 \}
+00032 
+00033 \}  \textcolor{comment}{// namespace}
+00034 
+00035 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_notification\_single()
+00036 \{
+00037   ThreadPool thread\_pool(1);
+00038 
+00039   \textcolor{keywordtype}{int} counter = 0;
+00040   Eigen::Notification n;
+00041   std::function<void()> \hyperlink{structfunc}{func} = std::bind(&WaitAndAdd, &n, &counter);
+00042   thread\_pool.Schedule(func);
+00043   sleep(1);
+00044 
+00045   \textcolor{comment}{// The thread should be waiting for the notification.}
+00046   VERIFY\_IS\_EQUAL(counter, 0);
+00047 
+00048   \textcolor{comment}{// Unblock the thread}
+00049   n.Notify();
+00050 
+00051   sleep(1);
+00052 
+00053   \textcolor{comment}{// Verify the counter has been incremented}
+00054   VERIFY\_IS\_EQUAL(counter, 1);
+00055 \}
+00056 
+00057 \textcolor{comment}{// Like test\_notification\_single() but enqueues multiple threads to}
+00058 \textcolor{comment}{// validate that all threads get notified by Notify().}
+00059 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_notification\_multiple()
+00060 \{
+00061   ThreadPool thread\_pool(1);
+00062 
+00063   \textcolor{keywordtype}{int} counter = 0;
+00064   Eigen::Notification n;
+00065   std::function<void()> func = std::bind(&WaitAndAdd, &n, &counter);
+00066   thread\_pool.Schedule(func);
+00067   thread\_pool.Schedule(func);
+00068   thread\_pool.Schedule(func);
+00069   thread\_pool.Schedule(func);
+00070   sleep(1);
+00071   VERIFY\_IS\_EQUAL(counter, 0);
+00072   n.Notify();
+00073   sleep(1);
+00074   VERIFY\_IS\_EQUAL(counter, 4);
+00075 \}
+00076 
+00077 \textcolor{keywordtype}{void} test\_cxx11\_tensor\_notification()
+00078 \{
+00079   CALL\_SUBTEST(test\_notification\_single());
+00080   CALL\_SUBTEST(test\_notification\_multiple());
+00081 \}
+\end{DoxyCode}

@@ -12,35 +12,65 @@ Trajectory3Dof::~Trajectory3Dof()
 {
 }
 
-void Trajectory3Dof::initTrajectory(AerodynamicStruct & AeroData,
+void Trajectory3Dof::initTrajectory(Float64 FlightTime, 
+									AerodynamicStruct & AeroData,
 										  AirframeStruct & AirframeData,
 										  ThrustStruct & ThrustData,
 										  AircraftStruct &AircraftData,
-										  AutopilotStruct & AutopilotData,
-										  GuidanceStruct & GuidanceData)
+										  GuidanceStruct & GuidanceData,
+										NavigationStruct &NavData,
+										ActuatorStruct &ActuatorData,
+										IMUStruct &IMUData)
 {
-	airframe->initAirframe(AircraftData, 
-						   AirframeData);
+	initTrajectory3DoF(FlightTime,
+						AeroData,
+						AirframeData,
+						ThrustData,
+						AircraftData);
 
-	engine->initEngine(ThrustData,
-					   AircraftData);
-
-	aerodynamics->initAerodynamic(AeroData,
-								  AircraftData);
-
-	std::cout << "init 3Dof Trajectory" << std::endl;
 }
 
 void Trajectory3Dof::updateTrajectory(Float64 FlightTime,
-	AtmosphereStruct & AtmoData,
-	AerodynamicStruct & AeroData,
-	AirframeStruct & AirframeData,
-	ThrustStruct & ThrustData,
-	AutopilotStruct & AutopilotData,
-	GuidanceStruct & GuidanceData)
+									AtmosphereStruct & AtmoData,
+									AerodynamicStruct & AeroData,
+									AirframeStruct & AirframeData,
+									ThrustStruct & ThrustData,
+									GuidanceStruct & GuidanceData,
+									NavigationStruct &NavData,
+									ActuatorStruct &ActuatorData,
+									IMUStruct &IMUData)
 {
 
+	updateTrajectory3DoF(FlightTime,
+						AtmoData,
+						AeroData,
+						AirframeData,
+						ThrustData);
+		
+}
 
+void Trajectory3Dof::initTrajectory3DoF(Float64 FlightTime,
+										AerodynamicStruct & AeroData,
+										AirframeStruct & AirframeData, 
+										ThrustStruct & ThrustData, 
+										AircraftStruct & AircraftData)
+{
+	airframe->initAirframe(AircraftData,
+		AirframeData);
+
+	engine->initEngine(ThrustData,
+		AircraftData);
+
+	aerodynamics->initAerodynamic(FlightTime, AeroData,
+		AircraftData);
+}
+
+void Trajectory3Dof::updateTrajectory3DoF(Float64 FlightTime, 
+										  AtmosphereStruct & AtmoData, 
+										  AerodynamicStruct & AeroData, 
+										  AirframeStruct & AirframeData, 
+										  ThrustStruct & ThrustData)
+{
 	aerodynamics->updateAerodynamic(FlightTime,
 									AtmoData,
 									AeroData,
@@ -48,14 +78,28 @@ void Trajectory3Dof::updateTrajectory(Float64 FlightTime,
 									ThrustData);
 
 	engine->updateEngine(FlightTime,
-						 AtmoData,
-						 AeroData,
-						 AirframeData,
-						 ThrustData);
+						AtmoData,
+						AeroData,
+						AirframeData,
+						ThrustData);
 
-		airframe->updateTranslational(AeroData,
-									  ThrustData,
-									  AirframeData);
+	airframe->updateTranslational(AeroData,
+								ThrustData,
+								AirframeData);
 
-		
+	logData(FlightTime, 
+			AtmoData, 
+			AeroData, 
+			AirframeData, 
+			ThrustData);
+
+}
+
+void Trajectory3Dof::logData(Float64 FlightTime, 
+							 AtmosphereStruct & AtmoData, 
+							 AerodynamicStruct & AeroData, 
+							 AirframeStruct & AirframeData, 
+							 ThrustStruct & ThrustData)
+{
+	aerodynamics->LogAeroData();
 }

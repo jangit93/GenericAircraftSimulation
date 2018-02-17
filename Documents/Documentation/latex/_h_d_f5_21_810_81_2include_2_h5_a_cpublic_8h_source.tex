@@ -1,0 +1,579 @@
+\hypertarget{_h_d_f5_21_810_81_2include_2_h5_a_cpublic_8h_source}{}\section{H\+D\+F5/1.10.1/include/\+H5\+A\+Cpublic.h}
+\label{_h_d_f5_21_810_81_2include_2_h5_a_cpublic_8h_source}\index{H5\+A\+Cpublic.\+h@{H5\+A\+Cpublic.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+00002 \textcolor{comment}{ * Copyright by The HDF Group.                                               *}
+00003 \textcolor{comment}{ * Copyright by the Board of Trustees of the University of Illinois.         *}
+00004 \textcolor{comment}{ * All rights reserved.                                                      *}
+00005 \textcolor{comment}{ *                                                                           *}
+00006 \textcolor{comment}{ * This file is part of HDF5.  The full HDF5 copyright notice, including     *}
+00007 \textcolor{comment}{ * terms governing use, modification, and redistribution, is contained in    *}
+00008 \textcolor{comment}{ * the COPYING file, which can be found at the root of the source code       *}
+00009 \textcolor{comment}{ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *}
+00010 \textcolor{comment}{ * If you do not have access to either file, you may request a copy from     *}
+00011 \textcolor{comment}{ * help@hdfgroup.org.                                                        *}
+00012 \textcolor{comment}{ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00013 
+00014 \textcolor{comment}{/*-------------------------------------------------------------------------}
+00015 \textcolor{comment}{ *}
+00016 \textcolor{comment}{ * Created:             H5ACpublic.h}
+00017 \textcolor{comment}{ *                      Jul 10 1997}
+00018 \textcolor{comment}{ *                      Robb Matzke <matzke@llnl.gov>}
+00019 \textcolor{comment}{ *}
+00020 \textcolor{comment}{ * Purpose:             Public include file for cache functions.}
+00021 \textcolor{comment}{ *}
+00022 \textcolor{comment}{ * Modifications:}
+00023 \textcolor{comment}{ *}
+00024 \textcolor{comment}{ *-------------------------------------------------------------------------}
+00025 \textcolor{comment}{ */}
+00026 \textcolor{preprocessor}{#ifndef \_H5ACpublic\_H}
+00027 \textcolor{preprocessor}{#define \_H5ACpublic\_H}
+00028 
+00029 \textcolor{comment}{/* Public headers needed by this file */}
+00030 \textcolor{preprocessor}{#include "H5public.h"}
+00031 \textcolor{preprocessor}{#include "H5Cpublic.h"}
+00032 
+00033 \textcolor{preprocessor}{#ifdef \_\_cplusplus}
+00034 \textcolor{keyword}{extern} \textcolor{stringliteral}{"C"} \{
+00035 \textcolor{preprocessor}{#endif}
+00036 
+00037 \textcolor{comment}{/****************************************************************************}
+00038 \textcolor{comment}{ *}
+00039 \textcolor{comment}{ * structure H5AC\_cache\_config\_t}
+00040 \textcolor{comment}{ *}
+00041 \textcolor{comment}{ * H5AC\_cache\_config\_t is a public structure intended for use in public APIs.}
+00042 \textcolor{comment}{ * At least in its initial incarnation, it is basicaly a copy of struct}
+00043 \textcolor{comment}{ * H5C\_auto\_size\_ctl\_t, minus the report\_fcn field, and plus the}
+00044 \textcolor{comment}{ * dirty\_bytes\_threshold field.}
+00045 \textcolor{comment}{ *}
+00046 \textcolor{comment}{ * The report\_fcn field is omitted, as including it would require us to}
+00047 \textcolor{comment}{ * make H5C\_t structure public.}
+00048 \textcolor{comment}{ *}
+00049 \textcolor{comment}{ * The dirty\_bytes\_threshold field does not appear in H5C\_auto\_size\_ctl\_t,}
+00050 \textcolor{comment}{ * as synchronization between caches on different processes is handled at}
+00051 \textcolor{comment}{ * the H5AC level, not at the level of H5C.  Note however that there is}
+00052 \textcolor{comment}{ * considerable interaction between this value and the other fields in this}
+00053 \textcolor{comment}{ * structure.}
+00054 \textcolor{comment}{ *}
+00055 \textcolor{comment}{ * Similarly, the open\_trace\_file, close\_trace\_file, and trace\_file\_name}
+00056 \textcolor{comment}{ * fields do not appear in H5C\_auto\_size\_ctl\_t, as most trace file}
+00057 \textcolor{comment}{ * issues are handled at the H5AC level.  The one exception is storage of}
+00058 \textcolor{comment}{ * the pointer to the trace file, which is handled by H5C.}
+00059 \textcolor{comment}{ *}
+00060 \textcolor{comment}{ * The structure is in H5ACpublic.h as we may wish to allow different}
+00061 \textcolor{comment}{ * configuration options for metadata and raw data caches.}
+00062 \textcolor{comment}{ *}
+00063 \textcolor{comment}{ * The fields of the structure are discussed individually below:}
+00064 \textcolor{comment}{ *}
+00065 \textcolor{comment}{ * version: Integer field containing the version number of this version}
+00066 \textcolor{comment}{ *      of the H5AC\_cache\_config\_t structure.  Any instance of}
+00067 \textcolor{comment}{ *      H5AC\_cache\_config\_t passed to the cache must have a known}
+00068 \textcolor{comment}{ *      version number, or an error will be flagged.}
+00069 \textcolor{comment}{ *}
+00070 \textcolor{comment}{ * rpt\_fcn\_enabled: Boolean field used to enable and disable the default}
+00071 \textcolor{comment}{ *  reporting function.  This function is invoked every time the}
+00072 \textcolor{comment}{ *  automatic cache resize code is run, and reports on its activities.}
+00073 \textcolor{comment}{ *}
+00074 \textcolor{comment}{ *  This is a debugging function, and should normally be turned off.}
+00075 \textcolor{comment}{ *}
+00076 \textcolor{comment}{ * open\_trace\_file: Boolean field indicating whether the trace\_file\_name}
+00077 \textcolor{comment}{ *  field should be used to open a trace file for the cache.}
+00078 \textcolor{comment}{ *}
+00079 \textcolor{comment}{ *      *** DEPRECATED *** Use H5Fstart/stop logging functions instead}
+00080 \textcolor{comment}{ *}
+00081 \textcolor{comment}{ *  The trace file is a debuging feature that allow the capture of}
+00082 \textcolor{comment}{ *  top level metadata cache requests for purposes of debugging and/or}
+00083 \textcolor{comment}{ *  optimization.  This field should normally be set to FALSE, as}
+00084 \textcolor{comment}{ *  trace file collection imposes considerable overhead.}
+00085 \textcolor{comment}{ *}
+00086 \textcolor{comment}{ *  This field should only be set to TRUE when the trace\_file\_name}
+00087 \textcolor{comment}{ *  contains the full path of the desired trace file, and either}
+00088 \textcolor{comment}{ *  there is no open trace file on the cache, or the close\_trace\_file}
+00089 \textcolor{comment}{ *  field is also TRUE.}
+00090 \textcolor{comment}{ *}
+00091 \textcolor{comment}{ * close\_trace\_file: Boolean field indicating whether the current trace}
+00092 \textcolor{comment}{ *  file (if any) should be closed.}
+00093 \textcolor{comment}{ *}
+00094 \textcolor{comment}{ *      *** DEPRECATED *** Use H5Fstart/stop logging functions instead}
+00095 \textcolor{comment}{ *}
+00096 \textcolor{comment}{ *  See the above comments on the open\_trace\_file field.  This field}
+00097 \textcolor{comment}{ *  should be set to FALSE unless there is an open trace file on the}
+00098 \textcolor{comment}{ *  cache that you wish to close.}
+00099 \textcolor{comment}{ *}
+00100 \textcolor{comment}{ * trace\_file\_name: Full path of the trace file to be opened if the}
+00101 \textcolor{comment}{ *  open\_trace\_file field is TRUE.}
+00102 \textcolor{comment}{ *}
+00103 \textcolor{comment}{ *      *** DEPRECATED *** Use H5Fstart/stop logging functions instead}
+00104 \textcolor{comment}{ *}
+00105 \textcolor{comment}{ *  In the parallel case, an ascii representation of the mpi rank of}
+00106 \textcolor{comment}{ *  the process will be appended to the file name to yield a unique}
+00107 \textcolor{comment}{ *  trace file name for each process.}
+00108 \textcolor{comment}{ *}
+00109 \textcolor{comment}{ *  The length of the path must not exceed H5AC\_\_MAX\_TRACE\_FILE\_NAME\_LEN}
+00110 \textcolor{comment}{ *  characters.}
+00111 \textcolor{comment}{ *}
+00112 \textcolor{comment}{ * evictions\_enabled:  Boolean field used to either report the current}
+00113 \textcolor{comment}{ *  evictions enabled status of the cache, or to set the cache's}
+00114 \textcolor{comment}{ *  evictions enabled status.}
+00115 \textcolor{comment}{ *}
+00116 \textcolor{comment}{ *  In general, the metadata cache should always be allowed to}
+00117 \textcolor{comment}{ *  evict entries.  However, in some cases it is advantageous to}
+00118 \textcolor{comment}{ *  disable evictions briefly, and thereby postpone metadata}
+00119 \textcolor{comment}{ *  writes.  However, this must be done with care, as the cache}
+00120 \textcolor{comment}{ *  can grow quickly.  If you do this, re-enable evictions as}
+00121 \textcolor{comment}{ *  soon as possible and monitor cache size.}
+00122 \textcolor{comment}{ *}
+00123 \textcolor{comment}{ *  At present, evictions can only be disabled if automatic}
+00124 \textcolor{comment}{ *  cache resizing is also disabled (that is, ( incr\_mode ==}
+00125 \textcolor{comment}{ *  H5C\_incr\_\_off ) && ( decr\_mode == H5C\_decr\_\_off )).  There}
+00126 \textcolor{comment}{ *  is no logical reason why this should be so, but it simplifies}
+00127 \textcolor{comment}{ *  implementation and testing, and I can't think of any reason}
+00128 \textcolor{comment}{ *  why it would be desireable.  If you can think of one, I'll}
+00129 \textcolor{comment}{ *  revisit the issue.}
+00130 \textcolor{comment}{ *}
+00131 \textcolor{comment}{ * set\_initial\_size: Boolean flag indicating whether the size of the}
+00132 \textcolor{comment}{ *      initial size of the cache is to be set to the value given in}
+00133 \textcolor{comment}{ *      the initial\_size field.  If set\_initial\_size is FALSE, the}
+00134 \textcolor{comment}{ *      initial\_size field is ignored.}
+00135 \textcolor{comment}{ *}
+00136 \textcolor{comment}{ * initial\_size: If enabled, this field contain the size the cache is}
+00137 \textcolor{comment}{ *      to be set to upon receipt of this structure.  Needless to say,}
+00138 \textcolor{comment}{ *      initial\_size must lie in the closed interval [min\_size, max\_size].}
+00139 \textcolor{comment}{ *}
+00140 \textcolor{comment}{ * min\_clean\_fraction: double in the range 0 to 1 indicating the fraction}
+00141 \textcolor{comment}{ *      of the cache that is to be kept clean.  This field is only used}
+00142 \textcolor{comment}{ *      in parallel mode.  Typical values are 0.1 to 0.5.}
+00143 \textcolor{comment}{ *}
+00144 \textcolor{comment}{ * max\_size: Maximum size to which the cache can be adjusted.  The}
+00145 \textcolor{comment}{ *      supplied value must fall in the closed interval}
+00146 \textcolor{comment}{ *      [MIN\_MAX\_CACHE\_SIZE, MAX\_MAX\_CACHE\_SIZE].  Also, max\_size must}
+00147 \textcolor{comment}{ *      be greater than or equal to min\_size.}
+00148 \textcolor{comment}{ *}
+00149 \textcolor{comment}{ * min\_size: Minimum size to which the cache can be adjusted.  The}
+00150 \textcolor{comment}{ *      supplied value must fall in the closed interval}
+00151 \textcolor{comment}{ *      [H5C\_\_MIN\_MAX\_CACHE\_SIZE, H5C\_\_MAX\_MAX\_CACHE\_SIZE].  Also, min\_size}
+00152 \textcolor{comment}{ *      must be less than or equal to max\_size.}
+00153 \textcolor{comment}{ *}
+00154 \textcolor{comment}{ * epoch\_length: Number of accesses on the cache over which to collect}
+00155 \textcolor{comment}{ *      hit rate stats before running the automatic cache resize code,}
+00156 \textcolor{comment}{ *      if it is enabled.}
+00157 \textcolor{comment}{ *}
+00158 \textcolor{comment}{ *      At the end of an epoch, we discard prior hit rate data and start}
+00159 \textcolor{comment}{ *      collecting afresh.  The epoch\_length must lie in the closed}
+00160 \textcolor{comment}{ *      interval [H5C\_\_MIN\_AR\_EPOCH\_LENGTH, H5C\_\_MAX\_AR\_EPOCH\_LENGTH].}
+00161 \textcolor{comment}{ *}
+00162 \textcolor{comment}{ *}
+00163 \textcolor{comment}{ * Cache size increase control fields:}
+00164 \textcolor{comment}{ *}
+00165 \textcolor{comment}{ * incr\_mode: Instance of the H5C\_cache\_incr\_mode enumerated type whose}
+00166 \textcolor{comment}{ *      value indicates how we determine whether the cache size should be}
+00167 \textcolor{comment}{ *      increased.  At present there are two possible values:}
+00168 \textcolor{comment}{ *}
+00169 \textcolor{comment}{ *      H5C\_incr\_\_off:  Don't attempt to increase the size of the cache}
+00170 \textcolor{comment}{ *              automatically.}
+00171 \textcolor{comment}{ *}
+00172 \textcolor{comment}{ *              When this increment mode is selected, the remaining fields}
+00173 \textcolor{comment}{ *              in the cache size increase section ar ignored.}
+00174 \textcolor{comment}{ *}
+00175 \textcolor{comment}{ *      H5C\_incr\_\_threshold: Attempt to increase the size of the cache}
+00176 \textcolor{comment}{ *              whenever the average hit rate over the last epoch drops}
+00177 \textcolor{comment}{ *              below the value supplied in the lower\_hr\_threshold}
+00178 \textcolor{comment}{ *              field.}
+00179 \textcolor{comment}{ *}
+00180 \textcolor{comment}{ *              Note that this attempt will fail if the cache is already}
+00181 \textcolor{comment}{ *              at its maximum size, or if the cache is not already using}
+00182 \textcolor{comment}{ *              all available space.}
+00183 \textcolor{comment}{ *}
+00184 \textcolor{comment}{ *      Note that you must set decr\_mode to H5C\_incr\_\_off if you}
+00185 \textcolor{comment}{ *      disable metadata cache entry evictions.}
+00186 \textcolor{comment}{ *}
+00187 \textcolor{comment}{ * lower\_hr\_threshold: Lower hit rate threshold.  If the increment mode}
+00188 \textcolor{comment}{ *      (incr\_mode) is H5C\_incr\_\_threshold and the hit rate drops below the}
+00189 \textcolor{comment}{ *      value supplied in this field in an epoch, increment the cache size by}
+00190 \textcolor{comment}{ *      size\_increment.  Note that cache size may not be incremented above}
+00191 \textcolor{comment}{ *      max\_size, and that the increment may be further restricted by the}
+00192 \textcolor{comment}{ *      max\_increment field if it is enabled.}
+00193 \textcolor{comment}{ *}
+00194 \textcolor{comment}{ *      When enabled, this field must contain a value in the range [0.0, 1.0].}
+00195 \textcolor{comment}{ *      Depending on the incr\_mode selected, it may also have to be less than}
+00196 \textcolor{comment}{ *      upper\_hr\_threshold.}
+00197 \textcolor{comment}{ *}
+00198 \textcolor{comment}{ * increment:  Double containing the multiplier used to derive the new}
+00199 \textcolor{comment}{ *      cache size from the old if a cache size increment is triggered.}
+00200 \textcolor{comment}{ *      The increment must be greater than 1.0, and should not exceed 2.0.}
+00201 \textcolor{comment}{ *}
+00202 \textcolor{comment}{ *      The new cache size is obtained my multiplying the current max cache}
+00203 \textcolor{comment}{ *      size by the increment, and then clamping to max\_size and to stay}
+00204 \textcolor{comment}{ *      within the max\_increment as necessary.}
+00205 \textcolor{comment}{ *}
+00206 \textcolor{comment}{ * apply\_max\_increment:  Boolean flag indicating whether the max\_increment}
+00207 \textcolor{comment}{ *      field should be used to limit the maximum cache size increment.}
+00208 \textcolor{comment}{ *}
+00209 \textcolor{comment}{ * max\_increment: If enabled by the apply\_max\_increment field described}
+00210 \textcolor{comment}{ *      above, this field contains the maximum number of bytes by which the}
+00211 \textcolor{comment}{ *      cache size can be increased in a single re-size.}
+00212 \textcolor{comment}{ *}
+00213 \textcolor{comment}{ * flash\_incr\_mode:  Instance of the H5C\_cache\_flash\_incr\_mode enumerated}
+00214 \textcolor{comment}{ *      type whose value indicates whether and by which algorithm we should}
+00215 \textcolor{comment}{ *      make flash increases in the size of the cache to accomodate insertion}
+00216 \textcolor{comment}{ *      of large entries and large increases in the size of a single entry.}
+00217 \textcolor{comment}{ *}
+00218 \textcolor{comment}{ *      The addition of the flash increment mode was occasioned by performance}
+00219 \textcolor{comment}{ *      problems that appear when a local heap is increased to a size in excess}
+00220 \textcolor{comment}{ *      of the current cache size.  While the existing re-size code dealt with}
+00221 \textcolor{comment}{ *      this eventually, performance was very bad for the remainder of the}
+00222 \textcolor{comment}{ *      epoch.}
+00223 \textcolor{comment}{ *}
+00224 \textcolor{comment}{ *      At present, there are two possible values for the flash\_incr\_mode:}
+00225 \textcolor{comment}{ *}
+00226 \textcolor{comment}{ *      H5C\_flash\_incr\_\_off:  Don't perform flash increases in the size of}
+00227 \textcolor{comment}{ *              the cache.}
+00228 \textcolor{comment}{ *}
+00229 \textcolor{comment}{ *      H5C\_flash\_incr\_\_add\_space:  Let x be either the size of a newly}
+00230 \textcolor{comment}{ *              newly inserted entry, or the number of bytes by which the}
+00231 \textcolor{comment}{ *              size of an existing entry has been increased.}
+00232 \textcolor{comment}{ *}
+00233 \textcolor{comment}{ *              If}
+00234 \textcolor{comment}{ *                      x > flash\_threshold * current max cache size,}
+00235 \textcolor{comment}{ *}
+00236 \textcolor{comment}{ *              increase the current maximum cache size by x * flash\_multiple}
+00237 \textcolor{comment}{ *              less any free space in the cache, and star a new epoch.  For}
+00238 \textcolor{comment}{ *              now at least, pay no attention to the maximum increment.}
+00239 \textcolor{comment}{ *}
+00240 \textcolor{comment}{ *      In both of the above cases, the flash increment pays no attention to}
+00241 \textcolor{comment}{ *      the maximum increment (at least in this first incarnation), but DOES}
+00242 \textcolor{comment}{ *      stay within max\_size.}
+00243 \textcolor{comment}{ *}
+00244 \textcolor{comment}{ *      With a little thought, it should be obvious that the above flash}
+00245 \textcolor{comment}{ *      cache size increase algorithm is not sufficient for all circumstances}
+00246 \textcolor{comment}{ *      -- for example, suppose the user round robins through}
+00247 \textcolor{comment}{ *      (1/flash\_threshold) +1 groups, adding one data set to each on each}
+00248 \textcolor{comment}{ *      pass.  Then all will increase in size at about the same time, requiring}
+00249 \textcolor{comment}{ *      the max cache size to at least double to maintain acceptable}
+00250 \textcolor{comment}{ *      performance, however the above flash increment algorithm will not be}
+00251 \textcolor{comment}{ *      triggered.}
+00252 \textcolor{comment}{ *}
+00253 \textcolor{comment}{ *      Hopefully, the add space algorithms detailed above will be sufficient}
+00254 \textcolor{comment}{ *      for the performance problems encountered to date.  However, we should}
+00255 \textcolor{comment}{ *      expect to revisit the issue.}
+00256 \textcolor{comment}{ *}
+00257 \textcolor{comment}{ * flash\_multiple: Double containing the multiple described above in the}
+00258 \textcolor{comment}{ *      H5C\_flash\_incr\_\_add\_space section of the discussion of the}
+00259 \textcolor{comment}{ *      flash\_incr\_mode section.  This field is ignored unless flash\_incr\_mode}
+00260 \textcolor{comment}{ *      is H5C\_flash\_incr\_\_add\_space.}
+00261 \textcolor{comment}{ *}
+00262 \textcolor{comment}{ * flash\_threshold: Double containing the factor by which current max cache}
+00263 \textcolor{comment}{ *      size is multiplied to obtain the size threshold for the add\_space flash}
+00264 \textcolor{comment}{ *      increment algorithm.  The field is ignored unless flash\_incr\_mode is}
+00265 \textcolor{comment}{ *      H5C\_flash\_incr\_\_add\_space.}
+00266 \textcolor{comment}{ *}
+00267 \textcolor{comment}{ *}
+00268 \textcolor{comment}{ * Cache size decrease control fields:}
+00269 \textcolor{comment}{ *}
+00270 \textcolor{comment}{ * decr\_mode: Instance of the H5C\_cache\_decr\_mode enumerated type whose}
+00271 \textcolor{comment}{ *      value indicates how we determine whether the cache size should be}
+00272 \textcolor{comment}{ *      decreased.  At present there are four possibilities.}
+00273 \textcolor{comment}{ *}
+00274 \textcolor{comment}{ *      H5C\_decr\_\_off:  Don't attempt to decrease the size of the cache}
+00275 \textcolor{comment}{ *              automatically.}
+00276 \textcolor{comment}{ *}
+00277 \textcolor{comment}{ *              When this increment mode is selected, the remaining fields}
+00278 \textcolor{comment}{ *              in the cache size decrease section are ignored.}
+00279 \textcolor{comment}{ *}
+00280 \textcolor{comment}{ *      H5C\_decr\_\_threshold: Attempt to decrease the size of the cache}
+00281 \textcolor{comment}{ *              whenever the average hit rate over the last epoch rises}
+00282 \textcolor{comment}{ *              above the value supplied in the upper\_hr\_threshold}
+00283 \textcolor{comment}{ *              field.}
+00284 \textcolor{comment}{ *}
+00285 \textcolor{comment}{ *      H5C\_decr\_\_age\_out:  At the end of each epoch, search the cache for}
+00286 \textcolor{comment}{ *              entries that have not been accessed for at least the number}
+00287 \textcolor{comment}{ *              of epochs specified in the epochs\_before\_eviction field, and}
+00288 \textcolor{comment}{ *              evict these entries.  Conceptually, the maximum cache size}
+00289 \textcolor{comment}{ *              is then decreased to match the new actual cache size.  However,}
+00290 \textcolor{comment}{ *              this reduction may be modified by the min\_size, the}
+00291 \textcolor{comment}{ *              max\_decrement, and/or the empty\_reserve.}
+00292 \textcolor{comment}{ *}
+00293 \textcolor{comment}{ *      H5C\_decr\_\_age\_out\_with\_threshold:  Same as age\_out, but we only}
+00294 \textcolor{comment}{ *              attempt to reduce the cache size when the hit rate observed}
+00295 \textcolor{comment}{ *              over the last epoch exceeds the value provided in the}
+00296 \textcolor{comment}{ *              upper\_hr\_threshold field.}
+00297 \textcolor{comment}{ *}
+00298 \textcolor{comment}{ *      Note that you must set decr\_mode to H5C\_decr\_\_off if you}
+00299 \textcolor{comment}{ *      disable metadata cache entry evictions.}
+00300 \textcolor{comment}{ *}
+00301 \textcolor{comment}{ * upper\_hr\_threshold: Upper hit rate threshold.  The use of this field}
+00302 \textcolor{comment}{ *      varies according to the current decr\_mode:}
+00303 \textcolor{comment}{ *}
+00304 \textcolor{comment}{ *      H5C\_decr\_\_off or H5C\_decr\_\_age\_out:  The value of this field is}
+00305 \textcolor{comment}{ *              ignored.}
+00306 \textcolor{comment}{ *}
+00307 \textcolor{comment}{ *      H5C\_decr\_\_threshold:  If the hit rate exceeds this threshold in any}
+00308 \textcolor{comment}{ *              epoch, attempt to decrement the cache size by size\_decrement.}
+00309 \textcolor{comment}{ *}
+00310 \textcolor{comment}{ *              Note that cache size may not be decremented below min\_size.}
+00311 \textcolor{comment}{ *}
+00312 \textcolor{comment}{ *              Note also that if the upper\_threshold is 1.0, the cache size}
+00313 \textcolor{comment}{ *              will never be reduced.}
+00314 \textcolor{comment}{ *}
+00315 \textcolor{comment}{ *      H5C\_decr\_\_age\_out\_with\_threshold:  If the hit rate exceeds this}
+00316 \textcolor{comment}{ *              threshold in any epoch, attempt to reduce the cache size}
+00317 \textcolor{comment}{ *              by evicting entries that have not been accessed for more}
+00318 \textcolor{comment}{ *              than the specified number of epochs.}
+00319 \textcolor{comment}{ *}
+00320 \textcolor{comment}{ * decrement: This field is only used when the decr\_mode is}
+00321 \textcolor{comment}{ *      H5C\_decr\_\_threshold.}
+00322 \textcolor{comment}{ *}
+00323 \textcolor{comment}{ *      The field is a double containing the multiplier used to derive the}
+00324 \textcolor{comment}{ *      new cache size from the old if a cache size decrement is triggered.}
+00325 \textcolor{comment}{ *      The decrement must be in the range 0.0 (in which case the cache will}
+00326 \textcolor{comment}{ *      try to contract to its minimum size) to 1.0 (in which case the}
+00327 \textcolor{comment}{ *      cache will never shrink).}
+00328 \textcolor{comment}{ *}
+00329 \textcolor{comment}{ * apply\_max\_decrement:  Boolean flag used to determine whether decrements}
+00330 \textcolor{comment}{ *      in cache size are to be limited by the max\_decrement field.}
+00331 \textcolor{comment}{ *}
+00332 \textcolor{comment}{ * max\_decrement: Maximum number of bytes by which the cache size can be}
+00333 \textcolor{comment}{ *      decreased in a single re-size.  Note that decrements may also be}
+00334 \textcolor{comment}{ *      restricted by the min\_size of the cache, and (in age out modes) by}
+00335 \textcolor{comment}{ *      the empty\_reserve field.}
+00336 \textcolor{comment}{ *}
+00337 \textcolor{comment}{ * epochs\_before\_eviction:  Integer field used in H5C\_decr\_\_age\_out and}
+00338 \textcolor{comment}{ *      H5C\_decr\_\_age\_out\_with\_threshold decrement modes.}
+00339 \textcolor{comment}{ *}
+00340 \textcolor{comment}{ *      This field contains the number of epochs an entry must remain}
+00341 \textcolor{comment}{ *      unaccessed before it is evicted in an attempt to reduce the}
+00342 \textcolor{comment}{ *      cache size.  If applicable, this field must lie in the range}
+00343 \textcolor{comment}{ *      [1, H5C\_\_MAX\_EPOCH\_MARKERS].}
+00344 \textcolor{comment}{ *}
+00345 \textcolor{comment}{ * apply\_empty\_reserve:  Boolean field controlling whether the empty\_reserve}
+00346 \textcolor{comment}{ *      field is to be used in computing the new cache size when the}
+00347 \textcolor{comment}{ *      decr\_mode is H5C\_decr\_\_age\_out or H5C\_decr\_\_age\_out\_with\_threshold.}
+00348 \textcolor{comment}{ *}
+00349 \textcolor{comment}{ * empty\_reserve:  To avoid a constant racheting down of cache size by small}
+00350 \textcolor{comment}{ *      amounts in the H5C\_decr\_\_age\_out and H5C\_decr\_\_age\_out\_with\_threshold}
+00351 \textcolor{comment}{ *      modes, this field allows one to require that any cache size}
+00352 \textcolor{comment}{ *      reductions leave the specified fraction of unused space in the cache.}
+00353 \textcolor{comment}{ *}
+00354 \textcolor{comment}{ *      The value of this field must be in the range [0.0, 1.0].  I would}
+00355 \textcolor{comment}{ *      expect typical values to be in the range of 0.01 to 0.1.}
+00356 \textcolor{comment}{ *}
+00357 \textcolor{comment}{ *}
+00358 \textcolor{comment}{ * Parallel Configuration Fields:}
+00359 \textcolor{comment}{ *}
+00360 \textcolor{comment}{ * In PHDF5, all operations that modify metadata must be executed collectively.}
+00361 \textcolor{comment}{ *}
+00362 \textcolor{comment}{ * We used to think that this was enough to ensure consistency across the}
+00363 \textcolor{comment}{ * metadata caches, but since we allow processes to read metadata individually,}
+00364 \textcolor{comment}{ * the order of dirty entries in the LRU list can vary across processes,}
+00365 \textcolor{comment}{ * which can result in inconsistencies between the caches.}
+00366 \textcolor{comment}{ *}
+00367 \textcolor{comment}{ * PHDF5 uses several strategies to prevent such inconsistencies in metadata,}
+00368 \textcolor{comment}{ * all of which use the fact that the same stream of dirty metadata is seen}
+00369 \textcolor{comment}{ * by all processes for purposes of synchronization.  This is done by }
+00370 \textcolor{comment}{ * having each process count the number of bytes of dirty metadata generated,}
+00371 \textcolor{comment}{ * and then running a "sync point" whenever this count exceeds a user }
+00372 \textcolor{comment}{ * specified threshold (see dirty\_bytes\_threshold below).}
+00373 \textcolor{comment}{ *}
+00374 \textcolor{comment}{ * The current metadata write strategy is indicated by the }
+00375 \textcolor{comment}{ * metadata\_write\_strategy field.  The possible values of this field, along}
+00376 \textcolor{comment}{ * with the associated metadata write strategies are discussed below.}
+00377 \textcolor{comment}{ *}
+00378 \textcolor{comment}{ * dirty\_bytes\_threshold:  Threshold of dirty byte creation used to}
+00379 \textcolor{comment}{ *  synchronize updates between caches. (See above for outline and}
+00380 \textcolor{comment}{ *  motivation.)}
+00381 \textcolor{comment}{ *}
+00382 \textcolor{comment}{ *  This value MUST be consistant across all processes accessing the}
+00383 \textcolor{comment}{ *  file.  This field is ignored unless HDF5 has been compiled for}
+00384 \textcolor{comment}{ *  parallel.}
+00385 \textcolor{comment}{ *}
+00386 \textcolor{comment}{ * metadata\_write\_strategy: Integer field containing a code indicating the}
+00387 \textcolor{comment}{ *  desired metadata write strategy.  The valid values of this field}
+00388 \textcolor{comment}{ *  are enumerated and discussed below:}
+00389 \textcolor{comment}{ *}
+00390 \textcolor{comment}{ *}
+00391 \textcolor{comment}{ *  H5AC\_METADATA\_WRITE\_STRATEGY\_\_PROCESS\_0\_ONLY:}
+00392 \textcolor{comment}{ *}
+00393 \textcolor{comment}{ *  When metadata\_write\_strategy is set to this value, only process }
+00394 \textcolor{comment}{ *  zero is allowed to write dirty metadata to disk.  All other }
+00395 \textcolor{comment}{ *  processes must retain dirty metadata until they are informed at}
+00396 \textcolor{comment}{ *  a sync point that the dirty metadata in question has been written}
+00397 \textcolor{comment}{ *  to disk.}
+00398 \textcolor{comment}{ *}
+00399 \textcolor{comment}{ *  When the sync point is reached (or when there is a user generated}
+00400 \textcolor{comment}{ *  flush), process zero flushes sufficient entries to bring it into}
+00401 \textcolor{comment}{ *  complience with its min clean size (or flushes all dirty entries in}
+00402 \textcolor{comment}{ *  the case of a user generated flush), broad casts the list of }
+00403 \textcolor{comment}{ *  entries just cleaned to all the other processes, and then exits}
+00404 \textcolor{comment}{ *  the sync point.}
+00405 \textcolor{comment}{ *}
+00406 \textcolor{comment}{ *  Upon receipt of the broadcast, the other processes mark the indicated}
+00407 \textcolor{comment}{ *  entries as clean, and leave the sync point as well.}
+00408 \textcolor{comment}{ *}
+00409 \textcolor{comment}{ *}
+00410 \textcolor{comment}{ *  H5AC\_METADATA\_WRITE\_STRATEGY\_\_DISTRIBUTED:}
+00411 \textcolor{comment}{ *}
+00412 \textcolor{comment}{ *  In the distributed metadata write strategy, process zero still makes}
+00413 \textcolor{comment}{ *  the decisions as to what entries should be flushed, but the actual }
+00414 \textcolor{comment}{ *  flushes are distributed across the processes in the computation to }
+00415 \textcolor{comment}{ *  the extent possible.}
+00416 \textcolor{comment}{ *}
+00417 \textcolor{comment}{ *  In this strategy, when a sync point is triggered (either by dirty}
+00418 \textcolor{comment}{ *  metadata creation or manual flush), all processes enter a barrier.}
+00419 \textcolor{comment}{ *}
+00420 \textcolor{comment}{ *  On the other side of the barrier, process 0 constructs an ordered}
+00421 \textcolor{comment}{ *  list of the entries to be flushed, and then broadcasts this list}
+00422 \textcolor{comment}{ *  to the caches in all the processes.}
+00423 \textcolor{comment}{ *}
+00424 \textcolor{comment}{ *  All processes then scan the list of entries to be flushed, flushing}
+00425 \textcolor{comment}{ *  some, and marking the rest as clean.  The algorithm for this purpose}
+00426 \textcolor{comment}{ *  ensures that each entry in the list is flushed exactly once, and }
+00427 \textcolor{comment}{ *  all are marked clean in each cache.}
+00428 \textcolor{comment}{ *}
+00429 \textcolor{comment}{ *  Note that in the case of a flush of the cache, no message passing}
+00430 \textcolor{comment}{ *  is necessary, as all processes have the same list of dirty entries, }
+00431 \textcolor{comment}{ *  and all of these entries must be flushed.  Thus in this case it is }
+00432 \textcolor{comment}{ *  sufficient for each process to sort its list of dirty entries after }
+00433 \textcolor{comment}{ *  leaving the initial barrier, and use this list as if it had been }
+00434 \textcolor{comment}{ *  received from process zero.}
+00435 \textcolor{comment}{ *}
+00436 \textcolor{comment}{ *  To avoid possible messages from the past/future, all caches must}
+00437 \textcolor{comment}{ *  wait until all caches are done before leaving the sync point.}
+00438 \textcolor{comment}{ *      }
+00439 \textcolor{comment}{ ****************************************************************************/}
+00440 
+00441 \textcolor{preprocessor}{#define H5AC\_\_CURR\_CACHE\_CONFIG\_VERSION     1}
+00442 \textcolor{preprocessor}{#define H5AC\_\_MAX\_TRACE\_FILE\_NAME\_LEN       1024}
+00443 
+00444 \textcolor{preprocessor}{#define H5AC\_METADATA\_WRITE\_STRATEGY\_\_PROCESS\_0\_ONLY    0}
+00445 \textcolor{preprocessor}{#define H5AC\_METADATA\_WRITE\_STRATEGY\_\_DISTRIBUTED       1}
+00446 
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_a_cpublic_8h_source_l00447}\hyperlink{struct_h5_a_c__cache__config__t}{00447} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_a_c__cache__config__t}{H5AC\_cache\_config\_t}
+00448 \{
+00449     \textcolor{comment}{/* general configuration fields: */}
+00450     \textcolor{keywordtype}{int}                      version;
+00451 
+00452     hbool\_t          rpt\_fcn\_enabled;
+00453 
+00454     hbool\_t          open\_trace\_file;
+00455     hbool\_t                  close\_trace\_file;
+00456     \textcolor{keywordtype}{char}                     trace\_file\_name[H5AC\_\_MAX\_TRACE\_FILE\_NAME\_LEN + 1];
+00457 
+00458     hbool\_t                  evictions\_enabled;
+00459 
+00460     hbool\_t                  set\_initial\_size;
+00461     \textcolor{keywordtype}{size\_t}                   initial\_size;
+00462 
+00463     \textcolor{keywordtype}{double}                   min\_clean\_fraction;
+00464 
+00465     \textcolor{keywordtype}{size\_t}                   max\_size;
+00466     \textcolor{keywordtype}{size\_t}                   min\_size;
+00467 
+00468     \textcolor{keywordtype}{long} \textcolor{keywordtype}{int}                 epoch\_length;
+00469 
+00470 
+00471     \textcolor{comment}{/* size increase control fields: */}
+00472     \textcolor{keyword}{enum} H5C\_cache\_incr\_mode incr\_mode;
+00473 
+00474     \textcolor{keywordtype}{double}                   lower\_hr\_threshold;
+00475 
+00476     \textcolor{keywordtype}{double}                   increment;
+00477 
+00478     hbool\_t                  apply\_max\_increment;
+00479     \textcolor{keywordtype}{size\_t}                   max\_increment;
+00480 
+00481     \textcolor{keyword}{enum} H5C\_cache\_flash\_incr\_mode      flash\_incr\_mode;
+00482     \textcolor{keywordtype}{double}                              flash\_multiple;
+00483     \textcolor{keywordtype}{double}                              flash\_threshold;
+00484 
+00485 
+00486     \textcolor{comment}{/* size decrease control fields: */}
+00487     \textcolor{keyword}{enum} H5C\_cache\_decr\_mode decr\_mode;
+00488 
+00489     \textcolor{keywordtype}{double}                   upper\_hr\_threshold;
+00490 
+00491     \textcolor{keywordtype}{double}                   decrement;
+00492 
+00493     hbool\_t                  apply\_max\_decrement;
+00494     \textcolor{keywordtype}{size\_t}                   max\_decrement;
+00495 
+00496     \textcolor{keywordtype}{int}                      epochs\_before\_eviction;
+00497 
+00498     hbool\_t                  apply\_empty\_reserve;
+00499     \textcolor{keywordtype}{double}                   empty\_reserve;
+00500 
+00501 
+00502     \textcolor{comment}{/* parallel configuration fields: */}
+00503     \textcolor{keywordtype}{size\_t}                   dirty\_bytes\_threshold;
+00504     \textcolor{keywordtype}{int}                      metadata\_write\_strategy;
+00505 
+00506 \} \hyperlink{struct_h5_a_c__cache__config__t}{H5AC\_cache\_config\_t};
+00507 
+00508 
+00509 \textcolor{comment}{/****************************************************************************}
+00510 \textcolor{comment}{ *}
+00511 \textcolor{comment}{ * structure H5AC\_cache\_image\_config\_t}
+00512 \textcolor{comment}{ *}
+00513 \textcolor{comment}{ * H5AC\_cache\_image\_ctl\_t is a public structure intended for use in public }
+00514 \textcolor{comment}{ * APIs.  At least in its initial incarnation, it is a copy of struct}
+00515 \textcolor{comment}{ * H5C\_cache\_image\_ctl\_t.}
+00516 \textcolor{comment}{ *}
+00517 \textcolor{comment}{ * The fields of the structure are discussed individually below:}
+00518 \textcolor{comment}{ *}
+00519 \textcolor{comment}{ * version: Integer field containing the version number of this version}
+00520 \textcolor{comment}{ *      of the H5C\_image\_ctl\_t structure.  Any instance of}
+00521 \textcolor{comment}{ *      H5C\_image\_ctl\_t passed to the cache must have a known}
+00522 \textcolor{comment}{ *      version number, or an error will be flagged.}
+00523 \textcolor{comment}{ *}
+00524 \textcolor{comment}{ * generate\_image:  Boolean flag indicating whether a cache image should}
+00525 \textcolor{comment}{ *      be created on file close.}
+00526 \textcolor{comment}{ *}
+00527 \textcolor{comment}{ * save\_resize\_status:  Boolean flag indicating whether the cache image }
+00528 \textcolor{comment}{ *  should include the adaptive cache resize configuration and status.}
+00529 \textcolor{comment}{ *  Note that this field is ignored at present.}
+00530 \textcolor{comment}{ *}
+00531 \textcolor{comment}{ * entry\_ageout:    Integer field indicating the maximum number of }
+00532 \textcolor{comment}{ *  times a prefetched entry can appear in subsequent cache images.}
+00533 \textcolor{comment}{ *  This field exists to allow the user to avoid the buildup of }
+00534 \textcolor{comment}{ *  infrequently used entries in long sequences of cache images.}
+00535 \textcolor{comment}{ *}
+00536 \textcolor{comment}{ *  The value of this field must lie in the range}
+00537 \textcolor{comment}{ *  H5AC\_\_CACHE\_IMAGE\_\_ENTRY\_AGEOUT\_\_NONE (-1) to }
+00538 \textcolor{comment}{ *  H5AC\_\_CACHE\_IMAGE\_\_ENTRY\_AGEOUT\_\_MAX (100).}
+00539 \textcolor{comment}{ *}
+00540 \textcolor{comment}{ *  H5AC\_\_CACHE\_IMAGE\_\_ENTRY\_AGEOUT\_\_NONE means that no limit }
+00541 \textcolor{comment}{ *  is imposed on number of times a prefeteched entry can appear}
+00542 \textcolor{comment}{ *  in subsequent cache images.}
+00543 \textcolor{comment}{ *}
+00544 \textcolor{comment}{ *  A value of 0 prevents prefetched entries from being included }
+00545 \textcolor{comment}{ *  in cache images.}
+00546 \textcolor{comment}{ *}
+00547 \textcolor{comment}{ *  Positive integers restrict prefetched entries to the specified}
+00548 \textcolor{comment}{ *  number of appearances.}
+00549 \textcolor{comment}{ *}
+00550 \textcolor{comment}{ *  Note that the number of subsequent cache images that a prefetched}
+00551 \textcolor{comment}{ *  entry has appeared in is tracked in an 8 bit field.  Thus, while}
+00552 \textcolor{comment}{ *  H5AC\_\_CACHE\_IMAGE\_\_ENTRY\_AGEOUT\_\_MAX can be increased from its }
+00553 \textcolor{comment}{ *  current value, any value in excess of 255 will be the functional }
+00554 \textcolor{comment}{ *  equivalent of H5AC\_\_CACHE\_IMAGE\_\_ENTRY\_AGEOUT\_\_NONE.}
+00555 \textcolor{comment}{ *}
+00556 \textcolor{comment}{ ****************************************************************************/}
+00557 
+00558 \textcolor{preprocessor}{#define H5AC\_\_CURR\_CACHE\_IMAGE\_CONFIG\_VERSION   1}
+00559 
+00560 \textcolor{preprocessor}{#define H5AC\_\_CACHE\_IMAGE\_\_ENTRY\_AGEOUT\_\_NONE   -1}
+00561 \textcolor{preprocessor}{#define H5AC\_\_CACHE\_IMAGE\_\_ENTRY\_AGEOUT\_\_MAX    100}
+00562 
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_a_cpublic_8h_source_l00563}\hyperlink{struct_h5_a_c__cache__image__config__t}{00563} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_a_c__cache__image__config__t}{H5AC\_cache\_image\_config\_t} \{
+00564     \textcolor{keywordtype}{int}                                 version;
+00565     hbool\_t                             generate\_image;
+00566     hbool\_t                             save\_resize\_status;
+00567     \textcolor{keywordtype}{int}                                 entry\_ageout;
+00568 \} \hyperlink{struct_h5_a_c__cache__image__config__t}{H5AC\_cache\_image\_config\_t};
+00569 
+00570 \textcolor{preprocessor}{#ifdef \_\_cplusplus}
+00571 \}
+00572 \textcolor{preprocessor}{#endif}
+00573 \textcolor{preprocessor}{#endif}
+00574 
+\end{DoxyCode}

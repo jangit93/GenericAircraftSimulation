@@ -1,0 +1,103 @@
+\hypertarget{eigen_2unsupported_2test_2autodiff__scalar_8cpp_source}{}\section{eigen/unsupported/test/autodiff\+\_\+scalar.cpp}
+\label{eigen_2unsupported_2test_2autodiff__scalar_8cpp_source}\index{autodiff\+\_\+scalar.\+cpp@{autodiff\+\_\+scalar.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2013 Christoph Hertzberg <chtz@informatik.uni-bremen.de>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 \textcolor{preprocessor}{#include <unsupported/Eigen/AutoDiff>}
+00012 
+00013 \textcolor{comment}{/*}
+00014 \textcolor{comment}{ * In this file scalar derivations are tested for correctness.}
+00015 \textcolor{comment}{ * TODO add more tests!}
+00016 \textcolor{comment}{ */}
+00017 
+00018 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keywordtype}{void} check\_atan2()
+00019 \{
+00020   \textcolor{keyword}{typedef} Matrix<Scalar, 1, 1> Deriv1;
+00021   \textcolor{keyword}{typedef} AutoDiffScalar<Deriv1> AD;
+00022   
+00023   AD x(internal::random<Scalar>(-3.0, 3.0), Deriv1::UnitX());
+00024   
+00025   \textcolor{keyword}{using} std::exp;
+00026   Scalar r = exp(internal::random<Scalar>(-10, 10));
+00027   
+00028   AD s = sin(x), c = cos(x);
+00029   AD res = atan2(r*s, r*c);
+00030   
+00031   VERIFY\_IS\_APPROX(res.value(), x.value());
+00032   VERIFY\_IS\_APPROX(res.derivatives(), x.derivatives());
+00033 
+00034   res = atan2(r*s+0, r*c+0);
+00035   VERIFY\_IS\_APPROX(res.value(), x.value());
+00036   VERIFY\_IS\_APPROX(res.derivatives(), x.derivatives());
+00037 \}
+00038 
+00039 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keywordtype}{void} check\_hyperbolic\_functions()
+00040 \{
+00041   \textcolor{keyword}{using} std::sinh;
+00042   \textcolor{keyword}{using} std::cosh;
+00043   \textcolor{keyword}{using} std::tanh;
+00044   \textcolor{keyword}{typedef} Matrix<Scalar, 1, 1> Deriv1;
+00045   \textcolor{keyword}{typedef} AutoDiffScalar<Deriv1> AD;
+00046   Deriv1 p = Deriv1::Random();
+00047   AD val(p.x(),Deriv1::UnitX());
+00048 
+00049   Scalar cosh\_px = std::cosh(p.x());
+00050   AD res1 = tanh(val);
+00051   VERIFY\_IS\_APPROX(res1.value(), std::tanh(p.x()));
+00052   VERIFY\_IS\_APPROX(res1.derivatives().x(), Scalar(1.0) / (cosh\_px * cosh\_px));
+00053 
+00054   AD res2 = sinh(val);
+00055   VERIFY\_IS\_APPROX(res2.value(), std::sinh(p.x()));
+00056   VERIFY\_IS\_APPROX(res2.derivatives().x(), cosh\_px);
+00057 
+00058   AD res3 = cosh(val);
+00059   VERIFY\_IS\_APPROX(res3.value(), cosh\_px);
+00060   VERIFY\_IS\_APPROX(res3.derivatives().x(), std::sinh(p.x()));
+00061 
+00062   \textcolor{comment}{// Check constant values.}
+00063   \textcolor{keyword}{const} Scalar sample\_point = Scalar(1) / Scalar(3); 
+00064   val = AD(sample\_point,Deriv1::UnitX());
+00065   res1 = tanh(val);
+00066   VERIFY\_IS\_APPROX(res1.derivatives().x(), Scalar(0.896629559604914));
+00067 
+00068   res2 = sinh(val);
+00069   VERIFY\_IS\_APPROX(res2.derivatives().x(), Scalar(1.056071867829939));
+00070 
+00071   res3 = cosh(val);
+00072   VERIFY\_IS\_APPROX(res3.derivatives().x(), Scalar(0.339540557256150));
+00073 \}
+00074 
+00075 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar>
+00076 \textcolor{keywordtype}{void} check\_limits\_specialization()
+00077 \{
+00078   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Eigen::Matrix<Scalar, 1, 1>} Deriv;
+00079   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_auto_diff_scalar}{Eigen::AutoDiffScalar<Deriv>} AD;
+00080 
+00081   \textcolor{keyword}{typedef} std::numeric\_limits<AD> A;
+00082   \textcolor{keyword}{typedef} std::numeric\_limits<Scalar> B;
+00083 
+00084 \textcolor{preprocessor}{#if EIGEN\_HAS\_CXX11}
+00085   VERIFY(\textcolor{keywordtype}{bool}(std::is\_base\_of<B, A>::value));
+00086 \textcolor{preprocessor}{#endif}
+00087 \}
+00088 
+00089 \textcolor{keywordtype}{void} test\_autodiff\_scalar()
+00090 \{
+00091   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00092     CALL\_SUBTEST\_1( check\_atan2<float>() );
+00093     CALL\_SUBTEST\_2( check\_atan2<double>() );
+00094     CALL\_SUBTEST\_3( check\_hyperbolic\_functions<float>() );
+00095     CALL\_SUBTEST\_4( check\_hyperbolic\_functions<double>() );
+00096     CALL\_SUBTEST\_5( check\_limits\_specialization<double>());
+00097   \}
+00098 \}
+\end{DoxyCode}

@@ -1,0 +1,1466 @@
+\hypertarget{snprintf_8c_source}{}\section{snprintf.\+c}
+\label{snprintf_8c_source}\index{snprintf.\+c@{snprintf.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/*}
+00002 \textcolor{comment}{ * Copyright (c) 1995 Patrick Powell.}
+00003 \textcolor{comment}{ *}
+00004 \textcolor{comment}{ * This code is based on code written by Patrick Powell <papowell@astart.com>.}
+00005 \textcolor{comment}{ * It may be used for any purpose as long as this notice remains intact on all}
+00006 \textcolor{comment}{ * source code distributions.}
+00007 \textcolor{comment}{ */}
+00008 
+00009 \textcolor{comment}{/*}
+00010 \textcolor{comment}{ * Copyright (c) 2008 Holger Weiss.}
+00011 \textcolor{comment}{ *}
+00012 \textcolor{comment}{ * This version of the code is maintained by Holger Weiss <holger@jhweiss.de>.}
+00013 \textcolor{comment}{ * My changes to the code may freely be used, modified and/or redistributed for}
+00014 \textcolor{comment}{ * any purpose.  It would be nice if additions and fixes to this file (including}
+00015 \textcolor{comment}{ * trivial code cleanups) would be sent back in order to let me include them in}
+00016 \textcolor{comment}{ * the version available at <http://www.jhweiss.de/software/snprintf.html>.}
+00017 \textcolor{comment}{ * However, this is not a requirement for using or redistributing (possibly}
+00018 \textcolor{comment}{ * modified) versions of this file, nor is leaving this notice intact mandatory.}
+00019 \textcolor{comment}{ */}
+00020 
+00021 \textcolor{comment}{/*}
+00022 \textcolor{comment}{ * History}
+00023 \textcolor{comment}{ *}
+00024 \textcolor{comment}{ * 2008-01-20 Holger Weiss <holger@jhweiss.de> for C99-snprintf 1.1:}
+00025 \textcolor{comment}{ *}
+00026 \textcolor{comment}{ *  Fixed the detection of infinite floating point values on IRIX (and}
+00027 \textcolor{comment}{ *  possibly other systems) and applied another few minor cleanups.}
+00028 \textcolor{comment}{ *}
+00029 \textcolor{comment}{ * 2008-01-06 Holger Weiss <holger@jhweiss.de> for C99-snprintf 1.0:}
+00030 \textcolor{comment}{ *}
+00031 \textcolor{comment}{ *  Added a lot of new features, fixed many bugs, and incorporated various}
+00032 \textcolor{comment}{ *  improvements done by Andrew Tridgell <tridge@samba.org>, Russ Allbery}
+00033 \textcolor{comment}{ *  <rra@stanford.edu>, Hrvoje Niksic <hniksic@xemacs.org>, Damien Miller}
+00034 \textcolor{comment}{ *  <djm@mindrot.org>, and others for the Samba, INN, Wget, and OpenSSH}
+00035 \textcolor{comment}{ *  projects.  The additions include: support the "e", "E", "g", "G", and}
+00036 \textcolor{comment}{ *  "F" conversion specifiers (and use conversion style "f" or "F" for the}
+00037 \textcolor{comment}{ *  still unsupported "a" and "A" specifiers); support the "hh", "ll", "j",}
+00038 \textcolor{comment}{ *  "t", and "z" length modifiers; support the "#" flag and the (non-C99)}
+00039 \textcolor{comment}{ *  "'" flag; use localeconv(3) (if available) to get both the current}
+00040 \textcolor{comment}{ *  locale's decimal point character and the separator between groups of}
+00041 \textcolor{comment}{ *  digits; fix the handling of various corner cases of field width and}
+00042 \textcolor{comment}{ *  precision specifications; fix various floating point conversion bugs;}
+00043 \textcolor{comment}{ *  handle infinite and NaN floating point values; don't attempt to write to}
+00044 \textcolor{comment}{ *  the output buffer (which may be NULL) if a size of zero was specified;}
+00045 \textcolor{comment}{ *  check for integer overflow of the field width, precision, and return}
+00046 \textcolor{comment}{ *  values and during the floating point conversion; use the OUTCHAR() macro}
+00047 \textcolor{comment}{ *  instead of a function for better performance; provide asprintf(3) and}
+00048 \textcolor{comment}{ *  vasprintf(3) functions; add new test cases.  The replacement functions}
+00049 \textcolor{comment}{ *  have been renamed to use an "rpl\_" prefix, the function calls in the}
+00050 \textcolor{comment}{ *  main project (and in this file) must be redefined accordingly for each}
+00051 \textcolor{comment}{ *  replacement function which is needed (by using Autoconf or other means).}
+00052 \textcolor{comment}{ *  Various other minor improvements have been applied and the coding style}
+00053 \textcolor{comment}{ *  was cleaned up for consistency.}
+00054 \textcolor{comment}{ *}
+00055 \textcolor{comment}{ * 2007-07-23 Holger Weiss <holger@jhweiss.de> for Mutt 1.5.13:}
+00056 \textcolor{comment}{ *}
+00057 \textcolor{comment}{ *  C99 compliant snprintf(3) and vsnprintf(3) functions return the number}
+00058 \textcolor{comment}{ *  of characters that would have been written to a sufficiently sized}
+00059 \textcolor{comment}{ *  buffer (excluding the '\(\backslash\)0').  The original code simply returned the}
+00060 \textcolor{comment}{ *  length of the resulting output string, so that's been fixed.}
+00061 \textcolor{comment}{ *}
+00062 \textcolor{comment}{ * 1998-03-05 Michael Elkins <me@mutt.org> for Mutt 0.90.8:}
+00063 \textcolor{comment}{ *}
+00064 \textcolor{comment}{ *  The original code assumed that both snprintf(3) and vsnprintf(3) were}
+00065 \textcolor{comment}{ *  missing.  Some systems only have snprintf(3) but not vsnprintf(3), so}
+00066 \textcolor{comment}{ *  the code is now broken down under HAVE\_SNPRINTF and HAVE\_VSNPRINTF.}
+00067 \textcolor{comment}{ *}
+00068 \textcolor{comment}{ * 1998-01-27 Thomas Roessler <roessler@does-not-exist.org> for Mutt 0.89i:}
+00069 \textcolor{comment}{ *}
+00070 \textcolor{comment}{ *  The PGP code was using unsigned hexadecimal formats.  Unfortunately,}
+00071 \textcolor{comment}{ *  unsigned formats simply didn't work.}
+00072 \textcolor{comment}{ *}
+00073 \textcolor{comment}{ * 1997-10-22 Brandon Long <blong@fiction.net> for Mutt 0.87.1:}
+00074 \textcolor{comment}{ *}
+00075 \textcolor{comment}{ *  Ok, added some minimal floating point support, which means this probably}
+00076 \textcolor{comment}{ *  requires libm on most operating systems.  Don't yet support the exponent}
+00077 \textcolor{comment}{ *  (e,E) and sigfig (g,G).  Also, fmtint() was pretty badly broken, it just}
+00078 \textcolor{comment}{ *  wasn't being exercised in ways which showed it, so that's been fixed.}
+00079 \textcolor{comment}{ *  Also, formatted the code to Mutt conventions, and removed dead code left}
+00080 \textcolor{comment}{ *  over from the original.  Also, there is now a builtin-test, run with:}
+00081 \textcolor{comment}{ *  gcc -DTEST\_SNPRINTF -o snprintf snprintf.c -lm && ./snprintf}
+00082 \textcolor{comment}{ *}
+00083 \textcolor{comment}{ * 2996-09-15 Brandon Long <blong@fiction.net> for Mutt 0.43:}
+00084 \textcolor{comment}{ *}
+00085 \textcolor{comment}{ *  This was ugly.  It is still ugly.  I opted out of floating point}
+00086 \textcolor{comment}{ *  numbers, but the formatter understands just about everything from the}
+00087 \textcolor{comment}{ *  normal C string format, at least as far as I can tell from the Solaris}
+00088 \textcolor{comment}{ *  2.5 printf(3S) man page.}
+00089 \textcolor{comment}{ */}
+00090 
+00091 \textcolor{comment}{/*}
+00092 \textcolor{comment}{ * ToDo}
+00093 \textcolor{comment}{ *}
+00094 \textcolor{comment}{ * - Add wide character support.}
+00095 \textcolor{comment}{ * - Add support for "%a" and "%A" conversions.}
+00096 \textcolor{comment}{ * - Create test routines which predefine the expected results.  Our test cases}
+00097 \textcolor{comment}{ *   usually expose bugs in system implementations rather than in ours :-)}
+00098 \textcolor{comment}{ */}
+00099 
+00100 \textcolor{comment}{/*}
+00101 \textcolor{comment}{ * Usage}
+00102 \textcolor{comment}{ *}
+00103 \textcolor{comment}{ * 1) The following preprocessor macros should be defined to 1 if the feature or}
+00104 \textcolor{comment}{ *    file in question is available on the target system (by using Autoconf or}
+00105 \textcolor{comment}{ *    other means), though basic functionality should be available as long as}
+00106 \textcolor{comment}{ *    HAVE\_STDARG\_H and HAVE\_STDLIB\_H are defined correctly:}
+00107 \textcolor{comment}{ *}
+00108 \textcolor{comment}{ *      HAVE\_VSNPRINTF}
+00109 \textcolor{comment}{ *      HAVE\_SNPRINTF}
+00110 \textcolor{comment}{ *      HAVE\_VASPRINTF}
+00111 \textcolor{comment}{ *      HAVE\_ASPRINTF}
+00112 \textcolor{comment}{ *      HAVE\_STDARG\_H}
+00113 \textcolor{comment}{ *      HAVE\_STDDEF\_H}
+00114 \textcolor{comment}{ *      HAVE\_STDINT\_H}
+00115 \textcolor{comment}{ *      HAVE\_STDLIB\_H}
+00116 \textcolor{comment}{ *      HAVE\_INTTYPES\_H}
+00117 \textcolor{comment}{ *      HAVE\_LOCALE\_H}
+00118 \textcolor{comment}{ *      HAVE\_LOCALECONV}
+00119 \textcolor{comment}{ *      HAVE\_LCONV\_DECIMAL\_POINT}
+00120 \textcolor{comment}{ *      HAVE\_LCONV\_THOUSANDS\_SEP}
+00121 \textcolor{comment}{ *      HAVE\_LONG\_DOUBLE}
+00122 \textcolor{comment}{ *      HAVE\_LONG\_LONG\_INT}
+00123 \textcolor{comment}{ *      HAVE\_UNSIGNED\_LONG\_LONG\_INT}
+00124 \textcolor{comment}{ *      HAVE\_INTMAX\_T}
+00125 \textcolor{comment}{ *      HAVE\_UINTMAX\_T}
+00126 \textcolor{comment}{ *      HAVE\_UINTPTR\_T}
+00127 \textcolor{comment}{ *      HAVE\_PTRDIFF\_T}
+00128 \textcolor{comment}{ *      HAVE\_VA\_COPY}
+00129 \textcolor{comment}{ *      HAVE\_\_\_VA\_COPY}
+00130 \textcolor{comment}{ *}
+00131 \textcolor{comment}{ * 2) The calls to the functions which should be replaced must be redefined}
+00132 \textcolor{comment}{ *    throughout the project files (by using Autoconf or other means):}
+00133 \textcolor{comment}{ *}
+00134 \textcolor{comment}{ *      #define vsnprintf rpl\_vsnprintf}
+00135 \textcolor{comment}{ *      #define snprintf rpl\_snprintf}
+00136 \textcolor{comment}{ *      #define vasprintf rpl\_vasprintf}
+00137 \textcolor{comment}{ *      #define asprintf rpl\_asprintf}
+00138 \textcolor{comment}{ *}
+00139 \textcolor{comment}{ * 3) The required replacement functions should be declared in some header file}
+00140 \textcolor{comment}{ *    included throughout the project files:}
+00141 \textcolor{comment}{ *}
+00142 \textcolor{comment}{ *      #if HAVE\_CONFIG\_H}
+00143 \textcolor{comment}{ *      #include <config.h>}
+00144 \textcolor{comment}{ *      #endif}
+00145 \textcolor{comment}{ *      #if HAVE\_STDARG\_H}
+00146 \textcolor{comment}{ *      #include <stdarg.h>}
+00147 \textcolor{comment}{ *      #if !HAVE\_VSNPRINTF}
+00148 \textcolor{comment}{ *      int rpl\_vsnprintf(char *, size\_t, const char *, va\_list);}
+00149 \textcolor{comment}{ *      #endif}
+00150 \textcolor{comment}{ *      #if !HAVE\_SNPRINTF}
+00151 \textcolor{comment}{ *      int rpl\_snprintf(char *, size\_t, const char *, ...);}
+00152 \textcolor{comment}{ *      #endif}
+00153 \textcolor{comment}{ *      #if !HAVE\_VASPRINTF}
+00154 \textcolor{comment}{ *      int rpl\_vasprintf(char **, const char *, va\_list);}
+00155 \textcolor{comment}{ *      #endif}
+00156 \textcolor{comment}{ *      #if !HAVE\_ASPRINTF}
+00157 \textcolor{comment}{ *      int rpl\_asprintf(char **, const char *, ...);}
+00158 \textcolor{comment}{ *      #endif}
+00159 \textcolor{comment}{ *      #endif}
+00160 \textcolor{comment}{ *}
+00161 \textcolor{comment}{ * Autoconf macros for handling step 1 and step 2 are available at}
+00162 \textcolor{comment}{ * <http://www.jhweiss.de/software/snprintf.html>.}
+00163 \textcolor{comment}{ */}
+00164 
+00165 \textcolor{preprocessor}{#include "matioConfig.h"}
+00166 
+00167 \textcolor{preprocessor}{#if !HAVE\_SNPRINTF || !HAVE\_VSNPRINTF || !HAVE\_ASPRINTF || !HAVE\_VASPRINTF}
+00168 \textcolor{preprocessor}{#include <stdio.h>}  \textcolor{comment}{/* For NULL, size\_t, vsnprintf(3), and vasprintf(3). */}
+00169 \textcolor{preprocessor}{#ifdef VA\_START}
+00170 \textcolor{preprocessor}{#undef VA\_START}
+00171 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* defined(VA\_START) */}\textcolor{preprocessor}{}
+00172 \textcolor{preprocessor}{#ifdef VA\_SHIFT}
+00173 \textcolor{preprocessor}{#undef VA\_SHIFT}
+00174 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* defined(VA\_SHIFT) */}\textcolor{preprocessor}{}
+00175 \textcolor{preprocessor}{#if HAVE\_STDARG\_H}
+00176 \textcolor{preprocessor}{#include <stdarg.h>}
+00177 \textcolor{preprocessor}{#define VA\_START(ap, last) va\_start(ap, last)}
+00178 \textcolor{preprocessor}{#define VA\_SHIFT(ap, value, type) }\textcolor{comment}{/* No-op for ANSI C. */}\textcolor{preprocessor}{}
+00179 \textcolor{preprocessor}{#else   }\textcolor{comment}{/* Assume <varargs.h> is available. */}\textcolor{preprocessor}{}
+00180 \textcolor{preprocessor}{#include <varargs.h>}
+00181 \textcolor{preprocessor}{#define VA\_START(ap, last) va\_start(ap) }\textcolor{comment}{/* "last" is ignored. */}\textcolor{preprocessor}{}
+00182 \textcolor{preprocessor}{#define VA\_SHIFT(ap, value, type) value = va\_arg(ap, type)}
+00183 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_STDARG\_H */}\textcolor{preprocessor}{}
+00184 
+00185 \textcolor{preprocessor}{#if !HAVE\_VASPRINTF}
+00186 \textcolor{preprocessor}{#if HAVE\_STDLIB\_H}
+00187 \textcolor{preprocessor}{#include <stdlib.h>} \textcolor{comment}{/* For malloc(3). */}
+00188 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_STDLIB\_H */}\textcolor{preprocessor}{}
+00189 \textcolor{preprocessor}{#ifdef VA\_COPY}
+00190 \textcolor{preprocessor}{#undef VA\_COPY}
+00191 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* defined(VA\_COPY) */}\textcolor{preprocessor}{}
+00192 \textcolor{preprocessor}{#ifdef VA\_END\_COPY}
+00193 \textcolor{preprocessor}{#undef VA\_END\_COPY}
+00194 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* defined(VA\_END\_COPY) */}\textcolor{preprocessor}{}
+00195 \textcolor{preprocessor}{#if HAVE\_VA\_COPY}
+00196 \textcolor{preprocessor}{#define VA\_COPY(dest, src) va\_copy(dest, src)}
+00197 \textcolor{preprocessor}{#define VA\_END\_COPY(ap) va\_end(ap)}
+00198 \textcolor{preprocessor}{#elif HAVE\_\_\_VA\_COPY}
+00199 \textcolor{preprocessor}{#define VA\_COPY(dest, src) \_\_va\_copy(dest, src)}
+00200 \textcolor{preprocessor}{#define VA\_END\_COPY(ap) va\_end(ap)}
+00201 \textcolor{preprocessor}{#else}
+00202 \textcolor{preprocessor}{#define VA\_COPY(dest, src) (void)mymemcpy(&dest, &src, sizeof(va\_list))}
+00203 \textcolor{preprocessor}{#define VA\_END\_COPY(ap) }\textcolor{comment}{/* No-op. */}\textcolor{preprocessor}{}
+00204 \textcolor{preprocessor}{#define NEED\_MYMEMCPY 1}
+00205 \textcolor{keyword}{static} \textcolor{keywordtype}{void} *mymemcpy(\textcolor{keywordtype}{void} *, \textcolor{keywordtype}{void} *, \textcolor{keywordtype}{size\_t});
+00206 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_VA\_COPY */}\textcolor{preprocessor}{}
+00207 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !HAVE\_VASPRINTF */}\textcolor{preprocessor}{}
+00208 
+00209 \textcolor{preprocessor}{#if !HAVE\_VSNPRINTF}
+00210 \textcolor{preprocessor}{#include <errno.h>}  \textcolor{comment}{/* For ERANGE and errno. */}
+00211 \textcolor{preprocessor}{#include <limits.h>} \textcolor{comment}{/* For *\_MAX. */}
+00212 \textcolor{preprocessor}{#if HAVE\_INTTYPES\_H}
+00213 \textcolor{preprocessor}{#include <inttypes.h>}   \textcolor{comment}{/* For intmax\_t (if not defined in <stdint.h>). */}
+00214 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_INTTYPES\_H */}\textcolor{preprocessor}{}
+00215 \textcolor{preprocessor}{#if HAVE\_LOCALE\_H}
+00216 \textcolor{preprocessor}{#include <locale.h>} \textcolor{comment}{/* For localeconv(3). */}
+00217 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_LOCALE\_H */}\textcolor{preprocessor}{}
+00218 \textcolor{preprocessor}{#if HAVE\_STDDEF\_H}
+00219 \textcolor{preprocessor}{#include <stddef.h>} \textcolor{comment}{/* For ptrdiff\_t. */}
+00220 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_STDDEF\_H */}\textcolor{preprocessor}{}
+00221 \textcolor{preprocessor}{#if HAVE\_STDINT\_H}
+00222 \textcolor{preprocessor}{#include <stdint.h>} \textcolor{comment}{/* For intmax\_t. */}
+00223 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_STDINT\_H */}\textcolor{preprocessor}{}
+00224 
+00225 \textcolor{comment}{/* Support for unsigned long long int.  We may also need ULLONG\_MAX. */}
+00226 \textcolor{preprocessor}{#ifndef ULONG\_MAX   }\textcolor{comment}{/* We may need ULONG\_MAX as a fallback. */}\textcolor{preprocessor}{}
+00227 \textcolor{preprocessor}{#ifdef UINT\_MAX}
+00228 \textcolor{preprocessor}{#define ULONG\_MAX UINT\_MAX}
+00229 \textcolor{preprocessor}{#else}
+00230 \textcolor{preprocessor}{#define ULONG\_MAX INT\_MAX}
+00231 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* defined(UINT\_MAX) */}\textcolor{preprocessor}{}
+00232 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(ULONG\_MAX) */}\textcolor{preprocessor}{}
+00233 \textcolor{preprocessor}{#ifdef ULLONG}
+00234 \textcolor{preprocessor}{#undef ULLONG}
+00235 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* defined(ULLONG) */}\textcolor{preprocessor}{}
+00236 \textcolor{preprocessor}{#if HAVE\_UNSIGNED\_LONG\_LONG\_INT}
+00237 \textcolor{preprocessor}{#define ULLONG unsigned long long int}
+00238 \textcolor{preprocessor}{#ifndef ULLONG\_MAX}
+00239 \textcolor{preprocessor}{#define ULLONG\_MAX ULONG\_MAX}
+00240 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(ULLONG\_MAX) */}\textcolor{preprocessor}{}
+00241 \textcolor{preprocessor}{#else}
+00242 \textcolor{preprocessor}{#define ULLONG unsigned long int}
+00243 \textcolor{preprocessor}{#ifdef ULLONG\_MAX}
+00244 \textcolor{preprocessor}{#undef ULLONG\_MAX}
+00245 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* defined(ULLONG\_MAX) */}\textcolor{preprocessor}{}
+00246 \textcolor{preprocessor}{#define ULLONG\_MAX ULONG\_MAX}
+00247 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_LONG\_LONG\_INT */}\textcolor{preprocessor}{}
+00248 
+00249 \textcolor{comment}{/* Support for uintmax\_t.  We also need UINTMAX\_MAX. */}
+00250 \textcolor{preprocessor}{#ifdef UINTMAX\_T}
+00251 \textcolor{preprocessor}{#undef UINTMAX\_T}
+00252 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* defined(UINTMAX\_T) */}\textcolor{preprocessor}{}
+00253 \textcolor{preprocessor}{#if HAVE\_UINTMAX\_T || defined(uintmax\_t)}
+00254 \textcolor{preprocessor}{#define UINTMAX\_T uintmax\_t}
+00255 \textcolor{preprocessor}{#ifndef UINTMAX\_MAX}
+00256 \textcolor{preprocessor}{#define UINTMAX\_MAX ULLONG\_MAX}
+00257 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(UINTMAX\_MAX) */}\textcolor{preprocessor}{}
+00258 \textcolor{preprocessor}{#else}
+00259 \textcolor{preprocessor}{#define UINTMAX\_T ULLONG}
+00260 \textcolor{preprocessor}{#ifdef UINTMAX\_MAX}
+00261 \textcolor{preprocessor}{#undef UINTMAX\_MAX}
+00262 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* defined(UINTMAX\_MAX) */}\textcolor{preprocessor}{}
+00263 \textcolor{preprocessor}{#define UINTMAX\_MAX ULLONG\_MAX}
+00264 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_UINTMAX\_T || defined(uintmax\_t) */}\textcolor{preprocessor}{}
+00265 
+00266 \textcolor{comment}{/* Support for long double. */}
+00267 \textcolor{preprocessor}{#ifndef LDOUBLE}
+00268 \textcolor{preprocessor}{#if HAVE\_LONG\_DOUBLE}
+00269 \textcolor{preprocessor}{#define LDOUBLE long double}
+00270 \textcolor{preprocessor}{#else}
+00271 \textcolor{preprocessor}{#define LDOUBLE double}
+00272 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_LONG\_DOUBLE */}\textcolor{preprocessor}{}
+00273 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(LDOUBLE) */}\textcolor{preprocessor}{}
+00274 
+00275 \textcolor{comment}{/* Support for long long int. */}
+00276 \textcolor{preprocessor}{#ifndef LLONG}
+00277 \textcolor{preprocessor}{#if HAVE\_LONG\_LONG\_INT}
+00278 \textcolor{preprocessor}{#define LLONG long long int}
+00279 \textcolor{preprocessor}{#else}
+00280 \textcolor{preprocessor}{#define LLONG long int}
+00281 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_LONG\_LONG\_INT */}\textcolor{preprocessor}{}
+00282 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(LLONG) */}\textcolor{preprocessor}{}
+00283 
+00284 \textcolor{comment}{/* Support for intmax\_t. */}
+00285 \textcolor{preprocessor}{#ifndef INTMAX\_T}
+00286 \textcolor{preprocessor}{#if HAVE\_INTMAX\_T || defined(intmax\_t)}
+00287 \textcolor{preprocessor}{#define INTMAX\_T intmax\_t}
+00288 \textcolor{preprocessor}{#else}
+00289 \textcolor{preprocessor}{#define INTMAX\_T LLONG}
+00290 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_INTMAX\_T || defined(intmax\_t) */}\textcolor{preprocessor}{}
+00291 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(INTMAX\_T) */}\textcolor{preprocessor}{}
+00292 
+00293 \textcolor{comment}{/* Support for uintptr\_t. */}
+00294 \textcolor{preprocessor}{#ifndef UINTPTR\_T}
+00295 \textcolor{preprocessor}{#if HAVE\_UINTPTR\_T || defined(uintptr\_t)}
+00296 \textcolor{preprocessor}{#define UINTPTR\_T uintptr\_t}
+00297 \textcolor{preprocessor}{#else}
+00298 \textcolor{preprocessor}{#define UINTPTR\_T unsigned long int}
+00299 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_UINTPTR\_T || defined(uintptr\_t) */}\textcolor{preprocessor}{}
+00300 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(UINTPTR\_T) */}\textcolor{preprocessor}{}
+00301 
+00302 \textcolor{comment}{/* Support for ptrdiff\_t. */}
+00303 \textcolor{preprocessor}{#ifndef PTRDIFF\_T}
+00304 \textcolor{preprocessor}{#if HAVE\_PTRDIFF\_T || defined(ptrdiff\_t)}
+00305 \textcolor{preprocessor}{#define PTRDIFF\_T ptrdiff\_t}
+00306 \textcolor{preprocessor}{#else}
+00307 \textcolor{preprocessor}{#define PTRDIFF\_T long int}
+00308 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_PTRDIFF\_T || defined(ptrdiff\_t) */}\textcolor{preprocessor}{}
+00309 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(PTRDIFF\_T) */}\textcolor{preprocessor}{}
+00310 
+00311 \textcolor{comment}{/*}
+00312 \textcolor{comment}{ * We need an unsigned integer type corresponding to ptrdiff\_t (cf. C99:}
+00313 \textcolor{comment}{ * 7.19.6.1, 7).  However, we'll simply use PTRDIFF\_T and convert it to an}
+00314 \textcolor{comment}{ * unsigned type if necessary.  This should work just fine in practice.}
+00315 \textcolor{comment}{ */}
+00316 \textcolor{preprocessor}{#ifndef UPTRDIFF\_T}
+00317 \textcolor{preprocessor}{#define UPTRDIFF\_T PTRDIFF\_T}
+00318 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(UPTRDIFF\_T) */}\textcolor{preprocessor}{}
+00319 
+00320 \textcolor{comment}{/*}
+00321 \textcolor{comment}{ * We need a signed integer type corresponding to size\_t (cf. C99: 7.19.6.1, 7).}
+00322 \textcolor{comment}{ * However, we'll simply use size\_t and convert it to a signed type if}
+00323 \textcolor{comment}{ * necessary.  This should work just fine in practice.}
+00324 \textcolor{comment}{ */}
+00325 \textcolor{preprocessor}{#ifndef SSIZE\_T}
+00326 \textcolor{preprocessor}{#define SSIZE\_T size\_t}
+00327 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(SSIZE\_T) */}\textcolor{preprocessor}{}
+00328 
+00329 \textcolor{comment}{/* Either ERANGE or E2BIG should be available everywhere. */}
+00330 \textcolor{preprocessor}{#ifndef ERANGE}
+00331 \textcolor{preprocessor}{#define ERANGE E2BIG}
+00332 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(ERANGE) */}\textcolor{preprocessor}{}
+00333 \textcolor{preprocessor}{#ifndef EOVERFLOW}
+00334 \textcolor{preprocessor}{#define EOVERFLOW ERANGE}
+00335 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(EOVERFLOW) */}\textcolor{preprocessor}{}
+00336 
+00337 \textcolor{comment}{/*}
+00338 \textcolor{comment}{ * Buffer size to hold the octal string representation of UINT128\_MAX without}
+00339 \textcolor{comment}{ * nul-termination ("3777777777777777777777777777777777777777777").}
+00340 \textcolor{comment}{ */}
+00341 \textcolor{preprocessor}{#ifdef MAX\_CONVERT\_LENGTH}
+00342 \textcolor{preprocessor}{#undef MAX\_CONVERT\_LENGTH}
+00343 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* defined(MAX\_CONVERT\_LENGTH) */}\textcolor{preprocessor}{}
+00344 \textcolor{preprocessor}{#define MAX\_CONVERT\_LENGTH      43}
+00345 
+00346 \textcolor{comment}{/* Format read states. */}
+00347 \textcolor{preprocessor}{#define PRINT\_S\_DEFAULT         0}
+00348 \textcolor{preprocessor}{#define PRINT\_S\_FLAGS           1}
+00349 \textcolor{preprocessor}{#define PRINT\_S\_WIDTH           2}
+00350 \textcolor{preprocessor}{#define PRINT\_S\_DOT             3}
+00351 \textcolor{preprocessor}{#define PRINT\_S\_PRECISION       4}
+00352 \textcolor{preprocessor}{#define PRINT\_S\_MOD             5}
+00353 \textcolor{preprocessor}{#define PRINT\_S\_CONV            6}
+00354 
+00355 \textcolor{comment}{/* Format flags. */}
+00356 \textcolor{preprocessor}{#define PRINT\_F\_MINUS           (1 << 0)}
+00357 \textcolor{preprocessor}{#define PRINT\_F\_PLUS            (1 << 1)}
+00358 \textcolor{preprocessor}{#define PRINT\_F\_SPACE           (1 << 2)}
+00359 \textcolor{preprocessor}{#define PRINT\_F\_NUM             (1 << 3)}
+00360 \textcolor{preprocessor}{#define PRINT\_F\_ZERO            (1 << 4)}
+00361 \textcolor{preprocessor}{#define PRINT\_F\_QUOTE           (1 << 5)}
+00362 \textcolor{preprocessor}{#define PRINT\_F\_UP              (1 << 6)}
+00363 \textcolor{preprocessor}{#define PRINT\_F\_UNSIGNED        (1 << 7)}
+00364 \textcolor{preprocessor}{#define PRINT\_F\_TYPE\_G          (1 << 8)}
+00365 \textcolor{preprocessor}{#define PRINT\_F\_TYPE\_E          (1 << 9)}
+00366 
+00367 \textcolor{comment}{/* Conversion flags. */}
+00368 \textcolor{preprocessor}{#define PRINT\_C\_CHAR            1}
+00369 \textcolor{preprocessor}{#define PRINT\_C\_SHORT           2}
+00370 \textcolor{preprocessor}{#define PRINT\_C\_LONG            3}
+00371 \textcolor{preprocessor}{#define PRINT\_C\_LLONG           4}
+00372 \textcolor{preprocessor}{#define PRINT\_C\_LDOUBLE         5}
+00373 \textcolor{preprocessor}{#define PRINT\_C\_SIZE            6}
+00374 \textcolor{preprocessor}{#define PRINT\_C\_PTRDIFF         7}
+00375 \textcolor{preprocessor}{#define PRINT\_C\_INTMAX          8}
+00376 
+00377 \textcolor{preprocessor}{#ifndef MAX}
+00378 \textcolor{preprocessor}{#define MAX(x, y) ((x >= y) ? x : y)}
+00379 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(MAX) */}\textcolor{preprocessor}{}
+00380 \textcolor{preprocessor}{#ifndef CHARTOINT}
+00381 \textcolor{preprocessor}{#define CHARTOINT(ch) (ch - '0')}
+00382 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(CHARTOINT) */}\textcolor{preprocessor}{}
+00383 \textcolor{preprocessor}{#ifndef ISDIGIT}
+00384 \textcolor{preprocessor}{#define ISDIGIT(ch) ('0' <= (unsigned char)ch && (unsigned char)ch <= '9')}
+00385 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(ISDIGIT) */}\textcolor{preprocessor}{}
+00386 \textcolor{preprocessor}{#ifndef ISNAN}
+00387 \textcolor{preprocessor}{#define ISNAN(x) (x != x)}
+00388 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(ISNAN) */}\textcolor{preprocessor}{}
+00389 \textcolor{preprocessor}{#ifndef ISINF}
+00390 \textcolor{preprocessor}{#define ISINF(x) (x != 0.0 && x + x == x)}
+00391 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !defined(ISINF) */}\textcolor{preprocessor}{}
+00392 
+00393 \textcolor{preprocessor}{#ifdef OUTCHAR}
+00394 \textcolor{preprocessor}{#undef OUTCHAR}
+00395 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* defined(OUTCHAR) */}\textcolor{preprocessor}{}
+00396 \textcolor{preprocessor}{#define OUTCHAR(str, len, size, ch)                                          \(\backslash\)}
+00397 \textcolor{preprocessor}{do \{                                                                         \(\backslash\)}
+00398 \textcolor{preprocessor}{    if (len + 1 < size)                                                  \(\backslash\)}
+00399 \textcolor{preprocessor}{        str[len] = ch;                                               \(\backslash\)}
+00400 \textcolor{preprocessor}{    (len)++;                                                             \(\backslash\)}
+00401 \textcolor{preprocessor}{\} while (}\textcolor{comment}{/* CONSTCOND */}\textcolor{preprocessor}{ 0)}
+00402 
+00403 \textcolor{keyword}{static} \textcolor{keywordtype}{void} fmtstr(\textcolor{keywordtype}{char} *, \textcolor{keywordtype}{size\_t} *, \textcolor{keywordtype}{size\_t}, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *, \textcolor{keywordtype}{int}, \textcolor{keywordtype}{int}, \textcolor{keywordtype}{int});
+00404 \textcolor{keyword}{static} \textcolor{keywordtype}{void} fmtint(\textcolor{keywordtype}{char} *, \textcolor{keywordtype}{size\_t} *, \textcolor{keywordtype}{size\_t}, INTMAX\_T, \textcolor{keywordtype}{int}, \textcolor{keywordtype}{int}, \textcolor{keywordtype}{int}, \textcolor{keywordtype}{int});
+00405 \textcolor{keyword}{static} \textcolor{keywordtype}{void} fmtflt(\textcolor{keywordtype}{char} *, \textcolor{keywordtype}{size\_t} *, \textcolor{keywordtype}{size\_t}, LDOUBLE, \textcolor{keywordtype}{int}, \textcolor{keywordtype}{int}, \textcolor{keywordtype}{int}, \textcolor{keywordtype}{int} *);
+00406 \textcolor{keyword}{static} \textcolor{keywordtype}{void} printsep(\textcolor{keywordtype}{char} *, \textcolor{keywordtype}{size\_t} *, \textcolor{keywordtype}{size\_t});
+00407 \textcolor{keyword}{static} \textcolor{keywordtype}{int} getnumsep(\textcolor{keywordtype}{int});
+00408 \textcolor{keyword}{static} \textcolor{keywordtype}{int} getexponent(LDOUBLE);
+00409 \textcolor{keyword}{static} \textcolor{keywordtype}{int} convert(UINTMAX\_T, \textcolor{keywordtype}{char} *, \textcolor{keywordtype}{size\_t}, \textcolor{keywordtype}{int}, \textcolor{keywordtype}{int});
+00410 \textcolor{keyword}{static} UINTMAX\_T cast(LDOUBLE);
+00411 \textcolor{keyword}{static} UINTMAX\_T myround(LDOUBLE);
+00412 \textcolor{keyword}{static} LDOUBLE mypow10(\textcolor{keywordtype}{int});
+00413 
+00414 \textcolor{comment}{//extern int errno;}
+00415 
+00416 \textcolor{keywordtype}{int}
+00417 rpl\_vsnprintf(\textcolor{keywordtype}{char} *str, \textcolor{keywordtype}{size\_t} size, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *format, va\_list args)
+00418 \{
+00419     LDOUBLE fvalue;
+00420     INTMAX\_T value;
+00421     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} cvalue;
+00422     \textcolor{keyword}{const} \textcolor{keywordtype}{char} *strvalue;
+00423     INTMAX\_T *intmaxptr;
+00424     PTRDIFF\_T *ptrdiffptr;
+00425     SSIZE\_T *sizeptr;
+00426     LLONG *llongptr;
+00427     \textcolor{keywordtype}{long} \textcolor{keywordtype}{int} *longptr;
+00428     \textcolor{keywordtype}{int} *intptr;
+00429     \textcolor{keywordtype}{short} \textcolor{keywordtype}{int} *shortptr;
+00430     \textcolor{keywordtype}{signed} \textcolor{keywordtype}{char} *charptr;
+00431     \textcolor{keywordtype}{size\_t} len = 0;
+00432     \textcolor{keywordtype}{int} overflow = 0;
+00433     \textcolor{keywordtype}{int} base = 0;
+00434     \textcolor{keywordtype}{int} cflags = 0;
+00435     \textcolor{keywordtype}{int} flags = 0;
+00436     \textcolor{keywordtype}{int} width = 0;
+00437     \textcolor{keywordtype}{int} precision = -1;
+00438     \textcolor{keywordtype}{int} \hyperlink{structstate}{state} = PRINT\_S\_DEFAULT;
+00439     \textcolor{keywordtype}{char} ch = *format++;
+00440 
+00441     \textcolor{comment}{/*}
+00442 \textcolor{comment}{     * C99 says: "If `n' is zero, nothing is written, and `s' may be a null}
+00443 \textcolor{comment}{     * pointer." (7.19.6.5, 2)  We're forgiving and allow a NULL pointer}
+00444 \textcolor{comment}{     * even if a size larger than zero was specified.  At least NetBSD's}
+00445 \textcolor{comment}{     * snprintf(3) does the same, as well as other versions of this file.}
+00446 \textcolor{comment}{     * (Though some of these versions will write to a non-NULL buffer even}
+00447 \textcolor{comment}{     * if a size of zero was specified, which violates the standard.)}
+00448 \textcolor{comment}{     */}
+00449     \textcolor{keywordflow}{if} (str == NULL && size != 0)
+00450         size = 0;
+00451 
+00452     \textcolor{keywordflow}{while} (ch != \textcolor{charliteral}{'\(\backslash\)0'})
+00453         \textcolor{keywordflow}{switch} (state) \{
+00454         \textcolor{keywordflow}{case} PRINT\_S\_DEFAULT:
+00455             \textcolor{keywordflow}{if} (ch == \textcolor{charliteral}{'%'})
+00456                 state = PRINT\_S\_FLAGS;
+00457             \textcolor{keywordflow}{else}
+00458                 OUTCHAR(str, len, size, ch);
+00459             ch = *format++;
+00460             \textcolor{keywordflow}{break};
+00461         \textcolor{keywordflow}{case} PRINT\_S\_FLAGS:
+00462             \textcolor{keywordflow}{switch} (ch) \{
+00463             \textcolor{keywordflow}{case} \textcolor{charliteral}{'-'}:
+00464                 flags |= PRINT\_F\_MINUS;
+00465                 ch = *format++;
+00466                 \textcolor{keywordflow}{break};
+00467             \textcolor{keywordflow}{case} \textcolor{charliteral}{'+'}:
+00468                 flags |= PRINT\_F\_PLUS;
+00469                 ch = *format++;
+00470                 \textcolor{keywordflow}{break};
+00471             \textcolor{keywordflow}{case} \textcolor{charliteral}{' '}:
+00472                 flags |= PRINT\_F\_SPACE;
+00473                 ch = *format++;
+00474                 \textcolor{keywordflow}{break};
+00475             \textcolor{keywordflow}{case} \textcolor{charliteral}{'#'}:
+00476                 flags |= PRINT\_F\_NUM;
+00477                 ch = *format++;
+00478                 \textcolor{keywordflow}{break};
+00479             \textcolor{keywordflow}{case} \textcolor{charliteral}{'0'}:
+00480                 flags |= PRINT\_F\_ZERO;
+00481                 ch = *format++;
+00482                 \textcolor{keywordflow}{break};
+00483             \textcolor{keywordflow}{case} \textcolor{charliteral}{'\(\backslash\)''}:  \textcolor{comment}{/* SUSv2 flag (not in C99). */}
+00484                 flags |= PRINT\_F\_QUOTE;
+00485                 ch = *format++;
+00486                 \textcolor{keywordflow}{break};
+00487             \textcolor{keywordflow}{default}:
+00488                 state = PRINT\_S\_WIDTH;
+00489                 \textcolor{keywordflow}{break};
+00490             \}
+00491             \textcolor{keywordflow}{break};
+00492         \textcolor{keywordflow}{case} PRINT\_S\_WIDTH:
+00493             \textcolor{keywordflow}{if} (ISDIGIT(ch)) \{
+00494                 ch = CHARTOINT(ch);
+00495                 \textcolor{keywordflow}{if} (width > (INT\_MAX - ch) / 10) \{
+00496                     overflow = 1;
+00497                     \textcolor{keywordflow}{goto} out;
+00498                 \}
+00499                 width = 10 * width + ch;
+00500                 ch = *format++;
+00501             \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (ch == \textcolor{charliteral}{'*'}) \{
+00502                 \textcolor{comment}{/*}
+00503 \textcolor{comment}{                 * C99 says: "A negative field width argument is}
+00504 \textcolor{comment}{                 * taken as a `-' flag followed by a positive}
+00505 \textcolor{comment}{                 * field width." (7.19.6.1, 5)}
+00506 \textcolor{comment}{                 */}
+00507                 \textcolor{keywordflow}{if} ((width = va\_arg(args, \textcolor{keywordtype}{int})) < 0) \{
+00508                     flags |= PRINT\_F\_MINUS;
+00509                     width = -width;
+00510                 \}
+00511                 ch = *format++;
+00512                 state = PRINT\_S\_DOT;
+00513             \} \textcolor{keywordflow}{else}
+00514                 state = PRINT\_S\_DOT;
+00515             \textcolor{keywordflow}{break};
+00516         \textcolor{keywordflow}{case} PRINT\_S\_DOT:
+00517             \textcolor{keywordflow}{if} (ch == \textcolor{charliteral}{'.'}) \{
+00518                 state = PRINT\_S\_PRECISION;
+00519                 ch = *format++;
+00520             \} \textcolor{keywordflow}{else}
+00521                 state = PRINT\_S\_MOD;
+00522             \textcolor{keywordflow}{break};
+00523         \textcolor{keywordflow}{case} PRINT\_S\_PRECISION:
+00524             \textcolor{keywordflow}{if} (precision == -1)
+00525                 precision = 0;
+00526             \textcolor{keywordflow}{if} (ISDIGIT(ch)) \{
+00527                 ch = CHARTOINT(ch);
+00528                 \textcolor{keywordflow}{if} (precision > (INT\_MAX - ch) / 10) \{
+00529                     overflow = 1;
+00530                     \textcolor{keywordflow}{goto} out;
+00531                 \}
+00532                 precision = 10 * precision + ch;
+00533                 ch = *format++;
+00534             \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (ch == \textcolor{charliteral}{'*'}) \{
+00535                 \textcolor{comment}{/*}
+00536 \textcolor{comment}{                 * C99 says: "A negative precision argument is}
+00537 \textcolor{comment}{                 * taken as if the precision were omitted."}
+00538 \textcolor{comment}{                 * (7.19.6.1, 5)}
+00539 \textcolor{comment}{                 */}
+00540                 \textcolor{keywordflow}{if} ((precision = va\_arg(args, \textcolor{keywordtype}{int})) < 0)
+00541                     precision = -1;
+00542                 ch = *format++;
+00543                 state = PRINT\_S\_MOD;
+00544             \} \textcolor{keywordflow}{else}
+00545                 state = PRINT\_S\_MOD;
+00546             \textcolor{keywordflow}{break};
+00547         \textcolor{keywordflow}{case} PRINT\_S\_MOD:
+00548             \textcolor{keywordflow}{switch} (ch) \{
+00549             \textcolor{keywordflow}{case} \textcolor{charliteral}{'h'}:
+00550                 ch = *format++;
+00551                 \textcolor{keywordflow}{if} (ch == \textcolor{charliteral}{'h'}) \{    \textcolor{comment}{/* It's a char. */}
+00552                     ch = *format++;
+00553                     cflags = PRINT\_C\_CHAR;
+00554                 \} \textcolor{keywordflow}{else}
+00555                     cflags = PRINT\_C\_SHORT;
+00556                 \textcolor{keywordflow}{break};
+00557             \textcolor{keywordflow}{case} \textcolor{charliteral}{'l'}:
+00558                 ch = *format++;
+00559                 \textcolor{keywordflow}{if} (ch == \textcolor{charliteral}{'l'}) \{    \textcolor{comment}{/* It's a long long. */}
+00560                     ch = *format++;
+00561                     cflags = PRINT\_C\_LLONG;
+00562                 \} \textcolor{keywordflow}{else}
+00563                     cflags = PRINT\_C\_LONG;
+00564                 \textcolor{keywordflow}{break};
+00565             \textcolor{keywordflow}{case} \textcolor{charliteral}{'L'}:
+00566                 cflags = PRINT\_C\_LDOUBLE;
+00567                 ch = *format++;
+00568                 \textcolor{keywordflow}{break};
+00569             \textcolor{keywordflow}{case} \textcolor{charliteral}{'j'}:
+00570                 cflags = PRINT\_C\_INTMAX;
+00571                 ch = *format++;
+00572                 \textcolor{keywordflow}{break};
+00573             \textcolor{keywordflow}{case} \textcolor{charliteral}{'t'}:
+00574                 cflags = PRINT\_C\_PTRDIFF;
+00575                 ch = *format++;
+00576                 \textcolor{keywordflow}{break};
+00577             \textcolor{keywordflow}{case} \textcolor{charliteral}{'z'}:
+00578                 cflags = PRINT\_C\_SIZE;
+00579                 ch = *format++;
+00580                 \textcolor{keywordflow}{break};
+00581             \}
+00582             state = PRINT\_S\_CONV;
+00583             \textcolor{keywordflow}{break};
+00584         \textcolor{keywordflow}{case} PRINT\_S\_CONV:
+00585             \textcolor{keywordflow}{switch} (ch) \{
+00586             \textcolor{keywordflow}{case} \textcolor{charliteral}{'d'}:
+00587                 \textcolor{comment}{/* FALLTHROUGH */}
+00588             \textcolor{keywordflow}{case} \textcolor{charliteral}{'i'}:
+00589                 \textcolor{keywordflow}{switch} (cflags) \{
+00590                 \textcolor{keywordflow}{case} PRINT\_C\_CHAR:
+00591                     value = (\textcolor{keywordtype}{signed} char)va\_arg(args, \textcolor{keywordtype}{int});
+00592                     \textcolor{keywordflow}{break};
+00593                 \textcolor{keywordflow}{case} PRINT\_C\_SHORT:
+00594                     value = (\textcolor{keywordtype}{short} int)va\_arg(args, \textcolor{keywordtype}{int});
+00595                     \textcolor{keywordflow}{break};
+00596                 \textcolor{keywordflow}{case} PRINT\_C\_LONG:
+00597                     value = va\_arg(args, \textcolor{keywordtype}{long} \textcolor{keywordtype}{int});
+00598                     \textcolor{keywordflow}{break};
+00599                 \textcolor{keywordflow}{case} PRINT\_C\_LLONG:
+00600                     value = va\_arg(args, LLONG);
+00601                     \textcolor{keywordflow}{break};
+00602                 \textcolor{keywordflow}{case} PRINT\_C\_SIZE:
+00603                     value = va\_arg(args, SSIZE\_T);
+00604                     \textcolor{keywordflow}{break};
+00605                 \textcolor{keywordflow}{case} PRINT\_C\_INTMAX:
+00606                     value = va\_arg(args, INTMAX\_T);
+00607                     \textcolor{keywordflow}{break};
+00608                 \textcolor{keywordflow}{case} PRINT\_C\_PTRDIFF:
+00609                     value = va\_arg(args, PTRDIFF\_T);
+00610                     \textcolor{keywordflow}{break};
+00611                 \textcolor{keywordflow}{default}:
+00612                     value = va\_arg(args, \textcolor{keywordtype}{int});
+00613                     \textcolor{keywordflow}{break};
+00614                 \}
+00615                 fmtint(str, &len, size, value, 10, width,
+00616                     precision, flags);
+00617                 \textcolor{keywordflow}{break};
+00618             \textcolor{keywordflow}{case} \textcolor{charliteral}{'X'}:
+00619                 flags |= PRINT\_F\_UP;
+00620                 \textcolor{comment}{/* FALLTHROUGH */}
+00621             \textcolor{keywordflow}{case} \textcolor{charliteral}{'x'}:
+00622                 base = 16;
+00623                 \textcolor{comment}{/* FALLTHROUGH */}
+00624             \textcolor{keywordflow}{case} \textcolor{charliteral}{'o'}:
+00625                 \textcolor{keywordflow}{if} (base == 0)
+00626                     base = 8;
+00627                 \textcolor{comment}{/* FALLTHROUGH */}
+00628             \textcolor{keywordflow}{case} \textcolor{charliteral}{'u'}:
+00629                 \textcolor{keywordflow}{if} (base == 0)
+00630                     base = 10;
+00631                 flags |= PRINT\_F\_UNSIGNED;
+00632                 \textcolor{keywordflow}{switch} (cflags) \{
+00633                 \textcolor{keywordflow}{case} PRINT\_C\_CHAR:
+00634                     value = (\textcolor{keywordtype}{unsigned} char)va\_arg(args,
+00635                         \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int});
+00636                     \textcolor{keywordflow}{break};
+00637                 \textcolor{keywordflow}{case} PRINT\_C\_SHORT:
+00638                     value = (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{short} int)va\_arg(args,
+00639                         \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int});
+00640                     \textcolor{keywordflow}{break};
+00641                 \textcolor{keywordflow}{case} PRINT\_C\_LONG:
+00642                     value = va\_arg(args, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} \textcolor{keywordtype}{int});
+00643                     \textcolor{keywordflow}{break};
+00644                 \textcolor{keywordflow}{case} PRINT\_C\_LLONG:
+00645                     value = va\_arg(args, ULLONG);
+00646                     \textcolor{keywordflow}{break};
+00647                 \textcolor{keywordflow}{case} PRINT\_C\_SIZE:
+00648                     value = va\_arg(args, \textcolor{keywordtype}{size\_t});
+00649                     \textcolor{keywordflow}{break};
+00650                 \textcolor{keywordflow}{case} PRINT\_C\_INTMAX:
+00651                     value = va\_arg(args, UINTMAX\_T);
+00652                     \textcolor{keywordflow}{break};
+00653                 \textcolor{keywordflow}{case} PRINT\_C\_PTRDIFF:
+00654                     value = va\_arg(args, UPTRDIFF\_T);
+00655                     \textcolor{keywordflow}{break};
+00656                 \textcolor{keywordflow}{default}:
+00657                     value = va\_arg(args, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int});
+00658                     \textcolor{keywordflow}{break};
+00659                 \}
+00660                 fmtint(str, &len, size, value, base, width,
+00661                     precision, flags);
+00662                 \textcolor{keywordflow}{break};
+00663             \textcolor{keywordflow}{case} \textcolor{charliteral}{'A'}:
+00664                 \textcolor{comment}{/* Not yet supported, we'll use "%F". */}
+00665                 \textcolor{comment}{/* FALLTHROUGH */}
+00666             \textcolor{keywordflow}{case} \textcolor{charliteral}{'F'}:
+00667                 flags |= PRINT\_F\_UP;
+00668             \textcolor{keywordflow}{case} \textcolor{charliteral}{'a'}:
+00669                 \textcolor{comment}{/* Not yet supported, we'll use "%f". */}
+00670                 \textcolor{comment}{/* FALLTHROUGH */}
+00671             \textcolor{keywordflow}{case} \textcolor{charliteral}{'f'}:
+00672                 \textcolor{keywordflow}{if} (cflags == PRINT\_C\_LDOUBLE)
+00673                     fvalue = va\_arg(args, LDOUBLE);
+00674                 \textcolor{keywordflow}{else}
+00675                     fvalue = va\_arg(args, \textcolor{keywordtype}{double});
+00676                 fmtflt(str, &len, size, fvalue, width,
+00677                     precision, flags, &overflow);
+00678                 \textcolor{keywordflow}{if} (overflow)
+00679                     \textcolor{keywordflow}{goto} out;
+00680                 \textcolor{keywordflow}{break};
+00681             \textcolor{keywordflow}{case} \textcolor{charliteral}{'E'}:
+00682                 flags |= PRINT\_F\_UP;
+00683                 \textcolor{comment}{/* FALLTHROUGH */}
+00684             \textcolor{keywordflow}{case} \textcolor{charliteral}{'e'}:
+00685                 flags |= PRINT\_F\_TYPE\_E;
+00686                 \textcolor{keywordflow}{if} (cflags == PRINT\_C\_LDOUBLE)
+00687                     fvalue = va\_arg(args, LDOUBLE);
+00688                 \textcolor{keywordflow}{else}
+00689                     fvalue = va\_arg(args, \textcolor{keywordtype}{double});
+00690                 fmtflt(str, &len, size, fvalue, width,
+00691                     precision, flags, &overflow);
+00692                 \textcolor{keywordflow}{if} (overflow)
+00693                     \textcolor{keywordflow}{goto} out;
+00694                 \textcolor{keywordflow}{break};
+00695             \textcolor{keywordflow}{case} \textcolor{charliteral}{'G'}:
+00696                 flags |= PRINT\_F\_UP;
+00697                 \textcolor{comment}{/* FALLTHROUGH */}
+00698             \textcolor{keywordflow}{case} \textcolor{charliteral}{'g'}:
+00699                 flags |= PRINT\_F\_TYPE\_G;
+00700                 \textcolor{keywordflow}{if} (cflags == PRINT\_C\_LDOUBLE)
+00701                     fvalue = va\_arg(args, LDOUBLE);
+00702                 \textcolor{keywordflow}{else}
+00703                     fvalue = va\_arg(args, \textcolor{keywordtype}{double});
+00704                 \textcolor{comment}{/*}
+00705 \textcolor{comment}{                 * If the precision is zero, it is treated as}
+00706 \textcolor{comment}{                 * one (cf. C99: 7.19.6.1, 8).}
+00707 \textcolor{comment}{                 */}
+00708                 \textcolor{keywordflow}{if} (precision == 0)
+00709                     precision = 1;
+00710                 fmtflt(str, &len, size, fvalue, width,
+00711                     precision, flags, &overflow);
+00712                 \textcolor{keywordflow}{if} (overflow)
+00713                     \textcolor{keywordflow}{goto} out;
+00714                 \textcolor{keywordflow}{break};
+00715             \textcolor{keywordflow}{case} \textcolor{charliteral}{'c'}:
+00716                 cvalue = va\_arg(args, \textcolor{keywordtype}{int});
+00717                 OUTCHAR(str, len, size, cvalue);
+00718                 \textcolor{keywordflow}{break};
+00719             \textcolor{keywordflow}{case} \textcolor{charliteral}{'s'}:
+00720                 strvalue = va\_arg(args, \textcolor{keywordtype}{char} *);
+00721                 fmtstr(str, &len, size, strvalue, width,
+00722                     precision, flags);
+00723                 \textcolor{keywordflow}{break};
+00724             \textcolor{keywordflow}{case} \textcolor{charliteral}{'p'}:
+00725                 \textcolor{comment}{/*}
+00726 \textcolor{comment}{                 * C99 says: "The value of the pointer is}
+00727 \textcolor{comment}{                 * converted to a sequence of printing}
+00728 \textcolor{comment}{                 * characters, in an implementation-defined}
+00729 \textcolor{comment}{                 * manner." (C99: 7.19.6.1, 8)}
+00730 \textcolor{comment}{                 */}
+00731                 \textcolor{keywordflow}{if} ((strvalue = (\textcolor{keyword}{const} \textcolor{keywordtype}{char}*)va\_arg(args, \textcolor{keywordtype}{void} *)) == NULL)
+00732                     \textcolor{comment}{/*}
+00733 \textcolor{comment}{                     * We use the glibc format.  BSD prints}
+00734 \textcolor{comment}{                     * "0x0", SysV "0".}
+00735 \textcolor{comment}{                     */}
+00736                     fmtstr(str, &len, size, \textcolor{stringliteral}{"(nil)"}, width,
+00737                         -1, flags);
+00738                 \textcolor{keywordflow}{else} \{
+00739                     \textcolor{comment}{/*}
+00740 \textcolor{comment}{                     * We use the BSD/glibc format.  SysV}
+00741 \textcolor{comment}{                     * omits the "0x" prefix (which we emit}
+00742 \textcolor{comment}{                     * using the PRINT\_F\_NUM flag).}
+00743 \textcolor{comment}{                     */}
+00744                     flags |= PRINT\_F\_NUM;
+00745                     flags |= PRINT\_F\_UNSIGNED;
+00746                     fmtint(str, &len, size,
+00747                         (UINTPTR\_T)strvalue, 16, width,
+00748                         precision, flags);
+00749                 \}
+00750                 \textcolor{keywordflow}{break};
+00751             \textcolor{keywordflow}{case} \textcolor{charliteral}{'n'}:
+00752                 \textcolor{keywordflow}{switch} (cflags) \{
+00753                 \textcolor{keywordflow}{case} PRINT\_C\_CHAR:
+00754                     charptr = va\_arg(args, \textcolor{keywordtype}{signed} \textcolor{keywordtype}{char} *);
+00755                     *charptr = len;
+00756                     \textcolor{keywordflow}{break};
+00757                 \textcolor{keywordflow}{case} PRINT\_C\_SHORT:
+00758                     shortptr = va\_arg(args, \textcolor{keywordtype}{short} \textcolor{keywordtype}{int} *);
+00759                     *shortptr = len;
+00760                     \textcolor{keywordflow}{break};
+00761                 \textcolor{keywordflow}{case} PRINT\_C\_LONG:
+00762                     longptr = va\_arg(args, \textcolor{keywordtype}{long} \textcolor{keywordtype}{int} *);
+00763                     *longptr = len;
+00764                     \textcolor{keywordflow}{break};
+00765                 \textcolor{keywordflow}{case} PRINT\_C\_LLONG:
+00766                     llongptr = va\_arg(args, LLONG *);
+00767                     *llongptr = len;
+00768                     \textcolor{keywordflow}{break};
+00769                 \textcolor{keywordflow}{case} PRINT\_C\_SIZE:
+00770                     \textcolor{comment}{/*}
+00771 \textcolor{comment}{                     * C99 says that with the "z" length}
+00772 \textcolor{comment}{                     * modifier, "a following `n' conversion}
+00773 \textcolor{comment}{                     * specifier applies to a pointer to a}
+00774 \textcolor{comment}{                     * signed integer type corresponding to}
+00775 \textcolor{comment}{                     * size\_t argument." (7.19.6.1, 7)}
+00776 \textcolor{comment}{                     */}
+00777                     sizeptr = va\_arg(args, SSIZE\_T *);
+00778                     *sizeptr = len;
+00779                     \textcolor{keywordflow}{break};
+00780                 \textcolor{keywordflow}{case} PRINT\_C\_INTMAX:
+00781                     intmaxptr = va\_arg(args, INTMAX\_T *);
+00782                     *intmaxptr = len;
+00783                     \textcolor{keywordflow}{break};
+00784                 \textcolor{keywordflow}{case} PRINT\_C\_PTRDIFF:
+00785                     ptrdiffptr = va\_arg(args, PTRDIFF\_T *);
+00786                     *ptrdiffptr = len;
+00787                     \textcolor{keywordflow}{break};
+00788                 \textcolor{keywordflow}{default}:
+00789                     intptr = va\_arg(args, \textcolor{keywordtype}{int} *);
+00790                     *intptr = len;
+00791                     \textcolor{keywordflow}{break};
+00792                 \}
+00793                 \textcolor{keywordflow}{break};
+00794             \textcolor{keywordflow}{case} \textcolor{charliteral}{'%'}:   \textcolor{comment}{/* Print a "%" character verbatim. */}
+00795                 OUTCHAR(str, len, size, ch);
+00796                 \textcolor{keywordflow}{break};
+00797             \textcolor{keywordflow}{default}:    \textcolor{comment}{/* Skip other characters. */}
+00798                 \textcolor{keywordflow}{break};
+00799             \}
+00800             ch = *format++;
+00801             state = PRINT\_S\_DEFAULT;
+00802             base = cflags = flags = width = 0;
+00803             precision = -1;
+00804             \textcolor{keywordflow}{break};
+00805         \}
+00806 out:
+00807     \textcolor{keywordflow}{if} (len < size)
+00808         str[len] = \textcolor{charliteral}{'\(\backslash\)0'};
+00809     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (size > 0)
+00810         str[size - 1] = \textcolor{charliteral}{'\(\backslash\)0'};
+00811 
+00812     \textcolor{keywordflow}{if} (overflow || len >= INT\_MAX) \{
+00813         errno = overflow ? EOVERFLOW : ERANGE;
+00814         \textcolor{keywordflow}{return} -1;
+00815     \}
+00816     \textcolor{keywordflow}{return} (\textcolor{keywordtype}{int})len;
+00817 \}
+00818 
+00819 \textcolor{keyword}{static} \textcolor{keywordtype}{void}
+00820 fmtstr(\textcolor{keywordtype}{char} *str, \textcolor{keywordtype}{size\_t} *len, \textcolor{keywordtype}{size\_t} size, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *value, \textcolor{keywordtype}{int} width,
+00821        \textcolor{keywordtype}{int} precision, \textcolor{keywordtype}{int} flags)
+00822 \{
+00823     \textcolor{keywordtype}{int} padlen, strln;  \textcolor{comment}{/* Amount to pad. */}
+00824     \textcolor{keywordtype}{int} noprecision = (precision == -1);
+00825 
+00826     \textcolor{keywordflow}{if} (value == NULL)  \textcolor{comment}{/* We're forgiving. */}
+00827         value = \textcolor{stringliteral}{"(null)"};
+00828 
+00829     \textcolor{comment}{/* If a precision was specified, don't read the string past it. */}
+00830     \textcolor{keywordflow}{for} (strln = 0; value[strln] != \textcolor{charliteral}{'\(\backslash\)0'} &&
+00831         (noprecision || strln < precision); strln++)
+00832         \textcolor{keywordflow}{continue};
+00833 
+00834     \textcolor{keywordflow}{if} ((padlen = width - strln) < 0)
+00835         padlen = 0;
+00836     \textcolor{keywordflow}{if} (flags & PRINT\_F\_MINUS)  \textcolor{comment}{/* Left justify. */}
+00837         padlen = -padlen;
+00838 
+00839     \textcolor{keywordflow}{while} (padlen > 0) \{    \textcolor{comment}{/* Leading spaces. */}
+00840         OUTCHAR(str, *len, size, \textcolor{charliteral}{' '});
+00841         padlen--;
+00842     \}
+00843     \textcolor{keywordflow}{while} (*value != \textcolor{charliteral}{'\(\backslash\)0'} && (noprecision || precision-- > 0)) \{
+00844         OUTCHAR(str, *len, size, *value);
+00845         value++;
+00846     \}
+00847     \textcolor{keywordflow}{while} (padlen < 0) \{    \textcolor{comment}{/* Trailing spaces. */}
+00848         OUTCHAR(str, *len, size, \textcolor{charliteral}{' '});
+00849         padlen++;
+00850     \}
+00851 \}
+00852 
+00853 \textcolor{keyword}{static} \textcolor{keywordtype}{void}
+00854 fmtint(\textcolor{keywordtype}{char} *str, \textcolor{keywordtype}{size\_t} *len, \textcolor{keywordtype}{size\_t} size, INTMAX\_T value, \textcolor{keywordtype}{int} base, \textcolor{keywordtype}{int} width,
+00855        \textcolor{keywordtype}{int} precision, \textcolor{keywordtype}{int} flags)
+00856 \{
+00857     UINTMAX\_T uvalue;
+00858     \textcolor{keywordtype}{char} iconvert[MAX\_CONVERT\_LENGTH];
+00859     \textcolor{keywordtype}{char} sign = 0;
+00860     \textcolor{keywordtype}{char} hexprefix = 0;
+00861     \textcolor{keywordtype}{int} spadlen = 0;    \textcolor{comment}{/* Amount to space pad. */}
+00862     \textcolor{keywordtype}{int} zpadlen = 0;    \textcolor{comment}{/* Amount to zero pad. */}
+00863     \textcolor{keywordtype}{int} pos;
+00864     \textcolor{keywordtype}{int} separators = (flags & PRINT\_F\_QUOTE);
+00865     \textcolor{keywordtype}{int} noprecision = (precision == -1);
+00866 
+00867     \textcolor{keywordflow}{if} (flags & PRINT\_F\_UNSIGNED)
+00868         uvalue = value;
+00869     \textcolor{keywordflow}{else} \{
+00870         uvalue = (value >= 0) ? value : -value;
+00871         \textcolor{keywordflow}{if} (value < 0)
+00872             sign = \textcolor{charliteral}{'-'};
+00873         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (flags & PRINT\_F\_PLUS)  \textcolor{comment}{/* Do a sign. */}
+00874             sign = \textcolor{charliteral}{'+'};
+00875         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (flags & PRINT\_F\_SPACE)
+00876             sign = \textcolor{charliteral}{' '};
+00877     \}
+00878 
+00879     pos = convert(uvalue, iconvert, \textcolor{keyword}{sizeof}(iconvert), base,
+00880         flags & PRINT\_F\_UP);
+00881 
+00882     \textcolor{keywordflow}{if} (flags & PRINT\_F\_NUM && uvalue != 0) \{
+00883         \textcolor{comment}{/*}
+00884 \textcolor{comment}{         * C99 says: "The result is converted to an `alternative form'.}
+00885 \textcolor{comment}{         * For `o' conversion, it increases the precision, if and only}
+00886 \textcolor{comment}{         * if necessary, to force the first digit of the result to be a}
+00887 \textcolor{comment}{         * zero (if the value and precision are both 0, a single 0 is}
+00888 \textcolor{comment}{         * printed).  For `x' (or `X') conversion, a nonzero result has}
+00889 \textcolor{comment}{         * `0x' (or `0X') prefixed to it." (7.19.6.1, 6)}
+00890 \textcolor{comment}{         */}
+00891         \textcolor{keywordflow}{switch} (base) \{
+00892         \textcolor{keywordflow}{case} 8:
+00893             \textcolor{keywordflow}{if} (precision <= pos)
+00894                 precision = pos + 1;
+00895             \textcolor{keywordflow}{break};
+00896         \textcolor{keywordflow}{case} 16:
+00897             hexprefix = (flags & PRINT\_F\_UP) ? \textcolor{charliteral}{'X'} : \textcolor{charliteral}{'x'};
+00898             \textcolor{keywordflow}{break};
+00899         \}
+00900     \}
+00901 
+00902     \textcolor{keywordflow}{if} (separators) \textcolor{comment}{/* Get the number of group separators we'll print. */}
+00903         separators = getnumsep(pos);
+00904 
+00905     zpadlen = precision - pos - separators;
+00906     spadlen = width                         \textcolor{comment}{/* Minimum field width. */}
+00907         - separators                        \textcolor{comment}{/* Number of separators. */}
+00908         - MAX(precision, pos)               \textcolor{comment}{/* Number of integer digits. */}
+00909         - ((sign != 0) ? 1 : 0)             \textcolor{comment}{/* Will we print a sign? */}
+00910         - ((hexprefix != 0) ? 2 : 0);       \textcolor{comment}{/* Will we print a prefix? */}
+00911 
+00912     \textcolor{keywordflow}{if} (zpadlen < 0)
+00913         zpadlen = 0;
+00914     \textcolor{keywordflow}{if} (spadlen < 0)
+00915         spadlen = 0;
+00916 
+00917     \textcolor{comment}{/*}
+00918 \textcolor{comment}{     * C99 says: "If the `0' and `-' flags both appear, the `0' flag is}
+00919 \textcolor{comment}{     * ignored.  For `d', `i', `o', `u', `x', and `X' conversions, if a}
+00920 \textcolor{comment}{     * precision is specified, the `0' flag is ignored." (7.19.6.1, 6)}
+00921 \textcolor{comment}{     */}
+00922     \textcolor{keywordflow}{if} (flags & PRINT\_F\_MINUS)  \textcolor{comment}{/* Left justify. */}
+00923         spadlen = -spadlen;
+00924     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (flags & PRINT\_F\_ZERO && noprecision) \{
+00925         zpadlen += spadlen;
+00926         spadlen = 0;
+00927     \}
+00928     \textcolor{keywordflow}{while} (spadlen > 0) \{   \textcolor{comment}{/* Leading spaces. */}
+00929         OUTCHAR(str, *len, size, \textcolor{charliteral}{' '});
+00930         spadlen--;
+00931     \}
+00932     \textcolor{keywordflow}{if} (sign != 0)  \textcolor{comment}{/* Sign. */}
+00933         OUTCHAR(str, *len, size, sign);
+00934     \textcolor{keywordflow}{if} (hexprefix != 0) \{   \textcolor{comment}{/* A "0x" or "0X" prefix. */}
+00935         OUTCHAR(str, *len, size, \textcolor{charliteral}{'0'});
+00936         OUTCHAR(str, *len, size, hexprefix);
+00937     \}
+00938     \textcolor{keywordflow}{while} (zpadlen > 0) \{   \textcolor{comment}{/* Leading zeros. */}
+00939         OUTCHAR(str, *len, size, \textcolor{charliteral}{'0'});
+00940         zpadlen--;
+00941     \}
+00942     \textcolor{keywordflow}{while} (pos > 0) \{   \textcolor{comment}{/* The actual digits. */}
+00943         pos--;
+00944         OUTCHAR(str, *len, size, iconvert[pos]);
+00945         \textcolor{keywordflow}{if} (separators > 0 && pos > 0 && pos % 3 == 0)
+00946             printsep(str, len, size);
+00947     \}
+00948     \textcolor{keywordflow}{while} (spadlen < 0) \{   \textcolor{comment}{/* Trailing spaces. */}
+00949         OUTCHAR(str, *len, size, \textcolor{charliteral}{' '});
+00950         spadlen++;
+00951     \}
+00952 \}
+00953 
+00954 \textcolor{keyword}{static} \textcolor{keywordtype}{void}
+00955 fmtflt(\textcolor{keywordtype}{char} *str, \textcolor{keywordtype}{size\_t} *len, \textcolor{keywordtype}{size\_t} size, LDOUBLE fvalue, \textcolor{keywordtype}{int} width,
+00956        \textcolor{keywordtype}{int} precision, \textcolor{keywordtype}{int} flags, \textcolor{keywordtype}{int} *overflow)
+00957 \{
+00958     LDOUBLE ufvalue;
+00959     UINTMAX\_T intpart;
+00960     UINTMAX\_T fracpart;
+00961     UINTMAX\_T mask;
+00962     \textcolor{keyword}{const} \textcolor{keywordtype}{char} *infnan = NULL;
+00963     \textcolor{keywordtype}{char} iconvert[MAX\_CONVERT\_LENGTH];
+00964     \textcolor{keywordtype}{char} fconvert[MAX\_CONVERT\_LENGTH];
+00965     \textcolor{keywordtype}{char} econvert[4];   \textcolor{comment}{/* "e-12" (without nul-termination). */}
+00966     \textcolor{keywordtype}{char} esign = 0;
+00967     \textcolor{keywordtype}{char} sign = 0;
+00968     \textcolor{keywordtype}{int} leadfraczeros = 0;
+00969     \textcolor{keywordtype}{int} exponent = 0;
+00970     \textcolor{keywordtype}{int} emitpoint = 0;
+00971     \textcolor{keywordtype}{int} omitzeros = 0;
+00972     \textcolor{keywordtype}{int} omitcount = 0;
+00973     \textcolor{keywordtype}{int} padlen = 0;
+00974     \textcolor{keywordtype}{int} epos = 0;
+00975     \textcolor{keywordtype}{int} fpos = 0;
+00976     \textcolor{keywordtype}{int} ipos = 0;
+00977     \textcolor{keywordtype}{int} separators = (flags & PRINT\_F\_QUOTE);
+00978     \textcolor{keywordtype}{int} estyle = (flags & PRINT\_F\_TYPE\_E);
+00979 \textcolor{preprocessor}{#if HAVE\_LOCALECONV && HAVE\_LCONV\_DECIMAL\_POINT}
+00980     \textcolor{keyword}{struct }lconv *lc = localeconv();
+00981 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_LOCALECONV && HAVE\_LCONV\_DECIMAL\_POINT */}\textcolor{preprocessor}{}
+00982 
+00983     \textcolor{comment}{/*}
+00984 \textcolor{comment}{     * AIX' man page says the default is 0, but C99 and at least Solaris'}
+00985 \textcolor{comment}{     * and NetBSD's man pages say the default is 6, and sprintf(3) on AIX}
+00986 \textcolor{comment}{     * defaults to 6.}
+00987 \textcolor{comment}{     */}
+00988     \textcolor{keywordflow}{if} (precision == -1)
+00989         precision = 6;
+00990 
+00991     \textcolor{keywordflow}{if} (fvalue < 0.0)
+00992         sign = \textcolor{charliteral}{'-'};
+00993     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (flags & PRINT\_F\_PLUS)  \textcolor{comment}{/* Do a sign. */}
+00994         sign = \textcolor{charliteral}{'+'};
+00995     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (flags & PRINT\_F\_SPACE)
+00996         sign = \textcolor{charliteral}{' '};
+00997 
+00998     \textcolor{keywordflow}{if} (ISNAN(fvalue))
+00999         infnan = (flags & PRINT\_F\_UP) ? \textcolor{stringliteral}{"NAN"} : \textcolor{stringliteral}{"nan"};
+01000     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (ISINF(fvalue))
+01001         infnan = (flags & PRINT\_F\_UP) ? \textcolor{stringliteral}{"INF"} : \textcolor{stringliteral}{"inf"};
+01002 
+01003     \textcolor{keywordflow}{if} (infnan != NULL) \{
+01004         \textcolor{keywordflow}{if} (sign != 0)
+01005             iconvert[ipos++] = sign;
+01006         \textcolor{keywordflow}{while} (*infnan != \textcolor{charliteral}{'\(\backslash\)0'})
+01007             iconvert[ipos++] = *infnan++;
+01008         fmtstr(str, len, size, iconvert, width, ipos, flags);
+01009         \textcolor{keywordflow}{return};
+01010     \}
+01011 
+01012     \textcolor{comment}{/* "%e" (or "%E") or "%g" (or "%G") conversion. */}
+01013     \textcolor{keywordflow}{if} (flags & PRINT\_F\_TYPE\_E || flags & PRINT\_F\_TYPE\_G) \{
+01014         \textcolor{keywordflow}{if} (flags & PRINT\_F\_TYPE\_G) \{
+01015             \textcolor{comment}{/*}
+01016 \textcolor{comment}{             * For "%g" (and "%G") conversions, the precision}
+01017 \textcolor{comment}{             * specifies the number of significant digits, which}
+01018 \textcolor{comment}{             * includes the digits in the integer part.  The}
+01019 \textcolor{comment}{             * conversion will or will not be using "e-style" (like}
+01020 \textcolor{comment}{             * "%e" or "%E" conversions) depending on the precision}
+01021 \textcolor{comment}{             * and on the exponent.  However, the exponent can be}
+01022 \textcolor{comment}{             * affected by rounding the converted value, so we'll}
+01023 \textcolor{comment}{             * leave this decision for later.  Until then, we'll}
+01024 \textcolor{comment}{             * assume that we're going to do an "e-style" conversion}
+01025 \textcolor{comment}{             * (in order to get the exponent calculated).  For}
+01026 \textcolor{comment}{             * "e-style", the precision must be decremented by one.}
+01027 \textcolor{comment}{             */}
+01028             precision--;
+01029             \textcolor{comment}{/*}
+01030 \textcolor{comment}{             * For "%g" (and "%G") conversions, trailing zeros are}
+01031 \textcolor{comment}{             * removed from the fractional portion of the result}
+01032 \textcolor{comment}{             * unless the "#" flag was specified.}
+01033 \textcolor{comment}{             */}
+01034             \textcolor{keywordflow}{if} (!(flags & PRINT\_F\_NUM))
+01035                 omitzeros = 1;
+01036         \}
+01037         exponent = getexponent(fvalue);
+01038         estyle = 1;
+01039     \}
+01040 
+01041 again:
+01042     \textcolor{comment}{/*}
+01043 \textcolor{comment}{     * Sorry, we only support 9, 19, or 38 digits (that is, the number of}
+01044 \textcolor{comment}{     * digits of the 32-bit, the 64-bit, or the 128-bit UINTMAX\_MAX value}
+01045 \textcolor{comment}{     * minus one) past the decimal point due to our conversion method.}
+01046 \textcolor{comment}{     */}
+01047     \textcolor{keywordflow}{switch} (\textcolor{keyword}{sizeof}(UINTMAX\_T)) \{
+01048     \textcolor{keywordflow}{case} 16:
+01049         \textcolor{keywordflow}{if} (precision > 38)
+01050             precision = 38;
+01051         \textcolor{keywordflow}{break};
+01052     \textcolor{keywordflow}{case} 8:
+01053         \textcolor{keywordflow}{if} (precision > 19)
+01054             precision = 19;
+01055         \textcolor{keywordflow}{break};
+01056     \textcolor{keywordflow}{default}:
+01057         \textcolor{keywordflow}{if} (precision > 9)
+01058             precision = 9;
+01059         \textcolor{keywordflow}{break};
+01060     \}
+01061 
+01062     ufvalue = (fvalue >= 0.0) ? fvalue : -fvalue;
+01063     \textcolor{keywordflow}{if} (estyle) \textcolor{comment}{/* We want exactly one integer digit. */}
+01064         ufvalue /= mypow10(exponent);
+01065 
+01066     \textcolor{keywordflow}{if} ((intpart = cast(ufvalue)) == UINTMAX\_MAX) \{
+01067         *overflow = 1;
+01068         \textcolor{keywordflow}{return};
+01069     \}
+01070 
+01071     \textcolor{comment}{/*}
+01072 \textcolor{comment}{     * Factor of ten with the number of digits needed for the fractional}
+01073 \textcolor{comment}{     * part.  For example, if the precision is 3, the mask will be 1000.}
+01074 \textcolor{comment}{     */}
+01075     mask = mypow10(precision);
+01076     \textcolor{comment}{/*}
+01077 \textcolor{comment}{     * We "cheat" by converting the fractional part to integer by}
+01078 \textcolor{comment}{     * multiplying by a factor of ten.}
+01079 \textcolor{comment}{     */}
+01080     \textcolor{keywordflow}{if} ((fracpart = myround(mask * (ufvalue - intpart))) >= mask) \{
+01081         \textcolor{comment}{/*}
+01082 \textcolor{comment}{         * For example, ufvalue = 2.99962, intpart = 2, and mask = 1000}
+01083 \textcolor{comment}{         * (because precision = 3).  Now, myround(1000 * 0.99962) will}
+01084 \textcolor{comment}{         * return 1000.  So, the integer part must be incremented by one}
+01085 \textcolor{comment}{         * and the fractional part must be set to zero.}
+01086 \textcolor{comment}{         */}
+01087         intpart++;
+01088         fracpart = 0;
+01089         \textcolor{keywordflow}{if} (estyle && intpart == 10) \{
+01090             \textcolor{comment}{/*}
+01091 \textcolor{comment}{             * The value was rounded up to ten, but we only want one}
+01092 \textcolor{comment}{             * integer digit if using "e-style".  So, the integer}
+01093 \textcolor{comment}{             * part must be set to one and the exponent must be}
+01094 \textcolor{comment}{             * incremented by one.}
+01095 \textcolor{comment}{             */}
+01096             intpart = 1;
+01097             exponent++;
+01098         \}
+01099     \}
+01100 
+01101     \textcolor{comment}{/*}
+01102 \textcolor{comment}{     * Now that we know the real exponent, we can check whether or not to}
+01103 \textcolor{comment}{     * use "e-style" for "%g" (and "%G") conversions.  If we don't need}
+01104 \textcolor{comment}{     * "e-style", the precision must be adjusted and the integer and}
+01105 \textcolor{comment}{     * fractional parts must be recalculated from the original value.}
+01106 \textcolor{comment}{     *}
+01107 \textcolor{comment}{     * C99 says: "Let P equal the precision if nonzero, 6 if the precision}
+01108 \textcolor{comment}{     * is omitted, or 1 if the precision is zero.  Then, if a conversion}
+01109 \textcolor{comment}{     * with style `E' would have an exponent of X:}
+01110 \textcolor{comment}{     *}
+01111 \textcolor{comment}{     * - if P > X >= -4, the conversion is with style `f' (or `F') and}
+01112 \textcolor{comment}{     *   precision P - (X + 1).}
+01113 \textcolor{comment}{     *}
+01114 \textcolor{comment}{     * - otherwise, the conversion is with style `e' (or `E') and precision}
+01115 \textcolor{comment}{     *   P - 1." (7.19.6.1, 8)}
+01116 \textcolor{comment}{     *}
+01117 \textcolor{comment}{     * Note that we had decremented the precision by one.}
+01118 \textcolor{comment}{     */}
+01119     \textcolor{keywordflow}{if} (flags & PRINT\_F\_TYPE\_G && estyle &&
+01120         precision + 1 > exponent && exponent >= -4) \{
+01121         precision -= exponent;
+01122         estyle = 0;
+01123         \textcolor{keywordflow}{goto} again;
+01124     \}
+01125 
+01126     \textcolor{keywordflow}{if} (estyle) \{
+01127         \textcolor{keywordflow}{if} (exponent < 0) \{
+01128             exponent = -exponent;
+01129             esign = \textcolor{charliteral}{'-'};
+01130         \} \textcolor{keywordflow}{else}
+01131             esign = \textcolor{charliteral}{'+'};
+01132 
+01133         \textcolor{comment}{/*}
+01134 \textcolor{comment}{         * Convert the exponent.  The sizeof(econvert) is 4.  So, the}
+01135 \textcolor{comment}{         * econvert buffer can hold e.g. "e+99" and "e-99".  We don't}
+01136 \textcolor{comment}{         * support an exponent which contains more than two digits.}
+01137 \textcolor{comment}{         * Therefore, the following stores are safe.}
+01138 \textcolor{comment}{         */}
+01139         epos = convert(exponent, econvert, 2, 10, 0);
+01140         \textcolor{comment}{/*}
+01141 \textcolor{comment}{         * C99 says: "The exponent always contains at least two digits,}
+01142 \textcolor{comment}{         * and only as many more digits as necessary to represent the}
+01143 \textcolor{comment}{         * exponent." (7.19.6.1, 8)}
+01144 \textcolor{comment}{         */}
+01145         \textcolor{keywordflow}{if} (epos == 1)
+01146             econvert[epos++] = \textcolor{charliteral}{'0'};
+01147         econvert[epos++] = esign;
+01148         econvert[epos++] = (flags & PRINT\_F\_UP) ? \textcolor{charliteral}{'E'} : \textcolor{charliteral}{'e'};
+01149     \}
+01150 
+01151     \textcolor{comment}{/* Convert the integer part and the fractional part. */}
+01152     ipos = convert(intpart, iconvert, \textcolor{keyword}{sizeof}(iconvert), 10, 0);
+01153     \textcolor{keywordflow}{if} (fracpart != 0)  \textcolor{comment}{/* convert() would return 1 if fracpart == 0. */}
+01154         fpos = convert(fracpart, fconvert, \textcolor{keyword}{sizeof}(fconvert), 10, 0);
+01155 
+01156     leadfraczeros = precision - fpos;
+01157 
+01158     \textcolor{keywordflow}{if} (omitzeros) \{
+01159         \textcolor{keywordflow}{if} (fpos > 0)   \textcolor{comment}{/* Omit trailing fractional part zeros. */}
+01160             \textcolor{keywordflow}{while} (omitcount < fpos && fconvert[omitcount] == \textcolor{charliteral}{'0'})
+01161                 omitcount++;
+01162         \textcolor{keywordflow}{else} \{  \textcolor{comment}{/* The fractional part is zero, omit it completely. */}
+01163             omitcount = precision;
+01164             leadfraczeros = 0;
+01165         \}
+01166         precision -= omitcount;
+01167     \}
+01168 
+01169     \textcolor{comment}{/*}
+01170 \textcolor{comment}{     * Print a decimal point if either the fractional part is non-zero}
+01171 \textcolor{comment}{     * and/or the "#" flag was specified.}
+01172 \textcolor{comment}{     */}
+01173     \textcolor{keywordflow}{if} (precision > 0 || flags & PRINT\_F\_NUM)
+01174         emitpoint = 1;
+01175     \textcolor{keywordflow}{if} (separators) \textcolor{comment}{/* Get the number of group separators we'll print. */}
+01176         separators = getnumsep(ipos);
+01177 
+01178     padlen = width                  \textcolor{comment}{/* Minimum field width. */}
+01179         - ipos                      \textcolor{comment}{/* Number of integer digits. */}
+01180         - epos                      \textcolor{comment}{/* Number of exponent characters. */}
+01181         - precision                 \textcolor{comment}{/* Number of fractional digits. */}
+01182         - separators                \textcolor{comment}{/* Number of group separators. */}
+01183         - (emitpoint ? 1 : 0)       \textcolor{comment}{/* Will we print a decimal point? */}
+01184         - ((sign != 0) ? 1 : 0);    \textcolor{comment}{/* Will we print a sign character? */}
+01185 
+01186     \textcolor{keywordflow}{if} (padlen < 0)
+01187         padlen = 0;
+01188 
+01189     \textcolor{comment}{/*}
+01190 \textcolor{comment}{     * C99 says: "If the `0' and `-' flags both appear, the `0' flag is}
+01191 \textcolor{comment}{     * ignored." (7.19.6.1, 6)}
+01192 \textcolor{comment}{     */}
+01193     \textcolor{keywordflow}{if} (flags & PRINT\_F\_MINUS)  \textcolor{comment}{/* Left justifty. */}
+01194         padlen = -padlen;
+01195     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (flags & PRINT\_F\_ZERO && padlen > 0) \{
+01196         \textcolor{keywordflow}{if} (sign != 0) \{    \textcolor{comment}{/* Sign. */}
+01197             OUTCHAR(str, *len, size, sign);
+01198             sign = 0;
+01199         \}
+01200         \textcolor{keywordflow}{while} (padlen > 0) \{    \textcolor{comment}{/* Leading zeros. */}
+01201             OUTCHAR(str, *len, size, \textcolor{charliteral}{'0'});
+01202             padlen--;
+01203         \}
+01204     \}
+01205     \textcolor{keywordflow}{while} (padlen > 0) \{    \textcolor{comment}{/* Leading spaces. */}
+01206         OUTCHAR(str, *len, size, \textcolor{charliteral}{' '});
+01207         padlen--;
+01208     \}
+01209     \textcolor{keywordflow}{if} (sign != 0)  \textcolor{comment}{/* Sign. */}
+01210         OUTCHAR(str, *len, size, sign);
+01211     \textcolor{keywordflow}{while} (ipos > 0) \{  \textcolor{comment}{/* Integer part. */}
+01212         ipos--;
+01213         OUTCHAR(str, *len, size, iconvert[ipos]);
+01214         \textcolor{keywordflow}{if} (separators > 0 && ipos > 0 && ipos % 3 == 0)
+01215             printsep(str, len, size);
+01216     \}
+01217     \textcolor{keywordflow}{if} (emitpoint) \{    \textcolor{comment}{/* Decimal point. */}
+01218 \textcolor{preprocessor}{#if HAVE\_LOCALECONV && HAVE\_LCONV\_DECIMAL\_POINT}
+01219         \textcolor{keywordflow}{if} (lc->decimal\_point != NULL && *lc->decimal\_point != \textcolor{charliteral}{'\(\backslash\)0'})
+01220             OUTCHAR(str, *len, size, *lc->decimal\_point);
+01221         \textcolor{keywordflow}{else}    \textcolor{comment}{/* We'll always print some decimal point character. */}
+01222 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_LOCALECONV && HAVE\_LCONV\_DECIMAL\_POINT */}\textcolor{preprocessor}{}
+01223             OUTCHAR(str, *len, size, \textcolor{charliteral}{'.'});
+01224     \}
+01225     \textcolor{keywordflow}{while} (leadfraczeros > 0) \{ \textcolor{comment}{/* Leading fractional part zeros. */}
+01226         OUTCHAR(str, *len, size, \textcolor{charliteral}{'0'});
+01227         leadfraczeros--;
+01228     \}
+01229     \textcolor{keywordflow}{while} (fpos > omitcount) \{  \textcolor{comment}{/* The remaining fractional part. */}
+01230         fpos--;
+01231         OUTCHAR(str, *len, size, fconvert[fpos]);
+01232     \}
+01233     \textcolor{keywordflow}{while} (epos > 0) \{  \textcolor{comment}{/* Exponent. */}
+01234         epos--;
+01235         OUTCHAR(str, *len, size, econvert[epos]);
+01236     \}
+01237     \textcolor{keywordflow}{while} (padlen < 0) \{    \textcolor{comment}{/* Trailing spaces. */}
+01238         OUTCHAR(str, *len, size, \textcolor{charliteral}{' '});
+01239         padlen++;
+01240     \}
+01241 \}
+01242 
+01243 \textcolor{keyword}{static} \textcolor{keywordtype}{void}
+01244 printsep(\textcolor{keywordtype}{char} *str, \textcolor{keywordtype}{size\_t} *len, \textcolor{keywordtype}{size\_t} size)
+01245 \{
+01246 \textcolor{preprocessor}{#if HAVE\_LOCALECONV && HAVE\_LCONV\_THOUSANDS\_SEP}
+01247     \textcolor{keyword}{struct }lconv *lc = localeconv();
+01248     \textcolor{keywordtype}{int} i;
+01249 
+01250     \textcolor{keywordflow}{if} (lc->thousands\_sep != NULL)
+01251         \textcolor{keywordflow}{for} (i = 0; lc->thousands\_sep[i] != \textcolor{charliteral}{'\(\backslash\)0'}; i++)
+01252             OUTCHAR(str, *len, size, lc->thousands\_sep[i]);
+01253     \textcolor{keywordflow}{else}
+01254 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_LOCALECONV && HAVE\_LCONV\_THOUSANDS\_SEP */}\textcolor{preprocessor}{}
+01255         OUTCHAR(str, *len, size, \textcolor{charliteral}{','});
+01256 \}
+01257 
+01258 \textcolor{keyword}{static} \textcolor{keywordtype}{int}
+01259 getnumsep(\textcolor{keywordtype}{int} digits)
+01260 \{
+01261     \textcolor{keywordtype}{int} separators = (digits - ((digits % 3 == 0) ? 1 : 0)) / 3;
+01262 \textcolor{preprocessor}{#if HAVE\_LOCALECONV && HAVE\_LCONV\_THOUSANDS\_SEP}
+01263     \textcolor{keywordtype}{int} strln;
+01264     \textcolor{keyword}{struct }lconv *lc = localeconv();
+01265 
+01266     \textcolor{comment}{/* We support an arbitrary separator length (including zero). */}
+01267     \textcolor{keywordflow}{if} (lc->thousands\_sep != NULL) \{
+01268         \textcolor{keywordflow}{for} (strln = 0; lc->thousands\_sep[strln] != \textcolor{charliteral}{'\(\backslash\)0'}; strln++)
+01269             \textcolor{keywordflow}{continue};
+01270         separators *= strln;
+01271     \}
+01272 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_LOCALECONV && HAVE\_LCONV\_THOUSANDS\_SEP */}\textcolor{preprocessor}{}
+01273     \textcolor{keywordflow}{return} separators;
+01274 \}
+01275 
+01276 \textcolor{keyword}{static} \textcolor{keywordtype}{int}
+01277 getexponent(LDOUBLE value)
+01278 \{
+01279     LDOUBLE tmp = (value >= 0.0) ? value : -value;
+01280     \textcolor{keywordtype}{int} exponent = 0;
+01281 
+01282     \textcolor{comment}{/*}
+01283 \textcolor{comment}{     * We check for 99 > exponent > -99 in order to work around possible}
+01284 \textcolor{comment}{     * endless loops which could happen (at least) in the second loop (at}
+01285 \textcolor{comment}{     * least) if we're called with an infinite value.  However, we checked}
+01286 \textcolor{comment}{     * for infinity before calling this function using our ISINF() macro, so}
+01287 \textcolor{comment}{     * this might be somewhat paranoid.}
+01288 \textcolor{comment}{     */}
+01289     \textcolor{keywordflow}{while} (tmp < 1.0 && tmp > 0.0 && --exponent > -99)
+01290         tmp *= 10;
+01291     \textcolor{keywordflow}{while} (tmp >= 10.0 && ++exponent < 99)
+01292         tmp /= 10;
+01293 
+01294     \textcolor{keywordflow}{return} exponent;
+01295 \}
+01296 
+01297 \textcolor{keyword}{static} \textcolor{keywordtype}{int}
+01298 convert(UINTMAX\_T value, \textcolor{keywordtype}{char} *buf, \textcolor{keywordtype}{size\_t} size, \textcolor{keywordtype}{int} base, \textcolor{keywordtype}{int} caps)
+01299 \{
+01300     \textcolor{keyword}{const} \textcolor{keywordtype}{char} *digits = caps ? \textcolor{stringliteral}{"0123456789ABCDEF"} : \textcolor{stringliteral}{"0123456789abcdef"};
+01301     \textcolor{keywordtype}{size\_t} pos = 0;
+01302 
+01303     \textcolor{comment}{/* We return an unterminated buffer with the digits in reverse order. */}
+01304     \textcolor{keywordflow}{do} \{
+01305         buf[pos++] = digits[value % base];
+01306         value /= base;
+01307     \} \textcolor{keywordflow}{while} (value != 0 && pos < size);
+01308 
+01309     \textcolor{keywordflow}{return} (\textcolor{keywordtype}{int})pos;
+01310 \}
+01311 
+01312 \textcolor{keyword}{static} UINTMAX\_T
+01313 cast(LDOUBLE value)
+01314 \{
+01315     UINTMAX\_T result;
+01316 
+01317     \textcolor{comment}{/*}
+01318 \textcolor{comment}{     * We check for ">=" and not for ">" because if UINTMAX\_MAX cannot be}
+01319 \textcolor{comment}{     * represented exactly as an LDOUBLE value (but is less than LDBL\_MAX),}
+01320 \textcolor{comment}{     * it may be increased to the nearest higher representable value for the}
+01321 \textcolor{comment}{     * comparison (cf. C99: 6.3.1.4, 2).  It might then equal the LDOUBLE}
+01322 \textcolor{comment}{     * value although converting the latter to UINTMAX\_T would overflow.}
+01323 \textcolor{comment}{     */}
+01324     \textcolor{keywordflow}{if} (value >= UINTMAX\_MAX)
+01325         \textcolor{keywordflow}{return} UINTMAX\_MAX;
+01326 
+01327     result = value;
+01328     \textcolor{comment}{/*}
+01329 \textcolor{comment}{     * At least on NetBSD/sparc64 3.0.2 and 4.99.30, casting long double to}
+01330 \textcolor{comment}{     * an integer type converts e.g. 1.9 to 2 instead of 1 (which violates}
+01331 \textcolor{comment}{     * the standard).  Sigh.}
+01332 \textcolor{comment}{     */}
+01333     \textcolor{keywordflow}{return} (result <= value) ? result : result - 1;
+01334 \}
+01335 
+01336 \textcolor{keyword}{static} UINTMAX\_T
+01337 myround(LDOUBLE value)
+01338 \{
+01339     UINTMAX\_T intpart = cast(value);
+01340 
+01341     \textcolor{keywordflow}{return} ((value -= intpart) < 0.5) ? intpart : intpart + 1;
+01342 \}
+01343 
+01344 \textcolor{keyword}{static} LDOUBLE
+01345 mypow10(\textcolor{keywordtype}{int} exponent)
+01346 \{
+01347     LDOUBLE result = 1;
+01348 
+01349     \textcolor{keywordflow}{while} (exponent > 0) \{
+01350         result *= 10;
+01351         exponent--;
+01352     \}
+01353     \textcolor{keywordflow}{while} (exponent < 0) \{
+01354         result /= 10;
+01355         exponent++;
+01356     \}
+01357     \textcolor{keywordflow}{return} result;
+01358 \}
+01359 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !HAVE\_VSNPRINTF */}\textcolor{preprocessor}{}
+01360 
+01361 \textcolor{preprocessor}{#if !HAVE\_VASPRINTF}
+01362 \textcolor{preprocessor}{#if NEED\_MYMEMCPY}
+01363 \textcolor{keywordtype}{void} *
+01364 mymemcpy(\textcolor{keywordtype}{void} *dst, \textcolor{keywordtype}{void} *src, \textcolor{keywordtype}{size\_t} len)
+01365 \{
+01366     \textcolor{keyword}{const} \textcolor{keywordtype}{char} *from = (\textcolor{keyword}{const} \textcolor{keywordtype}{char} *)src;
+01367     \textcolor{keywordtype}{char} *to = (\textcolor{keywordtype}{char}*)dst;
+01368 
+01369     \textcolor{comment}{/* No need for optimization, we use this only to replace va\_copy(3). */}
+01370     \textcolor{keywordflow}{while} (len-- > 0)
+01371         *to++ = *from++;
+01372     \textcolor{keywordflow}{return} dst;
+01373 \}
+01374 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* NEED\_MYMEMCPY */}\textcolor{preprocessor}{}
+01375 
+01376 \textcolor{keywordtype}{int}
+01377 rpl\_vasprintf(\textcolor{keywordtype}{char} **ret, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *format, va\_list ap)
+01378 \{
+01379     \textcolor{keywordtype}{size\_t} size;
+01380     \textcolor{keywordtype}{int} len;
+01381     va\_list aq;
+01382 
+01383     VA\_COPY(aq, ap);
+01384 \textcolor{preprocessor}{#if !HAVE\_VSNPRINTF}
+01385     len = rpl\_vsnprintf(NULL, 0, format, aq);
+01386 \textcolor{preprocessor}{#else}
+01387     len = vsnprintf(NULL, 0, format, aq);
+01388 \textcolor{preprocessor}{#endif}
+01389     VA\_END\_COPY(aq);
+01390     \textcolor{keywordflow}{if} (len < 0 || (*ret = (\textcolor{keywordtype}{char}*)malloc(size = len + 1)) == NULL)
+01391         \textcolor{keywordflow}{return} -1;
+01392 \textcolor{preprocessor}{#if !HAVE\_VSNPRINTF}
+01393     \textcolor{keywordflow}{return} rpl\_vsnprintf(*ret, size, format, ap);
+01394 \textcolor{preprocessor}{#else}
+01395     \textcolor{keywordflow}{return} vsnprintf(*ret, size, format, ap);
+01396 \textcolor{preprocessor}{#endif}
+01397 \}
+01398 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !HAVE\_VASPRINTF */}\textcolor{preprocessor}{}
+01399 
+01400 \textcolor{preprocessor}{#if !HAVE\_SNPRINTF}
+01401 \textcolor{preprocessor}{#if HAVE\_STDARG\_H}
+01402 \textcolor{keywordtype}{int}
+01403 rpl\_snprintf(\textcolor{keywordtype}{char} *str, \textcolor{keywordtype}{size\_t} size, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *format, ...)
+01404 \textcolor{preprocessor}{#else}
+01405 \textcolor{keywordtype}{int}
+01406 rpl\_snprintf(va\_alist) va\_dcl
+01407 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_STDARG\_H */}\textcolor{preprocessor}{}
+01408 \{
+01409 \textcolor{preprocessor}{#if !HAVE\_STDARG\_H}
+01410     \textcolor{keywordtype}{char} *str;
+01411     \textcolor{keywordtype}{size\_t} size;
+01412     \textcolor{keywordtype}{char} *format;
+01413 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_STDARG\_H */}\textcolor{preprocessor}{}
+01414     va\_list ap;
+01415     \textcolor{keywordtype}{int} len;
+01416 
+01417     VA\_START(ap, format);
+01418     VA\_SHIFT(ap, str, \textcolor{keywordtype}{char} *);
+01419     VA\_SHIFT(ap, size, \textcolor{keywordtype}{size\_t});
+01420     VA\_SHIFT(ap, format, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *);
+01421 \textcolor{preprocessor}{#if !HAVE\_VSNPRINTF}
+01422     len = rpl\_vsnprintf(str, size, format, ap);
+01423 \textcolor{preprocessor}{#else}
+01424     len = vsnprintf(str, size, format, ap);
+01425 \textcolor{preprocessor}{#endif}
+01426     va\_end(ap);
+01427     \textcolor{keywordflow}{return} len;
+01428 \}
+01429 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !HAVE\_SNPRINTF */}\textcolor{preprocessor}{}
+01430 
+01431 \textcolor{preprocessor}{#if !HAVE\_ASPRINTF}
+01432 \textcolor{preprocessor}{#if HAVE\_STDARG\_H}
+01433 \textcolor{keywordtype}{int}
+01434 rpl\_asprintf(\textcolor{keywordtype}{char} **ret, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *format, ...)
+01435 \textcolor{preprocessor}{#else}
+01436 \textcolor{keywordtype}{int}
+01437 rpl\_asprintf(va\_alist) va\_dcl
+01438 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_STDARG\_H */}\textcolor{preprocessor}{}
+01439 \{
+01440 \textcolor{preprocessor}{#if !HAVE\_STDARG\_H}
+01441     \textcolor{keywordtype}{char} **ret;
+01442     \textcolor{keywordtype}{char} *format;
+01443 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* HAVE\_STDARG\_H */}\textcolor{preprocessor}{}
+01444     va\_list ap;
+01445     \textcolor{keywordtype}{int} len;
+01446 
+01447     VA\_START(ap, format);
+01448     VA\_SHIFT(ap, ret, \textcolor{keywordtype}{char} **);
+01449     VA\_SHIFT(ap, format, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *);
+01450 \textcolor{preprocessor}{#if !HAVE\_VASPRINTF}
+01451     len = rpl\_vasprintf(ret, format, ap);
+01452 \textcolor{preprocessor}{#else}
+01453     len = vasprintf(ret, format, ap);
+01454 \textcolor{preprocessor}{#endif}
+01455     va\_end(ap);
+01456     \textcolor{keywordflow}{return} len;
+01457 \}
+01458 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !HAVE\_ASPRINTF */}\textcolor{preprocessor}{}
+01459 \textcolor{preprocessor}{#else   }\textcolor{comment}{/* Dummy declaration to avoid empty translation unit warnings. */}\textcolor{preprocessor}{}
+01460 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} **argv);
+01461 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !HAVE\_SNPRINTF || !HAVE\_VSNPRINTF || !HAVE\_ASPRINTF || [...] */}\textcolor{preprocessor}{}
+\end{DoxyCode}

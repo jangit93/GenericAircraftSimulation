@@ -1,0 +1,280 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2half__float_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/half\+\_\+float.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2half__float_8cpp_source}\index{half\+\_\+float.\+cpp@{half\+\_\+float.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00005 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00006 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00007 
+00008 \textcolor{preprocessor}{#include <sstream>}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 \textcolor{preprocessor}{#include <Eigen/src/Core/arch/CUDA/Half.h>}
+00013 
+00014 \textcolor{comment}{// Make sure it's possible to forward declare Eigen::half}
+00015 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00016 \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1half}{half};
+00017 \}
+00018 
+00019 \textcolor{keyword}{using} \hyperlink{struct_eigen_1_1half}{Eigen::half};
+00020 
+00021 \textcolor{keywordtype}{void} test\_conversion()
+00022 \{
+00023   \textcolor{keyword}{using} \hyperlink{struct_eigen_1_1half__impl_1_1____half}{Eigen::half\_impl::\_\_half};
+00024 
+00025   \textcolor{comment}{// Conversion from float.}
+00026   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(1.0f).x, 0x3c00);
+00027   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(0.5f).x, 0x3800);
+00028   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(0.33333f).x, 0x3555);
+00029   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(0.0f).x, 0x0000);
+00030   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(-0.0f).x, 0x8000);
+00031   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(65504.0f).x, 0x7bff);
+00032   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(65536.0f).x, 0x7c00);  \textcolor{comment}{// Becomes infinity.}
+00033 
+00034   \textcolor{comment}{// Denormals.}
+00035   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(-5.96046e-08f).x, 0x8001);
+00036   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(5.96046e-08f).x, 0x0001);
+00037   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(1.19209e-07f).x, 0x0002);
+00038 
+00039   \textcolor{comment}{// Verify round-to-nearest-even behavior.}
+00040   \textcolor{keywordtype}{float} val1 = float(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0x3c00)));
+00041   \textcolor{keywordtype}{float} val2 = float(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0x3c01)));
+00042   \textcolor{keywordtype}{float} val3 = float(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0x3c02)));
+00043   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(0.5f * (val1 + val2)).x, 0x3c00);
+00044   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(0.5f * (val2 + val3)).x, 0x3c02);
+00045 
+00046   \textcolor{comment}{// Conversion from int.}
+00047   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(-1).x, 0xbc00);
+00048   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(0).x, 0x0000);
+00049   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(1).x, 0x3c00);
+00050   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(2).x, 0x4000);
+00051   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(3).x, 0x4200);
+00052 
+00053   \textcolor{comment}{// Conversion from bool.}
+00054   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(\textcolor{keyword}{false}).x, 0x0000);
+00055   VERIFY\_IS\_EQUAL(\hyperlink{struct_eigen_1_1half}{half}(\textcolor{keyword}{true}).x, 0x3c00);
+00056 
+00057   \textcolor{comment}{// Conversion to float.}
+00058   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0x0000))), 0.0f);
+00059   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0x3c00))), 1.0f);
+00060 
+00061   \textcolor{comment}{// Denormals.}
+00062   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0x8001))), -5.96046e-08f);
+00063   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0x0001))), 5.96046e-08f);
+00064   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0x0002))), 1.19209e-07f);
+00065 
+00066   \textcolor{comment}{// NaNs and infinities.}
+00067   VERIFY(!(numext::isinf)(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(65504.0f))));  \textcolor{comment}{// Largest finite number.}
+00068   VERIFY(!(numext::isnan)(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(0.0f))));
+00069   VERIFY((numext::isinf)(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0xfc00)))));
+00070   VERIFY((numext::isnan)(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0xfc01)))));
+00071   VERIFY((numext::isinf)(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0x7c00)))));
+00072   VERIFY((numext::isnan)(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0x7c01)))));
+00073 
+00074 \textcolor{preprocessor}{#if !EIGEN\_COMP\_MSVC}
+00075   \textcolor{comment}{// Visual Studio errors out on divisions by 0}
+00076   VERIFY((numext::isnan)(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(0.0 / 0.0))));
+00077   VERIFY((numext::isinf)(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(1.0 / 0.0))));
+00078   VERIFY((numext::isinf)(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(-1.0 / 0.0))));
+00079 \textcolor{preprocessor}{#endif}
+00080 
+00081   \textcolor{comment}{// Exactly same checks as above, just directly on the half representation.}
+00082   VERIFY(!(numext::isinf)(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0x7bff))));
+00083   VERIFY(!(numext::isnan)(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0x0000))));
+00084   VERIFY((numext::isinf)(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0xfc00))));
+00085   VERIFY((numext::isnan)(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0xfc01))));
+00086   VERIFY((numext::isinf)(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0x7c00))));
+00087   VERIFY((numext::isnan)(\hyperlink{struct_eigen_1_1half}{half}(\_\_half(0x7c01))));
+00088 
+00089 \textcolor{preprocessor}{#if !EIGEN\_COMP\_MSVC}
+00090   \textcolor{comment}{// Visual Studio errors out on divisions by 0}
+00091   VERIFY((numext::isnan)(\hyperlink{struct_eigen_1_1half}{half}(0.0 / 0.0)));
+00092   VERIFY((numext::isinf)(\hyperlink{struct_eigen_1_1half}{half}(1.0 / 0.0)));
+00093   VERIFY((numext::isinf)(\hyperlink{struct_eigen_1_1half}{half}(-1.0 / 0.0)));
+00094 \textcolor{preprocessor}{#endif}
+00095 \}
+00096 
+00097 \textcolor{keywordtype}{void} test\_numtraits()
+00098 \{
+00099   std::cout << \textcolor{stringliteral}{"epsilon       = "} << \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<half>::epsilon}() << \textcolor{stringliteral}{"  (0x"} << 
+      std::hex << NumTraits<half>::epsilon().x << \textcolor{stringliteral}{")"} << std::endl;
+00100   std::cout << \textcolor{stringliteral}{"highest       = "} << \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<half>::highest}() << \textcolor{stringliteral}{"  (0x"} << 
+      std::hex << NumTraits<half>::highest().x << \textcolor{stringliteral}{")"} << std::endl;
+00101   std::cout << \textcolor{stringliteral}{"lowest        = "} << \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<half>::lowest}() << \textcolor{stringliteral}{"  (0x"} << 
+      std::hex << NumTraits<half>::lowest().x << \textcolor{stringliteral}{")"} << std::endl;
+00102   std::cout << \textcolor{stringliteral}{"min           = "} << (std::numeric\_limits<half>::min)() << \textcolor{stringliteral}{"  (0x"} << std::hex <<
+       half((std::numeric\_limits<half>::min)()).x << \textcolor{stringliteral}{")"} << std::endl;
+00103   std::cout << \textcolor{stringliteral}{"denorm min    = "} << (std::numeric\_limits<half>::denorm\_min)() << \textcolor{stringliteral}{"  (0x"} << std::hex <<
+       half((std::numeric\_limits<half>::denorm\_min)()).x << \textcolor{stringliteral}{")"} << std::endl;
+00104   std::cout << \textcolor{stringliteral}{"infinity      = "} << \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<half>::infinity}() << \textcolor{stringliteral}{"  (0x"} << 
+      std::hex << NumTraits<half>::infinity().x << \textcolor{stringliteral}{")"} << std::endl;
+00105   std::cout << \textcolor{stringliteral}{"quiet nan     = "} << \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<half>::quiet\_NaN}() << \textcolor{stringliteral}{"  (0x"} << 
+      std::hex << NumTraits<half>::quiet\_NaN().x << \textcolor{stringliteral}{")"} << std::endl;
+00106   std::cout << \textcolor{stringliteral}{"signaling nan = "} << std::numeric\_limits<half>::signaling\_NaN() << \textcolor{stringliteral}{"  (0x"} << std::hex <<
+       std::numeric\_limits<half>::signaling\_NaN().x << \textcolor{stringliteral}{")"} << std::endl;
+00107 
+00108   VERIFY(\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<half>::IsSigned});
+00109 
+00110   VERIFY\_IS\_EQUAL( std::numeric\_limits<half>::infinity().x, \hyperlink{struct_eigen_1_1half}{half}(std::numeric\_limits<float>::infinity()
+      ).x );
+00111   VERIFY\_IS\_EQUAL( std::numeric\_limits<half>::quiet\_NaN().x, \hyperlink{struct_eigen_1_1half}{half}(std::numeric\_limits<float>::quiet\_NaN
+      ()).x );
+00112   VERIFY\_IS\_EQUAL( std::numeric\_limits<half>::signaling\_NaN().x, \hyperlink{struct_eigen_1_1half}{half}(
+      std::numeric\_limits<float>::signaling\_NaN()).x );
+00113   VERIFY( (std::numeric\_limits<half>::min)() > \hyperlink{struct_eigen_1_1half}{half}(0.f) );
+00114   VERIFY( (std::numeric\_limits<half>::denorm\_min)() > \hyperlink{struct_eigen_1_1half}{half}(0.f) );
+00115   VERIFY( (std::numeric\_limits<half>::min)()/\hyperlink{struct_eigen_1_1half}{half}(2) > \hyperlink{struct_eigen_1_1half}{half}(0.f) );
+00116   VERIFY\_IS\_EQUAL( (std::numeric\_limits<half>::denorm\_min)()/\hyperlink{struct_eigen_1_1half}{half}(2), \hyperlink{struct_eigen_1_1half}{half}(0.f) );
+00117 \}
+00118 
+00119 \textcolor{keywordtype}{void} test\_arithmetic()
+00120 \{
+00121   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(2) + \hyperlink{struct_eigen_1_1half}{half}(2)), 4);
+00122   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(2) + \hyperlink{struct_eigen_1_1half}{half}(-2)), 0);
+00123   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(0.33333f) + \hyperlink{struct_eigen_1_1half}{half}(0.66667f)), 1.0f);
+00124   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(2.0f) * \hyperlink{struct_eigen_1_1half}{half}(-5.5f)), -11.0f);
+00125   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(\hyperlink{struct_eigen_1_1half}{half}(1.0f) / \hyperlink{struct_eigen_1_1half}{half}(3.0f)), 0.33333f);
+00126   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(-\hyperlink{struct_eigen_1_1half}{half}(4096.0f)), -4096.0f);
+00127   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(-\hyperlink{struct_eigen_1_1half}{half}(-4096.0f)), 4096.0f);
+00128 \}
+00129 
+00130 \textcolor{keywordtype}{void} test\_comparison()
+00131 \{
+00132   VERIFY(\hyperlink{struct_eigen_1_1half}{half}(1.0f) > \hyperlink{struct_eigen_1_1half}{half}(0.5f));
+00133   VERIFY(\hyperlink{struct_eigen_1_1half}{half}(0.5f) < \hyperlink{struct_eigen_1_1half}{half}(1.0f));
+00134   VERIFY(!(\hyperlink{struct_eigen_1_1half}{half}(1.0f) < \hyperlink{struct_eigen_1_1half}{half}(0.5f)));
+00135   VERIFY(!(\hyperlink{struct_eigen_1_1half}{half}(0.5f) > \hyperlink{struct_eigen_1_1half}{half}(1.0f)));
+00136 
+00137   VERIFY(!(\hyperlink{struct_eigen_1_1half}{half}(4.0f) > \hyperlink{struct_eigen_1_1half}{half}(4.0f)));
+00138   VERIFY(!(\hyperlink{struct_eigen_1_1half}{half}(4.0f) < \hyperlink{struct_eigen_1_1half}{half}(4.0f)));
+00139 
+00140   VERIFY(!(\hyperlink{struct_eigen_1_1half}{half}(0.0f) < \hyperlink{struct_eigen_1_1half}{half}(-0.0f)));
+00141   VERIFY(!(\hyperlink{struct_eigen_1_1half}{half}(-0.0f) < \hyperlink{struct_eigen_1_1half}{half}(0.0f)));
+00142   VERIFY(!(\hyperlink{struct_eigen_1_1half}{half}(0.0f) > \hyperlink{struct_eigen_1_1half}{half}(-0.0f)));
+00143   VERIFY(!(\hyperlink{struct_eigen_1_1half}{half}(-0.0f) > \hyperlink{struct_eigen_1_1half}{half}(0.0f)));
+00144 
+00145   VERIFY(\hyperlink{struct_eigen_1_1half}{half}(0.2f) > \hyperlink{struct_eigen_1_1half}{half}(-1.0f));
+00146   VERIFY(\hyperlink{struct_eigen_1_1half}{half}(-1.0f) < \hyperlink{struct_eigen_1_1half}{half}(0.2f));
+00147   VERIFY(\hyperlink{struct_eigen_1_1half}{half}(-16.0f) < \hyperlink{struct_eigen_1_1half}{half}(-15.0f));
+00148 
+00149   VERIFY(\hyperlink{struct_eigen_1_1half}{half}(1.0f) == \hyperlink{struct_eigen_1_1half}{half}(1.0f));
+00150   VERIFY(\hyperlink{struct_eigen_1_1half}{half}(1.0f) != \hyperlink{struct_eigen_1_1half}{half}(2.0f));
+00151 
+00152   \textcolor{comment}{// Comparisons with NaNs and infinities.}
+00153 \textcolor{preprocessor}{#if !EIGEN\_COMP\_MSVC}
+00154   \textcolor{comment}{// Visual Studio errors out on divisions by 0}
+00155   VERIFY(!(\hyperlink{struct_eigen_1_1half}{half}(0.0 / 0.0) == \hyperlink{struct_eigen_1_1half}{half}(0.0 / 0.0)));
+00156   VERIFY(\hyperlink{struct_eigen_1_1half}{half}(0.0 / 0.0) != \hyperlink{struct_eigen_1_1half}{half}(0.0 / 0.0));
+00157 
+00158   VERIFY(!(\hyperlink{struct_eigen_1_1half}{half}(1.0) == \hyperlink{struct_eigen_1_1half}{half}(0.0 / 0.0)));
+00159   VERIFY(!(\hyperlink{struct_eigen_1_1half}{half}(1.0) < \hyperlink{struct_eigen_1_1half}{half}(0.0 / 0.0)));
+00160   VERIFY(!(\hyperlink{struct_eigen_1_1half}{half}(1.0) > \hyperlink{struct_eigen_1_1half}{half}(0.0 / 0.0)));
+00161   VERIFY(\hyperlink{struct_eigen_1_1half}{half}(1.0) != \hyperlink{struct_eigen_1_1half}{half}(0.0 / 0.0));
+00162 
+00163   VERIFY(\hyperlink{struct_eigen_1_1half}{half}(1.0) < \hyperlink{struct_eigen_1_1half}{half}(1.0 / 0.0));
+00164   VERIFY(\hyperlink{struct_eigen_1_1half}{half}(1.0) > \hyperlink{struct_eigen_1_1half}{half}(-1.0 / 0.0));
+00165 \textcolor{preprocessor}{#endif}
+00166 \}
+00167 
+00168 \textcolor{keywordtype}{void} test\_basic\_functions()
+00169 \{
+00170   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(numext::abs(\hyperlink{struct_eigen_1_1half}{half}(3.5f))), 3.5f);
+00171   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(abs(\hyperlink{struct_eigen_1_1half}{half}(3.5f))), 3.5f);
+00172   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(numext::abs(\hyperlink{struct_eigen_1_1half}{half}(-3.5f))), 3.5f);
+00173   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(abs(\hyperlink{struct_eigen_1_1half}{half}(-3.5f))), 3.5f);
+00174 
+00175   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(numext::floor(\hyperlink{struct_eigen_1_1half}{half}(3.5f))), 3.0f);
+00176   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(floor(\hyperlink{struct_eigen_1_1half}{half}(3.5f))), 3.0f);
+00177   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(numext::floor(\hyperlink{struct_eigen_1_1half}{half}(-3.5f))), -4.0f);
+00178   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(floor(\hyperlink{struct_eigen_1_1half}{half}(-3.5f))), -4.0f);
+00179 
+00180   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(numext::ceil(\hyperlink{struct_eigen_1_1half}{half}(3.5f))), 4.0f);
+00181   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(ceil(\hyperlink{struct_eigen_1_1half}{half}(3.5f))), 4.0f);
+00182   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(numext::ceil(\hyperlink{struct_eigen_1_1half}{half}(-3.5f))), -3.0f);
+00183   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(ceil(\hyperlink{struct_eigen_1_1half}{half}(-3.5f))), -3.0f);
+00184 
+00185   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(numext::sqrt(\hyperlink{struct_eigen_1_1half}{half}(0.0f))), 0.0f);
+00186   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(sqrt(\hyperlink{struct_eigen_1_1half}{half}(0.0f))), 0.0f);
+00187   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(numext::sqrt(\hyperlink{struct_eigen_1_1half}{half}(4.0f))), 2.0f);
+00188   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(sqrt(\hyperlink{struct_eigen_1_1half}{half}(4.0f))), 2.0f);
+00189 
+00190   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(numext::pow(\hyperlink{struct_eigen_1_1half}{half}(0.0f), \hyperlink{struct_eigen_1_1half}{half}(1.0f))), 0.0f);
+00191   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(pow(\hyperlink{struct_eigen_1_1half}{half}(0.0f), \hyperlink{struct_eigen_1_1half}{half}(1.0f))), 0.0f);
+00192   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(numext::pow(\hyperlink{struct_eigen_1_1half}{half}(2.0f), \hyperlink{struct_eigen_1_1half}{half}(2.0f))), 4.0f);
+00193   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(pow(\hyperlink{struct_eigen_1_1half}{half}(2.0f), \hyperlink{struct_eigen_1_1half}{half}(2.0f))), 4.0f);
+00194 
+00195   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(numext::exp(\hyperlink{struct_eigen_1_1half}{half}(0.0f))), 1.0f);
+00196   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(exp(\hyperlink{struct_eigen_1_1half}{half}(0.0f))), 1.0f);
+00197   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(numext::exp(\hyperlink{struct_eigen_1_1half}{half}(EIGEN\_PI))), 20.f + \textcolor{keywordtype}{float}(EIGEN\_PI));
+00198   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(exp(\hyperlink{struct_eigen_1_1half}{half}(EIGEN\_PI))), 20.f + \textcolor{keywordtype}{float}(EIGEN\_PI));
+00199 
+00200   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(numext::log(\hyperlink{struct_eigen_1_1half}{half}(1.0f))), 0.0f);
+00201   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(\hyperlink{structlog}{log}(\hyperlink{struct_eigen_1_1half}{half}(1.0f))), 0.0f);
+00202   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(numext::log(\hyperlink{struct_eigen_1_1half}{half}(10.0f))), 2.30273f);
+00203   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(\hyperlink{structlog}{log}(\hyperlink{struct_eigen_1_1half}{half}(10.0f))), 2.30273f);
+00204 
+00205   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(numext::log1p(\hyperlink{struct_eigen_1_1half}{half}(0.0f))), 0.0f);
+00206   VERIFY\_IS\_EQUAL(\textcolor{keywordtype}{float}(log1p(\hyperlink{struct_eigen_1_1half}{half}(0.0f))), 0.0f);
+00207   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(numext::log1p(\hyperlink{struct_eigen_1_1half}{half}(10.0f))), 2.3978953f);
+00208   VERIFY\_IS\_APPROX(\textcolor{keywordtype}{float}(log1p(\hyperlink{struct_eigen_1_1half}{half}(10.0f))), 2.3978953f);
+00209 \}
+00210 
+00211 \textcolor{keywordtype}{void} test\_trigonometric\_functions()
+00212 \{
+00213   VERIFY\_IS\_APPROX(numext::cos(\hyperlink{struct_eigen_1_1half}{half}(0.0f)), \hyperlink{struct_eigen_1_1half}{half}(cosf(0.0f)));
+00214   VERIFY\_IS\_APPROX(cos(\hyperlink{struct_eigen_1_1half}{half}(0.0f)), \hyperlink{struct_eigen_1_1half}{half}(cosf(0.0f)));
+00215   VERIFY\_IS\_APPROX(numext::cos(\hyperlink{struct_eigen_1_1half}{half}(EIGEN\_PI)), \hyperlink{struct_eigen_1_1half}{half}(cosf(EIGEN\_PI)));
+00216   \textcolor{comment}{//VERIFY\_IS\_APPROX(numext::cos(half(EIGEN\_PI/2)), half(cosf(EIGEN\_PI/2)));}
+00217   \textcolor{comment}{//VERIFY\_IS\_APPROX(numext::cos(half(3*EIGEN\_PI/2)), half(cosf(3*EIGEN\_PI/2)));}
+00218   VERIFY\_IS\_APPROX(numext::cos(\hyperlink{struct_eigen_1_1half}{half}(3.5f)), \hyperlink{struct_eigen_1_1half}{half}(cosf(3.5f)));
+00219 
+00220   VERIFY\_IS\_APPROX(numext::sin(\hyperlink{struct_eigen_1_1half}{half}(0.0f)), \hyperlink{struct_eigen_1_1half}{half}(sinf(0.0f)));
+00221   VERIFY\_IS\_APPROX(sin(\hyperlink{struct_eigen_1_1half}{half}(0.0f)), \hyperlink{struct_eigen_1_1half}{half}(sinf(0.0f)));
+00222   \textcolor{comment}{//  VERIFY\_IS\_APPROX(numext::sin(half(EIGEN\_PI)), half(sinf(EIGEN\_PI)));}
+00223   VERIFY\_IS\_APPROX(numext::sin(\hyperlink{struct_eigen_1_1half}{half}(EIGEN\_PI/2)), \hyperlink{struct_eigen_1_1half}{half}(sinf(EIGEN\_PI/2)));
+00224   VERIFY\_IS\_APPROX(numext::sin(\hyperlink{struct_eigen_1_1half}{half}(3*EIGEN\_PI/2)), \hyperlink{struct_eigen_1_1half}{half}(sinf(3*EIGEN\_PI/2)));
+00225   VERIFY\_IS\_APPROX(numext::sin(\hyperlink{struct_eigen_1_1half}{half}(3.5f)), \hyperlink{struct_eigen_1_1half}{half}(sinf(3.5f)));
+00226 
+00227   VERIFY\_IS\_APPROX(numext::tan(\hyperlink{struct_eigen_1_1half}{half}(0.0f)), \hyperlink{struct_eigen_1_1half}{half}(tanf(0.0f)));
+00228   VERIFY\_IS\_APPROX(tan(\hyperlink{struct_eigen_1_1half}{half}(0.0f)), \hyperlink{struct_eigen_1_1half}{half}(tanf(0.0f)));
+00229   \textcolor{comment}{//  VERIFY\_IS\_APPROX(numext::tan(half(EIGEN\_PI)), half(tanf(EIGEN\_PI)));}
+00230   \textcolor{comment}{//  VERIFY\_IS\_APPROX(numext::tan(half(EIGEN\_PI/2)), half(tanf(EIGEN\_PI/2)));}
+00231   \textcolor{comment}{//VERIFY\_IS\_APPROX(numext::tan(half(3*EIGEN\_PI/2)), half(tanf(3*EIGEN\_PI/2)));}
+00232   VERIFY\_IS\_APPROX(numext::tan(\hyperlink{struct_eigen_1_1half}{half}(3.5f)), \hyperlink{struct_eigen_1_1half}{half}(tanf(3.5f)));
+00233 \}
+00234 
+00235 \textcolor{keywordtype}{void} test\_array()
+00236 \{
+00237   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_array}{Array<half,1,Dynamic>} ArrayXh;
+00238   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = internal::random<Index>(1,10);
+00239   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i = internal::random<Index>(0,size-1);
+00240   ArrayXh a1 = ArrayXh::Random(size), a2 = ArrayXh::Random(size);
+00241   VERIFY\_IS\_APPROX( a1+a1, \hyperlink{struct_eigen_1_1half}{half}(2)*a1 );
+00242   VERIFY( (a1.abs() >= \hyperlink{struct_eigen_1_1half}{half}(0)).all() );
+00243   VERIFY\_IS\_APPROX( (a1*a1).sqrt(), a1.abs() );
+00244 
+00245   VERIFY( ((a1.min)(a2) <= (a1.max)(a2)).all() );
+00246   a1(i) = \hyperlink{struct_eigen_1_1half}{half}(-10.);
+00247   VERIFY\_IS\_EQUAL( a1.minCoeff(), \hyperlink{struct_eigen_1_1half}{half}(-10.) );
+00248   a1(i) = \hyperlink{struct_eigen_1_1half}{half}(10.);
+00249   VERIFY\_IS\_EQUAL( a1.maxCoeff(), \hyperlink{struct_eigen_1_1half}{half}(10.) );
+00250 
+00251   std::stringstream ss;
+00252   ss << a1;
+00253 \}
+00254 
+00255 \textcolor{keywordtype}{void} test\_half\_float()
+00256 \{
+00257   CALL\_SUBTEST(test\_conversion());
+00258   CALL\_SUBTEST(test\_numtraits());
+00259   CALL\_SUBTEST(test\_arithmetic());
+00260   CALL\_SUBTEST(test\_comparison());
+00261   CALL\_SUBTEST(test\_basic\_functions());
+00262   CALL\_SUBTEST(test\_trigonometric\_functions());
+00263   CALL\_SUBTEST(test\_array());
+00264 \}
+\end{DoxyCode}

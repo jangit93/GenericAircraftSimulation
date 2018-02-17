@@ -1,0 +1,162 @@
+\hypertarget{_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_d_2h5ex__d__szip_8f90_source}{}\section{H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+F\+O\+R\+T\+R\+A\+N/\+H5\+D/h5ex\+\_\+d\+\_\+szip.f90}
+\label{_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_d_2h5ex__d__szip_8f90_source}\index{h5ex\+\_\+d\+\_\+szip.\+f90@{h5ex\+\_\+d\+\_\+szip.\+f90}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{!************************************************************}
+00002 \textcolor{comment}{!}
+00003 \textcolor{comment}{!  This example shows how to read and write data to a dataset}
+00004 \textcolor{comment}{!  using szip compression.    The program first checks if}
+00005 \textcolor{comment}{!  szip compression is available, then if it is it writes}
+00006 \textcolor{comment}{!  integers to a dataset using szip, then closes the file.}
+00007 \textcolor{comment}{!  Next, it reopens the file, reads back the data, and}
+00008 \textcolor{comment}{!  outputs the type of compression and the maximum value in}
+00009 \textcolor{comment}{!  the dataset to the screen.}
+00010 \textcolor{comment}{!}
+00011 \textcolor{comment}{!  This file is intended for use with HDF5 Library verion 1.8}
+00012 \textcolor{comment}{!}
+00013 \textcolor{comment}{!************************************************************}
+00014 \textcolor{keyword}{PROGRAM} main
+00015 
+00016   \textcolor{keywordtype}{USE }hdf5
+00017 
+00018   \textcolor{keywordtype}{IMPLICIT NONE}
+00019 
+00020   \textcolor{keywordtype}{CHARACTER(LEN=14)}, \textcolor{keywordtype}{PARAMETER} :: filename = \textcolor{stringliteral}{"h5ex\_d\_szip.h5"}
+00021   \textcolor{keywordtype}{CHARACTER(LEN=3)} , \textcolor{keywordtype}{PARAMETER} :: dataset  = \textcolor{stringliteral}{"DS1"}
+00022   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: dim0     = 32
+00023   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: dim1     = 64
+00024   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: chunk0   = 4
+00025   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: chunk1   = 8
+00026 
+00027   \textcolor{keywordtype}{INTEGER} :: hdferr
+00028   \textcolor{keywordtype}{LOGICAL}         :: avail
+00029   \textcolor{keywordtype}{INTEGER(HID\_T)}  :: \hyperlink{structfile}{file}, space, dset, dcpl \textcolor{comment}{! Handles}
+00030   \textcolor{keywordtype}{INTEGER}, \textcolor{keywordtype}{DIMENSION(1:4)} :: cd\_values
+00031   \textcolor{keywordtype}{INTEGER} :: filter\_id
+00032   \textcolor{keywordtype}{INTEGER} :: filter\_info\_both
+00033   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:2)} :: dims = (/dim0, dim1/), chunk =(/chunk0,chunk1/)
+00034   \textcolor{keywordtype}{INTEGER(SIZE\_T)} :: nelmts
+00035   \textcolor{keywordtype}{INTEGER} :: flags, filter\_info
+00036   \textcolor{keywordtype}{INTEGER}, \textcolor{keywordtype}{DIMENSION(1:dim0, 1:dim1)} :: wdata, & \textcolor{comment}{! Write buffer }
+00037                                         rdata    \textcolor{comment}{! Read buffer}
+00038   \textcolor{keywordtype}{INTEGER} :: max, i, j
+00039   \textcolor{keywordtype}{INTEGER}, \textcolor{keywordtype}{PARAMETER} :: maxchrlen = 80
+00040   \textcolor{keywordtype}{CHARACTER(LEN=MaxChrLen)} :: name
+00041   \textcolor{comment}{!}
+00042   \textcolor{comment}{! Initialize FORTRAN interface.}
+00043   \textcolor{comment}{!}
+00044   \textcolor{keyword}{CALL }h5open\_f(hdferr)
+00045   \textcolor{comment}{! }
+00046   \textcolor{comment}{!  Check if gzip compression is available and can be used for both}
+00047   \textcolor{comment}{!  compression and decompression.  Normally we do not perform error}
+00048   \textcolor{comment}{!  checking in these examples for the sake of clarity, but in this}
+00049   \textcolor{comment}{!  case we will make an exception because this filter is an}
+00050   \textcolor{comment}{!  optional part of the hdf5 library.}
+00051   \textcolor{comment}{!  }
+00052   \textcolor{keyword}{CALL }h5zfilter\_avail\_f(h5z\_filter\_szip\_f, avail, hdferr)
+00053 
+00054   \textcolor{keywordflow}{IF} (.NOT.avail) \textcolor{keywordflow}{THEN}
+00055      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'("szip filter not available.",/)'})
+00056      stop
+00057 \textcolor{keywordflow}{  ENDIF}
+00058   \textcolor{keyword}{CALL }h5zget\_filter\_info\_f(h5z\_filter\_szip\_f, filter\_info, hdferr)
+00059 
+00060   filter\_info\_both=ior(h5z\_filter\_encode\_enabled\_f,h5z\_filter\_decode\_enabled\_f)
+00061   \textcolor{keywordflow}{IF} (filter\_info .NE. filter\_info\_both) \textcolor{keywordflow}{THEN}
+00062      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'("szip filter not available for encoding and decoding.",/)'})
+00063      stop
+00064 \textcolor{keywordflow}{  ENDIF}
+00065   \textcolor{comment}{!}
+00066   \textcolor{comment}{! Initialize data.}
+00067   \textcolor{comment}{!}
+00068   \textcolor{keywordflow}{DO} i = 1, dim0
+00069      \textcolor{keywordflow}{DO} j = 1, dim1
+00070         wdata(i,j) = (i-1)*(j-1)-(j-1)
+00071 \textcolor{keywordflow}{     ENDDO}
+00072 \textcolor{keywordflow}{  ENDDO}
+00073   \textcolor{comment}{!}
+00074   \textcolor{comment}{! Create a new file using the default properties.}
+00075   \textcolor{comment}{!}
+00076   \textcolor{keyword}{CALL }h5fcreate\_f(filename, h5f\_acc\_trunc\_f, \hyperlink{structfile}{file}, hdferr)
+00077   \textcolor{comment}{!}
+00078   \textcolor{comment}{! Create dataspace.  Setting size to be the current size.}
+00079   \textcolor{comment}{!}
+00080   \textcolor{keyword}{CALL }h5screate\_simple\_f(2, dims, space, hdferr)
+00081   \textcolor{comment}{!}
+00082   \textcolor{comment}{! Create the dataset creation property list, add the szip}
+00083   \textcolor{comment}{! compression filter and set the chunk size.}
+00084   \textcolor{comment}{!}
+00085   \textcolor{keyword}{CALL }h5pcreate\_f(h5p\_dataset\_create\_f, dcpl, hdferr)
+00086   \textcolor{keyword}{CALL }h5pset\_szip\_f(dcpl, h5\_szip\_nn\_om\_f, 8, hdferr)
+00087   \textcolor{keyword}{CALL }h5pset\_chunk\_f(dcpl, 2, chunk, hdferr)
+00088   \textcolor{comment}{!}
+00089   \textcolor{comment}{! Create the dataset.}
+00090   \textcolor{comment}{!}
+00091   \textcolor{keyword}{CALL }h5dcreate\_f(\hyperlink{structfile}{file}, dataset, h5t\_std\_i32le, space, dset, hdferr, dcpl)
+00092   \textcolor{comment}{!}
+00093   \textcolor{comment}{! Write the data to the dataset.}
+00094   \textcolor{comment}{!}
+00095   \textcolor{keyword}{CALL }h5dwrite\_f(dset, h5t\_native\_integer, wdata, dims, hdferr)
+00096   \textcolor{comment}{!}
+00097   \textcolor{comment}{! Close and release resources.}
+00098   \textcolor{comment}{!}
+00099   \textcolor{keyword}{CALL }h5pclose\_f(dcpl , hdferr)
+00100   \textcolor{keyword}{CALL }h5dclose\_f(dset , hdferr)
+00101   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)
+00102   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file} , hdferr)
+00103   \textcolor{comment}{!}
+00104   \textcolor{comment}{! Now we begin the read section of this example.}
+00105   \textcolor{comment}{!}
+00106   \textcolor{comment}{!}
+00107   \textcolor{comment}{! Open file and dataset using the default properties.}
+00108   \textcolor{comment}{!}
+00109   \textcolor{keyword}{CALL }h5fopen\_f(filename, h5f\_acc\_rdonly\_f, \hyperlink{structfile}{file}, hdferr)
+00110   \textcolor{keyword}{CALL }h5dopen\_f (\hyperlink{structfile}{file}, dataset, dset, hdferr)
+00111   \textcolor{comment}{!}
+00112   \textcolor{comment}{! Retrieve dataset creation property list.}
+00113   \textcolor{comment}{!}
+00114   \textcolor{keyword}{CALL }h5dget\_create\_plist\_f(dset, dcpl, hdferr)
+00115   \textcolor{comment}{!}
+00116   \textcolor{comment}{! Retrieve and print the filter type.  Here we only retrieve the}
+00117   \textcolor{comment}{! first filter because we know that we only added one filter.}
+00118   \textcolor{comment}{!}
+00119   
+00120   nelmts = 1
+00121   \textcolor{keyword}{CALL }h5pget\_filter\_f(dcpl, 0, flags, nelmts, cd\_values, maxchrlen, name, filter\_id, hdferr)
+00122   \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'("Filter type is: ")'}, advance=\textcolor{stringliteral}{'NO'})
+00123   \textcolor{keywordflow}{IF}(filter\_id.EQ.h5z\_filter\_deflate\_f)\textcolor{keywordflow}{THEN}
+00124      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(T2,"H5Z\_FILTER\_DEFLATE\_F")'})
+00125   \textcolor{keywordflow}{ELSE} \textcolor{keywordflow}{IF}(filter\_id.EQ.h5z\_filter\_shuffle\_f)\textcolor{keywordflow}{THEN}
+00126      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(T2,"H5Z\_FILTER\_SHUFFLE\_F")'})
+00127   \textcolor{keywordflow}{ELSE} \textcolor{keywordflow}{IF}(filter\_id.EQ.h5z\_filter\_fletcher32\_f)\textcolor{keywordflow}{THEN}
+00128      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(T2,"H5Z\_FILTER\_FLETCHER32\_F")'})
+00129   \textcolor{keywordflow}{ELSE} \textcolor{keywordflow}{IF}(filter\_id.EQ.h5z\_filter\_szip\_f)\textcolor{keywordflow}{THEN}
+00130      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(T2,"H5Z\_FILTER\_SZIP\_F")'})
+00131 \textcolor{comment}{! DEFINED ONLY IN F2003 hdf5 branch}
+00132 \textcolor{comment}{!  ELSE IF(filter\_id.EQ.H5Z\_FILTER\_NBIT\_F)THEN}
+00133 \textcolor{comment}{!     WRITE(*,'(T2,"H5Z\_FILTER\_NBIT\_F")')}
+00134 \textcolor{comment}{!  ELSE IF(filter\_id.EQ.H5Z\_FILTER\_SCALEOFFSET\_F)THEN}
+00135 \textcolor{comment}{!     WRITE(*,'(T2,"H5Z\_FILTER\_SCALEOFFSET\_F")')}
+00136 \textcolor{keywordflow}{  ENDIF}
+00137   \textcolor{comment}{!}
+00138   \textcolor{comment}{! Read the data using the default properties.}
+00139   \textcolor{comment}{!}
+00140   \textcolor{keyword}{CALL }h5dread\_f(dset, h5t\_native\_integer, rdata, dims, hdferr)
+00141   \textcolor{comment}{!}
+00142   \textcolor{comment}{! Find the maximum value in the dataset, to verify that it was}
+00143   \textcolor{comment}{! read correctly.}
+00144   \textcolor{comment}{!}
+00145   max = maxval(rdata)
+00146   \textcolor{comment}{!}
+00147   \textcolor{comment}{! Print the maximum value.}
+00148   \textcolor{comment}{!}
+00149   \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'("Maximum value in ",A," is: ",i10)'}) dataset, max
+00150   \textcolor{comment}{!}
+00151   \textcolor{comment}{! Close and release resources.}
+00152   \textcolor{comment}{!}
+00153   \textcolor{keyword}{CALL }h5pclose\_f(dcpl , hdferr)
+00154   \textcolor{keyword}{CALL }h5dclose\_f(dset , hdferr)
+00155   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file} , hdferr)
+00156 
+00157 \textcolor{keyword}{END PROGRAM }main
+\end{DoxyCode}

@@ -1,0 +1,297 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2block_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/block.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2block_8cpp_source}\index{block.\+cpp@{block.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2006-2010 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#define EIGEN\_NO\_STATIC\_ASSERT // otherwise we fail at compile time on unused paths}
+00011 \textcolor{preprocessor}{#include "main.h"}
+00012 
+00013 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} Index, \textcolor{keyword}{typename} Scalar>
+00014 \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1enable__if}{Eigen::internal::enable\_if<!NumTraits<typename MatrixType::Scalar>::IsComplex}
+      ,\textcolor{keyword}{typename} MatrixType::Scalar>::type
+00015 block\_real\_only(\textcolor{keyword}{const} MatrixType &m1, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} r1, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} r2, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} c1, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} c2, \textcolor{keyword}{const} Scalar& s1) \{
+00016   \textcolor{comment}{// check cwise-Functions:}
+00017   VERIFY\_IS\_APPROX(m1.row(r1).cwiseMax(s1), m1.cwiseMax(s1).row(r1));
+00018   VERIFY\_IS\_APPROX(m1.col(c1).cwiseMin(s1), m1.cwiseMin(s1).col(c1));
+00019 
+00020   VERIFY\_IS\_APPROX(m1.block(r1,c1,r2-r1+1,c2-c1+1).cwiseMin(s1), m1.cwiseMin(s1).block(r1,c1,r2-r1+1,c2-c1+
+      1));
+00021   VERIFY\_IS\_APPROX(m1.block(r1,c1,r2-r1+1,c2-c1+1).cwiseMax(s1), m1.cwiseMax(s1).block(r1,c1,r2-r1+1,c2-c1+
+      1));
+00022   
+00023   \textcolor{keywordflow}{return} Scalar(0);
+00024 \}
+00025 
+00026 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} Index, \textcolor{keyword}{typename} Scalar>
+00027 \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1enable__if}{Eigen::internal::enable\_if<NumTraits<typename MatrixType::Scalar>::IsComplex}
+      ,\textcolor{keyword}{typename} MatrixType::Scalar>::type
+00028 block\_real\_only(\textcolor{keyword}{const} MatrixType &, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \textcolor{keyword}{const} Scalar&) \{
+00029   \textcolor{keywordflow}{return} Scalar(0);
+00030 \}
+00031 
+00032 
+00033 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} block(\textcolor{keyword}{const} MatrixType& m)
+00034 \{
+00035   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00036   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00037   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00038   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::RowsAtCompileTime, 1>} 
+      \hyperlink{struct_vector_type}{VectorType};
+00039   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, 1, MatrixType::ColsAtCompileTime>} 
+      RowVectorType;
+00040   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar, Dynamic, Dynamic>} DynamicMatrixType;
+00041   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar, Dynamic, 1>} DynamicVectorType;
+00042   
+00043   Index rows = m.rows();
+00044   Index cols = m.cols();
+00045 
+00046   MatrixType m1 = MatrixType::Random(rows, cols),
+00047              m1\_copy = m1,
+00048              m2 = MatrixType::Random(rows, cols),
+00049              m3(rows, cols),
+00050              ones = MatrixType::Ones(rows, cols);
+00051   VectorType v1 = VectorType::Random(rows);
+00052 
+00053   Scalar s1 = internal::random<Scalar>();
+00054 
+00055   Index r1 = internal::random<Index>(0,rows-1);
+00056   Index r2 = internal::random<Index>(r1,rows-1);
+00057   Index c1 = internal::random<Index>(0,cols-1);
+00058   Index c2 = internal::random<Index>(c1,cols-1);
+00059 
+00060   block\_real\_only(m1, r1, r2, c1, c1, s1);
+00061 
+00062   \textcolor{comment}{//check row() and col()}
+00063   VERIFY\_IS\_EQUAL(m1.col(c1).transpose(), m1.transpose().row(c1));
+00064   \textcolor{comment}{//check operator(), both constant and non-constant, on row() and col()}
+00065   m1 = m1\_copy;
+00066   m1.row(r1) += s1 * m1\_copy.row(r2);
+00067   VERIFY\_IS\_APPROX(m1.row(r1), m1\_copy.row(r1) + s1 * m1\_copy.row(r2));
+00068   \textcolor{comment}{// check nested block xpr on lhs}
+00069   m1.row(r1).row(0) += s1 * m1\_copy.row(r2);
+00070   VERIFY\_IS\_APPROX(m1.row(r1), m1\_copy.row(r1) + Scalar(2) * s1 * m1\_copy.row(r2));
+00071   m1 = m1\_copy;
+00072   m1.col(c1) += s1 * m1\_copy.col(c2);
+00073   VERIFY\_IS\_APPROX(m1.col(c1), m1\_copy.col(c1) + s1 * m1\_copy.col(c2));
+00074   m1.col(c1).col(0) += s1 * m1\_copy.col(c2);
+00075   VERIFY\_IS\_APPROX(m1.col(c1), m1\_copy.col(c1) + Scalar(2) * s1 * m1\_copy.col(c2));
+00076   
+00077   
+00078   \textcolor{comment}{//check block()}
+00079   \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,Dynamic>} b1(1,1); b1(0,0) = m1(r1,c1);
+00080 
+00081   RowVectorType br1(m1.block(r1,0,1,cols));
+00082   VectorType bc1(m1.block(0,c1,rows,1));
+00083   VERIFY\_IS\_EQUAL(b1, m1.block(r1,c1,1,1));
+00084   VERIFY\_IS\_EQUAL(m1.row(r1), br1);
+00085   VERIFY\_IS\_EQUAL(m1.col(c1), bc1);
+00086   \textcolor{comment}{//check operator(), both constant and non-constant, on block()}
+00087   m1.block(r1,c1,r2-r1+1,c2-c1+1) = s1 * m2.block(0, 0, r2-r1+1,c2-c1+1);
+00088   m1.block(r1,c1,r2-r1+1,c2-c1+1)(r2-r1,c2-c1) = m2.block(0, 0, r2-r1+1,c2-c1+1)(0,0);
+00089 
+00090   \textcolor{keyword}{enum} \{
+00091     BlockRows = 2,
+00092     BlockCols = 5
+00093   \};
+00094   \textcolor{keywordflow}{if} (rows>=5 && cols>=8)
+00095   \{
+00096     \textcolor{comment}{// test fixed block() as lvalue}
+00097     m1.template block<BlockRows,BlockCols>(1,1) *= s1;
+00098     \textcolor{comment}{// test operator() on fixed block() both as constant and non-constant}
+00099     m1.template block<BlockRows,BlockCols>(1,1)(0, 3) = m1.template block<2,5>(1,1)(1,2);
+00100     \textcolor{comment}{// check that fixed block() and block() agree}
+00101     \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,Dynamic>} b = m1.template block<BlockRows,BlockCols>
+      (3,3);
+00102     VERIFY\_IS\_EQUAL(b, m1.block(3,3,BlockRows,BlockCols));
+00103 
+00104     \textcolor{comment}{// same tests with mixed fixed/dynamic size}
+00105     m1.template block<BlockRows,Dynamic>(1,1,BlockRows,BlockCols) *= s1;
+00106     m1.template block<BlockRows,Dynamic>(1,1,BlockRows,BlockCols)(0,3) = m1.template block<2,5>(1,1)(1,2);
+00107     \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,Dynamic>} b2 = m1.template block<Dynamic,BlockCols>(
+      3,3,2,5);
+00108     VERIFY\_IS\_EQUAL(b2, m1.block(3,3,BlockRows,BlockCols));
+00109   \}
+00110 
+00111   \textcolor{keywordflow}{if} (rows>2)
+00112   \{
+00113     \textcolor{comment}{// test sub vectors}
+00114     VERIFY\_IS\_EQUAL(v1.template head<2>(), v1.block(0,0,2,1));
+00115     VERIFY\_IS\_EQUAL(v1.template head<2>(), v1.head(2));
+00116     VERIFY\_IS\_EQUAL(v1.template head<2>(), v1.segment(0,2));
+00117     VERIFY\_IS\_EQUAL(v1.template head<2>(), v1.template segment<2>(0));
+00118     Index i = rows-2;
+00119     VERIFY\_IS\_EQUAL(v1.template tail<2>(), v1.block(i,0,2,1));
+00120     VERIFY\_IS\_EQUAL(v1.template tail<2>(), v1.tail(2));
+00121     VERIFY\_IS\_EQUAL(v1.template tail<2>(), v1.segment(i,2));
+00122     VERIFY\_IS\_EQUAL(v1.template tail<2>(), v1.template segment<2>(i));
+00123     i = internal::random<Index>(0,rows-2);
+00124     VERIFY\_IS\_EQUAL(v1.segment(i,2), v1.template segment<2>(i));
+00125   \}
+00126 
+00127   \textcolor{comment}{// stress some basic stuffs with block matrices}
+00128   VERIFY(numext::real(ones.col(c1).sum()) == RealScalar(rows));
+00129   VERIFY(numext::real(ones.row(r1).sum()) == RealScalar(cols));
+00130 
+00131   VERIFY(numext::real(ones.col(c1).dot(ones.col(c2))) == RealScalar(rows));
+00132   VERIFY(numext::real(ones.row(r1).dot(ones.row(r2))) == RealScalar(cols));
+00133   
+00134   \textcolor{comment}{// chekc that linear acccessors works on blocks}
+00135   m1 = m1\_copy;
+00136   \textcolor{keywordflow}{if}((MatrixType::Flags&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit})==0)
+00137     VERIFY\_IS\_EQUAL(m1.leftCols(c1).coeff(r1+c1*rows), m1(r1,c1));
+00138   \textcolor{keywordflow}{else}
+00139     VERIFY\_IS\_EQUAL(m1.topRows(r1).coeff(c1+r1*cols), m1(r1,c1));
+00140   
+00141 
+00142   \textcolor{comment}{// now test some block-inside-of-block.}
+00143   
+00144   \textcolor{comment}{// expressions with direct access}
+00145   VERIFY\_IS\_EQUAL( (m1.block(r1,c1,rows-r1,cols-c1).block(r2-r1,c2-c1,rows-r2,cols-c2)) , (m1.block(r2,c2,
+      rows-r2,cols-c2)) );
+00146   VERIFY\_IS\_EQUAL( (m1.block(r1,c1,r2-r1+1,c2-c1+1).row(0)) , (m1.row(r1).segment(c1,c2-c1+1)) );
+00147   VERIFY\_IS\_EQUAL( (m1.block(r1,c1,r2-r1+1,c2-c1+1).col(0)) , (m1.col(c1).segment(r1,r2-r1+1)) );
+00148   VERIFY\_IS\_EQUAL( (m1.block(r1,c1,r2-r1+1,c2-c1+1).transpose().col(0)) , (m1.row(r1).segment(c1,c2-c1+1)).
+      transpose() );
+00149   VERIFY\_IS\_EQUAL( (m1.transpose().block(c1,r1,c2-c1+1,r2-r1+1).col(0)) , (m1.row(r1).segment(c1,c2-c1+1)).
+      transpose() );
+00150 
+00151   \textcolor{comment}{// expressions without direct access}
+00152   VERIFY\_IS\_APPROX( ((m1+m2).block(r1,c1,rows-r1,cols-c1).block(r2-r1,c2-c1,rows-r2,cols-c2)) , ((m1+m2).
+      block(r2,c2,rows-r2,cols-c2)) );
+00153   VERIFY\_IS\_APPROX( ((m1+m2).block(r1,c1,r2-r1+1,c2-c1+1).row(0)) , ((m1+m2).row(r1).segment(c1,c2-c1+1)) )
+      ;
+00154   VERIFY\_IS\_APPROX( ((m1+m2).block(r1,c1,r2-r1+1,c2-c1+1).col(0)) , ((m1+m2).col(c1).segment(r1,r2-r1+1)) )
+      ;
+00155   VERIFY\_IS\_APPROX( ((m1+m2).block(r1,c1,r2-r1+1,c2-c1+1).transpose().col(0)) , ((m1+m2).row(r1).segment(c1
+      ,c2-c1+1)).transpose() );
+00156   VERIFY\_IS\_APPROX( ((m1+m2).transpose().block(c1,r1,c2-c1+1,r2-r1+1).col(0)) , ((m1+m2).row(r1).segment(c1
+      ,c2-c1+1)).transpose() );
+00157 
+00158   \textcolor{comment}{// evaluation into plain matrices from expressions with direct access (stress MapBase)}
+00159   DynamicMatrixType dm;
+00160   DynamicVectorType dv;
+00161   dm.setZero();
+00162   dm = m1.block(r1,c1,rows-r1,cols-c1).block(r2-r1,c2-c1,rows-r2,cols-c2);
+00163   VERIFY\_IS\_EQUAL(dm, (m1.block(r2,c2,rows-r2,cols-c2)));
+00164   dm.setZero();
+00165   dv.setZero();
+00166   dm = m1.block(r1,c1,r2-r1+1,c2-c1+1).row(0).transpose();
+00167   dv = m1.row(r1).segment(c1,c2-c1+1);
+00168   VERIFY\_IS\_EQUAL(dv, dm);
+00169   dm.setZero();
+00170   dv.setZero();
+00171   dm = m1.col(c1).segment(r1,r2-r1+1);
+00172   dv = m1.block(r1,c1,r2-r1+1,c2-c1+1).col(0);
+00173   VERIFY\_IS\_EQUAL(dv, dm);
+00174   dm.setZero();
+00175   dv.setZero();
+00176   dm = m1.block(r1,c1,r2-r1+1,c2-c1+1).transpose().col(0);
+00177   dv = m1.row(r1).segment(c1,c2-c1+1);
+00178   VERIFY\_IS\_EQUAL(dv, dm);
+00179   dm.setZero();
+00180   dv.setZero();
+00181   dm = m1.row(r1).segment(c1,c2-c1+1).transpose();
+00182   dv = m1.transpose().block(c1,r1,c2-c1+1,r2-r1+1).col(0);
+00183   VERIFY\_IS\_EQUAL(dv, dm);
+00184 
+00185   VERIFY\_IS\_EQUAL( (m1.template block<Dynamic,1>(1,0,0,1)), m1.block(1,0,0,1));
+00186   VERIFY\_IS\_EQUAL( (m1.template block<1,Dynamic>(0,1,1,0)), m1.block(0,1,1,0));
+00187   VERIFY\_IS\_EQUAL( ((m1*1).\textcolor{keyword}{template} block<Dynamic,1>(1,0,0,1)), m1.block(1,0,0,1));
+00188   VERIFY\_IS\_EQUAL( ((m1*1).\textcolor{keyword}{template} block<1,Dynamic>(0,1,1,0)), m1.block(0,1,1,0));
+00189 
+00190   \textcolor{keywordflow}{if} (rows>=2 && cols>=2)
+00191   \{
+00192     VERIFY\_RAISES\_ASSERT( m1 += m1.col(0) );
+00193     VERIFY\_RAISES\_ASSERT( m1 -= m1.col(0) );
+00194     VERIFY\_RAISES\_ASSERT( m1.array() *= m1.col(0).array() );
+00195     VERIFY\_RAISES\_ASSERT( m1.array() /= m1.col(0).array() );
+00196   \}
+00197 \}
+00198 
+00199 
+00200 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00201 \textcolor{keywordtype}{void} compare\_using\_data\_and\_stride(\textcolor{keyword}{const} MatrixType& m)
+00202 \{
+00203   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index Index;
+00204   Index rows = m.rows();
+00205   Index cols = m.cols();
+00206   Index size = m.size();
+00207   Index innerStride = m.innerStride();
+00208   Index outerStride = m.outerStride();
+00209   Index rowStride = m.rowStride();
+00210   Index colStride = m.colStride();
+00211   \textcolor{keyword}{const} \textcolor{keyword}{typename} MatrixType::Scalar* data = m.data();
+00212 
+00213   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j=0;j<cols;++j)
+00214     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0;i<rows;++i)
+00215       VERIFY(m.coeff(i,j) == data[i*rowStride + j*colStride]);
+00216 
+00217   \textcolor{keywordflow}{if}(!MatrixType::IsVectorAtCompileTime)
+00218   \{
+00219     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j=0;j<cols;++j)
+00220       \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0;i<rows;++i)
+00221         VERIFY(m.coeff(i,j) == data[(MatrixType::Flags&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit})
+00222                                      ? i*outerStride + j*innerStride
+00223                                      : j*outerStride + i*innerStride]);
+00224   \}
+00225 
+00226   \textcolor{keywordflow}{if}(MatrixType::IsVectorAtCompileTime)
+00227   \{
+00228     VERIFY(innerStride == \textcolor{keywordtype}{int}((&m.coeff(1))-(&m.coeff(0))));
+00229     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0;i<size;++i)
+00230       VERIFY(m.coeff(i) == data[i*innerStride]);
+00231   \}
+00232 \}
+00233 
+00234 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00235 \textcolor{keywordtype}{void} data\_and\_stride(\textcolor{keyword}{const} MatrixType& m)
+00236 \{
+00237   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index Index;
+00238   Index rows = m.rows();
+00239   Index cols = m.cols();
+00240 
+00241   Index r1 = internal::random<Index>(0,rows-1);
+00242   Index r2 = internal::random<Index>(r1,rows-1);
+00243   Index c1 = internal::random<Index>(0,cols-1);
+00244   Index c2 = internal::random<Index>(c1,cols-1);
+00245 
+00246   MatrixType m1 = MatrixType::Random(rows, cols);
+00247   compare\_using\_data\_and\_stride(m1.block(r1, c1, r2-r1+1, c2-c1+1));
+00248   compare\_using\_data\_and\_stride(m1.transpose().block(c1, r1, c2-c1+1, r2-r1+1));
+00249   compare\_using\_data\_and\_stride(m1.row(r1));
+00250   compare\_using\_data\_and\_stride(m1.col(c1));
+00251   compare\_using\_data\_and\_stride(m1.row(r1).transpose());
+00252   compare\_using\_data\_and\_stride(m1.col(c1).transpose());
+00253 \}
+00254 
+00255 \textcolor{keywordtype}{void} test\_block()
+00256 \{
+00257   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00258     CALL\_SUBTEST\_1( block(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 1, 1>}()) );
+00259     CALL\_SUBTEST\_2( block(Matrix4d()) );
+00260     CALL\_SUBTEST\_3( block(MatrixXcf(3, 3)) );
+00261     CALL\_SUBTEST\_4( block(MatrixXi(8, 12)) );
+00262     CALL\_SUBTEST\_5( block(MatrixXcd(20, 20)) );
+00263     CALL\_SUBTEST\_6( block(MatrixXf(20, 20)) );
+00264 
+00265     CALL\_SUBTEST\_8( block(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,Dynamic,4>}(3, 4)) );
+00266 
+00267 \textcolor{preprocessor}{#ifndef EIGEN\_DEFAULT\_TO\_ROW\_MAJOR}
+00268     CALL\_SUBTEST\_6( data\_and\_stride(MatrixXf(internal::random(5,50), internal::random(5,50))) );
+00269     CALL\_SUBTEST\_7( data\_and\_stride(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<int,Dynamic,Dynamic,RowMajor>}
+      (internal::random(5,50), internal::random(5,50))) );
+00270 \textcolor{preprocessor}{#endif}
+00271   \}
+00272 \}
+\end{DoxyCode}

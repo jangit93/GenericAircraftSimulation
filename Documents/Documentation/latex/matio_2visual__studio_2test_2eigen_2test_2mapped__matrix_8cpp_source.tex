@@ -1,0 +1,225 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2mapped__matrix_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/mapped\+\_\+matrix.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2mapped__matrix_8cpp_source}\index{mapped\+\_\+matrix.\+cpp@{mapped\+\_\+matrix.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2006-2010 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_NO\_STATIC\_ASSERT}
+00011 \textcolor{preprocessor}{#define EIGEN\_NO\_STATIC\_ASSERT // turn static asserts into runtime asserts in order to check them}
+00012 \textcolor{preprocessor}{#endif}
+00013 
+00014 \textcolor{preprocessor}{#include "main.h"}
+00015 
+00016 \textcolor{preprocessor}{#define EIGEN\_TESTMAP\_MAX\_SIZE 256}
+00017 
+00018 \textcolor{keyword}{template}<\textcolor{keyword}{typename} VectorType> \textcolor{keywordtype}{void} map\_class\_vector(\textcolor{keyword}{const} \hyperlink{struct_vector_type}{VectorType}& m)
+00019 \{
+00020   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} VectorType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00021   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} VectorType::Scalar Scalar;
+00022 
+00023   Index size = m.size();
+00024 
+00025   Scalar* array1 = internal::aligned\_new<Scalar>(size);
+00026   Scalar* array2 = internal::aligned\_new<Scalar>(size);
+00027   Scalar* array3 = \textcolor{keyword}{new} Scalar[size+1];
+00028   Scalar* array3unaligned = (internal::UIntPtr(array3)%EIGEN\_MAX\_ALIGN\_BYTES) == 0 ? array3+1 : array3;
+00029   Scalar  array4[EIGEN\_TESTMAP\_MAX\_SIZE];
+00030 
+00031   \hyperlink{group___core___module_class_eigen_1_1_map}{Map<VectorType, AlignedMax>}(array1, size) = VectorType::Random(size);
+00032   \hyperlink{group___core___module_class_eigen_1_1_map}{Map<VectorType, AlignedMax>}(array2, size) = 
+      \hyperlink{group___core___module_class_eigen_1_1_map}{Map<VectorType,AlignedMax>}(array1, size);
+00033   \hyperlink{group___core___module_class_eigen_1_1_map}{Map<VectorType>}(array3unaligned, size) = \hyperlink{group___core___module_class_eigen_1_1_map}{Map<VectorType>}(array1, size);
+00034   \hyperlink{group___core___module_class_eigen_1_1_map}{Map<VectorType>}(array4, size)          = 
+      \hyperlink{group___core___module_class_eigen_1_1_map}{Map<VectorType,AlignedMax>}(array1, size);
+00035   \hyperlink{struct_vector_type}{VectorType} ma1 = \hyperlink{group___core___module_class_eigen_1_1_map}{Map<VectorType, AlignedMax>}(array1, size);
+00036   \hyperlink{struct_vector_type}{VectorType} ma2 = \hyperlink{group___core___module_class_eigen_1_1_map}{Map<VectorType, AlignedMax>}(array2, size);
+00037   \hyperlink{struct_vector_type}{VectorType} ma3 = \hyperlink{group___core___module_class_eigen_1_1_map}{Map<VectorType>}(array3unaligned, size);
+00038   \hyperlink{struct_vector_type}{VectorType} ma4 = \hyperlink{group___core___module_class_eigen_1_1_map}{Map<VectorType>}(array4, size);
+00039   VERIFY\_IS\_EQUAL(ma1, ma2);
+00040   VERIFY\_IS\_EQUAL(ma1, ma3);
+00041   VERIFY\_IS\_EQUAL(ma1, ma4);
+00042 \textcolor{preprocessor}{  #ifdef EIGEN\_VECTORIZE}
+00043   \textcolor{keywordflow}{if}(internal::packet\_traits<Scalar>::Vectorizable && size>=AlignedMax)
+00044     VERIFY\_RAISES\_ASSERT((\hyperlink{group___core___module_class_eigen_1_1_map}{Map<VectorType,AlignedMax>}(array3unaligned, size)))
+00045   \textcolor{preprocessor}{#endif}
+00046 
+00047   internal::aligned\_delete(array1, size);
+00048   internal::aligned\_delete(array2, size);
+00049   \textcolor{keyword}{delete}[] array3;
+00050 \}
+00051 
+00052 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} map\_class\_matrix(\textcolor{keyword}{const} MatrixType& m)
+00053 \{
+00054   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index Index;
+00055   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00056 
+00057   Index rows = m.rows(), cols = m.cols(), size = rows*cols;
+00058   Scalar s1 = internal::random<Scalar>();
+00059 
+00060   \textcolor{comment}{// array1 and array2 -> aligned heap allocation}
+00061   Scalar* array1 = internal::aligned\_new<Scalar>(size);
+00062   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < size; i++) array1[i] = Scalar(1);
+00063   Scalar* array2 = internal::aligned\_new<Scalar>(size);
+00064   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < size; i++) array2[i] = Scalar(1);
+00065   \textcolor{comment}{// array3unaligned -> unaligned pointer to heap}
+00066   Scalar* array3 = \textcolor{keyword}{new} Scalar[size+1];
+00067   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < size+1; i++) array3[i] = Scalar(1);
+00068   Scalar* array3unaligned = internal::UIntPtr(array3)%EIGEN\_MAX\_ALIGN\_BYTES == 0 ? array3+1 : array3;
+00069   Scalar array4[256];
+00070   \textcolor{keywordflow}{if}(size<=256)
+00071     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < size; i++) array4[i] = Scalar(1);
+00072   
+00073   \hyperlink{group___core___module_class_eigen_1_1_map}{Map<MatrixType>} map1(array1, rows, cols);
+00074   \hyperlink{group___core___module_class_eigen_1_1_map}{Map<MatrixType, AlignedMax>} map2(array2, rows, cols);
+00075   \hyperlink{group___core___module_class_eigen_1_1_map}{Map<MatrixType>} map3(array3unaligned, rows, cols);
+00076   \hyperlink{group___core___module_class_eigen_1_1_map}{Map<MatrixType>} map4(array4, rows, cols);
+00077   
+00078   VERIFY\_IS\_EQUAL(map1, MatrixType::Ones(rows,cols));
+00079   VERIFY\_IS\_EQUAL(map2, MatrixType::Ones(rows,cols));
+00080   VERIFY\_IS\_EQUAL(map3, MatrixType::Ones(rows,cols));
+00081   map1 = MatrixType::Random(rows,cols);
+00082   map2 = map1;
+00083   map3 = map1;
+00084   MatrixType ma1 = map1;
+00085   MatrixType ma2 = map2;
+00086   MatrixType ma3 = map3;
+00087   VERIFY\_IS\_EQUAL(map1, map2);
+00088   VERIFY\_IS\_EQUAL(map1, map3);
+00089   VERIFY\_IS\_EQUAL(ma1, ma2);
+00090   VERIFY\_IS\_EQUAL(ma1, ma3);
+00091   VERIFY\_IS\_EQUAL(ma1, map3);
+00092   
+00093   VERIFY\_IS\_APPROX(s1*map1, s1*map2);
+00094   VERIFY\_IS\_APPROX(s1*ma1, s1*ma2);
+00095   VERIFY\_IS\_EQUAL(s1*ma1, s1*ma3);
+00096   VERIFY\_IS\_APPROX(s1*map1, s1*map3);
+00097   
+00098   map2 *= s1;
+00099   map3 *= s1;
+00100   VERIFY\_IS\_APPROX(s1*map1, map2);
+00101   VERIFY\_IS\_APPROX(s1*map1, map3);
+00102   
+00103   \textcolor{keywordflow}{if}(size<=256)
+00104   \{
+00105     VERIFY\_IS\_EQUAL(map4, MatrixType::Ones(rows,cols));
+00106     map4 = map1;
+00107     MatrixType ma4 = map4;
+00108     VERIFY\_IS\_EQUAL(map1, map4);
+00109     VERIFY\_IS\_EQUAL(ma1, map4);
+00110     VERIFY\_IS\_EQUAL(ma1, ma4);
+00111     VERIFY\_IS\_APPROX(s1*map1, s1*map4);
+00112     
+00113     map4 *= s1;
+00114     VERIFY\_IS\_APPROX(s1*map1, map4);
+00115   \}
+00116 
+00117   internal::aligned\_delete(array1, size);
+00118   internal::aligned\_delete(array2, size);
+00119   \textcolor{keyword}{delete}[] array3;
+00120 \}
+00121 
+00122 \textcolor{keyword}{template}<\textcolor{keyword}{typename} VectorType> \textcolor{keywordtype}{void} map\_static\_methods(\textcolor{keyword}{const} \hyperlink{struct_vector_type}{VectorType}& m)
+00123 \{
+00124   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} VectorType::Index Index;
+00125   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} VectorType::Scalar Scalar;
+00126 
+00127   Index size = m.size();
+00128 
+00129   Scalar* array1 = internal::aligned\_new<Scalar>(size);
+00130   Scalar* array2 = internal::aligned\_new<Scalar>(size);
+00131   Scalar* array3 = \textcolor{keyword}{new} Scalar[size+1];
+00132   Scalar* array3unaligned = internal::UIntPtr(array3)%EIGEN\_MAX\_ALIGN\_BYTES == 0 ? array3+1 : array3;
+00133 
+00134   VectorType::MapAligned(array1, size) = VectorType::Random(size);
+00135   VectorType::Map(array2, size) = VectorType::Map(array1, size);
+00136   VectorType::Map(array3unaligned, size) = VectorType::Map(array1, size);
+00137   \hyperlink{struct_vector_type}{VectorType} ma1 = VectorType::Map(array1, size);
+00138   \hyperlink{struct_vector_type}{VectorType} ma2 = VectorType::MapAligned(array2, size);
+00139   \hyperlink{struct_vector_type}{VectorType} ma3 = VectorType::Map(array3unaligned, size);
+00140   VERIFY\_IS\_EQUAL(ma1, ma2);
+00141   VERIFY\_IS\_EQUAL(ma1, ma3);
+00142 
+00143   internal::aligned\_delete(array1, size);
+00144   internal::aligned\_delete(array2, size);
+00145   \textcolor{keyword}{delete}[] array3;
+00146 \}
+00147 
+00148 \textcolor{keyword}{template}<\textcolor{keyword}{typename} PlainObjectType> \textcolor{keywordtype}{void} check\_const\_correctness(\textcolor{keyword}{const} PlainObjectType&)
+00149 \{
+00150   \textcolor{comment}{// there's a lot that we can't test here while still having this test compile!}
+00151   \textcolor{comment}{// the only possible approach would be to run a script trying to compile stuff and checking that it
+       fails.}
+00152   \textcolor{comment}{// CMake can help with that.}
+00153 
+00154   \textcolor{comment}{// verify that map-to-const don't have LvalueBit}
+00155   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_transpose}{internal::add\_const<PlainObjectType>::type} 
+      ConstPlainObjectType;
+00156   VERIFY( !(internal::traits<\hyperlink{group___core___module_class_eigen_1_1_map}{Map<ConstPlainObjectType>} >::Flags & 
+      \hyperlink{group__flags_gae2c323957f20dfdc6cb8f44428eaec1a}{LvalueBit}) );
+00157   VERIFY( !(internal::traits<\hyperlink{group___core___module_class_eigen_1_1_map}{Map<ConstPlainObjectType, AlignedMax>} >::
+      Flags & \hyperlink{group__flags_gae2c323957f20dfdc6cb8f44428eaec1a}{LvalueBit}) );
+00158   VERIFY( !(\hyperlink{group___core___module_class_eigen_1_1_map}{Map<ConstPlainObjectType>::Flags} & 
+      \hyperlink{group__flags_gae2c323957f20dfdc6cb8f44428eaec1a}{LvalueBit}) );
+00159   VERIFY( !(\hyperlink{group___core___module_class_eigen_1_1_map}{Map<ConstPlainObjectType, AlignedMax>::Flags} & 
+      \hyperlink{group__flags_gae2c323957f20dfdc6cb8f44428eaec1a}{LvalueBit}) );
+00160 \}
+00161 
+00162 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00163 \textcolor{keywordtype}{void} map\_not\_aligned\_on\_scalar()
+00164 \{
+00165   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,Dynamic>} MatrixType;
+00166   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index Index;
+00167   Index size = 11;
+00168   Scalar* array1 = internal::aligned\_new<Scalar>((size+1)*(size+1)+1);
+00169   Scalar* array2 = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(\textcolor{keyword}{sizeof}(Scalar)/2+std::size\_t(array1));
+00170   \hyperlink{group___core___module_class_eigen_1_1_map}{Map<MatrixType,0,OuterStride<>} > map2(array2, size, size, 
+      \hyperlink{class_eigen_1_1_outer_stride}{OuterStride<>}(size+1));
+00171   MatrixType m2 = MatrixType::Random(size,size);
+00172   map2 = m2;
+00173   VERIFY\_IS\_EQUAL(m2, map2);
+00174   
+00175   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,1>} \hyperlink{struct_vector_type}{VectorType};
+00176   \hyperlink{group___core___module_class_eigen_1_1_map}{Map<VectorType>} map3(array2, size);
+00177   MatrixType v3 = VectorType::Random(size);
+00178   map3 = v3;
+00179   VERIFY\_IS\_EQUAL(v3, map3);
+00180   
+00181   internal::aligned\_delete(array1, (size+1)*(size+1)+1);
+00182 \}
+00183 
+00184 \textcolor{keywordtype}{void} test\_mapped\_matrix()
+00185 \{
+00186   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00187     CALL\_SUBTEST\_1( map\_class\_vector(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 1, 1>}()) );
+00188     CALL\_SUBTEST\_1( check\_const\_correctness(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 1, 1>}()) );
+00189     CALL\_SUBTEST\_2( map\_class\_vector(Vector4d()) );
+00190     CALL\_SUBTEST\_2( map\_class\_vector(VectorXd(13)) );
+00191     CALL\_SUBTEST\_2( check\_const\_correctness(Matrix4d()) );
+00192     CALL\_SUBTEST\_3( map\_class\_vector(RowVector4f()) );
+00193     CALL\_SUBTEST\_4( map\_class\_vector(VectorXcf(8)) );
+00194     CALL\_SUBTEST\_5( map\_class\_vector(VectorXi(12)) );
+00195     CALL\_SUBTEST\_5( check\_const\_correctness(VectorXi(12)) );
+00196 
+00197     CALL\_SUBTEST\_1( map\_class\_matrix(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 1, 1>}()) );
+00198     CALL\_SUBTEST\_2( map\_class\_matrix(Matrix4d()) );
+00199     CALL\_SUBTEST\_11( map\_class\_matrix(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,3,5>}()) );
+00200     CALL\_SUBTEST\_4( map\_class\_matrix(MatrixXcf(internal::random<int>(1,10),internal::random<int>(1,10))) );
+00201     CALL\_SUBTEST\_5( map\_class\_matrix(MatrixXi(internal::random<int>(1,10),internal::random<int>(1,10))) );
+00202 
+00203     CALL\_SUBTEST\_6( map\_static\_methods(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double, 1, 1>}()) );
+00204     CALL\_SUBTEST\_7( map\_static\_methods(Vector3f()) );
+00205     CALL\_SUBTEST\_8( map\_static\_methods(RowVector3d()) );
+00206     CALL\_SUBTEST\_9( map\_static\_methods(VectorXcd(8)) );
+00207     CALL\_SUBTEST\_10( map\_static\_methods(VectorXf(12)) );
+00208     
+00209     CALL\_SUBTEST\_11( map\_not\_aligned\_on\_scalar<double>() );
+00210   \}
+00211 \}
+\end{DoxyCode}

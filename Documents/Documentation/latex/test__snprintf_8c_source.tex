@@ -1,0 +1,153 @@
+\hypertarget{test__snprintf_8c_source}{}\section{test\+\_\+snprintf.\+c}
+\label{test__snprintf_8c_source}\index{test\+\_\+snprintf.\+c@{test\+\_\+snprintf.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{preprocessor}{#include <stdlib.h>}
+00002 \textcolor{preprocessor}{#include <stdio.h>}
+00003 \textcolor{preprocessor}{#include <string.h>}
+00004 \textcolor{preprocessor}{#include <math.h>}
+00005 \textcolor{preprocessor}{#include "snprintf.c"}
+00006 
+00007 \textcolor{preprocessor}{#if !HAVE\_SNPRINTF}
+00008 \textcolor{keywordtype}{int} rpl\_snprintf(\textcolor{keywordtype}{char} *, \textcolor{keywordtype}{size\_t}, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *, ...);
+00009 \textcolor{preprocessor}{#define mat\_snprintf rpl\_snprintf}
+00010 \textcolor{preprocessor}{#else}
+00011 \textcolor{preprocessor}{#define mat\_snprintf snprintf}
+00012 \textcolor{preprocessor}{#endif  }\textcolor{comment}{/* !HAVE\_SNPRINTF */}\textcolor{preprocessor}{}
+00013 
+00014 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} **argv)
+00015 \{
+00016         \textcolor{keywordtype}{char} buf1[1024];
+00017         \textcolor{keywordtype}{char} buf2[1024];
+00018         \textcolor{keywordtype}{char} *fp\_fmt[] = \{
+00019                 \textcolor{stringliteral}{"%1.1f"},
+00020                 \textcolor{stringliteral}{"%-1.5f"},
+00021                 \textcolor{stringliteral}{"%1.5f"},
+00022                 \textcolor{stringliteral}{"%123.9f"},
+00023                 \textcolor{stringliteral}{"%10.5f"},
+00024                 \textcolor{stringliteral}{"% 10.5f"},
+00025                 \textcolor{stringliteral}{"%+22.9f"},
+00026                 \textcolor{stringliteral}{"%+4.9f"},
+00027                 \textcolor{stringliteral}{"%01.3f"},
+00028                 \textcolor{stringliteral}{"%4f"},
+00029                 \textcolor{stringliteral}{"%3.1f"},
+00030                 \textcolor{stringliteral}{"%3.2f"},
+00031                 \textcolor{stringliteral}{"%.0f"},
+00032                 \textcolor{stringliteral}{"%f"},
+00033                 \textcolor{stringliteral}{"-16.16f"},
+00034                 NULL
+00035         \};
+00036         \textcolor{keywordtype}{double} fp\_nums[] = \{ 6442452944.1234, -1.5, 134.21, 91340.2, 341.1234, 203.9, 0.96, 0.996,
+00037                              0.9996, 1.996, 4.136, 5.030201, 0.00205,
+00038                              \textcolor{comment}{/* END LIST */} 0\};
+00039         \textcolor{keywordtype}{char} *int\_fmt[] = \{
+00040                 \textcolor{stringliteral}{"%-1.5d"},
+00041                 \textcolor{stringliteral}{"%1.5d"},
+00042                 \textcolor{stringliteral}{"%123.9d"},
+00043                 \textcolor{stringliteral}{"%5.5d"},
+00044                 \textcolor{stringliteral}{"%10.5d"},
+00045                 \textcolor{stringliteral}{"% 10.5d"},
+00046                 \textcolor{stringliteral}{"%+22.33d"},
+00047                 \textcolor{stringliteral}{"%01.3d"},
+00048                 \textcolor{stringliteral}{"%4d"},
+00049                 \textcolor{stringliteral}{"%d"},
+00050                 NULL
+00051         \};
+00052         \textcolor{keywordtype}{long} int\_nums[] = \{ -1, 134, 91340, 341, 0203, 0\};
+00053         \textcolor{keywordtype}{char} *str\_fmt[] = \{
+00054                 \textcolor{stringliteral}{"10.5s"},
+00055                 \textcolor{stringliteral}{"5.10s"},
+00056                 \textcolor{stringliteral}{"10.1s"},
+00057                 \textcolor{stringliteral}{"0.10s"},
+00058                 \textcolor{stringliteral}{"10.0s"},
+00059                 \textcolor{stringliteral}{"1.10s"},
+00060                 \textcolor{stringliteral}{"%s"},
+00061                 \textcolor{stringliteral}{"%.1s"},
+00062                 \textcolor{stringliteral}{"%.10s"},
+00063                 \textcolor{stringliteral}{"%10s"},
+00064                 NULL
+00065         \};
+00066         \textcolor{keywordtype}{char} *str\_vals[] = \{\textcolor{stringliteral}{"hello"}, \textcolor{stringliteral}{"a"}, \textcolor{stringliteral}{""}, \textcolor{stringliteral}{"a longer string"}, NULL\};
+00067         \textcolor{keywordtype}{int} x, y;
+00068         \textcolor{keywordtype}{int} fail = 0;
+00069         \textcolor{keywordtype}{int} num = 0;
+00070 
+00071         printf (\textcolor{stringliteral}{"Testing snprintf format codes against system sprintf...\(\backslash\)n"});
+00072 
+00073         \textcolor{keywordflow}{for} (x = 0; fp\_fmt[x] ; x++) \{
+00074                 \textcolor{keywordflow}{for} (y = 0; fp\_nums[y] != 0 ; y++) \{
+00075                         \textcolor{keywordtype}{int} l1 = mat\_snprintf(NULL, 0, fp\_fmt[x], fp\_nums[y]);
+00076                         \textcolor{keywordtype}{int} l2 = mat\_snprintf(buf1, \textcolor{keyword}{sizeof}(buf1), fp\_fmt[x], fp\_nums[y]);
+00077                         sprintf (buf2, fp\_fmt[x], fp\_nums[y]);
+00078                         \textcolor{keywordflow}{if} (strcmp (buf1, buf2)) \{
+00079                                 printf(\textcolor{stringliteral}{"snprintf doesn't match Format: %s\(\backslash\)n\(\backslash\)tsnprintf = [%s]\(\backslash\)n\(\backslash\)t sprintf =
+       [%s]\(\backslash\)n"},
+00080                                        fp\_fmt[x], buf1, buf2);
+00081                                 fail++;
+00082                         \}
+00083                         \textcolor{keywordflow}{if} (l1 != l2) \{
+00084                                 printf(\textcolor{stringliteral}{"snprintf l1 != l2 (%d %d) %s\(\backslash\)n"}, l1, l2, fp\_fmt[x]);
+00085                                 fail++;
+00086                         \}
+00087                         num++;
+00088                 \}
+00089         \}
+00090 
+00091         \textcolor{keywordflow}{for} (x = 0; int\_fmt[x] ; x++) \{
+00092                 \textcolor{keywordflow}{for} (y = 0; int\_nums[y] != 0 ; y++) \{
+00093                         \textcolor{keywordtype}{int} l1 = mat\_snprintf(NULL, 0, int\_fmt[x], int\_nums[y]);
+00094                         \textcolor{keywordtype}{int} l2 = mat\_snprintf(buf1, \textcolor{keyword}{sizeof}(buf1), int\_fmt[x], int\_nums[y]);
+00095                         sprintf (buf2, int\_fmt[x], int\_nums[y]);
+00096                         \textcolor{keywordflow}{if} (strcmp (buf1, buf2)) \{
+00097                                 printf(\textcolor{stringliteral}{"snprintf doesn't match Format: %s\(\backslash\)n\(\backslash\)tsnprintf = [%s]\(\backslash\)n\(\backslash\)t sprintf =
+       [%s]\(\backslash\)n"},
+00098                                        int\_fmt[x], buf1, buf2);
+00099                                 fail++;
+00100                         \}
+00101                         \textcolor{keywordflow}{if} (l1 != l2) \{
+00102                                 printf(\textcolor{stringliteral}{"snprintf l1 != l2 (%d %d) %s\(\backslash\)n"}, l1, l2, int\_fmt[x]);
+00103                                 fail++;
+00104                         \}
+00105                         num++;
+00106                 \}
+00107         \}
+00108 
+00109         \textcolor{keywordflow}{for} (x = 0; str\_fmt[x] ; x++) \{
+00110                 \textcolor{keywordflow}{for} (y = 0; str\_vals[y] != 0 ; y++) \{
+00111                         \textcolor{keywordtype}{int} l1 = mat\_snprintf(NULL, 0, str\_fmt[x], str\_vals[y]);
+00112                         \textcolor{keywordtype}{int} l2 = mat\_snprintf(buf1, \textcolor{keyword}{sizeof}(buf1), str\_fmt[x], str\_vals[y]);
+00113                         sprintf (buf2, str\_fmt[x], str\_vals[y]);
+00114                         \textcolor{keywordflow}{if} (strcmp (buf1, buf2)) \{
+00115                                 printf(\textcolor{stringliteral}{"snprintf doesn't match Format: %s\(\backslash\)n\(\backslash\)tsnprintf = [%s]\(\backslash\)n\(\backslash\)t sprintf =
+       [%s]\(\backslash\)n"},
+00116                                        str\_fmt[x], buf1, buf2);
+00117                                 fail++;
+00118                         \}
+00119                         \textcolor{keywordflow}{if} (l1 != l2) \{
+00120                                 printf(\textcolor{stringliteral}{"snprintf l1 != l2 (%d %d) %s\(\backslash\)n"}, l1, l2, str\_fmt[x]);
+00121                                 fail++;
+00122                         \}
+00123                          num++;
+00124                  \}
+00125          \}
+00126 
+00127          printf (\textcolor{stringliteral}{"%d tests failed out of %d.\(\backslash\)n"}, fail, num);
+00128 
+00129          printf(\textcolor{stringliteral}{"seeing how many digits we support\(\backslash\)n"});
+00130          \{
+00131                  \textcolor{keywordtype}{double} v0 = 0.12345678901234567890123456789012345678901;
+00132                  \textcolor{keywordflow}{for} (x=0; x<100; x++) \{
+00133                          \textcolor{keywordtype}{double} p = \hyperlink{group___core___module_ab6dc101d82e8228a19a8840e3a29c1c9}{pow}(10, x);
+00134                          \textcolor{keywordtype}{double} r = v0*p;
+00135                          mat\_snprintf(buf1, \textcolor{keyword}{sizeof}(buf1), \textcolor{stringliteral}{"%1.1f"}, r);
+00136                          sprintf(buf2,                \textcolor{stringliteral}{"%1.1f"}, r);
+00137                          \textcolor{keywordflow}{if} (strcmp(buf1, buf2)) \{
+00138                                  printf(\textcolor{stringliteral}{"we seem to support %d digits\(\backslash\)n"}, x-1);
+00139                                  \textcolor{keywordflow}{break};
+00140                          \}
+00141                  \}
+00142          \}
+00143 
+00144          \textcolor{keywordflow}{return} 0;
+00145 \}
+\end{DoxyCode}

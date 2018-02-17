@@ -11,7 +11,7 @@ Atmopshere::~Atmopshere()
 void Atmopshere::initAtmosphere()
 {
 
-	std::cout << "Atmosphere: " << "Standard Atmosphere 1967" << std::endl;
+	std::cout << "Atmosphere:\t" << "Standard Atmosphere 1967" << std::endl;
 
 	Temperature		= 0.0;	
 	Pressure		= 0.0;       

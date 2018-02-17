@@ -1,0 +1,782 @@
+\hypertarget{eigen_2lapack_2zlarfb_8f_source}{}\section{eigen/lapack/zlarfb.f}
+\label{eigen_2lapack_2zlarfb_8f_source}\index{zlarfb.\+f@{zlarfb.\+f}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{*> \(\backslash\)brief \(\backslash\)b ZLARFB}
+00002 \textcolor{comment}{*}
+00003 \textcolor{comment}{*  =========== DOCUMENTATION ===========}
+00004 \textcolor{comment}{*}
+00005 \textcolor{comment}{* Online html documentation available at }
+00006 \textcolor{comment}{*            http://www.netlib.org/lapack/explore-html/ }
+00007 \textcolor{comment}{*}
+00008 \textcolor{comment}{*> \(\backslash\)htmlonly}
+00009 \textcolor{comment}{*> Download ZLARFB + dependencies }
+00010 \textcolor{comment}{*> <a
+       href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack\_routine/zlarfb.f"> }
+00011 \textcolor{comment}{*> [TGZ]</a> }
+00012 \textcolor{comment}{*> <a
+       href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack\_routine/zlarfb.f"> }
+00013 \textcolor{comment}{*> [ZIP]</a> }
+00014 \textcolor{comment}{*> <a
+       href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack\_routine/zlarfb.f"> }
+00015 \textcolor{comment}{*> [TXT]</a>}
+00016 \textcolor{comment}{*> \(\backslash\)endhtmlonly }
+00017 \textcolor{comment}{*}
+00018 \textcolor{comment}{*  Definition:}
+00019 \textcolor{comment}{*  ===========}
+00020 \textcolor{comment}{*}
+00021 \textcolor{comment}{*       SUBROUTINE ZLARFB( SIDE, TRANS, DIRECT, STOREV, M, N, K, V, LDV,}
+00022 \textcolor{comment}{*                          T, LDT, C, LDC, WORK, LDWORK )}
+00023 \textcolor{comment}{* }
+00024 \textcolor{comment}{*       .. Scalar Arguments ..}
+00025 \textcolor{comment}{*       CHARACTER          DIRECT, SIDE, STOREV, TRANS}
+00026 \textcolor{comment}{*       INTEGER            K, LDC, LDT, LDV, LDWORK, M, N}
+00027 \textcolor{comment}{*       ..}
+00028 \textcolor{comment}{*       .. Array Arguments ..}
+00029 \textcolor{comment}{*       COMPLEX*16         C( LDC, * ), T( LDT, * ), V( LDV, * ),}
+00030 \textcolor{comment}{*      $                   WORK( LDWORK, * )}
+00031 \textcolor{comment}{*       ..}
+00032 \textcolor{comment}{*  }
+00033 \textcolor{comment}{*}
+00034 \textcolor{comment}{*> \(\backslash\)par Purpose:}
+00035 \textcolor{comment}{*  =============}
+00036 \textcolor{comment}{*>}
+00037 \textcolor{comment}{*> \(\backslash\)verbatim}
+00038 \textcolor{comment}{*>}
+00039 \textcolor{comment}{*> ZLARFB applies a complex block reflector H or its transpose H**H to a}
+00040 \textcolor{comment}{*> complex M-by-N matrix C, from either the left or the right.}
+00041 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00042 \textcolor{comment}{*}
+00043 \textcolor{comment}{*  Arguments:}
+00044 \textcolor{comment}{*  ==========}
+00045 \textcolor{comment}{*}
+00046 \textcolor{comment}{*> \(\backslash\)param[in] SIDE}
+00047 \textcolor{comment}{*> \(\backslash\)verbatim}
+00048 \textcolor{comment}{*>          SIDE is CHARACTER*1}
+00049 \textcolor{comment}{*>          = 'L': apply H or H**H from the Left}
+00050 \textcolor{comment}{*>          = 'R': apply H or H**H from the Right}
+00051 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00052 \textcolor{comment}{*>}
+00053 \textcolor{comment}{*> \(\backslash\)param[in] TRANS}
+00054 \textcolor{comment}{*> \(\backslash\)verbatim}
+00055 \textcolor{comment}{*>          TRANS is CHARACTER*1}
+00056 \textcolor{comment}{*>          = 'N': apply H (No transpose)}
+00057 \textcolor{comment}{*>          = 'C': apply H**H (Conjugate transpose)}
+00058 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00059 \textcolor{comment}{*>}
+00060 \textcolor{comment}{*> \(\backslash\)param[in] DIRECT}
+00061 \textcolor{comment}{*> \(\backslash\)verbatim}
+00062 \textcolor{comment}{*>          DIRECT is CHARACTER*1}
+00063 \textcolor{comment}{*>          Indicates how H is formed from a product of elementary}
+00064 \textcolor{comment}{*>          reflectors}
+00065 \textcolor{comment}{*>          = 'F': H = H(1) H(2) . . . H(k) (Forward)}
+00066 \textcolor{comment}{*>          = 'B': H = H(k) . . . H(2) H(1) (Backward)}
+00067 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00068 \textcolor{comment}{*>}
+00069 \textcolor{comment}{*> \(\backslash\)param[in] STOREV}
+00070 \textcolor{comment}{*> \(\backslash\)verbatim}
+00071 \textcolor{comment}{*>          STOREV is CHARACTER*1}
+00072 \textcolor{comment}{*>          Indicates how the vectors which define the elementary}
+00073 \textcolor{comment}{*>          reflectors are stored:}
+00074 \textcolor{comment}{*>          = 'C': Columnwise}
+00075 \textcolor{comment}{*>          = 'R': Rowwise}
+00076 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00077 \textcolor{comment}{*>}
+00078 \textcolor{comment}{*> \(\backslash\)param[in] M}
+00079 \textcolor{comment}{*> \(\backslash\)verbatim}
+00080 \textcolor{comment}{*>          M is INTEGER}
+00081 \textcolor{comment}{*>          The number of rows of the matrix C.}
+00082 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00083 \textcolor{comment}{*>}
+00084 \textcolor{comment}{*> \(\backslash\)param[in] N}
+00085 \textcolor{comment}{*> \(\backslash\)verbatim}
+00086 \textcolor{comment}{*>          N is INTEGER}
+00087 \textcolor{comment}{*>          The number of columns of the matrix C.}
+00088 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00089 \textcolor{comment}{*>}
+00090 \textcolor{comment}{*> \(\backslash\)param[in] K}
+00091 \textcolor{comment}{*> \(\backslash\)verbatim}
+00092 \textcolor{comment}{*>          K is INTEGER}
+00093 \textcolor{comment}{*>          The order of the matrix T (= the number of elementary}
+00094 \textcolor{comment}{*>          reflectors whose product defines the block reflector).}
+00095 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00096 \textcolor{comment}{*>}
+00097 \textcolor{comment}{*> \(\backslash\)param[in] V}
+00098 \textcolor{comment}{*> \(\backslash\)verbatim}
+00099 \textcolor{comment}{*>          V is COMPLEX*16 array, dimension}
+00100 \textcolor{comment}{*>                                (LDV,K) if STOREV = 'C'}
+00101 \textcolor{comment}{*>                                (LDV,M) if STOREV = 'R' and SIDE = 'L'}
+00102 \textcolor{comment}{*>                                (LDV,N) if STOREV = 'R' and SIDE = 'R'}
+00103 \textcolor{comment}{*>          See Further Details.}
+00104 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00105 \textcolor{comment}{*>}
+00106 \textcolor{comment}{*> \(\backslash\)param[in] LDV}
+00107 \textcolor{comment}{*> \(\backslash\)verbatim}
+00108 \textcolor{comment}{*>          LDV is INTEGER}
+00109 \textcolor{comment}{*>          The leading dimension of the array V.}
+00110 \textcolor{comment}{*>          If STOREV = 'C' and SIDE = 'L', LDV >= max(1,M);}
+00111 \textcolor{comment}{*>          if STOREV = 'C' and SIDE = 'R', LDV >= max(1,N);}
+00112 \textcolor{comment}{*>          if STOREV = 'R', LDV >= K.}
+00113 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00114 \textcolor{comment}{*>}
+00115 \textcolor{comment}{*> \(\backslash\)param[in] T}
+00116 \textcolor{comment}{*> \(\backslash\)verbatim}
+00117 \textcolor{comment}{*>          T is COMPLEX*16 array, dimension (LDT,K)}
+00118 \textcolor{comment}{*>          The triangular K-by-K matrix T in the representation of the}
+00119 \textcolor{comment}{*>          block reflector.}
+00120 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00121 \textcolor{comment}{*>}
+00122 \textcolor{comment}{*> \(\backslash\)param[in] LDT}
+00123 \textcolor{comment}{*> \(\backslash\)verbatim}
+00124 \textcolor{comment}{*>          LDT is INTEGER}
+00125 \textcolor{comment}{*>          The leading dimension of the array T. LDT >= K.}
+00126 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00127 \textcolor{comment}{*>}
+00128 \textcolor{comment}{*> \(\backslash\)param[in,out] C}
+00129 \textcolor{comment}{*> \(\backslash\)verbatim}
+00130 \textcolor{comment}{*>          C is COMPLEX*16 array, dimension (LDC,N)}
+00131 \textcolor{comment}{*>          On entry, the M-by-N matrix C.}
+00132 \textcolor{comment}{*>          On exit, C is overwritten by H*C or H**H*C or C*H or C*H**H.}
+00133 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00134 \textcolor{comment}{*>}
+00135 \textcolor{comment}{*> \(\backslash\)param[in] LDC}
+00136 \textcolor{comment}{*> \(\backslash\)verbatim}
+00137 \textcolor{comment}{*>          LDC is INTEGER}
+00138 \textcolor{comment}{*>          The leading dimension of the array C. LDC >= max(1,M).}
+00139 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00140 \textcolor{comment}{*>}
+00141 \textcolor{comment}{*> \(\backslash\)param[out] WORK}
+00142 \textcolor{comment}{*> \(\backslash\)verbatim}
+00143 \textcolor{comment}{*>          WORK is COMPLEX*16 array, dimension (LDWORK,K)}
+00144 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00145 \textcolor{comment}{*>}
+00146 \textcolor{comment}{*> \(\backslash\)param[in] LDWORK}
+00147 \textcolor{comment}{*> \(\backslash\)verbatim}
+00148 \textcolor{comment}{*>          LDWORK is INTEGER}
+00149 \textcolor{comment}{*>          The leading dimension of the array WORK.}
+00150 \textcolor{comment}{*>          If SIDE = 'L', LDWORK >= max(1,N);}
+00151 \textcolor{comment}{*>          if SIDE = 'R', LDWORK >= max(1,M).}
+00152 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00153 \textcolor{comment}{*}
+00154 \textcolor{comment}{*  Authors:}
+00155 \textcolor{comment}{*  ========}
+00156 \textcolor{comment}{*}
+00157 \textcolor{comment}{*> \(\backslash\)author Univ. of Tennessee }
+00158 \textcolor{comment}{*> \(\backslash\)author Univ. of California Berkeley }
+00159 \textcolor{comment}{*> \(\backslash\)author Univ. of Colorado Denver }
+00160 \textcolor{comment}{*> \(\backslash\)author NAG Ltd. }
+00161 \textcolor{comment}{*}
+00162 \textcolor{comment}{*> \(\backslash\)date November 2011}
+00163 \textcolor{comment}{*}
+00164 \textcolor{comment}{*> \(\backslash\)ingroup complex16OTHERauxiliary}
+00165 \textcolor{comment}{*}
+00166 \textcolor{comment}{*> \(\backslash\)par Further Details:}
+00167 \textcolor{comment}{*  =====================}
+00168 \textcolor{comment}{*>}
+00169 \textcolor{comment}{*> \(\backslash\)verbatim}
+00170 \textcolor{comment}{*>}
+00171 \textcolor{comment}{*>  The shape of the matrix V and the storage of the vectors which define}
+00172 \textcolor{comment}{*>  the H(i) is best illustrated by the following example with n = 5 and}
+00173 \textcolor{comment}{*>  k = 3. The elements equal to 1 are not stored; the corresponding}
+00174 \textcolor{comment}{*>  array elements are modified but restored on exit. The rest of the}
+00175 \textcolor{comment}{*>  array is not used.}
+00176 \textcolor{comment}{*>}
+00177 \textcolor{comment}{*>  DIRECT = 'F' and STOREV = 'C':         DIRECT = 'F' and STOREV = 'R':}
+00178 \textcolor{comment}{*>}
+00179 \textcolor{comment}{*>               V = (  1       )                 V = (  1 v1 v1 v1 v1 )}
+00180 \textcolor{comment}{*>                   ( v1  1    )                     (     1 v2 v2 v2 )}
+00181 \textcolor{comment}{*>                   ( v1 v2  1 )                     (        1 v3 v3 )}
+00182 \textcolor{comment}{*>                   ( v1 v2 v3 )}
+00183 \textcolor{comment}{*>                   ( v1 v2 v3 )}
+00184 \textcolor{comment}{*>}
+00185 \textcolor{comment}{*>  DIRECT = 'B' and STOREV = 'C':         DIRECT = 'B' and STOREV = 'R':}
+00186 \textcolor{comment}{*>}
+00187 \textcolor{comment}{*>               V = ( v1 v2 v3 )                 V = ( v1 v1  1       )}
+00188 \textcolor{comment}{*>                   ( v1 v2 v3 )                     ( v2 v2 v2  1    )}
+00189 \textcolor{comment}{*>                   (  1 v2 v3 )                     ( v3 v3 v3 v3  1 )}
+00190 \textcolor{comment}{*>                   (     1 v3 )}
+00191 \textcolor{comment}{*>                   (        1 )}
+00192 \textcolor{comment}{*> \(\backslash\)endverbatim}
+00193 \textcolor{comment}{*>}
+00194 \textcolor{comment}{*  =====================================================================}
+00195 \textcolor{keyword}{      SUBROUTINE }zlarfb( SIDE, TRANS, DIRECT, STOREV, M, N, K, V, LDV,
+00196      $                   T, LDT, C, LDC, WORK, LDWORK )
+00197 \textcolor{comment}{*}
+00198 \textcolor{comment}{*  -- LAPACK auxiliary routine (version 3.4.0) --}
+00199 \textcolor{comment}{*  -- LAPACK is a software package provided by Univ. of Tennessee,    --}
+00200 \textcolor{comment}{*  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--}
+00201 \textcolor{comment}{*     November 2011}
+00202 \textcolor{comment}{*}
+00203 \textcolor{comment}{*     .. Scalar Arguments ..}
+00204       \textcolor{keywordtype}{CHARACTER}          direct, side, storev, trans
+00205       \textcolor{keywordtype}{INTEGER}            k, ldc, ldt, ldv, ldwork, m, n
+00206 \textcolor{comment}{*     ..}
+00207 \textcolor{comment}{*     .. Array Arguments ..}
+00208       \textcolor{keywordtype}{COMPLEX*16}         c( ldc, * ), t( ldt, * ), v( ldv, * ),
+00209      $                   work( ldwork, * )
+00210 \textcolor{comment}{*     ..}
+00211 \textcolor{comment}{*}
+00212 \textcolor{comment}{*  =====================================================================}
+00213 \textcolor{comment}{*}
+00214 \textcolor{comment}{*     .. Parameters ..}
+00215       \textcolor{keywordtype}{COMPLEX*16}         one
+00216       parameter( one = ( 1.0d+0, 0.0d+0 ) )
+00217 \textcolor{comment}{*     ..}
+00218 \textcolor{comment}{*     .. Local Scalars ..}
+00219       \textcolor{keywordtype}{CHARACTER}          transt
+00220       \textcolor{keywordtype}{INTEGER}            i, j, lastv, lastc
+00221 \textcolor{comment}{*     ..}
+00222 \textcolor{comment}{*     .. External Functions ..}
+00223       \textcolor{keywordtype}{LOGICAL}            lsame
+00224       \textcolor{keywordtype}{INTEGER}            ilazlr, ilazlc
+00225       \textcolor{keywordtype}{EXTERNAL}           lsame, ilazlr, ilazlc
+00226 \textcolor{comment}{*     ..}
+00227 \textcolor{comment}{*     .. External Subroutines ..}
+00228       \textcolor{keywordtype}{EXTERNAL}           zcopy, zgemm, zlacgv, ztrmm
+00229 \textcolor{comment}{*     ..}
+00230 \textcolor{comment}{*     .. Intrinsic Functions ..}
+00231       \textcolor{keywordtype}{INTRINSIC}          dconjg
+00232 \textcolor{comment}{*     ..}
+00233 \textcolor{comment}{*     .. Executable Statements ..}
+00234 \textcolor{comment}{*}
+00235 \textcolor{comment}{*     Quick return if possible}
+00236 \textcolor{comment}{*}
+00237       \textcolor{keywordflow}{IF}( m.LE.0 .OR. n.LE.0 )
+00238      $   \textcolor{keywordflow}{RETURN}
+00239 \textcolor{comment}{*}
+00240       \textcolor{keywordflow}{IF}( lsame( trans, \textcolor{stringliteral}{'N'} ) ) \textcolor{keywordflow}{THEN}
+00241          transt = \textcolor{stringliteral}{'C'}
+00242       \textcolor{keywordflow}{ELSE}
+00243          transt = \textcolor{stringliteral}{'N'}
+00244 \textcolor{keywordflow}{      END IF}
+00245 \textcolor{comment}{*}
+00246       \textcolor{keywordflow}{IF}( lsame( storev, \textcolor{stringliteral}{'C'} ) ) \textcolor{keywordflow}{THEN}
+00247 \textcolor{comment}{*}
+00248          \textcolor{keywordflow}{IF}( lsame( direct, \textcolor{stringliteral}{'F'} ) ) \textcolor{keywordflow}{THEN}
+00249 \textcolor{comment}{*}
+00250 \textcolor{comment}{*           Let  V =  ( V1 )    (first K rows)}
+00251 \textcolor{comment}{*                     ( V2 )}
+00252 \textcolor{comment}{*           where  V1  is unit lower triangular.}
+00253 \textcolor{comment}{*}
+00254             \textcolor{keywordflow}{IF}( lsame( side, \textcolor{stringliteral}{'L'} ) ) \textcolor{keywordflow}{THEN}
+00255 \textcolor{comment}{*}
+00256 \textcolor{comment}{*              Form  H * C  or  H**H * C  where  C = ( C1 )}
+00257 \textcolor{comment}{*                                                    ( C2 )}
+00258 \textcolor{comment}{*}
+00259                lastv = max( k, ilazlr( m, k, v, ldv ) )
+00260                lastc = ilazlc( lastv, n, c, ldc )
+00261 \textcolor{comment}{*}
+00262 \textcolor{comment}{*              W := C**H * V  =  (C1**H * V1 + C2**H * V2)  (stored in WORK)}
+00263 \textcolor{comment}{*}
+00264 \textcolor{comment}{*              W := C1**H}
+00265 \textcolor{comment}{*}
+00266                \textcolor{keywordflow}{DO} 10 j = 1, k
+00267                   \textcolor{keyword}{CALL }zcopy( lastc, c( j, 1 ), ldc, work( 1, j ), 1 )
+00268                   \textcolor{keyword}{CALL }zlacgv( lastc, work( 1, j ), 1 )
+00269    10          \textcolor{keywordflow}{CONTINUE}
+00270 \textcolor{comment}{*}
+00271 \textcolor{comment}{*              W := W * V1}
+00272 \textcolor{comment}{*}
+00273                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Lower'}, \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'Unit'},
+00274      $              lastc, k, one, v, ldv, work, ldwork )
+00275                \textcolor{keywordflow}{IF}( lastv.GT.k ) \textcolor{keywordflow}{THEN}
+00276 \textcolor{comment}{*}
+00277 \textcolor{comment}{*                 W := W + C2**H *V2}
+00278 \textcolor{comment}{*}
+00279                   \textcolor{keyword}{CALL }zgemm( \textcolor{stringliteral}{'Conjugate transpose'}, \textcolor{stringliteral}{'No transpose'},
+00280      $                 lastc, k, lastv-k, one, c( k+1, 1 ), ldc,
+00281      $                 v( k+1, 1 ), ldv, one, work, ldwork )
+00282 \textcolor{keywordflow}{               END IF}
+00283 \textcolor{comment}{*}
+00284 \textcolor{comment}{*              W := W * T**H  or  W * T}
+00285 \textcolor{comment}{*}
+00286                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Upper'}, transt, \textcolor{stringliteral}{'Non-unit'},
+00287      $              lastc, k, one, t, ldt, work, ldwork )
+00288 \textcolor{comment}{*}
+00289 \textcolor{comment}{*              C := C - V * W**H}
+00290 \textcolor{comment}{*}
+00291                \textcolor{keywordflow}{IF}( m.GT.k ) \textcolor{keywordflow}{THEN}
+00292 \textcolor{comment}{*}
+00293 \textcolor{comment}{*                 C2 := C2 - V2 * W**H}
+00294 \textcolor{comment}{*}
+00295                   \textcolor{keyword}{CALL }zgemm( \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'Conjugate transpose'},
+00296      $                 lastv-k, lastc, k,
+00297      $                 -one, v( k+1, 1 ), ldv, work, ldwork,
+00298      $                 one, c( k+1, 1 ), ldc )
+00299 \textcolor{keywordflow}{               END IF}
+00300 \textcolor{comment}{*}
+00301 \textcolor{comment}{*              W := W * V1**H}
+00302 \textcolor{comment}{*}
+00303                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Lower'}, \textcolor{stringliteral}{'Conjugate transpose'},
+00304      $              \textcolor{stringliteral}{'Unit'}, lastc, k, one, v, ldv, work, ldwork )
+00305 \textcolor{comment}{*}
+00306 \textcolor{comment}{*              C1 := C1 - W**H}
+00307 \textcolor{comment}{*}
+00308                \textcolor{keywordflow}{DO} 30 j = 1, k
+00309                   \textcolor{keywordflow}{DO} 20 i = 1, lastc
+00310                      c( j, i ) = c( j, i ) - dconjg( work( i, j ) )
+00311    20             \textcolor{keywordflow}{CONTINUE}
+00312    30          \textcolor{keywordflow}{CONTINUE}
+00313 \textcolor{comment}{*}
+00314             \textcolor{keywordflow}{ELSE} \textcolor{keywordflow}{IF}( lsame( side, \textcolor{stringliteral}{'R'} ) ) \textcolor{keywordflow}{THEN}
+00315 \textcolor{comment}{*}
+00316 \textcolor{comment}{*              Form  C * H  or  C * H**H  where  C = ( C1  C2 )}
+00317 \textcolor{comment}{*}
+00318                lastv = max( k, ilazlr( n, k, v, ldv ) )
+00319                lastc = ilazlr( m, lastv, c, ldc )
+00320 \textcolor{comment}{*}
+00321 \textcolor{comment}{*              W := C * V  =  (C1*V1 + C2*V2)  (stored in WORK)}
+00322 \textcolor{comment}{*}
+00323 \textcolor{comment}{*              W := C1}
+00324 \textcolor{comment}{*}
+00325                \textcolor{keywordflow}{DO} 40 j = 1, k
+00326                   \textcolor{keyword}{CALL }zcopy( lastc, c( 1, j ), 1, work( 1, j ), 1 )
+00327    40          \textcolor{keywordflow}{CONTINUE}
+00328 \textcolor{comment}{*}
+00329 \textcolor{comment}{*              W := W * V1}
+00330 \textcolor{comment}{*}
+00331                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Lower'}, \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'Unit'},
+00332      $              lastc, k, one, v, ldv, work, ldwork )
+00333                \textcolor{keywordflow}{IF}( lastv.GT.k ) \textcolor{keywordflow}{THEN}
+00334 \textcolor{comment}{*}
+00335 \textcolor{comment}{*                 W := W + C2 * V2}
+00336 \textcolor{comment}{*}
+00337                   \textcolor{keyword}{CALL }zgemm( \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'No transpose'},
+00338      $                 lastc, k, lastv-k,
+00339      $                 one, c( 1, k+1 ), ldc, v( k+1, 1 ), ldv,
+00340      $                 one, work, ldwork )
+00341 \textcolor{keywordflow}{               END IF}
+00342 \textcolor{comment}{*}
+00343 \textcolor{comment}{*              W := W * T  or  W * T**H}
+00344 \textcolor{comment}{*}
+00345                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Upper'}, trans, \textcolor{stringliteral}{'Non-unit'},
+00346      $              lastc, k, one, t, ldt, work, ldwork )
+00347 \textcolor{comment}{*}
+00348 \textcolor{comment}{*              C := C - W * V**H}
+00349 \textcolor{comment}{*}
+00350                \textcolor{keywordflow}{IF}( lastv.GT.k ) \textcolor{keywordflow}{THEN}
+00351 \textcolor{comment}{*}
+00352 \textcolor{comment}{*                 C2 := C2 - W * V2**H}
+00353 \textcolor{comment}{*}
+00354                   \textcolor{keyword}{CALL }zgemm( \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'Conjugate transpose'},
+00355      $                 lastc, lastv-k, k,
+00356      $                 -one, work, ldwork, v( k+1, 1 ), ldv,
+00357      $                 one, c( 1, k+1 ), ldc )
+00358 \textcolor{keywordflow}{               END IF}
+00359 \textcolor{comment}{*}
+00360 \textcolor{comment}{*              W := W * V1**H}
+00361 \textcolor{comment}{*}
+00362                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Lower'}, \textcolor{stringliteral}{'Conjugate transpose'},
+00363      $              \textcolor{stringliteral}{'Unit'}, lastc, k, one, v, ldv, work, ldwork )
+00364 \textcolor{comment}{*}
+00365 \textcolor{comment}{*              C1 := C1 - W}
+00366 \textcolor{comment}{*}
+00367                \textcolor{keywordflow}{DO} 60 j = 1, k
+00368                   \textcolor{keywordflow}{DO} 50 i = 1, lastc
+00369                      c( i, j ) = c( i, j ) - work( i, j )
+00370    50             \textcolor{keywordflow}{CONTINUE}
+00371    60          \textcolor{keywordflow}{CONTINUE}
+00372 \textcolor{keywordflow}{            END IF}
+00373 \textcolor{comment}{*}
+00374          \textcolor{keywordflow}{ELSE}
+00375 \textcolor{comment}{*}
+00376 \textcolor{comment}{*           Let  V =  ( V1 )}
+00377 \textcolor{comment}{*                     ( V2 )    (last K rows)}
+00378 \textcolor{comment}{*           where  V2  is unit upper triangular.}
+00379 \textcolor{comment}{*}
+00380             \textcolor{keywordflow}{IF}( lsame( side, \textcolor{stringliteral}{'L'} ) ) \textcolor{keywordflow}{THEN}
+00381 \textcolor{comment}{*}
+00382 \textcolor{comment}{*              Form  H * C  or  H**H * C  where  C = ( C1 )}
+00383 \textcolor{comment}{*                                                    ( C2 )}
+00384 \textcolor{comment}{*}
+00385                lastv = max( k, ilazlr( m, k, v, ldv ) )
+00386                lastc = ilazlc( lastv, n, c, ldc )
+00387 \textcolor{comment}{*}
+00388 \textcolor{comment}{*              W := C**H * V  =  (C1**H * V1 + C2**H * V2)  (stored in WORK)}
+00389 \textcolor{comment}{*}
+00390 \textcolor{comment}{*              W := C2**H}
+00391 \textcolor{comment}{*}
+00392                \textcolor{keywordflow}{DO} 70 j = 1, k
+00393                   \textcolor{keyword}{CALL }zcopy( lastc, c( lastv-k+j, 1 ), ldc,
+00394      $                 work( 1, j ), 1 )
+00395                   \textcolor{keyword}{CALL }zlacgv( lastc, work( 1, j ), 1 )
+00396    70          \textcolor{keywordflow}{CONTINUE}
+00397 \textcolor{comment}{*}
+00398 \textcolor{comment}{*              W := W * V2}
+00399 \textcolor{comment}{*}
+00400                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Upper'}, \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'Unit'},
+00401      $              lastc, k, one, v( lastv-k+1, 1 ), ldv,
+00402      $              work, ldwork )
+00403                \textcolor{keywordflow}{IF}( lastv.GT.k ) \textcolor{keywordflow}{THEN}
+00404 \textcolor{comment}{*}
+00405 \textcolor{comment}{*                 W := W + C1**H*V1}
+00406 \textcolor{comment}{*}
+00407                   \textcolor{keyword}{CALL }zgemm( \textcolor{stringliteral}{'Conjugate transpose'}, \textcolor{stringliteral}{'No transpose'},
+00408      $                 lastc, k, lastv-k,
+00409      $                 one, c, ldc, v, ldv,
+00410      $                 one, work, ldwork )
+00411 \textcolor{keywordflow}{               END IF}
+00412 \textcolor{comment}{*}
+00413 \textcolor{comment}{*              W := W * T**H  or  W * T}
+00414 \textcolor{comment}{*}
+00415                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Lower'}, transt, \textcolor{stringliteral}{'Non-unit'},
+00416      $              lastc, k, one, t, ldt, work, ldwork )
+00417 \textcolor{comment}{*}
+00418 \textcolor{comment}{*              C := C - V * W**H}
+00419 \textcolor{comment}{*}
+00420                \textcolor{keywordflow}{IF}( lastv.GT.k ) \textcolor{keywordflow}{THEN}
+00421 \textcolor{comment}{*}
+00422 \textcolor{comment}{*                 C1 := C1 - V1 * W**H}
+00423 \textcolor{comment}{*}
+00424                   \textcolor{keyword}{CALL }zgemm( \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'Conjugate transpose'},
+00425      $                 lastv-k, lastc, k,
+00426      $                 -one, v, ldv, work, ldwork,
+00427      $                 one, c, ldc )
+00428 \textcolor{keywordflow}{               END IF}
+00429 \textcolor{comment}{*}
+00430 \textcolor{comment}{*              W := W * V2**H}
+00431 \textcolor{comment}{*}
+00432                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Upper'}, \textcolor{stringliteral}{'Conjugate transpose'},
+00433      $              \textcolor{stringliteral}{'Unit'}, lastc, k, one, v( lastv-k+1, 1 ), ldv,
+00434      $              work, ldwork )
+00435 \textcolor{comment}{*}
+00436 \textcolor{comment}{*              C2 := C2 - W**H}
+00437 \textcolor{comment}{*}
+00438                \textcolor{keywordflow}{DO} 90 j = 1, k
+00439                   \textcolor{keywordflow}{DO} 80 i = 1, lastc
+00440                      c( lastv-k+j, i ) = c( lastv-k+j, i ) -
+00441      $                               dconjg( work( i, j ) )
+00442    80             \textcolor{keywordflow}{CONTINUE}
+00443    90          \textcolor{keywordflow}{CONTINUE}
+00444 \textcolor{comment}{*}
+00445             \textcolor{keywordflow}{ELSE} \textcolor{keywordflow}{IF}( lsame( side, \textcolor{stringliteral}{'R'} ) ) \textcolor{keywordflow}{THEN}
+00446 \textcolor{comment}{*}
+00447 \textcolor{comment}{*              Form  C * H  or  C * H**H  where  C = ( C1  C2 )}
+00448 \textcolor{comment}{*}
+00449                lastv = max( k, ilazlr( n, k, v, ldv ) )
+00450                lastc = ilazlr( m, lastv, c, ldc )
+00451 \textcolor{comment}{*}
+00452 \textcolor{comment}{*              W := C * V  =  (C1*V1 + C2*V2)  (stored in WORK)}
+00453 \textcolor{comment}{*}
+00454 \textcolor{comment}{*              W := C2}
+00455 \textcolor{comment}{*}
+00456                \textcolor{keywordflow}{DO} 100 j = 1, k
+00457                   \textcolor{keyword}{CALL }zcopy( lastc, c( 1, lastv-k+j ), 1,
+00458      $                 work( 1, j ), 1 )
+00459   100          \textcolor{keywordflow}{CONTINUE}
+00460 \textcolor{comment}{*}
+00461 \textcolor{comment}{*              W := W * V2}
+00462 \textcolor{comment}{*}
+00463                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Upper'}, \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'Unit'},
+00464      $              lastc, k, one, v( lastv-k+1, 1 ), ldv,
+00465      $              work, ldwork )
+00466                \textcolor{keywordflow}{IF}( lastv.GT.k ) \textcolor{keywordflow}{THEN}
+00467 \textcolor{comment}{*}
+00468 \textcolor{comment}{*                 W := W + C1 * V1}
+00469 \textcolor{comment}{*}
+00470                   \textcolor{keyword}{CALL }zgemm( \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'No transpose'},
+00471      $                 lastc, k, lastv-k,
+00472      $                 one, c, ldc, v, ldv, one, work, ldwork )
+00473 \textcolor{keywordflow}{               END IF}
+00474 \textcolor{comment}{*}
+00475 \textcolor{comment}{*              W := W * T  or  W * T**H}
+00476 \textcolor{comment}{*}
+00477                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Lower'}, trans, \textcolor{stringliteral}{'Non-unit'},
+00478      $              lastc, k, one, t, ldt, work, ldwork )
+00479 \textcolor{comment}{*}
+00480 \textcolor{comment}{*              C := C - W * V**H}
+00481 \textcolor{comment}{*}
+00482                \textcolor{keywordflow}{IF}( lastv.GT.k ) \textcolor{keywordflow}{THEN}
+00483 \textcolor{comment}{*}
+00484 \textcolor{comment}{*                 C1 := C1 - W * V1**H}
+00485 \textcolor{comment}{*}
+00486                   \textcolor{keyword}{CALL }zgemm( \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'Conjugate transpose'},
+00487      $                 lastc, lastv-k, k, -one, work, ldwork, v, ldv,
+00488      $                 one, c, ldc )
+00489 \textcolor{keywordflow}{               END IF}
+00490 \textcolor{comment}{*}
+00491 \textcolor{comment}{*              W := W * V2**H}
+00492 \textcolor{comment}{*}
+00493                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Upper'}, \textcolor{stringliteral}{'Conjugate transpose'},
+00494      $              \textcolor{stringliteral}{'Unit'}, lastc, k, one, v( lastv-k+1, 1 ), ldv,
+00495      $              work, ldwork )
+00496 \textcolor{comment}{*}
+00497 \textcolor{comment}{*              C2 := C2 - W}
+00498 \textcolor{comment}{*}
+00499                \textcolor{keywordflow}{DO} 120 j = 1, k
+00500                   \textcolor{keywordflow}{DO} 110 i = 1, lastc
+00501                      c( i, lastv-k+j ) = c( i, lastv-k+j )
+00502      $                    - work( i, j )
+00503   110             \textcolor{keywordflow}{CONTINUE}
+00504   120          \textcolor{keywordflow}{CONTINUE}
+00505 \textcolor{keywordflow}{            END IF}
+00506 \textcolor{keywordflow}{         END IF}
+00507 \textcolor{comment}{*}
+00508       \textcolor{keywordflow}{ELSE} \textcolor{keywordflow}{IF}( lsame( storev, \textcolor{stringliteral}{'R'} ) ) \textcolor{keywordflow}{THEN}
+00509 \textcolor{comment}{*}
+00510          \textcolor{keywordflow}{IF}( lsame( direct, \textcolor{stringliteral}{'F'} ) ) \textcolor{keywordflow}{THEN}
+00511 \textcolor{comment}{*}
+00512 \textcolor{comment}{*           Let  V =  ( V1  V2 )    (V1: first K columns)}
+00513 \textcolor{comment}{*           where  V1  is unit upper triangular.}
+00514 \textcolor{comment}{*}
+00515             \textcolor{keywordflow}{IF}( lsame( side, \textcolor{stringliteral}{'L'} ) ) \textcolor{keywordflow}{THEN}
+00516 \textcolor{comment}{*}
+00517 \textcolor{comment}{*              Form  H * C  or  H**H * C  where  C = ( C1 )}
+00518 \textcolor{comment}{*                                                    ( C2 )}
+00519 \textcolor{comment}{*}
+00520                lastv = max( k, ilazlc( k, m, v, ldv ) )
+00521                lastc = ilazlc( lastv, n, c, ldc )
+00522 \textcolor{comment}{*}
+00523 \textcolor{comment}{*              W := C**H * V**H  =  (C1**H * V1**H + C2**H * V2**H) (stored in WORK)}
+00524 \textcolor{comment}{*}
+00525 \textcolor{comment}{*              W := C1**H}
+00526 \textcolor{comment}{*}
+00527                \textcolor{keywordflow}{DO} 130 j = 1, k
+00528                   \textcolor{keyword}{CALL }zcopy( lastc, c( j, 1 ), ldc, work( 1, j ), 1 )
+00529                   \textcolor{keyword}{CALL }zlacgv( lastc, work( 1, j ), 1 )
+00530   130          \textcolor{keywordflow}{CONTINUE}
+00531 \textcolor{comment}{*}
+00532 \textcolor{comment}{*              W := W * V1**H}
+00533 \textcolor{comment}{*}
+00534                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Upper'}, \textcolor{stringliteral}{'Conjugate transpose'},
+00535      $                     \textcolor{stringliteral}{'Unit'}, lastc, k, one, v, ldv, work, ldwork )
+00536                \textcolor{keywordflow}{IF}( lastv.GT.k ) \textcolor{keywordflow}{THEN}
+00537 \textcolor{comment}{*}
+00538 \textcolor{comment}{*                 W := W + C2**H*V2**H}
+00539 \textcolor{comment}{*}
+00540                   \textcolor{keyword}{CALL }zgemm( \textcolor{stringliteral}{'Conjugate transpose'},
+00541      $                 \textcolor{stringliteral}{'Conjugate transpose'}, lastc, k, lastv-k,
+00542      $                 one, c( k+1, 1 ), ldc, v( 1, k+1 ), ldv,
+00543      $                 one, work, ldwork )
+00544 \textcolor{keywordflow}{               END IF}
+00545 \textcolor{comment}{*}
+00546 \textcolor{comment}{*              W := W * T**H  or  W * T}
+00547 \textcolor{comment}{*}
+00548                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Upper'}, transt, \textcolor{stringliteral}{'Non-unit'},
+00549      $              lastc, k, one, t, ldt, work, ldwork )
+00550 \textcolor{comment}{*}
+00551 \textcolor{comment}{*              C := C - V**H * W**H}
+00552 \textcolor{comment}{*}
+00553                \textcolor{keywordflow}{IF}( lastv.GT.k ) \textcolor{keywordflow}{THEN}
+00554 \textcolor{comment}{*}
+00555 \textcolor{comment}{*                 C2 := C2 - V2**H * W**H}
+00556 \textcolor{comment}{*}
+00557                   \textcolor{keyword}{CALL }zgemm( \textcolor{stringliteral}{'Conjugate transpose'},
+00558      $                 \textcolor{stringliteral}{'Conjugate transpose'}, lastv-k, lastc, k,
+00559      $                 -one, v( 1, k+1 ), ldv, work, ldwork,
+00560      $                 one, c( k+1, 1 ), ldc )
+00561 \textcolor{keywordflow}{               END IF}
+00562 \textcolor{comment}{*}
+00563 \textcolor{comment}{*              W := W * V1}
+00564 \textcolor{comment}{*}
+00565                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Upper'}, \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'Unit'},
+00566      $              lastc, k, one, v, ldv, work, ldwork )
+00567 \textcolor{comment}{*}
+00568 \textcolor{comment}{*              C1 := C1 - W**H}
+00569 \textcolor{comment}{*}
+00570                \textcolor{keywordflow}{DO} 150 j = 1, k
+00571                   \textcolor{keywordflow}{DO} 140 i = 1, lastc
+00572                      c( j, i ) = c( j, i ) - dconjg( work( i, j ) )
+00573   140             \textcolor{keywordflow}{CONTINUE}
+00574   150          \textcolor{keywordflow}{CONTINUE}
+00575 \textcolor{comment}{*}
+00576             \textcolor{keywordflow}{ELSE} \textcolor{keywordflow}{IF}( lsame( side, \textcolor{stringliteral}{'R'} ) ) \textcolor{keywordflow}{THEN}
+00577 \textcolor{comment}{*}
+00578 \textcolor{comment}{*              Form  C * H  or  C * H**H  where  C = ( C1  C2 )}
+00579 \textcolor{comment}{*}
+00580                lastv = max( k, ilazlc( k, n, v, ldv ) )
+00581                lastc = ilazlr( m, lastv, c, ldc )
+00582 \textcolor{comment}{*}
+00583 \textcolor{comment}{*              W := C * V**H  =  (C1*V1**H + C2*V2**H)  (stored in WORK)}
+00584 \textcolor{comment}{*}
+00585 \textcolor{comment}{*              W := C1}
+00586 \textcolor{comment}{*}
+00587                \textcolor{keywordflow}{DO} 160 j = 1, k
+00588                   \textcolor{keyword}{CALL }zcopy( lastc, c( 1, j ), 1, work( 1, j ), 1 )
+00589   160          \textcolor{keywordflow}{CONTINUE}
+00590 \textcolor{comment}{*}
+00591 \textcolor{comment}{*              W := W * V1**H}
+00592 \textcolor{comment}{*}
+00593                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Upper'}, \textcolor{stringliteral}{'Conjugate transpose'},
+00594      $                     \textcolor{stringliteral}{'Unit'}, lastc, k, one, v, ldv, work, ldwork )
+00595                \textcolor{keywordflow}{IF}( lastv.GT.k ) \textcolor{keywordflow}{THEN}
+00596 \textcolor{comment}{*}
+00597 \textcolor{comment}{*                 W := W + C2 * V2**H}
+00598 \textcolor{comment}{*}
+00599                   \textcolor{keyword}{CALL }zgemm( \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'Conjugate transpose'},
+00600      $                 lastc, k, lastv-k, one, c( 1, k+1 ), ldc,
+00601      $                 v( 1, k+1 ), ldv, one, work, ldwork )
+00602 \textcolor{keywordflow}{               END IF}
+00603 \textcolor{comment}{*}
+00604 \textcolor{comment}{*              W := W * T  or  W * T**H}
+00605 \textcolor{comment}{*}
+00606                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Upper'}, trans, \textcolor{stringliteral}{'Non-unit'},
+00607      $              lastc, k, one, t, ldt, work, ldwork )
+00608 \textcolor{comment}{*}
+00609 \textcolor{comment}{*              C := C - W * V}
+00610 \textcolor{comment}{*}
+00611                \textcolor{keywordflow}{IF}( lastv.GT.k ) \textcolor{keywordflow}{THEN}
+00612 \textcolor{comment}{*}
+00613 \textcolor{comment}{*                 C2 := C2 - W * V2}
+00614 \textcolor{comment}{*}
+00615                   \textcolor{keyword}{CALL }zgemm( \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'No transpose'},
+00616      $                 lastc, lastv-k, k,
+00617      $                 -one, work, ldwork, v( 1, k+1 ), ldv,
+00618      $                 one, c( 1, k+1 ), ldc )
+00619 \textcolor{keywordflow}{               END IF}
+00620 \textcolor{comment}{*}
+00621 \textcolor{comment}{*              W := W * V1}
+00622 \textcolor{comment}{*}
+00623                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Upper'}, \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'Unit'},
+00624      $              lastc, k, one, v, ldv, work, ldwork )
+00625 \textcolor{comment}{*}
+00626 \textcolor{comment}{*              C1 := C1 - W}
+00627 \textcolor{comment}{*}
+00628                \textcolor{keywordflow}{DO} 180 j = 1, k
+00629                   \textcolor{keywordflow}{DO} 170 i = 1, lastc
+00630                      c( i, j ) = c( i, j ) - work( i, j )
+00631   170             \textcolor{keywordflow}{CONTINUE}
+00632   180          \textcolor{keywordflow}{CONTINUE}
+00633 \textcolor{comment}{*}
+00634 \textcolor{keywordflow}{            END IF}
+00635 \textcolor{comment}{*}
+00636          \textcolor{keywordflow}{ELSE}
+00637 \textcolor{comment}{*}
+00638 \textcolor{comment}{*           Let  V =  ( V1  V2 )    (V2: last K columns)}
+00639 \textcolor{comment}{*           where  V2  is unit lower triangular.}
+00640 \textcolor{comment}{*}
+00641             \textcolor{keywordflow}{IF}( lsame( side, \textcolor{stringliteral}{'L'} ) ) \textcolor{keywordflow}{THEN}
+00642 \textcolor{comment}{*}
+00643 \textcolor{comment}{*              Form  H * C  or  H**H * C  where  C = ( C1 )}
+00644 \textcolor{comment}{*                                                    ( C2 )}
+00645 \textcolor{comment}{*}
+00646                lastv = max( k, ilazlc( k, m, v, ldv ) )
+00647                lastc = ilazlc( lastv, n, c, ldc )
+00648 \textcolor{comment}{*}
+00649 \textcolor{comment}{*              W := C**H * V**H  =  (C1**H * V1**H + C2**H * V2**H) (stored in WORK)}
+00650 \textcolor{comment}{*}
+00651 \textcolor{comment}{*              W := C2**H}
+00652 \textcolor{comment}{*}
+00653                \textcolor{keywordflow}{DO} 190 j = 1, k
+00654                   \textcolor{keyword}{CALL }zcopy( lastc, c( lastv-k+j, 1 ), ldc,
+00655      $                 work( 1, j ), 1 )
+00656                   \textcolor{keyword}{CALL }zlacgv( lastc, work( 1, j ), 1 )
+00657   190          \textcolor{keywordflow}{CONTINUE}
+00658 \textcolor{comment}{*}
+00659 \textcolor{comment}{*              W := W * V2**H}
+00660 \textcolor{comment}{*}
+00661                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Lower'}, \textcolor{stringliteral}{'Conjugate transpose'},
+00662      $              \textcolor{stringliteral}{'Unit'}, lastc, k, one, v( 1, lastv-k+1 ), ldv,
+00663      $              work, ldwork )
+00664                \textcolor{keywordflow}{IF}( lastv.GT.k ) \textcolor{keywordflow}{THEN}
+00665 \textcolor{comment}{*}
+00666 \textcolor{comment}{*                 W := W + C1**H * V1**H}
+00667 \textcolor{comment}{*}
+00668                   \textcolor{keyword}{CALL }zgemm( \textcolor{stringliteral}{'Conjugate transpose'},
+00669      $                 \textcolor{stringliteral}{'Conjugate transpose'}, lastc, k, lastv-k,
+00670      $                 one, c, ldc, v, ldv, one, work, ldwork )
+00671 \textcolor{keywordflow}{               END IF}
+00672 \textcolor{comment}{*}
+00673 \textcolor{comment}{*              W := W * T**H  or  W * T}
+00674 \textcolor{comment}{*}
+00675                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Lower'}, transt, \textcolor{stringliteral}{'Non-unit'},
+00676      $              lastc, k, one, t, ldt, work, ldwork )
+00677 \textcolor{comment}{*}
+00678 \textcolor{comment}{*              C := C - V**H * W**H}
+00679 \textcolor{comment}{*}
+00680                \textcolor{keywordflow}{IF}( lastv.GT.k ) \textcolor{keywordflow}{THEN}
+00681 \textcolor{comment}{*}
+00682 \textcolor{comment}{*                 C1 := C1 - V1**H * W**H}
+00683 \textcolor{comment}{*}
+00684                   \textcolor{keyword}{CALL }zgemm( \textcolor{stringliteral}{'Conjugate transpose'},
+00685      $                 \textcolor{stringliteral}{'Conjugate transpose'}, lastv-k, lastc, k,
+00686      $                 -one, v, ldv, work, ldwork, one, c, ldc )
+00687 \textcolor{keywordflow}{               END IF}
+00688 \textcolor{comment}{*}
+00689 \textcolor{comment}{*              W := W * V2}
+00690 \textcolor{comment}{*}
+00691                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Lower'}, \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'Unit'},
+00692      $              lastc, k, one, v( 1, lastv-k+1 ), ldv,
+00693      $              work, ldwork )
+00694 \textcolor{comment}{*}
+00695 \textcolor{comment}{*              C2 := C2 - W**H}
+00696 \textcolor{comment}{*}
+00697                \textcolor{keywordflow}{DO} 210 j = 1, k
+00698                   \textcolor{keywordflow}{DO} 200 i = 1, lastc
+00699                      c( lastv-k+j, i ) = c( lastv-k+j, i ) -
+00700      $                               dconjg( work( i, j ) )
+00701   200             \textcolor{keywordflow}{CONTINUE}
+00702   210          \textcolor{keywordflow}{CONTINUE}
+00703 \textcolor{comment}{*}
+00704             \textcolor{keywordflow}{ELSE} \textcolor{keywordflow}{IF}( lsame( side, \textcolor{stringliteral}{'R'} ) ) \textcolor{keywordflow}{THEN}
+00705 \textcolor{comment}{*}
+00706 \textcolor{comment}{*              Form  C * H  or  C * H**H  where  C = ( C1  C2 )}
+00707 \textcolor{comment}{*}
+00708                lastv = max( k, ilazlc( k, n, v, ldv ) )
+00709                lastc = ilazlr( m, lastv, c, ldc )
+00710 \textcolor{comment}{*}
+00711 \textcolor{comment}{*              W := C * V**H  =  (C1*V1**H + C2*V2**H)  (stored in WORK)}
+00712 \textcolor{comment}{*}
+00713 \textcolor{comment}{*              W := C2}
+00714 \textcolor{comment}{*}
+00715                \textcolor{keywordflow}{DO} 220 j = 1, k
+00716                   \textcolor{keyword}{CALL }zcopy( lastc, c( 1, lastv-k+j ), 1,
+00717      $                 work( 1, j ), 1 )
+00718   220          \textcolor{keywordflow}{CONTINUE}
+00719 \textcolor{comment}{*}
+00720 \textcolor{comment}{*              W := W * V2**H}
+00721 \textcolor{comment}{*}
+00722                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Lower'}, \textcolor{stringliteral}{'Conjugate transpose'},
+00723      $              \textcolor{stringliteral}{'Unit'}, lastc, k, one, v( 1, lastv-k+1 ), ldv,
+00724      $              work, ldwork )
+00725                \textcolor{keywordflow}{IF}( lastv.GT.k ) \textcolor{keywordflow}{THEN}
+00726 \textcolor{comment}{*}
+00727 \textcolor{comment}{*                 W := W + C1 * V1**H}
+00728 \textcolor{comment}{*}
+00729                   \textcolor{keyword}{CALL }zgemm( \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'Conjugate transpose'},
+00730      $                 lastc, k, lastv-k, one, c, ldc, v, ldv, one,
+00731      $                 work, ldwork )
+00732 \textcolor{keywordflow}{               END IF}
+00733 \textcolor{comment}{*}
+00734 \textcolor{comment}{*              W := W * T  or  W * T**H}
+00735 \textcolor{comment}{*}
+00736                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Lower'}, trans, \textcolor{stringliteral}{'Non-unit'},
+00737      $              lastc, k, one, t, ldt, work, ldwork )
+00738 \textcolor{comment}{*}
+00739 \textcolor{comment}{*              C := C - W * V}
+00740 \textcolor{comment}{*}
+00741                \textcolor{keywordflow}{IF}( lastv.GT.k ) \textcolor{keywordflow}{THEN}
+00742 \textcolor{comment}{*}
+00743 \textcolor{comment}{*                 C1 := C1 - W * V1}
+00744 \textcolor{comment}{*}
+00745                   \textcolor{keyword}{CALL }zgemm( \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'No transpose'},
+00746      $                 lastc, lastv-k, k, -one, work, ldwork, v, ldv,
+00747      $                 one, c, ldc )
+00748 \textcolor{keywordflow}{               END IF}
+00749 \textcolor{comment}{*}
+00750 \textcolor{comment}{*              W := W * V2}
+00751 \textcolor{comment}{*}
+00752                \textcolor{keyword}{CALL }ztrmm( \textcolor{stringliteral}{'Right'}, \textcolor{stringliteral}{'Lower'}, \textcolor{stringliteral}{'No transpose'}, \textcolor{stringliteral}{'Unit'},
+00753      $              lastc, k, one, v( 1, lastv-k+1 ), ldv,
+00754      $              work, ldwork )
+00755 \textcolor{comment}{*}
+00756 \textcolor{comment}{*              C1 := C1 - W}
+00757 \textcolor{comment}{*}
+00758                \textcolor{keywordflow}{DO} 240 j = 1, k
+00759                   \textcolor{keywordflow}{DO} 230 i = 1, lastc
+00760                      c( i, lastv-k+j ) = c( i, lastv-k+j )
+00761      $                    - work( i, j )
+00762   230             \textcolor{keywordflow}{CONTINUE}
+00763   240          \textcolor{keywordflow}{CONTINUE}
+00764 \textcolor{comment}{*}
+00765 \textcolor{keywordflow}{            END IF}
+00766 \textcolor{comment}{*}
+00767 \textcolor{keywordflow}{         END IF}
+00768 \textcolor{keywordflow}{      END IF}
+00769 \textcolor{comment}{*}
+00770       \textcolor{keywordflow}{RETURN}
+00771 \textcolor{comment}{*}
+00772 \textcolor{comment}{*     End of ZLARFB}
+00773 \textcolor{comment}{*}
+00774 \textcolor{keyword}{      END}
+\end{DoxyCode}

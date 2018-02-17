@@ -1,0 +1,139 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2bench_2bench__svd_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/bench/bench\+\_\+svd.cpp}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2bench_2bench__svd_8cpp_source}\index{bench\+\_\+svd.\+cpp@{bench\+\_\+svd.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2013 Gauthier Brun <brun.gauthier@gmail.com>}
+00005 \textcolor{comment}{// Copyright (C) 2013 Nicolas Carre <nicolas.carre@ensimag.fr>}
+00006 \textcolor{comment}{// Copyright (C) 2013 Jean Ceccato <jean.ceccato@ensimag.fr>}
+00007 \textcolor{comment}{// Copyright (C) 2013 Pierre Zoppitelli <pierre.zoppitelli@ensimag.fr>}
+00008 \textcolor{comment}{//}
+00009 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00010 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00011 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/}
+00012 
+00013 \textcolor{comment}{// Bench to compare the efficiency of SVD algorithms}
+00014 
+00015 \textcolor{preprocessor}{#include <iostream>}
+00016 \textcolor{preprocessor}{#include <bench/BenchTimer.h>}
+00017 \textcolor{preprocessor}{#include <unsupported/Eigen/SVD>}
+00018 
+00019 
+00020 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00021 \textcolor{keyword}{using namespace }\hyperlink{namespacestd}{std};
+00022 
+00023 \textcolor{comment}{// number of computations of each algorithm before the print of the time}
+00024 \textcolor{preprocessor}{#ifndef REPEAT}
+00025 \textcolor{preprocessor}{#define REPEAT 10}
+00026 \textcolor{preprocessor}{#endif}
+00027 
+00028 \textcolor{comment}{// number of tests of the same type}
+00029 \textcolor{preprocessor}{#ifndef NUMBER\_SAMPLE}
+00030 \textcolor{preprocessor}{#define NUMBER\_SAMPLE 2}
+00031 \textcolor{preprocessor}{#endif}
+00032 
+00033 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00034 \textcolor{keywordtype}{void} bench\_svd(\textcolor{keyword}{const} MatrixType& a = MatrixType())
+00035 \{
+00036   MatrixType m = MatrixType::Random(a.rows(), a.cols());
+00037   \hyperlink{class_eigen_1_1_bench_timer}{BenchTimer} timerJacobi;
+00038   \hyperlink{class_eigen_1_1_bench_timer}{BenchTimer} timerBDC;
+00039   timerJacobi.reset();
+00040   timerBDC.reset();
+00041 
+00042   cout << \textcolor{stringliteral}{" Only compute Singular Values"} <<endl;
+00043   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k=1; k<=NUMBER\_SAMPLE; ++k)
+00044   \{
+00045     timerBDC.start();
+00046     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<REPEAT; ++i) 
+00047     \{
+00048       \hyperlink{group___s_v_d___module_class_eigen_1_1_b_d_c_s_v_d}{BDCSVD<MatrixType>} bdc\_matrix(m);
+00049     \}
+00050     timerBDC.stop();
+00051     
+00052     timerJacobi.start();
+00053     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<REPEAT; ++i) 
+00054     \{
+00055       \hyperlink{group___s_v_d___module_class_eigen_1_1_jacobi_s_v_d}{JacobiSVD<MatrixType>} jacobi\_matrix(m);
+00056     \}
+00057     timerJacobi.stop();
+00058 
+00059 
+00060     cout << \textcolor{stringliteral}{"Sample "} << k << \textcolor{stringliteral}{" : "} << REPEAT << \textcolor{stringliteral}{" computations :  Jacobi : "} << fixed << timerJacobi.value
+      () << \textcolor{stringliteral}{"s "};
+00061     cout << \textcolor{stringliteral}{" || "} << \textcolor{stringliteral}{" BDC : "} << timerBDC.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{"s "} <<endl <<endl;
+00062       
+00063     \textcolor{keywordflow}{if} (timerBDC.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() >= timerJacobi.value())  
+00064       cout << \textcolor{stringliteral}{"KO : BDC is "} <<  timerJacobi.value() / timerBDC.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{"  times faster than Jacobi
+      "} <<endl;
+00065     \textcolor{keywordflow}{else} 
+00066       cout << \textcolor{stringliteral}{"OK : BDC is "} << timerJacobi.value() / timerBDC.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{"  times faster than Jacobi"}
+        <<endl;
+00067       
+00068   \}
+00069   cout << \textcolor{stringliteral}{"       ================="} <<endl;
+00070   std::cout<< std::endl;
+00071   timerJacobi.reset();
+00072   timerBDC.reset();
+00073   cout << \textcolor{stringliteral}{" Computes rotaion matrix"} <<endl;
+00074   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k=1; k<=NUMBER\_SAMPLE; ++k)
+00075   \{
+00076     timerBDC.start();
+00077     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<REPEAT; ++i) 
+00078     \{
+00079       \hyperlink{group___s_v_d___module_class_eigen_1_1_b_d_c_s_v_d}{BDCSVD<MatrixType>} bdc\_matrix(m, \hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9a2b4f91ca5859a4159dbfe8090043817f}{ComputeFullU}|
+      \hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9a52c6f7e80bbf9a42297c88f700245b51}{ComputeFullV});
+00080     \}
+00081     timerBDC.stop();
+00082     
+00083     timerJacobi.start();
+00084     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<REPEAT; ++i) 
+00085     \{
+00086       \hyperlink{group___s_v_d___module_class_eigen_1_1_jacobi_s_v_d}{JacobiSVD<MatrixType>} jacobi\_matrix(m, \hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9a2b4f91ca5859a4159dbfe8090043817f}{ComputeFullU}|
+      \hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9a52c6f7e80bbf9a42297c88f700245b51}{ComputeFullV});
+00087     \}
+00088     timerJacobi.stop();
+00089 
+00090 
+00091     cout << \textcolor{stringliteral}{"Sample "} << k << \textcolor{stringliteral}{" : "} << REPEAT << \textcolor{stringliteral}{" computations :  Jacobi : "} << fixed << timerJacobi.value
+      () << \textcolor{stringliteral}{"s "};
+00092     cout << \textcolor{stringliteral}{" || "} << \textcolor{stringliteral}{" BDC : "} << timerBDC.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{"s "} <<endl <<endl;
+00093       
+00094     \textcolor{keywordflow}{if} (timerBDC.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() >= timerJacobi.value())  
+00095       cout << \textcolor{stringliteral}{"KO : BDC is "} <<  timerJacobi.value() / timerBDC.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{"  times faster than Jacobi
+      "} <<endl;
+00096     \textcolor{keywordflow}{else} 
+00097       cout << \textcolor{stringliteral}{"OK : BDC is "} << timerJacobi.value() / timerBDC.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{"  times faster than Jacobi"}
+        <<endl;
+00098       
+00099   \}
+00100   std::cout<< std::endl;
+00101 \}
+00102 
+00103 
+00104 
+00105 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char}* argv[])
+00106 \{
+00107   std::cout<< std::endl;
+00108 
+00109   std::cout<<\textcolor{stringliteral}{"On a (Dynamic, Dynamic) (6, 6) Matrix"} <<std::endl;
+00110   bench\_svd<Matrix<double,Dynamic,Dynamic> >(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,Dynamic,Dynamic>}(6
+      , 6));
+00111   
+00112   std::cout<<\textcolor{stringliteral}{"On a (Dynamic, Dynamic) (32, 32) Matrix"} <<std::endl;
+00113   bench\_svd<Matrix<double,Dynamic,Dynamic> >(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,Dynamic,Dynamic>}(
+      32, 32));
+00114 
+00115   \textcolor{comment}{//std::cout<<"On a (Dynamic, Dynamic) (128, 128) Matrix" <<std::endl;}
+00116   \textcolor{comment}{//bench\_svd<Matrix<double,Dynamic,Dynamic> >(Matrix<double,Dynamic,Dynamic>(128, 128));}
+00117 
+00118   std::cout<<\textcolor{stringliteral}{"On a (Dynamic, Dynamic) (160, 160) Matrix"} <<std::endl;
+00119   bench\_svd<Matrix<double,Dynamic,Dynamic> >(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,Dynamic,Dynamic>}(
+      160, 160));
+00120   
+00121   std::cout<< \textcolor{stringliteral}{"--------------------------------------------------------------------"}<< std::endl;
+00122            
+00123 \}
+\end{DoxyCode}

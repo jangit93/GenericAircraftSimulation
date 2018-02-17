@@ -1,4 +1,7 @@
 #include"Atmosphere.h"
+#include"Autopilot.h"
+#include"StateController.h"
+#include"FindNeighbor.h"
 #include"Aerodynamic.h"
 #include"DataLogger.h"
 #include"readInData.h"
@@ -9,6 +12,7 @@
 #include"IMU.h"
 #include"Navigation.h"
 #include<iostream>
+#include<omp.h>
 
 void AtmosphereTest()
 {
@@ -116,7 +120,7 @@ void AerodynamicTest()
 
 	// constant altitude
 	Atmo->updateAtmosphere(Altitude, AtmoData);
-	
+
 	for (int eta = 0; eta <= Eta.maxCoeff(&i); eta = eta + 5)
 	{
 		for (int CounterMach = 0; CounterMach < Mach.size(); CounterMach++) {
@@ -124,8 +128,6 @@ void AerodynamicTest()
 			Velocity(0) = Mach(CounterMach)*AtmoData.speedOfSound;
 			Velocity(1) = 0;
 			Velocity(2) = 0;
-
-
 
 			for (int CounterAlpha = 0; CounterAlpha < AoA.size(); CounterAlpha++) {
 
@@ -183,46 +185,45 @@ void GuidanceTest()
 int main()
 {
 	std::cout << "----------Module Test----------" << std::endl;
-	AutopilotStruct AutopilotData;
-	
-
-	
+	AirframeStruct	AirframeData;
+	FindNeighbor findNeighbor;
 	MatFileReader test("../Autopilot.mat");
 
 	matvar_t MatFileData = test.getMatFileInfo("AutopilotData");
 	int Fields = MatFileData.dims[0] * MatFileData.dims[1];
 
-	AutopilotStruct * Autopilotdata = new AutopilotStruct[Fields];
+	AutopilotStruct Autopilotdata;
 
 	int start, stride, edge, copy_field = 0;
+	start = 0;
 	stride = 0;
 	edge = 9;
-	
-	for (start = 0; start < Fields; start++) {
-	Autopilotdata[start].Alt		= std::get<2>(test.readMatFileStructure("Alt",start,stride,edge,copy_field));
-	Autopilotdata[start].Vel		= std::get<2>(test.readMatFileStructure("Vel", start, stride, edge, copy_field));
-	Autopilotdata[start].x_bar		= std::get<1>(test.readMatFileStructure("x_bar", start, stride, edge, copy_field));
-	Autopilotdata[start].u_bar		= std::get<1>(test.readMatFileStructure("u_bar", start, stride, edge, copy_field));
-	Autopilotdata[start].Kx_pitch	= std::get<1>(test.readMatFileStructure("Kx_pitch", start, stride, edge, copy_field));
-	Autopilotdata[start].Ke_pitch	= std::get<2>(test.readMatFileStructure("Ke_pitch", start, stride, edge, copy_field));
-	Autopilotdata[start].Kv_pitch	= std::get<2>(test.readMatFileStructure("Kv_pitch", start, stride, edge, copy_field));
-	Autopilotdata[start].Kx_Vel		= std::get<2>(test.readMatFileStructure("Kx_Vel", start, stride, edge, copy_field));
-	Autopilotdata[start].Ke_Vel		= std::get<2>(test.readMatFileStructure("Ke_Vel", start, stride, edge, copy_field));
-	Autopilotdata[start].Kx_lat		= std::get<0>(test.readMatFileStructure("Kx_lat", start, stride, edge, copy_field)) ;	
-	Autopilotdata[start].Ke_lat		= std::get<0>(test.readMatFileStructure("Ke_lat", start, stride, edge, copy_field)) ;
-	}
 
 
-	
+	Autopilotdata.Alt = std::get<2>(test.readMatFileStructure("Alt", start, stride, edge, copy_field));
+	Autopilotdata.Vel = std::get<2>(test.readMatFileStructure("Vel", start, stride, edge, copy_field));
+	Autopilotdata.x_bar = std::get<1>(test.readMatFileStructure("x_bar", start, stride, edge, copy_field));
+	Autopilotdata.u_bar = std::get<1>(test.readMatFileStructure("u_bar", start, stride, edge, copy_field));
+
+	AirframeData.Eta = Autopilotdata.u_bar(1);
+	AirframeData.posNED(2) = -Autopilotdata.Alt;
+	AirframeData.velNED << Autopilotdata.Vel, 0, 0;
+	AirframeData.StickPosition = Autopilotdata.u_bar(3);
+	AirframeData.EulerAngles(1) = Autopilotdata.x_bar(1);
+	findNeighbor.initFindNeighbor();
+	findNeighbor.BlendingParameters(AirframeData);
+
+
 	//AtmosphereTest();
 
 
 	AerodynamicTest();
 	//GuidanceTest();
-	AirframeStruct AirframeData;
+	//AirframeStruct AirframeData;
 	NavigationStruct NavData;
 	IMUStruct IMUData;
 	GuidanceStruct GuidanceData;
+
 
 	IMU imutest;
 	imutest.initIMU();

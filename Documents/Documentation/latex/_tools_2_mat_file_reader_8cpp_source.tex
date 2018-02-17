@@ -1,0 +1,153 @@
+\hypertarget{_tools_2_mat_file_reader_8cpp_source}{}\section{Tools/\+Mat\+File\+Reader.cpp}
+\label{_tools_2_mat_file_reader_8cpp_source}\index{Mat\+File\+Reader.\+cpp@{Mat\+File\+Reader.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{preprocessor}{#include "MatFileReader.h"}
+00002 
+00003 
+00004 MatFileReader::MatFileReader(\textcolor{keyword}{const} \textcolor{keywordtype}{char} * filename)
+00005 \{
+00006     ing\_index = 0;
+00007     err = EXIT\_SUCCESS;
+00008 
+00009 
+00010     mat = \hyperlink{group___m_a_t_gafbfedb5636a99f0ef867520c47f77d18}{Mat\_Open}(filename, \hyperlink{group___m_a_t_ggaa9dcbc70f538af79bd557593ff6b5cdba8dd1457651b27ba9bea6cfba158c037c}{MAT\_ACC\_RDONLY});
+00011 
+00012     \textcolor{keywordflow}{if} (NULL == mat) \{
+00013         fprintf(stderr, \textcolor{stringliteral}{"Error opening a.mat\(\backslash\)n"});
+00014         \textcolor{comment}{//return EXIT\_FAILURE;}
+00015     \}
+00016 \}
+00017 
+00018 MatFileReader::~MatFileReader()
+00019 \{
+00020 \}
+00021 
+00022 \textcolor{keywordtype}{void} MatFileReader::setPath(\textcolor{keyword}{const} \textcolor{keywordtype}{char} Pathname)
+00023 \{
+00024     PathName = Pathname;
+00025 \}
+00026 
+00027 std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Float64,Eigen::RowVectorXd> 
+      MatFileReader::readMatFileStructure(\textcolor{keyword}{const} \textcolor{keywordtype}{char} * FieldName, 
+00028                                                                                          \textcolor{keywordtype}{int} & start, 
+00029                                                                                          \textcolor{keywordtype}{int} & stride, 
+00030                                                                                          \textcolor{keywordtype}{int} & edge, 
+00031                                                                                          \textcolor{keywordtype}{int} & copy\_fields)
+00032 \{
+00033     stru = \hyperlink{group___m_a_t_gaa56680fb7b2cd3d410f659e945da8141}{Mat\_VarGetStructsLinear}(matvar, start, stride, edge, copy\_fields); \textcolor{comment}{//
+       liest gesamte Structure ein}
+00034 
+00035     \textcolor{keywordflow}{if} (NULL == stru) \{
+00036         fprintf(stderr, \textcolor{stringliteral}{"Error getting 'ing\{%lu\}'\(\backslash\)n"}, ing\_index);
+00037         err = EXIT\_FAILURE;
+00038     \}
+00039     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (\hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40acb467c7749c80902b798134c729bb521}{MAT\_C\_STRUCT} != stru->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type}) \{
+00040         fprintf(stderr, \textcolor{stringliteral}{"Variable 'ing\{%lu\}' is not a struct-arrayn\(\backslash\)n"}, ing\_index);
+00041         err = EXIT\_FAILURE;
+00042     \}
+00043     \textcolor{keywordflow}{else} \{
+00044         field = \hyperlink{group___m_a_t_ga619d241b49ce97334a38add60562c7be}{Mat\_VarGetStructFieldByName}(stru, FieldName, 0); \textcolor{comment}{// suche nach
+       bestimmten Feld}
+00045         \textcolor{keywordflow}{if} (NULL == stru) \{
+00046             fprintf(stderr, \textcolor{stringliteral}{"Error getting 'ing\{%lu\}.%s'\(\backslash\)n"}, ing\_index, FieldName);
+00047             err = EXIT\_FAILURE;
+00048         \}
+00049         \textcolor{keywordflow}{else} \{
+00050             read\_err = \hyperlink{group___m_a_t_gaa8060d7c8e5da0aa9ee5f96e5f1eb30a}{Mat\_VarReadDataAll}(mat, field); \textcolor{comment}{// liest}
+00051             \textcolor{keywordflow}{if} (read\_err) \{
+00052                 fprintf(stderr, \textcolor{stringliteral}{"Error reading data for 'ing\{%lu\}.%s'\(\backslash\)n"}, ing\_index, FieldName);
+00053                 err = EXIT\_FAILURE;
+00054             \}
+00055             \textcolor{keywordflow}{else} \textcolor{comment}{//Mat\_VarPrint(field, 1);}
+00056             \{
+00057                 \textcolor{keywordflow}{if} (\hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a31e721ecf7e188196f83c32838288797}{MAT\_T\_DOUBLE} == field->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type}) \{
+00058                     field->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims};
+00059                     \textcolor{keywordtype}{unsigned} xSize = field->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes} / field->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size};
+00060                     \textcolor{keyword}{const} \textcolor{keywordtype}{double} *xData = \textcolor{keyword}{static\_cast<}\textcolor{keyword}{const }\textcolor{keywordtype}{double}*\textcolor{keyword}{>}(field->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data});
+00061                     \textcolor{keywordtype}{size\_t} * dim = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}*\textcolor{keyword}{>}(field->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims});
+00062                     \textcolor{comment}{//std::cout << dim[0] << "x" << dim[1] << std::endl;}
+00063                     \textcolor{keywordflow}{if} (dim[0] > 1 && dim[1] > 1)
+00064                     \{
+00065                         matrix.resize(dim[0], dim[1]);
+00066                         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < dim[0]; ++i) \{
+00067                             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} ii = 0; ii < dim[1]; ii++) \{
+00068                                 matrix(i, ii) = xData[ii*dim[0] + i];
+00069                             \}
+00070 
+00071                         \}
+00072                         \textcolor{comment}{//std::cout << matrix << std::endl;}
+00073                     \}
+00074                     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (dim[0] == 1 && dim[1] == 1) \{
+00075                         value = xData[0];
+00076                     \}
+00077                     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (dim[0] == 1 && dim[0] < dim[1]) \{
+00078                         row\_vector.resize(dim[1]);
+00079                         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < dim[1] ; ++i) \{
+00080                             row\_vector(i) = xData[i];
+00081                         \}
+00082                     \}   
+00083                     \textcolor{keywordflow}{else} \{
+00084                         vector.resize(std::max(dim[0], dim[1]));
+00085                         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < std::max(dim[0], dim[1]); ++i) \{
+00086                             vector(i) = xData[i];
+00087                         \}
+00088                     \}
+00089                     \textcolor{keywordflow}{return} std::make\_tuple(matrix, vector, value,row\_vector);
+00090                 \}
+00091             \}
+00092         \}
+00093     \}
+00094 \}
+00095 
+00096 
+00097 
+00098 
+00099 std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Float64, Eigen::RowVectorXd> MatFileReader::readMatFileData(\textcolor{keyword}{
+      const} \textcolor{keywordtype}{char} * FieldName)
+00100 \{
+00101     matvar = \hyperlink{group___m_a_t_ga3505f63029763eaa73d5a19f1115eb42}{Mat\_VarRead}(mat, FieldName);
+00102 
+00103     \textcolor{comment}{//Mat\_VarPrint(matvar, 1);}
+00104     \textcolor{keywordflow}{if} (\hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a31e721ecf7e188196f83c32838288797}{MAT\_T\_DOUBLE} == matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type}) \{
+00105 
+00106         \textcolor{keywordtype}{unsigned} xSize = matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes} / matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size};
+00107         \textcolor{keyword}{const} \textcolor{keywordtype}{double} *xData = \textcolor{keyword}{static\_cast<}\textcolor{keyword}{const }\textcolor{keywordtype}{double}*\textcolor{keyword}{>}(matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data});
+00108         \textcolor{keywordtype}{size\_t} * dim = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}*\textcolor{keyword}{>}(matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims});
+00109         \textcolor{comment}{//std::cout << dim[0] << "x" << dim[1] << std::endl;}
+00110         \textcolor{keywordflow}{if} (dim[0] > 1 && dim[1] > 1)
+00111         \{
+00112             matrix.resize(dim[0], dim[1]);
+00113             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < dim[0]; ++i) \{
+00114                 \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} ii = 0; ii < dim[1]; ii++) \{
+00115                     matrix(i, ii) = xData[ii*dim[0] + i];
+00116                 \}
+00117             \}
+00118 
+00119         \}
+00120         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (dim[0] == 1 && dim[1] == 1) \{
+00121             value = xData[0];
+00122         \}
+00123         \textcolor{keywordflow}{else} \{
+00124             vector.resize(std::max(dim[0], dim[1]));
+00125             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < std::max(dim[0], dim[1]); ++i) \{
+00126                 vector(i) = xData[i];
+00127             \}
+00128         \}
+00129         \textcolor{keywordflow}{return} std::make\_tuple(matrix, vector, value,row\_vector);
+00130     \}
+00131 \}
+00132 
+00133 \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} MatFileReader::getMatFileInfo(\textcolor{keyword}{const} \textcolor{keywordtype}{char} * MatFileName)
+00134 \{
+00135 
+00136     matvar = \hyperlink{group___m_a_t_ga46da2e45ed96d3f1a6ec643757f2b086}{Mat\_VarReadInfo}(mat, MatFileName);
+00137     \textcolor{keywordflow}{if} (NULL == matvar) \{
+00138         fprintf(stderr, \textcolor{stringliteral}{"Error reading 'AutpilotData' variable information\(\backslash\)n"});
+00139         err = EXIT\_FAILURE;
+00140     \}
+00141 
+00142     \textcolor{keywordflow}{return} *matvar;
+00143 \}
+00144 
+\end{DoxyCode}

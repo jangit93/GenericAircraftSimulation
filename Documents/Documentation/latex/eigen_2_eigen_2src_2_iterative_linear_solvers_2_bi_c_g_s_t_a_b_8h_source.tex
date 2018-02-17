@@ -1,0 +1,181 @@
+\hypertarget{eigen_2_eigen_2src_2_iterative_linear_solvers_2_bi_c_g_s_t_a_b_8h_source}{}\section{eigen/\+Eigen/src/\+Iterative\+Linear\+Solvers/\+Bi\+C\+G\+S\+T\+AB.h}
+\label{eigen_2_eigen_2src_2_iterative_linear_solvers_2_bi_c_g_s_t_a_b_8h_source}\index{Bi\+C\+G\+S\+T\+A\+B.\+h@{Bi\+C\+G\+S\+T\+A\+B.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2011-2014 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2012 Désiré Nuentsa-Wakam <desire.nuentsa\_wakam@inria.fr>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_BICGSTAB\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_BICGSTAB\_H}
+00013 
+00014 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00015 
+00016 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00017 
+00028 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Dest, \textcolor{keyword}{typename} Preconditioner>
+00029 \textcolor{keywordtype}{bool} bicgstab(\textcolor{keyword}{const} MatrixType& mat, \textcolor{keyword}{const} Rhs& rhs, Dest& x,
+00030               \textcolor{keyword}{const} Preconditioner& precond, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& iters,
+00031               \textcolor{keyword}{typename} Dest::RealScalar& tol\_error)
+00032 \{
+00033   \textcolor{keyword}{using} std::sqrt;
+00034   \textcolor{keyword}{using} std::abs;
+00035   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Dest::RealScalar RealScalar;
+00036   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Dest::Scalar Scalar;
+00037   \textcolor{keyword}{typedef} Matrix<Scalar,Dynamic,1> \hyperlink{struct_vector_type}{VectorType};
+00038   RealScalar tol = tol\_error;
+00039   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} maxIters = iters;
+00040 
+00041   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} n = mat.cols();
+00042   VectorType r  = rhs - mat * x;
+00043   VectorType r0 = r;
+00044   
+00045   RealScalar r0\_sqnorm = r0.squaredNorm();
+00046   RealScalar rhs\_sqnorm = rhs.squaredNorm();
+00047   \textcolor{keywordflow}{if}(rhs\_sqnorm == 0)
+00048   \{
+00049     x.setZero();
+00050     \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00051   \}
+00052   Scalar rho    = 1;
+00053   Scalar alpha  = 1;
+00054   Scalar w      = 1;
+00055   
+00056   VectorType v = VectorType::Zero(n), p = VectorType::Zero(n);
+00057   VectorType y(n),  z(n);
+00058   VectorType kt(n), ks(n);
+00059 
+00060   VectorType s(n), t(n);
+00061 
+00062   RealScalar tol2 = tol*tol*rhs\_sqnorm;
+00063   RealScalar eps2 = NumTraits<Scalar>::epsilon()*NumTraits<Scalar>::epsilon();
+00064   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i = 0;
+00065   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} restarts = 0;
+00066 
+00067   \textcolor{keywordflow}{while} ( r.squaredNorm() > tol2 && i<maxIters )
+00068   \{
+00069     Scalar rho\_old = rho;
+00070 
+00071     rho = r0.dot(r);
+00072     \textcolor{keywordflow}{if} (abs(rho) < eps2*r0\_sqnorm)
+00073     \{
+00074       \textcolor{comment}{// The new residual vector became too orthogonal to the arbitrarily chosen direction r0}
+00075       \textcolor{comment}{// Let's restart with a new r0:}
+00076       r  = rhs - mat * x;
+00077       r0 = r;
+00078       rho = r0\_sqnorm = r.squaredNorm();
+00079       \textcolor{keywordflow}{if}(restarts++ == 0)
+00080         i = 0;
+00081     \}
+00082     Scalar beta = (rho/rho\_old) * (alpha / w);
+00083     p = r + beta * (p - w * v);
+00084     
+00085     y = precond.solve(p);
+00086     
+00087     v.noalias() = mat * y;
+00088 
+00089     alpha = rho / r0.dot(v);
+00090     s = r - alpha * v;
+00091 
+00092     z = precond.solve(s);
+00093     t.noalias() = mat * z;
+00094 
+00095     RealScalar tmp = t.squaredNorm();
+00096     \textcolor{keywordflow}{if}(tmp>RealScalar(0))
+00097       w = t.dot(s) / tmp;
+00098     \textcolor{keywordflow}{else}
+00099       w = Scalar(0);
+00100     x += alpha * y + w * z;
+00101     r = s - w * t;
+00102     ++i;
+00103   \}
+00104   tol\_error = sqrt(r.squaredNorm()/rhs\_sqnorm);
+00105   iters = i;
+00106   \textcolor{keywordflow}{return} \textcolor{keyword}{true}; 
+00107 \}
+00108 
+00109 \}
+00110 
+00111 \textcolor{keyword}{template}< \textcolor{keyword}{typename} \_MatrixType,
+00112           \textcolor{keyword}{typename} \_Preconditioner = DiagonalPreconditioner<typename \_MatrixType::Scalar> >
+\Hypertarget{eigen_2_eigen_2src_2_iterative_linear_solvers_2_bi_c_g_s_t_a_b_8h_source_l00113}\hyperlink{group___iterative_linear_solvers___module}{00113} \textcolor{keyword}{class }\hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_bi_c_g_s_t_a_b}{BiCGSTAB};
+00114 
+00115 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00116 
+00117 \textcolor{keyword}{template}< \textcolor{keyword}{typename} \_MatrixType, \textcolor{keyword}{typename} \_Preconditioner>
+\Hypertarget{eigen_2_eigen_2src_2_iterative_linear_solvers_2_bi_c_g_s_t_a_b_8h_source_l00118}\hyperlink{struct_eigen_1_1internal_1_1traits_3_01_bi_c_g_s_t_a_b_3_01___matrix_type_00_01___preconditioner_01_4_01_4}{00118} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1traits}{traits}<\hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_bi_c_g_s_t_a_b}{BiCGSTAB}<\_MatrixType,\_Preconditioner> >
+00119 \{
+00120   \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00121   \textcolor{keyword}{typedef} \_Preconditioner Preconditioner;
+00122 \};
+00123 
+00124 \}
+00125 
+00157 \textcolor{keyword}{template}< \textcolor{keyword}{typename} \_MatrixType, \textcolor{keyword}{typename} \_Preconditioner>
+00158 \textcolor{keyword}{class }\hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_bi_c_g_s_t_a_b}{BiCGSTAB} : \textcolor{keyword}{public} \hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_iterative_solver_base}{IterativeSolverBase}<BiCGSTAB<\_MatrixType,\_Preconditioner
+      > >
+00159 \{
+00160   \textcolor{keyword}{typedef} \hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_iterative_solver_base}{IterativeSolverBase<BiCGSTAB>} Base;
+00161   \textcolor{keyword}{using} Base::matrix;
+00162   \textcolor{keyword}{using} Base::m\_error;
+00163   \textcolor{keyword}{using} Base::m\_iterations;
+00164   \textcolor{keyword}{using} Base::m\_info;
+00165   \textcolor{keyword}{using} Base::m\_isInitialized;
+00166 \textcolor{keyword}{public}:
+00167   \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00168   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00169   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00170   \textcolor{keyword}{typedef} \_Preconditioner Preconditioner;
+00171 
+00172 \textcolor{keyword}{public}:
+00173 
+\Hypertarget{eigen_2_eigen_2src_2_iterative_linear_solvers_2_bi_c_g_s_t_a_b_8h_source_l00175}\hyperlink{group___iterative_linear_solvers___module_ae1a0df6ef6e947256c3cb83ce7df7eda}{00175}   \hyperlink{group___iterative_linear_solvers___module_ae1a0df6ef6e947256c3cb83ce7df7eda}{BiCGSTAB}() : Base() \{\}
+00176 
+00187   \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixDerived>
+\Hypertarget{eigen_2_eigen_2src_2_iterative_linear_solvers_2_bi_c_g_s_t_a_b_8h_source_l00188}\hyperlink{group___iterative_linear_solvers___module_a5842afd9566e254bc727de1fd7f46362}{00188}   \textcolor{keyword}{explicit} \hyperlink{group___iterative_linear_solvers___module_a5842afd9566e254bc727de1fd7f46362}{BiCGSTAB}(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<MatrixDerived>}& 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}) : Base(A.derived()) \{\}
+00189 
+00190   ~\hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_bi_c_g_s_t_a_b}{BiCGSTAB}() \{\}
+00191 
+00193   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs,\textcolor{keyword}{typename} Dest>
+00194   \textcolor{keywordtype}{void} \_solve\_with\_guess\_impl(\textcolor{keyword}{const} Rhs& b, Dest& x)\textcolor{keyword}{ const}
+00195 \textcolor{keyword}{  }\{    
+00196     \textcolor{keywordtype}{bool} failed = \textcolor{keyword}{false};
+00197     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j=0; j<b.cols(); ++j)
+00198     \{
+00199       m\_iterations = Base::maxIterations();
+00200       m\_error = Base::m\_tolerance;
+00201       
+00202       \textcolor{keyword}{typename} Dest::ColXpr xj(x,j);
+00203       \textcolor{keywordflow}{if}(!internal::bicgstab(matrix(), b.col(j), xj, Base::m\_preconditioner, m\_iterations, m\_error))
+00204         failed = \textcolor{keyword}{true};
+00205     \}
+00206     m\_info = failed ? \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaaf9b736d310a664e7729d163a035cc5f}{NumericalIssue}
+00207            : m\_error <= Base::m\_tolerance ? \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success}
+00208            : \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaba1c8763d1179778070f365ecc4157a8}{NoConvergence};
+00209     m\_isInitialized = \textcolor{keyword}{true};
+00210   \}
+00211 
+00213   \textcolor{keyword}{using} Base::\_solve\_impl;
+00214   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs,\textcolor{keyword}{typename} Dest>
+00215   \textcolor{keywordtype}{void} \_solve\_impl(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Rhs>}& b, Dest& x)\textcolor{keyword}{ const}
+00216 \textcolor{keyword}{  }\{
+00217     x.resize(this->rows(),b.cols());
+00218     x.setZero();
+00219     \_solve\_with\_guess\_impl(b,x);
+00220   \}
+00221 
+00222 \textcolor{keyword}{protected}:
+00223 
+00224 \};
+00225 
+00226 \} \textcolor{comment}{// end namespace Eigen}
+00227 
+00228 \textcolor{preprocessor}{#endif // EIGEN\_BICGSTAB\_H}
+\end{DoxyCode}

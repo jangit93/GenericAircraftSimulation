@@ -1,0 +1,433 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2blas_2f2c_2stbmv_8c_source}{}\section{matio/visual\+\_\+studio/test/eigen/blas/f2c/stbmv.c}
+\label{matio_2visual__studio_2test_2eigen_2blas_2f2c_2stbmv_8c_source}\index{stbmv.\+c@{stbmv.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* stbmv.f -- translated by f2c (version 20100827).}
+00002 \textcolor{comment}{   You must link the resulting object file with libf2c:}
+00003 \textcolor{comment}{    on Microsoft Windows system, link with libf2c.lib;}
+00004 \textcolor{comment}{    on Linux or Unix systems, link with .../path/to/libf2c.a -lm}
+00005 \textcolor{comment}{    or, if you install libf2c.a in a standard place, with -lf2c -lm}
+00006 \textcolor{comment}{    -- in that order, at the end of the command line, as in}
+00007 \textcolor{comment}{        cc *.o -lf2c -lm}
+00008 \textcolor{comment}{    Source for libf2c is in /netlib/f2c/libf2c.zip, e.g.,}
+00009 \textcolor{comment}{}
+00010 \textcolor{comment}{        http://www.netlib.org/f2c/libf2c.zip}
+00011 \textcolor{comment}{*/}
+00012 
+00013 \textcolor{preprocessor}{#include "datatypes.h"}
+00014 
+00015 \textcolor{comment}{/* Subroutine */} \textcolor{keywordtype}{int} stbmv\_(\textcolor{keywordtype}{char} *uplo, \textcolor{keywordtype}{char} *trans, \textcolor{keywordtype}{char} *diag, integer *n, 
+00016     integer *k, real *a, integer *lda, real *x, integer *incx, ftnlen 
+00017     uplo\_len, ftnlen trans\_len, ftnlen diag\_len)
+00018 \{
+00019     \textcolor{comment}{/* System generated locals */}
+00020     integer a\_dim1, a\_offset, i\_\_1, i\_\_2, i\_\_3, i\_\_4;
+00021 
+00022     \textcolor{comment}{/* Local variables */}
+00023     integer i\_\_, j, l, ix, jx, kx, info;
+00024     real temp;
+00025     \textcolor{keyword}{extern} logical lsame\_(\textcolor{keywordtype}{char} *, \textcolor{keywordtype}{char} *, ftnlen, ftnlen);
+00026     integer kplus1;
+00027     \textcolor{keyword}{extern} \textcolor{comment}{/* Subroutine */} \textcolor{keywordtype}{int} xerbla\_(\textcolor{keywordtype}{char} *, integer *, ftnlen);
+00028     logical nounit;
+00029 
+00030 \textcolor{comment}{/*     .. Scalar Arguments .. */}
+00031 \textcolor{comment}{/*     .. */}
+00032 \textcolor{comment}{/*     .. Array Arguments .. */}
+00033 \textcolor{comment}{/*     .. */}
+00034 
+00035 \textcolor{comment}{/*  Purpose */}
+00036 \textcolor{comment}{/*  ======= */}
+00037 
+00038 \textcolor{comment}{/*  STBMV  performs one of the matrix-vector operations */}
+00039 
+00040 \textcolor{comment}{/*     x := A*x,   or   x := A'*x, */}
+00041 
+00042 \textcolor{comment}{/*  where x is an n element vector and  A is an n by n unit, or non-unit, */}
+00043 \textcolor{comment}{/*  upper or lower triangular band matrix, with ( k + 1 ) diagonals. */}
+00044 
+00045 \textcolor{comment}{/*  Arguments */}
+00046 \textcolor{comment}{/*  ========== */}
+00047 
+00048 \textcolor{comment}{/*  UPLO   - CHARACTER*1. */}
+00049 \textcolor{comment}{/*           On entry, UPLO specifies whether the matrix is an upper or */}
+00050 \textcolor{comment}{/*           lower triangular matrix as follows: */}
+00051 
+00052 \textcolor{comment}{/*              UPLO = 'U' or 'u'   A is an upper triangular matrix. */}
+00053 
+00054 \textcolor{comment}{/*              UPLO = 'L' or 'l'   A is a lower triangular matrix. */}
+00055 
+00056 \textcolor{comment}{/*           Unchanged on exit. */}
+00057 
+00058 \textcolor{comment}{/*  TRANS  - CHARACTER*1. */}
+00059 \textcolor{comment}{/*           On entry, TRANS specifies the operation to be performed as */}
+00060 \textcolor{comment}{/*           follows: */}
+00061 
+00062 \textcolor{comment}{/*              TRANS = 'N' or 'n'   x := A*x. */}
+00063 
+00064 \textcolor{comment}{/*              TRANS = 'T' or 't'   x := A'*x. */}
+00065 
+00066 \textcolor{comment}{/*              TRANS = 'C' or 'c'   x := A'*x. */}
+00067 
+00068 \textcolor{comment}{/*           Unchanged on exit. */}
+00069 
+00070 \textcolor{comment}{/*  DIAG   - CHARACTER*1. */}
+00071 \textcolor{comment}{/*           On entry, DIAG specifies whether or not A is unit */}
+00072 \textcolor{comment}{/*           triangular as follows: */}
+00073 
+00074 \textcolor{comment}{/*              DIAG = 'U' or 'u'   A is assumed to be unit triangular. */}
+00075 
+00076 \textcolor{comment}{/*              DIAG = 'N' or 'n'   A is not assumed to be unit */}
+00077 \textcolor{comment}{/*                                  triangular. */}
+00078 
+00079 \textcolor{comment}{/*           Unchanged on exit. */}
+00080 
+00081 \textcolor{comment}{/*  N      - INTEGER. */}
+00082 \textcolor{comment}{/*           On entry, N specifies the order of the matrix A. */}
+00083 \textcolor{comment}{/*           N must be at least zero. */}
+00084 \textcolor{comment}{/*           Unchanged on exit. */}
+00085 
+00086 \textcolor{comment}{/*  K      - INTEGER. */}
+00087 \textcolor{comment}{/*           On entry with UPLO = 'U' or 'u', K specifies the number of */}
+00088 \textcolor{comment}{/*           super-diagonals of the matrix A. */}
+00089 \textcolor{comment}{/*           On entry with UPLO = 'L' or 'l', K specifies the number of */}
+00090 \textcolor{comment}{/*           sub-diagonals of the matrix A. */}
+00091 \textcolor{comment}{/*           K must satisfy  0 .le. K. */}
+00092 \textcolor{comment}{/*           Unchanged on exit. */}
+00093 
+00094 \textcolor{comment}{/*  A      - REAL             array of DIMENSION ( LDA, n ). */}
+00095 \textcolor{comment}{/*           Before entry with UPLO = 'U' or 'u', the leading ( k + 1 ) */}
+00096 \textcolor{comment}{/*           by n part of the array A must contain the upper triangular */}
+00097 \textcolor{comment}{/*           band part of the matrix of coefficients, supplied column by */}
+00098 \textcolor{comment}{/*           column, with the leading diagonal of the matrix in row */}
+00099 \textcolor{comment}{/*           ( k + 1 ) of the array, the first super-diagonal starting at */}
+00100 \textcolor{comment}{/*           position 2 in row k, and so on. The top left k by k triangle */}
+00101 \textcolor{comment}{/*           of the array A is not referenced. */}
+00102 \textcolor{comment}{/*           The following program segment will transfer an upper */}
+00103 \textcolor{comment}{/*           triangular band matrix from conventional full matrix storage */}
+00104 \textcolor{comment}{/*           to band storage: */}
+00105 
+00106 \textcolor{comment}{/*                 DO 20, J = 1, N */}
+00107 \textcolor{comment}{/*                    M = K + 1 - J */}
+00108 \textcolor{comment}{/*                    DO 10, I = MAX( 1, J - K ), J */}
+00109 \textcolor{comment}{/*                       A( M + I, J ) = matrix( I, J ) */}
+00110 \textcolor{comment}{/*              10    CONTINUE */}
+00111 \textcolor{comment}{/*              20 CONTINUE */}
+00112 
+00113 \textcolor{comment}{/*           Before entry with UPLO = 'L' or 'l', the leading ( k + 1 ) */}
+00114 \textcolor{comment}{/*           by n part of the array A must contain the lower triangular */}
+00115 \textcolor{comment}{/*           band part of the matrix of coefficients, supplied column by */}
+00116 \textcolor{comment}{/*           column, with the leading diagonal of the matrix in row 1 of */}
+00117 \textcolor{comment}{/*           the array, the first sub-diagonal starting at position 1 in */}
+00118 \textcolor{comment}{/*           row 2, and so on. The bottom right k by k triangle of the */}
+00119 \textcolor{comment}{/*           array A is not referenced. */}
+00120 \textcolor{comment}{/*           The following program segment will transfer a lower */}
+00121 \textcolor{comment}{/*           triangular band matrix from conventional full matrix storage */}
+00122 \textcolor{comment}{/*           to band storage: */}
+00123 
+00124 \textcolor{comment}{/*                 DO 20, J = 1, N */}
+00125 \textcolor{comment}{/*                    M = 1 - J */}
+00126 \textcolor{comment}{/*                    DO 10, I = J, MIN( N, J + K ) */}
+00127 \textcolor{comment}{/*                       A( M + I, J ) = matrix( I, J ) */}
+00128 \textcolor{comment}{/*              10    CONTINUE */}
+00129 \textcolor{comment}{/*              20 CONTINUE */}
+00130 
+00131 \textcolor{comment}{/*           Note that when DIAG = 'U' or 'u' the elements of the array A */}
+00132 \textcolor{comment}{/*           corresponding to the diagonal elements of the matrix are not */}
+00133 \textcolor{comment}{/*           referenced, but are assumed to be unity. */}
+00134 \textcolor{comment}{/*           Unchanged on exit. */}
+00135 
+00136 \textcolor{comment}{/*  LDA    - INTEGER. */}
+00137 \textcolor{comment}{/*           On entry, LDA specifies the first dimension of A as declared */}
+00138 \textcolor{comment}{/*           in the calling (sub) program. LDA must be at least */}
+00139 \textcolor{comment}{/*           ( k + 1 ). */}
+00140 \textcolor{comment}{/*           Unchanged on exit. */}
+00141 
+00142 \textcolor{comment}{/*  X      - REAL             array of dimension at least */}
+00143 \textcolor{comment}{/*           ( 1 + ( n - 1 )*abs( INCX ) ). */}
+00144 \textcolor{comment}{/*           Before entry, the incremented array X must contain the n */}
+00145 \textcolor{comment}{/*           element vector x. On exit, X is overwritten with the */}
+00146 \textcolor{comment}{/*           tranformed vector x. */}
+00147 
+00148 \textcolor{comment}{/*  INCX   - INTEGER. */}
+00149 \textcolor{comment}{/*           On entry, INCX specifies the increment for the elements of */}
+00150 \textcolor{comment}{/*           X. INCX must not be zero. */}
+00151 \textcolor{comment}{/*           Unchanged on exit. */}
+00152 
+00153 \textcolor{comment}{/*  Further Details */}
+00154 \textcolor{comment}{/*  =============== */}
+00155 
+00156 \textcolor{comment}{/*  Level 2 Blas routine. */}
+00157 
+00158 \textcolor{comment}{/*  -- Written on 22-October-1986. */}
+00159 \textcolor{comment}{/*     Jack Dongarra, Argonne National Lab. */}
+00160 \textcolor{comment}{/*     Jeremy Du Croz, Nag Central Office. */}
+00161 \textcolor{comment}{/*     Sven Hammarling, Nag Central Office. */}
+00162 \textcolor{comment}{/*     Richard Hanson, Sandia National Labs. */}
+00163 
+00164 \textcolor{comment}{/*  ===================================================================== */}
+00165 
+00166 \textcolor{comment}{/*     .. Parameters .. */}
+00167 \textcolor{comment}{/*     .. */}
+00168 \textcolor{comment}{/*     .. Local Scalars .. */}
+00169 \textcolor{comment}{/*     .. */}
+00170 \textcolor{comment}{/*     .. External Functions .. */}
+00171 \textcolor{comment}{/*     .. */}
+00172 \textcolor{comment}{/*     .. External Subroutines .. */}
+00173 \textcolor{comment}{/*     .. */}
+00174 \textcolor{comment}{/*     .. Intrinsic Functions .. */}
+00175 \textcolor{comment}{/*     .. */}
+00176 
+00177 \textcolor{comment}{/*     Test the input parameters. */}
+00178 
+00179     \textcolor{comment}{/* Parameter adjustments */}
+00180     a\_dim1 = *lda;
+00181     a\_offset = 1 + a\_dim1;
+00182     a -= a\_offset;
+00183     --x;
+00184 
+00185     \textcolor{comment}{/* Function Body */}
+00186     info = 0;
+00187     \textcolor{keywordflow}{if} (! lsame\_(uplo, \textcolor{stringliteral}{"U"}, (ftnlen)1, (ftnlen)1) && ! lsame\_(uplo, \textcolor{stringliteral}{"L"}, (
+00188         ftnlen)1, (ftnlen)1)) \{
+00189     info = 1;
+00190     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (! lsame\_(trans, \textcolor{stringliteral}{"N"}, (ftnlen)1, (ftnlen)1) && ! lsame\_(trans, 
+00191         \textcolor{stringliteral}{"T"}, (ftnlen)1, (ftnlen)1) && ! lsame\_(trans, \textcolor{stringliteral}{"C"}, (ftnlen)1, (
+00192         ftnlen)1)) \{
+00193     info = 2;
+00194     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (! lsame\_(diag, \textcolor{stringliteral}{"U"}, (ftnlen)1, (ftnlen)1) && ! lsame\_(diag, 
+00195         \textcolor{stringliteral}{"N"}, (ftnlen)1, (ftnlen)1)) \{
+00196     info = 3;
+00197     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*n < 0) \{
+00198     info = 4;
+00199     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*k < 0) \{
+00200     info = 5;
+00201     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*lda < *k + 1) \{
+00202     info = 7;
+00203     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*incx == 0) \{
+00204     info = 9;
+00205     \}
+00206     \textcolor{keywordflow}{if} (info != 0) \{
+00207     xerbla\_(\textcolor{stringliteral}{"STBMV "}, &info, (ftnlen)6);
+00208     \textcolor{keywordflow}{return} 0;
+00209     \}
+00210 
+00211 \textcolor{comment}{/*     Quick return if possible. */}
+00212 
+00213     \textcolor{keywordflow}{if} (*n == 0) \{
+00214     \textcolor{keywordflow}{return} 0;
+00215     \}
+00216 
+00217     nounit = lsame\_(diag, \textcolor{stringliteral}{"N"}, (ftnlen)1, (ftnlen)1);
+00218 
+00219 \textcolor{comment}{/*     Set up the start point in X if the increment is not unity. This */}
+00220 \textcolor{comment}{/*     will be  ( N - 1 )*INCX   too small for descending loops. */}
+00221 
+00222     \textcolor{keywordflow}{if} (*incx <= 0) \{
+00223     kx = 1 - (*n - 1) * *incx;
+00224     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*incx != 1) \{
+00225     kx = 1;
+00226     \}
+00227 
+00228 \textcolor{comment}{/*     Start the operations. In this version the elements of A are */}
+00229 \textcolor{comment}{/*     accessed sequentially with one pass through A. */}
+00230 
+00231     \textcolor{keywordflow}{if} (lsame\_(trans, \textcolor{stringliteral}{"N"}, (ftnlen)1, (ftnlen)1)) \{
+00232 
+00233 \textcolor{comment}{/*         Form  x := A*x. */}
+00234 
+00235     \textcolor{keywordflow}{if} (lsame\_(uplo, \textcolor{stringliteral}{"U"}, (ftnlen)1, (ftnlen)1)) \{
+00236         kplus1 = *k + 1;
+00237         \textcolor{keywordflow}{if} (*incx == 1) \{
+00238         i\_\_1 = *n;
+00239         \textcolor{keywordflow}{for} (j = 1; j <= i\_\_1; ++j) \{
+00240             \textcolor{keywordflow}{if} (x[j] != 0.f) \{
+00241             temp = x[j];
+00242             l = kplus1 - j;
+00243 \textcolor{comment}{/* Computing MAX */}
+00244             i\_\_2 = 1, i\_\_3 = j - *k;
+00245             i\_\_4 = j - 1;
+00246             \textcolor{keywordflow}{for} (i\_\_ = max(i\_\_2,i\_\_3); i\_\_ <= i\_\_4; ++i\_\_) \{
+00247                 x[i\_\_] += temp * a[l + i\_\_ + j * a\_dim1];
+00248 \textcolor{comment}{/* L10: */}
+00249             \}
+00250             \textcolor{keywordflow}{if} (nounit) \{
+00251                 x[j] *= a[kplus1 + j * a\_dim1];
+00252             \}
+00253             \}
+00254 \textcolor{comment}{/* L20: */}
+00255         \}
+00256         \} \textcolor{keywordflow}{else} \{
+00257         jx = kx;
+00258         i\_\_1 = *n;
+00259         \textcolor{keywordflow}{for} (j = 1; j <= i\_\_1; ++j) \{
+00260             \textcolor{keywordflow}{if} (x[jx] != 0.f) \{
+00261             temp = x[jx];
+00262             ix = kx;
+00263             l = kplus1 - j;
+00264 \textcolor{comment}{/* Computing MAX */}
+00265             i\_\_4 = 1, i\_\_2 = j - *k;
+00266             i\_\_3 = j - 1;
+00267             \textcolor{keywordflow}{for} (i\_\_ = max(i\_\_4,i\_\_2); i\_\_ <= i\_\_3; ++i\_\_) \{
+00268                 x[ix] += temp * a[l + i\_\_ + j * a\_dim1];
+00269                 ix += *incx;
+00270 \textcolor{comment}{/* L30: */}
+00271             \}
+00272             \textcolor{keywordflow}{if} (nounit) \{
+00273                 x[jx] *= a[kplus1 + j * a\_dim1];
+00274             \}
+00275             \}
+00276             jx += *incx;
+00277             \textcolor{keywordflow}{if} (j > *k) \{
+00278             kx += *incx;
+00279             \}
+00280 \textcolor{comment}{/* L40: */}
+00281         \}
+00282         \}
+00283     \} \textcolor{keywordflow}{else} \{
+00284         \textcolor{keywordflow}{if} (*incx == 1) \{
+00285         \textcolor{keywordflow}{for} (j = *n; j >= 1; --j) \{
+00286             \textcolor{keywordflow}{if} (x[j] != 0.f) \{
+00287             temp = x[j];
+00288             l = 1 - j;
+00289 \textcolor{comment}{/* Computing MIN */}
+00290             i\_\_1 = *n, i\_\_3 = j + *k;
+00291             i\_\_4 = j + 1;
+00292             \textcolor{keywordflow}{for} (i\_\_ = min(i\_\_1,i\_\_3); i\_\_ >= i\_\_4; --i\_\_) \{
+00293                 x[i\_\_] += temp * a[l + i\_\_ + j * a\_dim1];
+00294 \textcolor{comment}{/* L50: */}
+00295             \}
+00296             \textcolor{keywordflow}{if} (nounit) \{
+00297                 x[j] *= a[j * a\_dim1 + 1];
+00298             \}
+00299             \}
+00300 \textcolor{comment}{/* L60: */}
+00301         \}
+00302         \} \textcolor{keywordflow}{else} \{
+00303         kx += (*n - 1) * *incx;
+00304         jx = kx;
+00305         \textcolor{keywordflow}{for} (j = *n; j >= 1; --j) \{
+00306             \textcolor{keywordflow}{if} (x[jx] != 0.f) \{
+00307             temp = x[jx];
+00308             ix = kx;
+00309             l = 1 - j;
+00310 \textcolor{comment}{/* Computing MIN */}
+00311             i\_\_4 = *n, i\_\_1 = j + *k;
+00312             i\_\_3 = j + 1;
+00313             \textcolor{keywordflow}{for} (i\_\_ = min(i\_\_4,i\_\_1); i\_\_ >= i\_\_3; --i\_\_) \{
+00314                 x[ix] += temp * a[l + i\_\_ + j * a\_dim1];
+00315                 ix -= *incx;
+00316 \textcolor{comment}{/* L70: */}
+00317             \}
+00318             \textcolor{keywordflow}{if} (nounit) \{
+00319                 x[jx] *= a[j * a\_dim1 + 1];
+00320             \}
+00321             \}
+00322             jx -= *incx;
+00323             \textcolor{keywordflow}{if} (*n - j >= *k) \{
+00324             kx -= *incx;
+00325             \}
+00326 \textcolor{comment}{/* L80: */}
+00327         \}
+00328         \}
+00329     \}
+00330     \} \textcolor{keywordflow}{else} \{
+00331 
+00332 \textcolor{comment}{/*        Form  x := A'*x. */}
+00333 
+00334     \textcolor{keywordflow}{if} (lsame\_(uplo, \textcolor{stringliteral}{"U"}, (ftnlen)1, (ftnlen)1)) \{
+00335         kplus1 = *k + 1;
+00336         \textcolor{keywordflow}{if} (*incx == 1) \{
+00337         \textcolor{keywordflow}{for} (j = *n; j >= 1; --j) \{
+00338             temp = x[j];
+00339             l = kplus1 - j;
+00340             \textcolor{keywordflow}{if} (nounit) \{
+00341             temp *= a[kplus1 + j * a\_dim1];
+00342             \}
+00343 \textcolor{comment}{/* Computing MAX */}
+00344             i\_\_4 = 1, i\_\_1 = j - *k;
+00345             i\_\_3 = max(i\_\_4,i\_\_1);
+00346             \textcolor{keywordflow}{for} (i\_\_ = j - 1; i\_\_ >= i\_\_3; --i\_\_) \{
+00347             temp += a[l + i\_\_ + j * a\_dim1] * x[i\_\_];
+00348 \textcolor{comment}{/* L90: */}
+00349             \}
+00350             x[j] = temp;
+00351 \textcolor{comment}{/* L100: */}
+00352         \}
+00353         \} \textcolor{keywordflow}{else} \{
+00354         kx += (*n - 1) * *incx;
+00355         jx = kx;
+00356         \textcolor{keywordflow}{for} (j = *n; j >= 1; --j) \{
+00357             temp = x[jx];
+00358             kx -= *incx;
+00359             ix = kx;
+00360             l = kplus1 - j;
+00361             \textcolor{keywordflow}{if} (nounit) \{
+00362             temp *= a[kplus1 + j * a\_dim1];
+00363             \}
+00364 \textcolor{comment}{/* Computing MAX */}
+00365             i\_\_4 = 1, i\_\_1 = j - *k;
+00366             i\_\_3 = max(i\_\_4,i\_\_1);
+00367             \textcolor{keywordflow}{for} (i\_\_ = j - 1; i\_\_ >= i\_\_3; --i\_\_) \{
+00368             temp += a[l + i\_\_ + j * a\_dim1] * x[ix];
+00369             ix -= *incx;
+00370 \textcolor{comment}{/* L110: */}
+00371             \}
+00372             x[jx] = temp;
+00373             jx -= *incx;
+00374 \textcolor{comment}{/* L120: */}
+00375         \}
+00376         \}
+00377     \} \textcolor{keywordflow}{else} \{
+00378         \textcolor{keywordflow}{if} (*incx == 1) \{
+00379         i\_\_3 = *n;
+00380         \textcolor{keywordflow}{for} (j = 1; j <= i\_\_3; ++j) \{
+00381             temp = x[j];
+00382             l = 1 - j;
+00383             \textcolor{keywordflow}{if} (nounit) \{
+00384             temp *= a[j * a\_dim1 + 1];
+00385             \}
+00386 \textcolor{comment}{/* Computing MIN */}
+00387             i\_\_1 = *n, i\_\_2 = j + *k;
+00388             i\_\_4 = min(i\_\_1,i\_\_2);
+00389             \textcolor{keywordflow}{for} (i\_\_ = j + 1; i\_\_ <= i\_\_4; ++i\_\_) \{
+00390             temp += a[l + i\_\_ + j * a\_dim1] * x[i\_\_];
+00391 \textcolor{comment}{/* L130: */}
+00392             \}
+00393             x[j] = temp;
+00394 \textcolor{comment}{/* L140: */}
+00395         \}
+00396         \} \textcolor{keywordflow}{else} \{
+00397         jx = kx;
+00398         i\_\_3 = *n;
+00399         \textcolor{keywordflow}{for} (j = 1; j <= i\_\_3; ++j) \{
+00400             temp = x[jx];
+00401             kx += *incx;
+00402             ix = kx;
+00403             l = 1 - j;
+00404             \textcolor{keywordflow}{if} (nounit) \{
+00405             temp *= a[j * a\_dim1 + 1];
+00406             \}
+00407 \textcolor{comment}{/* Computing MIN */}
+00408             i\_\_1 = *n, i\_\_2 = j + *k;
+00409             i\_\_4 = min(i\_\_1,i\_\_2);
+00410             \textcolor{keywordflow}{for} (i\_\_ = j + 1; i\_\_ <= i\_\_4; ++i\_\_) \{
+00411             temp += a[l + i\_\_ + j * a\_dim1] * x[ix];
+00412             ix += *incx;
+00413 \textcolor{comment}{/* L150: */}
+00414             \}
+00415             x[jx] = temp;
+00416             jx += *incx;
+00417 \textcolor{comment}{/* L160: */}
+00418         \}
+00419         \}
+00420     \}
+00421     \}
+00422 
+00423     \textcolor{keywordflow}{return} 0;
+00424 
+00425 \textcolor{comment}{/*     End of STBMV . */}
+00426 
+00427 \} \textcolor{comment}{/* stbmv\_ */}
+00428 
+\end{DoxyCode}

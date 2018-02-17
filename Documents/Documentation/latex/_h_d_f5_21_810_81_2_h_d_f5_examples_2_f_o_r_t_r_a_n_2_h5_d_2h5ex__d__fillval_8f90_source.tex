@@ -1,0 +1,145 @@
+\hypertarget{_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_d_2h5ex__d__fillval_8f90_source}{}\section{H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+F\+O\+R\+T\+R\+A\+N/\+H5\+D/h5ex\+\_\+d\+\_\+fillval.f90}
+\label{_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_d_2h5ex__d__fillval_8f90_source}\index{h5ex\+\_\+d\+\_\+fillval.\+f90@{h5ex\+\_\+d\+\_\+fillval.\+f90}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{!************************************************************}
+00002 \textcolor{comment}{!}
+00003 \textcolor{comment}{!  This example shows how to set the fill value for a}
+00004 \textcolor{comment}{!  dataset.  The program first sets the fill value to}
+00005 \textcolor{comment}{!  FILLVAL, creates a dataset with dimensions of DIM0xDIM1,}
+00006 \textcolor{comment}{!  reads from the uninitialized dataset, and outputs the}
+00007 \textcolor{comment}{!  contents to the screen.  Next, it writes integers to the}
+00008 \textcolor{comment}{!  dataset, reads the data back, and outputs it to the}
+00009 \textcolor{comment}{!  screen.  Finally it extends the dataset, reads from it,}
+00010 \textcolor{comment}{!  and outputs the result to the screen.}
+00011 \textcolor{comment}{!}
+00012 \textcolor{comment}{!  This file is intended for use with HDF5 Library verion 1.8}
+00013 \textcolor{comment}{!}
+00014 \textcolor{comment}{! ************************************************************/}
+00015 \textcolor{keyword}{PROGRAM} main
+00016 
+00017   \textcolor{keywordtype}{USE }hdf5
+00018 
+00019   \textcolor{keywordtype}{IMPLICIT NONE}
+00020 
+00021   \textcolor{keywordtype}{CHARACTER(LEN=17)}, \textcolor{keywordtype}{PARAMETER} :: filename = \textcolor{stringliteral}{"h5ex\_d\_fillval.h5"}
+00022   \textcolor{keywordtype}{CHARACTER(LEN=3)} , \textcolor{keywordtype}{PARAMETER} :: dataset  = \textcolor{stringliteral}{"DS1"}
+00023   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: dim0     = 4
+00024   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: dim1     = 7
+00025   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: edim0    = 6
+00026   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: edim1    = 10
+00027   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: chunk0   = 4
+00028   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: chunk1   = 4
+00029   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: fillval  = 99
+00030 
+00031   \textcolor{keywordtype}{INTEGER} :: hdferr
+00032   \textcolor{keywordtype}{INTEGER(HID\_T)}  :: \hyperlink{structfile}{file}, space, dset, dcpl \textcolor{comment}{! Handles}
+00033   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:2)} :: dims    = (/dim0, dim1/)
+00034   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:2)} :: extdims = (/edim0, edim1/)
+00035   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:2)} :: maxdims
+00036   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:2)} :: chunk   = (/chunk0, chunk1/)
+00037 
+00038   \textcolor{keywordtype}{INTEGER}, \textcolor{keywordtype}{DIMENSION(1:dim0, 1:dim1)}   :: wdata, & \textcolor{comment}{! Write buffer }
+00039                                           rdata    \textcolor{comment}{! Read buffer}
+00040   \textcolor{keywordtype}{INTEGER}, \textcolor{keywordtype}{DIMENSION(1:edim0, 1:edim1)} :: rdata2   \textcolor{comment}{! Read buffer for extension}
+00041   \textcolor{keywordtype}{INTEGER} :: i, j
+00042   \textcolor{keywordtype}{INTEGER} :: fillvall
+00043   \textcolor{comment}{!}
+00044   \textcolor{comment}{! Initialize FORTRAN interface.}
+00045   \textcolor{comment}{!}
+00046   \textcolor{keyword}{CALL }h5open\_f(hdferr)
+00047   \textcolor{comment}{!}
+00048   \textcolor{comment}{! Initialize data.}
+00049   \textcolor{comment}{!}
+00050   maxdims = (/h5s\_unlimited\_f, h5s\_unlimited\_f/)
+00051 
+00052   \textcolor{keywordflow}{DO} i = 1, dim0
+00053      \textcolor{keywordflow}{DO} j = 1, dim1
+00054         wdata(i,j) = (i-1)*(j-1)-(j-1)
+00055 \textcolor{keywordflow}{     ENDDO}
+00056 \textcolor{keywordflow}{  ENDDO}
+00057   \textcolor{comment}{!}
+00058   \textcolor{comment}{! Create a new file using the default properties.}
+00059   \textcolor{comment}{!}
+00060   \textcolor{keyword}{CALL }h5fcreate\_f(filename, h5f\_acc\_trunc\_f, \hyperlink{structfile}{file}, hdferr)
+00061   \textcolor{comment}{!}
+00062   \textcolor{comment}{! Create dataspace with unlimited dimensions.}
+00063   \textcolor{comment}{!}
+00064   \textcolor{keyword}{CALL }h5screate\_simple\_f(2, dims, space, hdferr, maxdims)
+00065   \textcolor{comment}{!  }
+00066   \textcolor{comment}{! Create the dataset creation property list, and set the chunk}
+00067   \textcolor{comment}{! size.}
+00068   \textcolor{comment}{!}
+00069   \textcolor{keyword}{CALL }h5pcreate\_f(h5p\_dataset\_create\_f, dcpl, hdferr)
+00070   \textcolor{keyword}{CALL }h5pset\_chunk\_f(dcpl, 2, chunk, hdferr)
+00071   \textcolor{comment}{!}
+00072   \textcolor{comment}{! Set the fill value for the dataset.}
+00073   \textcolor{comment}{!}
+00074   \textcolor{keyword}{CALL }h5pset\_fill\_value\_f(dcpl, h5t\_native\_integer, fillval, hdferr)
+00075   \textcolor{comment}{!}
+00076   \textcolor{comment}{! Set the allocation time to "early".  This way we can be sure}
+00077   \textcolor{comment}{! that reading from the dataset immediately after creation will}
+00078   \textcolor{comment}{! return the fill value.}
+00079   \textcolor{comment}{!}
+00080   \textcolor{keyword}{CALL }h5pset\_alloc\_time\_f(dcpl, h5d\_alloc\_time\_early\_f,hdferr)
+00081   \textcolor{comment}{!}
+00082   \textcolor{comment}{! Create the dataset using the dataset creation property list.}
+00083   \textcolor{comment}{!}
+00084   \textcolor{keyword}{CALL }h5dcreate\_f(\hyperlink{structfile}{file}, dataset, h5t\_std\_i32le, space, dset, hdferr, dcpl)
+00085   \textcolor{comment}{!}
+00086   \textcolor{comment}{! Read values from the dataset, which has not been written to yet.}
+00087   \textcolor{comment}{!}
+00088   \textcolor{keyword}{CALL }h5dread\_f(dset, h5t\_native\_integer, rdata, dims, hdferr)
+00089   \textcolor{comment}{!}
+00090   \textcolor{comment}{! Output the data to the screen.}
+00091   \textcolor{comment}{!}
+00092   \textcolor{keyword}{WRITE}(*, \textcolor{stringliteral}{'("Dataset before being written to:")'})
+00093   \textcolor{keywordflow}{DO} i=1, dim0
+00094      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" [")'}, advance=\textcolor{stringliteral}{'NO'})
+00095      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(80i3)'}, advance=\textcolor{stringliteral}{'NO'}) rdata(i,:)
+00096      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" ]")'})
+00097 \textcolor{keywordflow}{  ENDDO}
+00098   \textcolor{comment}{!}
+00099   \textcolor{comment}{! Write the data to the dataset.}
+00100   \textcolor{comment}{!}
+00101   \textcolor{keyword}{CALL }h5dwrite\_f(dset, h5t\_native\_integer, wdata, dims, hdferr, file\_space\_id=space)
+00102   \textcolor{comment}{!}
+00103   \textcolor{comment}{! Read the data back.}
+00104   \textcolor{comment}{!}
+00105   \textcolor{keyword}{CALL }h5dread\_f(dset, h5t\_native\_integer, rdata, dims, hdferr)
+00106   \textcolor{comment}{!}
+00107   \textcolor{comment}{! Output the data to the screen.}
+00108   \textcolor{comment}{!}
+00109   \textcolor{keyword}{WRITE}(*, \textcolor{stringliteral}{'("Dataset after being written to:")'})
+00110   \textcolor{keywordflow}{DO} i=1, dim0
+00111      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" [")'}, advance=\textcolor{stringliteral}{'NO'})
+00112      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(80i3)'}, advance=\textcolor{stringliteral}{'NO'}) rdata(i,:)
+00113      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" ]")'})
+00114 \textcolor{keywordflow}{  ENDDO}
+00115   \textcolor{comment}{!}
+00116   \textcolor{comment}{! Extend the dataset.}
+00117   \textcolor{comment}{!}
+00118   \textcolor{keyword}{CALL }h5dset\_extent\_f(dset, extdims, hdferr)
+00119   \textcolor{comment}{!}
+00120   \textcolor{comment}{! Read from the extended dataset.}
+00121   \textcolor{comment}{!}
+00122   \textcolor{keyword}{CALL }h5dread\_f(dset, h5t\_native\_integer, rdata2, extdims, hdferr)
+00123   \textcolor{comment}{!}
+00124   \textcolor{comment}{! Output the data to the screen.}
+00125   \textcolor{comment}{!}
+00126   \textcolor{keyword}{WRITE}(*, \textcolor{stringliteral}{'("Dataset after extension:")'})
+00127   \textcolor{keywordflow}{DO} i=1, extdims(1)
+00128      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" [")'}, advance=\textcolor{stringliteral}{'NO'})
+00129      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(80i3)'}, advance=\textcolor{stringliteral}{'NO'}) rdata2(i,:)
+00130      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" ]")'})
+00131 \textcolor{keywordflow}{  ENDDO}
+00132   \textcolor{comment}{!}
+00133   \textcolor{comment}{! Close and release resources.}
+00134   \textcolor{comment}{!}
+00135   \textcolor{keyword}{CALL }h5pclose\_f(dcpl , hdferr)
+00136   \textcolor{keyword}{CALL }h5dclose\_f(dset , hdferr)
+00137   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)
+00138   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file} , hdferr)
+00139 
+00140 \textcolor{keyword}{END PROGRAM }main
+\end{DoxyCode}

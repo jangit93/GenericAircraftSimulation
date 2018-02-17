@@ -1,0 +1,233 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__shuffling_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/test/cxx11\+\_\+tensor\+\_\+shuffling.cpp}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__shuffling_8cpp_source}\index{cxx11\+\_\+tensor\+\_\+shuffling.\+cpp@{cxx11\+\_\+tensor\+\_\+shuffling.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2014 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 \textcolor{preprocessor}{#include <Eigen/CXX11/Tensor>}
+00013 
+00014 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor};
+00015 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1array}{Eigen::array};
+00016 
+00017 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00018 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_simple\_shuffling()
+00019 \{
+00020   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} tensor(2,3,5,7);
+00021   tensor.setRandom();
+00022   \hyperlink{class_eigen_1_1array}{array<ptrdiff\_t, 4>} shuffles;
+00023   shuffles[0] = 0;
+00024   shuffles[1] = 1;
+00025   shuffles[2] = 2;
+00026   shuffles[3] = 3;
+00027 
+00028   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} no\_shuffle;
+00029   no\_shuffle = tensor.shuffle(shuffles);
+00030 
+00031   VERIFY\_IS\_EQUAL(no\_shuffle.dimension(0), 2);
+00032   VERIFY\_IS\_EQUAL(no\_shuffle.dimension(1), 3);
+00033   VERIFY\_IS\_EQUAL(no\_shuffle.dimension(2), 5);
+00034   VERIFY\_IS\_EQUAL(no\_shuffle.dimension(3), 7);
+00035 
+00036   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00037     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 3; ++j) \{
+00038       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 5; ++k) \{
+00039         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 7; ++l) \{
+00040           VERIFY\_IS\_EQUAL(tensor(i,j,k,l), no\_shuffle(i,j,k,l));
+00041         \}
+00042       \}
+00043     \}
+00044   \}
+00045 
+00046   shuffles[0] = 2;
+00047   shuffles[1] = 3;
+00048   shuffles[2] = 1;
+00049   shuffles[3] = 0;
+00050   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} shuffle;
+00051   shuffle = tensor.shuffle(shuffles);
+00052 
+00053   VERIFY\_IS\_EQUAL(shuffle.dimension(0), 5);
+00054   VERIFY\_IS\_EQUAL(shuffle.dimension(1), 7);
+00055   VERIFY\_IS\_EQUAL(shuffle.dimension(2), 3);
+00056   VERIFY\_IS\_EQUAL(shuffle.dimension(3), 2);
+00057 
+00058   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00059     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 3; ++j) \{
+00060       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 5; ++k) \{
+00061         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 7; ++l) \{
+00062           VERIFY\_IS\_EQUAL(tensor(i,j,k,l), shuffle(k,l,j,i));
+00063         \}
+00064       \}
+00065     \}
+00066   \}
+00067 \}
+00068 
+00069 
+00070 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00071 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_expr\_shuffling()
+00072 \{
+00073   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} tensor(2,3,5,7);
+00074   tensor.setRandom();
+00075 
+00076   \hyperlink{class_eigen_1_1array}{array<ptrdiff\_t, 4>} shuffles;
+00077   shuffles[0] = 2;
+00078   shuffles[1] = 3;
+00079   shuffles[2] = 1;
+00080   shuffles[3] = 0;
+00081   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} expected;
+00082   expected = tensor.shuffle(shuffles);
+00083 
+00084   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} result(5,7,3,2);
+00085 
+00086   \hyperlink{class_eigen_1_1array}{array<int, 4>} src\_slice\_dim\{\{2,3,1,7\}\};
+00087   \hyperlink{class_eigen_1_1array}{array<int, 4>} src\_slice\_start\{\{0,0,0,0\}\};
+00088   \hyperlink{class_eigen_1_1array}{array<int, 4>} dst\_slice\_dim\{\{1,7,3,2\}\};
+00089   \hyperlink{class_eigen_1_1array}{array<int, 4>} dst\_slice\_start\{\{0,0,0,0\}\};
+00090 
+00091   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 5; ++i) \{
+00092     result.slice(dst\_slice\_start, dst\_slice\_dim) =
+00093         tensor.slice(src\_slice\_start, src\_slice\_dim).shuffle(shuffles);
+00094     src\_slice\_start[2] += 1;
+00095     dst\_slice\_start[0] += 1;
+00096   \}
+00097 
+00098   VERIFY\_IS\_EQUAL(result.dimension(0), 5);
+00099   VERIFY\_IS\_EQUAL(result.dimension(1), 7);
+00100   VERIFY\_IS\_EQUAL(result.dimension(2), 3);
+00101   VERIFY\_IS\_EQUAL(result.dimension(3), 2);
+00102 
+00103   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < expected.dimension(0); ++i) \{
+00104     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < expected.dimension(1); ++j) \{
+00105       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < expected.dimension(2); ++k) \{
+00106         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < expected.dimension(3); ++l) \{
+00107           VERIFY\_IS\_EQUAL(result(i,j,k,l), expected(i,j,k,l));
+00108         \}
+00109       \}
+00110     \}
+00111   \}
+00112 
+00113   dst\_slice\_start[0] = 0;
+00114   result.setRandom();
+00115   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 5; ++i) \{
+00116     result.slice(dst\_slice\_start, dst\_slice\_dim) =
+00117         tensor.shuffle(shuffles).slice(dst\_slice\_start, dst\_slice\_dim);
+00118     dst\_slice\_start[0] += 1;
+00119   \}
+00120 
+00121   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < expected.dimension(0); ++i) \{
+00122     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < expected.dimension(1); ++j) \{
+00123       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < expected.dimension(2); ++k) \{
+00124         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < expected.dimension(3); ++l) \{
+00125           VERIFY\_IS\_EQUAL(result(i,j,k,l), expected(i,j,k,l));
+00126         \}
+00127       \}
+00128     \}
+00129   \}
+00130 \}
+00131 
+00132 
+00133 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00134 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_shuffling\_as\_value()
+00135 \{
+00136   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} tensor(2,3,5,7);
+00137   tensor.setRandom();
+00138   \hyperlink{class_eigen_1_1array}{array<ptrdiff\_t, 4>} shuffles;
+00139   shuffles[2] = 0;
+00140   shuffles[3] = 1;
+00141   shuffles[1] = 2;
+00142   shuffles[0] = 3;
+00143   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} shuffle(5,7,3,2);
+00144   shuffle.shuffle(shuffles) = tensor;
+00145 
+00146   VERIFY\_IS\_EQUAL(shuffle.dimension(0), 5);
+00147   VERIFY\_IS\_EQUAL(shuffle.dimension(1), 7);
+00148   VERIFY\_IS\_EQUAL(shuffle.dimension(2), 3);
+00149   VERIFY\_IS\_EQUAL(shuffle.dimension(3), 2);
+00150 
+00151   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00152     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 3; ++j) \{
+00153       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 5; ++k) \{
+00154         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 7; ++l) \{
+00155           VERIFY\_IS\_EQUAL(tensor(i,j,k,l), shuffle(k,l,j,i));
+00156         \}
+00157       \}
+00158     \}
+00159   \}
+00160 
+00161   \hyperlink{class_eigen_1_1array}{array<ptrdiff\_t, 4>} no\_shuffle;
+00162   no\_shuffle[0] = 0;
+00163   no\_shuffle[1] = 1;
+00164   no\_shuffle[2] = 2;
+00165   no\_shuffle[3] = 3;
+00166   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} shuffle2(5,7,3,2);
+00167   shuffle2.shuffle(shuffles) = tensor.shuffle(no\_shuffle);
+00168   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 5; ++i) \{
+00169     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 7; ++j) \{
+00170       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 3; ++k) \{
+00171         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 2; ++l) \{
+00172           VERIFY\_IS\_EQUAL(shuffle2(i,j,k,l), shuffle(i,j,k,l));
+00173         \}
+00174       \}
+00175     \}
+00176   \}
+00177 \}
+00178 
+00179 
+00180 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00181 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_shuffle\_unshuffle()
+00182 \{
+00183   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} tensor(2,3,5,7);
+00184   tensor.setRandom();
+00185 
+00186   \textcolor{comment}{// Choose a random permutation.}
+00187   \hyperlink{class_eigen_1_1array}{array<ptrdiff\_t, 4>} shuffles;
+00188   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 4; ++i) \{
+00189     shuffles[i] = i;
+00190   \}
+00191   \hyperlink{class_eigen_1_1array}{array<ptrdiff\_t, 4>} shuffles\_inverse;
+00192   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 4; ++i) \{
+00193     \textcolor{keyword}{const} ptrdiff\_t index = internal::random<ptrdiff\_t>(i, 3);
+00194     shuffles\_inverse[shuffles[index]] = i;
+00195     \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(shuffles[i], shuffles[index]);
+00196   \}
+00197 
+00198   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} shuffle;
+00199   shuffle = tensor.shuffle(shuffles).shuffle(shuffles\_inverse);
+00200 
+00201   VERIFY\_IS\_EQUAL(shuffle.dimension(0), 2);
+00202   VERIFY\_IS\_EQUAL(shuffle.dimension(1), 3);
+00203   VERIFY\_IS\_EQUAL(shuffle.dimension(2), 5);
+00204   VERIFY\_IS\_EQUAL(shuffle.dimension(3), 7);
+00205 
+00206   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00207     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 3; ++j) \{
+00208       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 5; ++k) \{
+00209         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 7; ++l) \{
+00210           VERIFY\_IS\_EQUAL(tensor(i,j,k,l), shuffle(i,j,k,l));
+00211         \}
+00212       \}
+00213     \}
+00214   \}
+00215 \}
+00216 
+00217 
+00218 \textcolor{keywordtype}{void} test\_cxx11\_tensor\_shuffling()
+00219 \{
+00220   CALL\_SUBTEST(test\_simple\_shuffling<ColMajor>());
+00221   CALL\_SUBTEST(test\_simple\_shuffling<RowMajor>());
+00222   CALL\_SUBTEST(test\_expr\_shuffling<ColMajor>());
+00223   CALL\_SUBTEST(test\_expr\_shuffling<RowMajor>());
+00224   CALL\_SUBTEST(test\_shuffling\_as\_value<ColMajor>());
+00225   CALL\_SUBTEST(test\_shuffling\_as\_value<RowMajor>());
+00226   CALL\_SUBTEST(test\_shuffle\_unshuffle<ColMajor>());
+00227   CALL\_SUBTEST(test\_shuffle\_unshuffle<RowMajor>());
+00228 \}
+\end{DoxyCode}

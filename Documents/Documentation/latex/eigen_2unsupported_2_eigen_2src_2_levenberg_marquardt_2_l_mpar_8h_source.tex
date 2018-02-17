@@ -1,0 +1,165 @@
+\hypertarget{eigen_2unsupported_2_eigen_2src_2_levenberg_marquardt_2_l_mpar_8h_source}{}\section{eigen/unsupported/\+Eigen/src/\+Levenberg\+Marquardt/\+L\+Mpar.h}
+\label{eigen_2unsupported_2_eigen_2src_2_levenberg_marquardt_2_l_mpar_8h_source}\index{L\+Mpar.\+h@{L\+Mpar.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// This code initially comes from MINPACK whose original authors are:}
+00005 \textcolor{comment}{// Copyright Jorge More - Argonne National Laboratory}
+00006 \textcolor{comment}{// Copyright Burt Garbow - Argonne National Laboratory}
+00007 \textcolor{comment}{// Copyright Ken Hillstrom - Argonne National Laboratory}
+00008 \textcolor{comment}{//}
+00009 \textcolor{comment}{// This Source Code Form is subject to the terms of the Minpack license}
+00010 \textcolor{comment}{// (a BSD-like license) described in the campaigned CopyrightMINPACK.txt file.}
+00011 
+00012 \textcolor{preprocessor}{#ifndef EIGEN\_LMPAR\_H}
+00013 \textcolor{preprocessor}{#define EIGEN\_LMPAR\_H}
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00016 
+00017 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00018   
+00019   \textcolor{keyword}{template} <\textcolor{keyword}{typename} QRSolver, \textcolor{keyword}{typename} VectorType>
+00020     \textcolor{keywordtype}{void} lmpar2(
+00021     \textcolor{keyword}{const} QRSolver &qr,
+00022     \textcolor{keyword}{const} \hyperlink{struct_vector_type}{VectorType}  &diag,
+00023     \textcolor{keyword}{const} \hyperlink{struct_vector_type}{VectorType}  &qtb,
+00024     \textcolor{keyword}{typename} VectorType::Scalar m\_delta,
+00025     \textcolor{keyword}{typename} VectorType::Scalar &par,
+00026     \hyperlink{struct_vector_type}{VectorType}  &x)
+00027 
+00028   \{
+00029     \textcolor{keyword}{using} std::sqrt;
+00030     \textcolor{keyword}{using} std::abs;
+00031     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} QRSolver::MatrixType MatrixType;
+00032     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} QRSolver::Scalar Scalar;
+00033 \textcolor{comment}{//    typedef typename QRSolver::StorageIndex StorageIndex;}
+00034 
+00035     \textcolor{comment}{/* Local variables */}
+00036     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j;
+00037     Scalar fp;
+00038     Scalar parc, parl;
+00039     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} iter;
+00040     Scalar temp, paru;
+00041     Scalar gnorm;
+00042     Scalar dxnorm;
+00043     
+00044     \textcolor{comment}{// Make a copy of the triangular factor. }
+00045     \textcolor{comment}{// This copy is modified during call the qrsolv}
+00046     MatrixType s;
+00047     s = qr.matrixR();
+00048 
+00049     \textcolor{comment}{/* Function Body */}
+00050     \textcolor{keyword}{const} Scalar dwarf = (std::numeric\_limits<Scalar>::min)();
+00051     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} n = qr.matrixR().cols();
+00052     eigen\_assert(n==diag.size());
+00053     eigen\_assert(n==qtb.size());
+00054 
+00055     \hyperlink{struct_vector_type}{VectorType}  wa1, wa2;
+00056 
+00057     \textcolor{comment}{/* compute and store in x the gauss-newton direction. if the */}
+00058     \textcolor{comment}{/* jacobian is rank-deficient, obtain a least squares solution. */}
+00059 
+00060     \textcolor{comment}{//    const Index rank = qr.nonzeroPivots(); // exactly double(0.)}
+00061     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rank = qr.rank(); \textcolor{comment}{// use a threshold}
+00062     wa1 = qtb;
+00063     wa1.tail(n-rank).setZero();
+00064     \textcolor{comment}{//FIXME There is no solve in place for sparse triangularView}
+00065     wa1.head(rank) = s.topLeftCorner(rank,rank).template triangularView<Upper>().solve(qtb.head(rank));
+00066 
+00067     x = qr.colsPermutation()*wa1;
+00068 
+00069     \textcolor{comment}{/* initialize the iteration counter. */}
+00070     \textcolor{comment}{/* evaluate the function at the origin, and test */}
+00071     \textcolor{comment}{/* for acceptance of the gauss-newton direction. */}
+00072     iter = 0;
+00073     wa2 = diag.cwiseProduct(x);
+00074     dxnorm = wa2.blueNorm();
+00075     fp = dxnorm - m\_delta;
+00076     \textcolor{keywordflow}{if} (fp <= Scalar(0.1) * m\_delta) \{
+00077       par = 0;
+00078       \textcolor{keywordflow}{return};
+00079     \}
+00080 
+00081     \textcolor{comment}{/* if the jacobian is not rank deficient, the newton */}
+00082     \textcolor{comment}{/* step provides a lower bound, parl, for the zero of */}
+00083     \textcolor{comment}{/* the function. otherwise set this bound to zero. */}
+00084     parl = 0.;
+00085     \textcolor{keywordflow}{if} (rank==n) \{
+00086       wa1 = qr.colsPermutation().inverse() *  diag.cwiseProduct(wa2)/dxnorm;
+00087       s.topLeftCorner(n,n).transpose().template triangularView<Lower>().solveInPlace(wa1);
+00088       temp = wa1.blueNorm();
+00089       parl = fp / m\_delta / temp / temp;
+00090     \}
+00091 
+00092     \textcolor{comment}{/* calculate an upper bound, paru, for the zero of the function. */}
+00093     \textcolor{keywordflow}{for} (j = 0; j < n; ++j)
+00094       wa1[j] = s.col(j).head(j+1).dot(qtb.head(j+1)) / diag[qr.colsPermutation().indices()(j)];
+00095 
+00096     gnorm = wa1.stableNorm();
+00097     paru = gnorm / m\_delta;
+00098     \textcolor{keywordflow}{if} (paru == 0.)
+00099       paru = dwarf / (std::min)(m\_delta,Scalar(0.1));
+00100 
+00101     \textcolor{comment}{/* if the input par lies outside of the interval (parl,paru), */}
+00102     \textcolor{comment}{/* set par to the closer endpoint. */}
+00103     par = (std::max)(par,parl);
+00104     par = (std::min)(par,paru);
+00105     \textcolor{keywordflow}{if} (par == 0.)
+00106       par = gnorm / dxnorm;
+00107 
+00108     \textcolor{comment}{/* beginning of an iteration. */}
+00109     \textcolor{keywordflow}{while} (\textcolor{keyword}{true}) \{
+00110       ++iter;
+00111 
+00112       \textcolor{comment}{/* evaluate the function at the current value of par. */}
+00113       \textcolor{keywordflow}{if} (par == 0.)
+00114         par = (std::max)(dwarf,Scalar(.001) * paru); \textcolor{comment}{/* Computing MAX */}
+00115       wa1 = sqrt(par)* diag;
+00116 
+00117       \hyperlink{struct_vector_type}{VectorType} sdiag(n);
+00118       lmqrsolv(s, qr.colsPermutation(), wa1, qtb, x, sdiag);
+00119 
+00120       wa2 = diag.cwiseProduct(x);
+00121       dxnorm = wa2.blueNorm();
+00122       temp = fp;
+00123       fp = dxnorm - m\_delta;
+00124 
+00125       \textcolor{comment}{/* if the function is small enough, accept the current value */}
+00126       \textcolor{comment}{/* of par. also test for the exceptional cases where parl */}
+00127       \textcolor{comment}{/* is zero or the number of iterations has reached 10. */}
+00128       \textcolor{keywordflow}{if} (abs(fp) <= Scalar(0.1) * m\_delta || (parl == 0. && fp <= temp && temp < 0.) || iter == 10)
+00129         \textcolor{keywordflow}{break};
+00130 
+00131       \textcolor{comment}{/* compute the newton correction. */}
+00132       wa1 = qr.colsPermutation().inverse() * diag.cwiseProduct(wa2/dxnorm);
+00133       \textcolor{comment}{// we could almost use this here, but the diagonal is outside qr, in sdiag[]}
+00134       \textcolor{keywordflow}{for} (j = 0; j < n; ++j) \{
+00135         wa1[j] /= sdiag[j];
+00136         temp = wa1[j];
+00137         \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i = j+1; i < n; ++i)
+00138           wa1[i] -= s.coeff(i,j) * temp;
+00139       \}
+00140       temp = wa1.blueNorm();
+00141       parc = fp / m\_delta / temp / temp;
+00142 
+00143       \textcolor{comment}{/* depending on the sign of the function, update parl or paru. */}
+00144       \textcolor{keywordflow}{if} (fp > 0.)
+00145         parl = (std::max)(parl,par);
+00146       \textcolor{keywordflow}{if} (fp < 0.)
+00147         paru = (std::min)(paru,par);
+00148 
+00149       \textcolor{comment}{/* compute an improved estimate for par. */}
+00150       par = (std::max)(parl,par+parc);
+00151     \}
+00152     \textcolor{keywordflow}{if} (iter == 0)
+00153       par = 0.;
+00154     \textcolor{keywordflow}{return};
+00155   \}
+00156 \} \textcolor{comment}{// end namespace internal}
+00157 
+00158 \} \textcolor{comment}{// end namespace Eigen}
+00159 
+00160 \textcolor{preprocessor}{#endif // EIGEN\_LMPAR\_H}
+\end{DoxyCode}

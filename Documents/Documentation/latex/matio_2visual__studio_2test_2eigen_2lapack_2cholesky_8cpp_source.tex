@@ -1,0 +1,78 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2lapack_2cholesky_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/lapack/cholesky.cpp}
+\label{matio_2visual__studio_2test_2eigen_2lapack_2cholesky_8cpp_source}\index{cholesky.\+cpp@{cholesky.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2010-2011 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "lapack\_common.h"}
+00011 \textcolor{preprocessor}{#include <Eigen/Cholesky>}
+00012 
+00013 \textcolor{comment}{// POTRF computes the Cholesky factorization of a real symmetric positive definite matrix A.}
+00014 EIGEN\_LAPACK\_FUNC(potrf,(\textcolor{keywordtype}{char}* uplo, \textcolor{keywordtype}{int} *n, RealScalar *pa, \textcolor{keywordtype}{int} *lda, \textcolor{keywordtype}{int} *info))
+00015 \{
+00016   *info = 0;
+00017         \textcolor{keywordflow}{if}(UPLO(*uplo)==INVALID) *info = -1;
+00018   \textcolor{keywordflow}{else}  \textcolor{keywordflow}{if}(*n<0)                 *info = -2;
+00019   \textcolor{keywordflow}{else}  \textcolor{keywordflow}{if}(*lda<std::max(1,*n))  *info = -4;
+00020   \textcolor{keywordflow}{if}(*info!=0)
+00021   \{
+00022     \textcolor{keywordtype}{int} e = -*info;
+00023     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"POTRF"}, &e, 6);
+00024   \}
+00025 
+00026   Scalar* a = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pa);
+00027   MatrixType \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}(a,*n,*n,*lda);
+00028   \textcolor{keywordtype}{int} ret;
+00029   \textcolor{keywordflow}{if}(UPLO(*uplo)==UP) ret = int(internal::llt\_inplace<Scalar, Upper>::blocked(\hyperlink{group___core___module_class_eigen_1_1_matrix}{A}));
+00030   \textcolor{keywordflow}{else}                ret = int(internal::llt\_inplace<Scalar, Lower>::blocked(\hyperlink{group___core___module_class_eigen_1_1_matrix}{A}));
+00031 
+00032   \textcolor{keywordflow}{if}(ret>=0)
+00033     *info = ret+1;
+00034   
+00035   \textcolor{keywordflow}{return} 0;
+00036 \}
+00037 
+00038 \textcolor{comment}{// POTRS solves a system of linear equations A*X = B with a symmetric}
+00039 \textcolor{comment}{// positive definite matrix A using the Cholesky factorization}
+00040 \textcolor{comment}{// A = U**T*U or A = L*L**T computed by DPOTRF.}
+00041 EIGEN\_LAPACK\_FUNC(potrs,(\textcolor{keywordtype}{char}* uplo, \textcolor{keywordtype}{int} *n, \textcolor{keywordtype}{int} *nrhs, RealScalar *pa, \textcolor{keywordtype}{int} *lda, RealScalar *pb, \textcolor{keywordtype}{int} *ldb,
+       \textcolor{keywordtype}{int} *info))
+00042 \{
+00043   *info = 0;
+00044         \textcolor{keywordflow}{if}(UPLO(*uplo)==INVALID) *info = -1;
+00045   \textcolor{keywordflow}{else}  \textcolor{keywordflow}{if}(*n<0)                 *info = -2;
+00046   \textcolor{keywordflow}{else}  \textcolor{keywordflow}{if}(*nrhs<0)              *info = -3;
+00047   \textcolor{keywordflow}{else}  \textcolor{keywordflow}{if}(*lda<std::max(1,*n))  *info = -5;
+00048   \textcolor{keywordflow}{else}  \textcolor{keywordflow}{if}(*ldb<std::max(1,*n))  *info = -7;
+00049   \textcolor{keywordflow}{if}(*info!=0)
+00050   \{
+00051     \textcolor{keywordtype}{int} e = -*info;
+00052     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"POTRS"}, &e, 6);
+00053   \}
+00054 
+00055   Scalar* a = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pa);
+00056   Scalar* b = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pb);
+00057   MatrixType \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}(a,*n,*n,*lda);
+00058   MatrixType \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}(b,*n,*nrhs,*ldb);
+00059 
+00060   \textcolor{keywordflow}{if}(UPLO(*uplo)==UP)
+00061   \{
+00062     \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>().adjoint().solveInPlace(\hyperlink{group___core___module_class_eigen_1_1_matrix}{B});
+00063     \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}>().solveInPlace(\hyperlink{group___core___module_class_eigen_1_1_matrix}{B});
+00064   \}
+00065   \textcolor{keywordflow}{else}
+00066   \{
+00067     \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>().solveInPlace(\hyperlink{group___core___module_class_eigen_1_1_matrix}{B});
+00068     \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}.triangularView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>().adjoint().solveInPlace(\hyperlink{group___core___module_class_eigen_1_1_matrix}{B});
+00069   \}
+00070 
+00071   \textcolor{keywordflow}{return} 0;
+00072 \}
+\end{DoxyCode}

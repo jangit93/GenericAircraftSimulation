@@ -1,0 +1,91 @@
+\hypertarget{visual__studio_2zlib_2compress_8c_source}{}\section{visual\+\_\+studio/zlib/compress.c}
+\label{visual__studio_2zlib_2compress_8c_source}\index{compress.\+c@{compress.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* compress.c -- compress a memory buffer}
+00002 \textcolor{comment}{ * Copyright (C) 1995-2005, 2014, 2016 Jean-loup Gailly, Mark Adler}
+00003 \textcolor{comment}{ * For conditions of distribution and use, see copyright notice in zlib.h}
+00004 \textcolor{comment}{ */}
+00005 
+00006 \textcolor{comment}{/* @(#) $Id$ */}
+00007 
+00008 \textcolor{preprocessor}{#define ZLIB\_INTERNAL}
+00009 \textcolor{preprocessor}{#include "zlib.h"}
+00010 
+00011 \textcolor{comment}{/* ===========================================================================}
+00012 \textcolor{comment}{     Compresses the source buffer into the destination buffer. The level}
+00013 \textcolor{comment}{   parameter has the same meaning as in deflateInit.  sourceLen is the byte}
+00014 \textcolor{comment}{   length of the source buffer. Upon entry, destLen is the total size of the}
+00015 \textcolor{comment}{   destination buffer, which must be at least 0.1% larger than sourceLen plus}
+00016 \textcolor{comment}{   12 bytes. Upon exit, destLen is the actual size of the compressed buffer.}
+00017 \textcolor{comment}{}
+00018 \textcolor{comment}{     compress2 returns Z\_OK if success, Z\_MEM\_ERROR if there was not enough}
+00019 \textcolor{comment}{   memory, Z\_BUF\_ERROR if there was not enough room in the output buffer,}
+00020 \textcolor{comment}{   Z\_STREAM\_ERROR if the level parameter is invalid.}
+00021 \textcolor{comment}{*/}
+00022 \textcolor{keywordtype}{int} ZEXPORT compress2 (dest, destLen, source, sourceLen, level)
+00023     Bytef *dest;
+00024     uLongf *destLen;
+00025     \textcolor{keyword}{const} Bytef *source;
+00026     uLong sourceLen;
+00027     \textcolor{keywordtype}{int} level;
+00028 \{
+00029     \hyperlink{structz__stream__s}{z\_stream} stream;
+00030     \textcolor{keywordtype}{int} err;
+00031     \textcolor{keyword}{const} uInt max = (uInt)-1;
+00032     uLong left;
+00033 
+00034     left = *destLen;
+00035     *destLen = 0;
+00036 
+00037     stream.zalloc = (alloc\_func)0;
+00038     stream.zfree = (free\_func)0;
+00039     stream.opaque = (voidpf)0;
+00040 
+00041     err = deflateInit(&stream, level);
+00042     \textcolor{keywordflow}{if} (err != Z\_OK) \textcolor{keywordflow}{return} err;
+00043 
+00044     stream.next\_out = dest;
+00045     stream.avail\_out = 0;
+00046     stream.next\_in = (z\_const Bytef *)source;
+00047     stream.avail\_in = 0;
+00048 
+00049     \textcolor{keywordflow}{do} \{
+00050         \textcolor{keywordflow}{if} (stream.avail\_out == 0) \{
+00051             stream.avail\_out = left > (uLong)max ? max : (uInt)left;
+00052             left -= stream.avail\_out;
+00053         \}
+00054         \textcolor{keywordflow}{if} (stream.avail\_in == 0) \{
+00055             stream.avail\_in = sourceLen > (uLong)max ? max : (uInt)sourceLen;
+00056             sourceLen -= stream.avail\_in;
+00057         \}
+00058         err = deflate(&stream, sourceLen ? Z\_NO\_FLUSH : Z\_FINISH);
+00059     \} \textcolor{keywordflow}{while} (err == Z\_OK);
+00060 
+00061     *destLen = stream.total\_out;
+00062     deflateEnd(&stream);
+00063     \textcolor{keywordflow}{return} err == Z\_STREAM\_END ? Z\_OK : err;
+00064 \}
+00065 
+00066 \textcolor{comment}{/* ===========================================================================}
+00067 \textcolor{comment}{ */}
+00068 \textcolor{keywordtype}{int} ZEXPORT compress (dest, destLen, source, sourceLen)
+00069     Bytef *dest;
+00070     uLongf *destLen;
+00071     \textcolor{keyword}{const} Bytef *source;
+00072     uLong sourceLen;
+00073 \{
+00074     \textcolor{keywordflow}{return} compress2(dest, destLen, source, sourceLen, Z\_DEFAULT\_COMPRESSION);
+00075 \}
+00076 
+00077 \textcolor{comment}{/* ===========================================================================}
+00078 \textcolor{comment}{     If the default memLevel or windowBits for deflateInit() is changed, then}
+00079 \textcolor{comment}{   this function needs to be updated.}
+00080 \textcolor{comment}{ */}
+00081 uLong ZEXPORT compressBound (sourceLen)
+00082     uLong sourceLen;
+00083 \{
+00084     \textcolor{keywordflow}{return} sourceLen + (sourceLen >> 12) + (sourceLen >> 14) +
+00085            (sourceLen >> 25) + 13;
+00086 \}
+\end{DoxyCode}

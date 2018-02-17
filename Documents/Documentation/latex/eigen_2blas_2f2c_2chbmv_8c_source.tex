@@ -1,0 +1,493 @@
+\hypertarget{eigen_2blas_2f2c_2chbmv_8c_source}{}\section{eigen/blas/f2c/chbmv.c}
+\label{eigen_2blas_2f2c_2chbmv_8c_source}\index{chbmv.\+c@{chbmv.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* chbmv.f -- translated by f2c (version 20100827).}
+00002 \textcolor{comment}{   You must link the resulting object file with libf2c:}
+00003 \textcolor{comment}{    on Microsoft Windows system, link with libf2c.lib;}
+00004 \textcolor{comment}{    on Linux or Unix systems, link with .../path/to/libf2c.a -lm}
+00005 \textcolor{comment}{    or, if you install libf2c.a in a standard place, with -lf2c -lm}
+00006 \textcolor{comment}{    -- in that order, at the end of the command line, as in}
+00007 \textcolor{comment}{        cc *.o -lf2c -lm}
+00008 \textcolor{comment}{    Source for libf2c is in /netlib/f2c/libf2c.zip, e.g.,}
+00009 \textcolor{comment}{}
+00010 \textcolor{comment}{        http://www.netlib.org/f2c/libf2c.zip}
+00011 \textcolor{comment}{*/}
+00012 
+00013 \textcolor{preprocessor}{#include "datatypes.h"}
+00014 
+00015 \textcolor{comment}{/* Subroutine */} \textcolor{keywordtype}{int} chbmv\_(\textcolor{keywordtype}{char} *uplo, integer *n, integer *k, \hyperlink{structcomplex}{complex} *
+00016     alpha, \hyperlink{structcomplex}{complex} *a, integer *lda, \hyperlink{structcomplex}{complex} *x, integer *incx, 
+      \hyperlink{structcomplex}{complex} *
+00017     beta, \hyperlink{structcomplex}{complex} *y, integer *incy, ftnlen uplo\_len)
+00018 \{
+00019     \textcolor{comment}{/* System generated locals */}
+00020     integer a\_dim1, a\_offset, i\_\_1, i\_\_2, i\_\_3, i\_\_4, i\_\_5;
+00021     real r\_\_1;
+00022     \hyperlink{structcomplex}{complex} q\_\_1, q\_\_2, q\_\_3, q\_\_4;
+00023 
+00024     \textcolor{comment}{/* Builtin functions */}
+00025     \textcolor{keywordtype}{void} r\_cnjg(\hyperlink{structcomplex}{complex} *, \hyperlink{structcomplex}{complex} *);
+00026 
+00027     \textcolor{comment}{/* Local variables */}
+00028     integer i\_\_, j, l, ix, iy, jx, jy, kx, ky, info;
+00029     \hyperlink{structcomplex}{complex} temp1, temp2;
+00030     \textcolor{keyword}{extern} logical lsame\_(\textcolor{keywordtype}{char} *, \textcolor{keywordtype}{char} *, ftnlen, ftnlen);
+00031     integer kplus1;
+00032     \textcolor{keyword}{extern} \textcolor{comment}{/* Subroutine */} \textcolor{keywordtype}{int} xerbla\_(\textcolor{keywordtype}{char} *, integer *, ftnlen);
+00033 
+00034 \textcolor{comment}{/*     .. Scalar Arguments .. */}
+00035 \textcolor{comment}{/*     .. */}
+00036 \textcolor{comment}{/*     .. Array Arguments .. */}
+00037 \textcolor{comment}{/*     .. */}
+00038 
+00039 \textcolor{comment}{/*  Purpose */}
+00040 \textcolor{comment}{/*  ======= */}
+00041 
+00042 \textcolor{comment}{/*  CHBMV  performs the matrix-vector  operation */}
+00043 
+00044 \textcolor{comment}{/*     y := alpha*A*x + beta*y, */}
+00045 
+00046 \textcolor{comment}{/*  where alpha and beta are scalars, x and y are n element vectors and */}
+00047 \textcolor{comment}{/*  A is an n by n hermitian band matrix, with k super-diagonals. */}
+00048 
+00049 \textcolor{comment}{/*  Arguments */}
+00050 \textcolor{comment}{/*  ========== */}
+00051 
+00052 \textcolor{comment}{/*  UPLO   - CHARACTER*1. */}
+00053 \textcolor{comment}{/*           On entry, UPLO specifies whether the upper or lower */}
+00054 \textcolor{comment}{/*           triangular part of the band matrix A is being supplied as */}
+00055 \textcolor{comment}{/*           follows: */}
+00056 
+00057 \textcolor{comment}{/*              UPLO = 'U' or 'u'   The upper triangular part of A is */}
+00058 \textcolor{comment}{/*                                  being supplied. */}
+00059 
+00060 \textcolor{comment}{/*              UPLO = 'L' or 'l'   The lower triangular part of A is */}
+00061 \textcolor{comment}{/*                                  being supplied. */}
+00062 
+00063 \textcolor{comment}{/*           Unchanged on exit. */}
+00064 
+00065 \textcolor{comment}{/*  N      - INTEGER. */}
+00066 \textcolor{comment}{/*           On entry, N specifies the order of the matrix A. */}
+00067 \textcolor{comment}{/*           N must be at least zero. */}
+00068 \textcolor{comment}{/*           Unchanged on exit. */}
+00069 
+00070 \textcolor{comment}{/*  K      - INTEGER. */}
+00071 \textcolor{comment}{/*           On entry, K specifies the number of super-diagonals of the */}
+00072 \textcolor{comment}{/*           matrix A. K must satisfy  0 .le. K. */}
+00073 \textcolor{comment}{/*           Unchanged on exit. */}
+00074 
+00075 \textcolor{comment}{/*  ALPHA  - COMPLEX         . */}
+00076 \textcolor{comment}{/*           On entry, ALPHA specifies the scalar alpha. */}
+00077 \textcolor{comment}{/*           Unchanged on exit. */}
+00078 
+00079 \textcolor{comment}{/*  A      - COMPLEX          array of DIMENSION ( LDA, n ). */}
+00080 \textcolor{comment}{/*           Before entry with UPLO = 'U' or 'u', the leading ( k + 1 ) */}
+00081 \textcolor{comment}{/*           by n part of the array A must contain the upper triangular */}
+00082 \textcolor{comment}{/*           band part of the hermitian matrix, supplied column by */}
+00083 \textcolor{comment}{/*           column, with the leading diagonal of the matrix in row */}
+00084 \textcolor{comment}{/*           ( k + 1 ) of the array, the first super-diagonal starting at */}
+00085 \textcolor{comment}{/*           position 2 in row k, and so on. The top left k by k triangle */}
+00086 \textcolor{comment}{/*           of the array A is not referenced. */}
+00087 \textcolor{comment}{/*           The following program segment will transfer the upper */}
+00088 \textcolor{comment}{/*           triangular part of a hermitian band matrix from conventional */}
+00089 \textcolor{comment}{/*           full matrix storage to band storage: */}
+00090 
+00091 \textcolor{comment}{/*                 DO 20, J = 1, N */}
+00092 \textcolor{comment}{/*                    M = K + 1 - J */}
+00093 \textcolor{comment}{/*                    DO 10, I = MAX( 1, J - K ), J */}
+00094 \textcolor{comment}{/*                       A( M + I, J ) = matrix( I, J ) */}
+00095 \textcolor{comment}{/*              10    CONTINUE */}
+00096 \textcolor{comment}{/*              20 CONTINUE */}
+00097 
+00098 \textcolor{comment}{/*           Before entry with UPLO = 'L' or 'l', the leading ( k + 1 ) */}
+00099 \textcolor{comment}{/*           by n part of the array A must contain the lower triangular */}
+00100 \textcolor{comment}{/*           band part of the hermitian matrix, supplied column by */}
+00101 \textcolor{comment}{/*           column, with the leading diagonal of the matrix in row 1 of */}
+00102 \textcolor{comment}{/*           the array, the first sub-diagonal starting at position 1 in */}
+00103 \textcolor{comment}{/*           row 2, and so on. The bottom right k by k triangle of the */}
+00104 \textcolor{comment}{/*           array A is not referenced. */}
+00105 \textcolor{comment}{/*           The following program segment will transfer the lower */}
+00106 \textcolor{comment}{/*           triangular part of a hermitian band matrix from conventional */}
+00107 \textcolor{comment}{/*           full matrix storage to band storage: */}
+00108 
+00109 \textcolor{comment}{/*                 DO 20, J = 1, N */}
+00110 \textcolor{comment}{/*                    M = 1 - J */}
+00111 \textcolor{comment}{/*                    DO 10, I = J, MIN( N, J + K ) */}
+00112 \textcolor{comment}{/*                       A( M + I, J ) = matrix( I, J ) */}
+00113 \textcolor{comment}{/*              10    CONTINUE */}
+00114 \textcolor{comment}{/*              20 CONTINUE */}
+00115 
+00116 \textcolor{comment}{/*           Note that the imaginary parts of the diagonal elements need */}
+00117 \textcolor{comment}{/*           not be set and are assumed to be zero. */}
+00118 \textcolor{comment}{/*           Unchanged on exit. */}
+00119 
+00120 \textcolor{comment}{/*  LDA    - INTEGER. */}
+00121 \textcolor{comment}{/*           On entry, LDA specifies the first dimension of A as declared */}
+00122 \textcolor{comment}{/*           in the calling (sub) program. LDA must be at least */}
+00123 \textcolor{comment}{/*           ( k + 1 ). */}
+00124 \textcolor{comment}{/*           Unchanged on exit. */}
+00125 
+00126 \textcolor{comment}{/*  X      - COMPLEX          array of DIMENSION at least */}
+00127 \textcolor{comment}{/*           ( 1 + ( n - 1 )*abs( INCX ) ). */}
+00128 \textcolor{comment}{/*           Before entry, the incremented array X must contain the */}
+00129 \textcolor{comment}{/*           vector x. */}
+00130 \textcolor{comment}{/*           Unchanged on exit. */}
+00131 
+00132 \textcolor{comment}{/*  INCX   - INTEGER. */}
+00133 \textcolor{comment}{/*           On entry, INCX specifies the increment for the elements of */}
+00134 \textcolor{comment}{/*           X. INCX must not be zero. */}
+00135 \textcolor{comment}{/*           Unchanged on exit. */}
+00136 
+00137 \textcolor{comment}{/*  BETA   - COMPLEX         . */}
+00138 \textcolor{comment}{/*           On entry, BETA specifies the scalar beta. */}
+00139 \textcolor{comment}{/*           Unchanged on exit. */}
+00140 
+00141 \textcolor{comment}{/*  Y      - COMPLEX          array of DIMENSION at least */}
+00142 \textcolor{comment}{/*           ( 1 + ( n - 1 )*abs( INCY ) ). */}
+00143 \textcolor{comment}{/*           Before entry, the incremented array Y must contain the */}
+00144 \textcolor{comment}{/*           vector y. On exit, Y is overwritten by the updated vector y. */}
+00145 
+00146 \textcolor{comment}{/*  INCY   - INTEGER. */}
+00147 \textcolor{comment}{/*           On entry, INCY specifies the increment for the elements of */}
+00148 \textcolor{comment}{/*           Y. INCY must not be zero. */}
+00149 \textcolor{comment}{/*           Unchanged on exit. */}
+00150 
+00151 \textcolor{comment}{/*  Further Details */}
+00152 \textcolor{comment}{/*  =============== */}
+00153 
+00154 \textcolor{comment}{/*  Level 2 Blas routine. */}
+00155 
+00156 \textcolor{comment}{/*  -- Written on 22-October-1986. */}
+00157 \textcolor{comment}{/*     Jack Dongarra, Argonne National Lab. */}
+00158 \textcolor{comment}{/*     Jeremy Du Croz, Nag Central Office. */}
+00159 \textcolor{comment}{/*     Sven Hammarling, Nag Central Office. */}
+00160 \textcolor{comment}{/*     Richard Hanson, Sandia National Labs. */}
+00161 
+00162 \textcolor{comment}{/*  ===================================================================== */}
+00163 
+00164 \textcolor{comment}{/*     .. Parameters .. */}
+00165 \textcolor{comment}{/*     .. */}
+00166 \textcolor{comment}{/*     .. Local Scalars .. */}
+00167 \textcolor{comment}{/*     .. */}
+00168 \textcolor{comment}{/*     .. External Functions .. */}
+00169 \textcolor{comment}{/*     .. */}
+00170 \textcolor{comment}{/*     .. External Subroutines .. */}
+00171 \textcolor{comment}{/*     .. */}
+00172 \textcolor{comment}{/*     .. Intrinsic Functions .. */}
+00173 \textcolor{comment}{/*     .. */}
+00174 
+00175 \textcolor{comment}{/*     Test the input parameters. */}
+00176 
+00177     \textcolor{comment}{/* Parameter adjustments */}
+00178     a\_dim1 = *lda;
+00179     a\_offset = 1 + a\_dim1;
+00180     a -= a\_offset;
+00181     --x;
+00182     --y;
+00183 
+00184     \textcolor{comment}{/* Function Body */}
+00185     info = 0;
+00186     \textcolor{keywordflow}{if} (! lsame\_(uplo, \textcolor{stringliteral}{"U"}, (ftnlen)1, (ftnlen)1) && ! lsame\_(uplo, \textcolor{stringliteral}{"L"}, (
+00187         ftnlen)1, (ftnlen)1)) \{
+00188     info = 1;
+00189     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*n < 0) \{
+00190     info = 2;
+00191     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*k < 0) \{
+00192     info = 3;
+00193     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*lda < *k + 1) \{
+00194     info = 6;
+00195     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*incx == 0) \{
+00196     info = 8;
+00197     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*incy == 0) \{
+00198     info = 11;
+00199     \}
+00200     \textcolor{keywordflow}{if} (info != 0) \{
+00201     xerbla\_(\textcolor{stringliteral}{"CHBMV "}, &info, (ftnlen)6);
+00202     \textcolor{keywordflow}{return} 0;
+00203     \}
+00204 
+00205 \textcolor{comment}{/*     Quick return if possible. */}
+00206 
+00207     \textcolor{keywordflow}{if} (*n == 0 || (alpha->r == 0.f && alpha->i == 0.f && (beta->r == 1.f && 
+00208                                                            beta->i == 0.f))) \{
+00209     \textcolor{keywordflow}{return} 0;
+00210     \}
+00211 
+00212 \textcolor{comment}{/*     Set up the start points in  X  and  Y. */}
+00213 
+00214     \textcolor{keywordflow}{if} (*incx > 0) \{
+00215     kx = 1;
+00216     \} \textcolor{keywordflow}{else} \{
+00217     kx = 1 - (*n - 1) * *incx;
+00218     \}
+00219     \textcolor{keywordflow}{if} (*incy > 0) \{
+00220     ky = 1;
+00221     \} \textcolor{keywordflow}{else} \{
+00222     ky = 1 - (*n - 1) * *incy;
+00223     \}
+00224 
+00225 \textcolor{comment}{/*     Start the operations. In this version the elements of the array A */}
+00226 \textcolor{comment}{/*     are accessed sequentially with one pass through A. */}
+00227 
+00228 \textcolor{comment}{/*     First form  y := beta*y. */}
+00229 
+00230     \textcolor{keywordflow}{if} (beta->r != 1.f || beta->i != 0.f) \{
+00231     \textcolor{keywordflow}{if} (*incy == 1) \{
+00232         \textcolor{keywordflow}{if} (beta->r == 0.f && beta->i == 0.f) \{
+00233         i\_\_1 = *n;
+00234         \textcolor{keywordflow}{for} (i\_\_ = 1; i\_\_ <= i\_\_1; ++i\_\_) \{
+00235             i\_\_2 = i\_\_;
+00236             y[i\_\_2].r = 0.f, y[i\_\_2].i = 0.f;
+00237 \textcolor{comment}{/* L10: */}
+00238         \}
+00239         \} \textcolor{keywordflow}{else} \{
+00240         i\_\_1 = *n;
+00241         \textcolor{keywordflow}{for} (i\_\_ = 1; i\_\_ <= i\_\_1; ++i\_\_) \{
+00242             i\_\_2 = i\_\_;
+00243             i\_\_3 = i\_\_;
+00244             q\_\_1.r = beta->r * y[i\_\_3].r - beta->i * y[i\_\_3].i, 
+00245                 q\_\_1.i = beta->r * y[i\_\_3].i + beta->i * y[i\_\_3]
+00246                 .r;
+00247             y[i\_\_2].r = q\_\_1.r, y[i\_\_2].i = q\_\_1.i;
+00248 \textcolor{comment}{/* L20: */}
+00249         \}
+00250         \}
+00251     \} \textcolor{keywordflow}{else} \{
+00252         iy = ky;
+00253         \textcolor{keywordflow}{if} (beta->r == 0.f && beta->i == 0.f) \{
+00254         i\_\_1 = *n;
+00255         \textcolor{keywordflow}{for} (i\_\_ = 1; i\_\_ <= i\_\_1; ++i\_\_) \{
+00256             i\_\_2 = iy;
+00257             y[i\_\_2].r = 0.f, y[i\_\_2].i = 0.f;
+00258             iy += *incy;
+00259 \textcolor{comment}{/* L30: */}
+00260         \}
+00261         \} \textcolor{keywordflow}{else} \{
+00262         i\_\_1 = *n;
+00263         \textcolor{keywordflow}{for} (i\_\_ = 1; i\_\_ <= i\_\_1; ++i\_\_) \{
+00264             i\_\_2 = iy;
+00265             i\_\_3 = iy;
+00266             q\_\_1.r = beta->r * y[i\_\_3].r - beta->i * y[i\_\_3].i, 
+00267                 q\_\_1.i = beta->r * y[i\_\_3].i + beta->i * y[i\_\_3]
+00268                 .r;
+00269             y[i\_\_2].r = q\_\_1.r, y[i\_\_2].i = q\_\_1.i;
+00270             iy += *incy;
+00271 \textcolor{comment}{/* L40: */}
+00272         \}
+00273         \}
+00274     \}
+00275     \}
+00276     \textcolor{keywordflow}{if} (alpha->r == 0.f && alpha->i == 0.f) \{
+00277     \textcolor{keywordflow}{return} 0;
+00278     \}
+00279     \textcolor{keywordflow}{if} (lsame\_(uplo, \textcolor{stringliteral}{"U"}, (ftnlen)1, (ftnlen)1)) \{
+00280 
+00281 \textcolor{comment}{/*        Form  y  when upper triangle of A is stored. */}
+00282 
+00283     kplus1 = *k + 1;
+00284     \textcolor{keywordflow}{if} (*incx == 1 && *incy == 1) \{
+00285         i\_\_1 = *n;
+00286         \textcolor{keywordflow}{for} (j = 1; j <= i\_\_1; ++j) \{
+00287         i\_\_2 = j;
+00288         q\_\_1.r = alpha->r * x[i\_\_2].r - alpha->i * x[i\_\_2].i, q\_\_1.i =
+00289              alpha->r * x[i\_\_2].i + alpha->i * x[i\_\_2].r;
+00290         temp1.r = q\_\_1.r, temp1.i = q\_\_1.i;
+00291         temp2.r = 0.f, temp2.i = 0.f;
+00292         l = kplus1 - j;
+00293 \textcolor{comment}{/* Computing MAX */}
+00294         i\_\_2 = 1, i\_\_3 = j - *k;
+00295         i\_\_4 = j - 1;
+00296         \textcolor{keywordflow}{for} (i\_\_ = max(i\_\_2,i\_\_3); i\_\_ <= i\_\_4; ++i\_\_) \{
+00297             i\_\_2 = i\_\_;
+00298             i\_\_3 = i\_\_;
+00299             i\_\_5 = l + i\_\_ + j * a\_dim1;
+00300             q\_\_2.r = temp1.r * a[i\_\_5].r - temp1.i * a[i\_\_5].i, 
+00301                 q\_\_2.i = temp1.r * a[i\_\_5].i + temp1.i * a[i\_\_5]
+00302                 .r;
+00303             q\_\_1.r = y[i\_\_3].r + q\_\_2.r, q\_\_1.i = y[i\_\_3].i + q\_\_2.i;
+00304             y[i\_\_2].r = q\_\_1.r, y[i\_\_2].i = q\_\_1.i;
+00305             r\_cnjg(&q\_\_3, &a[l + i\_\_ + j * a\_dim1]);
+00306             i\_\_2 = i\_\_;
+00307             q\_\_2.r = q\_\_3.r * x[i\_\_2].r - q\_\_3.i * x[i\_\_2].i, q\_\_2.i =
+00308                  q\_\_3.r * x[i\_\_2].i + q\_\_3.i * x[i\_\_2].r;
+00309             q\_\_1.r = temp2.r + q\_\_2.r, q\_\_1.i = temp2.i + q\_\_2.i;
+00310             temp2.r = q\_\_1.r, temp2.i = q\_\_1.i;
+00311 \textcolor{comment}{/* L50: */}
+00312         \}
+00313         i\_\_4 = j;
+00314         i\_\_2 = j;
+00315         i\_\_3 = kplus1 + j * a\_dim1;
+00316         r\_\_1 = a[i\_\_3].r;
+00317         q\_\_3.r = r\_\_1 * temp1.r, q\_\_3.i = r\_\_1 * temp1.i;
+00318         q\_\_2.r = y[i\_\_2].r + q\_\_3.r, q\_\_2.i = y[i\_\_2].i + q\_\_3.i;
+00319         q\_\_4.r = alpha->r * temp2.r - alpha->i * temp2.i, q\_\_4.i = 
+00320             alpha->r * temp2.i + alpha->i * temp2.r;
+00321         q\_\_1.r = q\_\_2.r + q\_\_4.r, q\_\_1.i = q\_\_2.i + q\_\_4.i;
+00322         y[i\_\_4].r = q\_\_1.r, y[i\_\_4].i = q\_\_1.i;
+00323 \textcolor{comment}{/* L60: */}
+00324         \}
+00325     \} \textcolor{keywordflow}{else} \{
+00326         jx = kx;
+00327         jy = ky;
+00328         i\_\_1 = *n;
+00329         \textcolor{keywordflow}{for} (j = 1; j <= i\_\_1; ++j) \{
+00330         i\_\_4 = jx;
+00331         q\_\_1.r = alpha->r * x[i\_\_4].r - alpha->i * x[i\_\_4].i, q\_\_1.i =
+00332              alpha->r * x[i\_\_4].i + alpha->i * x[i\_\_4].r;
+00333         temp1.r = q\_\_1.r, temp1.i = q\_\_1.i;
+00334         temp2.r = 0.f, temp2.i = 0.f;
+00335         ix = kx;
+00336         iy = ky;
+00337         l = kplus1 - j;
+00338 \textcolor{comment}{/* Computing MAX */}
+00339         i\_\_4 = 1, i\_\_2 = j - *k;
+00340         i\_\_3 = j - 1;
+00341         \textcolor{keywordflow}{for} (i\_\_ = max(i\_\_4,i\_\_2); i\_\_ <= i\_\_3; ++i\_\_) \{
+00342             i\_\_4 = iy;
+00343             i\_\_2 = iy;
+00344             i\_\_5 = l + i\_\_ + j * a\_dim1;
+00345             q\_\_2.r = temp1.r * a[i\_\_5].r - temp1.i * a[i\_\_5].i, 
+00346                 q\_\_2.i = temp1.r * a[i\_\_5].i + temp1.i * a[i\_\_5]
+00347                 .r;
+00348             q\_\_1.r = y[i\_\_2].r + q\_\_2.r, q\_\_1.i = y[i\_\_2].i + q\_\_2.i;
+00349             y[i\_\_4].r = q\_\_1.r, y[i\_\_4].i = q\_\_1.i;
+00350             r\_cnjg(&q\_\_3, &a[l + i\_\_ + j * a\_dim1]);
+00351             i\_\_4 = ix;
+00352             q\_\_2.r = q\_\_3.r * x[i\_\_4].r - q\_\_3.i * x[i\_\_4].i, q\_\_2.i =
+00353                  q\_\_3.r * x[i\_\_4].i + q\_\_3.i * x[i\_\_4].r;
+00354             q\_\_1.r = temp2.r + q\_\_2.r, q\_\_1.i = temp2.i + q\_\_2.i;
+00355             temp2.r = q\_\_1.r, temp2.i = q\_\_1.i;
+00356             ix += *incx;
+00357             iy += *incy;
+00358 \textcolor{comment}{/* L70: */}
+00359         \}
+00360         i\_\_3 = jy;
+00361         i\_\_4 = jy;
+00362         i\_\_2 = kplus1 + j * a\_dim1;
+00363         r\_\_1 = a[i\_\_2].r;
+00364         q\_\_3.r = r\_\_1 * temp1.r, q\_\_3.i = r\_\_1 * temp1.i;
+00365         q\_\_2.r = y[i\_\_4].r + q\_\_3.r, q\_\_2.i = y[i\_\_4].i + q\_\_3.i;
+00366         q\_\_4.r = alpha->r * temp2.r - alpha->i * temp2.i, q\_\_4.i = 
+00367             alpha->r * temp2.i + alpha->i * temp2.r;
+00368         q\_\_1.r = q\_\_2.r + q\_\_4.r, q\_\_1.i = q\_\_2.i + q\_\_4.i;
+00369         y[i\_\_3].r = q\_\_1.r, y[i\_\_3].i = q\_\_1.i;
+00370         jx += *incx;
+00371         jy += *incy;
+00372         \textcolor{keywordflow}{if} (j > *k) \{
+00373             kx += *incx;
+00374             ky += *incy;
+00375         \}
+00376 \textcolor{comment}{/* L80: */}
+00377         \}
+00378     \}
+00379     \} \textcolor{keywordflow}{else} \{
+00380 
+00381 \textcolor{comment}{/*        Form  y  when lower triangle of A is stored. */}
+00382 
+00383     \textcolor{keywordflow}{if} (*incx == 1 && *incy == 1) \{
+00384         i\_\_1 = *n;
+00385         \textcolor{keywordflow}{for} (j = 1; j <= i\_\_1; ++j) \{
+00386         i\_\_3 = j;
+00387         q\_\_1.r = alpha->r * x[i\_\_3].r - alpha->i * x[i\_\_3].i, q\_\_1.i =
+00388              alpha->r * x[i\_\_3].i + alpha->i * x[i\_\_3].r;
+00389         temp1.r = q\_\_1.r, temp1.i = q\_\_1.i;
+00390         temp2.r = 0.f, temp2.i = 0.f;
+00391         i\_\_3 = j;
+00392         i\_\_4 = j;
+00393         i\_\_2 = j * a\_dim1 + 1;
+00394         r\_\_1 = a[i\_\_2].r;
+00395         q\_\_2.r = r\_\_1 * temp1.r, q\_\_2.i = r\_\_1 * temp1.i;
+00396         q\_\_1.r = y[i\_\_4].r + q\_\_2.r, q\_\_1.i = y[i\_\_4].i + q\_\_2.i;
+00397         y[i\_\_3].r = q\_\_1.r, y[i\_\_3].i = q\_\_1.i;
+00398         l = 1 - j;
+00399 \textcolor{comment}{/* Computing MIN */}
+00400         i\_\_4 = *n, i\_\_2 = j + *k;
+00401         i\_\_3 = min(i\_\_4,i\_\_2);
+00402         \textcolor{keywordflow}{for} (i\_\_ = j + 1; i\_\_ <= i\_\_3; ++i\_\_) \{
+00403             i\_\_4 = i\_\_;
+00404             i\_\_2 = i\_\_;
+00405             i\_\_5 = l + i\_\_ + j * a\_dim1;
+00406             q\_\_2.r = temp1.r * a[i\_\_5].r - temp1.i * a[i\_\_5].i, 
+00407                 q\_\_2.i = temp1.r * a[i\_\_5].i + temp1.i * a[i\_\_5]
+00408                 .r;
+00409             q\_\_1.r = y[i\_\_2].r + q\_\_2.r, q\_\_1.i = y[i\_\_2].i + q\_\_2.i;
+00410             y[i\_\_4].r = q\_\_1.r, y[i\_\_4].i = q\_\_1.i;
+00411             r\_cnjg(&q\_\_3, &a[l + i\_\_ + j * a\_dim1]);
+00412             i\_\_4 = i\_\_;
+00413             q\_\_2.r = q\_\_3.r * x[i\_\_4].r - q\_\_3.i * x[i\_\_4].i, q\_\_2.i =
+00414                  q\_\_3.r * x[i\_\_4].i + q\_\_3.i * x[i\_\_4].r;
+00415             q\_\_1.r = temp2.r + q\_\_2.r, q\_\_1.i = temp2.i + q\_\_2.i;
+00416             temp2.r = q\_\_1.r, temp2.i = q\_\_1.i;
+00417 \textcolor{comment}{/* L90: */}
+00418         \}
+00419         i\_\_3 = j;
+00420         i\_\_4 = j;
+00421         q\_\_2.r = alpha->r * temp2.r - alpha->i * temp2.i, q\_\_2.i = 
+00422             alpha->r * temp2.i + alpha->i * temp2.r;
+00423         q\_\_1.r = y[i\_\_4].r + q\_\_2.r, q\_\_1.i = y[i\_\_4].i + q\_\_2.i;
+00424         y[i\_\_3].r = q\_\_1.r, y[i\_\_3].i = q\_\_1.i;
+00425 \textcolor{comment}{/* L100: */}
+00426         \}
+00427     \} \textcolor{keywordflow}{else} \{
+00428         jx = kx;
+00429         jy = ky;
+00430         i\_\_1 = *n;
+00431         \textcolor{keywordflow}{for} (j = 1; j <= i\_\_1; ++j) \{
+00432         i\_\_3 = jx;
+00433         q\_\_1.r = alpha->r * x[i\_\_3].r - alpha->i * x[i\_\_3].i, q\_\_1.i =
+00434              alpha->r * x[i\_\_3].i + alpha->i * x[i\_\_3].r;
+00435         temp1.r = q\_\_1.r, temp1.i = q\_\_1.i;
+00436         temp2.r = 0.f, temp2.i = 0.f;
+00437         i\_\_3 = jy;
+00438         i\_\_4 = jy;
+00439         i\_\_2 = j * a\_dim1 + 1;
+00440         r\_\_1 = a[i\_\_2].r;
+00441         q\_\_2.r = r\_\_1 * temp1.r, q\_\_2.i = r\_\_1 * temp1.i;
+00442         q\_\_1.r = y[i\_\_4].r + q\_\_2.r, q\_\_1.i = y[i\_\_4].i + q\_\_2.i;
+00443         y[i\_\_3].r = q\_\_1.r, y[i\_\_3].i = q\_\_1.i;
+00444         l = 1 - j;
+00445         ix = jx;
+00446         iy = jy;
+00447 \textcolor{comment}{/* Computing MIN */}
+00448         i\_\_4 = *n, i\_\_2 = j + *k;
+00449         i\_\_3 = min(i\_\_4,i\_\_2);
+00450         \textcolor{keywordflow}{for} (i\_\_ = j + 1; i\_\_ <= i\_\_3; ++i\_\_) \{
+00451             ix += *incx;
+00452             iy += *incy;
+00453             i\_\_4 = iy;
+00454             i\_\_2 = iy;
+00455             i\_\_5 = l + i\_\_ + j * a\_dim1;
+00456             q\_\_2.r = temp1.r * a[i\_\_5].r - temp1.i * a[i\_\_5].i, 
+00457                 q\_\_2.i = temp1.r * a[i\_\_5].i + temp1.i * a[i\_\_5]
+00458                 .r;
+00459             q\_\_1.r = y[i\_\_2].r + q\_\_2.r, q\_\_1.i = y[i\_\_2].i + q\_\_2.i;
+00460             y[i\_\_4].r = q\_\_1.r, y[i\_\_4].i = q\_\_1.i;
+00461             r\_cnjg(&q\_\_3, &a[l + i\_\_ + j * a\_dim1]);
+00462             i\_\_4 = ix;
+00463             q\_\_2.r = q\_\_3.r * x[i\_\_4].r - q\_\_3.i * x[i\_\_4].i, q\_\_2.i =
+00464                  q\_\_3.r * x[i\_\_4].i + q\_\_3.i * x[i\_\_4].r;
+00465             q\_\_1.r = temp2.r + q\_\_2.r, q\_\_1.i = temp2.i + q\_\_2.i;
+00466             temp2.r = q\_\_1.r, temp2.i = q\_\_1.i;
+00467 \textcolor{comment}{/* L110: */}
+00468         \}
+00469         i\_\_3 = jy;
+00470         i\_\_4 = jy;
+00471         q\_\_2.r = alpha->r * temp2.r - alpha->i * temp2.i, q\_\_2.i = 
+00472             alpha->r * temp2.i + alpha->i * temp2.r;
+00473         q\_\_1.r = y[i\_\_4].r + q\_\_2.r, q\_\_1.i = y[i\_\_4].i + q\_\_2.i;
+00474         y[i\_\_3].r = q\_\_1.r, y[i\_\_3].i = q\_\_1.i;
+00475         jx += *incx;
+00476         jy += *incy;
+00477 \textcolor{comment}{/* L120: */}
+00478         \}
+00479     \}
+00480     \}
+00481 
+00482     \textcolor{keywordflow}{return} 0;
+00483 
+00484 \textcolor{comment}{/*     End of CHBMV . */}
+00485 
+00486 \} \textcolor{comment}{/* chbmv\_ */}
+00487 
+\end{DoxyCode}

@@ -1,0 +1,707 @@
+\hypertarget{zlib_2examples_2gun_8c_source}{}\section{zlib/examples/gun.c}
+\label{zlib_2examples_2gun_8c_source}\index{gun.\+c@{gun.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* gun.c -- simple gunzip to give an example of the use of inflateBack()}
+00002 \textcolor{comment}{ * Copyright (C) 2003, 2005, 2008, 2010, 2012 Mark Adler}
+00003 \textcolor{comment}{ * For conditions of distribution and use, see copyright notice in zlib.h}
+00004 \textcolor{comment}{   Version 1.7  12 August 2012  Mark Adler */}
+00005 
+00006 \textcolor{comment}{/* Version history:}
+00007 \textcolor{comment}{   1.0  16 Feb 2003  First version for testing of inflateBack()}
+00008 \textcolor{comment}{   1.1  21 Feb 2005  Decompress concatenated gzip streams}
+00009 \textcolor{comment}{                     Remove use of "this" variable (C++ keyword)}
+00010 \textcolor{comment}{                     Fix return value for in()}
+00011 \textcolor{comment}{                     Improve allocation failure checking}
+00012 \textcolor{comment}{                     Add typecasting for void * structures}
+00013 \textcolor{comment}{                     Add -h option for command version and usage}
+00014 \textcolor{comment}{                     Add a bunch of comments}
+00015 \textcolor{comment}{   1.2  20 Mar 2005  Add Unix compress (LZW) decompression}
+00016 \textcolor{comment}{                     Copy file attributes from input file to output file}
+00017 \textcolor{comment}{   1.3  12 Jun 2005  Add casts for error messages [Oberhumer]}
+00018 \textcolor{comment}{   1.4   8 Dec 2006  LZW decompression speed improvements}
+00019 \textcolor{comment}{   1.5   9 Feb 2008  Avoid warning in latest version of gcc}
+00020 \textcolor{comment}{   1.6  17 Jan 2010  Avoid signed/unsigned comparison warnings}
+00021 \textcolor{comment}{   1.7  12 Aug 2012  Update for z\_const usage in zlib 1.2.8}
+00022 \textcolor{comment}{ */}
+00023 
+00024 \textcolor{comment}{/*}
+00025 \textcolor{comment}{   gun [ -t ] [ name ... ]}
+00026 \textcolor{comment}{}
+00027 \textcolor{comment}{   decompresses the data in the named gzip files.  If no arguments are given,}
+00028 \textcolor{comment}{   gun will decompress from stdin to stdout.  The names must end in .gz, -gz,}
+00029 \textcolor{comment}{   .z, -z, \_z, or .Z.  The uncompressed data will be written to a file name}
+00030 \textcolor{comment}{   with the suffix stripped.  On success, the original file is deleted.  On}
+00031 \textcolor{comment}{   failure, the output file is deleted.  For most failures, the command will}
+00032 \textcolor{comment}{   continue to process the remaining names on the command line.  A memory}
+00033 \textcolor{comment}{   allocation failure will abort the command.  If -t is specified, then the}
+00034 \textcolor{comment}{   listed files or stdin will be tested as gzip files for integrity (without}
+00035 \textcolor{comment}{   checking for a proper suffix), no output will be written, and no files}
+00036 \textcolor{comment}{   will be deleted.}
+00037 \textcolor{comment}{}
+00038 \textcolor{comment}{   Like gzip, gun allows concatenated gzip streams and will decompress them,}
+00039 \textcolor{comment}{   writing all of the uncompressed data to the output.  Unlike gzip, gun allows}
+00040 \textcolor{comment}{   an empty file on input, and will produce no error writing an empty output}
+00041 \textcolor{comment}{   file.}
+00042 \textcolor{comment}{}
+00043 \textcolor{comment}{   gun will also decompress files made by Unix compress, which uses LZW}
+00044 \textcolor{comment}{   compression.  These files are automatically detected by virtue of their}
+00045 \textcolor{comment}{   magic header bytes.  Since the end of Unix compress stream is marked by the}
+00046 \textcolor{comment}{   end-of-file, they cannot be concantenated.  If a Unix compress stream is}
+00047 \textcolor{comment}{   encountered in an input file, it is the last stream in that file.}
+00048 \textcolor{comment}{}
+00049 \textcolor{comment}{   Like gunzip and uncompress, the file attributes of the original compressed}
+00050 \textcolor{comment}{   file are maintained in the final uncompressed file, to the extent that the}
+00051 \textcolor{comment}{   user permissions allow it.}
+00052 \textcolor{comment}{}
+00053 \textcolor{comment}{   On my Mac OS X PowerPC G4, gun is almost twice as fast as gunzip (version}
+00054 \textcolor{comment}{   1.2.4) is on the same file, when gun is linked with zlib 1.2.2.  Also the}
+00055 \textcolor{comment}{   LZW decompression provided by gun is about twice as fast as the standard}
+00056 \textcolor{comment}{   Unix uncompress command.}
+00057 \textcolor{comment}{ */}
+00058 
+00059 \textcolor{comment}{/* external functions and related types and constants */}
+00060 \textcolor{preprocessor}{#include <stdio.h>}          \textcolor{comment}{/* fprintf() */}
+00061 \textcolor{preprocessor}{#include <stdlib.h>}         \textcolor{comment}{/* malloc(), free() */}
+00062 \textcolor{preprocessor}{#include <string.h>}         \textcolor{comment}{/* strerror(), strcmp(), strlen(), memcpy() */}
+00063 \textcolor{preprocessor}{#include <errno.h>}          \textcolor{comment}{/* errno */}
+00064 \textcolor{preprocessor}{#include <fcntl.h>}          \textcolor{comment}{/* open() */}
+00065 \textcolor{preprocessor}{#include <unistd.h>}         \textcolor{comment}{/* read(), write(), close(), chown(), unlink() */}
+00066 \textcolor{preprocessor}{#include <sys/types.h>}
+00067 \textcolor{preprocessor}{#include <sys/stat.h>}       \textcolor{comment}{/* stat(), chmod() */}
+00068 \textcolor{preprocessor}{#include <utime.h>}          \textcolor{comment}{/* utime() */}
+00069 \textcolor{preprocessor}{#include "zlib.h"}           \textcolor{comment}{/* inflateBackInit(), inflateBack(), */}
+00070                             \textcolor{comment}{/* inflateBackEnd(), crc32() */}
+00071 
+00072 \textcolor{comment}{/* function declaration */}
+00073 \textcolor{preprocessor}{#define local static}
+00074 
+00075 \textcolor{comment}{/* buffer constants */}
+00076 \textcolor{preprocessor}{#define SIZE 32768U         }\textcolor{comment}{/* input and output buffer sizes */}\textcolor{preprocessor}{}
+00077 \textcolor{preprocessor}{#define PIECE 16384         }\textcolor{comment}{/* limits i/o chunks for 16-bit int case */}\textcolor{preprocessor}{}
+00078 
+00079 \textcolor{comment}{/* structure for infback() to pass to input function in() -- it maintains the}
+00080 \textcolor{comment}{   input file and a buffer of size SIZE */}
+00081 \textcolor{keyword}{struct }\hyperlink{structind}{ind} \{
+00082     \textcolor{keywordtype}{int} infile;
+00083     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *inbuf;
+00084 \};
+00085 
+00086 \textcolor{comment}{/* Load input buffer, assumed to be empty, and return bytes loaded and a}
+00087 \textcolor{comment}{   pointer to them.  read() is called until the buffer is full, or until it}
+00088 \textcolor{comment}{   returns end-of-file or error.  Return 0 on error. */}
+00089 local \textcolor{keywordtype}{unsigned} in(\textcolor{keywordtype}{void} *in\_desc, z\_const \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} **buf)
+00090 \{
+00091     \textcolor{keywordtype}{int} ret;
+00092     \textcolor{keywordtype}{unsigned} len;
+00093     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *next;
+00094     \textcolor{keyword}{struct }\hyperlink{structind}{ind} *me = (\textcolor{keyword}{struct }\hyperlink{structind}{ind} *)in\_desc;
+00095 
+00096     next = me->inbuf;
+00097     *buf = next;
+00098     len = 0;
+00099     \textcolor{keywordflow}{do} \{
+00100         ret = PIECE;
+00101         \textcolor{keywordflow}{if} ((\textcolor{keywordtype}{unsigned})ret > SIZE - len)
+00102             ret = (\textcolor{keywordtype}{int})(SIZE - len);
+00103         ret = (int)read(me->infile, next, ret);
+00104         \textcolor{keywordflow}{if} (ret == -1) \{
+00105             len = 0;
+00106             \textcolor{keywordflow}{break};
+00107         \}
+00108         next += ret;
+00109         len += ret;
+00110     \} \textcolor{keywordflow}{while} (ret != 0 && len < SIZE);
+00111     \textcolor{keywordflow}{return} len;
+00112 \}
+00113 
+00114 \textcolor{comment}{/* structure for infback() to pass to output function out() -- it maintains the}
+00115 \textcolor{comment}{   output file, a running CRC-32 check on the output and the total number of}
+00116 \textcolor{comment}{   bytes output, both for checking against the gzip trailer.  (The length in}
+00117 \textcolor{comment}{   the gzip trailer is stored modulo 2^32, so it's ok if a long is 32 bits and}
+00118 \textcolor{comment}{   the output is greater than 4 GB.) */}
+00119 \textcolor{keyword}{struct }\hyperlink{structoutd}{outd} \{
+00120     \textcolor{keywordtype}{int} outfile;
+00121     \textcolor{keywordtype}{int} check;                  \textcolor{comment}{/* true if checking crc and total */}
+00122     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} crc;
+00123     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} total;
+00124 \};
+00125 
+00126 \textcolor{comment}{/* Write output buffer and update the CRC-32 and total bytes written.  write()}
+00127 \textcolor{comment}{   is called until all of the output is written or an error is encountered.}
+00128 \textcolor{comment}{   On success out() returns 0.  For a write failure, out() returns 1.  If the}
+00129 \textcolor{comment}{   output file descriptor is -1, then nothing is written.}
+00130 \textcolor{comment}{ */}
+00131 local \textcolor{keywordtype}{int} out(\textcolor{keywordtype}{void} *out\_desc, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *buf, \textcolor{keywordtype}{unsigned} len)
+00132 \{
+00133     \textcolor{keywordtype}{int} ret;
+00134     \textcolor{keyword}{struct }\hyperlink{structoutd}{outd} *me = (\textcolor{keyword}{struct }\hyperlink{structoutd}{outd} *)out\_desc;
+00135 
+00136     \textcolor{keywordflow}{if} (me->check) \{
+00137         me->crc = crc32(me->crc, buf, len);
+00138         me->total += len;
+00139     \}
+00140     \textcolor{keywordflow}{if} (me->outfile != -1)
+00141         \textcolor{keywordflow}{do} \{
+00142             ret = PIECE;
+00143             \textcolor{keywordflow}{if} ((\textcolor{keywordtype}{unsigned})ret > len)
+00144                 ret = (int)len;
+00145             ret = (int)write(me->outfile, buf, ret);
+00146             \textcolor{keywordflow}{if} (ret == -1)
+00147                 \textcolor{keywordflow}{return} 1;
+00148             buf += ret;
+00149             len -= ret;
+00150         \} \textcolor{keywordflow}{while} (len != 0);
+00151     \textcolor{keywordflow}{return} 0;
+00152 \}
+00153 
+00154 \textcolor{comment}{/* next input byte macro for use inside lunpipe() and gunpipe() */}
+00155 \textcolor{preprocessor}{#define NEXT() (have ? 0 : (have = in(indp, &next)), \(\backslash\)}
+00156 \textcolor{preprocessor}{                last = have ? (have--, (int)(*next++)) : -1)}
+00157 
+00158 \textcolor{comment}{/* memory for gunpipe() and lunpipe() --}
+00159 \textcolor{comment}{   the first 256 entries of prefix[] and suffix[] are never used, could}
+00160 \textcolor{comment}{   have offset the index, but it's faster to waste the memory */}
+00161 \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} inbuf[SIZE];              \textcolor{comment}{/* input buffer */}
+00162 \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} outbuf[SIZE];             \textcolor{comment}{/* output buffer */}
+00163 \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{short} prefix[65536];           \textcolor{comment}{/* index to LZW prefix string */}
+00164 \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} suffix[65536];            \textcolor{comment}{/* one-character LZW suffix */}
+00165 \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} match[65280 + 2];         \textcolor{comment}{/* buffer for reversed match or gzip}
+00166 \textcolor{comment}{                                           32K sliding window */}
+00167 
+00168 \textcolor{comment}{/* throw out what's left in the current bits byte buffer (this is a vestigial}
+00169 \textcolor{comment}{   aspect of the compressed data format derived from an implementation that}
+00170 \textcolor{comment}{   made use of a special VAX machine instruction!) */}
+00171 \textcolor{preprocessor}{#define FLUSHCODE() \(\backslash\)}
+00172 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00173 \textcolor{preprocessor}{        left = 0; \(\backslash\)}
+00174 \textcolor{preprocessor}{        rem = 0; \(\backslash\)}
+00175 \textcolor{preprocessor}{        if (chunk > have) \{ \(\backslash\)}
+00176 \textcolor{preprocessor}{            chunk -= have; \(\backslash\)}
+00177 \textcolor{preprocessor}{            have = 0; \(\backslash\)}
+00178 \textcolor{preprocessor}{            if (NEXT() == -1) \(\backslash\)}
+00179 \textcolor{preprocessor}{                break; \(\backslash\)}
+00180 \textcolor{preprocessor}{            chunk--; \(\backslash\)}
+00181 \textcolor{preprocessor}{            if (chunk > have) \{ \(\backslash\)}
+00182 \textcolor{preprocessor}{                chunk = have = 0; \(\backslash\)}
+00183 \textcolor{preprocessor}{                break; \(\backslash\)}
+00184 \textcolor{preprocessor}{            \} \(\backslash\)}
+00185 \textcolor{preprocessor}{        \} \(\backslash\)}
+00186 \textcolor{preprocessor}{        have -= chunk; \(\backslash\)}
+00187 \textcolor{preprocessor}{        next += chunk; \(\backslash\)}
+00188 \textcolor{preprocessor}{        chunk = 0; \(\backslash\)}
+00189 \textcolor{preprocessor}{    \} while (0)}
+00190 
+00191 \textcolor{comment}{/* Decompress a compress (LZW) file from indp to outfile.  The compress magic}
+00192 \textcolor{comment}{   header (two bytes) has already been read and verified.  There are have bytes}
+00193 \textcolor{comment}{   of buffered input at next.  strm is used for passing error information back}
+00194 \textcolor{comment}{   to gunpipe().}
+00195 \textcolor{comment}{}
+00196 \textcolor{comment}{   lunpipe() will return Z\_OK on success, Z\_BUF\_ERROR for an unexpected end of}
+00197 \textcolor{comment}{   file, read error, or write error (a write error indicated by strm->next\_in}
+00198 \textcolor{comment}{   not equal to Z\_NULL), or Z\_DATA\_ERROR for invalid input.}
+00199 \textcolor{comment}{ */}
+00200 local \textcolor{keywordtype}{int} lunpipe(\textcolor{keywordtype}{unsigned} have, z\_const \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *next, \textcolor{keyword}{struct} \hyperlink{structind}{ind} *indp,
+00201                   \textcolor{keywordtype}{int} outfile, \hyperlink{structz__stream__s}{z\_stream} *strm)
+00202 \{
+00203     \textcolor{keywordtype}{int} last;                   \textcolor{comment}{/* last byte read by NEXT(), or -1 if EOF */}
+00204     \textcolor{keywordtype}{unsigned} chunk;             \textcolor{comment}{/* bytes left in current chunk */}
+00205     \textcolor{keywordtype}{int} left;                   \textcolor{comment}{/* bits left in rem */}
+00206     \textcolor{keywordtype}{unsigned} rem;               \textcolor{comment}{/* unused bits from input */}
+00207     \textcolor{keywordtype}{int} bits;                   \textcolor{comment}{/* current bits per code */}
+00208     \textcolor{keywordtype}{unsigned} \hyperlink{structcode}{code};              \textcolor{comment}{/* code, table traversal index */}
+00209     \textcolor{keywordtype}{unsigned} mask;              \textcolor{comment}{/* mask for current bits codes */}
+00210     \textcolor{keywordtype}{int} max;                    \textcolor{comment}{/* maximum bits per code for this stream */}
+00211     \textcolor{keywordtype}{unsigned} flags;             \textcolor{comment}{/* compress flags, then block compress flag */}
+00212     \textcolor{keywordtype}{unsigned} end;               \textcolor{comment}{/* last valid entry in prefix/suffix tables */}
+00213     \textcolor{keywordtype}{unsigned} temp;              \textcolor{comment}{/* current code */}
+00214     \textcolor{keywordtype}{unsigned} prev;              \textcolor{comment}{/* previous code */}
+00215     \textcolor{keywordtype}{unsigned} \textcolor{keyword}{final};             \textcolor{comment}{/* last character written for previous code */}
+00216     \textcolor{keywordtype}{unsigned} stack;             \textcolor{comment}{/* next position for reversed string */}
+00217     \textcolor{keywordtype}{unsigned} outcnt;            \textcolor{comment}{/* bytes in output buffer */}
+00218     \textcolor{keyword}{struct }\hyperlink{structoutd}{outd} \hyperlink{structoutd}{outd};           \textcolor{comment}{/* output structure */}
+00219     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *p;
+00220 
+00221     \textcolor{comment}{/* set up output */}
+00222     \hyperlink{structoutd}{outd}.outfile = outfile;
+00223     \hyperlink{structoutd}{outd}.check = 0;
+00224 
+00225     \textcolor{comment}{/* process remainder of compress header -- a flags byte */}
+00226     flags = NEXT();
+00227     \textcolor{keywordflow}{if} (last == -1)
+00228         \textcolor{keywordflow}{return} Z\_BUF\_ERROR;
+00229     \textcolor{keywordflow}{if} (flags & 0x60) \{
+00230         strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"unknown lzw flags set"};
+00231         \textcolor{keywordflow}{return} Z\_DATA\_ERROR;
+00232     \}
+00233     max = flags & 0x1f;
+00234     \textcolor{keywordflow}{if} (max < 9 || max > 16) \{
+00235         strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"lzw bits out of range"};
+00236         \textcolor{keywordflow}{return} Z\_DATA\_ERROR;
+00237     \}
+00238     \textcolor{keywordflow}{if} (max == 9)                           \textcolor{comment}{/* 9 doesn't really mean 9 */}
+00239         max = 10;
+00240     flags &= 0x80;                          \textcolor{comment}{/* true if block compress */}
+00241 
+00242     \textcolor{comment}{/* clear table */}
+00243     bits = 9;
+00244     mask = 0x1ff;
+00245     end = flags ? 256 : 255;
+00246 
+00247     \textcolor{comment}{/* set up: get first 9-bit code, which is the first decompressed byte, but}
+00248 \textcolor{comment}{       don't create a table entry until the next code */}
+00249     \textcolor{keywordflow}{if} (NEXT() == -1)                       \textcolor{comment}{/* no compressed data is ok */}
+00250         \textcolor{keywordflow}{return} Z\_OK;
+00251     \textcolor{keyword}{final} = prev = (unsigned)last;          \textcolor{comment}{/* low 8 bits of code */}
+00252     \textcolor{keywordflow}{if} (NEXT() == -1)                       \textcolor{comment}{/* missing a bit */}
+00253         \textcolor{keywordflow}{return} Z\_BUF\_ERROR;
+00254     \textcolor{keywordflow}{if} (last & 1) \{                         \textcolor{comment}{/* code must be < 256 */}
+00255         strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid lzw code"};
+00256         \textcolor{keywordflow}{return} Z\_DATA\_ERROR;
+00257     \}
+00258     rem = (unsigned)last >> 1;              \textcolor{comment}{/* remaining 7 bits */}
+00259     left = 7;
+00260     chunk = bits - 2;                       \textcolor{comment}{/* 7 bytes left in this chunk */}
+00261     outbuf[0] = (\textcolor{keywordtype}{unsigned} char)\textcolor{keyword}{final};       \textcolor{comment}{/* write first decompressed byte */}
+00262     outcnt = 1;
+00263 
+00264     \textcolor{comment}{/* decode codes */}
+00265     stack = 0;
+00266     \textcolor{keywordflow}{for} (;;) \{
+00267         \textcolor{comment}{/* if the table will be full after this, increment the code size */}
+00268         \textcolor{keywordflow}{if} (end >= mask && bits < max) \{
+00269             FLUSHCODE();
+00270             bits++;
+00271             mask <<= 1;
+00272             mask++;
+00273         \}
+00274 
+00275         \textcolor{comment}{/* get a code of length bits */}
+00276         \textcolor{keywordflow}{if} (chunk == 0)                     \textcolor{comment}{/* decrement chunk modulo bits */}
+00277             chunk = bits;
+00278         code = rem;                         \textcolor{comment}{/* low bits of code */}
+00279         \textcolor{keywordflow}{if} (NEXT() == -1) \{                 \textcolor{comment}{/* EOF is end of compressed data */}
+00280             \textcolor{comment}{/* write remaining buffered output */}
+00281             \textcolor{keywordflow}{if} (outcnt && out(&\hyperlink{structoutd}{outd}, outbuf, outcnt)) \{
+00282                 strm->next\_in = outbuf;     \textcolor{comment}{/* signal write error */}
+00283                 \textcolor{keywordflow}{return} Z\_BUF\_ERROR;
+00284             \}
+00285             \textcolor{keywordflow}{return} Z\_OK;
+00286         \}
+00287         code += (unsigned)last << left;     \textcolor{comment}{/* middle (or high) bits of code */}
+00288         left += 8;
+00289         chunk--;
+00290         \textcolor{keywordflow}{if} (bits > left) \{                  \textcolor{comment}{/* need more bits */}
+00291             \textcolor{keywordflow}{if} (NEXT() == -1)               \textcolor{comment}{/* can't end in middle of code */}
+00292                 \textcolor{keywordflow}{return} Z\_BUF\_ERROR;
+00293             code += (unsigned)last << left; \textcolor{comment}{/* high bits of code */}
+00294             left += 8;
+00295             chunk--;
+00296         \}
+00297         code &= mask;                       \textcolor{comment}{/* mask to current code length */}
+00298         left -= bits;                       \textcolor{comment}{/* number of unused bits */}
+00299         rem = (unsigned)last >> (8 - left); \textcolor{comment}{/* unused bits from last byte */}
+00300 
+00301         \textcolor{comment}{/* process clear code (256) */}
+00302         \textcolor{keywordflow}{if} (code == 256 && flags) \{
+00303             FLUSHCODE();
+00304             bits = 9;                       \textcolor{comment}{/* initialize bits and mask */}
+00305             mask = 0x1ff;
+00306             end = 255;                      \textcolor{comment}{/* empty table */}
+00307             \textcolor{keywordflow}{continue};                       \textcolor{comment}{/* get next code */}
+00308         \}
+00309 
+00310         \textcolor{comment}{/* special code to reuse last match */}
+00311         temp = code;                        \textcolor{comment}{/* save the current code */}
+00312         \textcolor{keywordflow}{if} (code > end) \{
+00313             \textcolor{comment}{/* Be picky on the allowed code here, and make sure that the code}
+00314 \textcolor{comment}{               we drop through (prev) will be a valid index so that random}
+00315 \textcolor{comment}{               input does not cause an exception.  The code != end + 1 check is}
+00316 \textcolor{comment}{               empirically derived, and not checked in the original uncompress}
+00317 \textcolor{comment}{               code.  If this ever causes a problem, that check could be safely}
+00318 \textcolor{comment}{               removed.  Leaving this check in greatly improves gun's ability}
+00319 \textcolor{comment}{               to detect random or corrupted input after a compress header.}
+00320 \textcolor{comment}{               In any case, the prev > end check must be retained. */}
+00321             \textcolor{keywordflow}{if} (code != end + 1 || prev > end) \{
+00322                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid lzw code"};
+00323                 \textcolor{keywordflow}{return} Z\_DATA\_ERROR;
+00324             \}
+00325             match[stack++] = (\textcolor{keywordtype}{unsigned} char)\textcolor{keyword}{final};
+00326             code = prev;
+00327         \}
+00328 
+00329         \textcolor{comment}{/* walk through linked list to generate output in reverse order */}
+00330         p = match + stack;
+00331         \textcolor{keywordflow}{while} (code >= 256) \{
+00332             *p++ = suffix[code];
+00333             code = prefix[code];
+00334         \}
+00335         stack = p - match;
+00336         match[stack++] = (\textcolor{keywordtype}{unsigned} char)code;
+00337         \textcolor{keyword}{final} = code;
+00338 
+00339         \textcolor{comment}{/* link new table entry */}
+00340         \textcolor{keywordflow}{if} (end < mask) \{
+00341             end++;
+00342             prefix[end] = (\textcolor{keywordtype}{unsigned} short)prev;
+00343             suffix[end] = (\textcolor{keywordtype}{unsigned} char)\textcolor{keyword}{final};
+00344         \}
+00345 
+00346         \textcolor{comment}{/* set previous code for next iteration */}
+00347         prev = temp;
+00348 
+00349         \textcolor{comment}{/* write output in forward order */}
+00350         \textcolor{keywordflow}{while} (stack > SIZE - outcnt) \{
+00351             \textcolor{keywordflow}{while} (outcnt < SIZE)
+00352                 outbuf[outcnt++] = match[--stack];
+00353             \textcolor{keywordflow}{if} (out(&\hyperlink{structoutd}{outd}, outbuf, outcnt)) \{
+00354                 strm->next\_in = outbuf; \textcolor{comment}{/* signal write error */}
+00355                 \textcolor{keywordflow}{return} Z\_BUF\_ERROR;
+00356             \}
+00357             outcnt = 0;
+00358         \}
+00359         p = match + stack;
+00360         \textcolor{keywordflow}{do} \{
+00361             outbuf[outcnt++] = *--p;
+00362         \} \textcolor{keywordflow}{while} (p > match);
+00363         stack = 0;
+00364 
+00365         \textcolor{comment}{/* loop for next code with final and prev as the last match, rem and}
+00366 \textcolor{comment}{           left provide the first 0..7 bits of the next code, end is the last}
+00367 \textcolor{comment}{           valid table entry */}
+00368     \}
+00369 \}
+00370 
+00371 \textcolor{comment}{/* Decompress a gzip file from infile to outfile.  strm is assumed to have been}
+00372 \textcolor{comment}{   successfully initialized with inflateBackInit().  The input file may consist}
+00373 \textcolor{comment}{   of a series of gzip streams, in which case all of them will be decompressed}
+00374 \textcolor{comment}{   to the output file.  If outfile is -1, then the gzip stream(s) integrity is}
+00375 \textcolor{comment}{   checked and nothing is written.}
+00376 \textcolor{comment}{}
+00377 \textcolor{comment}{   The return value is a zlib error code: Z\_MEM\_ERROR if out of memory,}
+00378 \textcolor{comment}{   Z\_DATA\_ERROR if the header or the compressed data is invalid, or if the}
+00379 \textcolor{comment}{   trailer CRC-32 check or length doesn't match, Z\_BUF\_ERROR if the input ends}
+00380 \textcolor{comment}{   prematurely or a write error occurs, or Z\_ERRNO if junk (not a another gzip}
+00381 \textcolor{comment}{   stream) follows a valid gzip stream.}
+00382 \textcolor{comment}{ */}
+00383 local \textcolor{keywordtype}{int} gunpipe(\hyperlink{structz__stream__s}{z\_stream} *strm, \textcolor{keywordtype}{int} infile, \textcolor{keywordtype}{int} outfile)
+00384 \{
+00385     \textcolor{keywordtype}{int} ret, first, last;
+00386     \textcolor{keywordtype}{unsigned} have, flags, len;
+00387     z\_const \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *next = NULL;
+00388     \textcolor{keyword}{struct }\hyperlink{structind}{ind} \hyperlink{structind}{ind}, *indp;
+00389     \textcolor{keyword}{struct }\hyperlink{structoutd}{outd} \hyperlink{structoutd}{outd};
+00390 
+00391     \textcolor{comment}{/* setup input buffer */}
+00392     \hyperlink{structind}{ind}.infile = infile;
+00393     \hyperlink{structind}{ind}.inbuf = inbuf;
+00394     indp = &\hyperlink{structind}{ind};
+00395 
+00396     \textcolor{comment}{/* decompress concatenated gzip streams */}
+00397     have = 0;                               \textcolor{comment}{/* no input data read in yet */}
+00398     first = 1;                              \textcolor{comment}{/* looking for first gzip header */}
+00399     strm->next\_in = Z\_NULL;                 \textcolor{comment}{/* so Z\_BUF\_ERROR means EOF */}
+00400     \textcolor{keywordflow}{for} (;;) \{
+00401         \textcolor{comment}{/* look for the two magic header bytes for a gzip stream */}
+00402         \textcolor{keywordflow}{if} (NEXT() == -1) \{
+00403             ret = Z\_OK;
+00404             \textcolor{keywordflow}{break};                          \textcolor{comment}{/* empty gzip stream is ok */}
+00405         \}
+00406         \textcolor{keywordflow}{if} (last != 31 || (NEXT() != 139 && last != 157)) \{
+00407             strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"incorrect header check"};
+00408             ret = first ? Z\_DATA\_ERROR : Z\_ERRNO;
+00409             \textcolor{keywordflow}{break};                          \textcolor{comment}{/* not a gzip or compress header */}
+00410         \}
+00411         first = 0;                          \textcolor{comment}{/* next non-header is junk */}
+00412 
+00413         \textcolor{comment}{/* process a compress (LZW) file -- can't be concatenated after this */}
+00414         \textcolor{keywordflow}{if} (last == 157) \{
+00415             ret = lunpipe(have, next, indp, outfile, strm);
+00416             \textcolor{keywordflow}{break};
+00417         \}
+00418 
+00419         \textcolor{comment}{/* process remainder of gzip header */}
+00420         ret = Z\_BUF\_ERROR;
+00421         \textcolor{keywordflow}{if} (NEXT() != 8) \{                  \textcolor{comment}{/* only deflate method allowed */}
+00422             \textcolor{keywordflow}{if} (last == -1) \textcolor{keywordflow}{break};
+00423             strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"unknown compression method"};
+00424             ret = Z\_DATA\_ERROR;
+00425             \textcolor{keywordflow}{break};
+00426         \}
+00427         flags = NEXT();                     \textcolor{comment}{/* header flags */}
+00428         NEXT();                             \textcolor{comment}{/* discard mod time, xflgs, os */}
+00429         NEXT();
+00430         NEXT();
+00431         NEXT();
+00432         NEXT();
+00433         NEXT();
+00434         \textcolor{keywordflow}{if} (last == -1) \textcolor{keywordflow}{break};
+00435         \textcolor{keywordflow}{if} (flags & 0xe0) \{
+00436             strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"unknown header flags set"};
+00437             ret = Z\_DATA\_ERROR;
+00438             \textcolor{keywordflow}{break};
+00439         \}
+00440         \textcolor{keywordflow}{if} (flags & 4) \{                    \textcolor{comment}{/* extra field */}
+00441             len = NEXT();
+00442             len += (unsigned)(NEXT()) << 8;
+00443             \textcolor{keywordflow}{if} (last == -1) \textcolor{keywordflow}{break};
+00444             \textcolor{keywordflow}{while} (len > have) \{
+00445                 len -= have;
+00446                 have = 0;
+00447                 \textcolor{keywordflow}{if} (NEXT() == -1) \textcolor{keywordflow}{break};
+00448                 len--;
+00449             \}
+00450             \textcolor{keywordflow}{if} (last == -1) \textcolor{keywordflow}{break};
+00451             have -= len;
+00452             next += len;
+00453         \}
+00454         \textcolor{keywordflow}{if} (flags & 8)                      \textcolor{comment}{/* file name */}
+00455             \textcolor{keywordflow}{while} (NEXT() != 0 && last != -1)
+00456                 ;
+00457         \textcolor{keywordflow}{if} (flags & 16)                     \textcolor{comment}{/* comment */}
+00458             \textcolor{keywordflow}{while} (NEXT() != 0 && last != -1)
+00459                 ;
+00460         \textcolor{keywordflow}{if} (flags & 2) \{                    \textcolor{comment}{/* header crc */}
+00461             NEXT();
+00462             NEXT();
+00463         \}
+00464         \textcolor{keywordflow}{if} (last == -1) \textcolor{keywordflow}{break};
+00465 
+00466         \textcolor{comment}{/* set up output */}
+00467         \hyperlink{structoutd}{outd}.outfile = outfile;
+00468         \hyperlink{structoutd}{outd}.check = 1;
+00469         \hyperlink{structoutd}{outd}.crc = crc32(0L, Z\_NULL, 0);
+00470         \hyperlink{structoutd}{outd}.total = 0;
+00471 
+00472         \textcolor{comment}{/* decompress data to output */}
+00473         strm->next\_in = next;
+00474         strm->avail\_in = have;
+00475         ret = inflateBack(strm, in, indp, out, &\hyperlink{structoutd}{outd});
+00476         \textcolor{keywordflow}{if} (ret != Z\_STREAM\_END) \textcolor{keywordflow}{break};
+00477         next = strm->next\_in;
+00478         have = strm->avail\_in;
+00479         strm->next\_in = Z\_NULL;             \textcolor{comment}{/* so Z\_BUF\_ERROR means EOF */}
+00480 
+00481         \textcolor{comment}{/* check trailer */}
+00482         ret = Z\_BUF\_ERROR;
+00483         \textcolor{keywordflow}{if} (NEXT() != (\textcolor{keywordtype}{int})(\hyperlink{structoutd}{outd}.crc & 0xff) ||
+00484             NEXT() != (\textcolor{keywordtype}{int})((\hyperlink{structoutd}{outd}.crc >> 8) & 0xff) ||
+00485             NEXT() != (\textcolor{keywordtype}{int})((\hyperlink{structoutd}{outd}.crc >> 16) & 0xff) ||
+00486             NEXT() != (\textcolor{keywordtype}{int})((\hyperlink{structoutd}{outd}.crc >> 24) & 0xff)) \{
+00487             \textcolor{comment}{/* crc error */}
+00488             \textcolor{keywordflow}{if} (last != -1) \{
+00489                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"incorrect data check"};
+00490                 ret = Z\_DATA\_ERROR;
+00491             \}
+00492             \textcolor{keywordflow}{break};
+00493         \}
+00494         \textcolor{keywordflow}{if} (NEXT() != (int)(\hyperlink{structoutd}{outd}.total & 0xff) ||
+00495             NEXT() != (int)((\hyperlink{structoutd}{outd}.total >> 8) & 0xff) ||
+00496             NEXT() != (int)((\hyperlink{structoutd}{outd}.total >> 16) & 0xff) ||
+00497             NEXT() != (int)((\hyperlink{structoutd}{outd}.total >> 24) & 0xff)) \{
+00498             \textcolor{comment}{/* length error */}
+00499             \textcolor{keywordflow}{if} (last != -1) \{
+00500                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"incorrect length check"};
+00501                 ret = Z\_DATA\_ERROR;
+00502             \}
+00503             \textcolor{keywordflow}{break};
+00504         \}
+00505 
+00506         \textcolor{comment}{/* go back and look for another gzip stream */}
+00507     \}
+00508 
+00509     \textcolor{comment}{/* clean up and return */}
+00510     \textcolor{keywordflow}{return} ret;
+00511 \}
+00512 
+00513 \textcolor{comment}{/* Copy file attributes, from -> to, as best we can.  This is best effort, so}
+00514 \textcolor{comment}{   no errors are reported.  The mode bits, including suid, sgid, and the sticky}
+00515 \textcolor{comment}{   bit are copied (if allowed), the owner's user id and group id are copied}
+00516 \textcolor{comment}{   (again if allowed), and the access and modify times are copied. */}
+00517 local \textcolor{keywordtype}{void} copymeta(\textcolor{keywordtype}{char} *from, \textcolor{keywordtype}{char} *to)
+00518 \{
+00519     \textcolor{keyword}{struct }stat was;
+00520     \textcolor{keyword}{struct }utimbuf when;
+00521 
+00522     \textcolor{comment}{/* get all of from's Unix meta data, return if not a regular file */}
+00523     \textcolor{keywordflow}{if} (stat(from, &was) != 0 || (was.st\_mode & S\_IFMT) != S\_IFREG)
+00524         \textcolor{keywordflow}{return};
+00525 
+00526     \textcolor{comment}{/* set to's mode bits, ignore errors */}
+00527     (void)chmod(to, was.st\_mode & 07777);
+00528 
+00529     \textcolor{comment}{/* copy owner's user and group, ignore errors */}
+00530     (void)chown(to, was.st\_uid, was.st\_gid);
+00531 
+00532     \textcolor{comment}{/* copy access and modify times, ignore errors */}
+00533     when.actime = was.st\_atime;
+00534     when.modtime = was.st\_mtime;
+00535     (void)utime(to, &when);
+00536 \}
+00537 
+00538 \textcolor{comment}{/* Decompress the file inname to the file outnname, of if test is true, just}
+00539 \textcolor{comment}{   decompress without writing and check the gzip trailer for integrity.  If}
+00540 \textcolor{comment}{   inname is NULL or an empty string, read from stdin.  If outname is NULL or}
+00541 \textcolor{comment}{   an empty string, write to stdout.  strm is a pre-initialized inflateBack}
+00542 \textcolor{comment}{   structure.  When appropriate, copy the file attributes from inname to}
+00543 \textcolor{comment}{   outname.}
+00544 \textcolor{comment}{}
+00545 \textcolor{comment}{   gunzip() returns 1 if there is an out-of-memory error or an unexpected}
+00546 \textcolor{comment}{   return code from gunpipe().  Otherwise it returns 0.}
+00547 \textcolor{comment}{ */}
+00548 local \textcolor{keywordtype}{int} gunzip(\hyperlink{structz__stream__s}{z\_stream} *strm, \textcolor{keywordtype}{char} *inname, \textcolor{keywordtype}{char} *outname, \textcolor{keywordtype}{int} test)
+00549 \{
+00550     \textcolor{keywordtype}{int} ret;
+00551     \textcolor{keywordtype}{int} infile, outfile;
+00552 
+00553     \textcolor{comment}{/* open files */}
+00554     \textcolor{keywordflow}{if} (inname == NULL || *inname == 0) \{
+00555         inname = \textcolor{stringliteral}{"-"};
+00556         infile = 0;     \textcolor{comment}{/* stdin */}
+00557     \}
+00558     \textcolor{keywordflow}{else} \{
+00559         infile = open(inname, O\_RDONLY, 0);
+00560         \textcolor{keywordflow}{if} (infile == -1) \{
+00561             fprintf(stderr, \textcolor{stringliteral}{"gun cannot open %s\(\backslash\)n"}, inname);
+00562             \textcolor{keywordflow}{return} 0;
+00563         \}
+00564     \}
+00565     \textcolor{keywordflow}{if} (test)
+00566         outfile = -1;
+00567     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (outname == NULL || *outname == 0) \{
+00568         outname = \textcolor{stringliteral}{"-"};
+00569         outfile = 1;    \textcolor{comment}{/* stdout */}
+00570     \}
+00571     \textcolor{keywordflow}{else} \{
+00572         outfile = open(outname, O\_CREAT | O\_TRUNC | O\_WRONLY, 0666);
+00573         \textcolor{keywordflow}{if} (outfile == -1) \{
+00574             close(infile);
+00575             fprintf(stderr, \textcolor{stringliteral}{"gun cannot create %s\(\backslash\)n"}, outname);
+00576             \textcolor{keywordflow}{return} 0;
+00577         \}
+00578     \}
+00579     errno = 0;
+00580 
+00581     \textcolor{comment}{/* decompress */}
+00582     ret = gunpipe(strm, infile, outfile);
+00583     \textcolor{keywordflow}{if} (outfile > 2) close(outfile);
+00584     \textcolor{keywordflow}{if} (infile > 2) close(infile);
+00585 
+00586     \textcolor{comment}{/* interpret result */}
+00587     \textcolor{keywordflow}{switch} (ret) \{
+00588     \textcolor{keywordflow}{case} Z\_OK:
+00589     \textcolor{keywordflow}{case} Z\_ERRNO:
+00590         \textcolor{keywordflow}{if} (infile > 2 && outfile > 2) \{
+00591             copymeta(inname, outname);          \textcolor{comment}{/* copy attributes */}
+00592             unlink(inname);
+00593         \}
+00594         \textcolor{keywordflow}{if} (ret == Z\_ERRNO)
+00595             fprintf(stderr, \textcolor{stringliteral}{"gun warning: trailing garbage ignored in %s\(\backslash\)n"},
+00596                     inname);
+00597         \textcolor{keywordflow}{break};
+00598     \textcolor{keywordflow}{case} Z\_DATA\_ERROR:
+00599         \textcolor{keywordflow}{if} (outfile > 2) unlink(outname);
+00600         fprintf(stderr, \textcolor{stringliteral}{"gun data error on %s: %s\(\backslash\)n"}, inname, strm->msg);
+00601         \textcolor{keywordflow}{break};
+00602     \textcolor{keywordflow}{case} Z\_MEM\_ERROR:
+00603         \textcolor{keywordflow}{if} (outfile > 2) unlink(outname);
+00604         fprintf(stderr, \textcolor{stringliteral}{"gun out of memory error--aborting\(\backslash\)n"});
+00605         \textcolor{keywordflow}{return} 1;
+00606     \textcolor{keywordflow}{case} Z\_BUF\_ERROR:
+00607         \textcolor{keywordflow}{if} (outfile > 2) unlink(outname);
+00608         \textcolor{keywordflow}{if} (strm->next\_in != Z\_NULL) \{
+00609             fprintf(stderr, \textcolor{stringliteral}{"gun write error on %s: %s\(\backslash\)n"},
+00610                     outname, strerror(errno));
+00611         \}
+00612         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (errno) \{
+00613             fprintf(stderr, \textcolor{stringliteral}{"gun read error on %s: %s\(\backslash\)n"},
+00614                     inname, strerror(errno));
+00615         \}
+00616         \textcolor{keywordflow}{else} \{
+00617             fprintf(stderr, \textcolor{stringliteral}{"gun unexpected end of file on %s\(\backslash\)n"},
+00618                     inname);
+00619         \}
+00620         \textcolor{keywordflow}{break};
+00621     \textcolor{keywordflow}{default}:
+00622         \textcolor{keywordflow}{if} (outfile > 2) unlink(outname);
+00623         fprintf(stderr, \textcolor{stringliteral}{"gun internal error--aborting\(\backslash\)n"});
+00624         \textcolor{keywordflow}{return} 1;
+00625     \}
+00626     \textcolor{keywordflow}{return} 0;
+00627 \}
+00628 
+00629 \textcolor{comment}{/* Process the gun command line arguments.  See the command syntax near the}
+00630 \textcolor{comment}{   beginning of this source file. */}
+00631 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} **argv)
+00632 \{
+00633     \textcolor{keywordtype}{int} ret, len, test;
+00634     \textcolor{keywordtype}{char} *outname;
+00635     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *window;
+00636     \hyperlink{structz__stream__s}{z\_stream} strm;
+00637 
+00638     \textcolor{comment}{/* initialize inflateBack state for repeated use */}
+00639     window = match;                         \textcolor{comment}{/* reuse LZW match buffer */}
+00640     strm.zalloc = Z\_NULL;
+00641     strm.zfree = Z\_NULL;
+00642     strm.opaque = Z\_NULL;
+00643     ret = inflateBackInit(&strm, 15, window);
+00644     \textcolor{keywordflow}{if} (ret != Z\_OK) \{
+00645         fprintf(stderr, \textcolor{stringliteral}{"gun out of memory error--aborting\(\backslash\)n"});
+00646         \textcolor{keywordflow}{return} 1;
+00647     \}
+00648 
+00649     \textcolor{comment}{/* decompress each file to the same name with the suffix removed */}
+00650     argc--;
+00651     argv++;
+00652     test = 0;
+00653     \textcolor{keywordflow}{if} (argc && strcmp(*argv, \textcolor{stringliteral}{"-h"}) == 0) \{
+00654         fprintf(stderr, \textcolor{stringliteral}{"gun 1.6 (17 Jan 2010)\(\backslash\)n"});
+00655         fprintf(stderr, \textcolor{stringliteral}{"Copyright (C) 2003-2010 Mark Adler\(\backslash\)n"});
+00656         fprintf(stderr, \textcolor{stringliteral}{"usage: gun [-t] [file1.gz [file2.Z ...]]\(\backslash\)n"});
+00657         \textcolor{keywordflow}{return} 0;
+00658     \}
+00659     \textcolor{keywordflow}{if} (argc && strcmp(*argv, \textcolor{stringliteral}{"-t"}) == 0) \{
+00660         test = 1;
+00661         argc--;
+00662         argv++;
+00663     \}
+00664     \textcolor{keywordflow}{if} (argc)
+00665         \textcolor{keywordflow}{do} \{
+00666             \textcolor{keywordflow}{if} (test)
+00667                 outname = NULL;
+00668             \textcolor{keywordflow}{else} \{
+00669                 len = (int)strlen(*argv);
+00670                 \textcolor{keywordflow}{if} (strcmp(*argv + len - 3, \textcolor{stringliteral}{".gz"}) == 0 ||
+00671                     strcmp(*argv + len - 3, \textcolor{stringliteral}{"-gz"}) == 0)
+00672                     len -= 3;
+00673                 \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (strcmp(*argv + len - 2, \textcolor{stringliteral}{".z"}) == 0 ||
+00674                     strcmp(*argv + len - 2, \textcolor{stringliteral}{"-z"}) == 0 ||
+00675                     strcmp(*argv + len - 2, \textcolor{stringliteral}{"\_z"}) == 0 ||
+00676                     strcmp(*argv + len - 2, \textcolor{stringliteral}{".Z"}) == 0)
+00677                     len -= 2;
+00678                 \textcolor{keywordflow}{else} \{
+00679                     fprintf(stderr, \textcolor{stringliteral}{"gun error: no gz type on %s--skipping\(\backslash\)n"},
+00680                             *argv);
+00681                     \textcolor{keywordflow}{continue};
+00682                 \}
+00683                 outname = malloc(len + 1);
+00684                 \textcolor{keywordflow}{if} (outname == NULL) \{
+00685                     fprintf(stderr, \textcolor{stringliteral}{"gun out of memory error--aborting\(\backslash\)n"});
+00686                     ret = 1;
+00687                     \textcolor{keywordflow}{break};
+00688                 \}
+00689                 memcpy(outname, *argv, len);
+00690                 outname[len] = 0;
+00691             \}
+00692             ret = gunzip(&strm, *argv, outname, test);
+00693             \textcolor{keywordflow}{if} (outname != NULL) free(outname);
+00694             \textcolor{keywordflow}{if} (ret) \textcolor{keywordflow}{break};
+00695         \} \textcolor{keywordflow}{while} (argv++, --argc);
+00696     \textcolor{keywordflow}{else}
+00697         ret = gunzip(&strm, NULL, NULL, test);
+00698 
+00699     \textcolor{comment}{/* clean up */}
+00700     inflateBackEnd(&strm);
+00701     \textcolor{keywordflow}{return} ret;
+00702 \}
+\end{DoxyCode}

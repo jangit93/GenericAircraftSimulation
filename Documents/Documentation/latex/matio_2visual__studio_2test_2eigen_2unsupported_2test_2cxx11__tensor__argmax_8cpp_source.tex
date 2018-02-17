@@ -1,0 +1,299 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__argmax_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/test/cxx11\+\_\+tensor\+\_\+argmax.cpp}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__argmax_8cpp_source}\index{cxx11\+\_\+tensor\+\_\+argmax.\+cpp@{cxx11\+\_\+tensor\+\_\+argmax.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2015 Eugene Brevdo <ebrevdo@google.com>}
+00005 \textcolor{comment}{//                    Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#include "main.h"}
+00012 
+00013 \textcolor{preprocessor}{#include <Eigen/CXX11/Tensor>}
+00014 
+00015 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor};
+00016 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1array}{Eigen::array};
+00017 \textcolor{keyword}{using} \hyperlink{struct_eigen_1_1_tuple}{Eigen::Tuple};
+00018 
+00019 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00020 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_simple\_index\_tuples()
+00021 \{
+00022   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} tensor(2,3,5,7);
+00023   tensor.setRandom();
+00024   tensor = (tensor + tensor.constant(0.5)).\hyperlink{structlog}{log}();
+00025 
+00026   \hyperlink{class_eigen_1_1_tensor}{Tensor<Tuple<DenseIndex, float>}, 4, DataLayout> index\_tuples(2,3,5,7);
+00027   index\_tuples = tensor.index\_tuples();
+00028 
+00029   \textcolor{keywordflow}{for} (DenseIndex n = 0; n < 2*3*5*7; ++n) \{
+00030     \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_tuple}{Tuple<DenseIndex, float>}& v = index\_tuples.coeff(n);
+00031     VERIFY\_IS\_EQUAL(v.first, n);
+00032     VERIFY\_IS\_EQUAL(v.second, tensor.coeff(n));
+00033   \}
+00034 \}
+00035 
+00036 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00037 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_index\_tuples\_dim()
+00038 \{
+00039   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} tensor(2,3,5,7);
+00040   tensor.setRandom();
+00041   tensor = (tensor + tensor.constant(0.5)).\hyperlink{structlog}{log}();
+00042 
+00043   \hyperlink{class_eigen_1_1_tensor}{Tensor<Tuple<DenseIndex, float>}, 4, DataLayout> index\_tuples(2,3,5,7);
+00044 
+00045   index\_tuples = tensor.index\_tuples();
+00046 
+00047   \textcolor{keywordflow}{for} (Eigen::DenseIndex n = 0; n < tensor.size(); ++n) \{
+00048     \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_tuple}{Tuple<DenseIndex, float>}& v = index\_tuples(n); \textcolor{comment}{//(i, j, k, l);}
+00049     VERIFY\_IS\_EQUAL(v.first, n);
+00050     VERIFY\_IS\_EQUAL(v.second, tensor(n));
+00051   \}
+00052 \}
+00053 
+00054 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00055 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_argmax\_tuple\_reducer()
+00056 \{
+00057   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} tensor(2,3,5,7);
+00058   tensor.setRandom();
+00059   tensor = (tensor + tensor.constant(0.5)).\hyperlink{structlog}{log}();
+00060 
+00061   \hyperlink{class_eigen_1_1_tensor}{Tensor<Tuple<DenseIndex, float>}, 4, DataLayout> index\_tuples(2,3,5,7);
+00062   index\_tuples = tensor.index\_tuples();
+00063 
+00064   \hyperlink{class_eigen_1_1_tensor}{Tensor<Tuple<DenseIndex, float>}, 0, DataLayout> reduced;
+00065   DimensionList<DenseIndex, 4> dims;
+00066   reduced = index\_tuples.reduce(
+00067       dims, internal::ArgMaxTupleReducer<\hyperlink{struct_eigen_1_1_tuple}{Tuple<DenseIndex, float>} >());
+00068 
+00069   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} maxi = tensor.maximum();
+00070 
+00071   VERIFY\_IS\_EQUAL(maxi(), reduced(0).second);
+00072 
+00073   \hyperlink{class_eigen_1_1array}{array<DenseIndex, 3>} reduce\_dims;
+00074   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = 0; d < 3; ++d) reduce\_dims[d] = d;
+00075   \hyperlink{class_eigen_1_1_tensor}{Tensor<Tuple<DenseIndex, float>}, 1, DataLayout> reduced\_by\_dims(7);
+00076   reduced\_by\_dims = index\_tuples.reduce(
+00077       reduce\_dims, internal::ArgMaxTupleReducer<\hyperlink{struct_eigen_1_1_tuple}{Tuple<DenseIndex, float>} >());
+00078 
+00079   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, DataLayout>} max\_by\_dims = tensor.maximum(reduce\_dims);
+00080 
+00081   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 7; ++l) \{
+00082     VERIFY\_IS\_EQUAL(max\_by\_dims(l), reduced\_by\_dims(l).second);
+00083   \}
+00084 \}
+00085 
+00086 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00087 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_argmin\_tuple\_reducer()
+00088 \{
+00089   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} tensor(2,3,5,7);
+00090   tensor.setRandom();
+00091   tensor = (tensor + tensor.constant(0.5)).\hyperlink{structlog}{log}();
+00092 
+00093   \hyperlink{class_eigen_1_1_tensor}{Tensor<Tuple<DenseIndex, float>}, 4, DataLayout> index\_tuples(2,3,5,7);
+00094   index\_tuples = tensor.index\_tuples();
+00095 
+00096   \hyperlink{class_eigen_1_1_tensor}{Tensor<Tuple<DenseIndex, float>}, 0, DataLayout> reduced;
+00097   DimensionList<DenseIndex, 4> dims;
+00098   reduced = index\_tuples.reduce(
+00099       dims, internal::ArgMinTupleReducer<\hyperlink{struct_eigen_1_1_tuple}{Tuple<DenseIndex, float>} >());
+00100 
+00101   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} mini = tensor.minimum();
+00102 
+00103   VERIFY\_IS\_EQUAL(mini(), reduced(0).second);
+00104 
+00105   \hyperlink{class_eigen_1_1array}{array<DenseIndex, 3>} reduce\_dims;
+00106   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = 0; d < 3; ++d) reduce\_dims[d] = d;
+00107   \hyperlink{class_eigen_1_1_tensor}{Tensor<Tuple<DenseIndex, float>}, 1, DataLayout> reduced\_by\_dims(7);
+00108   reduced\_by\_dims = index\_tuples.reduce(
+00109       reduce\_dims, internal::ArgMinTupleReducer<\hyperlink{struct_eigen_1_1_tuple}{Tuple<DenseIndex, float>} >());
+00110 
+00111   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, DataLayout>} min\_by\_dims = tensor.minimum(reduce\_dims);
+00112 
+00113   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 7; ++l) \{
+00114     VERIFY\_IS\_EQUAL(min\_by\_dims(l), reduced\_by\_dims(l).second);
+00115   \}
+00116 \}
+00117 
+00118 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00119 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_simple\_argmax()
+00120 \{
+00121   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} tensor(2,3,5,7);
+00122   tensor.setRandom();
+00123   tensor = (tensor + tensor.constant(0.5)).\hyperlink{structlog}{log}();
+00124   tensor(0,0,0,0) = 10.0;
+00125 
+00126   \hyperlink{class_eigen_1_1_tensor}{Tensor<DenseIndex, 0, DataLayout>} tensor\_argmax;
+00127 
+00128   tensor\_argmax = tensor.argmax();
+00129 
+00130   VERIFY\_IS\_EQUAL(tensor\_argmax(0), 0);
+00131 
+00132   tensor(1,2,4,6) = 20.0;
+00133 
+00134   tensor\_argmax = tensor.argmax();
+00135 
+00136   VERIFY\_IS\_EQUAL(tensor\_argmax(0), 2*3*5*7 - 1);
+00137 \}
+00138 
+00139 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00140 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_simple\_argmin()
+00141 \{
+00142   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} tensor(2,3,5,7);
+00143   tensor.setRandom();
+00144   tensor = (tensor + tensor.constant(0.5)).\hyperlink{structlog}{log}();
+00145   tensor(0,0,0,0) = -10.0;
+00146 
+00147   \hyperlink{class_eigen_1_1_tensor}{Tensor<DenseIndex, 0, DataLayout>} tensor\_argmin;
+00148 
+00149   tensor\_argmin = tensor.argmin();
+00150 
+00151   VERIFY\_IS\_EQUAL(tensor\_argmin(0), 0);
+00152 
+00153   tensor(1,2,4,6) = -20.0;
+00154 
+00155   tensor\_argmin = tensor.argmin();
+00156 
+00157   VERIFY\_IS\_EQUAL(tensor\_argmin(0), 2*3*5*7 - 1);
+00158 \}
+00159 
+00160 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00161 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_argmax\_dim()
+00162 \{
+00163   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} tensor(2,3,5,7);
+00164   std::vector<int> dims \{2, 3, 5, 7\};
+00165 
+00166   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} dim = 0; dim < 4; ++dim) \{
+00167     tensor.setRandom();
+00168     tensor = (tensor + tensor.constant(0.5)).\hyperlink{structlog}{log}();
+00169 
+00170     \hyperlink{class_eigen_1_1_tensor}{Tensor<DenseIndex, 3, DataLayout>} tensor\_argmax;
+00171     \hyperlink{class_eigen_1_1array}{array<DenseIndex, 4>} ix;
+00172     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00173       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 3; ++j) \{
+00174         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 5; ++k) \{
+00175           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 7; ++l) \{
+00176             ix[0] = i; ix[1] = j; ix[2] = k; ix[3] = l;
+00177             \textcolor{keywordflow}{if} (ix[dim] != 0) \textcolor{keywordflow}{continue};
+00178             \textcolor{comment}{// suppose dim == 1, then for all i, k, l, set tensor(i, 0, k, l) = 10.0}
+00179             tensor(ix) = 10.0;
+00180           \}
+00181         \}
+00182       \}
+00183     \}
+00184 
+00185     tensor\_argmax = tensor.argmax(dim);
+00186 
+00187     VERIFY\_IS\_EQUAL(tensor\_argmax.size(),
+00188                     ptrdiff\_t(2*3*5*7 / tensor.dimension(dim)));
+00189     \textcolor{keywordflow}{for} (ptrdiff\_t n = 0; n < tensor\_argmax.size(); ++n) \{
+00190       \textcolor{comment}{// Expect max to be in the first index of the reduced dimension}
+00191       VERIFY\_IS\_EQUAL(tensor\_argmax.data()[n], 0);
+00192     \}
+00193 
+00194     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00195       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 3; ++j) \{
+00196         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 5; ++k) \{
+00197           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 7; ++l) \{
+00198             ix[0] = i; ix[1] = j; ix[2] = k; ix[3] = l;
+00199             \textcolor{keywordflow}{if} (ix[dim] != tensor.dimension(dim) - 1) \textcolor{keywordflow}{continue};
+00200             \textcolor{comment}{// suppose dim == 1, then for all i, k, l, set tensor(i, 2, k, l) = 20.0}
+00201             tensor(ix) = 20.0;
+00202           \}
+00203         \}
+00204       \}
+00205     \}
+00206 
+00207     tensor\_argmax = tensor.argmax(dim);
+00208 
+00209     VERIFY\_IS\_EQUAL(tensor\_argmax.size(),
+00210                     ptrdiff\_t(2*3*5*7 / tensor.dimension(dim)));
+00211     \textcolor{keywordflow}{for} (ptrdiff\_t n = 0; n < tensor\_argmax.size(); ++n) \{
+00212       \textcolor{comment}{// Expect max to be in the last index of the reduced dimension}
+00213       VERIFY\_IS\_EQUAL(tensor\_argmax.data()[n], tensor.dimension(dim) - 1);
+00214     \}
+00215   \}
+00216 \}
+00217 
+00218 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00219 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_argmin\_dim()
+00220 \{
+00221   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} tensor(2,3,5,7);
+00222   std::vector<int> dims \{2, 3, 5, 7\};
+00223 
+00224   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} dim = 0; dim < 4; ++dim) \{
+00225     tensor.setRandom();
+00226     tensor = (tensor + tensor.constant(0.5)).\hyperlink{structlog}{log}();
+00227 
+00228     \hyperlink{class_eigen_1_1_tensor}{Tensor<DenseIndex, 3, DataLayout>} tensor\_argmin;
+00229     \hyperlink{class_eigen_1_1array}{array<DenseIndex, 4>} ix;
+00230     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00231       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 3; ++j) \{
+00232         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 5; ++k) \{
+00233           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 7; ++l) \{
+00234             ix[0] = i; ix[1] = j; ix[2] = k; ix[3] = l;
+00235             \textcolor{keywordflow}{if} (ix[dim] != 0) \textcolor{keywordflow}{continue};
+00236             \textcolor{comment}{// suppose dim == 1, then for all i, k, l, set tensor(i, 0, k, l) = -10.0}
+00237             tensor(ix) = -10.0;
+00238           \}
+00239         \}
+00240       \}
+00241     \}
+00242 
+00243     tensor\_argmin = tensor.argmin(dim);
+00244 
+00245     VERIFY\_IS\_EQUAL(tensor\_argmin.size(),
+00246                     ptrdiff\_t(2*3*5*7 / tensor.dimension(dim)));
+00247     \textcolor{keywordflow}{for} (ptrdiff\_t n = 0; n < tensor\_argmin.size(); ++n) \{
+00248       \textcolor{comment}{// Expect min to be in the first index of the reduced dimension}
+00249       VERIFY\_IS\_EQUAL(tensor\_argmin.data()[n], 0);
+00250     \}
+00251 
+00252     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00253       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 3; ++j) \{
+00254         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 5; ++k) \{
+00255           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 7; ++l) \{
+00256             ix[0] = i; ix[1] = j; ix[2] = k; ix[3] = l;
+00257             \textcolor{keywordflow}{if} (ix[dim] != tensor.dimension(dim) - 1) \textcolor{keywordflow}{continue};
+00258             \textcolor{comment}{// suppose dim == 1, then for all i, k, l, set tensor(i, 2, k, l) = -20.0}
+00259             tensor(ix) = -20.0;
+00260           \}
+00261         \}
+00262       \}
+00263     \}
+00264 
+00265     tensor\_argmin = tensor.argmin(dim);
+00266 
+00267     VERIFY\_IS\_EQUAL(tensor\_argmin.size(),
+00268                     ptrdiff\_t(2*3*5*7 / tensor.dimension(dim)));
+00269     \textcolor{keywordflow}{for} (ptrdiff\_t n = 0; n < tensor\_argmin.size(); ++n) \{
+00270       \textcolor{comment}{// Expect min to be in the last index of the reduced dimension}
+00271       VERIFY\_IS\_EQUAL(tensor\_argmin.data()[n], tensor.dimension(dim) - 1);
+00272     \}
+00273   \}
+00274 \}
+00275 
+00276 \textcolor{keywordtype}{void} test\_cxx11\_tensor\_argmax()
+00277 \{
+00278   CALL\_SUBTEST(test\_simple\_index\_tuples<RowMajor>());
+00279   CALL\_SUBTEST(test\_simple\_index\_tuples<ColMajor>());
+00280   CALL\_SUBTEST(test\_index\_tuples\_dim<RowMajor>());
+00281   CALL\_SUBTEST(test\_index\_tuples\_dim<ColMajor>());
+00282   CALL\_SUBTEST(test\_argmax\_tuple\_reducer<RowMajor>());
+00283   CALL\_SUBTEST(test\_argmax\_tuple\_reducer<ColMajor>());
+00284   CALL\_SUBTEST(test\_argmin\_tuple\_reducer<RowMajor>());
+00285   CALL\_SUBTEST(test\_argmin\_tuple\_reducer<ColMajor>());
+00286   CALL\_SUBTEST(test\_simple\_argmax<RowMajor>());
+00287   CALL\_SUBTEST(test\_simple\_argmax<ColMajor>());
+00288   CALL\_SUBTEST(test\_simple\_argmin<RowMajor>());
+00289   CALL\_SUBTEST(test\_simple\_argmin<ColMajor>());
+00290   CALL\_SUBTEST(test\_argmax\_dim<RowMajor>());
+00291   CALL\_SUBTEST(test\_argmax\_dim<ColMajor>());
+00292   CALL\_SUBTEST(test\_argmin\_dim<RowMajor>());
+00293   CALL\_SUBTEST(test\_argmin\_dim<ColMajor>());
+00294 \}
+\end{DoxyCode}

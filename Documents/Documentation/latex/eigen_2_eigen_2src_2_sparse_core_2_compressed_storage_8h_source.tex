@@ -1,0 +1,259 @@
+\hypertarget{eigen_2_eigen_2src_2_sparse_core_2_compressed_storage_8h_source}{}\section{eigen/\+Eigen/src/\+Sparse\+Core/\+Compressed\+Storage.h}
+\label{eigen_2_eigen_2src_2_sparse_core_2_compressed_storage_8h_source}\index{Compressed\+Storage.\+h@{Compressed\+Storage.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2014 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_COMPRESSED\_STORAGE\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_COMPRESSED\_STORAGE\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016 
+00021 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Scalar,\textcolor{keyword}{typename} \_StorageIndex>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_compressed_storage_8h_source_l00022}\hyperlink{class_eigen_1_1internal_1_1_compressed_storage}{00022} \textcolor{keyword}{class }\hyperlink{class_eigen_1_1internal_1_1_compressed_storage}{CompressedStorage}
+00023 \{
+00024   \textcolor{keyword}{public}:
+00025 
+00026     \textcolor{keyword}{typedef} \_Scalar Scalar;
+00027     \textcolor{keyword}{typedef} \_StorageIndex StorageIndex;
+00028 
+00029   \textcolor{keyword}{protected}:
+00030 
+00031     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00032 
+00033   \textcolor{keyword}{public}:
+00034 
+00035     \hyperlink{class_eigen_1_1internal_1_1_compressed_storage}{CompressedStorage}()
+00036       : m\_values(0), m\_indices(0), m\_size(0), m\_allocatedSize(0)
+00037     \{\}
+00038 
+00039     \textcolor{keyword}{explicit} \hyperlink{class_eigen_1_1internal_1_1_compressed_storage}{CompressedStorage}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size)
+00040       : m\_values(0), m\_indices(0), m\_size(0), m\_allocatedSize(0)
+00041     \{
+00042       resize(size);
+00043     \}
+00044 
+00045     \hyperlink{class_eigen_1_1internal_1_1_compressed_storage}{CompressedStorage}(\textcolor{keyword}{const} \hyperlink{class_eigen_1_1internal_1_1_compressed_storage}{CompressedStorage}& other)
+00046       : m\_values(0), m\_indices(0), m\_size(0), m\_allocatedSize(0)
+00047     \{
+00048       *\textcolor{keyword}{this} = other;
+00049     \}
+00050 
+00051     \hyperlink{class_eigen_1_1internal_1_1_compressed_storage}{CompressedStorage}& operator=(\textcolor{keyword}{const} \hyperlink{class_eigen_1_1internal_1_1_compressed_storage}{CompressedStorage}& other)
+00052     \{
+00053       resize(other.size());
+00054       \textcolor{keywordflow}{if}(other.size()>0)
+00055       \{
+00056         internal::smart\_copy(other.m\_values,  other.m\_values  + m\_size, m\_values);
+00057         internal::smart\_copy(other.m\_indices, other.m\_indices + m\_size, m\_indices);
+00058       \}
+00059       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00060     \}
+00061 
+00062     \textcolor{keywordtype}{void} swap(\hyperlink{class_eigen_1_1internal_1_1_compressed_storage}{CompressedStorage}& other)
+00063     \{
+00064       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_values, other.m\_values);
+00065       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_indices, other.m\_indices);
+00066       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_size, other.m\_size);
+00067       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_allocatedSize, other.m\_allocatedSize);
+00068     \}
+00069 
+00070     ~\hyperlink{class_eigen_1_1internal_1_1_compressed_storage}{CompressedStorage}()
+00071     \{
+00072       \textcolor{keyword}{delete}[] m\_values;
+00073       \textcolor{keyword}{delete}[] m\_indices;
+00074     \}
+00075 
+00076     \textcolor{keywordtype}{void} reserve(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size)
+00077     \{
+00078       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} newAllocatedSize = m\_size + size;
+00079       \textcolor{keywordflow}{if} (newAllocatedSize > m\_allocatedSize)
+00080         reallocate(newAllocatedSize);
+00081     \}
+00082 
+00083     \textcolor{keywordtype}{void} squeeze()
+00084     \{
+00085       \textcolor{keywordflow}{if} (m\_allocatedSize>m\_size)
+00086         reallocate(m\_size);
+00087     \}
+00088 
+00089     \textcolor{keywordtype}{void} resize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \textcolor{keywordtype}{double} reserveSizeFactor = 0)
+00090     \{
+00091       \textcolor{keywordflow}{if} (m\_allocatedSize<size)
+00092       \{
+00093         \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} realloc\_size = (std::min<Index>)(
+      \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<StorageIndex>::highest}(),  size + 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(reserveSizeFactor*\textcolor{keywordtype}{double}(size)));
+00094         \textcolor{keywordflow}{if}(realloc\_size<size)
+00095           internal::throw\_std\_bad\_alloc();
+00096         reallocate(realloc\_size);
+00097       \}
+00098       m\_size = size;
+00099     \}
+00100 
+00101     \textcolor{keywordtype}{void} append(\textcolor{keyword}{const} Scalar& v, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i)
+00102     \{
+00103       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{keywordtype}{id} = m\_size;
+00104       resize(m\_size+1, 1);
+00105       m\_values[id] = v;
+00106       m\_indices[id] = internal::convert\_index<StorageIndex>(i);
+00107     \}
+00108 
+00109     \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_size; \}
+00110     \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} allocatedSize()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_allocatedSize; \}
+00111     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} clear() \{ m\_size = 0; \}
+00112 
+00113     \textcolor{keyword}{const} Scalar* valuePtr()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_values; \}
+00114     Scalar* valuePtr() \{ \textcolor{keywordflow}{return} m\_values; \}
+00115     \textcolor{keyword}{const} StorageIndex* indexPtr()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_indices; \}
+00116     StorageIndex* indexPtr() \{ \textcolor{keywordflow}{return} m\_indices; \}
+00117 
+00118     \textcolor{keyword}{inline} Scalar& value(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i) \{ eigen\_internal\_assert(m\_values!=0); \textcolor{keywordflow}{return} m\_values[i]; \}
+00119     \textcolor{keyword}{inline} \textcolor{keyword}{const} Scalar& value(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i)\textcolor{keyword}{ const }\{ eigen\_internal\_assert(m\_values!=0); \textcolor{keywordflow}{return} m\_values[i]
+      ; \}
+00120 
+00121     \textcolor{keyword}{inline} StorageIndex& index(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i) \{ eigen\_internal\_assert(m\_indices!=0); \textcolor{keywordflow}{return} m\_indices[i]; \}
+00122     \textcolor{keyword}{inline} \textcolor{keyword}{const} StorageIndex& index(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i)\textcolor{keyword}{ const }\{ eigen\_internal\_assert(m\_indices!=0); \textcolor{keywordflow}{return} 
+      m\_indices[i]; \}
+00123 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_compressed_storage_8h_source_l00125}\hyperlink{class_eigen_1_1internal_1_1_compressed_storage_ad96105b5ab19886e96076513eab77da5}{00125}     \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \hyperlink{class_eigen_1_1internal_1_1_compressed_storage_ad96105b5ab19886e96076513eab77da5}{searchLowerIndex}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} key)\textcolor{keyword}{ const}
+00126 \textcolor{keyword}{    }\{
+00127       \textcolor{keywordflow}{return} \hyperlink{class_eigen_1_1internal_1_1_compressed_storage_ad96105b5ab19886e96076513eab77da5}{searchLowerIndex}(0, m\_size, key);
+00128     \}
+00129 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_compressed_storage_8h_source_l00131}\hyperlink{class_eigen_1_1internal_1_1_compressed_storage_a250b3282557fc6da7cf505f93ab5ad59}{00131}     \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \hyperlink{class_eigen_1_1internal_1_1_compressed_storage_a250b3282557fc6da7cf505f93ab5ad59}{searchLowerIndex}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} start, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} end, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} key)\textcolor{keyword}{ const}
+00132 \textcolor{keyword}{    }\{
+00133       \textcolor{keywordflow}{while}(end>start)
+00134       \{
+00135         \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} mid = (end+start)>>1;
+00136         \textcolor{keywordflow}{if} (m\_indices[mid]<key)
+00137           start = mid+1;
+00138         \textcolor{keywordflow}{else}
+00139           end = mid;
+00140       \}
+00141       \textcolor{keywordflow}{return} start;
+00142     \}
+00143 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_compressed_storage_8h_source_l00146}\hyperlink{class_eigen_1_1internal_1_1_compressed_storage_a0fe151c0217177fd43df764e8e0cdec2}{00146}     \textcolor{keyword}{inline} Scalar \hyperlink{class_eigen_1_1internal_1_1_compressed_storage_a0fe151c0217177fd43df764e8e0cdec2}{at}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} key, \textcolor{keyword}{const} Scalar& defaultValue = Scalar(0))\textcolor{keyword}{ const}
+00147 \textcolor{keyword}{    }\{
+00148       \textcolor{keywordflow}{if} (m\_size==0)
+00149         \textcolor{keywordflow}{return} defaultValue;
+00150       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (key==m\_indices[m\_size-1])
+00151         \textcolor{keywordflow}{return} m\_values[m\_size-1];
+00152       \textcolor{comment}{// ^^  optimization: let's first check if it is the last coefficient}
+00153       \textcolor{comment}{// (very common in high level algorithms)}
+00154       \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{keywordtype}{id} = \hyperlink{class_eigen_1_1internal_1_1_compressed_storage_ad96105b5ab19886e96076513eab77da5}{searchLowerIndex}(0,m\_size-1,key);
+00155       \textcolor{keywordflow}{return} ((\textcolor{keywordtype}{id}<m\_size) && (m\_indices[\textcolor{keywordtype}{id}]==key)) ? m\_values[id] : defaultValue;
+00156     \}
+00157 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_compressed_storage_8h_source_l00159}\hyperlink{class_eigen_1_1internal_1_1_compressed_storage_a70c2745dd270aaa44b415ec2e9bf2ae0}{00159}     \textcolor{keyword}{inline} Scalar \hyperlink{class_eigen_1_1internal_1_1_compressed_storage_a70c2745dd270aaa44b415ec2e9bf2ae0}{atInRange}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} start, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} end, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} key, \textcolor{keyword}{const} Scalar &
+      defaultValue = Scalar(0))\textcolor{keyword}{ const}
+00160 \textcolor{keyword}{    }\{
+00161       \textcolor{keywordflow}{if} (start>=end)
+00162         \textcolor{keywordflow}{return} defaultValue;
+00163       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (end>start && key==m\_indices[end-1])
+00164         \textcolor{keywordflow}{return} m\_values[end-1];
+00165       \textcolor{comment}{// ^^  optimization: let's first check if it is the last coefficient}
+00166       \textcolor{comment}{// (very common in high level algorithms)}
+00167       \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{keywordtype}{id} = \hyperlink{class_eigen_1_1internal_1_1_compressed_storage_ad96105b5ab19886e96076513eab77da5}{searchLowerIndex}(start,end-1,key);
+00168       \textcolor{keywordflow}{return} ((\textcolor{keywordtype}{id}<end) && (m\_indices[\textcolor{keywordtype}{id}]==key)) ? m\_values[id] : defaultValue;
+00169     \}
+00170 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_compressed_storage_8h_source_l00174}\hyperlink{class_eigen_1_1internal_1_1_compressed_storage_a8621aa0d1d0e27b025d41b9321968357}{00174}     \textcolor{keyword}{inline} Scalar& \hyperlink{class_eigen_1_1internal_1_1_compressed_storage_a8621aa0d1d0e27b025d41b9321968357}{atWithInsertion}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} key, \textcolor{keyword}{const} Scalar& defaultValue = Scalar(0))
+00175     \{
+00176       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \textcolor{keywordtype}{id} = \hyperlink{class_eigen_1_1internal_1_1_compressed_storage_ad96105b5ab19886e96076513eab77da5}{searchLowerIndex}(0,m\_size,key);
+00177       \textcolor{keywordflow}{if} (\textcolor{keywordtype}{id}>=m\_size || m\_indices[\textcolor{keywordtype}{id}]!=key)
+00178       \{
+00179         \textcolor{keywordflow}{if} (m\_allocatedSize<m\_size+1)
+00180         \{
+00181           m\_allocatedSize = 2*(m\_size+1);
+00182           \hyperlink{class_eigen_1_1internal_1_1scoped__array}{internal::scoped\_array<Scalar>} newValues(m\_allocatedSize);
+00183           \hyperlink{class_eigen_1_1internal_1_1scoped__array}{internal::scoped\_array<StorageIndex>} newIndices(
+      m\_allocatedSize);
+00184 
+00185           \textcolor{comment}{// copy first chunk}
+00186           internal::smart\_copy(m\_values,  m\_values +\textcolor{keywordtype}{id}, newValues.ptr());
+00187           internal::smart\_copy(m\_indices, m\_indices+\textcolor{keywordtype}{id}, newIndices.ptr());
+00188 
+00189           \textcolor{comment}{// copy the rest}
+00190           \textcolor{keywordflow}{if}(m\_size>\textcolor{keywordtype}{id})
+00191           \{
+00192             internal::smart\_copy(m\_values +\textcolor{keywordtype}{id},  m\_values +m\_size, newValues.ptr() +\textcolor{keywordtype}{id}+1);
+00193             internal::smart\_copy(m\_indices+\textcolor{keywordtype}{id},  m\_indices+m\_size, newIndices.ptr()+\textcolor{keywordtype}{id}+1);
+00194           \}
+00195           \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_values,newValues.ptr());
+00196           \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_indices,newIndices.ptr());
+00197         \}
+00198         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(m\_size>\textcolor{keywordtype}{id})
+00199         \{
+00200           internal::smart\_memmove(m\_values +\textcolor{keywordtype}{id}, m\_values +m\_size, m\_values +\textcolor{keywordtype}{id}+1);
+00201           internal::smart\_memmove(m\_indices+\textcolor{keywordtype}{id}, m\_indices+m\_size, m\_indices+\textcolor{keywordtype}{id}+1);
+00202         \}
+00203         m\_size++;
+00204         m\_indices[id] = internal::convert\_index<StorageIndex>(key);
+00205         m\_values[id] = defaultValue;
+00206       \}
+00207       \textcolor{keywordflow}{return} m\_values[id];
+00208     \}
+00209 
+00210     \textcolor{keywordtype}{void} prune(\textcolor{keyword}{const} Scalar& reference, \textcolor{keyword}{const} RealScalar& epsilon = 
+      \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<RealScalar>::dummy\_precision}())
+00211     \{
+00212       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k = 0;
+00213       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} n = size();
+00214       \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=0; i<n; ++i)
+00215       \{
+00216         \textcolor{keywordflow}{if} (!internal::isMuchSmallerThan(value(i), reference, epsilon))
+00217         \{
+00218           value(k) = value(i);
+00219           index(k) = index(i);
+00220           ++k;
+00221         \}
+00222       \}
+00223       resize(k,0);
+00224     \}
+00225 
+00226   \textcolor{keyword}{protected}:
+00227 
+00228     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} reallocate(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size)
+00229     \{
+00230 \textcolor{preprocessor}{      #ifdef EIGEN\_SPARSE\_COMPRESSED\_STORAGE\_REALLOCATE\_PLUGIN}
+00231         EIGEN\_SPARSE\_COMPRESSED\_STORAGE\_REALLOCATE\_PLUGIN
+00232 \textcolor{preprocessor}{      #endif}
+00233       eigen\_internal\_assert(size!=m\_allocatedSize);
+00234       \hyperlink{class_eigen_1_1internal_1_1scoped__array}{internal::scoped\_array<Scalar>} newValues(size);
+00235       \hyperlink{class_eigen_1_1internal_1_1scoped__array}{internal::scoped\_array<StorageIndex>} newIndices(size);
+00236       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} copySize = (std::min)(size, m\_size);
+00237       \textcolor{keywordflow}{if} (copySize>0) \{
+00238         internal::smart\_copy(m\_values, m\_values+copySize, newValues.ptr());
+00239         internal::smart\_copy(m\_indices, m\_indices+copySize, newIndices.ptr());
+00240       \}
+00241       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_values,newValues.ptr());
+00242       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_indices,newIndices.ptr());
+00243       m\_allocatedSize = size;
+00244     \}
+00245 
+00246   \textcolor{keyword}{protected}:
+00247     Scalar* m\_values;
+00248     StorageIndex* m\_indices;
+00249     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_size;
+00250     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_allocatedSize;
+00251 
+00252 \};
+00253 
+00254 \} \textcolor{comment}{// end namespace internal}
+00255 
+00256 \} \textcolor{comment}{// end namespace Eigen}
+00257 
+00258 \textcolor{preprocessor}{#endif // EIGEN\_COMPRESSED\_STORAGE\_H}
+\end{DoxyCode}

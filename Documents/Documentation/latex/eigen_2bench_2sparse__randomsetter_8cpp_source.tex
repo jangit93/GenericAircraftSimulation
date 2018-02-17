@@ -1,0 +1,130 @@
+\hypertarget{eigen_2bench_2sparse__randomsetter_8cpp_source}{}\section{eigen/bench/sparse\+\_\+randomsetter.cpp}
+\label{eigen_2bench_2sparse__randomsetter_8cpp_source}\index{sparse\+\_\+randomsetter.\+cpp@{sparse\+\_\+randomsetter.\+cpp}}
+
+\begin{DoxyCode}
+00001 
+00002 \textcolor{preprocessor}{#define NOGMM}
+00003 \textcolor{preprocessor}{#define NOMTL}
+00004 
+00005 \textcolor{preprocessor}{#include <map>}
+00006 \textcolor{preprocessor}{#include <ext/hash\_map>}
+00007 \textcolor{preprocessor}{#include <google/dense\_hash\_map>}
+00008 \textcolor{preprocessor}{#include <google/sparse\_hash\_map>}
+00009 
+00010 \textcolor{preprocessor}{#ifndef SIZE}
+00011 \textcolor{preprocessor}{#define SIZE 10000}
+00012 \textcolor{preprocessor}{#endif}
+00013 
+00014 \textcolor{preprocessor}{#ifndef DENSITY}
+00015 \textcolor{preprocessor}{#define DENSITY 0.01}
+00016 \textcolor{preprocessor}{#endif}
+00017 
+00018 \textcolor{preprocessor}{#ifndef REPEAT}
+00019 \textcolor{preprocessor}{#define REPEAT 1}
+00020 \textcolor{preprocessor}{#endif}
+00021 
+00022 \textcolor{preprocessor}{#include "BenchSparseUtil.h"}
+00023 
+00024 \textcolor{preprocessor}{#ifndef MINDENSITY}
+00025 \textcolor{preprocessor}{#define MINDENSITY 0.0004}
+00026 \textcolor{preprocessor}{#endif}
+00027 
+00028 \textcolor{preprocessor}{#ifndef NBTRIES}
+00029 \textcolor{preprocessor}{#define NBTRIES 10}
+00030 \textcolor{preprocessor}{#endif}
+00031 
+00032 \textcolor{preprocessor}{#define BENCH(X) \(\backslash\)}
+00033 \textcolor{preprocessor}{  timer.reset(); \(\backslash\)}
+00034 \textcolor{preprocessor}{  for (int \_j=0; \_j<NBTRIES; ++\_j) \{ \(\backslash\)}
+00035 \textcolor{preprocessor}{    timer.start(); \(\backslash\)}
+00036 \textcolor{preprocessor}{    for (int \_k=0; \_k<REPEAT; ++\_k) \{ \(\backslash\)}
+00037 \textcolor{preprocessor}{        X  \(\backslash\)}
+00038 \textcolor{preprocessor}{  \} timer.stop(); \}}
+00039 
+00040 
+00041 \textcolor{keyword}{static} \textcolor{keywordtype}{double} rtime;
+00042 \textcolor{keyword}{static} \textcolor{keywordtype}{double} nentries;
+00043 
+00044 \textcolor{keyword}{template}<\textcolor{keyword}{typename} SetterType>
+00045 \textcolor{keywordtype}{void} dostuff(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* name, \hyperlink{group___sparse_core___module}{EigenSparseMatrix}& sm1)
+00046 \{
+00047   \textcolor{keywordtype}{int} rows = sm1.\hyperlink{group___sparse_core___module_a62e61bb861eee306d5b069ce652b5aa5}{rows}();
+00048   \textcolor{keywordtype}{int} cols = sm1.\hyperlink{group___sparse_core___module_aa391750e3c530227e4a5c3c52e959975}{cols}();
+00049   sm1.\hyperlink{group___sparse_core___module_ad3c7416090f913e8685523cb3ab7c2f7}{setZero}();
+00050   \hyperlink{class_eigen_1_1_bench_timer}{BenchTimer} t;
+00051   SetterType* set1 = \textcolor{keyword}{new} SetterType(sm1);
+00052   t.reset(); t.start();
+00053   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k=0; k<nentries; ++k)
+00054     (*set1)(internal::random<int>(0,rows-1),internal::random<int>(0,cols-1)) += 1;
+00055   t.stop();
+00056   std::cout << \textcolor{stringliteral}{"std::map =>      \(\backslash\)t"} << t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()-rtime
+00057             << \textcolor{stringliteral}{" nnz="} << set1->nonZeros() << std::flush;
+00058 
+00059   \textcolor{comment}{// getchar();}
+00060 
+00061   t.reset(); t.start(); \textcolor{keyword}{delete} set1; t.stop();
+00062   std::cout << \textcolor{stringliteral}{"  back: \(\backslash\)t"} << t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{"\(\backslash\)n"};
+00063 \}
+00064     
+00065 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])
+00066 \{
+00067   \textcolor{keywordtype}{int} rows = SIZE;
+00068   \textcolor{keywordtype}{int} cols = SIZE;
+00069   \textcolor{keywordtype}{float} density = DENSITY;
+00070 
+00071   \hyperlink{group___sparse_core___module}{EigenSparseMatrix} sm1(rows,cols), sm2(rows,cols);
+00072 
+00073 
+00074   nentries = rows*cols*density;
+00075   std::cout << \textcolor{stringliteral}{"n = "} << nentries << \textcolor{stringliteral}{"\(\backslash\)n"};
+00076   \textcolor{keywordtype}{int} dummy;
+00077   \hyperlink{class_eigen_1_1_bench_timer}{BenchTimer} t;
+00078 
+00079   t.reset(); t.start();
+00080   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k=0; k<nentries; ++k)
+00081     dummy = internal::random<int>(0,rows-1) + internal::random<int>(0,cols-1);
+00082   t.stop();
+00083   rtime = t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}();
+00084   std::cout << \textcolor{stringliteral}{"rtime = "} << rtime << \textcolor{stringliteral}{" ("} << dummy << \textcolor{stringliteral}{")\(\backslash\)n\(\backslash\)n"};
+00085   \textcolor{keyword}{const} \textcolor{keywordtype}{int} Bits = 6;
+00086   \textcolor{keywordflow}{for} (;;)
+00087   \{
+00088     dostuff<RandomSetter<EigenSparseMatrix,StdMapTraits,Bits> >(\textcolor{stringliteral}{"std::map     "}, sm1);
+00089     dostuff<RandomSetter<EigenSparseMatrix,GnuHashMapTraits,Bits> >(\textcolor{stringliteral}{"gnu::hash\_map"}, sm1);
+00090     dostuff<RandomSetter<EigenSparseMatrix,GoogleDenseHashMapTraits,Bits> >(\textcolor{stringliteral}{"google::dense"}, sm1);
+00091     dostuff<RandomSetter<EigenSparseMatrix,GoogleSparseHashMapTraits,Bits> >(\textcolor{stringliteral}{"google::sparse"}, sm1);
+00092 
+00093 \textcolor{comment}{//     \{}
+00094 \textcolor{comment}{//       RandomSetter<EigenSparseMatrix,GnuHashMapTraits,Bits> set1(sm1);}
+00095 \textcolor{comment}{//       t.reset(); t.start();}
+00096 \textcolor{comment}{//       for (int k=0; k<n; ++k)}
+00097 \textcolor{comment}{//         set1(internal::random<int>(0,rows-1),internal::random<int>(0,cols-1)) += 1;}
+00098 \textcolor{comment}{//       t.stop();}
+00099 \textcolor{comment}{//       std::cout << "gnu::hash\_map => \(\backslash\)t" << t.value()-rtime}
+00100 \textcolor{comment}{//                 << " nnz=" << set1.nonZeros() << "\(\backslash\)n";getchar();}
+00101 \textcolor{comment}{//     \}}
+00102 \textcolor{comment}{//     \{}
+00103 \textcolor{comment}{//       RandomSetter<EigenSparseMatrix,GoogleDenseHashMapTraits,Bits> set1(sm1);}
+00104 \textcolor{comment}{//       t.reset(); t.start();}
+00105 \textcolor{comment}{//       for (int k=0; k<n; ++k)}
+00106 \textcolor{comment}{//         set1(internal::random<int>(0,rows-1),internal::random<int>(0,cols-1)) += 1;}
+00107 \textcolor{comment}{//       t.stop();}
+00108 \textcolor{comment}{//       std::cout << "google::dense => \(\backslash\)t" << t.value()-rtime}
+00109 \textcolor{comment}{//                 << " nnz=" << set1.nonZeros() << "\(\backslash\)n";getchar();}
+00110 \textcolor{comment}{//     \}}
+00111 \textcolor{comment}{//     \{}
+00112 \textcolor{comment}{//       RandomSetter<EigenSparseMatrix,GoogleSparseHashMapTraits,Bits> set1(sm1);}
+00113 \textcolor{comment}{//       t.reset(); t.start();}
+00114 \textcolor{comment}{//       for (int k=0; k<n; ++k)}
+00115 \textcolor{comment}{//         set1(internal::random<int>(0,rows-1),internal::random<int>(0,cols-1)) += 1;}
+00116 \textcolor{comment}{//       t.stop();}
+00117 \textcolor{comment}{//       std::cout << "google::sparse => \(\backslash\)t" << t.value()-rtime}
+00118 \textcolor{comment}{//                 << " nnz=" << set1.nonZeros() << "\(\backslash\)n";getchar();}
+00119 \textcolor{comment}{//     \}}
+00120     std::cout << \textcolor{stringliteral}{"\(\backslash\)n\(\backslash\)n"};
+00121   \}
+00122 
+00123   \textcolor{keywordflow}{return} 0;
+00124 \}
+00125 
+\end{DoxyCode}

@@ -1,0 +1,89 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2bench_2bench__reverse_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/bench/bench\+\_\+reverse.cpp}
+\label{matio_2visual__studio_2test_2eigen_2bench_2bench__reverse_8cpp_source}\index{bench\+\_\+reverse.\+cpp@{bench\+\_\+reverse.\+cpp}}
+
+\begin{DoxyCode}
+00001 
+00002 \textcolor{preprocessor}{#include <iostream>}
+00003 \textcolor{preprocessor}{#include <Eigen/Core>}
+00004 \textcolor{preprocessor}{#include <bench/BenchUtil.h>}
+00005 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00006 
+00007 \textcolor{preprocessor}{#ifndef REPEAT}
+00008 \textcolor{preprocessor}{#define REPEAT 100000}
+00009 \textcolor{preprocessor}{#endif}
+00010 
+00011 \textcolor{preprocessor}{#ifndef TRIES}
+00012 \textcolor{preprocessor}{#define TRIES 20}
+00013 \textcolor{preprocessor}{#endif}
+00014 
+00015 \textcolor{keyword}{typedef} \textcolor{keywordtype}{double} Scalar;
+00016 
+00017 \textcolor{keyword}{template} <\textcolor{keyword}{typename} MatrixType>
+00018 \_\_attribute\_\_ ((noinline)) \textcolor{keywordtype}{void} bench\_reverse(\textcolor{keyword}{const} MatrixType& m)
+00019 \{
+00020   \textcolor{keywordtype}{int} rows = m.rows();
+00021   \textcolor{keywordtype}{int} cols = m.cols();
+00022   \textcolor{keywordtype}{int} size = m.size();
+00023 
+00024   \textcolor{keywordtype}{int} repeats = (REPEAT*1000)/size;
+00025   MatrixType a = MatrixType::Random(rows,cols);
+00026   MatrixType b = MatrixType::Random(rows,cols);
+00027 
+00028   \hyperlink{class_eigen_1_1_bench_timer}{BenchTimer} timerB, timerH, timerV;
+00029 
+00030   Scalar acc = 0;
+00031   \textcolor{keywordtype}{int} r = internal::random<int>(0,rows-1);
+00032   \textcolor{keywordtype}{int} c = internal::random<int>(0,cols-1);
+00033   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} t=0; t<TRIES; ++t)
+00034   \{
+00035     timerB.start();
+00036     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k=0; k<repeats; ++k)
+00037     \{
+00038       \textcolor{keyword}{asm}(\textcolor{stringliteral}{"#begin foo"});
+00039       b = a.reverse();
+00040       \textcolor{keyword}{asm}(\textcolor{stringliteral}{"#end foo"});
+00041       acc += b.coeff(r,c);
+00042     \}
+00043     timerB.stop();
+00044   \}
+00045 
+00046   \textcolor{keywordflow}{if} (MatrixType::RowsAtCompileTime==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})
+00047     std::cout << \textcolor{stringliteral}{"dyn   "};
+00048   \textcolor{keywordflow}{else}
+00049     std::cout << \textcolor{stringliteral}{"fixed "};
+00050   std::cout << rows << \textcolor{stringliteral}{" x "} << cols << \textcolor{stringliteral}{" \(\backslash\)t"}
+00051             << (timerB.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() * REPEAT) / repeats << \textcolor{stringliteral}{"s "}
+00052             << \textcolor{stringliteral}{"("} << 1e-6 * size*repeats/timerB.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() << \textcolor{stringliteral}{" MFLOPS)\(\backslash\)t"};
+00053 
+00054   std::cout << \textcolor{stringliteral}{"\(\backslash\)n"};
+00055   \textcolor{comment}{// make sure the compiler does not optimize too much}
+00056   \textcolor{keywordflow}{if} (acc==123)
+00057     std::cout << acc;
+00058 \}
+00059 
+00060 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char}* argv[])
+00061 \{
+00062   \textcolor{keyword}{const} \textcolor{keywordtype}{int} dynsizes[] = \{4,6,8,16,24,32,49,64,128,256,512,900,0\};
+00063   std::cout << \textcolor{stringliteral}{"size            no sqrt                           standard"};
+00064 \textcolor{comment}{//   #ifdef BENCH\_GSL}
+00065 \textcolor{comment}{//   std::cout << "       GSL (standard + double + ATLAS)  ";}
+00066 \textcolor{comment}{//   #endif}
+00067   std::cout << \textcolor{stringliteral}{"\(\backslash\)n"};
+00068   \textcolor{keywordflow}{for} (uint i=0; dynsizes[i]>0; ++i)
+00069   \{
+00070     bench\_reverse(\hyperlink{group___core___module}{Matrix<Scalar,Dynamic,Dynamic>}(dynsizes[i],dynsizes[i]));
+00071     bench\_reverse(\hyperlink{group___core___module}{Matrix<Scalar,Dynamic,1>}(dynsizes[i]*dynsizes[i]));
+00072   \}
+00073 \textcolor{comment}{//   bench\_reverse(Matrix<Scalar,2,2>());}
+00074 \textcolor{comment}{//   bench\_reverse(Matrix<Scalar,3,3>());}
+00075 \textcolor{comment}{//   bench\_reverse(Matrix<Scalar,4,4>());}
+00076 \textcolor{comment}{//   bench\_reverse(Matrix<Scalar,5,5>());}
+00077 \textcolor{comment}{//   bench\_reverse(Matrix<Scalar,6,6>());}
+00078 \textcolor{comment}{//   bench\_reverse(Matrix<Scalar,7,7>());}
+00079 \textcolor{comment}{//   bench\_reverse(Matrix<Scalar,8,8>());}
+00080 \textcolor{comment}{//   bench\_reverse(Matrix<Scalar,12,12>());}
+00081 \textcolor{comment}{//   bench\_reverse(Matrix<Scalar,16,16>());}
+00082   \textcolor{keywordflow}{return} 0;
+00083 \}
+00084 
+\end{DoxyCode}

@@ -1,0 +1,141 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2config_2cmake_2aclocal__fc_8f90_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/config/cmake/aclocal\+\_\+fc.f90}
+\label{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2config_2cmake_2aclocal__fc_8f90_source}\index{aclocal\+\_\+fc.\+f90@{aclocal\+\_\+fc.\+f90}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{! This file contains all the configure test programs }
+00002 \textcolor{comment}{! used by autotools and cmake. This avoids having to}
+00003 \textcolor{comment}{! duplicate code for both cmake and autotool tests.}
+00004 \textcolor{comment}{! For autotools, a program below is chosen via a}
+00005 \textcolor{comment}{! sed command in aclocal\_fc.m4. For cmake, a program}
+00006 \textcolor{comment}{! below is chosen via the macro READ\_SOURCE in }
+00007 \textcolor{comment}{! HDF5UseFortran.cmake}
+00008 \textcolor{comment}{!}
+00009 
+00010 \textcolor{keyword}{PROGRAM} prog\_fc\_iso\_fortran\_env
+00011   use, \textcolor{keywordtype}{INTRINSIC} :: iso\_fortran\_env
+00012 \textcolor{keyword}{END PROGRAM }prog\_fc\_iso\_fortran\_env
+00013 
+00014 \textcolor{keyword}{PROGRAM} prog\_fc\_sizeof
+00015   i = sizeof(x)
+00016 \textcolor{keyword}{END PROGRAM }prog\_fc\_sizeof
+00017 
+00018 \textcolor{keyword}{PROGRAM} prog\_fc\_c\_sizeof
+00019   \textcolor{keywordtype}{USE }iso\_c\_binding
+00020   \textcolor{keywordtype}{INTEGER(C\_INT)} :: a
+00021   \textcolor{keywordtype}{INTEGER(C\_SIZE\_T)} :: result
+00022   result = c\_sizeof(a)
+00023 \textcolor{keyword}{END PROGRAM }prog\_fc\_c\_sizeof
+00024 
+00025 \textcolor{keyword}{PROGRAM} prog\_fc\_storage\_size
+00026   \textcolor{keywordtype}{INTEGER} :: a
+00027   \textcolor{keywordtype}{INTEGER} :: result
+00028   result = storage\_size(a)
+00029 \textcolor{keyword}{END PROGRAM }prog\_fc\_storage\_size
+00030 
+00031 \textcolor{keyword}{PROGRAM} prog\_fc\_have\_c\_long\_double
+00032   \textcolor{keywordtype}{USE }iso\_c\_binding
+00033   \textcolor{keywordtype}{REAL(KIND=C\_LONG\_DOUBLE)} :: d
+00034 \textcolor{keyword}{END PROGRAM }prog\_fc\_have\_c\_long\_double
+00035 
+00036 \textcolor{keyword}{PROGRAM} prog\_fc\_have\_f2003\_requirements
+00037   \textcolor{keywordtype}{USE }iso\_c\_binding
+00038   \textcolor{keywordtype}{IMPLICIT NONE}
+00039   \textcolor{keywordtype}{TYPE}(c\_ptr) :: ptr
+00040   \textcolor{keywordtype}{TYPE}(c\_funptr) :: funptr
+00041   \textcolor{keywordtype}{CHARACTER(LEN=80, KIND=c\_char)}, \textcolor{keywordtype}{TARGET} :: ichr
+00042   ptr = c\_loc(ichr(1:1))
+00043 \textcolor{keyword}{END PROGRAM }prog\_fc\_have\_f2003\_requirements
+00044 
+00045 \textcolor{comment}{!---- START ----- Check to see C\_LONG\_DOUBLE is different from C\_DOUBLE}
+00046 \textcolor{keyword}{MODULE} type\_mod
+00047   \textcolor{keywordtype}{USE }iso\_c\_binding
+00048   \textcolor{keyword}{INTERFACE} \hyperlink{interfacetype__mod_1_1h5t}{h5t}  
+00049      \textcolor{keyword}{MODULE PROCEDURE} h5t\_c\_double
+00050      \textcolor{keyword}{MODULE PROCEDURE} h5t\_c\_long\_double
+00051 \textcolor{keyword}{  END INTERFACE}
+00052 \textcolor{keyword}{CONTAINS}
+00053 \textcolor{keyword}{  SUBROUTINE }h5t\_c\_double(r)
+00054     \textcolor{keywordtype}{REAL(KIND=C\_DOUBLE)} :: r
+00055 \textcolor{keyword}{  END SUBROUTINE }h5t\_c\_double
+00056 \textcolor{keyword}{  SUBROUTINE }h5t\_c\_long\_double(d)
+00057     \textcolor{keywordtype}{REAL(KIND=C\_LONG\_DOUBLE)} :: d
+00058 \textcolor{keyword}{  END SUBROUTINE }h5t\_c\_long\_double
+00059 \textcolor{keyword}{END MODULE }type\_mod
+00060 \textcolor{keyword}{PROGRAM} prog\_fc\_c\_long\_double\_eq\_c\_double
+00061   \textcolor{keywordtype}{USE }iso\_c\_binding
+00062   \textcolor{keywordtype}{USE }type\_mod
+00063   \textcolor{keywordtype}{REAL(KIND=C\_DOUBLE)}      :: r
+00064   \textcolor{keywordtype}{REAL(KIND=C\_LONG\_DOUBLE)} :: d
+00065   \textcolor{keyword}{CALL }\hyperlink{interfacetype__mod_1_1h5t}{h5t}(r)
+00066   \textcolor{keyword}{CALL }\hyperlink{interfacetype__mod_1_1h5t}{h5t}(d)
+00067 \textcolor{keyword}{END PROGRAM }prog\_fc\_c\_long\_double\_eq\_c\_double
+00068 \textcolor{comment}{!---- END ------- Check to see C\_LONG\_DOUBLE is different from C\_DOUBLE}
+00069 
+00070 \textcolor{comment}{!---- START ----- Determine the available KINDs for REALs and INTEGERs}
+00071 \textcolor{keyword}{PROGRAM} fc\_avail\_kinds
+00072       \textcolor{keywordtype}{IMPLICIT NONE}
+00073       \textcolor{keywordtype}{INTEGER} :: ik, jk, k, max\_decimal\_prec
+00074       \textcolor{keywordtype}{INTEGER} :: num\_rkinds = 1, num\_ikinds = 1
+00075       \textcolor{keywordtype}{INTEGER}, \textcolor{keywordtype}{DIMENSION(1:10)} :: list\_ikinds = -1
+00076       \textcolor{keywordtype}{INTEGER}, \textcolor{keywordtype}{DIMENSION(1:10)} :: list\_rkinds = -1
+00077   
+00078       \textcolor{keyword}{OPEN}(8, \hyperlink{structfile}{file}=\textcolor{stringliteral}{'pac\_fconftest.out'}, form=\textcolor{stringliteral}{'formatted'})
+00079 
+00080       \textcolor{comment}{! Find integer KINDs}
+00081       list\_ikinds(num\_ikinds)=selected\_int\_kind(1)
+00082       \textcolor{keywordflow}{DO} ik = 2, 36
+00083          k = selected\_int\_kind(ik)
+00084          \textcolor{keywordflow}{IF}(k.LT.0) \textcolor{keywordflow}{EXIT}
+00085          \textcolor{keywordflow}{IF}(k.GT.list\_ikinds(num\_ikinds))\textcolor{keywordflow}{THEN}
+00086             num\_ikinds = num\_ikinds + 1
+00087             list\_ikinds(num\_ikinds) = k
+00088 \textcolor{keywordflow}{         ENDIF}
+00089 \textcolor{keywordflow}{      ENDDO}
+00090 
+00091       \textcolor{keywordflow}{DO} k = 1, num\_ikinds
+00092          \textcolor{keyword}{WRITE}(8,\textcolor{stringliteral}{'(I0)'}, advance=\textcolor{stringliteral}{'NO'}) list\_ikinds(k)
+00093          \textcolor{keywordflow}{IF}(k.NE.num\_ikinds)\textcolor{keywordflow}{THEN}
+00094             \textcolor{keyword}{WRITE}(8,\textcolor{stringliteral}{'(A)'},advance=\textcolor{stringliteral}{'NO'}) \textcolor{stringliteral}{','}
+00095          \textcolor{keywordflow}{ELSE}
+00096             \textcolor{keyword}{WRITE}(8,\textcolor{stringliteral}{'()'})
+00097 \textcolor{keywordflow}{         ENDIF}
+00098 \textcolor{keywordflow}{      ENDDO}
+00099 
+00100       \textcolor{comment}{! Find real KINDs}
+00101       list\_rkinds(num\_rkinds)=selected\_real\_kind(1)
+00102       max\_decimal\_prec = 1
+00103 
+00104       prec: \textcolor{keywordflow}{DO} ik = 2, 36
+00105          exp: \textcolor{keywordflow}{DO} jk = 1, 17000
+00106             k = selected\_real\_kind(ik,jk)
+00107             \textcolor{keywordflow}{IF}(k.LT.0) \textcolor{keywordflow}{EXIT} exp
+00108             \textcolor{keywordflow}{IF}(k.GT.list\_rkinds(num\_rkinds))\textcolor{keywordflow}{THEN}
+00109                num\_rkinds = num\_rkinds + 1
+00110                list\_rkinds(num\_rkinds) = k
+00111 \textcolor{keywordflow}{            ENDIF}
+00112             max\_decimal\_prec = ik
+00113 \textcolor{keywordflow}{         ENDDO} exp
+00114 \textcolor{keywordflow}{      ENDDO} prec
+00115 
+00116       \textcolor{keywordflow}{DO} k = 1, num\_rkinds
+00117          \textcolor{keyword}{WRITE}(8,\textcolor{stringliteral}{'(I0)'}, advance=\textcolor{stringliteral}{'NO'}) list\_rkinds(k)
+00118          \textcolor{keywordflow}{IF}(k.NE.num\_rkinds)\textcolor{keywordflow}{THEN}
+00119             \textcolor{keyword}{WRITE}(8,\textcolor{stringliteral}{'(A)'},advance=\textcolor{stringliteral}{'NO'}) \textcolor{stringliteral}{','}
+00120          \textcolor{keywordflow}{ELSE}
+00121             \textcolor{keyword}{WRITE}(8,\textcolor{stringliteral}{'()'})
+00122 \textcolor{keywordflow}{         ENDIF}
+00123 \textcolor{keywordflow}{      ENDDO}
+00124 
+00125      \textcolor{keyword}{WRITE}(8,\textcolor{stringliteral}{'(I0)'}) max\_decimal\_prec
+00126      \textcolor{keyword}{WRITE}(8,\textcolor{stringliteral}{'(I0)'}) num\_ikinds
+00127      \textcolor{keyword}{WRITE}(8,\textcolor{stringliteral}{'(I0)'}) num\_rkinds
+00128 \textcolor{keyword}{END PROGRAM }fc\_avail\_kinds
+00129 \textcolor{comment}{!---- END ----- Determine the available KINDs for REALs and INTEGERs}
+00130 
+00131 \textcolor{keyword}{PROGRAM} fc\_mpi\_check
+00132   include \textcolor{stringliteral}{'mpif.h'}
+00133   \textcolor{keywordtype}{INTEGER} :: comm, amode, info, fh, ierror
+00134   \textcolor{keywordtype}{CHARACTER(LEN=1)} :: filename 
+00135   \textcolor{keyword}{CALL }mpi\_file\_open( comm, filename, amode, info, fh, ierror)
+00136 \textcolor{keyword}{END PROGRAM }fc\_mpi\_check
+\end{DoxyCode}

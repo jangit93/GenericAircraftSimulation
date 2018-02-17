@@ -1,0 +1,119 @@
+\hypertarget{eigen_2unsupported_2_eigen_2src_2_auto_diff_2_auto_diff_jacobian_8h_source}{}\section{eigen/unsupported/\+Eigen/src/\+Auto\+Diff/\+Auto\+Diff\+Jacobian.h}
+\label{eigen_2unsupported_2_eigen_2src_2_auto_diff_2_auto_diff_jacobian_8h_source}\index{Auto\+Diff\+Jacobian.\+h@{Auto\+Diff\+Jacobian.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_AUTODIFF\_JACOBIAN\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_AUTODIFF\_JACOBIAN\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen}
+00014 \{
+00015 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_auto_diff_2_auto_diff_jacobian_8h_source_l00016}\hyperlink{class_eigen_1_1_auto_diff_jacobian}{00016} \textcolor{keyword}{template}<\textcolor{keyword}{typename} Functor> \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_auto_diff_jacobian}{AutoDiffJacobian} : \textcolor{keyword}{public} 
+      \hyperlink{struct_functor}{Functor}
+00017 \{
+00018 \textcolor{keyword}{public}:
+00019   \hyperlink{class_eigen_1_1_auto_diff_jacobian}{AutoDiffJacobian}() : \hyperlink{struct_functor}{Functor}() \{\}
+00020   \hyperlink{class_eigen_1_1_auto_diff_jacobian}{AutoDiffJacobian}(\textcolor{keyword}{const} \hyperlink{struct_functor}{Functor}& f) : \hyperlink{struct_functor}{Functor}(f) \{\}
+00021 
+00022   \textcolor{comment}{// forward constructors}
+00023 \textcolor{preprocessor}{#if EIGEN\_HAS\_VARIADIC\_TEMPLATES}
+00024   \textcolor{keyword}{template}<\textcolor{keyword}{typename}... \hyperlink{group___sparse_core___module}{T}>
+00025   \hyperlink{class_eigen_1_1_auto_diff_jacobian}{AutoDiffJacobian}(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module}{T}& ...Values) : \hyperlink{struct_functor}{Functor}(Values...) \{\}
+00026 \textcolor{preprocessor}{#else}
+00027   \textcolor{keyword}{template}<\textcolor{keyword}{typename} T0>
+00028   AutoDiffJacobian(\textcolor{keyword}{const} T0& a0) : \hyperlink{struct_functor}{Functor}(a0) \{\}
+00029   \textcolor{keyword}{template}<\textcolor{keyword}{typename} T0, \textcolor{keyword}{typename} T1>
+00030   AutoDiffJacobian(\textcolor{keyword}{const} T0& a0, \textcolor{keyword}{const} T1& a1) : \hyperlink{struct_functor}{Functor}(a0, a1) \{\}
+00031   \textcolor{keyword}{template}<\textcolor{keyword}{typename} T0, \textcolor{keyword}{typename} T1, \textcolor{keyword}{typename} T2>
+00032   AutoDiffJacobian(\textcolor{keyword}{const} T0& a0, \textcolor{keyword}{const} T1& a1, \textcolor{keyword}{const} T2& a2) : \hyperlink{struct_functor}{Functor}(a0, a1, a2) \{\}
+00033 \textcolor{preprocessor}{#endif}
+00034 
+00035   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Functor::InputType InputType;
+00036   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Functor::ValueType ValueType;
+00037   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ValueType::Scalar Scalar;
+00038 
+00039   \textcolor{keyword}{enum} \{
+00040     InputsAtCompileTime = InputType::RowsAtCompileTime,
+00041     ValuesAtCompileTime = ValueType::RowsAtCompileTime
+00042   \};
+00043 
+00044   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, ValuesAtCompileTime, InputsAtCompileTime>}
+       \hyperlink{group___core___module_class_eigen_1_1_matrix}{JacobianType};
+00045   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} JacobianType::Index Index;
+00046 
+00047   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, InputsAtCompileTime, 1>} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{DerivativeType};
+00048   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_auto_diff_scalar}{AutoDiffScalar<DerivativeType>} 
+      \hyperlink{class_eigen_1_1_auto_diff_scalar}{ActiveScalar};
+00049 
+00050   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<ActiveScalar, InputsAtCompileTime, 1>} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{ActiveInput};
+00051   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<ActiveScalar, ValuesAtCompileTime, 1>} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{ActiveValue};
+00052 
+00053 \textcolor{preprocessor}{#if EIGEN\_HAS\_VARIADIC\_TEMPLATES}
+00054   \textcolor{comment}{// Some compilers don't accept variadic parameters after a default parameter,}
+00055   \textcolor{comment}{// i.e., we can't just write \_jac=0 but we need to overload operator():}
+00056   EIGEN\_STRONG\_INLINE
+00057   \textcolor{keywordtype}{void} operator() (\textcolor{keyword}{const} InputType& x, ValueType* v)\textcolor{keyword}{ const}
+00058 \textcolor{keyword}{  }\{
+00059       this->operator()(x, v, 0);
+00060   \}
+00061   \textcolor{keyword}{template}<\textcolor{keyword}{typename}... ParamsType>
+00062   \textcolor{keywordtype}{void} operator() (\textcolor{keyword}{const} InputType& x, ValueType* v, JacobianType* \_jac,
+00063                    \textcolor{keyword}{const} ParamsType&... Params) \textcolor{keyword}{const}
+00064 \textcolor{preprocessor}{#else}
+00065   \textcolor{keywordtype}{void} operator() (\textcolor{keyword}{const} InputType& x, ValueType* v, JacobianType* \_jac=0) \textcolor{keyword}{const}
+00066 \textcolor{preprocessor}{#endif}
+00067   \{
+00068     eigen\_assert(v!=0);
+00069 
+00070     \textcolor{keywordflow}{if} (!\_jac)
+00071     \{
+00072 \textcolor{preprocessor}{#if EIGEN\_HAS\_VARIADIC\_TEMPLATES}
+00073       Functor::operator()(x, v, Params...);
+00074 \textcolor{preprocessor}{#else}
+00075       Functor::operator()(x, v);
+00076 \textcolor{preprocessor}{#endif}
+00077       \textcolor{keywordflow}{return};
+00078     \}
+00079 
+00080     JacobianType& jac = *\_jac;
+00081 
+00082     ActiveInput ax = x.template cast<ActiveScalar>();
+00083     ActiveValue av(jac.rows());
+00084 
+00085     \textcolor{keywordflow}{if}(InputsAtCompileTime==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})
+00086       \textcolor{keywordflow}{for} (Index j=0; j<jac.rows(); j++)
+00087         av[j].derivatives().\hyperlink{class_eigen_1_1_plain_object_base_a99d9054ee2d5a40c6e00ded0265e9cea}{resize}(x.rows());
+00088 
+00089     \textcolor{keywordflow}{for} (Index i=0; i<jac.cols(); i++)
+00090       ax[i].derivatives() = DerivativeType::Unit(x.rows(),i);
+00091 
+00092 \textcolor{preprocessor}{#if EIGEN\_HAS\_VARIADIC\_TEMPLATES}
+00093     Functor::operator()(ax, &av, Params...);
+00094 \textcolor{preprocessor}{#else}
+00095     Functor::operator()(ax, &av);
+00096 \textcolor{preprocessor}{#endif}
+00097 
+00098     \textcolor{keywordflow}{for} (Index i=0; i<jac.rows(); i++)
+00099     \{
+00100       (*v)[i] = av[i].value();
+00101       jac.row(i) = av[i].derivatives();
+00102     \}
+00103   \}
+00104 \};
+00105 
+00106 \}
+00107 
+00108 \textcolor{preprocessor}{#endif // EIGEN\_AUTODIFF\_JACOBIAN\_H}
+\end{DoxyCode}

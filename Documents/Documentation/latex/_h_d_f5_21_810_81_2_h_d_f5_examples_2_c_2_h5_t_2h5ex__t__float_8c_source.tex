@@ -1,0 +1,140 @@
+\hypertarget{_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_t_2h5ex__t__float_8c_source}{}\section{H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+C/\+H5\+T/h5ex\+\_\+t\+\_\+float.c}
+\label{_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_t_2h5ex__t__float_8c_source}\index{h5ex\+\_\+t\+\_\+float.\+c@{h5ex\+\_\+t\+\_\+float.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/************************************************************}
+00002 \textcolor{comment}{}
+00003 \textcolor{comment}{  This example shows how to read and write integer datatypes}
+00004 \textcolor{comment}{  to a dataset.  The program first writes integers to a}
+00005 \textcolor{comment}{  dataset with a dataspace of DIM0xDIM1, then closes the}
+00006 \textcolor{comment}{  file.  Next, it reopens the file, reads back the data, and}
+00007 \textcolor{comment}{  outputs it to the screen.}
+00008 \textcolor{comment}{}
+00009 \textcolor{comment}{  This file is intended for use with HDF5 Library version 1.8}
+00010 \textcolor{comment}{}
+00011 \textcolor{comment}{ ************************************************************/}
+00012 
+00013 \textcolor{preprocessor}{#include "hdf5.h"}
+00014 \textcolor{preprocessor}{#include <stdio.h>}
+00015 \textcolor{preprocessor}{#include <stdlib.h>}
+00016 
+00017 \textcolor{preprocessor}{#define FILE            "h5ex\_t\_float.h5"}
+00018 \textcolor{preprocessor}{#define DATASET         "DS1"}
+00019 \textcolor{preprocessor}{#define DIM0            4}
+00020 \textcolor{preprocessor}{#define DIM1            7}
+00021 
+00022 \textcolor{keywordtype}{int}
+00023 main (\textcolor{keywordtype}{void})
+00024 \{
+00025     hid\_t       \hyperlink{structfile}{file}, space, dset;          \textcolor{comment}{/* Handles */}
+00026     herr\_t      status;
+00027     hsize\_t     dims[2] = \{DIM0, DIM1\};
+00028     \textcolor{keywordtype}{double}      wdata[DIM0][DIM1],          \textcolor{comment}{/* Write buffer */}
+00029                 **rdata;                    \textcolor{comment}{/* Read buffer */}
+00030     \textcolor{keywordtype}{int}         ndims,
+00031                 i, j;
+00032 
+00033     \textcolor{comment}{/*}
+00034 \textcolor{comment}{     * Initialize data.}
+00035 \textcolor{comment}{     */}
+00036     \textcolor{keywordflow}{for} (i=0; i<DIM0; i++)
+00037         \textcolor{keywordflow}{for} (j=0; j<DIM1; j++)
+00038             wdata[i][j] = (\textcolor{keywordtype}{double}) i / (j + 0.5) + j;
+00039 
+00040     \textcolor{comment}{/*}
+00041 \textcolor{comment}{     * Create a new file using the default properties.}
+00042 \textcolor{comment}{     */}
+00043     file = H5Fcreate (FILE, H5F\_ACC\_TRUNC, H5P\_DEFAULT, H5P\_DEFAULT);
+00044 
+00045     \textcolor{comment}{/*}
+00046 \textcolor{comment}{     * Create dataspace.  Setting maximum size to NULL sets the maximum}
+00047 \textcolor{comment}{     * size to be the current size.}
+00048 \textcolor{comment}{     */}
+00049     space = H5Screate\_simple (2, dims, NULL);
+00050 
+00051     \textcolor{comment}{/*}
+00052 \textcolor{comment}{     * Create the dataset and write the floating point data to it.  In}
+00053 \textcolor{comment}{     * this example we will save the data as 64 bit little endian IEEE}
+00054 \textcolor{comment}{     * floating point numbers, regardless of the native type.  The HDF5}
+00055 \textcolor{comment}{     * library automatically converts between different floating point}
+00056 \textcolor{comment}{     * types.}
+00057 \textcolor{comment}{     */}
+00058     dset = H5Dcreate (file, DATASET, H5T\_IEEE\_F64LE, space, H5P\_DEFAULT,
+00059                 H5P\_DEFAULT, H5P\_DEFAULT);
+00060     status = H5Dwrite (dset, H5T\_NATIVE\_DOUBLE, H5S\_ALL, H5S\_ALL, H5P\_DEFAULT,
+00061                 wdata[0]);
+00062 
+00063     \textcolor{comment}{/*}
+00064 \textcolor{comment}{     * Close and release resources.}
+00065 \textcolor{comment}{     */}
+00066     status = H5Dclose (dset);
+00067     status = H5Sclose (space);
+00068     status = H5Fclose (file);
+00069 
+00070 
+00071     \textcolor{comment}{/*}
+00072 \textcolor{comment}{     * Now we begin the read section of this example.  Here we assume}
+00073 \textcolor{comment}{     * the dataset has the same name and rank, but can have any size.}
+00074 \textcolor{comment}{     * Therefore we must allocate a new array to read in data using}
+00075 \textcolor{comment}{     * malloc().}
+00076 \textcolor{comment}{     */}
+00077 
+00078     \textcolor{comment}{/*}
+00079 \textcolor{comment}{     * Open file and dataset.}
+00080 \textcolor{comment}{     */}
+00081     file = H5Fopen (FILE, H5F\_ACC\_RDONLY, H5P\_DEFAULT);
+00082     dset = H5Dopen (file, DATASET, H5P\_DEFAULT);
+00083 
+00084     \textcolor{comment}{/*}
+00085 \textcolor{comment}{     * Get dataspace and allocate memory for read buffer.  This is a}
+00086 \textcolor{comment}{     * two dimensional dataset so the dynamic allocation must be done}
+00087 \textcolor{comment}{     * in steps.}
+00088 \textcolor{comment}{     */}
+00089     space = H5Dget\_space (dset);
+00090     ndims = H5Sget\_simple\_extent\_dims (space, dims, NULL);
+00091 
+00092     \textcolor{comment}{/*}
+00093 \textcolor{comment}{     * Allocate array of pointers to rows.}
+00094 \textcolor{comment}{     */}
+00095     rdata = (\textcolor{keywordtype}{double} **) malloc (dims[0] * \textcolor{keyword}{sizeof} (\textcolor{keywordtype}{double} *));
+00096 
+00097     \textcolor{comment}{/*}
+00098 \textcolor{comment}{     * Allocate space for floating point data.}
+00099 \textcolor{comment}{     */}
+00100     rdata[0] = (\textcolor{keywordtype}{double} *) malloc (dims[0] * dims[1] * \textcolor{keyword}{sizeof} (\textcolor{keywordtype}{double}));
+00101 
+00102     \textcolor{comment}{/*}
+00103 \textcolor{comment}{     * Set the rest of the pointers to rows to the correct addresses.}
+00104 \textcolor{comment}{     */}
+00105     \textcolor{keywordflow}{for} (i=1; i<dims[0]; i++)
+00106         rdata[i] = rdata[0] + i * dims[1];
+00107 
+00108     \textcolor{comment}{/*}
+00109 \textcolor{comment}{     * Read the data.}
+00110 \textcolor{comment}{     */}
+00111     status = H5Dread (dset, H5T\_NATIVE\_DOUBLE, H5S\_ALL, H5S\_ALL, H5P\_DEFAULT,
+00112                 rdata[0]);
+00113 
+00114     \textcolor{comment}{/*}
+00115 \textcolor{comment}{     * Output the data to the screen.}
+00116 \textcolor{comment}{     */}
+00117     printf (\textcolor{stringliteral}{"%s:\(\backslash\)n"}, DATASET);
+00118     \textcolor{keywordflow}{for} (i=0; i<dims[0]; i++) \{
+00119         printf (\textcolor{stringliteral}{" ["});
+00120         \textcolor{keywordflow}{for} (j=0; j<dims[1]; j++)
+00121             printf (\textcolor{stringliteral}{" %6.4f"}, rdata[i][j]);
+00122         printf (\textcolor{stringliteral}{"]\(\backslash\)n"});
+00123     \}
+00124 
+00125     \textcolor{comment}{/*}
+00126 \textcolor{comment}{     * Close and release resources.}
+00127 \textcolor{comment}{     */}
+00128     free (rdata[0]);
+00129     free (rdata);
+00130     status = H5Dclose (dset);
+00131     status = H5Sclose (space);
+00132     status = H5Fclose (file);
+00133 
+00134     \textcolor{keywordflow}{return} 0;
+00135 \}
+\end{DoxyCode}

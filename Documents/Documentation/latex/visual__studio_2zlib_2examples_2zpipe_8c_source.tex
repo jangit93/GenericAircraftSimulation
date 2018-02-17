@@ -1,0 +1,210 @@
+\hypertarget{visual__studio_2zlib_2examples_2zpipe_8c_source}{}\section{visual\+\_\+studio/zlib/examples/zpipe.c}
+\label{visual__studio_2zlib_2examples_2zpipe_8c_source}\index{zpipe.\+c@{zpipe.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* zpipe.c: example of proper use of zlib's inflate() and deflate()}
+00002 \textcolor{comment}{   Not copyrighted -- provided to the public domain}
+00003 \textcolor{comment}{   Version 1.4  11 December 2005  Mark Adler */}
+00004 
+00005 \textcolor{comment}{/* Version history:}
+00006 \textcolor{comment}{   1.0  30 Oct 2004  First version}
+00007 \textcolor{comment}{   1.1   8 Nov 2004  Add void casting for unused return values}
+00008 \textcolor{comment}{                     Use switch statement for inflate() return values}
+00009 \textcolor{comment}{   1.2   9 Nov 2004  Add assertions to document zlib guarantees}
+00010 \textcolor{comment}{   1.3   6 Apr 2005  Remove incorrect assertion in inf()}
+00011 \textcolor{comment}{   1.4  11 Dec 2005  Add hack to avoid MSDOS end-of-line conversions}
+00012 \textcolor{comment}{                     Avoid some compiler warnings for input and output buffers}
+00013 \textcolor{comment}{ */}
+00014 
+00015 \textcolor{preprocessor}{#include <stdio.h>}
+00016 \textcolor{preprocessor}{#include <string.h>}
+00017 \textcolor{preprocessor}{#include <assert.h>}
+00018 \textcolor{preprocessor}{#include "zlib.h"}
+00019 
+00020 \textcolor{preprocessor}{#if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(\_\_CYGWIN\_\_)}
+00021 \textcolor{preprocessor}{#  include <fcntl.h>}
+00022 \textcolor{preprocessor}{#  include <io.h>}
+00023 \textcolor{preprocessor}{#  define SET\_BINARY\_MODE(file) setmode(fileno(file), O\_BINARY)}
+00024 \textcolor{preprocessor}{#else}
+00025 \textcolor{preprocessor}{#  define SET\_BINARY\_MODE(file)}
+00026 \textcolor{preprocessor}{#endif}
+00027 
+00028 \textcolor{preprocessor}{#define CHUNK 16384}
+00029 
+00030 \textcolor{comment}{/* Compress from file source to file dest until EOF on source.}
+00031 \textcolor{comment}{   def() returns Z\_OK on success, Z\_MEM\_ERROR if memory could not be}
+00032 \textcolor{comment}{   allocated for processing, Z\_STREAM\_ERROR if an invalid compression}
+00033 \textcolor{comment}{   level is supplied, Z\_VERSION\_ERROR if the version of zlib.h and the}
+00034 \textcolor{comment}{   version of the library linked do not match, or Z\_ERRNO if there is}
+00035 \textcolor{comment}{   an error reading or writing the files. */}
+00036 \textcolor{keywordtype}{int} def(FILE *source, FILE *dest, \textcolor{keywordtype}{int} level)
+00037 \{
+00038     \textcolor{keywordtype}{int} ret, flush;
+00039     \textcolor{keywordtype}{unsigned} have;
+00040     \hyperlink{structz__stream__s}{z\_stream} strm;
+00041     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} in[CHUNK];
+00042     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} out[CHUNK];
+00043 
+00044     \textcolor{comment}{/* allocate deflate state */}
+00045     strm.zalloc = Z\_NULL;
+00046     strm.zfree = Z\_NULL;
+00047     strm.opaque = Z\_NULL;
+00048     ret = deflateInit(&strm, level);
+00049     \textcolor{keywordflow}{if} (ret != Z\_OK)
+00050         \textcolor{keywordflow}{return} ret;
+00051 
+00052     \textcolor{comment}{/* compress until end of file */}
+00053     \textcolor{keywordflow}{do} \{
+00054         strm.avail\_in = fread(in, 1, CHUNK, source);
+00055         \textcolor{keywordflow}{if} (ferror(source)) \{
+00056             (void)deflateEnd(&strm);
+00057             \textcolor{keywordflow}{return} Z\_ERRNO;
+00058         \}
+00059         flush = feof(source) ? Z\_FINISH : Z\_NO\_FLUSH;
+00060         strm.next\_in = in;
+00061 
+00062         \textcolor{comment}{/* run deflate() on input until output buffer not full, finish}
+00063 \textcolor{comment}{           compression if all of source has been read in */}
+00064         \textcolor{keywordflow}{do} \{
+00065             strm.avail\_out = CHUNK;
+00066             strm.next\_out = out;
+00067             ret = deflate(&strm, flush);    \textcolor{comment}{/* no bad return value */}
+00068             assert(ret != Z\_STREAM\_ERROR);  \textcolor{comment}{/* state not clobbered */}
+00069             have = CHUNK - strm.avail\_out;
+00070             \textcolor{keywordflow}{if} (fwrite(out, 1, have, dest) != have || ferror(dest)) \{
+00071                 (void)deflateEnd(&strm);
+00072                 \textcolor{keywordflow}{return} Z\_ERRNO;
+00073             \}
+00074         \} \textcolor{keywordflow}{while} (strm.avail\_out == 0);
+00075         assert(strm.avail\_in == 0);     \textcolor{comment}{/* all input will be used */}
+00076 
+00077         \textcolor{comment}{/* done when last data in file processed */}
+00078     \} \textcolor{keywordflow}{while} (flush != Z\_FINISH);
+00079     assert(ret == Z\_STREAM\_END);        \textcolor{comment}{/* stream will be complete */}
+00080 
+00081     \textcolor{comment}{/* clean up and return */}
+00082     (void)deflateEnd(&strm);
+00083     \textcolor{keywordflow}{return} Z\_OK;
+00084 \}
+00085 
+00086 \textcolor{comment}{/* Decompress from file source to file dest until stream ends or EOF.}
+00087 \textcolor{comment}{   inf() returns Z\_OK on success, Z\_MEM\_ERROR if memory could not be}
+00088 \textcolor{comment}{   allocated for processing, Z\_DATA\_ERROR if the deflate data is}
+00089 \textcolor{comment}{   invalid or incomplete, Z\_VERSION\_ERROR if the version of zlib.h and}
+00090 \textcolor{comment}{   the version of the library linked do not match, or Z\_ERRNO if there}
+00091 \textcolor{comment}{   is an error reading or writing the files. */}
+00092 \textcolor{keywordtype}{int} inf(FILE *source, FILE *dest)
+00093 \{
+00094     \textcolor{keywordtype}{int} ret;
+00095     \textcolor{keywordtype}{unsigned} have;
+00096     \hyperlink{structz__stream__s}{z\_stream} strm;
+00097     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} in[CHUNK];
+00098     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} out[CHUNK];
+00099 
+00100     \textcolor{comment}{/* allocate inflate state */}
+00101     strm.zalloc = Z\_NULL;
+00102     strm.zfree = Z\_NULL;
+00103     strm.opaque = Z\_NULL;
+00104     strm.avail\_in = 0;
+00105     strm.next\_in = Z\_NULL;
+00106     ret = inflateInit(&strm);
+00107     \textcolor{keywordflow}{if} (ret != Z\_OK)
+00108         \textcolor{keywordflow}{return} ret;
+00109 
+00110     \textcolor{comment}{/* decompress until deflate stream ends or end of file */}
+00111     \textcolor{keywordflow}{do} \{
+00112         strm.avail\_in = fread(in, 1, CHUNK, source);
+00113         \textcolor{keywordflow}{if} (ferror(source)) \{
+00114             (void)inflateEnd(&strm);
+00115             \textcolor{keywordflow}{return} Z\_ERRNO;
+00116         \}
+00117         \textcolor{keywordflow}{if} (strm.avail\_in == 0)
+00118             \textcolor{keywordflow}{break};
+00119         strm.next\_in = in;
+00120 
+00121         \textcolor{comment}{/* run inflate() on input until output buffer not full */}
+00122         \textcolor{keywordflow}{do} \{
+00123             strm.avail\_out = CHUNK;
+00124             strm.next\_out = out;
+00125             ret = inflate(&strm, Z\_NO\_FLUSH);
+00126             assert(ret != Z\_STREAM\_ERROR);  \textcolor{comment}{/* state not clobbered */}
+00127             \textcolor{keywordflow}{switch} (ret) \{
+00128             \textcolor{keywordflow}{case} Z\_NEED\_DICT:
+00129                 ret = Z\_DATA\_ERROR;     \textcolor{comment}{/* and fall through */}
+00130             \textcolor{keywordflow}{case} Z\_DATA\_ERROR:
+00131             \textcolor{keywordflow}{case} Z\_MEM\_ERROR:
+00132                 (void)inflateEnd(&strm);
+00133                 \textcolor{keywordflow}{return} ret;
+00134             \}
+00135             have = CHUNK - strm.avail\_out;
+00136             \textcolor{keywordflow}{if} (fwrite(out, 1, have, dest) != have || ferror(dest)) \{
+00137                 (void)inflateEnd(&strm);
+00138                 \textcolor{keywordflow}{return} Z\_ERRNO;
+00139             \}
+00140         \} \textcolor{keywordflow}{while} (strm.avail\_out == 0);
+00141 
+00142         \textcolor{comment}{/* done when inflate() says it's done */}
+00143     \} \textcolor{keywordflow}{while} (ret != Z\_STREAM\_END);
+00144 
+00145     \textcolor{comment}{/* clean up and return */}
+00146     (void)inflateEnd(&strm);
+00147     \textcolor{keywordflow}{return} ret == Z\_STREAM\_END ? Z\_OK : Z\_DATA\_ERROR;
+00148 \}
+00149 
+00150 \textcolor{comment}{/* report a zlib or i/o error */}
+00151 \textcolor{keywordtype}{void} zerr(\textcolor{keywordtype}{int} ret)
+00152 \{
+00153     fputs(\textcolor{stringliteral}{"zpipe: "}, stderr);
+00154     \textcolor{keywordflow}{switch} (ret) \{
+00155     \textcolor{keywordflow}{case} Z\_ERRNO:
+00156         \textcolor{keywordflow}{if} (ferror(stdin))
+00157             fputs(\textcolor{stringliteral}{"error reading stdin\(\backslash\)n"}, stderr);
+00158         \textcolor{keywordflow}{if} (ferror(stdout))
+00159             fputs(\textcolor{stringliteral}{"error writing stdout\(\backslash\)n"}, stderr);
+00160         \textcolor{keywordflow}{break};
+00161     \textcolor{keywordflow}{case} Z\_STREAM\_ERROR:
+00162         fputs(\textcolor{stringliteral}{"invalid compression level\(\backslash\)n"}, stderr);
+00163         \textcolor{keywordflow}{break};
+00164     \textcolor{keywordflow}{case} Z\_DATA\_ERROR:
+00165         fputs(\textcolor{stringliteral}{"invalid or incomplete deflate data\(\backslash\)n"}, stderr);
+00166         \textcolor{keywordflow}{break};
+00167     \textcolor{keywordflow}{case} Z\_MEM\_ERROR:
+00168         fputs(\textcolor{stringliteral}{"out of memory\(\backslash\)n"}, stderr);
+00169         \textcolor{keywordflow}{break};
+00170     \textcolor{keywordflow}{case} Z\_VERSION\_ERROR:
+00171         fputs(\textcolor{stringliteral}{"zlib version mismatch!\(\backslash\)n"}, stderr);
+00172     \}
+00173 \}
+00174 
+00175 \textcolor{comment}{/* compress or decompress from stdin to stdout */}
+00176 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} **argv)
+00177 \{
+00178     \textcolor{keywordtype}{int} ret;
+00179 
+00180     \textcolor{comment}{/* avoid end-of-line conversions */}
+00181     SET\_BINARY\_MODE(stdin);
+00182     SET\_BINARY\_MODE(stdout);
+00183 
+00184     \textcolor{comment}{/* do compression if no arguments */}
+00185     \textcolor{keywordflow}{if} (argc == 1) \{
+00186         ret = def(stdin, stdout, Z\_DEFAULT\_COMPRESSION);
+00187         \textcolor{keywordflow}{if} (ret != Z\_OK)
+00188             zerr(ret);
+00189         \textcolor{keywordflow}{return} ret;
+00190     \}
+00191 
+00192     \textcolor{comment}{/* do decompression if -d specified */}
+00193     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 && strcmp(argv[1], \textcolor{stringliteral}{"-d"}) == 0) \{
+00194         ret = inf(stdin, stdout);
+00195         \textcolor{keywordflow}{if} (ret != Z\_OK)
+00196             zerr(ret);
+00197         \textcolor{keywordflow}{return} ret;
+00198     \}
+00199 
+00200     \textcolor{comment}{/* otherwise, report usage */}
+00201     \textcolor{keywordflow}{else} \{
+00202         fputs(\textcolor{stringliteral}{"zpipe usage: zpipe [-d] < source > dest\(\backslash\)n"}, stderr);
+00203         \textcolor{keywordflow}{return} 1;
+00204     \}
+00205 \}
+\end{DoxyCode}

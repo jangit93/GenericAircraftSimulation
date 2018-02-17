@@ -1,0 +1,159 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_thread_pool_2_simple_thread_pool_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/\+C\+X\+X11/src/\+Thread\+Pool/\+Simple\+Thread\+Pool.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_thread_pool_2_simple_thread_pool_8h_source}\index{Simple\+Thread\+Pool.\+h@{Simple\+Thread\+Pool.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2014 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_CXX11\_THREADPOOL\_SIMPLE\_THREAD\_POOL\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_CXX11\_THREADPOOL\_SIMPLE\_THREAD\_POOL\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00015 \textcolor{comment}{// The implementation of the ThreadPool type ensures that the Schedule method}
+00016 \textcolor{comment}{// runs the functions it is provided in FIFO order when the scheduling is done}
+00017 \textcolor{comment}{// by a single thread.}
+00018 \textcolor{comment}{// Environment provides a way to create threads and also allows to intercept}
+00019 \textcolor{comment}{// task submission and execution.}
+00020 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Environment>
+00021 \textcolor{keyword}{class }SimpleThreadPoolTempl : \textcolor{keyword}{public} ThreadPoolInterface \{
+00022  \textcolor{keyword}{public}:
+00023   \textcolor{comment}{// Construct a pool that contains "num\_threads" threads.}
+00024   \textcolor{keyword}{explicit} SimpleThreadPoolTempl(\textcolor{keywordtype}{int} num\_threads, Environment env = Environment())
+00025       : env\_(env), threads\_(num\_threads), waiters\_(num\_threads) \{
+00026     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < num\_threads; i++) \{
+00027       threads\_.push\_back(env.CreateThread([\textcolor{keyword}{this}, i]() \{ WorkerLoop(i); \}));
+00028     \}
+00029   \}
+00030 
+00031   \textcolor{comment}{// Wait until all scheduled work has finished and then destroy the}
+00032   \textcolor{comment}{// set of threads.}
+00033   ~SimpleThreadPoolTempl() \{
+00034     \{
+00035       \textcolor{comment}{// Wait for all work to get done.}
+00036       std::unique\_lock<std::mutex> l(mu\_);
+00037       \textcolor{keywordflow}{while} (!pending\_.empty()) \{
+00038         empty\_.wait(l);
+00039       \}
+00040       exiting\_ = \textcolor{keyword}{true};
+00041 
+00042       \textcolor{comment}{// Wakeup all waiters.}
+00043       \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} w : waiters\_) \{
+00044         w->ready = \textcolor{keyword}{true};
+00045         w->task.f = \textcolor{keyword}{nullptr};
+00046         w->cv.notify\_one();
+00047       \}
+00048     \}
+00049 
+00050     \textcolor{comment}{// Wait for threads to finish.}
+00051     \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} t : threads\_) \{
+00052       \textcolor{keyword}{delete} t;
+00053     \}
+00054   \}
+00055 
+00056   \textcolor{comment}{// Schedule fn() for execution in the pool of threads. The functions are}
+00057   \textcolor{comment}{// executed in the order in which they are scheduled.}
+00058   \textcolor{keywordtype}{void} Schedule(std::function<\textcolor{keywordtype}{void}()> fn) \textcolor{keyword}{final} \{
+00059     Task t = env\_.CreateTask(std::move(fn));
+00060     std::unique\_lock<std::mutex> l(mu\_);
+00061     \textcolor{keywordflow}{if} (waiters\_.empty()) \{
+00062       pending\_.push\_back(std::move(t));
+00063     \} \textcolor{keywordflow}{else} \{
+00064       Waiter* w = waiters\_.back();
+00065       waiters\_.pop\_back();
+00066       w->ready = \textcolor{keyword}{true};
+00067       w->task = std::move(t);
+00068       w->cv.notify\_one();
+00069     \}
+00070   \}
+00071 
+00072   \textcolor{keywordtype}{int} NumThreads() const final \{
+00073     \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(threads\_.size());
+00074   \}
+00075 
+00076   \textcolor{keywordtype}{int} CurrentThreadId() const final \{
+00077     \textcolor{keyword}{const} PerThread* pt = this->GetPerThread();
+00078     \textcolor{keywordflow}{if} (pt->pool == \textcolor{keyword}{this}) \{
+00079       \textcolor{keywordflow}{return} pt->thread\_id;
+00080     \} \textcolor{keywordflow}{else} \{
+00081       \textcolor{keywordflow}{return} -1;
+00082     \}
+00083   \}
+00084 
+00085  \textcolor{keyword}{protected}:
+00086   \textcolor{keywordtype}{void} WorkerLoop(\textcolor{keywordtype}{int} thread\_id) \{
+00087     std::unique\_lock<std::mutex> l(mu\_);
+00088     PerThread* pt = GetPerThread();
+00089     pt->pool = \textcolor{keyword}{this};
+00090     pt->thread\_id = thread\_id;
+00091     Waiter w;
+00092     Task t;
+00093     \textcolor{keywordflow}{while} (!exiting\_) \{
+00094       \textcolor{keywordflow}{if} (pending\_.empty()) \{
+00095         \textcolor{comment}{// Wait for work to be assigned to me}
+00096         w.ready = \textcolor{keyword}{false};
+00097         waiters\_.push\_back(&w);
+00098         \textcolor{keywordflow}{while} (!w.ready) \{
+00099           w.cv.wait(l);
+00100         \}
+00101         t = w.task;
+00102         w.task.f = \textcolor{keyword}{nullptr};
+00103       \} \textcolor{keywordflow}{else} \{
+00104         \textcolor{comment}{// Pick up pending work}
+00105         t = std::move(pending\_.front());
+00106         pending\_.pop\_front();
+00107         \textcolor{keywordflow}{if} (pending\_.empty()) \{
+00108           empty\_.notify\_all();
+00109         \}
+00110       \}
+00111       \textcolor{keywordflow}{if} (t.f) \{
+00112         mu\_.unlock();
+00113         env\_.ExecuteTask(t);
+00114         t.f = \textcolor{keyword}{nullptr};
+00115         mu\_.lock();
+00116       \}
+00117     \}
+00118   \}
+00119 
+00120  \textcolor{keyword}{private}:
+00121   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Environment::Task Task;
+00122   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Environment::EnvThread Thread;
+00123 
+00124   \textcolor{keyword}{struct }Waiter \{
+00125     std::condition\_variable cv;
+00126     Task task;
+00127     \textcolor{keywordtype}{bool} ready;
+00128   \};
+00129 
+00130   \textcolor{keyword}{struct }PerThread \{
+00131     constexpr PerThread() : pool(NULL), thread\_id(-1) \{ \}
+00132     SimpleThreadPoolTempl* pool;  \textcolor{comment}{// Parent pool, or null for normal threads.}
+00133     \textcolor{keywordtype}{int} thread\_id;                \textcolor{comment}{// Worker thread index in pool.}
+00134   \};
+00135 
+00136   Environment env\_;
+00137   std::mutex mu\_;
+00138   MaxSizeVector<Thread*> threads\_;  \textcolor{comment}{// All threads}
+00139   MaxSizeVector<Waiter*> waiters\_;  \textcolor{comment}{// Stack of waiting threads.}
+00140   std::deque<Task> pending\_;        \textcolor{comment}{// Queue of pending work}
+00141   std::condition\_variable empty\_;   \textcolor{comment}{// Signaled on pending\_.empty()}
+00142   \textcolor{keywordtype}{bool} exiting\_ = \textcolor{keyword}{false};
+00143 
+00144   PerThread* GetPerThread()\textcolor{keyword}{ const }\{
+00145     EIGEN\_THREAD\_LOCAL PerThread per\_thread;
+00146     \textcolor{keywordflow}{return} &per\_thread;
+00147   \}
+00148 \};
+00149 
+00150 \textcolor{keyword}{typedef} SimpleThreadPoolTempl<StlThreadEnvironment> SimpleThreadPool;
+00151 
+00152 \}  \textcolor{comment}{// namespace Eigen}
+00153 
+00154 \textcolor{preprocessor}{#endif  // EIGEN\_CXX11\_THREADPOOL\_SIMPLE\_THREAD\_POOL\_H}
+\end{DoxyCode}

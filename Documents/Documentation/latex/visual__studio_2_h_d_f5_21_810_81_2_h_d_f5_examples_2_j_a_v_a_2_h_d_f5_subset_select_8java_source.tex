@@ -1,0 +1,202 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_j_a_v_a_2_h_d_f5_subset_select_8java_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+J\+A\+V\+A/\+H\+D\+F5\+Subset\+Select.java}
+\label{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_j_a_v_a_2_h_d_f5_subset_select_8java_source}\index{H\+D\+F5\+Subset\+Select.\+java@{H\+D\+F5\+Subset\+Select.\+java}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+00002 \textcolor{comment}{ * Copyright by The HDF Group.                                               *}
+00003 \textcolor{comment}{ * Copyright by the Board of Trustees of the University of Illinois.         *}
+00004 \textcolor{comment}{ * All rights reserved.                                                      *}
+00005 \textcolor{comment}{ *                                                                           *}
+00006 \textcolor{comment}{ * This file is part of HDF5.  The full HDF5 copyright notice, including     *}
+00007 \textcolor{comment}{ * terms governing use, modification, and redistribution, is contained in    *}
+00008 \textcolor{comment}{ * the files COPYING and Copyright.html.  COPYING can be found at the root   *}
+00009 \textcolor{comment}{ * of the source code distribution tree; Copyright.html can be found at the  *}
+00010 \textcolor{comment}{ * root level of an installed copy of the electronic HDF5 document set and   *}
+00011 \textcolor{comment}{ * is linked from the top-level documents page.  It can also be found at     *}
+00012 \textcolor{comment}{ * http://hdfgroup.org/HDF5/doc/Copyright.html.  If you do not have          *}
+00013 \textcolor{comment}{ * access to either file, you may request a copy from help@hdfgroup.org.     *}
+00014 \textcolor{comment}{ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00015 
+00016 \textcolor{keyword}{import} hdf.hdf5lib.H5;
+00017 \textcolor{keyword}{import} hdf.hdf5lib.HDF5Constants;
+00018 
+00073 \textcolor{keyword}{public} \textcolor{keyword}{class }\hyperlink{class_h_d_f5_subset_select}{HDF5SubsetSelect} \{
+00074     \textcolor{keyword}{private} \textcolor{keyword}{static} String fname  = \textcolor{stringliteral}{"HDF5SubsetSelect.h5"};
+00075     \textcolor{keyword}{private} \textcolor{keyword}{static} String dsname  = \textcolor{stringliteral}{"2D 32-bit integer 20x10"};
+00076     \textcolor{keyword}{private} \textcolor{keyword}{static} \textcolor{keywordtype}{long}[] dims2D = \{ 20, 10 \};
+00077 
+00078     \textcolor{keyword}{public} \textcolor{keyword}{static} \textcolor{keywordtype}{void} main(String args[]) \textcolor{keywordflow}{throws} Exception \{
+00079         \textcolor{keywordtype}{long} file\_id = -1;
+00080         \textcolor{keywordtype}{long} dataset\_id = -1;
+00081         \textcolor{keywordtype}{long} filespace\_id = -1;
+00082         \textcolor{keywordtype}{long} memspace\_id = -1;
+00083 
+00084         \textcolor{comment}{// create the file and add groups and dataset into the file}
+00085         createFile();
+00086 
+00087         \textcolor{comment}{// Open file using the default properties.}
+00088         \textcolor{keywordflow}{try} \{
+00089             file\_id = \hyperlink{namespace_h5}{H5}.H5Fopen(fname, HDF5Constants.H5F\_ACC\_RDWR, HDF5Constants.H5P\_DEFAULT);
+00090         \}
+00091         \textcolor{keywordflow}{catch} (Exception e) \{
+00092             e.printStackTrace();
+00093         \}
+00094 
+00095         \textcolor{comment}{// Open dataset using the default properties.}
+00096         \textcolor{keywordflow}{try} \{
+00097             \textcolor{keywordflow}{if} (file\_id >= 0)
+00098                 dataset\_id = \hyperlink{namespace_h5}{H5}.H5Dopen(file\_id, dsname, HDF5Constants.H5P\_DEFAULT);
+00099         \}
+00100         \textcolor{keywordflow}{catch} (Exception e) \{
+00101             e.printStackTrace();
+00102         \}
+00103 
+00104         \textcolor{comment}{// Allocate array of pointers to two-dimensional arrays (the}
+00105         \textcolor{comment}{// elements of the dataset.}
+00106         \textcolor{keywordtype}{int}[][] dataRead = \textcolor{keyword}{new} \textcolor{keywordtype}{int}[5][3];
+00107 
+00108         \textcolor{comment}{// Define and select the hyperslab to use for reading.}
+00109         \textcolor{keywordflow}{try} \{
+00110             \textcolor{keywordflow}{if} (dataset\_id >= 0) \{
+00111                 filespace\_id = \hyperlink{namespace_h5}{H5}.H5Dget\_space(dataset\_id);
+00112 
+00113                 \textcolor{keywordtype}{long}[] start = \{ 4, 2 \};
+00114                 \textcolor{keywordtype}{long}[] stride = \{ 3, 2 \};
+00115                 \textcolor{keywordtype}{long}[] count = \{ 5, 3 \};
+00116                 \textcolor{keywordtype}{long}[] block = null;
+00117 
+00118                 \textcolor{keywordflow}{if} (filespace\_id >= 0) \{
+00119                     \hyperlink{namespace_h5}{H5}.H5Sselect\_hyperslab(filespace\_id, HDF5Constants.H5S\_SELECT\_SET,
+00120                             start, stride, count, block);
+00121 
+00122                     memspace\_id = \hyperlink{namespace_h5}{H5}.H5Screate\_simple(2, count, null);
+00123                     \textcolor{comment}{// Read the data using the previously defined hyperslab.}
+00124                     \textcolor{keywordflow}{if} ((dataset\_id >= 0) && (filespace\_id >= 0) && (memspace\_id >= 0))
+00125                         \hyperlink{namespace_h5}{H5}.H5Dread(dataset\_id, HDF5Constants.H5T\_NATIVE\_INT,
+00126                                 memspace\_id, filespace\_id, HDF5Constants.H5P\_DEFAULT,
+00127                                 dataRead);
+00128                 \}
+00129             \}
+00130         \}
+00131         \textcolor{keywordflow}{catch} (Exception e) \{
+00132             e.printStackTrace();
+00133         \}
+00134 
+00135         \textcolor{comment}{// print out the data values}
+00136         \hyperlink{namespace_system}{System}.out.println(\textcolor{stringliteral}{"\(\backslash\)n\(\backslash\)nSubset Data Values"});
+00137         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 5; i++) \{
+00138             \hyperlink{namespace_system}{System}.out.print(\textcolor{stringliteral}{"\(\backslash\)n"} + dataRead[i][0]);
+00139             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 1; j < 3; j++) \{
+00140                 \hyperlink{namespace_system}{System}.out.print(\textcolor{stringliteral}{","} + dataRead[i][j]);
+00141             \}
+00142         \}
+00143 
+00144         \textcolor{comment}{// Close the dataset.}
+00145         \textcolor{keywordflow}{try} \{
+00146             \textcolor{keywordflow}{if} (dataset\_id >= 0)
+00147                 \hyperlink{namespace_h5}{H5}.H5Dclose(dataset\_id);
+00148         \}
+00149         \textcolor{keywordflow}{catch} (Exception e) \{
+00150             e.printStackTrace();
+00151         \}
+00152 
+00153         \textcolor{keywordflow}{try} \{
+00154             \textcolor{keywordflow}{if} (filespace\_id >= 0)
+00155                 \hyperlink{namespace_h5}{H5}.H5Sclose(filespace\_id);
+00156         \}
+00157         \textcolor{keywordflow}{catch} (Exception e) \{
+00158             e.printStackTrace();
+00159         \}
+00160 
+00161         \textcolor{comment}{// Close the file.}
+00162         \textcolor{keywordflow}{try} \{
+00163             \textcolor{keywordflow}{if} (file\_id >= 0)
+00164                 \hyperlink{namespace_h5}{H5}.H5Fclose(file\_id);
+00165         \}
+00166         \textcolor{keywordflow}{catch} (Exception e) \{
+00167             e.printStackTrace();
+00168         \}
+00169     \}
+00170 
+00178     \textcolor{keyword}{private} \textcolor{keyword}{static} \textcolor{keywordtype}{void} createFile() throws Exception \{
+00179         \textcolor{keywordtype}{long} file\_id = -1;
+00180         \textcolor{keywordtype}{long} dataspace\_id = -1;
+00181         \textcolor{keywordtype}{long} dataset\_id = -1;
+00182 
+00183         \textcolor{comment}{// Create a new file using default properties.}
+00184         \textcolor{keywordflow}{try} \{
+00185             file\_id = \hyperlink{namespace_h5}{H5}.H5Fcreate(fname, HDF5Constants.H5F\_ACC\_TRUNC,
+00186                     HDF5Constants.H5P\_DEFAULT, HDF5Constants.H5P\_DEFAULT);
+00187         \}
+00188         \textcolor{keywordflow}{catch} (Exception e) \{
+00189             e.printStackTrace();
+00190         \}
+00191 
+00192         \textcolor{comment}{// Create the data space for the dataset.}
+00193         \textcolor{keywordflow}{try} \{
+00194             dataspace\_id = \hyperlink{namespace_h5}{H5}.H5Screate\_simple(2, dims2D, null);
+00195         \}
+00196         \textcolor{keywordflow}{catch} (Exception e) \{
+00197             e.printStackTrace();
+00198         \}
+00199 
+00200         \textcolor{comment}{// Create the dataset.}
+00201         \textcolor{keywordflow}{try} \{
+00202             \textcolor{keywordflow}{if} ((file\_id >= 0) && (dataspace\_id >= 0))
+00203                 dataset\_id = \hyperlink{namespace_h5}{H5}.H5Dcreate(file\_id, dsname,
+00204                         HDF5Constants.H5T\_STD\_I32LE, dataspace\_id,
+00205                         HDF5Constants.H5P\_DEFAULT, HDF5Constants.H5P\_DEFAULT, HDF5Constants.H5P\_DEFAULT);
+00206         \}
+00207         \textcolor{keywordflow}{catch} (Exception e) \{
+00208             e.printStackTrace();
+00209         \}
+00210 
+00211         \textcolor{comment}{// Terminate access to the data space.}
+00212         \textcolor{keywordflow}{try} \{
+00213             \textcolor{keywordflow}{if} (dataspace\_id >= 0)
+00214                 \hyperlink{namespace_h5}{H5}.H5Sclose(dataspace\_id);
+00215         \}
+00216         \textcolor{keywordflow}{catch} (Exception e) \{
+00217             e.printStackTrace();
+00218         \}
+00219 
+00220         \textcolor{comment}{// set the data values}
+00221         \textcolor{keywordtype}{int}[] dataIn = \textcolor{keyword}{new} \textcolor{keywordtype}{int}[20 * 10];
+00222         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 20; i++) \{
+00223             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 10; j++) \{
+00224                 dataIn[i * 10 + j] = 1000 + i * 100 + j;
+00225             \}
+00226         \}
+00227 
+00228         \textcolor{comment}{// Write the data to the dataset.}
+00229         \textcolor{keywordflow}{try} \{
+00230             \textcolor{keywordflow}{if} (dataset\_id >= 0)
+00231                 \hyperlink{namespace_h5}{H5}.H5Dwrite(dataset\_id, HDF5Constants.H5T\_NATIVE\_INT,
+00232                         HDF5Constants.H5S\_ALL, HDF5Constants.H5S\_ALL,
+00233                         HDF5Constants.H5P\_DEFAULT, dataIn);
+00234         \}
+00235         \textcolor{keywordflow}{catch} (Exception e) \{
+00236             e.printStackTrace();
+00237         \}
+00238 
+00239         \textcolor{comment}{// End access to the dataset and release resources used by it.}
+00240         \textcolor{keywordflow}{try} \{
+00241             \textcolor{keywordflow}{if} (dataset\_id >= 0)
+00242                 \hyperlink{namespace_h5}{H5}.H5Dclose(dataset\_id);
+00243         \}
+00244         \textcolor{keywordflow}{catch} (Exception e) \{
+00245             e.printStackTrace();
+00246         \}
+00247 
+00248         \textcolor{comment}{// Close the file.}
+00249         \textcolor{keywordflow}{try} \{
+00250             \textcolor{keywordflow}{if} (file\_id >= 0)
+00251                 \hyperlink{namespace_h5}{H5}.H5Fclose(file\_id);
+00252         \}
+00253         \textcolor{keywordflow}{catch} (Exception e) \{
+00254             e.printStackTrace();
+00255         \}
+00256     \}
+00257 
+00258 \}
+\end{DoxyCode}

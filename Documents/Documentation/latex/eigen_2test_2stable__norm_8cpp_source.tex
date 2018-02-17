@@ -1,0 +1,200 @@
+\hypertarget{eigen_2test_2stable__norm_8cpp_source}{}\section{eigen/test/stable\+\_\+norm.cpp}
+\label{eigen_2test_2stable__norm_8cpp_source}\index{stable\+\_\+norm.\+cpp@{stable\+\_\+norm.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2009-2014 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> EIGEN\_DONT\_INLINE \hyperlink{group___sparse_core___module}{T} copy(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module}{T}& x)
+00013 \{
+00014   \textcolor{keywordflow}{return} x;
+00015 \}
+00016 
+00017 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} stable\_norm(\textcolor{keyword}{const} MatrixType& m)
+00018 \{
+00019   \textcolor{comment}{/* this test covers the following files:}
+00020 \textcolor{comment}{     StableNorm.h}
+00021 \textcolor{comment}{  */}
+00022   \textcolor{keyword}{using} std::sqrt;
+00023   \textcolor{keyword}{using} std::abs;
+00024   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00025   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00026   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00027   
+00028   \textcolor{keywordtype}{bool} complex\_real\_product\_ok = \textcolor{keyword}{true};
+00029 
+00030   \textcolor{comment}{// Check the basic machine-dependent constants.}
+00031   \{
+00032     \textcolor{keywordtype}{int} ibeta, it, iemin, iemax;
+00033 
+00034     ibeta = std::numeric\_limits<RealScalar>::radix;         \textcolor{comment}{// base for floating-point numbers}
+00035     it    = std::numeric\_limits<RealScalar>::digits;        \textcolor{comment}{// number of base-beta digits in mantissa}
+00036     iemin = std::numeric\_limits<RealScalar>::min\_exponent;  \textcolor{comment}{// minimum exponent}
+00037     iemax = std::numeric\_limits<RealScalar>::max\_exponent;  \textcolor{comment}{// maximum exponent}
+00038 
+00039     VERIFY( (!(iemin > 1 - 2*it || 1+it>iemax || (it==2 && ibeta<5) || (it<=4 && ibeta <= 3 ) || it<2))
+00040            && \textcolor{stringliteral}{"the stable norm algorithm cannot be guaranteed on this computer"});
+00041     
+00042     Scalar inf = std::numeric\_limits<RealScalar>::infinity();
+00043     \textcolor{keywordflow}{if}(\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsComplex} && (numext::isnan)(inf*RealScalar(1)) )
+00044     \{
+00045       complex\_real\_product\_ok = \textcolor{keyword}{false};
+00046       \textcolor{keyword}{static} \textcolor{keywordtype}{bool} first = \textcolor{keyword}{true};
+00047       \textcolor{keywordflow}{if}(first)
+00048         std::cerr << \textcolor{stringliteral}{"WARNING: compiler mess up complex*real product, "} << inf << \textcolor{stringliteral}{" * "} << 1.0 << \textcolor{stringliteral}{" = "} << 
+      inf*RealScalar(1) << std::endl;
+00049       first = \textcolor{keyword}{false};
+00050     \}
+00051   \}
+00052 
+00053 
+00054   Index rows = m.rows();
+00055   Index cols = m.cols();
+00056 
+00057   \textcolor{comment}{// get a non-zero random factor}
+00058   Scalar factor = internal::random<Scalar>();
+00059   \textcolor{keywordflow}{while}(numext::abs2(factor)<RealScalar(1e-4))
+00060     factor = internal::random<Scalar>();
+00061   Scalar big = factor * ((std::numeric\_limits<RealScalar>::max)() * RealScalar(1e-4));
+00062   
+00063   factor = internal::random<Scalar>();
+00064   \textcolor{keywordflow}{while}(numext::abs2(factor)<RealScalar(1e-4))
+00065     factor = internal::random<Scalar>();
+00066   Scalar small = factor * ((std::numeric\_limits<RealScalar>::min)() * RealScalar(1e4));
+00067 
+00068   MatrixType  vzero = MatrixType::Zero(rows, cols),
+00069               vrand = MatrixType::Random(rows, cols),
+00070               vbig(rows, cols),
+00071               vsmall(rows,cols);
+00072 
+00073   vbig.fill(big);
+00074   vsmall.fill(small);
+00075 
+00076   VERIFY\_IS\_MUCH\_SMALLER\_THAN(vzero.norm(), \textcolor{keyword}{static\_cast<}RealScalar\textcolor{keyword}{>}(1));
+00077   VERIFY\_IS\_APPROX(vrand.stableNorm(),      vrand.norm());
+00078   VERIFY\_IS\_APPROX(vrand.blueNorm(),        vrand.norm());
+00079   VERIFY\_IS\_APPROX(vrand.hypotNorm(),       vrand.norm());
+00080 
+00081   RealScalar size = \textcolor{keyword}{static\_cast<}RealScalar\textcolor{keyword}{>}(m.size());
+00082 
+00083   \textcolor{comment}{// test numext::isfinite}
+00084   VERIFY(!(numext::isfinite)( std::numeric\_limits<RealScalar>::infinity()));
+00085   VERIFY(!(numext::isfinite)(sqrt(-abs(big))));
+00086 
+00087   \textcolor{comment}{// test overflow}
+00088   VERIFY((numext::isfinite)(sqrt(size)*abs(big)));
+00089   VERIFY\_IS\_NOT\_APPROX(sqrt(copy(vbig.squaredNorm())), abs(sqrt(size)*big)); \textcolor{comment}{// here the default norm must
+       fail}
+00090   VERIFY\_IS\_APPROX(vbig.stableNorm(), sqrt(size)*abs(big));
+00091   VERIFY\_IS\_APPROX(vbig.blueNorm(),   sqrt(size)*abs(big));
+00092   VERIFY\_IS\_APPROX(vbig.hypotNorm(),  sqrt(size)*abs(big));
+00093 
+00094   \textcolor{comment}{// test underflow}
+00095   VERIFY((numext::isfinite)(sqrt(size)*abs(small)));
+00096   VERIFY\_IS\_NOT\_APPROX(sqrt(copy(vsmall.squaredNorm())),   abs(sqrt(size)*small)); \textcolor{comment}{// here the default norm
+       must fail}
+00097   VERIFY\_IS\_APPROX(vsmall.stableNorm(), sqrt(size)*abs(small));
+00098   VERIFY\_IS\_APPROX(vsmall.blueNorm(),   sqrt(size)*abs(small));
+00099   VERIFY\_IS\_APPROX(vsmall.hypotNorm(),  sqrt(size)*abs(small));
+00100 
+00101   \textcolor{comment}{// Test compilation of cwise() version}
+00102   VERIFY\_IS\_APPROX(vrand.colwise().stableNorm(),      vrand.colwise().norm());
+00103   VERIFY\_IS\_APPROX(vrand.colwise().blueNorm(),        vrand.colwise().norm());
+00104   VERIFY\_IS\_APPROX(vrand.colwise().hypotNorm(),       vrand.colwise().norm());
+00105   VERIFY\_IS\_APPROX(vrand.rowwise().stableNorm(),      vrand.rowwise().norm());
+00106   VERIFY\_IS\_APPROX(vrand.rowwise().blueNorm(),        vrand.rowwise().norm());
+00107   VERIFY\_IS\_APPROX(vrand.rowwise().hypotNorm(),       vrand.rowwise().norm());
+00108   
+00109   \textcolor{comment}{// test NaN, +inf, -inf }
+00110   MatrixType v;
+00111   Index i = internal::random<Index>(0,rows-1);
+00112   Index j = internal::random<Index>(0,cols-1);
+00113 
+00114   \textcolor{comment}{// NaN}
+00115   \{
+00116     v = vrand;
+00117     v(i,j) = std::numeric\_limits<RealScalar>::quiet\_NaN();
+00118     VERIFY(!(numext::isfinite)(v.squaredNorm()));   VERIFY((numext::isnan)(v.squaredNorm()));
+00119     VERIFY(!(numext::isfinite)(v.norm()));          VERIFY((numext::isnan)(v.norm()));
+00120     VERIFY(!(numext::isfinite)(v.stableNorm()));    VERIFY((numext::isnan)(v.stableNorm()));
+00121     VERIFY(!(numext::isfinite)(v.blueNorm()));      VERIFY((numext::isnan)(v.blueNorm()));
+00122     VERIFY(!(numext::isfinite)(v.hypotNorm()));     VERIFY((numext::isnan)(v.hypotNorm()));
+00123   \}
+00124   
+00125   \textcolor{comment}{// +inf}
+00126   \{
+00127     v = vrand;
+00128     v(i,j) = std::numeric\_limits<RealScalar>::infinity();
+00129     VERIFY(!(numext::isfinite)(v.squaredNorm()));   VERIFY(isPlusInf(v.squaredNorm()));
+00130     VERIFY(!(numext::isfinite)(v.norm()));          VERIFY(isPlusInf(v.norm()));
+00131     VERIFY(!(numext::isfinite)(v.stableNorm()));
+00132     \textcolor{keywordflow}{if}(complex\_real\_product\_ok)\{
+00133       VERIFY(isPlusInf(v.stableNorm()));
+00134     \}
+00135     VERIFY(!(numext::isfinite)(v.blueNorm()));      VERIFY(isPlusInf(v.blueNorm()));
+00136     VERIFY(!(numext::isfinite)(v.hypotNorm()));     VERIFY(isPlusInf(v.hypotNorm()));
+00137   \}
+00138   
+00139   \textcolor{comment}{// -inf}
+00140   \{
+00141     v = vrand;
+00142     v(i,j) = -std::numeric\_limits<RealScalar>::infinity();
+00143     VERIFY(!(numext::isfinite)(v.squaredNorm()));   VERIFY(isPlusInf(v.squaredNorm()));
+00144     VERIFY(!(numext::isfinite)(v.norm()));          VERIFY(isPlusInf(v.norm()));
+00145     VERIFY(!(numext::isfinite)(v.stableNorm()));
+00146     \textcolor{keywordflow}{if}(complex\_real\_product\_ok) \{
+00147       VERIFY(isPlusInf(v.stableNorm()));
+00148     \}
+00149     VERIFY(!(numext::isfinite)(v.blueNorm()));      VERIFY(isPlusInf(v.blueNorm()));
+00150     VERIFY(!(numext::isfinite)(v.hypotNorm()));     VERIFY(isPlusInf(v.hypotNorm()));
+00151   \}
+00152   
+00153   \textcolor{comment}{// mix}
+00154   \{
+00155     Index i2 = internal::random<Index>(0,rows-1);
+00156     Index j2 = internal::random<Index>(0,cols-1);
+00157     v = vrand;
+00158     v(i,j) = -std::numeric\_limits<RealScalar>::infinity();
+00159     v(i2,j2) = std::numeric\_limits<RealScalar>::quiet\_NaN();
+00160     VERIFY(!(numext::isfinite)(v.squaredNorm()));   VERIFY((numext::isnan)(v.squaredNorm()));
+00161     VERIFY(!(numext::isfinite)(v.norm()));          VERIFY((numext::isnan)(v.norm()));
+00162     VERIFY(!(numext::isfinite)(v.stableNorm()));    VERIFY((numext::isnan)(v.stableNorm()));
+00163     VERIFY(!(numext::isfinite)(v.blueNorm()));      VERIFY((numext::isnan)(v.blueNorm()));
+00164     VERIFY(!(numext::isfinite)(v.hypotNorm()));     VERIFY((numext::isnan)(v.hypotNorm()));
+00165   \}
+00166 
+00167   \textcolor{comment}{// stableNormalize[d]}
+00168   \{
+00169     VERIFY\_IS\_APPROX(vrand.stableNormalized(), vrand.normalized());
+00170     MatrixType vcopy(vrand);
+00171     vcopy.stableNormalize();
+00172     VERIFY\_IS\_APPROX(vcopy, vrand.normalized());
+00173     VERIFY\_IS\_APPROX((vrand.stableNormalized()).norm(), RealScalar(1));
+00174     VERIFY\_IS\_APPROX(vcopy.norm(), RealScalar(1));
+00175     VERIFY\_IS\_APPROX((vbig.stableNormalized()).norm(), RealScalar(1));
+00176     VERIFY\_IS\_APPROX((vsmall.stableNormalized()).norm(), RealScalar(1));
+00177     RealScalar big\_scaling = ((std::numeric\_limits<RealScalar>::max)() * RealScalar(1e-4));
+00178     VERIFY\_IS\_APPROX(vbig/big\_scaling, (vbig.stableNorm() * vbig.stableNormalized()).eval()/big\_scaling);
+00179     VERIFY\_IS\_APPROX(vsmall, vsmall.stableNorm() * vsmall.stableNormalized());
+00180   \}
+00181 \}
+00182 
+00183 \textcolor{keywordtype}{void} test\_stable\_norm()
+00184 \{
+00185   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00186     CALL\_SUBTEST\_1( stable\_norm(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 1, 1>}()) );
+00187     CALL\_SUBTEST\_2( stable\_norm(Vector4d()) );
+00188     CALL\_SUBTEST\_3( stable\_norm(VectorXd(internal::random<int>(10,2000))) );
+00189     CALL\_SUBTEST\_4( stable\_norm(VectorXf(internal::random<int>(10,2000))) );
+00190     CALL\_SUBTEST\_5( stable\_norm(VectorXcd(internal::random<int>(10,2000))) );
+00191   \}
+00192 \}
+\end{DoxyCode}

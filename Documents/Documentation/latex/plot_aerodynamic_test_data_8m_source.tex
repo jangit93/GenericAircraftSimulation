@@ -1,0 +1,684 @@
+\hypertarget{plot_aerodynamic_test_data_8m_source}{}\section{plot\+Aerodynamic\+Test\+Data.\+m}
+\label{plot_aerodynamic_test_data_8m_source}\index{plot\+Aerodynamic\+Test\+Data.\+m@{plot\+Aerodynamic\+Test\+Data.\+m}}
+
+\begin{DoxyCode}
+00001 %% plot Aerodynamic polars
+00002 clear
+00003 close all
+00004 clc
+00005 %% read in data
+00006 [Aerodynamic] = readIn(\textcolor{stringliteral}{'AerodynamicTestData.txt'},\textcolor{charliteral}{' '},1);
+00007 
+00008 
+00009 nAoA = Aerodynamic.data(1,9);
+00010 AoA = Aerodynamic.data(1:nAoA,6);
+00011 
+00012 nMach = Aerodynamic.data(1,10);
+00013 ii = 1;
+00014 \textcolor{keywordflow}{for} i = nAoA:nAoA:nAoA*nMach
+00015     Mach(ii) = Aerodynamic.data(i,7);
+00016     ii = ii+1;
+00017 end
+00018 
+00019 nEta  = Aerodynamic.data(1,11);
+00020 ii = 1;
+00021 \textcolor{keywordflow}{for} i = nAoA*nMach:nAoA*nMach:nAoA*nMach*nEta
+00022     Eta(ii) = Aerodynamic.data(i,8)*180/pi;
+00023     ii = ii+1;
+00024 end
+00025 
+00026 \textcolor{keywordflow}{for} a = 1:nEta
+00027     tempeta = Eta(a);
+00028     \textcolor{keywordflow}{if} tempeta == 0
+00029         \textcolor{keywordflow}{break};
+00030     end
+00031 end
+00032 
+00033 CA  = Aerodynamic.data(:,1);
+00034 CM  = Aerodynamic.data(:,2);
+00035 CW  = Aerodynamic.data(:,3);
+00036 CZ = Aerodynamic.data(:,4);
+00037 CX = Aerodynamic.data(:,5);
+00038 
+00039 Ca = reshape(CA,[nAoA,nMach,nEta]);
+00040 Cm = reshape(CM,[nAoA,nMach,nEta]);
+00041 Cw = reshape(CW,[nAoA,nMach,nEta]);
+00042 Cx = reshape(CX,[nAoA,nMach,nEta]);
+00043 Cz = reshape(CZ,[nAoA,nMach,nEta]);
+00044 
+00045 %% eta = 0
+00046 
+00047 figure (\textcolor{stringliteral}{'Name'},\textcolor{stringliteral}{'Lift and Drag Coefficient'})
+00048 %C\_A
+00049 subplot(221)
+00050 plot(AoA,Ca(:,:,1))
+00051 xlabel('\(\backslash\)alpha [°
+ylabel('C\_A')
+grid on 
+for i=1:nMach
+    textleg1(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg1,'Location','best');
+title('lift-coefficient')
+
+%C\_W
+subplot(222)
+plot(AoA,Cw(:,:,1))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_W')
+grid on 
+for i=1:nMach
+    textleg2(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg2,'Location','best');
+title('drag-coefficient')
+
+%C\_W over C\_A
+subplot(223)
+for u = 1:8
+plot(squeeze(Cw(:,u,a)),squeeze(Ca(:,u,a)))
+grid on 
+hold on
+xlabel('C\_W')
+ylabel('C\_A')
+ textleg3(u)=\{['Ma = ' num2str(Mach(u))]\};
+end
+title('drag polar')
+legend(textleg3,'Location','best');
+
+%C\_M @ eta = 0°
+figure('Name','Pitching Moment Coefficient')
+subplot(221)
+plot(AoA,Cm(:,:,1))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+grid on 
+for i=1:nMach
+    textleg4(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg4,'Location','best');
+etastring=\{['\(\backslash\)eta = ' num2str(Eta(a)) ' [°]']\};
+title(etastring)
+
+%C\_M @ different elevator angles and constant mach number
+subplot(222)
+plot(AoA,squeeze(Cm(:,3,:)))
+grid on 
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+for i=1:nEta
+    textleg5(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg5,'Location','best');
+cm1string=\{['Ma = ' num2str(Mach(3))]\};
+title(cm1string)
+
+%C\_M @ different elevator angles and constant mach number
+subplot(223)
+plot(AoA,squeeze(Cm(:,3,:)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+grid on 
+cm2string=\{['Ma = ' num2str(Mach(a))]\};
+title(cm2string)
+for i=1:nEta
+    textleg6(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg6,'Location','best');
+
+%C\_M @ different elevator angles and constant mach number
+subplot(224)
+plot(AoA,squeeze(Cm(:,7,:)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+grid on 
+for i=1:nEta
+    textleg7(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg7,'Location','best');
+cm3string=\{['Ma = ' num2str(Mach(7))]\};
+title(cm3string)
+
+figure('Name','Body fixed Coefficients')
+%C\_X
+subplot(211)
+plot(AoA,squeeze(Cx(:,:,a)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_X')
+grid on
+for i=1:nMach
+    textleg8(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg8,'Location','best');
+title('C\_X')
+
+%C\_Z
+subplot(212)
+plot(AoA,squeeze(Cz(:,:,a)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_Z')
+grid on
+for i=1:nMach
+    textleg9(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg9,'Location','best');
+title('C\_Z')]')
+00052 ylabel('C\_A')
+00053 grid on 
+00054 for i=1:nMach
+00055     textleg1(i)=\{['Ma = ' num2str(Mach(i))]\};
+00056 end
+00057 legend(textleg1,\textcolor{stringliteral}{'Location'},\textcolor{stringliteral}{'best'});
+00058 title(\textcolor{stringliteral}{'lift-coefficient'})
+00059 
+00060 %C\_W
+00061 subplot(222)
+00062 plot(AoA,Cw(:,:,1))
+00063 xlabel('\(\backslash\)alpha [°
+ylabel('C\_W')
+grid on 
+for i=1:nMach
+    textleg2(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg2,'Location','best');
+title('drag-coefficient')
+
+%C\_W over C\_A
+subplot(223)
+for u = 1:8
+plot(squeeze(Cw(:,u,a)),squeeze(Ca(:,u,a)))
+grid on 
+hold on
+xlabel('C\_W')
+ylabel('C\_A')
+ textleg3(u)=\{['Ma = ' num2str(Mach(u))]\};
+end
+title('drag polar')
+legend(textleg3,'Location','best');
+
+%C\_M @ eta = 0°
+figure('Name','Pitching Moment Coefficient')
+subplot(221)
+plot(AoA,Cm(:,:,1))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+grid on 
+for i=1:nMach
+    textleg4(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg4,'Location','best');
+etastring=\{['\(\backslash\)eta = ' num2str(Eta(a)) ' [°]']\};
+title(etastring)
+
+%C\_M @ different elevator angles and constant mach number
+subplot(222)
+plot(AoA,squeeze(Cm(:,3,:)))
+grid on 
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+for i=1:nEta
+    textleg5(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg5,'Location','best');
+cm1string=\{['Ma = ' num2str(Mach(3))]\};
+title(cm1string)
+
+%C\_M @ different elevator angles and constant mach number
+subplot(223)
+plot(AoA,squeeze(Cm(:,3,:)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+grid on 
+cm2string=\{['Ma = ' num2str(Mach(a))]\};
+title(cm2string)
+for i=1:nEta
+    textleg6(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg6,'Location','best');
+
+%C\_M @ different elevator angles and constant mach number
+subplot(224)
+plot(AoA,squeeze(Cm(:,7,:)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+grid on 
+for i=1:nEta
+    textleg7(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg7,'Location','best');
+cm3string=\{['Ma = ' num2str(Mach(7))]\};
+title(cm3string)
+
+figure('Name','Body fixed Coefficients')
+%C\_X
+subplot(211)
+plot(AoA,squeeze(Cx(:,:,a)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_X')
+grid on
+for i=1:nMach
+    textleg8(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg8,'Location','best');
+title('C\_X')
+
+%C\_Z
+subplot(212)
+plot(AoA,squeeze(Cz(:,:,a)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_Z')
+grid on
+for i=1:nMach
+    textleg9(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg9,'Location','best');
+title('C\_Z')]')
+00064 ylabel('C\_W')
+00065 grid on 
+00066 for i=1:nMach
+00067     textleg2(i)=\{['Ma = ' num2str(Mach(i))]\};
+00068 end
+00069 legend(textleg2,\textcolor{stringliteral}{'Location'},\textcolor{stringliteral}{'best'});
+00070 title(\textcolor{stringliteral}{'drag-coefficient'})
+00071 
+00072 %C\_W over C\_A
+00073 subplot(223)
+00074 for u = 1:8
+00075 plot(squeeze(Cw(:,u,a)),squeeze(Ca(:,u,a)))
+00076 grid on 
+00077 hold on
+00078 xlabel('C\_W')
+00079 ylabel('C\_A')
+00080  textleg3(u)=\{['Ma = ' num2str(Mach(u))]\};
+00081 end
+00082 title(\textcolor{stringliteral}{'drag polar'})
+00083 legend(textleg3,'Location','best');
+00084 
+00085 %C\_M @ eta = 0° Moment Coefficient')
+subplot(221)
+plot(AoA,Cm(:,:,1))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+grid on 
+for i=1:nMach
+    textleg4(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg4,'Location','best');
+etastring=\{['\(\backslash\)eta = ' num2str(Eta(a)) ' [°]']\};
+title(etastring)
+
+%C\_M @ different elevator angles and constant mach number
+subplot(222)
+plot(AoA,squeeze(Cm(:,3,:)))
+grid on 
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+for i=1:nEta
+    textleg5(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg5,'Location','best');
+cm1string=\{['Ma = ' num2str(Mach(3))]\};
+title(cm1string)
+
+%C\_M @ different elevator angles and constant mach number
+subplot(223)
+plot(AoA,squeeze(Cm(:,3,:)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+grid on 
+cm2string=\{['Ma = ' num2str(Mach(a))]\};
+title(cm2string)
+for i=1:nEta
+    textleg6(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg6,'Location','best');
+
+%C\_M @ different elevator angles and constant mach number
+subplot(224)
+plot(AoA,squeeze(Cm(:,7,:)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+grid on 
+for i=1:nEta
+    textleg7(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg7,'Location','best');
+cm3string=\{['Ma = ' num2str(Mach(7))]\};
+title(cm3string)
+
+figure('Name','Body fixed Coefficients')
+%C\_X
+subplot(211)
+plot(AoA,squeeze(Cx(:,:,a)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_X')
+grid on
+for i=1:nMach
+    textleg8(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg8,'Location','best');
+title('C\_X')
+
+%C\_Z
+subplot(212)
+plot(AoA,squeeze(Cz(:,:,a)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_Z')
+grid on
+for i=1:nMach
+    textleg9(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg9,'Location','best');
+title('C\_Z')
+00086 figure('Name','Pitching Moment Coefficient')
+00087 subplot(221)
+00088 plot(AoA,Cm(:,:,1))
+00089 xlabel('\(\backslash\)alpha [°
+ylabel('C\_M')
+grid on 
+for i=1:nMach
+    textleg4(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg4,'Location','best');
+etastring=\{['\(\backslash\)eta = ' num2str(Eta(a)) ' [°]']\};
+title(etastring)
+
+%C\_M @ different elevator angles and constant mach number
+subplot(222)
+plot(AoA,squeeze(Cm(:,3,:)))
+grid on 
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+for i=1:nEta
+    textleg5(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg5,'Location','best');
+cm1string=\{['Ma = ' num2str(Mach(3))]\};
+title(cm1string)
+
+%C\_M @ different elevator angles and constant mach number
+subplot(223)
+plot(AoA,squeeze(Cm(:,3,:)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+grid on 
+cm2string=\{['Ma = ' num2str(Mach(a))]\};
+title(cm2string)
+for i=1:nEta
+    textleg6(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg6,'Location','best');
+
+%C\_M @ different elevator angles and constant mach number
+subplot(224)
+plot(AoA,squeeze(Cm(:,7,:)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+grid on 
+for i=1:nEta
+    textleg7(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg7,'Location','best');
+cm3string=\{['Ma = ' num2str(Mach(7))]\};
+title(cm3string)
+
+figure('Name','Body fixed Coefficients')
+%C\_X
+subplot(211)
+plot(AoA,squeeze(Cx(:,:,a)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_X')
+grid on
+for i=1:nMach
+    textleg8(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg8,'Location','best');
+title('C\_X')
+
+%C\_Z
+subplot(212)
+plot(AoA,squeeze(Cz(:,:,a)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_Z')
+grid on
+for i=1:nMach
+    textleg9(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg9,'Location','best');
+title('C\_Z')]')
+00090 ylabel('C\_M')
+00091 grid on 
+00092 for i=1:nMach
+00093     textleg4(i)=\{['Ma = ' num2str(Mach(i))]\};
+00094 end
+00095 legend(textleg4,\textcolor{stringliteral}{'Location'},\textcolor{stringliteral}{'best'});
+00096 etastring=\{['\(\backslash\)eta = ' num2str(Eta(a)) ' [°]']\};
+00097 title(etastring)
+00098 
+00099 %C\_M @ different elevator angles and constant mach number
+00100 subplot(222)
+00101 plot(AoA,squeeze(Cm(:,3,:)))
+00102 grid on 
+00103 xlabel('\(\backslash\)alpha [°
+ylabel('C\_M')
+for i=1:nEta
+    textleg5(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg5,'Location','best');
+cm1string=\{['Ma = ' num2str(Mach(3))]\};
+title(cm1string)
+
+%C\_M @ different elevator angles and constant mach number
+subplot(223)
+plot(AoA,squeeze(Cm(:,3,:)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+grid on 
+cm2string=\{['Ma = ' num2str(Mach(a))]\};
+title(cm2string)
+for i=1:nEta
+    textleg6(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg6,'Location','best');
+
+%C\_M @ different elevator angles and constant mach number
+subplot(224)
+plot(AoA,squeeze(Cm(:,7,:)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+grid on 
+for i=1:nEta
+    textleg7(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg7,'Location','best');
+cm3string=\{['Ma = ' num2str(Mach(7))]\};
+title(cm3string)
+
+figure('Name','Body fixed Coefficients')
+%C\_X
+subplot(211)
+plot(AoA,squeeze(Cx(:,:,a)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_X')
+grid on
+for i=1:nMach
+    textleg8(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg8,'Location','best');
+title('C\_X')
+
+%C\_Z
+subplot(212)
+plot(AoA,squeeze(Cz(:,:,a)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_Z')
+grid on
+for i=1:nMach
+    textleg9(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg9,'Location','best');
+title('C\_Z')]')
+00104 ylabel('C\_M')
+00105 for i=1:nEta
+00106     textleg5(i)=\{['Eta = ' num2str(Eta(i))]\};
+00107 end
+00108 legend(textleg5,\textcolor{stringliteral}{'Location'},\textcolor{stringliteral}{'best'});
+00109 cm1string=\{['Ma = ' num2str(Mach(3))]\};
+00110 title(cm1string)
+00111 
+00112 %C\_M @ different elevator angles and constant mach number
+00113 subplot(223)
+00114 plot(AoA,squeeze(Cm(:,3,:)))
+00115 xlabel('\(\backslash\)alpha [°
+ylabel('C\_M')
+grid on 
+cm2string=\{['Ma = ' num2str(Mach(a))]\};
+title(cm2string)
+for i=1:nEta
+    textleg6(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg6,'Location','best');
+
+%C\_M @ different elevator angles and constant mach number
+subplot(224)
+plot(AoA,squeeze(Cm(:,7,:)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_M')
+grid on 
+for i=1:nEta
+    textleg7(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg7,'Location','best');
+cm3string=\{['Ma = ' num2str(Mach(7))]\};
+title(cm3string)
+
+figure('Name','Body fixed Coefficients')
+%C\_X
+subplot(211)
+plot(AoA,squeeze(Cx(:,:,a)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_X')
+grid on
+for i=1:nMach
+    textleg8(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg8,'Location','best');
+title('C\_X')
+
+%C\_Z
+subplot(212)
+plot(AoA,squeeze(Cz(:,:,a)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_Z')
+grid on
+for i=1:nMach
+    textleg9(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg9,'Location','best');
+title('C\_Z')]')
+00116 ylabel('C\_M')
+00117 grid on 
+00118 cm2string=\{['Ma = ' num2str(Mach(a))]\};
+00119 title(cm2string)
+00120 \textcolor{keywordflow}{for} i=1:nEta
+00121     textleg6(i)=\{['Eta = ' num2str(Eta(i))]\};
+00122 end
+00123 legend(textleg6,\textcolor{stringliteral}{'Location'},\textcolor{stringliteral}{'best'});
+00124 
+00125 %C\_M @ different elevator angles and constant mach number
+00126 subplot(224)
+00127 plot(AoA,squeeze(Cm(:,7,:)))
+00128 xlabel('\(\backslash\)alpha [°
+ylabel('C\_M')
+grid on 
+for i=1:nEta
+    textleg7(i)=\{['Eta = ' num2str(Eta(i))]\};
+end
+legend(textleg7,'Location','best');
+cm3string=\{['Ma = ' num2str(Mach(7))]\};
+title(cm3string)
+
+figure('Name','Body fixed Coefficients')
+%C\_X
+subplot(211)
+plot(AoA,squeeze(Cx(:,:,a)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_X')
+grid on
+for i=1:nMach
+    textleg8(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg8,'Location','best');
+title('C\_X')
+
+%C\_Z
+subplot(212)
+plot(AoA,squeeze(Cz(:,:,a)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_Z')
+grid on
+for i=1:nMach
+    textleg9(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg9,'Location','best');
+title('C\_Z')]')
+00129 ylabel('C\_M')
+00130 grid on 
+00131 for i=1:nEta
+00132     textleg7(i)=\{['Eta = ' num2str(Eta(i))]\};
+00133 end
+00134 legend(textleg7,\textcolor{stringliteral}{'Location'},\textcolor{stringliteral}{'best'});
+00135 cm3string=\{['Ma = ' num2str(Mach(7))]\};
+00136 title(cm3string)
+00137 
+00138 figure(\textcolor{stringliteral}{'Name'},\textcolor{stringliteral}{'Body fixed Coefficients'})
+00139 %C\_X
+00140 subplot(211)
+00141 plot(AoA,squeeze(Cx(:,:,a)))
+00142 xlabel('\(\backslash\)alpha [°
+ylabel('C\_X')
+grid on
+for i=1:nMach
+    textleg8(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg8,'Location','best');
+title('C\_X')
+
+%C\_Z
+subplot(212)
+plot(AoA,squeeze(Cz(:,:,a)))
+xlabel('\(\backslash\)alpha [°]')
+ylabel('C\_Z')
+grid on
+for i=1:nMach
+    textleg9(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg9,'Location','best');
+title('C\_Z')]')
+00143 ylabel('C\_X')
+00144 grid on
+00145 for i=1:nMach
+00146     textleg8(i)=\{['Ma = ' num2str(Mach(i))]\};
+00147 end
+00148 legend(textleg8,\textcolor{stringliteral}{'Location'},\textcolor{stringliteral}{'best'});
+00149 title(\textcolor{stringliteral}{'C\_X'})
+00150 
+00151 %C\_Z
+00152 subplot(212)
+00153 plot(AoA,squeeze(Cz(:,:,a)))
+00154 xlabel('\(\backslash\)alpha [°
+ylabel('C\_Z')
+grid on
+for i=1:nMach
+    textleg9(i)=\{['Ma = ' num2str(Mach(i))]\};
+end
+legend(textleg9,'Location','best');
+title('C\_Z')]')
+00155 ylabel('C\_Z')
+00156 grid on
+00157 for i=1:nMach
+00158     textleg9(i)=\{['Ma = ' num2str(Mach(i))]\};
+00159 end
+00160 legend(textleg9,\textcolor{stringliteral}{'Location'},\textcolor{stringliteral}{'best'});
+00161 title(\textcolor{stringliteral}{'C\_Z'})
+\end{DoxyCode}

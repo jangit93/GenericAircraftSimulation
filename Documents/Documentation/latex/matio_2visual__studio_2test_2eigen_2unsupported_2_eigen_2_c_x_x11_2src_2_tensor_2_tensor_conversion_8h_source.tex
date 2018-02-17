@@ -1,0 +1,283 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_conversion_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/\+C\+X\+X11/src/\+Tensor/\+Tensor\+Conversion.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_conversion_8h_source}\index{Tensor\+Conversion.\+h@{Tensor\+Conversion.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2015 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_CXX11\_TENSOR\_TENSOR\_CONVERSION\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_CXX11\_TENSOR\_TENSOR\_CONVERSION\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00022 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00023 \textcolor{keyword}{template}<\textcolor{keyword}{typename} TargetType, \textcolor{keyword}{typename} XprType>
+00024 \textcolor{keyword}{struct }traits<TensorConversionOp<TargetType, XprType> >
+00025 \{
+00026   \textcolor{comment}{// Type promotion to handle the case where the types of the lhs and the rhs are different.}
+00027   \textcolor{keyword}{typedef} TargetType Scalar;
+00028   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} traits<XprType>::StorageKind StorageKind;
+00029   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} traits<XprType>::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00030   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Nested Nested;
+00031   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_reference<Nested>::type \_Nested;
+00032   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} NumDimensions = traits<XprType>::NumDimensions;
+00033   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} Layout = traits<XprType>::Layout;
+00034   \textcolor{keyword}{enum} \{ Flags = 0 \};
+00035 \};
+00036 
+00037 \textcolor{keyword}{template}<\textcolor{keyword}{typename} TargetType, \textcolor{keyword}{typename} XprType>
+00038 \textcolor{keyword}{struct }eval<TensorConversionOp<TargetType, XprType>, \hyperlink{namespace_eigen}{Eigen}::Dense>
+00039 \{
+00040   \textcolor{keyword}{typedef} \textcolor{keyword}{const} TensorConversionOp<TargetType, XprType>& type;
+00041 \};
+00042 
+00043 \textcolor{keyword}{template}<\textcolor{keyword}{typename} TargetType, \textcolor{keyword}{typename} XprType>
+00044 \textcolor{keyword}{struct }nested<TensorConversionOp<TargetType, XprType>, 1, typename eval<TensorConversionOp<TargetType, 
+      XprType> >::type>
+00045 \{
+00046   \textcolor{keyword}{typedef} TensorConversionOp<TargetType, XprType> type;
+00047 \};
+00048 
+00049 \}  \textcolor{comment}{// end namespace internal}
+00050 
+00051 
+00052 \textcolor{keyword}{template} <\textcolor{keyword}{typename} TensorEvaluator, \textcolor{keyword}{typename} SrcPacket, \textcolor{keyword}{typename} TgtPacket, \textcolor{keywordtype}{int} SrcCoeffRatio, \textcolor{keywordtype}{int} TgtCoeff
+      Ratio>
+00053 \textcolor{keyword}{struct }PacketConverter \{
+00054   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00055   PacketConverter(\textcolor{keyword}{const} TensorEvaluator& impl)
+00056       : m\_impl(impl) \{\}
+00057 
+00058   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode, \textcolor{keyword}{typename} Index>
+00059   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE TgtPacket packet(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} index)\textcolor{keyword}{ const }\{
+00060     \textcolor{keywordflow}{return} internal::pcast<SrcPacket, TgtPacket>(m\_impl.template packet<LoadMode>(index));
+00061   \}
+00062 
+00063  \textcolor{keyword}{private}:
+00064   \textcolor{keyword}{const} TensorEvaluator& m\_impl;
+00065 \};
+00066 
+00067 
+00068 \textcolor{keyword}{template} <\textcolor{keyword}{typename} TensorEvaluator, \textcolor{keyword}{typename} SrcPacket, \textcolor{keyword}{typename} TgtPacket>
+00069 \textcolor{keyword}{struct }PacketConverter<TensorEvaluator, SrcPacket, TgtPacket, 2, 1> \{
+00070   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00071   PacketConverter(\textcolor{keyword}{const} TensorEvaluator& impl)
+00072       : m\_impl(impl) \{\}
+00073 
+00074   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode, \textcolor{keyword}{typename} Index>
+00075   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE TgtPacket packet(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} index)\textcolor{keyword}{ const }\{
+00076     \textcolor{keyword}{const} \textcolor{keywordtype}{int} SrcPacketSize = internal::unpacket\_traits<SrcPacket>::size;
+00077 
+00078     SrcPacket src1 = m\_impl.template packet<LoadMode>(index);
+00079     SrcPacket src2 = m\_impl.template packet<LoadMode>(index + SrcPacketSize);
+00080     TgtPacket result = internal::pcast<SrcPacket, TgtPacket>(src1, src2);
+00081     \textcolor{keywordflow}{return} result;
+00082   \}
+00083 
+00084  \textcolor{keyword}{private}:
+00085   \textcolor{keyword}{const} TensorEvaluator& m\_impl;
+00086 \};
+00087 
+00088 \textcolor{keyword}{template} <\textcolor{keyword}{typename} TensorEvaluator, \textcolor{keyword}{typename} SrcPacket, \textcolor{keyword}{typename} TgtPacket>
+00089 \textcolor{keyword}{struct }PacketConverter<TensorEvaluator, SrcPacket, TgtPacket, 4, 1> \{
+00090   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00091   PacketConverter(\textcolor{keyword}{const} TensorEvaluator& impl)
+00092       : m\_impl(impl) \{\}
+00093 
+00094   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode, \textcolor{keyword}{typename} Index>
+00095   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE TgtPacket packet(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} index)\textcolor{keyword}{ const }\{
+00096     \textcolor{keyword}{const} \textcolor{keywordtype}{int} SrcPacketSize = internal::unpacket\_traits<SrcPacket>::size;
+00097 
+00098     SrcPacket src1 = m\_impl.template packet<LoadMode>(index);
+00099     SrcPacket src2 = m\_impl.template packet<LoadMode>(index + SrcPacketSize);
+00100     SrcPacket src3 = m\_impl.template packet<LoadMode>(index + 2 * SrcPacketSize);
+00101     SrcPacket src4 = m\_impl.template packet<LoadMode>(index + 3 * SrcPacketSize);
+00102     TgtPacket result = internal::pcast<SrcPacket, TgtPacket>(src1, src2, src3, src4);
+00103     \textcolor{keywordflow}{return} result;
+00104   \}
+00105 
+00106  \textcolor{keyword}{private}:
+00107   \textcolor{keyword}{const} TensorEvaluator& m\_impl;
+00108 \};
+00109 
+00110 \textcolor{keyword}{template} <\textcolor{keyword}{typename} TensorEvaluator, \textcolor{keyword}{typename} SrcPacket, \textcolor{keyword}{typename} TgtPacket>
+00111 \textcolor{keyword}{struct }PacketConverter<TensorEvaluator, SrcPacket, TgtPacket, 1, 2> \{
+00112   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00113   PacketConverter(\textcolor{keyword}{const} TensorEvaluator& impl)
+00114       : m\_impl(impl), m\_maxIndex(impl.dimensions().TotalSize()) \{\}
+00115 
+00116   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode, \textcolor{keyword}{typename} Index>
+00117   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE TgtPacket packet(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} index)\textcolor{keyword}{ const }\{
+00118     \textcolor{keyword}{const} \textcolor{keywordtype}{int} SrcPacketSize = internal::unpacket\_traits<SrcPacket>::size;
+00119     \textcolor{comment}{// Only call m\_impl.packet() when we have direct access to the underlying data. This}
+00120     \textcolor{comment}{// ensures that we don't compute the subexpression twice. We may however load some}
+00121     \textcolor{comment}{// coefficients twice, but in practice this doesn't negatively impact performance.}
+00122     \textcolor{keywordflow}{if} (m\_impl.data() && (index + SrcPacketSize < m\_maxIndex)) \{
+00123       \textcolor{comment}{// Force unaligned memory loads since we can't ensure alignment anymore}
+00124       \textcolor{keywordflow}{return} internal::pcast<SrcPacket, TgtPacket>(m\_impl.template packet<Unaligned>(index));
+00125     \} \textcolor{keywordflow}{else} \{
+00126       \textcolor{keyword}{const} \textcolor{keywordtype}{int} TgtPacketSize = internal::unpacket\_traits<TgtPacket>::size;
+00127       \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::unpacket\_traits<SrcPacket>::type SrcType;
+00128       \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::unpacket\_traits<TgtPacket>::type TgtType;
+00129       internal::scalar\_cast\_op<SrcType, TgtType> converter;
+00130       EIGEN\_ALIGN\_MAX \textcolor{keyword}{typename} internal::unpacket\_traits<TgtPacket>::type values[TgtPacketSize];
+00131       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < TgtPacketSize; ++i) \{
+00132         values[i] = converter(m\_impl.coeff(index+i));
+00133       \}
+00134       TgtPacket rslt = internal::pload<TgtPacket>(values);
+00135       \textcolor{keywordflow}{return} rslt;
+00136     \}
+00137   \}
+00138 
+00139  \textcolor{keyword}{private}:
+00140   \textcolor{keyword}{const} TensorEvaluator& m\_impl;
+00141   \textcolor{keyword}{const} \textcolor{keyword}{typename} TensorEvaluator::Index m\_maxIndex;
+00142 \};
+00143 
+00144 \textcolor{keyword}{template}<\textcolor{keyword}{typename} TargetType, \textcolor{keyword}{typename} XprType>
+00145 \textcolor{keyword}{class }TensorConversionOp : \textcolor{keyword}{public} TensorBase<TensorConversionOp<TargetType, XprType>, ReadOnlyAccessors>
+00146 \{
+00147   \textcolor{keyword}{public}:
+00148     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::traits<TensorConversionOp>::Scalar Scalar;
+00149     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::traits<TensorConversionOp>::StorageKind StorageKind;
+00150     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::traits<TensorConversionOp>::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00151     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::nested<TensorConversionOp>::type Nested;
+00152     \textcolor{keyword}{typedef} Scalar CoeffReturnType;
+00153     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00154 
+00155     EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE TensorConversionOp(\textcolor{keyword}{const} XprType& xpr)
+00156         : m\_xpr(xpr) \{\}
+00157 
+00158     EIGEN\_DEVICE\_FUNC
+00159     \textcolor{keyword}{const} \textcolor{keyword}{typename} internal::remove\_all<typename XprType::Nested>::type&
+00160     expression()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_xpr; \}
+00161 
+00162   \textcolor{keyword}{protected}:
+00163     \textcolor{keyword}{typename} XprType::Nested m\_xpr;
+00164 \};
+00165 
+00166 \textcolor{keyword}{template} <\textcolor{keywordtype}{bool} SameType, \textcolor{keyword}{typename} Eval, \textcolor{keyword}{typename} Scalar> \textcolor{keyword}{struct }ConversionSubExprEval \{
+00167   \textcolor{keyword}{static} EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{bool} run(Eval& impl, Scalar*) \{
+00168     impl.evalSubExprsIfNeeded(NULL);
+00169     \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00170   \}
+00171 \};
+00172 
+00173 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Eval, \textcolor{keyword}{typename} Scalar> \textcolor{keyword}{struct }ConversionSubExprEval<true, Eval, Scalar> \{
+00174   \textcolor{keyword}{static} EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{bool} run(Eval& impl, Scalar* data) \{
+00175     \textcolor{keywordflow}{return} impl.evalSubExprsIfNeeded(data);
+00176   \}
+00177 \};
+00178 
+00179 
+00180 \textcolor{comment}{// Eval as rvalue}
+00181 \textcolor{keyword}{template}<\textcolor{keyword}{typename} TargetType, \textcolor{keyword}{typename} ArgType, \textcolor{keyword}{typename} Device>
+00182 \textcolor{keyword}{struct }TensorEvaluator<const TensorConversionOp<TargetType, ArgType>, Device>
+00183 \{
+00184   \textcolor{keyword}{typedef} TensorConversionOp<TargetType, ArgType> XprType;
+00185   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00186   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} TensorEvaluator<ArgType, Device>::Dimensions Dimensions;
+00187   \textcolor{keyword}{typedef} TargetType Scalar;
+00188   \textcolor{keyword}{typedef} TargetType CoeffReturnType;
+00189   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_all<typename internal::traits<ArgType>::Scalar>::type SrcType;
+00190   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} PacketType<CoeffReturnType, Device>::type PacketReturnType;
+00191   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} PacketType<SrcType, Device>::type PacketSourceType;
+00192   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} PacketSize = internal::unpacket\_traits<PacketReturnType>::size;
+00193 
+00194   \textcolor{keyword}{enum} \{
+00195     IsAligned = \textcolor{keyword}{false},
+00196     PacketAccess = \textcolor{keyword}{true},
+00197     Layout = TensorEvaluator<ArgType, Device>::Layout,
+00198     RawAccess = \textcolor{keyword}{false}
+00199   \};
+00200 
+00201   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE TensorEvaluator(\textcolor{keyword}{const} XprType& op, \textcolor{keyword}{const} Device& device)
+00202     : m\_impl(op.expression(), device)
+00203   \{
+00204   \}
+00205 
+00206   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{const} Dimensions& dimensions()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_impl.dimensions(); 
+      \}
+00207 
+00208   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{bool} evalSubExprsIfNeeded(Scalar* data)
+00209   \{
+00210     \textcolor{keywordflow}{return} ConversionSubExprEval<internal::is\_same<TargetType, SrcType>::value, TensorEvaluator<ArgType,
+       Device>, Scalar>::run(m\_impl, data);
+00211   \}
+00212 
+00213   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} cleanup()
+00214   \{
+00215     m\_impl.cleanup();
+00216   \}
+00217 
+00218   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE CoeffReturnType coeff(Index index)\textcolor{keyword}{ const}
+00219 \textcolor{keyword}{  }\{
+00220     internal::scalar\_cast\_op<SrcType, TargetType> converter;
+00221     \textcolor{keywordflow}{return} converter(m\_impl.coeff(index));
+00222   \}
+00223 
+00224   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode>
+00225   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE PacketReturnType packet(Index index)\textcolor{keyword}{ const}
+00226 \textcolor{keyword}{  }\{
+00227     \textcolor{keyword}{const} \textcolor{keywordtype}{bool} Vectorizable = TensorEvaluator<ArgType, Device>::PacketAccess &
+00228         internal::type\_casting\_traits<SrcType, TargetType>::VectorizedCast;
+00229     \textcolor{keywordflow}{return} PacketConv<LoadMode, Vectorizable>::run(m\_impl, index);
+00230   \}
+00231 
+00232   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE TensorOpCost
+00233   costPerCoeff(\textcolor{keywordtype}{bool} vectorized)\textcolor{keyword}{ const }\{
+00234     \textcolor{keyword}{const} \textcolor{keywordtype}{double} cast\_cost = TensorOpCost::CastCost<SrcType, TargetType>();
+00235     \textcolor{keywordflow}{if} (vectorized) \{
+00236       \textcolor{keyword}{const} \textcolor{keywordtype}{double} SrcCoeffRatio =
+00237           internal::type\_casting\_traits<SrcType, TargetType>::SrcCoeffRatio;
+00238       \textcolor{keyword}{const} \textcolor{keywordtype}{double} TgtCoeffRatio =
+00239           internal::type\_casting\_traits<SrcType, TargetType>::TgtCoeffRatio;
+00240       \textcolor{keywordflow}{return} m\_impl.costPerCoeff(vectorized) * (SrcCoeffRatio / PacketSize) +
+00241           TensorOpCost(0, 0, TgtCoeffRatio * (cast\_cost / PacketSize));
+00242     \} \textcolor{keywordflow}{else} \{
+00243       \textcolor{keywordflow}{return} m\_impl.costPerCoeff(vectorized) + TensorOpCost(0, 0, cast\_cost);
+00244     \}
+00245   \}
+00246 
+00247   EIGEN\_DEVICE\_FUNC Scalar* data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} NULL; \}
+00248 
+00249   \textcolor{keyword}{protected}:
+00250   \textcolor{keyword}{template} <\textcolor{keywordtype}{int} LoadMode, \textcolor{keywordtype}{bool} ActuallyVectorize>
+00251   \textcolor{keyword}{struct }PacketConv \{
+00252     \textcolor{keyword}{static} EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE PacketReturnType run(\textcolor{keyword}{const} TensorEvaluator<ArgType,
+       Device>& impl, Index index) \{
+00253       internal::scalar\_cast\_op<SrcType, TargetType> converter;
+00254       EIGEN\_ALIGN\_MAX \textcolor{keyword}{typename} internal::remove\_const<CoeffReturnType>::type values[PacketSize];
+00255       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < PacketSize; ++i) \{
+00256         values[i] = converter(impl.coeff(index+i));
+00257       \}
+00258       PacketReturnType rslt = internal::pload<PacketReturnType>(values);
+00259       \textcolor{keywordflow}{return} rslt;
+00260     \}
+00261   \};
+00262 
+00263   \textcolor{keyword}{template} <\textcolor{keywordtype}{int} LoadMode>
+00264   \textcolor{keyword}{struct }PacketConv<LoadMode, true> \{
+00265     \textcolor{keyword}{static} EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE PacketReturnType run(\textcolor{keyword}{const} TensorEvaluator<ArgType,
+       Device>& impl, Index index) \{
+00266       \textcolor{keyword}{const} \textcolor{keywordtype}{int} SrcCoeffRatio = internal::type\_casting\_traits<SrcType, TargetType>::SrcCoeffRatio;
+00267       \textcolor{keyword}{const} \textcolor{keywordtype}{int} TgtCoeffRatio = internal::type\_casting\_traits<SrcType, TargetType>::TgtCoeffRatio;
+00268       PacketConverter<TensorEvaluator<ArgType, Device>, PacketSourceType, PacketReturnType,
+00269                       SrcCoeffRatio, TgtCoeffRatio> converter(impl);
+00270       \textcolor{keywordflow}{return} converter.template packet<LoadMode>(index);
+00271     \}
+00272   \};
+00273 
+00274   TensorEvaluator<ArgType, Device> m\_impl;
+00275 \};
+00276 
+00277 \} \textcolor{comment}{// end namespace Eigen}
+00278 
+00279 \textcolor{preprocessor}{#endif // EIGEN\_CXX11\_TENSOR\_TENSOR\_CONVERSION\_H}
+\end{DoxyCode}

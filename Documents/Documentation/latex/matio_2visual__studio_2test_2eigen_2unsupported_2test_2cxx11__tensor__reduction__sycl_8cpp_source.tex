@@ -1,0 +1,150 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__reduction__sycl_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/test/cxx11\+\_\+tensor\+\_\+reduction\+\_\+sycl.cpp}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__reduction__sycl_8cpp_source}\index{cxx11\+\_\+tensor\+\_\+reduction\+\_\+sycl.\+cpp@{cxx11\+\_\+tensor\+\_\+reduction\+\_\+sycl.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2015}
+00005 \textcolor{comment}{// Mehdi Goli    Codeplay Software Ltd.}
+00006 \textcolor{comment}{// Ralph Potter  Codeplay Software Ltd.}
+00007 \textcolor{comment}{// Luke Iwanski  Codeplay Software Ltd.}
+00008 \textcolor{comment}{// Contact: <eigen@codeplay.com>}
+00009 \textcolor{comment}{//}
+00010 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00011 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00012 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00013 
+00014 \textcolor{preprocessor}{#define EIGEN\_TEST\_NO\_LONGDOUBLE}
+00015 \textcolor{preprocessor}{#define EIGEN\_TEST\_NO\_COMPLEX}
+00016 \textcolor{preprocessor}{#define EIGEN\_TEST\_FUNC cxx11\_tensor\_reduction\_sycl}
+00017 \textcolor{preprocessor}{#define EIGEN\_DEFAULT\_DENSE\_INDEX\_TYPE int}
+00018 \textcolor{preprocessor}{#define EIGEN\_USE\_SYCL}
+00019 
+00020 \textcolor{preprocessor}{#include "main.h"}
+00021 \textcolor{preprocessor}{#include <unsupported/Eigen/CXX11/Tensor>}
+00022 
+00023 
+00024 
+00025 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_full\_reductions\_sycl(\textcolor{keyword}{const} Eigen::SyclDevice&  sycl\_device) \{
+00026 
+00027   \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_rows = 452;
+00028   \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_cols = 765;
+00029   array<int, 2> tensorRange = \{\{num\_rows, num\_cols\}\};
+00030 
+00031   Tensor<float, 2> in(tensorRange);
+00032   Tensor<float, 0> full\_redux;
+00033   Tensor<float, 0> full\_redux\_gpu;
+00034 
+00035   in.setRandom();
+00036 
+00037   full\_redux = in.sum();
+00038 
+00039   \textcolor{keywordtype}{float}* gpu\_in\_data = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}*\textcolor{keyword}{>}(sycl\_device.allocate(in.dimensions().TotalSize()*\textcolor{keyword}{sizeof}(float)))
+      ;
+00040   \textcolor{keywordtype}{float}* gpu\_out\_data =(\textcolor{keywordtype}{float}*)sycl\_device.allocate(\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));
+00041 
+00042   TensorMap<Tensor<float, 2> >  in\_gpu(gpu\_in\_data, tensorRange);
+00043   TensorMap<Tensor<float, 0> >  out\_gpu(gpu\_out\_data);
+00044 
+00045   sycl\_device.memcpyHostToDevice(gpu\_in\_data, in.data(),(in.dimensions().TotalSize())*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));
+00046   out\_gpu.device(sycl\_device) = in\_gpu.sum();
+00047   sycl\_device.memcpyDeviceToHost(full\_redux\_gpu.data(), gpu\_out\_data, \textcolor{keyword}{sizeof}(float));
+00048   \textcolor{comment}{// Check that the CPU and GPU reductions return the same result.}
+00049   VERIFY\_IS\_APPROX(full\_redux\_gpu(), full\_redux());
+00050 
+00051   sycl\_device.deallocate(gpu\_in\_data);
+00052   sycl\_device.deallocate(gpu\_out\_data);
+00053 \}
+00054 
+00055 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_first\_dim\_reductions\_sycl(\textcolor{keyword}{const} Eigen::SyclDevice& sycl\_device) \{
+00056 
+00057   \textcolor{keywordtype}{int} dim\_x = 145;
+00058   \textcolor{keywordtype}{int} dim\_y = 1;
+00059   \textcolor{keywordtype}{int} dim\_z = 67;
+00060 
+00061   array<int, 3> tensorRange = \{\{dim\_x, dim\_y, dim\_z\}\};
+00062   \hyperlink{class_eigen_1_1array}{Eigen::array<int, 1>} red\_axis;
+00063   red\_axis[0] = 0;
+00064   array<int, 2> reduced\_tensorRange = \{\{dim\_y, dim\_z\}\};
+00065 
+00066   Tensor<float, 3> in(tensorRange);
+00067   Tensor<float, 2> redux(reduced\_tensorRange);
+00068   Tensor<float, 2> redux\_gpu(reduced\_tensorRange);
+00069 
+00070   in.setRandom();
+00071 
+00072   redux= in.sum(red\_axis);
+00073 
+00074   \textcolor{keywordtype}{float}* gpu\_in\_data = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}*\textcolor{keyword}{>}(sycl\_device.allocate(in.dimensions().TotalSize()*\textcolor{keyword}{sizeof}(float)))
+      ;
+00075   \textcolor{keywordtype}{float}* gpu\_out\_data = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}*\textcolor{keyword}{>}(sycl\_device.allocate(redux\_gpu.dimensions().TotalSize()*\textcolor{keyword}{sizeof}(
+      float)));
+00076 
+00077   TensorMap<Tensor<float, 3> >  in\_gpu(gpu\_in\_data, tensorRange);
+00078   TensorMap<Tensor<float, 2> >  out\_gpu(gpu\_out\_data, reduced\_tensorRange);
+00079 
+00080   sycl\_device.memcpyHostToDevice(gpu\_in\_data, in.data(),(in.dimensions().TotalSize())*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));
+00081   out\_gpu.device(sycl\_device) = in\_gpu.sum(red\_axis);
+00082   sycl\_device.memcpyDeviceToHost(redux\_gpu.data(), gpu\_out\_data, redux\_gpu.dimensions().TotalSize()*\textcolor{keyword}{sizeof}(
+      float));
+00083 
+00084   \textcolor{comment}{// Check that the CPU and GPU reductions return the same result.}
+00085   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j=0; j<reduced\_tensorRange[0]; j++ )
+00086     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} k=0; k<reduced\_tensorRange[1]; k++ )
+00087       VERIFY\_IS\_APPROX(redux\_gpu(j,k), redux(j,k));
+00088 
+00089   sycl\_device.deallocate(gpu\_in\_data);
+00090   sycl\_device.deallocate(gpu\_out\_data);
+00091 \}
+00092 
+00093 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_last\_dim\_reductions\_sycl(\textcolor{keyword}{const} Eigen::SyclDevice &sycl\_device) \{
+00094 
+00095   \textcolor{keywordtype}{int} dim\_x = 567;
+00096   \textcolor{keywordtype}{int} dim\_y = 1;
+00097   \textcolor{keywordtype}{int} dim\_z = 47;
+00098 
+00099   array<int, 3> tensorRange = \{\{dim\_x, dim\_y, dim\_z\}\};
+00100   \hyperlink{class_eigen_1_1array}{Eigen::array<int, 1>} red\_axis;
+00101   red\_axis[0] = 2;
+00102   array<int, 2> reduced\_tensorRange = \{\{dim\_x, dim\_y\}\};
+00103 
+00104   Tensor<float, 3> in(tensorRange);
+00105   Tensor<float, 2> redux(reduced\_tensorRange);
+00106   Tensor<float, 2> redux\_gpu(reduced\_tensorRange);
+00107 
+00108   in.setRandom();
+00109 
+00110   redux= in.sum(red\_axis);
+00111 
+00112   \textcolor{keywordtype}{float}* gpu\_in\_data = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}*\textcolor{keyword}{>}(sycl\_device.allocate(in.dimensions().TotalSize()*\textcolor{keyword}{sizeof}(float)))
+      ;
+00113   \textcolor{keywordtype}{float}* gpu\_out\_data = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}*\textcolor{keyword}{>}(sycl\_device.allocate(redux\_gpu.dimensions().TotalSize()*\textcolor{keyword}{sizeof}(
+      float)));
+00114 
+00115   TensorMap<Tensor<float, 3> >  in\_gpu(gpu\_in\_data, tensorRange);
+00116   TensorMap<Tensor<float, 2> >  out\_gpu(gpu\_out\_data, reduced\_tensorRange);
+00117 
+00118   sycl\_device.memcpyHostToDevice(gpu\_in\_data, in.data(),(in.dimensions().TotalSize())*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));
+00119   out\_gpu.device(sycl\_device) = in\_gpu.sum(red\_axis);
+00120   sycl\_device.memcpyDeviceToHost(redux\_gpu.data(), gpu\_out\_data, redux\_gpu.dimensions().TotalSize()*\textcolor{keyword}{sizeof}(
+      float));
+00121   \textcolor{comment}{// Check that the CPU and GPU reductions return the same result.}
+00122   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} j=0; j<reduced\_tensorRange[0]; j++ )
+00123     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} k=0; k<reduced\_tensorRange[1]; k++ )
+00124       VERIFY\_IS\_APPROX(redux\_gpu(j,k), redux(j,k));
+00125 
+00126   sycl\_device.deallocate(gpu\_in\_data);
+00127   sycl\_device.deallocate(gpu\_out\_data);
+00128 
+00129 \}
+00130 
+00131 \textcolor{keywordtype}{void} test\_cxx11\_tensor\_reduction\_sycl() \{
+00132   cl::sycl::gpu\_selector s;
+00133   Eigen::SyclDevice sycl\_device(s);
+00134   CALL\_SUBTEST((test\_full\_reductions\_sycl(sycl\_device)));
+00135   CALL\_SUBTEST((test\_first\_dim\_reductions\_sycl(sycl\_device)));
+00136   CALL\_SUBTEST((test\_last\_dim\_reductions\_sycl(sycl\_device)));
+00137 
+00138 \}
+\end{DoxyCode}

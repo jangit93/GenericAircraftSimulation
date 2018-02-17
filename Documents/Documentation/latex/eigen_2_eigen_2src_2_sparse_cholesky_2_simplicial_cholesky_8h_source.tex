@@ -1,0 +1,603 @@
+\hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source}{}\section{eigen/\+Eigen/src/\+Sparse\+Cholesky/\+Simplicial\+Cholesky.h}
+\label{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source}\index{Simplicial\+Cholesky.\+h@{Simplicial\+Cholesky.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2012 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_SIMPLICIAL\_CHOLESKY\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_SIMPLICIAL\_CHOLESKY\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00014 
+00015 \textcolor{keyword}{enum} SimplicialCholeskyMode \{
+00016   SimplicialCholeskyLLT,
+00017   SimplicialCholeskyLDLT
+00018 \};
+00019 
+00020 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00021   \textcolor{keyword}{template}<\textcolor{keyword}{typename} CholMatrixType, \textcolor{keyword}{typename} InputMatrixType>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00022}\hyperlink{struct_eigen_1_1internal_1_1simplicial__cholesky__grab__input}{00022}   \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1simplicial__cholesky__grab__input}{simplicial\_cholesky\_grab\_input} \{
+00023     \textcolor{keyword}{typedef} CholMatrixType \textcolor{keyword}{const} * ConstCholMatrixPtr;
+00024     \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} InputMatrixType& input, ConstCholMatrixPtr &pmat, CholMatrixType &tmp)
+00025     \{
+00026       tmp = input;
+00027       pmat = &tmp;
+00028     \}
+00029   \};
+00030   
+00031   \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00032}\hyperlink{struct_eigen_1_1internal_1_1simplicial__cholesky__grab__input_3_01_matrix_type_00_01_matrix_type_01_4}{00032}   \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1simplicial__cholesky__grab__input}{simplicial\_cholesky\_grab\_input}<MatrixType,MatrixType> \{
+00033     \textcolor{keyword}{typedef} MatrixType \textcolor{keyword}{const} * ConstMatrixPtr;
+00034     \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} MatrixType& input, ConstMatrixPtr &pmat, MatrixType &\textcolor{comment}{/*tmp*/})
+00035     \{
+00036       pmat = &input;
+00037     \}
+00038   \};
+00039 \} \textcolor{comment}{// end namespace internal}
+00040 
+00054 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00055}\hyperlink{group___sparse_cholesky___module}{00055} \textcolor{keyword}{class }\hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky_base}{SimplicialCholeskyBase} : \textcolor{keyword}{public} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_solver_base}{SparseSolverBase}<Derived>
+00056 \{
+00057     \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_solver_base}{SparseSolverBase<Derived>} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_solver_base}{Base};
+00058     \textcolor{keyword}{using} Base::m\_isInitialized;
+00059     
+00060   \textcolor{keyword}{public}:
+00061     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::MatrixType} MatrixType;
+00062     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::OrderingType} 
+      OrderingType;
+00063     \textcolor{keyword}{enum} \{ UpLo = \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::UpLo} \};
+00064     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00065     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00066     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::StorageIndex StorageIndex;
+00067     \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar,ColMajor,StorageIndex>} 
+      \hyperlink{group___sparse_core___module}{CholMatrixType};
+00068     \textcolor{keyword}{typedef} CholMatrixType \textcolor{keyword}{const} * ConstCholMatrixPtr;
+00069     \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,1>} \hyperlink{group___core___module}{VectorType};
+00070     \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<StorageIndex,Dynamic,1>} \hyperlink{group___core___module}{VectorI};
+00071 
+00072     \textcolor{keyword}{enum} \{
+00073       ColsAtCompileTime = MatrixType::ColsAtCompileTime,
+00074       MaxColsAtCompileTime = MatrixType::MaxColsAtCompileTime
+00075     \};
+00076 
+00077   \textcolor{keyword}{public}:
+00078     
+00079     \textcolor{keyword}{using} Base::derived;
+00080 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00082}\hyperlink{group___sparse_cholesky___module_a098baba1dbe07ca3a775c8df1f8a0e71}{00082}     \hyperlink{group___sparse_cholesky___module_a098baba1dbe07ca3a775c8df1f8a0e71}{SimplicialCholeskyBase}()
+00083       : m\_info(\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success}), m\_shiftOffset(0), m\_shiftScale(1)
+00084     \{\}
+00085 
+00086     \textcolor{keyword}{explicit} \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky_base}{SimplicialCholeskyBase}(\textcolor{keyword}{const} MatrixType& matrix)
+00087       : m\_info(\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success}), m\_shiftOffset(0), m\_shiftScale(1)
+00088     \{
+00089       derived().compute(matrix);
+00090     \}
+00091 
+00092     ~\hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky_base}{SimplicialCholeskyBase}()
+00093     \{
+00094     \}
+00095 
+00096     Derived& derived() \{ \textcolor{keywordflow}{return} *\textcolor{keyword}{static\_cast<}Derived*\textcolor{keyword}{>}(\textcolor{keyword}{this}); \}
+00097     \textcolor{keyword}{const} Derived& derived()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} *\textcolor{keyword}{static\_cast<}\textcolor{keyword}{const }Derived*\textcolor{keyword}{>}(\textcolor{keyword}{this}); \}
+00098     
+00099     \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix.cols(); \}
+00100     \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix.rows(); \}
+00101     
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00107}\hyperlink{group___sparse_cholesky___module_a3ac877f73aaaff670e6ae7554eb02fc8}{00107}     \hyperlink{group__enums_ga85fad7b87587764e5cf6b513a9e0ee5e}{ComputationInfo} \hyperlink{group___sparse_cholesky___module_a3ac877f73aaaff670e6ae7554eb02fc8}{info}()\textcolor{keyword}{ const}
+00108 \textcolor{keyword}{    }\{
+00109       eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"Decomposition is not initialized."});
+00110       \textcolor{keywordflow}{return} m\_info;
+00111     \}
+00112     
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00115}\hyperlink{group___sparse_cholesky___module_aff1480e595a21726beaec9a586a94d5a}{00115}     \textcolor{keyword}{const} \hyperlink{group___core___module}{PermutationMatrix<Dynamic,Dynamic,StorageIndex>}& 
+      \hyperlink{group___sparse_cholesky___module_aff1480e595a21726beaec9a586a94d5a}{permutationP}()\textcolor{keyword}{ const}
+00116 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} m\_P; \}
+00117     
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00120}\hyperlink{group___sparse_cholesky___module_a0e23d1f4a88c211be7098faf1cb41674}{00120}     \textcolor{keyword}{const} \hyperlink{group___core___module}{PermutationMatrix<Dynamic,Dynamic,StorageIndex>}& 
+      \hyperlink{group___sparse_cholesky___module_a0e23d1f4a88c211be7098faf1cb41674}{permutationPinv}()\textcolor{keyword}{ const}
+00121 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} m\_Pinv; \}
+00122 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00132}\hyperlink{group___sparse_cholesky___module_a362352f755101faaac59c1ed9d5e3559}{00132}     Derived& \hyperlink{group___sparse_cholesky___module_a362352f755101faaac59c1ed9d5e3559}{setShift}(\textcolor{keyword}{const} RealScalar& offset, \textcolor{keyword}{const} RealScalar& scale = 1)
+00133     \{
+00134       m\_shiftOffset = offset;
+00135       m\_shiftScale = scale;
+00136       \textcolor{keywordflow}{return} derived();
+00137     \}
+00138 
+00139 \textcolor{preprocessor}{#ifndef EIGEN\_PARSED\_BY\_DOXYGEN}
+00140 
+00141     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Stream>
+00142     \textcolor{keywordtype}{void} dumpMemory(Stream& s)
+00143     \{
+00144       \textcolor{keywordtype}{int} total = 0;
+00145       s << \textcolor{stringliteral}{"  L:        "} << ((total+=(m\_matrix.cols()+1) * \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}) + m\_matrix.nonZeros()*(\textcolor{keyword}{sizeof}(int)+\textcolor{keyword}{
+      sizeof}(Scalar))) >> 20) << \textcolor{stringliteral}{"Mb"} << \textcolor{stringliteral}{"\(\backslash\)n"};
+00146       s << \textcolor{stringliteral}{"  diag:     "} << ((total+=m\_diag.size() * \textcolor{keyword}{sizeof}(Scalar)) >> 20) << \textcolor{stringliteral}{"Mb"} << \textcolor{stringliteral}{"\(\backslash\)n"};
+00147       s << \textcolor{stringliteral}{"  tree:     "} << ((total+=m\_parent.size() * \textcolor{keyword}{sizeof}(int)) >> 20) << \textcolor{stringliteral}{"Mb"} << \textcolor{stringliteral}{"\(\backslash\)n"};
+00148       s << \textcolor{stringliteral}{"  nonzeros: "} << ((total+=m\_nonZerosPerCol.size() * \textcolor{keyword}{sizeof}(int)) >> 20) << \textcolor{stringliteral}{"Mb"} << \textcolor{stringliteral}{"\(\backslash\)n"};
+00149       s << \textcolor{stringliteral}{"  perm:     "} << ((total+=m\_P.size() * \textcolor{keyword}{sizeof}(int)) >> 20) << \textcolor{stringliteral}{"Mb"} << \textcolor{stringliteral}{"\(\backslash\)n"};
+00150       s << \textcolor{stringliteral}{"  perm^-1:  "} << ((total+=m\_Pinv.size() * \textcolor{keyword}{sizeof}(int)) >> 20) << \textcolor{stringliteral}{"Mb"} << \textcolor{stringliteral}{"\(\backslash\)n"};
+00151       s << \textcolor{stringliteral}{"  TOTAL:    "} << (total>> 20) << \textcolor{stringliteral}{"Mb"} << \textcolor{stringliteral}{"\(\backslash\)n"};
+00152     \}
+00153 
+00155     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs,\textcolor{keyword}{typename} Dest>
+00156     \textcolor{keywordtype}{void} \_solve\_impl(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Rhs>} &b, \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Dest>} &dest)\textcolor{keyword}{ const}
+00157 \textcolor{keyword}{    }\{
+00158       eigen\_assert(m\_factorizationIsOk && \textcolor{stringliteral}{"The decomposition is not in a valid state for solving, you must
+       first call either compute() or symbolic()/numeric()"});
+00159       eigen\_assert(m\_matrix.rows()==b.rows());
+00160 
+00161       \textcolor{keywordflow}{if}(m\_info!=\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success})
+00162         \textcolor{keywordflow}{return};
+00163 
+00164       \textcolor{keywordflow}{if}(m\_P.size()>0)
+00165         dest = m\_P * b;
+00166       \textcolor{keywordflow}{else}
+00167         dest = b;
+00168 
+00169       \textcolor{keywordflow}{if}(m\_matrix.nonZeros()>0) \textcolor{comment}{// otherwise L==I}
+00170         derived().matrixL().solveInPlace(dest);
+00171 
+00172       \textcolor{keywordflow}{if}(m\_diag.size()>0)
+00173         dest = m\_diag.\hyperlink{group___core___module_a14235b62c90f93fe910070b4743782d0}{asDiagonal}().inverse() * dest;
+00174 
+00175       \textcolor{keywordflow}{if} (m\_matrix.nonZeros()>0) \textcolor{comment}{// otherwise U==I}
+00176         derived().matrixU().solveInPlace(dest);
+00177 
+00178       \textcolor{keywordflow}{if}(m\_P.size()>0)
+00179         dest = m\_Pinv * dest;
+00180     \}
+00181     
+00182     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs,\textcolor{keyword}{typename} Dest>
+00183     \textcolor{keywordtype}{void} \_solve\_impl(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix_base}{SparseMatrixBase<Rhs>} &b, 
+      \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix_base}{SparseMatrixBase<Dest>} &dest)\textcolor{keyword}{ const}
+00184 \textcolor{keyword}{    }\{
+00185       internal::solve\_sparse\_through\_dense\_panels(derived(), b, dest);
+00186     \}
+00187 
+00188 \textcolor{preprocessor}{#endif // EIGEN\_PARSED\_BY\_DOXYGEN}
+00189 
+00190   \textcolor{keyword}{protected}:
+00191     
+00193     \textcolor{keyword}{template}<\textcolor{keywordtype}{bool} DoLDLT>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00194}\hyperlink{group___sparse_cholesky___module_a9a741744dda2261cae26cddf96a35bf0}{00194}     \textcolor{keywordtype}{void} \hyperlink{group___sparse_cholesky___module_a9a741744dda2261cae26cddf96a35bf0}{compute}(\textcolor{keyword}{const} MatrixType& matrix)
+00195     \{
+00196       eigen\_assert(matrix.rows()==matrix.cols());
+00197       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = matrix.cols();
+00198       CholMatrixType tmp(size,size);
+00199       ConstCholMatrixPtr pmat;
+00200       ordering(matrix, pmat, tmp);
+00201       analyzePattern\_preordered(*pmat, DoLDLT);
+00202       factorize\_preordered<DoLDLT>(*pmat);
+00203     \}
+00204     
+00205     \textcolor{keyword}{template}<\textcolor{keywordtype}{bool} DoLDLT>
+00206     \textcolor{keywordtype}{void} factorize(\textcolor{keyword}{const} MatrixType& a)
+00207     \{
+00208       eigen\_assert(a.rows()==a.cols());
+00209       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = a.cols();
+00210       CholMatrixType tmp(size,size);
+00211       ConstCholMatrixPtr pmat;
+00212       
+00213       \textcolor{keywordflow}{if}(m\_P.size()==0 && (UpLo&\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper})==\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper})
+00214       \{
+00215         \textcolor{comment}{// If there is no ordering, try to directly use the input matrix without any copy}
+00216         \hyperlink{struct_eigen_1_1internal_1_1simplicial__cholesky__grab__input}{internal::simplicial\_cholesky\_grab\_input<CholMatrixType,MatrixType>::run}
+      (a, pmat, tmp);
+00217       \}
+00218       \textcolor{keywordflow}{else}
+00219       \{
+00220         tmp.template selfadjointView<Upper>() = a.template selfadjointView<UpLo>().
+      \hyperlink{group___sparse_core___module_a51d4898bd6a57cc3ba543a39b102423e}{twistedBy}(m\_P);
+00221         pmat = &tmp;
+00222       \}
+00223       
+00224       factorize\_preordered<DoLDLT>(*pmat);
+00225     \}
+00226 
+00227     \textcolor{keyword}{template}<\textcolor{keywordtype}{bool} DoLDLT>
+00228     \textcolor{keywordtype}{void} factorize\_preordered(\textcolor{keyword}{const} CholMatrixType& a);
+00229 
+00230     \textcolor{keywordtype}{void} analyzePattern(\textcolor{keyword}{const} MatrixType& a, \textcolor{keywordtype}{bool} doLDLT)
+00231     \{
+00232       eigen\_assert(a.rows()==a.cols());
+00233       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = a.cols();
+00234       CholMatrixType tmp(size,size);
+00235       ConstCholMatrixPtr pmat;
+00236       ordering(a, pmat, tmp);
+00237       analyzePattern\_preordered(*pmat,doLDLT);
+00238     \}
+00239     \textcolor{keywordtype}{void} analyzePattern\_preordered(\textcolor{keyword}{const} CholMatrixType& a, \textcolor{keywordtype}{bool} doLDLT);
+00240     
+00241     \textcolor{keywordtype}{void} ordering(\textcolor{keyword}{const} MatrixType& a, ConstCholMatrixPtr &pmat, CholMatrixType& ap);
+00242 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00244}\hyperlink{struct_eigen_1_1_simplicial_cholesky_base_1_1keep__diag}{00244}     \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_simplicial_cholesky_base_1_1keep__diag}{keep\_diag} \{
+00245       \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} operator() (\textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& row, \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& col, \textcolor{keyword}{const} Scalar&)\textcolor{keyword}{ const}
+00246 \textcolor{keyword}{      }\{
+00247         \textcolor{keywordflow}{return} row!=col;
+00248       \}
+00249     \};
+00250 
+00251     \textcolor{keyword}{mutable} \hyperlink{group__enums_ga85fad7b87587764e5cf6b513a9e0ee5e}{ComputationInfo} m\_info;
+00252     \textcolor{keywordtype}{bool} m\_factorizationIsOk;
+00253     \textcolor{keywordtype}{bool} m\_analysisIsOk;
+00254     
+00255     CholMatrixType m\_matrix;
+00256     VectorType m\_diag;                                \textcolor{comment}{// the diagonal coefficients (LDLT mode)}
+00257     VectorI m\_parent;                                 \textcolor{comment}{// elimination tree}
+00258     VectorI m\_nonZerosPerCol;
+00259     \hyperlink{group___core___module}{PermutationMatrix<Dynamic,Dynamic,StorageIndex>} m\_P;    
+       \textcolor{comment}{// the permutation}
+00260     \hyperlink{group___core___module}{PermutationMatrix<Dynamic,Dynamic,StorageIndex>} m\_Pinv; 
+       \textcolor{comment}{// the inverse permutation}
+00261 
+00262     RealScalar m\_shiftOffset;
+00263     RealScalar m\_shiftScale;
+00264 \};
+00265 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00266}\hyperlink{group___sparse_cholesky___module}{00266} \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{int} \_UpLo = Lower, \textcolor{keyword}{typename} \_Ordering = AMDOrdering<\textcolor{keyword}{typename} \_MatrixType::St
+      orageIndex> > \textcolor{keyword}{class }\hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_l_l_t}{SimplicialLLT};
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00267}\hyperlink{group___sparse_cholesky___module}{00267} \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{int} \_UpLo = Lower, \textcolor{keyword}{typename} \_Ordering = AMDOrdering<\textcolor{keyword}{typename} \_MatrixType::St
+      orageIndex> > \textcolor{keyword}{class }\hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_l_d_l_t}{SimplicialLDLT};
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00268}\hyperlink{group___sparse_cholesky___module}{00268} \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{int} \_UpLo = Lower, \textcolor{keyword}{typename} \_Ordering = AMDOrdering<\textcolor{keyword}{typename} \_MatrixType::St
+      orageIndex> > \textcolor{keyword}{class }\hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky}{SimplicialCholesky};
+00269 
+00270 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00271 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00272}\hyperlink{struct_eigen_1_1internal_1_1traits_3_01_simplicial_l_l_t_3_01___matrix_type_00_01___up_lo_00_01___ordering_01_4_01_4}{00272} \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{int} \_UpLo, \textcolor{keyword}{typename} \_Ordering> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1traits}{traits}<
+      \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_l_l_t}{SimplicialLLT}<\_MatrixType,\_UpLo,\_Ordering> >
+00273 \{
+00274   \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00275   \textcolor{keyword}{typedef} \_Ordering OrderingType;
+00276   \textcolor{keyword}{enum} \{ UpLo = \_UpLo \};
+00277   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar                         Scalar;
+00278   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::StorageIndex                   StorageIndex;
+00279   \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar, ColMajor, StorageIndex>}        
+      \hyperlink{group___sparse_core___module}{CholMatrixType};
+00280   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView<const CholMatrixType, Eigen::Lower>}
+        \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{MatrixL};
+00281   \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView<const typename CholMatrixType::AdjointReturnType, Eigen::Upper>}
+         \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{MatrixU};
+00282   \textcolor{keyword}{static} \textcolor{keyword}{inline} MatrixL getL(\textcolor{keyword}{const} MatrixType& m) \{ \textcolor{keywordflow}{return} MatrixL(m); \}
+00283   \textcolor{keyword}{static} \textcolor{keyword}{inline} MatrixU getU(\textcolor{keyword}{const} MatrixType& m) \{ \textcolor{keywordflow}{return} MatrixU(m.adjoint()); \}
+00284 \};
+00285 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00286}\hyperlink{struct_eigen_1_1internal_1_1traits_3_01_simplicial_l_d_l_t_3_01___matrix_type_00_01___up_lo_00_01___ordering_01_4_01_4}{00286} \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType,\textcolor{keywordtype}{int} \_UpLo, \textcolor{keyword}{typename} \_Ordering> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1traits}{traits}<
+      \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_l_d_l_t}{SimplicialLDLT}<\_MatrixType,\_UpLo,\_Ordering> >
+00287 \{
+00288   \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00289   \textcolor{keyword}{typedef} \_Ordering OrderingType;
+00290   \textcolor{keyword}{enum} \{ UpLo = \_UpLo \};
+00291   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar                             Scalar;
+00292   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::StorageIndex                       StorageIndex;
+00293   \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar, ColMajor, StorageIndex>}         
+         \hyperlink{group___sparse_core___module}{CholMatrixType};
+00294   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView<const CholMatrixType, Eigen::UnitLower>}
+        \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{MatrixL};
+00295   \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{TriangularView<const typename CholMatrixType::AdjointReturnType, Eigen::UnitUpper>}
+       \hyperlink{group___core___module_class_eigen_1_1_triangular_view}{MatrixU};
+00296   \textcolor{keyword}{static} \textcolor{keyword}{inline} MatrixL getL(\textcolor{keyword}{const} MatrixType& m) \{ \textcolor{keywordflow}{return} MatrixL(m); \}
+00297   \textcolor{keyword}{static} \textcolor{keyword}{inline} MatrixU getU(\textcolor{keyword}{const} MatrixType& m) \{ \textcolor{keywordflow}{return} MatrixU(m.adjoint()); \}
+00298 \};
+00299 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00300}\hyperlink{struct_eigen_1_1internal_1_1traits_3_01_simplicial_cholesky_3_01___matrix_type_00_01___up_lo_00_01___ordering_01_4_01_4}{00300} \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{int} \_UpLo, \textcolor{keyword}{typename} \_Ordering> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1traits}{traits}<
+      \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky}{SimplicialCholesky}<\_MatrixType,\_UpLo,\_Ordering> >
+00301 \{
+00302   \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00303   \textcolor{keyword}{typedef} \_Ordering OrderingType;
+00304   \textcolor{keyword}{enum} \{ UpLo = \_UpLo \};
+00305 \};
+00306 
+00307 \}
+00308 
+00329 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{int} \_UpLo, \textcolor{keyword}{typename} \_Ordering>
+00330     \textcolor{keyword}{class }\hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_l_l_t}{SimplicialLLT} : \textcolor{keyword}{public} \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky_base}{SimplicialCholeskyBase}<SimplicialLLT<\_M
+      atrixType,\_UpLo,\_Ordering> >
+00331 \{
+00332 \textcolor{keyword}{public}:
+00333     \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00334     \textcolor{keyword}{enum} \{ UpLo = \_UpLo \};
+00335     \textcolor{keyword}{typedef} \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky_base}{SimplicialCholeskyBase<SimplicialLLT>} Base;
+00336     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00337     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00338     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::StorageIndex StorageIndex;
+00339     \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix}{SparseMatrix<Scalar,ColMajor,Index>} CholMatrixType;
+00340     \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,1>} \hyperlink{struct_vector_type}{VectorType};
+00341     \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<SimplicialLLT>} Traits;
+00342     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Traits::MatrixL  MatrixL;
+00343     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Traits::MatrixU  MatrixU;
+00344 \textcolor{keyword}{public}:
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00346}\hyperlink{group___sparse_cholesky___module_ad25633e34d7c21b77fe05c873ffbe416}{00346}     \hyperlink{group___sparse_cholesky___module_ad25633e34d7c21b77fe05c873ffbe416}{SimplicialLLT}() : Base() \{\}
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00348}\hyperlink{group___sparse_cholesky___module_a342735f17d0306aa5581e91010091427}{00348}     \textcolor{keyword}{explicit} \hyperlink{group___sparse_cholesky___module_a342735f17d0306aa5581e91010091427}{SimplicialLLT}(\textcolor{keyword}{const} MatrixType& matrix)
+00349         : Base(matrix) \{\}
+00350 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00352}\hyperlink{group___sparse_cholesky___module_ae2b24f8f6d62a8444193904988374299}{00352}     \textcolor{keyword}{inline} \textcolor{keyword}{const} MatrixL \hyperlink{group___sparse_cholesky___module_ae2b24f8f6d62a8444193904988374299}{matrixL}()\textcolor{keyword}{ const }\{
+00353         eigen\_assert(Base::m\_factorizationIsOk && \textcolor{stringliteral}{"Simplicial LLT not factorized"});
+00354         \textcolor{keywordflow}{return} Traits::getL(Base::m\_matrix);
+00355     \}
+00356 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00358}\hyperlink{group___sparse_cholesky___module_a23522d6444c344ddb14e48dbfac128ed}{00358}     \textcolor{keyword}{inline} \textcolor{keyword}{const} MatrixU \hyperlink{group___sparse_cholesky___module_a23522d6444c344ddb14e48dbfac128ed}{matrixU}()\textcolor{keyword}{ const }\{
+00359         eigen\_assert(Base::m\_factorizationIsOk && \textcolor{stringliteral}{"Simplicial LLT not factorized"});
+00360         \textcolor{keywordflow}{return} Traits::getU(Base::m\_matrix);
+00361     \}
+00362     
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00364}\hyperlink{group___sparse_cholesky___module_a24ffa253377a1cec7a44b856fae1f71a}{00364}     \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_l_l_t}{SimplicialLLT}& \hyperlink{group___sparse_cholesky___module_a24ffa253377a1cec7a44b856fae1f71a}{compute}(\textcolor{keyword}{const} MatrixType& matrix)
+00365     \{
+00366       Base::template compute<false>(matrix);
+00367       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00368     \}
+00369 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00376}\hyperlink{group___sparse_cholesky___module_ad6e49b1c0d2ec5c8e118538260f3002c}{00376}     \textcolor{keywordtype}{void} \hyperlink{group___sparse_cholesky___module_ad6e49b1c0d2ec5c8e118538260f3002c}{analyzePattern}(\textcolor{keyword}{const} MatrixType& a)
+00377     \{
+00378       Base::analyzePattern(a, \textcolor{keyword}{false});
+00379     \}
+00380 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00387}\hyperlink{group___sparse_cholesky___module_a8a140b34b08df74c7426ee29b986b228}{00387}     \textcolor{keywordtype}{void} \hyperlink{group___sparse_cholesky___module_a8a140b34b08df74c7426ee29b986b228}{factorize}(\textcolor{keyword}{const} MatrixType& a)
+00388     \{
+00389       Base::template factorize<false>(a);
+00390     \}
+00391 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00393}\hyperlink{group___sparse_cholesky___module_a956595848e6fac7a389d091b3fdc9567}{00393}     Scalar \hyperlink{group___sparse_cholesky___module_a956595848e6fac7a389d091b3fdc9567}{determinant}()\textcolor{keyword}{ const}
+00394 \textcolor{keyword}{    }\{
+00395       Scalar detL = Base::m\_matrix.diagonal().prod();
+00396       \textcolor{keywordflow}{return} numext::abs2(detL);
+00397     \}
+00398 \};
+00399 
+00420 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{int} \_UpLo, \textcolor{keyword}{typename} \_Ordering>
+00421     \textcolor{keyword}{class }\hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_l_d_l_t}{SimplicialLDLT} : \textcolor{keyword}{public} \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky_base}{SimplicialCholeskyBase}<SimplicialLDLT
+      <\_MatrixType,\_UpLo,\_Ordering> >
+00422 \{
+00423 \textcolor{keyword}{public}:
+00424     \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00425     \textcolor{keyword}{enum} \{ UpLo = \_UpLo \};
+00426     \textcolor{keyword}{typedef} \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky_base}{SimplicialCholeskyBase<SimplicialLDLT>} 
+      \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky_base}{Base};
+00427     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00428     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00429     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::StorageIndex StorageIndex;
+00430     \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar,ColMajor,StorageIndex>} 
+      \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix}{CholMatrixType};
+00431     \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,1>} \hyperlink{group___core___module}{VectorType};
+00432     \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<SimplicialLDLT>} 
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{Traits};
+00433     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Traits::MatrixL  MatrixL;
+00434     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Traits::MatrixU  MatrixU;
+00435 \textcolor{keyword}{public}:
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00437}\hyperlink{group___sparse_cholesky___module_a3f26ae6105ffa36af9b8710e01e5caed}{00437}     \hyperlink{group___sparse_cholesky___module_a3f26ae6105ffa36af9b8710e01e5caed}{SimplicialLDLT}() : Base() \{\}
+00438 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00440}\hyperlink{group___sparse_cholesky___module_a07cb76aee396862f94c3eedc6d77d908}{00440}     \textcolor{keyword}{explicit} \hyperlink{group___sparse_cholesky___module_a07cb76aee396862f94c3eedc6d77d908}{SimplicialLDLT}(\textcolor{keyword}{const} MatrixType& matrix)
+00441         : Base(matrix) \{\}
+00442 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00444}\hyperlink{group___sparse_cholesky___module_abe54532ce80558a0474b11763702107b}{00444}     \textcolor{keyword}{inline} \textcolor{keyword}{const} VectorType \hyperlink{group___sparse_cholesky___module_abe54532ce80558a0474b11763702107b}{vectorD}()\textcolor{keyword}{ const }\{
+00445         eigen\_assert(Base::m\_factorizationIsOk && \textcolor{stringliteral}{"Simplicial LDLT not factorized"});
+00446         \textcolor{keywordflow}{return} Base::m\_diag;
+00447     \}
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00449}\hyperlink{group___sparse_cholesky___module_ae8f502eff0c95771115968510e4d9af5}{00449}     \textcolor{keyword}{inline} \textcolor{keyword}{const} MatrixL \hyperlink{group___sparse_cholesky___module_ae8f502eff0c95771115968510e4d9af5}{matrixL}()\textcolor{keyword}{ const }\{
+00450         eigen\_assert(Base::m\_factorizationIsOk && \textcolor{stringliteral}{"Simplicial LDLT not factorized"});
+00451         \textcolor{keywordflow}{return} Traits::getL(Base::m\_matrix);
+00452     \}
+00453 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00455}\hyperlink{group___sparse_cholesky___module_ae98ed1c7ce8f9165adf5fb08cbb36b70}{00455}     \textcolor{keyword}{inline} \textcolor{keyword}{const} MatrixU \hyperlink{group___sparse_cholesky___module_ae98ed1c7ce8f9165adf5fb08cbb36b70}{matrixU}()\textcolor{keyword}{ const }\{
+00456         eigen\_assert(Base::m\_factorizationIsOk && \textcolor{stringliteral}{"Simplicial LDLT not factorized"});
+00457         \textcolor{keywordflow}{return} Traits::getU(Base::m\_matrix);
+00458     \}
+00459 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00461}\hyperlink{group___sparse_cholesky___module_a55429e59dbdf16a5696ee28bbf14e44f}{00461}     \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_l_d_l_t}{SimplicialLDLT}& \hyperlink{group___sparse_cholesky___module_a55429e59dbdf16a5696ee28bbf14e44f}{compute}(\textcolor{keyword}{const} MatrixType& matrix)
+00462     \{
+00463       Base::template compute<true>(matrix);
+00464       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00465     \}
+00466     
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00473}\hyperlink{group___sparse_cholesky___module_aaf7c852056195d05de863362638517b7}{00473}     \textcolor{keywordtype}{void} \hyperlink{group___sparse_cholesky___module_aaf7c852056195d05de863362638517b7}{analyzePattern}(\textcolor{keyword}{const} MatrixType& a)
+00474     \{
+00475       Base::analyzePattern(a, \textcolor{keyword}{true});
+00476     \}
+00477 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00484}\hyperlink{group___sparse_cholesky___module_a8cf16bd92a712d36310397972bdef044}{00484}     \textcolor{keywordtype}{void} \hyperlink{group___sparse_cholesky___module_a8cf16bd92a712d36310397972bdef044}{factorize}(\textcolor{keyword}{const} MatrixType& a)
+00485     \{
+00486       Base::template factorize<true>(a);
+00487     \}
+00488 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00490}\hyperlink{group___sparse_cholesky___module_aa25042f3b49880f5e487d468ea20b1b7}{00490}     Scalar \hyperlink{group___sparse_cholesky___module_aa25042f3b49880f5e487d468ea20b1b7}{determinant}()\textcolor{keyword}{ const}
+00491 \textcolor{keyword}{    }\{
+00492       \textcolor{keywordflow}{return} Base::m\_diag.prod();
+00493     \}
+00494 \};
+00495 
+00502 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{int} \_UpLo, \textcolor{keyword}{typename} \_Ordering>
+00503     \textcolor{keyword}{class }\hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky}{SimplicialCholesky} : \textcolor{keyword}{public} \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky_base}{SimplicialCholeskyBase}<Simpli
+      cialCholesky<\_MatrixType,\_UpLo,\_Ordering> >
+00504 \{
+00505 \textcolor{keyword}{public}:
+00506     \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00507     \textcolor{keyword}{enum} \{ UpLo = \_UpLo \};
+00508     \textcolor{keyword}{typedef} \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky_base}{SimplicialCholeskyBase<SimplicialCholesky>} 
+      \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky_base}{Base};
+00509     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00510     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00511     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::StorageIndex StorageIndex;
+00512     \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar,ColMajor,StorageIndex>} 
+      \hyperlink{group___sparse_core___module}{CholMatrixType};
+00513     \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,1>} \hyperlink{group___core___module}{VectorType};
+00514     \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<SimplicialCholesky>} 
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{Traits};
+00515     \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<SimplicialLDLT<MatrixType,UpLo>}
+       > LDLTTraits;
+00516     \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<SimplicialLLT<MatrixType,UpLo>} 
+       > LLTTraits;
+00517   \textcolor{keyword}{public}:
+00518     \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky}{SimplicialCholesky}() : Base(), m\_LDLT(\textcolor{keyword}{true}) \{\}
+00519 
+00520     \textcolor{keyword}{explicit} \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky}{SimplicialCholesky}(\textcolor{keyword}{const} MatrixType& matrix)
+00521       : Base(), m\_LDLT(\textcolor{keyword}{true})
+00522     \{
+00523       compute(matrix);
+00524     \}
+00525 
+00526     \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky}{SimplicialCholesky}& setMode(SimplicialCholeskyMode mode)
+00527     \{
+00528       \textcolor{keywordflow}{switch}(mode)
+00529       \{
+00530       \textcolor{keywordflow}{case} SimplicialCholeskyLLT:
+00531         m\_LDLT = \textcolor{keyword}{false};
+00532         \textcolor{keywordflow}{break};
+00533       \textcolor{keywordflow}{case} SimplicialCholeskyLDLT:
+00534         m\_LDLT = \textcolor{keyword}{true};
+00535         \textcolor{keywordflow}{break};
+00536       \textcolor{keywordflow}{default}:
+00537         \textcolor{keywordflow}{break};
+00538       \}
+00539 
+00540       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00541     \}
+00542 
+00543     \textcolor{keyword}{inline} \textcolor{keyword}{const} VectorType vectorD()\textcolor{keyword}{ const }\{
+00544         eigen\_assert(Base::m\_factorizationIsOk && \textcolor{stringliteral}{"Simplicial Cholesky not factorized"});
+00545         \textcolor{keywordflow}{return} Base::m\_diag;
+00546     \}
+00547     \textcolor{keyword}{inline} \textcolor{keyword}{const} CholMatrixType rawMatrix()\textcolor{keyword}{ const }\{
+00548         eigen\_assert(Base::m\_factorizationIsOk && \textcolor{stringliteral}{"Simplicial Cholesky not factorized"});
+00549         \textcolor{keywordflow}{return} Base::m\_matrix;
+00550     \}
+00551     
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00553}\hyperlink{group___sparse_cholesky___module_a7883b49a88b26162ba6d8b044e2ee75b}{00553}     \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky}{SimplicialCholesky}& \hyperlink{group___sparse_cholesky___module_a7883b49a88b26162ba6d8b044e2ee75b}{compute}(\textcolor{keyword}{const} MatrixType& matrix)
+00554     \{
+00555       \textcolor{keywordflow}{if}(m\_LDLT)
+00556         Base::template compute<true>(matrix);
+00557       \textcolor{keywordflow}{else}
+00558         Base::template compute<false>(matrix);
+00559       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00560     \}
+00561 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00568}\hyperlink{group___sparse_cholesky___module_a6af3f64b855a96a2635302f863b5fd91}{00568}     \textcolor{keywordtype}{void} \hyperlink{group___sparse_cholesky___module_a6af3f64b855a96a2635302f863b5fd91}{analyzePattern}(\textcolor{keyword}{const} MatrixType& a)
+00569     \{
+00570       Base::analyzePattern(a, m\_LDLT);
+00571     \}
+00572 
+\Hypertarget{eigen_2_eigen_2src_2_sparse_cholesky_2_simplicial_cholesky_8h_source_l00579}\hyperlink{group___sparse_cholesky___module_ab1b21d430cc2a8e332221313a4f2f2e3}{00579}     \textcolor{keywordtype}{void} \hyperlink{group___sparse_cholesky___module_ab1b21d430cc2a8e332221313a4f2f2e3}{factorize}(\textcolor{keyword}{const} MatrixType& a)
+00580     \{
+00581       \textcolor{keywordflow}{if}(m\_LDLT)
+00582         Base::template factorize<true>(a);
+00583       \textcolor{keywordflow}{else}
+00584         Base::template factorize<false>(a);
+00585     \}
+00586 
+00588     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs,\textcolor{keyword}{typename} Dest>
+00589     \textcolor{keywordtype}{void} \_solve\_impl(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Rhs>} &b, \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Dest>} &dest)\textcolor{keyword}{ const}
+00590 \textcolor{keyword}{    }\{
+00591       eigen\_assert(Base::m\_factorizationIsOk && \textcolor{stringliteral}{"The decomposition is not in a valid state for solving, you
+       must first call either compute() or symbolic()/numeric()"});
+00592       eigen\_assert(Base::m\_matrix.rows()==b.rows());
+00593 
+00594       \textcolor{keywordflow}{if}(Base::m\_info!=\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success})
+00595         \textcolor{keywordflow}{return};
+00596 
+00597       \textcolor{keywordflow}{if}(Base::m\_P.size()>0)
+00598         dest = Base::m\_P * b;
+00599       \textcolor{keywordflow}{else}
+00600         dest = b;
+00601 
+00602       \textcolor{keywordflow}{if}(Base::m\_matrix.nonZeros()>0) \textcolor{comment}{// otherwise L==I}
+00603       \{
+00604         \textcolor{keywordflow}{if}(m\_LDLT)
+00605           LDLTTraits::getL(Base::m\_matrix).solveInPlace(dest);
+00606         \textcolor{keywordflow}{else}
+00607           LLTTraits::getL(Base::m\_matrix).solveInPlace(dest);
+00608       \}
+00609 
+00610       \textcolor{keywordflow}{if}(Base::m\_diag.size()>0)
+00611         dest = Base::m\_diag.\hyperlink{group___core___module_a14235b62c90f93fe910070b4743782d0}{asDiagonal}().inverse() * dest;
+00612 
+00613       \textcolor{keywordflow}{if} (Base::m\_matrix.nonZeros()>0) \textcolor{comment}{// otherwise I==I}
+00614       \{
+00615         \textcolor{keywordflow}{if}(m\_LDLT)
+00616           LDLTTraits::getU(Base::m\_matrix).solveInPlace(dest);
+00617         \textcolor{keywordflow}{else}
+00618           LLTTraits::getU(Base::m\_matrix).solveInPlace(dest);
+00619       \}
+00620 
+00621       \textcolor{keywordflow}{if}(Base::m\_P.size()>0)
+00622         dest = Base::m\_Pinv * dest;
+00623     \}
+00624     
+00626     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs,\textcolor{keyword}{typename} Dest>
+00627     \textcolor{keywordtype}{void} \_solve\_impl(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix_base}{SparseMatrixBase<Rhs>} &b, 
+      \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix_base}{SparseMatrixBase<Dest>} &dest)\textcolor{keyword}{ const}
+00628 \textcolor{keyword}{    }\{
+00629       internal::solve\_sparse\_through\_dense\_panels(*\textcolor{keyword}{this}, b, dest);
+00630     \}
+00631     
+00632     Scalar determinant()\textcolor{keyword}{ const}
+00633 \textcolor{keyword}{    }\{
+00634       \textcolor{keywordflow}{if}(m\_LDLT)
+00635       \{
+00636         \textcolor{keywordflow}{return} Base::m\_diag.prod();
+00637       \}
+00638       \textcolor{keywordflow}{else}
+00639       \{
+00640         Scalar detL = \hyperlink{group___core___module_class_eigen_1_1_diagonal}{Diagonal<const CholMatrixType>}(Base::m\_matrix).prod();
+00641         \textcolor{keywordflow}{return} numext::abs2(detL);
+00642       \}
+00643     \}
+00644     
+00645   \textcolor{keyword}{protected}:
+00646     \textcolor{keywordtype}{bool} m\_LDLT;
+00647 \};
+00648 
+00649 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00650 \textcolor{keywordtype}{void} \hyperlink{group___sparse_cholesky___module_class_eigen_1_1_simplicial_cholesky_base}{SimplicialCholeskyBase<Derived>::ordering}(\textcolor{keyword}{const} MatrixType& a
+      , ConstCholMatrixPtr &pmat, \hyperlink{group___sparse_core___module}{CholMatrixType}& ap)
+00651 \{
+00652   eigen\_assert(a.rows()==a.cols());
+00653   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = a.rows();
+00654   pmat = &ap;
+00655   \textcolor{comment}{// Note that ordering methods compute the inverse permutation}
+00656   \textcolor{keywordflow}{if}(!\hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same}<OrderingType,\hyperlink{group___ordering_methods___module_class_eigen_1_1_natural_ordering}{NaturalOrdering<Index>} >::value
+      )
+00657   \{
+00658     \{
+00659       \hyperlink{group___sparse_core___module}{CholMatrixType} \hyperlink{group___core___module}{C};
+00660       C = a.template selfadjointView<UpLo>();
+00661       
+00662       OrderingType ordering;
+00663       ordering(C,m\_Pinv);
+00664     \}
+00665 
+00666     \textcolor{keywordflow}{if}(m\_Pinv.size()>0) m\_P = m\_Pinv.inverse();
+00667     \textcolor{keywordflow}{else}                m\_P.resize(0);
+00668     
+00669     ap.\hyperlink{group___sparse_core___module_af88551f30202341b7cc24cfadabdec5c}{resize}(size,size);
+00670     ap.template selfadjointView<Upper>() = a.template selfadjointView<UpLo>().
+      \hyperlink{group___sparse_core___module_a51d4898bd6a57cc3ba543a39b102423e}{twistedBy}(m\_P);
+00671   \}
+00672   \textcolor{keywordflow}{else}
+00673   \{
+00674     m\_Pinv.resize(0);
+00675     m\_P.resize(0);
+00676     \textcolor{keywordflow}{if}(\textcolor{keywordtype}{int}(UpLo)==\textcolor{keywordtype}{int}(\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}) || MatrixType::IsRowMajor)
+00677     \{
+00678       \textcolor{comment}{// we have to transpose the lower part to to the upper one}
+00679       ap.\hyperlink{group___sparse_core___module_af88551f30202341b7cc24cfadabdec5c}{resize}(size,size);
+00680       ap.template selfadjointView<Upper>() = a.template selfadjointView<UpLo>();
+00681     \}
+00682     \textcolor{keywordflow}{else}
+00683       \hyperlink{struct_eigen_1_1internal_1_1simplicial__cholesky__grab__input}{internal::simplicial\_cholesky\_grab\_input<CholMatrixType,MatrixType>::run}
+      (a, pmat, ap);
+00684   \}  
+00685 \}
+00686 
+00687 \} \textcolor{comment}{// end namespace Eigen}
+00688 
+00689 \textcolor{preprocessor}{#endif // EIGEN\_SIMPLICIAL\_CHOLESKY\_H}
+\end{DoxyCode}

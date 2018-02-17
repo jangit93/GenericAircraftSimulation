@@ -1,0 +1,866 @@
+\hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source}{}\section{H\+D\+F5/1.10.1/include/\+H5\+H\+Fpkg.h}
+\label{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source}\index{H5\+H\+Fpkg.\+h@{H5\+H\+Fpkg.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+00002 \textcolor{comment}{ * Copyright by The HDF Group.                                               *}
+00003 \textcolor{comment}{ * Copyright by the Board of Trustees of the University of Illinois.         *}
+00004 \textcolor{comment}{ * All rights reserved.                                                      *}
+00005 \textcolor{comment}{ *                                                                           *}
+00006 \textcolor{comment}{ * This file is part of HDF5.  The full HDF5 copyright notice, including     *}
+00007 \textcolor{comment}{ * terms governing use, modification, and redistribution, is contained in    *}
+00008 \textcolor{comment}{ * the COPYING file, which can be found at the root of the source code       *}
+00009 \textcolor{comment}{ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *}
+00010 \textcolor{comment}{ * If you do not have access to either file, you may request a copy from     *}
+00011 \textcolor{comment}{ * help@hdfgroup.org.                                                        *}
+00012 \textcolor{comment}{ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00013 
+00014 \textcolor{comment}{/*}
+00015 \textcolor{comment}{ * Programmer:  Quincey Koziol <koziol@ncsa.uiuc.edu>}
+00016 \textcolor{comment}{ *      Friday, February 24, 2006}
+00017 \textcolor{comment}{ *}
+00018 \textcolor{comment}{ * Purpose: This file contains declarations which are visible only within}
+00019 \textcolor{comment}{ *      the H5HF package.  Source files outside the H5HF package should}
+00020 \textcolor{comment}{ *      include H5HFprivate.h instead.}
+00021 \textcolor{comment}{ */}
+00022 \textcolor{preprocessor}{#if !(defined H5HF\_FRIEND || defined H5HF\_MODULE)}
+00023 \textcolor{preprocessor}{#error "Do not include this file outside the H5HF package!"}
+00024 \textcolor{preprocessor}{#endif}
+00025 
+00026 \textcolor{preprocessor}{#ifndef \_H5HFpkg\_H}
+00027 \textcolor{preprocessor}{#define \_H5HFpkg\_H}
+00028 
+00029 \textcolor{comment}{/* Get package's private header */}
+00030 \textcolor{preprocessor}{#include "H5HFprivate.h"}
+00031 
+00032 \textcolor{comment}{/* Other private headers needed by this file */}
+00033 \textcolor{preprocessor}{#include "H5ACprivate.h"}    \textcolor{comment}{/* Metadata cache           */}
+00034 \textcolor{preprocessor}{#include "H5B2private.h"}    \textcolor{comment}{/* v2 B-trees               */}
+00035 \textcolor{preprocessor}{#include "H5FLprivate.h"}    \textcolor{comment}{/* Free Lists                           */}
+00036 \textcolor{preprocessor}{#include "H5FSprivate.h"}    \textcolor{comment}{/* Free space manager           */}
+00037 \textcolor{preprocessor}{#include "H5SLprivate.h"}    \textcolor{comment}{/* Skip lists               */}
+00038 
+00039 \textcolor{comment}{/**************************/}
+00040 \textcolor{comment}{/* Package Private Macros */}
+00041 \textcolor{comment}{/**************************/}
+00042 
+00043 \textcolor{comment}{/* Size of checksum information (on disk) */}
+00044 \textcolor{preprocessor}{#define H5HF\_SIZEOF\_CHKSUM      4}
+00045 
+00046 \textcolor{comment}{/* "Standard" size of prefix information for fractal heap metadata */}
+00047 \textcolor{preprocessor}{#define H5HF\_METADATA\_PREFIX\_SIZE(c) (                                        \(\backslash\)}
+00048 \textcolor{preprocessor}{    H5\_SIZEOF\_MAGIC   }\textcolor{comment}{/* Signature */}\textcolor{preprocessor}{                                         \(\backslash\)}
+00049 \textcolor{preprocessor}{    + (unsigned)1 }\textcolor{comment}{/* Version */}\textcolor{preprocessor}{                                               \(\backslash\)}
+00050 \textcolor{preprocessor}{    + ((c) ? (unsigned)H5HF\_SIZEOF\_CHKSUM : (unsigned)0) }\textcolor{comment}{/* Metadata checksum */}\textcolor{preprocessor}{ \(\backslash\)}
+00051 \textcolor{preprocessor}{    )}
+00052 
+00053 \textcolor{comment}{/* Size of doubling-table information */}
+00054 \textcolor{preprocessor}{#define H5HF\_DTABLE\_INFO\_SIZE(h) (                                            \(\backslash\)}
+00055 \textcolor{preprocessor}{    (unsigned)2   }\textcolor{comment}{/* Width of table (i.e. # of columns) */}\textcolor{preprocessor}{                    \(\backslash\)}
+00056 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_size }\textcolor{comment}{/* Starting block size */}\textcolor{preprocessor}{                    \(\backslash\)}
+00057 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_size }\textcolor{comment}{/* Maximum direct block size */}\textcolor{preprocessor}{              \(\backslash\)}
+00058 \textcolor{preprocessor}{    + (unsigned)2 }\textcolor{comment}{/* Max. size of heap (log2 of actual value - i.e. the # of bits) */}\textcolor{preprocessor}{   \(\backslash\)}
+00059 \textcolor{preprocessor}{    + (unsigned)2 }\textcolor{comment}{/* Starting # of rows in root indirect block */}\textcolor{preprocessor}{             \(\backslash\)}
+00060 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_addr }\textcolor{comment}{/* File address of table managed */}\textcolor{preprocessor}{          \(\backslash\)}
+00061 \textcolor{preprocessor}{    + (unsigned)2 }\textcolor{comment}{/* Current # of rows in root indirect block */}\textcolor{preprocessor}{              \(\backslash\)}
+00062 \textcolor{preprocessor}{    )}
+00063 
+00064 \textcolor{comment}{/* Flags for status byte */}
+00065 \textcolor{preprocessor}{#define H5HF\_HDR\_FLAGS\_HUGE\_ID\_WRAPPED 0x01     }\textcolor{comment}{/* "huge" object IDs have wrapped */}\textcolor{preprocessor}{}
+00066 \textcolor{preprocessor}{#define H5HF\_HDR\_FLAGS\_CHECKSUM\_DBLOCKS 0x02    }\textcolor{comment}{/* checksum direct blocks */}\textcolor{preprocessor}{}
+00067 
+00068 \textcolor{comment}{/* Size of the fractal heap header on disk */}
+00069 \textcolor{comment}{/* (this is the fixed-len portion, the variable-len I/O filter information}
+00070 \textcolor{comment}{ *      follows this information, if there are I/O filters for the heap)}
+00071 \textcolor{comment}{ */}
+00072 \textcolor{preprocessor}{#define H5HF\_HEADER\_SIZE(h)     (                                             \(\backslash\)}
+00073 \textcolor{preprocessor}{    }\textcolor{comment}{/* General metadata fields */}\textcolor{preprocessor}{                                             \(\backslash\)}
+00074 \textcolor{preprocessor}{    H5HF\_METADATA\_PREFIX\_SIZE(TRUE)                                           \(\backslash\)}
+00075 \textcolor{preprocessor}{                                                                              \(\backslash\)}
+00076 \textcolor{preprocessor}{    }\textcolor{comment}{/* Fractal Heap Header specific fields */}\textcolor{preprocessor}{                                 \(\backslash\)}
+00077 \textcolor{preprocessor}{                                                                              \(\backslash\)}
+00078 \textcolor{preprocessor}{    }\textcolor{comment}{/* General heap information */}\textcolor{preprocessor}{                                            \(\backslash\)}
+00079 \textcolor{preprocessor}{    + (unsigned)2 }\textcolor{comment}{/* Heap ID len */}\textcolor{preprocessor}{                                           \(\backslash\)}
+00080 \textcolor{preprocessor}{    + (unsigned)2 }\textcolor{comment}{/* I/O filters' encoded len */}\textcolor{preprocessor}{                              \(\backslash\)}
+00081 \textcolor{preprocessor}{    + (unsigned)1 }\textcolor{comment}{/* Status flags */}\textcolor{preprocessor}{                                          \(\backslash\)}
+00082 \textcolor{preprocessor}{                                                                              \(\backslash\)}
+00083 \textcolor{preprocessor}{    }\textcolor{comment}{/* "Huge" object fields */}\textcolor{preprocessor}{                                                \(\backslash\)}
+00084 \textcolor{preprocessor}{    + (unsigned)4 }\textcolor{comment}{/* Max. size of "managed" object */}\textcolor{preprocessor}{                         \(\backslash\)}
+00085 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_size }\textcolor{comment}{/* Next ID for "huge" object */}\textcolor{preprocessor}{              \(\backslash\)}
+00086 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_addr }\textcolor{comment}{/* File address of "huge" object tracker B-tree  */}\textcolor{preprocessor}{    \(\backslash\)}
+00087 \textcolor{preprocessor}{                                                                              \(\backslash\)}
+00088 \textcolor{preprocessor}{    }\textcolor{comment}{/* "Managed" object free space fields */}\textcolor{preprocessor}{                                  \(\backslash\)}
+00089 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_size }\textcolor{comment}{/* Total man. free space */}\textcolor{preprocessor}{                  \(\backslash\)}
+00090 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_addr }\textcolor{comment}{/* File address of free section header */}\textcolor{preprocessor}{    \(\backslash\)}
+00091 \textcolor{preprocessor}{                                                                              \(\backslash\)}
+00092 \textcolor{preprocessor}{    }\textcolor{comment}{/* Statistics fields */}\textcolor{preprocessor}{                                                   \(\backslash\)}
+00093 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_size }\textcolor{comment}{/* Size of man. space in heap */}\textcolor{preprocessor}{             \(\backslash\)}
+00094 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_size }\textcolor{comment}{/* Size of man. space iterator offset in heap */}\textcolor{preprocessor}{ \(\backslash\)}
+00095 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_size }\textcolor{comment}{/* Size of alloacted man. space in heap */}\textcolor{preprocessor}{   \(\backslash\)}
+00096 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_size }\textcolor{comment}{/* Number of man. objects in heap */}\textcolor{preprocessor}{         \(\backslash\)}
+00097 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_size }\textcolor{comment}{/* Size of huge space in heap */}\textcolor{preprocessor}{             \(\backslash\)}
+00098 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_size }\textcolor{comment}{/* Number of huge objects in heap */}\textcolor{preprocessor}{         \(\backslash\)}
+00099 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_size }\textcolor{comment}{/* Size of tiny space in heap */}\textcolor{preprocessor}{             \(\backslash\)}
+00100 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_size }\textcolor{comment}{/* Number of tiny objects in heap */}\textcolor{preprocessor}{         \(\backslash\)}
+00101 \textcolor{preprocessor}{                                                                              \(\backslash\)}
+00102 \textcolor{preprocessor}{    }\textcolor{comment}{/* "Managed" object doubling table info */}\textcolor{preprocessor}{                                \(\backslash\)}
+00103 \textcolor{preprocessor}{    + H5HF\_DTABLE\_INFO\_SIZE(h) }\textcolor{comment}{/* Size of managed obj. doubling-table info */}\textcolor{preprocessor}{ \(\backslash\)}
+00104 \textcolor{preprocessor}{    )}
+00105 
+00106 \textcolor{comment}{/* Size of overhead for a direct block */}
+00107 \textcolor{preprocessor}{#define H5HF\_MAN\_ABS\_DIRECT\_OVERHEAD(h) (                                     \(\backslash\)}
+00108 \textcolor{preprocessor}{    }\textcolor{comment}{/* General metadata fields */}\textcolor{preprocessor}{                                             \(\backslash\)}
+00109 \textcolor{preprocessor}{    H5HF\_METADATA\_PREFIX\_SIZE(h->checksum\_dblocks)                            \(\backslash\)}
+00110 \textcolor{preprocessor}{                                                                              \(\backslash\)}
+00111 \textcolor{preprocessor}{    }\textcolor{comment}{/* Fractal heap managed, absolutely mapped direct block specific fields */}\textcolor{preprocessor}{ \(\backslash\)}
+00112 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_addr          }\textcolor{comment}{/* File address of heap owning the block */}\textcolor{preprocessor}{ \(\backslash\)}
+00113 \textcolor{preprocessor}{    + (unsigned)(h)->heap\_off\_size        }\textcolor{comment}{/* Offset of the block in the heap */}\textcolor{preprocessor}{ \(\backslash\)}
+00114 \textcolor{preprocessor}{    )}
+00115 
+00116 \textcolor{comment}{/* Size of managed indirect block entry for a child direct block */}
+00117 \textcolor{preprocessor}{#define H5HF\_MAN\_INDIRECT\_CHILD\_DIR\_ENTRY\_SIZE(h) (                           \(\backslash\)}
+00118 \textcolor{preprocessor}{    ((h)->filter\_len > 0 ?                                                    \(\backslash\)}
+00119 \textcolor{preprocessor}{        ((unsigned)(h)->sizeof\_addr + (unsigned)(h)->sizeof\_size + (unsigned)4) : }\textcolor{comment}{/* Size of entries for
+       filtered direct blocks */}\textcolor{preprocessor}{ \(\backslash\)}
+00120 \textcolor{preprocessor}{        (unsigned)(h)->sizeof\_addr)             }\textcolor{comment}{/* Size of entries for un-filtered direct blocks */}\textcolor{preprocessor}{ \(\backslash\)}
+00121 \textcolor{preprocessor}{    )}
+00122 
+00123 \textcolor{comment}{/* Size of managed indirect block */}
+00124 \textcolor{preprocessor}{#define H5HF\_MAN\_INDIRECT\_SIZE(h, r) (                                        \(\backslash\)}
+00125 \textcolor{preprocessor}{    }\textcolor{comment}{/* General metadata fields */}\textcolor{preprocessor}{                                             \(\backslash\)}
+00126 \textcolor{preprocessor}{    H5HF\_METADATA\_PREFIX\_SIZE(TRUE)                                           \(\backslash\)}
+00127 \textcolor{preprocessor}{                                                                              \(\backslash\)}
+00128 \textcolor{preprocessor}{    }\textcolor{comment}{/* Fractal heap managed, absolutely mapped indirect block specific fields */}\textcolor{preprocessor}{ \(\backslash\)}
+00129 \textcolor{preprocessor}{    + (unsigned)(h)->sizeof\_addr          }\textcolor{comment}{/* File address of heap owning the block */}\textcolor{preprocessor}{   \(\backslash\)}
+00130 \textcolor{preprocessor}{    + (unsigned)(h)->heap\_off\_size        }\textcolor{comment}{/* Offset of the block in the heap */}\textcolor{preprocessor}{         \(\backslash\)}
+00131 \textcolor{preprocessor}{    + (MIN(r, (h)->man\_dtable.max\_direct\_rows) * (h)->man\_dtable.cparam.width *
+       H5HF\_MAN\_INDIRECT\_CHILD\_DIR\_ENTRY\_SIZE(h)) }\textcolor{comment}{/* Size of entries for direct blocks */}\textcolor{preprocessor}{ \(\backslash\)}
+00132 \textcolor{preprocessor}{    + (((r > (h)->man\_dtable.max\_direct\_rows) ? (r - (h)->man\_dtable.max\_direct\_rows) : 0)  *
+       (h)->man\_dtable.cparam.width * (h)->sizeof\_addr) }\textcolor{comment}{/* Size of entries for indirect blocks */}\textcolor{preprocessor}{ \(\backslash\)}
+00133 \textcolor{preprocessor}{    )}
+00134 
+00135 \textcolor{comment}{/* Compute the # of bytes required to store an offset into a given buffer size */}
+00136 \textcolor{preprocessor}{#define H5HF\_SIZEOF\_OFFSET\_BITS(b)   (((b) + 7) / 8)}
+00137 \textcolor{preprocessor}{#define H5HF\_SIZEOF\_OFFSET\_LEN(l)   H5HF\_SIZEOF\_OFFSET\_BITS(H5VM\_log2\_of2((unsigned)(l)))}
+00138 
+00139 \textcolor{comment}{/* Heap ID bit flags */}
+00140 \textcolor{comment}{/* Heap ID version (2 bits: 6-7) */}
+00141 \textcolor{preprocessor}{#define H5HF\_ID\_VERS\_CURR       0x00    }\textcolor{comment}{/* Current version of ID format */}\textcolor{preprocessor}{}
+00142 \textcolor{preprocessor}{#define H5HF\_ID\_VERS\_MASK       0xC0    }\textcolor{comment}{/* Mask for getting the ID version from flags */}\textcolor{preprocessor}{}
+00143 \textcolor{comment}{/* Heap ID type (2 bits: 4-5) */}
+00144 \textcolor{preprocessor}{#define H5HF\_ID\_TYPE\_MAN        0x00    }\textcolor{comment}{/* "Managed" object - stored in fractal heap blocks */}\textcolor{preprocessor}{}
+00145 \textcolor{preprocessor}{#define H5HF\_ID\_TYPE\_HUGE       0x10    }\textcolor{comment}{/* "Huge" object - stored in file directly */}\textcolor{preprocessor}{}
+00146 \textcolor{preprocessor}{#define H5HF\_ID\_TYPE\_TINY       0x20    }\textcolor{comment}{/* "Tiny" object - stored in heap ID directly */}\textcolor{preprocessor}{}
+00147 \textcolor{preprocessor}{#define H5HF\_ID\_TYPE\_RESERVED   0x30    }\textcolor{comment}{/* "?" object - reserved for future use */}\textcolor{preprocessor}{}
+00148 \textcolor{preprocessor}{#define H5HF\_ID\_TYPE\_MASK       0x30    }\textcolor{comment}{/* Mask for getting the ID type from flags */}\textcolor{preprocessor}{}
+00149 \textcolor{comment}{/* Heap ID bits 0-3 reserved for future use */}
+00150 
+00151 \textcolor{comment}{/* Encode a "managed" heap ID */}
+00152 \textcolor{preprocessor}{#define H5HF\_MAN\_ID\_ENCODE(i, h, o, l)                                        \(\backslash\)}
+00153 \textcolor{preprocessor}{    *(i) = H5HF\_ID\_VERS\_CURR | H5HF\_ID\_TYPE\_MAN;                              \(\backslash\)}
+00154 \textcolor{preprocessor}{    (i)++;                                                                    \(\backslash\)}
+00155 \textcolor{preprocessor}{    UINT64ENCODE\_VAR((i), (o), (h)->heap\_off\_size);                           \(\backslash\)}
+00156 \textcolor{preprocessor}{    UINT64ENCODE\_VAR((i), (l), (h)->heap\_len\_size)}
+00157 
+00158 \textcolor{comment}{/* Decode a "managed" heap ID */}
+00159 \textcolor{preprocessor}{#define H5HF\_MAN\_ID\_DECODE(i, h, f, o, l)                                     \(\backslash\)}
+00160 \textcolor{preprocessor}{    f = *(uint8\_t *)i++;                                                      \(\backslash\)}
+00161 \textcolor{preprocessor}{    UINT64DECODE\_VAR((i), (o), (h)->heap\_off\_size);                           \(\backslash\)}
+00162 \textcolor{preprocessor}{    UINT64DECODE\_VAR((i), (l), (h)->heap\_len\_size)}
+00163 
+00164 \textcolor{comment}{/* Free space section types for fractal heap */}
+00165 \textcolor{comment}{/* (values stored in free space data structures in file) */}
+00166 \textcolor{preprocessor}{#define H5HF\_FSPACE\_SECT\_SINGLE         0       }\textcolor{comment}{/* Section is a range of actual bytes in a direct block */}\textcolor{preprocessor}{}
+00167 \textcolor{preprocessor}{#define H5HF\_FSPACE\_SECT\_FIRST\_ROW      1       }\textcolor{comment}{/* Section is first range of blocks in an indirect block
+       row */}\textcolor{preprocessor}{}
+00168 \textcolor{preprocessor}{#define H5HF\_FSPACE\_SECT\_NORMAL\_ROW     2       }\textcolor{comment}{/* Section is a range of blocks in an indirect block row */}\textcolor{preprocessor}{}
+00169 \textcolor{preprocessor}{#define H5HF\_FSPACE\_SECT\_INDIRECT       3       }\textcolor{comment}{/* Section is a span of blocks in an indirect block */}\textcolor{preprocessor}{}
+00170 
+00171 \textcolor{comment}{/* Flags for 'op' operations */}
+00172 \textcolor{preprocessor}{#define H5HF\_OP\_MODIFY          0x0001          }\textcolor{comment}{/* Operation will modify object */}\textcolor{preprocessor}{}
+00173 \textcolor{preprocessor}{#define H5HF\_OP\_FLAGS           (H5HF\_OP\_MODIFY)        }\textcolor{comment}{/* Bit-wise OR of all op flags */}\textcolor{preprocessor}{}
+00174 
+00175 \textcolor{comment}{/* Flags for 'root\_iblock\_flags' field in header */}
+00176 \textcolor{preprocessor}{#define H5HF\_ROOT\_IBLOCK\_PINNED         0x01}
+00177 \textcolor{preprocessor}{#define H5HF\_ROOT\_IBLOCK\_PROTECTED      0x02}
+00178 
+00179 
+00180 \textcolor{comment}{/****************************/}
+00181 \textcolor{comment}{/* Package Private Typedefs */}
+00182 \textcolor{comment}{/****************************/}
+00183 
+00184 \textcolor{comment}{/* Doubling-table info */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00185}\hyperlink{struct_h5_h_f__dtable__t}{00185} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__dtable__t}{H5HF\_dtable\_t} \{
+00186     \textcolor{comment}{/* Immutable, pre-set information for table */}
+00187     H5HF\_dtable\_cparam\_t    cparam;     \textcolor{comment}{/* Creation parameters for table */}
+00188 
+00189     \textcolor{comment}{/* Derived information (stored, varies during lifetime of table) */}
+00190     haddr\_t     table\_addr;     \textcolor{comment}{/* Address of first block for table */}
+00191                                 \textcolor{comment}{/* Undefined if no space allocated for table */}
+00192     \textcolor{keywordtype}{unsigned}    curr\_root\_rows; \textcolor{comment}{/* Current number of rows in the root indirect block */}
+00193                                 \textcolor{comment}{/* 0 indicates that the TABLE\_ADDR field points}
+00194 \textcolor{comment}{                                 * to direct block (of START\_BLOCK\_SIZE) instead}
+00195 \textcolor{comment}{                                 * of indirect root block.}
+00196 \textcolor{comment}{                                 */}
+00197 
+00198     \textcolor{comment}{/* Computed information (not stored) */}
+00199     \textcolor{keywordtype}{unsigned}    max\_root\_rows;      \textcolor{comment}{/* Maximum # of rows in root indirect block */}
+00200     \textcolor{keywordtype}{unsigned}    max\_direct\_rows;    \textcolor{comment}{/* Maximum # of direct rows in any indirect block */}
+00201     \textcolor{keywordtype}{unsigned}    start\_bits;         \textcolor{comment}{/* # of bits for starting block size (i.e. log2(start\_block\_size)) */}
+00202     \textcolor{keywordtype}{unsigned}    max\_direct\_bits;    \textcolor{comment}{/* # of bits for max. direct block size (i.e. log2(max\_direct\_size)) */}
+00203     \textcolor{keywordtype}{unsigned}    max\_dir\_blk\_off\_size;   \textcolor{comment}{/* Max. size of offsets in direct blocks */}
+00204     \textcolor{keywordtype}{unsigned}    first\_row\_bits;     \textcolor{comment}{/* # of bits in address of first row */}
+00205     hsize\_t     num\_id\_first\_row;   \textcolor{comment}{/* Number of IDs in first row of table */}
+00206     hsize\_t     *row\_block\_size;    \textcolor{comment}{/* Block size per row of indirect block */}
+00207     hsize\_t     *row\_block\_off;     \textcolor{comment}{/* Cumulative offset per row of indirect block */}
+00208     hsize\_t     *row\_tot\_dblock\_free;   \textcolor{comment}{/* Total free space in dblocks for this row */}
+00209                                     \textcolor{comment}{/* (For indirect block rows, it's the total}
+00210 \textcolor{comment}{                                     * free space in all direct blocks referenced}
+00211 \textcolor{comment}{                                     * from the indirect block)}
+00212 \textcolor{comment}{                                     */}
+00213     \textcolor{keywordtype}{size\_t}      *row\_max\_dblock\_free;   \textcolor{comment}{/* Max. free space in dblocks for this row */}
+00214                                     \textcolor{comment}{/* (For indirect block rows, it's the maximum}
+00215 \textcolor{comment}{                                     * free space in a direct block referenced}
+00216 \textcolor{comment}{                                     * from the indirect block)}
+00217 \textcolor{comment}{                                     */}
+00218 \} \hyperlink{struct_h5_h_f__dtable__t}{H5HF\_dtable\_t};
+00219 
+00220 \textcolor{comment}{/* Fractal heap free list info (forward decl - defined in H5HFflist.c) */}
+00221 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }H5HF\_freelist\_t H5HF\_freelist\_t;
+00222 
+00223 \textcolor{comment}{/* Forward decl indirect block info */}
+00224 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__indirect__t}{H5HF\_indirect\_t} H5HF\_indirect\_t;
+00225 
+00226 \textcolor{comment}{/* Fractal heap block location */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00227}\hyperlink{struct_h5_h_f__block__loc__t}{00227} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__block__loc__t}{H5HF\_block\_loc\_t} \{
+00228     \textcolor{comment}{/* Necessary table fields */}
+00229     \textcolor{keywordtype}{unsigned}    row;            \textcolor{comment}{/* Row of block in doubling table             */}
+00230     \textcolor{keywordtype}{unsigned}    col;            \textcolor{comment}{/* Column of block in doubling table          */}
+00231 
+00232     \textcolor{comment}{/* Derived/computed/cached table fields */}
+00233     \textcolor{keywordtype}{unsigned}    entry;          \textcolor{comment}{/* Entry of block in doubling table           */}
+00234 
+00235     \textcolor{comment}{/* Infrastructure */}
+00236     H5HF\_indirect\_t *context;   \textcolor{comment}{/* Pointer to the indirect block containing the block */}
+00237     \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__block__loc__t}{H5HF\_block\_loc\_t} *up;  \textcolor{comment}{/* Pointer to next level up in the stack of levels */}
+00238 \} \hyperlink{struct_h5_h_f__block__loc__t}{H5HF\_block\_loc\_t};
+00239 
+00240 \textcolor{comment}{/* Fractal heap block iterator info */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00241}\hyperlink{struct_h5_h_f__block__iter__t}{00241} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__block__iter__t}{H5HF\_block\_iter\_t} \{
+00242     hbool\_t ready;              \textcolor{comment}{/* Set if iterator is finished initializing   */}
+00243     \hyperlink{struct_h5_h_f__block__loc__t}{H5HF\_block\_loc\_t} *curr;     \textcolor{comment}{/* Pointer to the current level information for iterator */}
+00244 \} \hyperlink{struct_h5_h_f__block__iter__t}{H5HF\_block\_iter\_t};
+00245 
+00246 \textcolor{comment}{/* Fractal heap free space section info */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00247}\hyperlink{struct_h5_h_f__free__section__t}{00247} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} \{
+00248     H5FS\_section\_info\_t sect\_info;              \textcolor{comment}{/* Free space section information (must be first in struct)
+       */}
+00249     \textcolor{keyword}{union }\{
+00250         \textcolor{keyword}{struct }\{
+00251             H5HF\_indirect\_t *parent;            \textcolor{comment}{/* Indirect block parent for free section's direct block */}
+00252             \textcolor{keywordtype}{unsigned} par\_entry;                 \textcolor{comment}{/* Entry of free section's direct block in parent indirect
+       block */}
+00253         \} single;
+00254         \textcolor{keyword}{struct }\{
+00255             \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} *under;  \textcolor{comment}{/* Pointer to indirect block underlying
+       row section */}
+00256             \textcolor{keywordtype}{unsigned}    row;                    \textcolor{comment}{/* Row for range of blocks */}
+00257             \textcolor{keywordtype}{unsigned}    col;                    \textcolor{comment}{/* Column for range of blocks */}
+00258             \textcolor{keywordtype}{unsigned}    num\_entries;            \textcolor{comment}{/* Number of entries covered */}
+00259 
+00260             \textcolor{comment}{/* Fields that aren't stored */}
+00261             hbool\_t     checked\_out;            \textcolor{comment}{/* Flag to indicate that a row section is temporarily out
+       of the free space manager */}
+00262         \} row;
+00263         \textcolor{keyword}{struct }\{
+00264             \textcolor{comment}{/* Holds either a pointer to an indirect block (if its "live") or}
+00265 \textcolor{comment}{             *  the block offset of it's indirect block (if its "serialized")}
+00266 \textcolor{comment}{             *  (This allows the indirect block that the section is within to}
+00267 \textcolor{comment}{             *          be compared with other sections, whether it's serialized}
+00268 \textcolor{comment}{             *          or not)}
+00269 \textcolor{comment}{             */}
+00270             \textcolor{keyword}{union }\{
+00271                 H5HF\_indirect\_t *iblock;        \textcolor{comment}{/* Indirect block for free section */}
+00272                 hsize\_t iblock\_off;             \textcolor{comment}{/* Indirect block offset in "heap space" */}
+00273             \} u;
+00274             \textcolor{keywordtype}{unsigned}    row;                    \textcolor{comment}{/* Row for range of blocks */}
+00275             \textcolor{keywordtype}{unsigned}    col;                    \textcolor{comment}{/* Column for range of blocks */}
+00276             \textcolor{keywordtype}{unsigned}    num\_entries;            \textcolor{comment}{/* Number of entries covered */}
+00277 
+00278             \textcolor{comment}{/* Fields that aren't stored */}
+00279             \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} *parent; \textcolor{comment}{/* Pointer to "parent" indirect section 
+      */}
+00280             \textcolor{keywordtype}{unsigned}    par\_entry;              \textcolor{comment}{/* Entry within parent indirect section */}
+00281             hsize\_t     span\_size;              \textcolor{comment}{/* Size of space tracked, in "heap space" */}
+00282             \textcolor{keywordtype}{unsigned}    iblock\_entries;         \textcolor{comment}{/* Number of entries in indirect block where section is
+       located */}
+00283             \textcolor{keywordtype}{unsigned}    rc;                     \textcolor{comment}{/* Reference count of outstanding row & child indirect
+       sections */}
+00284             \textcolor{keywordtype}{unsigned}    dir\_nrows;              \textcolor{comment}{/* Number of direct rows in section */}
+00285             \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} **dir\_rows;  \textcolor{comment}{/* Array of pointers to outstanding
+       row sections */}
+00286             \textcolor{keywordtype}{unsigned}    indir\_nents;            \textcolor{comment}{/* Number of indirect entries in section */}
+00287             \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} **indir\_ents; \textcolor{comment}{/* Array of pointers to outstanding
+       child indirect sections */}
+00288         \} indirect;
+00289     \} u;
+00290 \} \hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t};
+00291 
+00292 \textcolor{comment}{/* The fractal heap header information */}
+00293 \textcolor{comment}{/* (Each fractal heap header has certain information that is shared across all}
+00294 \textcolor{comment}{ * the instances of blocks in that fractal heap)}
+00295 \textcolor{comment}{ */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00296}\hyperlink{struct_h5_h_f__hdr__t}{00296} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} \{
+00297     \textcolor{comment}{/* Information for H5AC cache functions, \_must\_ be first field in structure */}
+00298     H5AC\_info\_t cache\_info;
+00299 
+00300     \textcolor{comment}{/* General header information (stored in header) */}
+00301     \textcolor{keywordtype}{unsigned}    id\_len;         \textcolor{comment}{/* Size of heap IDs (in bytes) */}
+00302     \textcolor{keywordtype}{unsigned}    filter\_len;     \textcolor{comment}{/* Size of I/O filter information (in bytes) */}
+00303 
+00304     \textcolor{comment}{/* Flags for heap settings (stored in status byte in header) */}
+00305     hbool\_t     debug\_objs;     \textcolor{comment}{/* Is the heap storing objects in 'debug' format */}
+00306     hbool\_t     write\_once;     \textcolor{comment}{/* Is heap being written in "write once" mode? */}
+00307     hbool\_t     huge\_ids\_wrapped; \textcolor{comment}{/* Have "huge" object IDs wrapped around? */}
+00308     hbool\_t     checksum\_dblocks; \textcolor{comment}{/* Should the direct blocks in the heap be checksummed? */}
+00309 
+00310     \textcolor{comment}{/* Doubling table information (partially stored in header) */}
+00311     \textcolor{comment}{/* (Partially set by user, partially derived/updated internally) */}
+00312     \hyperlink{struct_h5_h_f__dtable__t}{H5HF\_dtable\_t} man\_dtable;   \textcolor{comment}{/* Doubling-table info for managed objects */}
+00313 
+00314     \textcolor{comment}{/* Free space information for managed objects (stored in header) */}
+00315     hsize\_t     total\_man\_free; \textcolor{comment}{/* Total amount of free space in managed blocks */}
+00316     haddr\_t     fs\_addr;        \textcolor{comment}{/* Address of free space header on disk */}
+00317 
+00318     \textcolor{comment}{/* "Huge" object support (stored in header) */}
+00319     uint32\_t    max\_man\_size;   \textcolor{comment}{/* Max. size of object to manage in doubling table */}
+00320     hsize\_t     huge\_next\_id;   \textcolor{comment}{/* Next ID to use for indirectly tracked 'huge' object */}
+00321     haddr\_t     huge\_bt2\_addr;  \textcolor{comment}{/* Address of v2 B-tree for tracking "huge" object info */}
+00322 
+00323     \textcolor{comment}{/* I/O filter support (stored in header, if any are used) */}
+00324     H5O\_pline\_t pline;          \textcolor{comment}{/* I/O filter pipeline for heap objects */}
+00325     \textcolor{keywordtype}{size\_t}      pline\_root\_direct\_size;    \textcolor{comment}{/* Size of filtered root direct block */}
+00326     \textcolor{keywordtype}{unsigned}    pline\_root\_direct\_filter\_mask; \textcolor{comment}{/* I/O filter mask for filtered root direct block */}
+00327 
+00328     \textcolor{comment}{/* Statistics for heap (stored in header) */}
+00329     hsize\_t     man\_size;       \textcolor{comment}{/* Total amount of 'managed' space in heap */}
+00330     hsize\_t     man\_alloc\_size; \textcolor{comment}{/* Total amount of allocated 'managed' space in heap */}
+00331     hsize\_t     man\_iter\_off;   \textcolor{comment}{/* Offset of iterator in 'managed' heap space */}
+00332     hsize\_t     man\_nobjs;      \textcolor{comment}{/* Number of 'managed' objects in heap */}
+00333     hsize\_t     huge\_size;      \textcolor{comment}{/* Total size of 'huge' objects in heap */}
+00334     hsize\_t     huge\_nobjs;     \textcolor{comment}{/* Number of 'huge' objects in heap */}
+00335     hsize\_t     tiny\_size;      \textcolor{comment}{/* Total size of 'tiny' objects in heap */}
+00336     hsize\_t     tiny\_nobjs;     \textcolor{comment}{/* Number of 'tiny' objects in heap */}
+00337 
+00338     \textcolor{comment}{/* Cached/computed values (not stored in header) */}
+00339     \textcolor{keywordtype}{size\_t}      rc;             \textcolor{comment}{/* Reference count of heap's components using heap header */}
+00340     haddr\_t     heap\_addr;      \textcolor{comment}{/* Address of heap header in the file */}
+00341     \textcolor{keywordtype}{size\_t}      heap\_size;      \textcolor{comment}{/* Size of heap header in the file */}
+00342     \textcolor{keywordtype}{unsigned}    mode;           \textcolor{comment}{/* Access mode for heap */}
+00343     \hyperlink{struct_h5_f__t}{H5F\_t}      *f;              \textcolor{comment}{/* Pointer to file for heap */}
+00344     \textcolor{keywordtype}{size\_t}      file\_rc;        \textcolor{comment}{/* Reference count of files using heap header */}
+00345     hbool\_t     pending\_delete; \textcolor{comment}{/* Heap is pending deletion */}
+00346     uint8\_t     sizeof\_size;    \textcolor{comment}{/* Size of file sizes */}
+00347     uint8\_t     sizeof\_addr;    \textcolor{comment}{/* Size of file addresses */}
+00348     \textcolor{keyword}{struct }H5HF\_indirect\_t *root\_iblock;    \textcolor{comment}{/* Pointer to root indirect block */}
+00349     \textcolor{keywordtype}{unsigned}    root\_iblock\_flags;      \textcolor{comment}{/* Flags to indicate whether root indirect block is pinned/
+      protected */}
+00350     \hyperlink{struct_h5_f_s__t}{H5FS\_t}      *fspace;        \textcolor{comment}{/* Free space list for objects in heap */}
+00351     \hyperlink{struct_h5_h_f__block__iter__t}{H5HF\_block\_iter\_t} next\_block;   \textcolor{comment}{/* Block iterator for searching for next block with
+       space */}
+00352     \hyperlink{struct_h5_b2__t}{H5B2\_t}      *huge\_bt2;      \textcolor{comment}{/* v2 B-tree handle for huge objects */}
+00353     hsize\_t     huge\_max\_id;    \textcolor{comment}{/* Max. 'huge' heap ID before rolling 'huge' heap IDs over */}
+00354     uint8\_t     huge\_id\_size;   \textcolor{comment}{/* Size of 'huge' heap IDs (in bytes) */}
+00355     hbool\_t     huge\_ids\_direct; \textcolor{comment}{/* Flag to indicate that 'huge' object's offset & length are stored
+       directly in heap ID */}
+00356     \textcolor{keywordtype}{size\_t}      tiny\_max\_len;   \textcolor{comment}{/* Max. size of tiny objects for this heap */}
+00357     hbool\_t     tiny\_len\_extended; \textcolor{comment}{/* Flag to indicate that 'tiny' object's length is stored in extended
+       form (i.e. w/extra byte) */}
+00358     uint8\_t     heap\_off\_size;  \textcolor{comment}{/* Size of heap offsets (in bytes) */}
+00359     uint8\_t     heap\_len\_size;  \textcolor{comment}{/* Size of heap ID lengths (in bytes) */}
+00360     hbool\_t     checked\_filters; \textcolor{comment}{/* TRUE if pipeline passes can\_apply checks */}
+00361 \} \hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t};
+00362 
+00363 \textcolor{comment}{/* Common indirect block doubling table entry */}
+00364 \textcolor{comment}{/* (common between entries pointing to direct & indirect child blocks) */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00365}\hyperlink{struct_h5_h_f__indirect__ent__t}{00365} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__indirect__ent__t}{H5HF\_indirect\_ent\_t} \{
+00366     haddr\_t     addr;           \textcolor{comment}{/* Direct block's address                     */}
+00367 \} \hyperlink{struct_h5_h_f__indirect__ent__t}{H5HF\_indirect\_ent\_t};
+00368 
+00369 \textcolor{comment}{/* Extern indirect block doubling table entry for compressed direct blocks */}
+00370 \textcolor{comment}{/* (only exists for indirect blocks in heaps that have I/O filters) */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00371}\hyperlink{struct_h5_h_f__indirect__filt__ent__t}{00371} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__indirect__filt__ent__t}{H5HF\_indirect\_filt\_ent\_t} \{
+00372     \textcolor{keywordtype}{size\_t}     size;            \textcolor{comment}{/* Size of child direct block, after passing though I/O filters */}
+00373     \textcolor{keywordtype}{unsigned}    filter\_mask;    \textcolor{comment}{/* Excluded filters for child direct block */}
+00374 \} \hyperlink{struct_h5_h_f__indirect__filt__ent__t}{H5HF\_indirect\_filt\_ent\_t};
+00375 
+00376 \textcolor{comment}{/* Fractal heap indirect block */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00377}\hyperlink{struct_h5_h_f__indirect__t}{00377} \textcolor{keyword}{struct }H5HF\_indirect\_t \{
+00378     \textcolor{comment}{/* Information for H5AC cache functions, \_must\_ be first field in structure */}
+00379     H5AC\_info\_t cache\_info;
+00380 
+00381     \textcolor{comment}{/* Internal heap information (not stored) */}
+00382     \textcolor{keywordtype}{size\_t}      rc;             \textcolor{comment}{/* Reference count of objects using this block */}
+00383     \hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t}    *hdr;           \textcolor{comment}{/* Shared heap header info                */}
+00384     \textcolor{keyword}{struct }H5HF\_indirect\_t *parent; \textcolor{comment}{/* Shared parent indirect block info  */}
+00385     \textcolor{keyword}{struct }H5HF\_indirect\_t 
+00386         *fd\_parent; \textcolor{comment}{/* Saved copy of the parent pointer -- this   */}
+00387                 \textcolor{comment}{/* necessary as the parent field is sometimes */}
+00388                 \textcolor{comment}{/* nulled out before the eviction notify call */}
+00389                 \textcolor{comment}{/* is made from the metadata cache.  Since    */}
+00390                 \textcolor{comment}{/* this call cancels flush dependencies, it   */}
+00391                 \textcolor{comment}{/* needs this information.            */}
+00392     \textcolor{keywordtype}{unsigned}    par\_entry;      \textcolor{comment}{/* Entry in parent's table                    */}
+00393     haddr\_t     addr;           \textcolor{comment}{/* Address of this indirect block on disk     */}
+00394     \textcolor{keywordtype}{size\_t}      size;           \textcolor{comment}{/* Size of indirect block on disk             */}
+00395     \textcolor{keywordtype}{unsigned}    nrows;          \textcolor{comment}{/* Total # of rows in indirect block          */}
+00396     \textcolor{keywordtype}{unsigned}    max\_rows;       \textcolor{comment}{/* Max. # of rows in indirect block           */}
+00397     \textcolor{keywordtype}{unsigned}    nchildren;      \textcolor{comment}{/* Number of child blocks                     */}
+00398     \textcolor{keywordtype}{unsigned}    max\_child;      \textcolor{comment}{/* Max. offset used in child entries          */}
+00399     \textcolor{keyword}{struct }H5HF\_indirect\_t **child\_iblocks; \textcolor{comment}{/* Array of pointers to pinned child indirect blocks */}
+00400 
+00401     \textcolor{comment}{/* Stored values */}
+00402     hsize\_t     block\_off;      \textcolor{comment}{/* Offset of the block within the heap's address space */}
+00403     \hyperlink{struct_h5_h_f__indirect__ent__t}{H5HF\_indirect\_ent\_t} *ents;  \textcolor{comment}{/* Pointer to block entry table               */}
+00404     \hyperlink{struct_h5_h_f__indirect__filt__ent__t}{H5HF\_indirect\_filt\_ent\_t} *filt\_ents;    \textcolor{comment}{/* Pointer to filtered information for
+       direct blocks */}
+00405 \};
+00406 
+00407 \textcolor{comment}{/* A fractal heap direct block */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00408}\hyperlink{struct_h5_h_f__direct__t}{00408} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__direct__t}{H5HF\_direct\_t} \{
+00409     \textcolor{comment}{/* Information for H5AC cache functions, \_must\_ be first field in structure */}
+00410     H5AC\_info\_t cache\_info;
+00411 
+00412     \textcolor{comment}{/* Internal heap information */}
+00413     \hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t}    *hdr;           \textcolor{comment}{/* Shared heap header info                */}
+00414     H5HF\_indirect\_t *parent;    \textcolor{comment}{/* Shared parent indirect block info          */}
+00415     H5HF\_indirect\_t *fd\_parent; \textcolor{comment}{/* Saved copy of the parent pointer -- this   */}
+00416                 \textcolor{comment}{/* necessary as the parent field is sometimes */}
+00417                 \textcolor{comment}{/* nulled out before the eviction notify call */}
+00418                 \textcolor{comment}{/* is made from the metadata cache.  Since    */}
+00419                 \textcolor{comment}{/* this call cancels flush dependencies, it   */}
+00420                 \textcolor{comment}{/* needs this information.            */}
+00421     \textcolor{keywordtype}{unsigned}    par\_entry;      \textcolor{comment}{/* Entry in parent's table                    */}
+00422     \textcolor{keywordtype}{size\_t}      size;           \textcolor{comment}{/* Size of direct block                       */}
+00423     hsize\_t     file\_size;      \textcolor{comment}{/* Size of direct block in file (only valid when block's space is being
+       freed) */}
+00424     uint8\_t     *blk;           \textcolor{comment}{/* Pointer to buffer containing block data    */}
+00425     uint8\_t *write\_buf; \textcolor{comment}{/* Pointer to buffer containing the block data */}
+00426                                 \textcolor{comment}{/* in form ready to copy to the metadata       */}
+00427                                 \textcolor{comment}{/* cache's image buffer.                       */}
+00428                                 \textcolor{comment}{/*                                             */}
+00429                                 \textcolor{comment}{/* This field is used by                       */}
+00430                                 \textcolor{comment}{/* H5HF\_cache\_dblock\_pre\_serialize() to pass   */}
+00431                                 \textcolor{comment}{/* the serialized image of the direct block to */}
+00432                                 \textcolor{comment}{/* H5HF\_cache\_dblock\_serialize().  It should   */}
+00433                                 \textcolor{comment}{/* NULL at all other times.                    */}
+00434                                 \textcolor{comment}{/*                                             */}
+00435                                 \textcolor{comment}{/* If I/O filters are enabled, the pre-        */}
+00436                                 \textcolor{comment}{/* the pre-serialize function will allocate    */}
+00437                                 \textcolor{comment}{/* a buffer, copy the filtered version of the  */}
+00438                                 \textcolor{comment}{/* direct block image into it, and place the   */}
+00439                                 \textcolor{comment}{/* base address of the buffer in this field.   */}
+00440                                 \textcolor{comment}{/* The serialize function must discard this    */}
+00441                                 \textcolor{comment}{/* buffer after it copies the contents into    */}
+00442                                 \textcolor{comment}{/* the image buffer provided by the metadata   */}
+00443                                 \textcolor{comment}{/* cache.                                      */}
+00444                                 \textcolor{comment}{/*                                             */}
+00445                                 \textcolor{comment}{/* If I/O filters are not enabled, the         */}
+00446                                 \textcolor{comment}{/* write\_buf field is simply set equal to the  */}
+00447                                 \textcolor{comment}{/* blk field by the pre-serialize function,    */}
+00448                                 \textcolor{comment}{/* and back to NULL by the serialize function. */}
+00449     \textcolor{keywordtype}{size\_t}  write\_size;     \textcolor{comment}{/* size of the buffer pointed to by write\_buf. */}
+00450 
+00451     \textcolor{comment}{/* Stored values */}
+00452     hsize\_t     block\_off;      \textcolor{comment}{/* Offset of the block within the heap's address space */}
+00453 \} \hyperlink{struct_h5_h_f__direct__t}{H5HF\_direct\_t};
+00454 
+00455 \textcolor{comment}{/* Fractal heap */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00456}\hyperlink{struct_h5_h_f__t}{00456} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__t}{H5HF\_t} \{
+00457     \hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t}  *hdr;           \textcolor{comment}{/* Pointer to internal fractal heap header info */}
+00458     \hyperlink{struct_h5_f__t}{H5F\_t}      *f;              \textcolor{comment}{/* Pointer to file for heap */}
+00459 \};
+00460 
+00461 \textcolor{comment}{/* Fractal heap "parent info" (for loading a block) */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00462}\hyperlink{struct_h5_h_f__parent__t}{00462} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__parent__t}{H5HF\_parent\_t} \{
+00463     \hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr;                \textcolor{comment}{/* Pointer to heap header info */}
+00464     H5HF\_indirect\_t *iblock;    \textcolor{comment}{/* Pointer to parent indirect block */}
+00465     \textcolor{keywordtype}{unsigned} entry;             \textcolor{comment}{/* Location of block in parent's entry table */}
+00466 \} \hyperlink{struct_h5_h_f__parent__t}{H5HF\_parent\_t};
+00467 
+00468 \textcolor{comment}{/* Typedef for indirectly accessed 'huge' object's records in the v2 B-tree */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00469}\hyperlink{struct_h5_h_f__huge__bt2__indir__rec__t}{00469} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__huge__bt2__indir__rec__t}{H5HF\_huge\_bt2\_indir\_rec\_t} \{
+00470     haddr\_t addr;       \textcolor{comment}{/* Address of the object in the file */}
+00471     hsize\_t len;        \textcolor{comment}{/* Length of the object in the file */}
+00472     hsize\_t id;         \textcolor{comment}{/* ID used for object (not used for 'huge' objects directly accessed) */}
+00473 \} \hyperlink{struct_h5_h_f__huge__bt2__indir__rec__t}{H5HF\_huge\_bt2\_indir\_rec\_t};
+00474 
+00475 \textcolor{comment}{/* Typedef for indirectly accessed, filtered 'huge' object's records in the v2 B-tree */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00476}\hyperlink{struct_h5_h_f__huge__bt2__filt__indir__rec__t}{00476} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__huge__bt2__filt__indir__rec__t}{H5HF\_huge\_bt2\_filt\_indir\_rec\_t} \{
+00477     haddr\_t addr;       \textcolor{comment}{/* Address of the filtered object in the file */}
+00478     hsize\_t len;        \textcolor{comment}{/* Length of the filtered object in the file */}
+00479     \textcolor{keywordtype}{unsigned} filter\_mask;   \textcolor{comment}{/* I/O pipeline filter mask for filtered object in the file */}
+00480     hsize\_t obj\_size;   \textcolor{comment}{/* Size of the de-filtered object in memory */}
+00481     hsize\_t id;         \textcolor{comment}{/* ID used for object (not used for 'huge' objects directly accessed) */}
+00482 \} \hyperlink{struct_h5_h_f__huge__bt2__filt__indir__rec__t}{H5HF\_huge\_bt2\_filt\_indir\_rec\_t};
+00483 
+00484 \textcolor{comment}{/* Typedef for directly accessed 'huge' object's records in the v2 B-tree */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00485}\hyperlink{struct_h5_h_f__huge__bt2__dir__rec__t}{00485} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__huge__bt2__dir__rec__t}{H5HF\_huge\_bt2\_dir\_rec\_t} \{
+00486     haddr\_t addr;       \textcolor{comment}{/* Address of the object in the file */}
+00487     hsize\_t len;        \textcolor{comment}{/* Length of the object in the file */}
+00488 \} \hyperlink{struct_h5_h_f__huge__bt2__dir__rec__t}{H5HF\_huge\_bt2\_dir\_rec\_t};
+00489 
+00490 \textcolor{comment}{/* Typedef for directly accessed, filtered 'huge' object's records in the v2 B-tree */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00491}\hyperlink{struct_h5_h_f__huge__bt2__filt__dir__rec__t}{00491} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__huge__bt2__filt__dir__rec__t}{H5HF\_huge\_bt2\_filt\_dir\_rec\_t} \{
+00492     haddr\_t addr;       \textcolor{comment}{/* Address of the filtered object in the file */}
+00493     hsize\_t len;        \textcolor{comment}{/* Length of the filtered object in the file */}
+00494     \textcolor{keywordtype}{unsigned} filter\_mask;   \textcolor{comment}{/* I/O pipeline filter mask for filtered object in the file */}
+00495     hsize\_t obj\_size;   \textcolor{comment}{/* Size of the de-filtered object in memory */}
+00496 \} \hyperlink{struct_h5_h_f__huge__bt2__filt__dir__rec__t}{H5HF\_huge\_bt2\_filt\_dir\_rec\_t};
+00497 
+00498 \textcolor{comment}{/* User data for free space section 'add' callback */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00499}\hyperlink{struct_h5_h_f__sect__add__ud__t}{00499} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\{
+00500     \hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr;            \textcolor{comment}{/* Fractal heap header */}
+00501     hid\_t dxpl\_id;              \textcolor{comment}{/* DXPL ID for operation */}
+00502 \} \hyperlink{struct_h5_h_f__sect__add__ud__t}{H5HF\_sect\_add\_ud\_t};
+00503 
+00504 \textcolor{comment}{/* User data for v2 B-tree 'remove' callback on 'huge' objects */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00505}\hyperlink{struct_h5_h_f__huge__remove__ud__t}{00505} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\{
+00506     \hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr;            \textcolor{comment}{/* Fractal heap header (in) */}
+00507     hid\_t dxpl\_id;              \textcolor{comment}{/* DXPL ID for operation (in) */}
+00508     hsize\_t obj\_len;            \textcolor{comment}{/* Length of object removed (out) */}
+00509 \} \hyperlink{struct_h5_h_f__huge__remove__ud__t}{H5HF\_huge\_remove\_ud\_t};
+00510 
+00511 \textcolor{comment}{/* User data for fractal heap header cache client callback */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00512}\hyperlink{struct_h5_h_f__hdr__cache__ud__t}{00512} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__hdr__cache__ud__t}{H5HF\_hdr\_cache\_ud\_t} \{
+00513     \hyperlink{struct_h5_f__t}{H5F\_t} *f;                   \textcolor{comment}{/* File pointer */}
+00514     hid\_t dxpl\_id;              \textcolor{comment}{/* DXPL ID for operation (in) */}
+00515 \} \hyperlink{struct_h5_h_f__hdr__cache__ud__t}{H5HF\_hdr\_cache\_ud\_t};
+00516 
+00517 \textcolor{comment}{/* User data for fractal heap indirect block cache client callbacks */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00518}\hyperlink{struct_h5_h_f__iblock__cache__ud__t}{00518} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__iblock__cache__ud__t}{H5HF\_iblock\_cache\_ud\_t} \{
+00519     \hyperlink{struct_h5_h_f__parent__t}{H5HF\_parent\_t} * par\_info;   \textcolor{comment}{/* Parent info */}
+00520     \hyperlink{struct_h5_f__t}{H5F\_t} * f;                  \textcolor{comment}{/* File pointer */}
+00521     \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} *nrows;      \textcolor{comment}{/* Number of rows */}
+00522 \} \hyperlink{struct_h5_h_f__iblock__cache__ud__t}{H5HF\_iblock\_cache\_ud\_t};
+00523 
+00524 \textcolor{comment}{/* User data for fractal heap direct block cache client callbacks */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_h_fpkg_8h_source_l00525}\hyperlink{struct_h5_h_f__dblock__cache__ud__t}{00525} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_f__dblock__cache__ud__t}{H5HF\_dblock\_cache\_ud\_t} \{
+00526     \hyperlink{struct_h5_h_f__parent__t}{H5HF\_parent\_t} par\_info;     \textcolor{comment}{/* Parent info */}
+00527     \hyperlink{struct_h5_f__t}{H5F\_t} * f;                  \textcolor{comment}{/* File pointer */}
+00528     \textcolor{keywordtype}{size\_t} odi\_size;        \textcolor{comment}{/* On disk image size of the direct block.}
+00529 \textcolor{comment}{                 * Note that there is no necessary relation}
+00530 \textcolor{comment}{                 * between this value, and the actual}
+00531 \textcolor{comment}{                 * direct block size, as conpression may}
+00532 \textcolor{comment}{                 * reduce the size of the on disk image,}
+00533 \textcolor{comment}{                 * and check sums may increase it.}
+00534 \textcolor{comment}{                 */}
+00535     \textcolor{keywordtype}{size\_t} dblock\_size;     \textcolor{comment}{/* size of the direct block, which bears}
+00536 \textcolor{comment}{                 * no necessary relation to the block}
+00537 \textcolor{comment}{                 * odi\_size -- the size of the on disk}
+00538 \textcolor{comment}{                 * image of the block.  Note that the}
+00539 \textcolor{comment}{                 * metadata cache is only interested}
+00540 \textcolor{comment}{                 * in the odi\_size, and thus it is this}
+00541 \textcolor{comment}{                 * value that is passed to the cache in}
+00542 \textcolor{comment}{                 * calls to it.}
+00543 \textcolor{comment}{                 */}
+00544     \textcolor{keywordtype}{unsigned} filter\_mask;   \textcolor{comment}{/* Excluded filters for direct block */}
+00545     uint8\_t *dblk;  \textcolor{comment}{/* Pointer to the buffer containing the decompressed}
+00546 \textcolor{comment}{                     * direct block data obtained in verify\_chksum callback.}
+00547 \textcolor{comment}{                     * It will be used later in deserialize callback.}
+00548 \textcolor{comment}{                     */}
+00549     htri\_t decompressed;    \textcolor{comment}{/* Indicate that the direct block has been}
+00550 \textcolor{comment}{                             * decompressed in verify\_chksum callback.}
+00551 \textcolor{comment}{                             * It will be used later in deserialize callback.}
+00552 \textcolor{comment}{                             */}
+00553 \} \hyperlink{struct_h5_h_f__dblock__cache__ud__t}{H5HF\_dblock\_cache\_ud\_t};
+00554 
+00555 
+00556 \textcolor{comment}{/*****************************/}
+00557 \textcolor{comment}{/* Package Private Variables */}
+00558 \textcolor{comment}{/*****************************/}
+00559 
+00560 \textcolor{comment}{/* The v2 B-tree class for tracking indirectly accessed 'huge' objects */}
+00561 H5\_DLLVAR \textcolor{keyword}{const} H5B2\_class\_t H5HF\_HUGE\_BT2\_INDIR[1];
+00562 
+00563 \textcolor{comment}{/* The v2 B-tree class for tracking indirectly accessed filtered 'huge' objects */}
+00564 H5\_DLLVAR \textcolor{keyword}{const} H5B2\_class\_t H5HF\_HUGE\_BT2\_FILT\_INDIR[1];
+00565 
+00566 \textcolor{comment}{/* The v2 B-tree class for tracking directly accessed 'huge' objects */}
+00567 H5\_DLLVAR \textcolor{keyword}{const} H5B2\_class\_t H5HF\_HUGE\_BT2\_DIR[1];
+00568 
+00569 \textcolor{comment}{/* The v2 B-tree class for tracking directly accessed filtered 'huge' objects */}
+00570 H5\_DLLVAR \textcolor{keyword}{const} H5B2\_class\_t H5HF\_HUGE\_BT2\_FILT\_DIR[1];
+00571 
+00572 \textcolor{comment}{/* H5HF single section inherits serializable properties from H5FS\_section\_class\_t */}
+00573 H5\_DLLVAR H5FS\_section\_class\_t H5HF\_FSPACE\_SECT\_CLS\_SINGLE[1];
+00574 
+00575 \textcolor{comment}{/* H5HF 'first' row section inherits serializable properties from H5FS\_section\_class\_t */}
+00576 H5\_DLLVAR H5FS\_section\_class\_t H5HF\_FSPACE\_SECT\_CLS\_FIRST\_ROW[1];
+00577 
+00578 \textcolor{comment}{/* H5HF 'normal' row section inherits serializable properties from H5FS\_section\_class\_t */}
+00579 H5\_DLLVAR H5FS\_section\_class\_t H5HF\_FSPACE\_SECT\_CLS\_NORMAL\_ROW[1];
+00580 
+00581 \textcolor{comment}{/* H5HF indirect section inherits serializable properties from H5FS\_section\_class\_t */}
+00582 H5\_DLLVAR H5FS\_section\_class\_t H5HF\_FSPACE\_SECT\_CLS\_INDIRECT[1];
+00583 
+00584 \textcolor{comment}{/* Declare a free list to manage the H5HF\_indirect\_t struct */}
+00585 H5FL\_EXTERN(H5HF\_indirect\_t);
+00586 
+00587 \textcolor{comment}{/* Declare a free list to manage the H5HF\_indirect\_ent\_t sequence information */}
+00588 H5FL\_SEQ\_EXTERN(\hyperlink{struct_h5_h_f__indirect__ent__t}{H5HF\_indirect\_ent\_t});
+00589 
+00590 \textcolor{comment}{/* Declare a free list to manage the H5HF\_indirect\_filt\_ent\_t sequence information */}
+00591 H5FL\_SEQ\_EXTERN(\hyperlink{struct_h5_h_f__indirect__filt__ent__t}{H5HF\_indirect\_filt\_ent\_t});
+00592 
+00593 \textcolor{comment}{/* Declare a free list to manage the H5HF\_indirect\_t * sequence information */}
+00594 \textcolor{keyword}{typedef} H5HF\_indirect\_t *\hyperlink{struct_h5_h_f__indirect__t}{H5HF\_indirect\_ptr\_t};
+00595 H5FL\_SEQ\_EXTERN(\hyperlink{struct_h5_h_f__indirect__t}{H5HF\_indirect\_ptr\_t});
+00596 
+00597 \textcolor{comment}{/* Declare a free list to manage the H5HF\_direct\_t struct */}
+00598 H5FL\_EXTERN(\hyperlink{struct_h5_h_f__direct__t}{H5HF\_direct\_t});
+00599 
+00600 \textcolor{comment}{/* Declare a free list to manage heap direct block data to/from disk */}
+00601 H5FL\_BLK\_EXTERN(direct\_block);
+00602 
+00603 
+00604 \textcolor{comment}{/******************************/}
+00605 \textcolor{comment}{/* Package Private Prototypes */}
+00606 \textcolor{comment}{/******************************/}
+00607 
+00608 \textcolor{comment}{/* Doubling table routines */}
+00609 H5\_DLL herr\_t H5HF\_dtable\_init(\hyperlink{struct_h5_h_f__dtable__t}{H5HF\_dtable\_t} *dtable);
+00610 H5\_DLL herr\_t H5HF\_dtable\_dest(\hyperlink{struct_h5_h_f__dtable__t}{H5HF\_dtable\_t} *dtable);
+00611 H5\_DLL herr\_t H5HF\_dtable\_lookup(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__dtable__t}{H5HF\_dtable\_t} *dtable, hsize\_t off,
+00612     \textcolor{keywordtype}{unsigned} *row, \textcolor{keywordtype}{unsigned} *col);
+00613 H5\_DLL \textcolor{keywordtype}{unsigned} H5HF\_dtable\_size\_to\_row(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__dtable__t}{H5HF\_dtable\_t} *dtable, \textcolor{keywordtype}{size\_t} block\_size);
+00614 H5\_DLL \textcolor{keywordtype}{unsigned} H5HF\_dtable\_size\_to\_rows(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__dtable__t}{H5HF\_dtable\_t} *dtable, hsize\_t size);
+00615 H5\_DLL hsize\_t H5HF\_dtable\_span\_size(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__dtable__t}{H5HF\_dtable\_t} *dtable, \textcolor{keywordtype}{unsigned} start\_row,
+00616     \textcolor{keywordtype}{unsigned} start\_col, \textcolor{keywordtype}{unsigned} num\_entries);
+00617 
+00618 \textcolor{comment}{/* Heap header routines */}
+00619 H5\_DLL \hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} * H5HF\_hdr\_alloc(\hyperlink{struct_h5_f__t}{H5F\_t} *f);
+00620 H5\_DLL haddr\_t H5HF\_hdr\_create(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \textcolor{keyword}{const} H5HF\_create\_t *cparam);
+00621 H5\_DLL \hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *H5HF\_hdr\_protect(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, haddr\_t addr,
+00622     \textcolor{keywordtype}{unsigned} flags);
+00623 H5\_DLL herr\_t H5HF\_hdr\_finish\_init\_phase1(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr);
+00624 H5\_DLL herr\_t H5HF\_hdr\_finish\_init\_phase2(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr);
+00625 H5\_DLL herr\_t H5HF\_hdr\_finish\_init(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr);
+00626 H5\_DLL herr\_t H5HF\_hdr\_incr(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr);
+00627 H5\_DLL herr\_t H5HF\_hdr\_decr(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr);
+00628 H5\_DLL herr\_t H5HF\_hdr\_fuse\_incr(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr);
+00629 H5\_DLL \textcolor{keywordtype}{size\_t} H5HF\_hdr\_fuse\_decr(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr);
+00630 H5\_DLL herr\_t H5HF\_hdr\_dirty(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr);
+00631 H5\_DLL herr\_t H5HF\_hdr\_adj\_free(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, ssize\_t amt);
+00632 H5\_DLL herr\_t H5HF\_hdr\_adjust\_heap(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hsize\_t new\_size, hssize\_t extra\_free);
+00633 H5\_DLL herr\_t H5HF\_hdr\_inc\_alloc(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, \textcolor{keywordtype}{size\_t} alloc\_size);
+00634 H5\_DLL herr\_t H5HF\_hdr\_start\_iter(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, H5HF\_indirect\_t *iblock, hsize\_t curr\_off, \textcolor{keywordtype}{
+      unsigned} curr\_entry);
+00635 H5\_DLL herr\_t H5HF\_hdr\_skip\_blocks(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00636     H5HF\_indirect\_t *iblock, \textcolor{keywordtype}{unsigned} start\_entry, \textcolor{keywordtype}{unsigned} nentries);
+00637 H5\_DLL herr\_t H5HF\_hdr\_update\_iter(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id, \textcolor{keywordtype}{size\_t} min\_dblock\_size);
+00638 H5\_DLL herr\_t H5HF\_hdr\_inc\_iter(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hsize\_t adv\_size, \textcolor{keywordtype}{unsigned} nentries);
+00639 H5\_DLL herr\_t H5HF\_hdr\_reverse\_iter(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00640     haddr\_t dblock\_addr);
+00641 H5\_DLL herr\_t H5HF\_hdr\_reset\_iter(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hsize\_t curr\_off);
+00642 H5\_DLL herr\_t H5HF\_hdr\_empty(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr);
+00643 H5\_DLL herr\_t H5HF\_hdr\_free(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr);
+00644 H5\_DLL herr\_t H5HF\_hdr\_delete(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id);
+00645 H5\_DLL herr\_t H5HF\_hdr\_dest(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr);
+00646 
+00647 \textcolor{comment}{/* Indirect block routines */}
+00648 H5\_DLL herr\_t H5HF\_iblock\_incr(H5HF\_indirect\_t *iblock);
+00649 H5\_DLL herr\_t H5HF\_iblock\_decr(H5HF\_indirect\_t *iblock);
+00650 H5\_DLL herr\_t H5HF\_iblock\_dirty(H5HF\_indirect\_t *iblock);
+00651 H5\_DLL herr\_t H5HF\_man\_iblock\_root\_create(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00652     \textcolor{keywordtype}{size\_t} min\_dblock\_size);
+00653 H5\_DLL herr\_t H5HF\_man\_iblock\_root\_double(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00654     \textcolor{keywordtype}{size\_t} min\_dblock\_size);
+00655 H5\_DLL herr\_t H5HF\_man\_iblock\_alloc\_row(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00656     \hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} **sec\_node);
+00657 H5\_DLL herr\_t H5HF\_man\_iblock\_create(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00658     H5HF\_indirect\_t *par\_iblock, \textcolor{keywordtype}{unsigned} par\_entry, \textcolor{keywordtype}{unsigned} nrows,
+00659     \textcolor{keywordtype}{unsigned} max\_rows, haddr\_t *addr\_p);
+00660 H5\_DLL H5HF\_indirect\_t *H5HF\_man\_iblock\_protect(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00661     haddr\_t iblock\_addr, \textcolor{keywordtype}{unsigned} iblock\_nrows,
+00662     H5HF\_indirect\_t *par\_iblock, \textcolor{keywordtype}{unsigned} par\_entry, hbool\_t must\_protect,
+00663     \textcolor{keywordtype}{unsigned} flags, hbool\_t *did\_protect);
+00664 H5\_DLL herr\_t H5HF\_man\_iblock\_unprotect(H5HF\_indirect\_t *iblock, hid\_t dxpl\_id,
+00665     \textcolor{keywordtype}{unsigned} cache\_flags, hbool\_t did\_protect);
+00666 H5\_DLL herr\_t H5HF\_man\_iblock\_attach(H5HF\_indirect\_t *iblock, \textcolor{keywordtype}{unsigned} entry,
+00667     haddr\_t dblock\_addr);
+00668 H5\_DLL herr\_t H5HF\_man\_iblock\_detach(H5HF\_indirect\_t *iblock, hid\_t dxpl\_id, \textcolor{keywordtype}{unsigned} entry);
+00669 H5\_DLL herr\_t H5HF\_man\_iblock\_entry\_addr(H5HF\_indirect\_t *iblock, \textcolor{keywordtype}{unsigned} entry,
+00670     haddr\_t *child\_addr);
+00671 H5\_DLL herr\_t H5HF\_man\_iblock\_delete(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00672     haddr\_t iblock\_addr, \textcolor{keywordtype}{unsigned} iblock\_nrows, H5HF\_indirect\_t *par\_iblock,
+00673     \textcolor{keywordtype}{unsigned} par\_entry);
+00674 H5\_DLL herr\_t H5HF\_man\_iblock\_size(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr,
+00675     haddr\_t iblock\_addr, \textcolor{keywordtype}{unsigned} nrows, H5HF\_indirect\_t *par\_iblock, \textcolor{keywordtype}{unsigned} par\_entry, hsize\_t *
+      heap\_size\textcolor{comment}{/*out*/});
+00676 H5\_DLL herr\_t H5HF\_man\_iblock\_dest(H5HF\_indirect\_t *iblock);
+00677 
+00678 \textcolor{comment}{/* Direct block routines */}
+00679 H5\_DLL herr\_t H5HF\_man\_dblock\_new(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *fh, hid\_t dxpl\_id, \textcolor{keywordtype}{size\_t} request,
+00680     \hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} **ret\_sec\_node);
+00681 H5\_DLL herr\_t H5HF\_man\_dblock\_create(hid\_t dxpl\_id, \hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr,
+00682     H5HF\_indirect\_t *par\_iblock, \textcolor{keywordtype}{unsigned} par\_entry, haddr\_t *addr\_p,
+00683     \hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} **ret\_sec\_node);
+00684 H5\_DLL herr\_t H5HF\_man\_dblock\_destroy(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00685     \hyperlink{struct_h5_h_f__direct__t}{H5HF\_direct\_t} *dblock, haddr\_t dblock\_addr);
+00686 H5\_DLL \hyperlink{struct_h5_h_f__direct__t}{H5HF\_direct\_t} *H5HF\_man\_dblock\_protect(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00687     haddr\_t dblock\_addr, \textcolor{keywordtype}{size\_t} dblock\_size,
+00688     H5HF\_indirect\_t *par\_iblock, \textcolor{keywordtype}{unsigned} par\_entry,
+00689     \textcolor{keywordtype}{unsigned} flags);
+00690 H5\_DLL herr\_t H5HF\_man\_dblock\_locate(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00691     hsize\_t obj\_off, H5HF\_indirect\_t **par\_iblock,
+00692     \textcolor{keywordtype}{unsigned} *par\_entry, hbool\_t *par\_did\_protect, \textcolor{keywordtype}{unsigned} flags);
+00693 H5\_DLL herr\_t H5HF\_man\_dblock\_delete(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, haddr\_t dblock\_addr,
+00694     hsize\_t dblock\_size);
+00695 H5\_DLL herr\_t H5HF\_man\_dblock\_dest(\hyperlink{struct_h5_h_f__direct__t}{H5HF\_direct\_t} *dblock);
+00696 
+00697 \textcolor{comment}{/* Managed object routines */}
+00698 H5\_DLL herr\_t H5HF\_man\_insert(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *fh, hid\_t dxpl\_id, \textcolor{keywordtype}{size\_t} obj\_size,
+00699     \textcolor{keyword}{const} \textcolor{keywordtype}{void} *obj, \textcolor{keywordtype}{void} *\textcolor{keywordtype}{id});
+00700 H5\_DLL herr\_t H5HF\_man\_get\_obj\_len(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, \textcolor{keyword}{const} uint8\_t *\textcolor{keywordtype}{id},
+00701     \textcolor{keywordtype}{size\_t} *obj\_len\_p);
+00702 H5\_DLL \textcolor{keywordtype}{void} H5HF\_\_man\_get\_obj\_off(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, \textcolor{keyword}{const} uint8\_t *\textcolor{keywordtype}{id},
+00703     hsize\_t *obj\_off\_p);
+00704 H5\_DLL herr\_t H5HF\_man\_read(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *fh, hid\_t dxpl\_id, \textcolor{keyword}{const} uint8\_t *\textcolor{keywordtype}{id},
+00705     \textcolor{keywordtype}{void} *obj);
+00706 H5\_DLL herr\_t H5HF\_man\_write(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id, \textcolor{keyword}{const} uint8\_t *\textcolor{keywordtype}{id},
+00707     \textcolor{keyword}{const} \textcolor{keywordtype}{void} *obj);
+00708 H5\_DLL herr\_t H5HF\_man\_op(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id, \textcolor{keyword}{const} uint8\_t *\textcolor{keywordtype}{id},
+00709     H5HF\_operator\_t op, \textcolor{keywordtype}{void} *op\_data);
+00710 H5\_DLL herr\_t H5HF\_man\_remove(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id, \textcolor{keyword}{const} uint8\_t *\textcolor{keywordtype}{id});
+00711 
+00712 \textcolor{comment}{/* 'Huge' object routines */}
+00713 H5\_DLL herr\_t H5HF\_huge\_init(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr);
+00714 H5\_DLL herr\_t H5HF\_huge\_insert(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id, \textcolor{keywordtype}{size\_t} obj\_size,
+00715     \textcolor{keywordtype}{void} *obj, \textcolor{keywordtype}{void} *\textcolor{keywordtype}{id});
+00716 H5\_DLL herr\_t H5HF\_huge\_get\_obj\_len(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00717     \textcolor{keyword}{const} uint8\_t *\textcolor{keywordtype}{id}, \textcolor{keywordtype}{size\_t} *obj\_len\_p);
+00718 H5\_DLL herr\_t H5HF\_\_huge\_get\_obj\_off(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00719     \textcolor{keyword}{const} uint8\_t *\textcolor{keywordtype}{id}, hsize\_t *obj\_off\_p);
+00720 H5\_DLL herr\_t H5HF\_huge\_read(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *fh, hid\_t dxpl\_id, \textcolor{keyword}{const} uint8\_t *\textcolor{keywordtype}{id},
+00721     \textcolor{keywordtype}{void} *obj);
+00722 H5\_DLL herr\_t H5HF\_huge\_write(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id, \textcolor{keyword}{const} uint8\_t *\textcolor{keywordtype}{id},
+00723     \textcolor{keyword}{const} \textcolor{keywordtype}{void} *obj);
+00724 H5\_DLL herr\_t H5HF\_huge\_op(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id, \textcolor{keyword}{const} uint8\_t *\textcolor{keywordtype}{id},
+00725     H5HF\_operator\_t op, \textcolor{keywordtype}{void} *op\_data);
+00726 H5\_DLL herr\_t H5HF\_huge\_remove(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *fh, hid\_t dxpl\_id, \textcolor{keyword}{const} uint8\_t *\textcolor{keywordtype}{id});
+00727 H5\_DLL herr\_t H5HF\_huge\_term(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id);
+00728 H5\_DLL herr\_t H5HF\_huge\_delete(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id);
+00729 
+00730 \textcolor{comment}{/* 'Huge' object v2 B-tree function callbacks */}
+00731 H5\_DLL herr\_t H5HF\_\_huge\_bt2\_indir\_found(\textcolor{keyword}{const} \textcolor{keywordtype}{void} *nrecord, \textcolor{keywordtype}{void} *op\_data);
+00732 H5\_DLL herr\_t H5HF\_\_huge\_bt2\_indir\_remove(\textcolor{keyword}{const} \textcolor{keywordtype}{void} *nrecord, \textcolor{keywordtype}{void} *op\_data);
+00733 H5\_DLL herr\_t H5HF\_\_huge\_bt2\_filt\_indir\_found(\textcolor{keyword}{const} \textcolor{keywordtype}{void} *nrecord, \textcolor{keywordtype}{void} *op\_data);
+00734 H5\_DLL herr\_t H5HF\_\_huge\_bt2\_filt\_indir\_remove(\textcolor{keyword}{const} \textcolor{keywordtype}{void} *nrecord, \textcolor{keywordtype}{void} *op\_data);
+00735 H5\_DLL herr\_t H5HF\_\_huge\_bt2\_dir\_remove(\textcolor{keyword}{const} \textcolor{keywordtype}{void} *nrecord, \textcolor{keywordtype}{void} *op\_data);
+00736 H5\_DLL herr\_t H5HF\_\_huge\_bt2\_filt\_dir\_found(\textcolor{keyword}{const} \textcolor{keywordtype}{void} *nrecord, \textcolor{keywordtype}{void} *op\_data);
+00737 H5\_DLL herr\_t H5HF\_\_huge\_bt2\_filt\_dir\_remove(\textcolor{keyword}{const} \textcolor{keywordtype}{void} *nrecord, \textcolor{keywordtype}{void} *op\_data);
+00738 
+00739 \textcolor{comment}{/* 'Tiny' object routines */}
+00740 H5\_DLL herr\_t H5HF\_tiny\_init(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr);
+00741 H5\_DLL herr\_t H5HF\_tiny\_insert(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, \textcolor{keywordtype}{size\_t} obj\_size, \textcolor{keyword}{const} \textcolor{keywordtype}{void} *obj,
+00742     \textcolor{keywordtype}{void} *\textcolor{keywordtype}{id});
+00743 H5\_DLL herr\_t H5HF\_tiny\_get\_obj\_len(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, \textcolor{keyword}{const} uint8\_t *\textcolor{keywordtype}{id},
+00744     \textcolor{keywordtype}{size\_t} *obj\_len\_p);
+00745 H5\_DLL herr\_t H5HF\_tiny\_read(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *fh, \textcolor{keyword}{const} uint8\_t *\textcolor{keywordtype}{id}, \textcolor{keywordtype}{void} *obj);
+00746 H5\_DLL herr\_t H5HF\_tiny\_op(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, \textcolor{keyword}{const} uint8\_t *\textcolor{keywordtype}{id},
+00747     H5HF\_operator\_t op, \textcolor{keywordtype}{void} *op\_data);
+00748 H5\_DLL herr\_t H5HF\_tiny\_remove(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *fh, \textcolor{keyword}{const} uint8\_t *\textcolor{keywordtype}{id});
+00749 
+00750 \textcolor{comment}{/* Debugging routines for dumping file structures */}
+00751 H5\_DLL \textcolor{keywordtype}{void} H5HF\_hdr\_print(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00752     hbool\_t dump\_internal, FILE *stream, \textcolor{keywordtype}{int} indent, \textcolor{keywordtype}{int} fwidth);
+00753 H5\_DLL herr\_t H5HF\_hdr\_debug(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, haddr\_t addr,
+00754     FILE *stream, \textcolor{keywordtype}{int} indent, \textcolor{keywordtype}{int} fwidth);
+00755 H5\_DLL herr\_t H5HF\_dblock\_debug(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, haddr\_t addr,
+00756     FILE *stream, \textcolor{keywordtype}{int} indent, \textcolor{keywordtype}{int} fwidth, haddr\_t hdr\_addr, \textcolor{keywordtype}{size\_t} nrec);
+00757 H5\_DLL \textcolor{keywordtype}{void} H5HF\_iblock\_print(\textcolor{keyword}{const} H5HF\_indirect\_t *iblock, hbool\_t dump\_internal,
+00758     FILE *stream, \textcolor{keywordtype}{int} indent, \textcolor{keywordtype}{int} fwidth);
+00759 H5\_DLL herr\_t H5HF\_iblock\_debug(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, haddr\_t addr,
+00760     FILE *stream, \textcolor{keywordtype}{int} indent, \textcolor{keywordtype}{int} fwidth, haddr\_t hdr\_addr, \textcolor{keywordtype}{unsigned} nrows);
+00761 
+00762 \textcolor{comment}{/* Block iteration routines */}
+00763 H5\_DLL herr\_t H5HF\_man\_iter\_init(\hyperlink{struct_h5_h_f__block__iter__t}{H5HF\_block\_iter\_t} *biter);
+00764 H5\_DLL herr\_t H5HF\_man\_iter\_start\_offset(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00765     \hyperlink{struct_h5_h_f__block__iter__t}{H5HF\_block\_iter\_t} *biter, hsize\_t offset);
+00766 H5\_DLL herr\_t H5HF\_man\_iter\_start\_entry(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, 
+      \hyperlink{struct_h5_h_f__block__iter__t}{H5HF\_block\_iter\_t} *biter,
+00767     H5HF\_indirect\_t *iblock, \textcolor{keywordtype}{unsigned} start\_entry);
+00768 H5\_DLL herr\_t H5HF\_man\_iter\_set\_entry(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr,
+00769     \hyperlink{struct_h5_h_f__block__iter__t}{H5HF\_block\_iter\_t} *biter, \textcolor{keywordtype}{unsigned} entry);
+00770 H5\_DLL herr\_t H5HF\_man\_iter\_next(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, \hyperlink{struct_h5_h_f__block__iter__t}{H5HF\_block\_iter\_t} *biter,
+00771     \textcolor{keywordtype}{unsigned} nentries);
+00772 H5\_DLL herr\_t H5HF\_man\_iter\_up(\hyperlink{struct_h5_h_f__block__iter__t}{H5HF\_block\_iter\_t} *biter);
+00773 H5\_DLL herr\_t H5HF\_man\_iter\_down(\hyperlink{struct_h5_h_f__block__iter__t}{H5HF\_block\_iter\_t} *biter, H5HF\_indirect\_t *iblock);
+00774 H5\_DLL herr\_t H5HF\_man\_iter\_reset(\hyperlink{struct_h5_h_f__block__iter__t}{H5HF\_block\_iter\_t} *biter);
+00775 H5\_DLL herr\_t H5HF\_man\_iter\_curr(\hyperlink{struct_h5_h_f__block__iter__t}{H5HF\_block\_iter\_t} *biter, \textcolor{keywordtype}{unsigned} *row, \textcolor{keywordtype}{unsigned} *col,
+00776     \textcolor{keywordtype}{unsigned} *entry, H5HF\_indirect\_t **block);
+00777 H5\_DLL herr\_t H5HF\_man\_iter\_offset(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, \hyperlink{struct_h5_h_f__block__iter__t}{H5HF\_block\_iter\_t} *biter,
+00778     hsize\_t *offset);
+00779 H5\_DLL hbool\_t H5HF\_man\_iter\_ready(\hyperlink{struct_h5_h_f__block__iter__t}{H5HF\_block\_iter\_t} *biter);
+00780 
+00781 \textcolor{comment}{/* Free space manipulation routines */}
+00782 H5\_DLL herr\_t H5HF\_space\_start(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id, hbool\_t may\_create);
+00783 H5\_DLL herr\_t H5HF\_space\_add(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00784     \hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} *node, \textcolor{keywordtype}{unsigned} flags);
+00785 H5\_DLL htri\_t H5HF\_space\_find(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id, hsize\_t request,
+00786     \hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} **node);
+00787 H5\_DLL herr\_t H5HF\_space\_revert\_root(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id);
+00788 H5\_DLL herr\_t H5HF\_space\_create\_root(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00789     H5HF\_indirect\_t *root\_iblock);
+00790 H5\_DLL herr\_t H5HF\_space\_size(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id, hsize\_t *fs\_size);
+00791 H5\_DLL herr\_t H5HF\_space\_remove(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00792     \hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} *node);
+00793 H5\_DLL herr\_t H5HF\_space\_close(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id);
+00794 H5\_DLL herr\_t H5HF\_space\_delete(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id);
+00795 H5\_DLL herr\_t H5HF\_space\_sect\_change\_class(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00796     \hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} *sect, uint16\_t new\_class);
+00797 
+00798 \textcolor{comment}{/* Free space section routines */}
+00799 H5\_DLL \hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} *H5HF\_sect\_single\_new(hsize\_t sect\_off,
+00800     \textcolor{keywordtype}{size\_t} sect\_size, H5HF\_indirect\_t *parent, \textcolor{keywordtype}{unsigned} par\_entry);
+00801 H5\_DLL herr\_t H5HF\_sect\_single\_revive(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00802     \hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} *sect);
+00803 H5\_DLL herr\_t H5HF\_sect\_single\_dblock\_info(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr,
+00804     \hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} *sect, haddr\_t *dblock\_addr, \textcolor{keywordtype}{size\_t} *dblock\_size);
+00805 H5\_DLL herr\_t H5HF\_sect\_single\_reduce(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00806     \hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} *sect, \textcolor{keywordtype}{size\_t} amt);
+00807 H5\_DLL herr\_t H5HF\_sect\_row\_revive(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00808     \hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} *sect);
+00809 H5\_DLL herr\_t H5HF\_sect\_row\_reduce(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00810     \hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} *sect, \textcolor{keywordtype}{unsigned} *entry\_p);
+00811 H5\_DLL H5HF\_indirect\_t *H5HF\_sect\_row\_get\_iblock(\hyperlink{struct_h5_h_f__free__section__t}{H5HF\_free\_section\_t} *sect);
+00812 H5\_DLL herr\_t H5HF\_sect\_indirect\_add(\hyperlink{struct_h5_h_f__hdr__t}{H5HF\_hdr\_t} *hdr, hid\_t dxpl\_id,
+00813     H5HF\_indirect\_t *iblock, \textcolor{keywordtype}{unsigned} start\_entry, \textcolor{keywordtype}{unsigned} nentries);
+00814 H5\_DLL herr\_t H5HF\_sect\_single\_free(H5FS\_section\_info\_t *sect);
+00815 
+00816 \textcolor{comment}{/* Internal operator callbacks */}
+00817 H5\_DLL herr\_t H5HF\_op\_read(\textcolor{keyword}{const} \textcolor{keywordtype}{void} *obj, \textcolor{keywordtype}{size\_t} obj\_len, \textcolor{keywordtype}{void} *op\_data);
+00818 H5\_DLL herr\_t H5HF\_op\_write(\textcolor{keyword}{const} \textcolor{keywordtype}{void} *obj, \textcolor{keywordtype}{size\_t} obj\_len, \textcolor{keywordtype}{void} *op\_data);
+00819 
+00820 \textcolor{comment}{/* Testing routines */}
+00821 \textcolor{preprocessor}{#ifdef H5HF\_TESTING}
+00822 H5\_DLL herr\_t H5HF\_get\_cparam\_test(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__t}{H5HF\_t} *fh, H5HF\_create\_t *cparam);
+00823 H5\_DLL \textcolor{keywordtype}{int} H5HF\_cmp\_cparam\_test(\textcolor{keyword}{const} H5HF\_create\_t *cparam1, \textcolor{keyword}{const} H5HF\_create\_t *cparam2);
+00824 H5\_DLL \textcolor{keywordtype}{unsigned} H5HF\_get\_max\_root\_rows(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__t}{H5HF\_t} *fh);
+00825 H5\_DLL \textcolor{keywordtype}{unsigned} H5HF\_get\_dtable\_width\_test(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__t}{H5HF\_t} *fh);
+00826 H5\_DLL \textcolor{keywordtype}{unsigned} H5HF\_get\_dtable\_max\_drows\_test(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__t}{H5HF\_t} *fh);
+00827 H5\_DLL \textcolor{keywordtype}{unsigned} H5HF\_get\_iblock\_max\_drows\_test(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__t}{H5HF\_t} *fh, \textcolor{keywordtype}{unsigned} pos);
+00828 H5\_DLL hsize\_t H5HF\_get\_dblock\_size\_test(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__t}{H5HF\_t} *fh, \textcolor{keywordtype}{unsigned} row);
+00829 H5\_DLL hsize\_t H5HF\_get\_dblock\_free\_test(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__t}{H5HF\_t} *fh, \textcolor{keywordtype}{unsigned} row);
+00830 H5\_DLL herr\_t H5HF\_get\_id\_off\_test(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__t}{H5HF\_t} *fh, \textcolor{keyword}{const} \textcolor{keywordtype}{void} *\textcolor{keywordtype}{id}, hsize\_t *obj\_off);
+00831 H5\_DLL herr\_t H5HF\_get\_id\_type\_test(\textcolor{keyword}{const} \textcolor{keywordtype}{void} *\textcolor{keywordtype}{id}, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *obj\_type);
+00832 H5\_DLL herr\_t H5HF\_get\_tiny\_info\_test(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__t}{H5HF\_t} *fh, \textcolor{keywordtype}{size\_t} *max\_len,
+00833     hbool\_t *len\_extended);
+00834 H5\_DLL herr\_t H5HF\_get\_huge\_info\_test(\textcolor{keyword}{const} \hyperlink{struct_h5_h_f__t}{H5HF\_t} *fh, hsize\_t *next\_id,
+00835     hbool\_t *ids\_direct);
+00836 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5HF\_TESTING */}\textcolor{preprocessor}{}
+00837 
+00838 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* \_H5HFpkg\_H */}\textcolor{preprocessor}{}
+00839 
+\end{DoxyCode}

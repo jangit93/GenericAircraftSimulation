@@ -1,0 +1,169 @@
+\hypertarget{eigen_2test_2sparse__vector_8cpp_source}{}\section{eigen/test/sparse\+\_\+vector.cpp}
+\label{eigen_2test_2sparse__vector_8cpp_source}\index{sparse\+\_\+vector.\+cpp@{sparse\+\_\+vector.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2011 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "sparse.h"}
+00011 
+00012 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar,\textcolor{keyword}{typename} StorageIndex> \textcolor{keywordtype}{void} sparse\_vector(\textcolor{keywordtype}{int} rows, \textcolor{keywordtype}{int} cols)
+00013 \{
+00014   \textcolor{keywordtype}{double} densityMat = (std::max)(8./(rows*cols), 0.01);
+00015   \textcolor{keywordtype}{double} densityVec = (std::max)(8./(rows), 0.1);
+00016   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,Dynamic>} 
+      \hyperlink{group___core___module}{DenseMatrix};
+00017   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,1>} \hyperlink{group___core___module}{DenseVector};
+00018   \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_vector}{SparseVector<Scalar,0,StorageIndex>} SparseVectorType;
+00019   \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix}{SparseMatrix<Scalar,0,StorageIndex>} SparseMatrixType;
+00020   Scalar eps = 1e-6;
+00021 
+00022   SparseMatrixType m1(rows,rows);
+00023   SparseVectorType v1(rows), v2(rows), v3(rows);
+00024   DenseMatrix refM1 = DenseMatrix::Zero(rows, rows);
+00025   DenseVector refV1 = DenseVector::Random(rows),
+00026               refV2 = DenseVector::Random(rows),
+00027               refV3 = DenseVector::Random(rows);
+00028 
+00029   std::vector<int> zerocoords, nonzerocoords;
+00030   initSparse<Scalar>(densityVec, refV1, v1, &zerocoords, &nonzerocoords);
+00031   initSparse<Scalar>(densityMat, refM1, m1);
+00032 
+00033   initSparse<Scalar>(densityVec, refV2, v2);
+00034   initSparse<Scalar>(densityVec, refV3, v3);
+00035 
+00036   Scalar s1 = internal::random<Scalar>();
+00037 
+00038   \textcolor{comment}{// test coeff and coeffRef}
+00039   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} i=0; i<zerocoords.size(); ++i)
+00040   \{
+00041     VERIFY\_IS\_MUCH\_SMALLER\_THAN( v1.coeff(zerocoords[i]), eps );
+00042     \textcolor{comment}{//VERIFY\_RAISES\_ASSERT( v1.coeffRef(zerocoords[i]) = 5 );}
+00043   \}
+00044   \{
+00045     VERIFY(\textcolor{keywordtype}{int}(nonzerocoords.size()) == v1.nonZeros());
+00046     \textcolor{keywordtype}{int} j=0;
+00047     \textcolor{keywordflow}{for} (\textcolor{keyword}{typename} SparseVectorType::InnerIterator it(v1); it; ++it,++j)
+00048     \{
+00049       VERIFY(nonzerocoords[j]==it.index());
+00050       VERIFY(it.value()==v1.coeff(it.index()));
+00051       VERIFY(it.value()==refV1.coeff(it.index()));
+00052     \}
+00053   \}
+00054   VERIFY\_IS\_APPROX(v1, refV1);
+00055   
+00056   \textcolor{comment}{// test coeffRef with reallocation}
+00057   \{
+00058     SparseVectorType v4(rows);
+00059     DenseVector v5 = DenseVector::Zero(rows);
+00060     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} k=0; k<rows; ++k)
+00061     \{
+00062       \textcolor{keywordtype}{int} i = internal::random<int>(0,rows-1);
+00063       Scalar v = internal::random<Scalar>();
+00064       v4.coeffRef(i) += v;
+00065       v5.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(i) += v;
+00066     \}
+00067     VERIFY\_IS\_APPROX(v4,v5);
+00068   \}
+00069 
+00070   v1.coeffRef(nonzerocoords[0]) = Scalar(5);
+00071   refV1.coeffRef(nonzerocoords[0]) = Scalar(5);
+00072   VERIFY\_IS\_APPROX(v1, refV1);
+00073 
+00074   VERIFY\_IS\_APPROX(v1+v2, refV1+refV2);
+00075   VERIFY\_IS\_APPROX(v1+v2+v3, refV1+refV2+refV3);
+00076 
+00077   VERIFY\_IS\_APPROX(v1*s1-v2, refV1*s1-refV2);
+00078 
+00079   VERIFY\_IS\_APPROX(v1*=s1, refV1*=s1);
+00080   VERIFY\_IS\_APPROX(v1/=s1, refV1/=s1);
+00081 
+00082   VERIFY\_IS\_APPROX(v1+=v2, refV1+=refV2);
+00083   VERIFY\_IS\_APPROX(v1-=v2, refV1-=refV2);
+00084 
+00085   VERIFY\_IS\_APPROX(v1.dot(v2), refV1.dot(refV2));
+00086   VERIFY\_IS\_APPROX(v1.dot(refV2), refV1.dot(refV2));
+00087 
+00088   VERIFY\_IS\_APPROX(m1*v2, refM1*refV2);
+00089   VERIFY\_IS\_APPROX(v1.dot(m1*v2), refV1.dot(refM1*refV2));
+00090   \{
+00091     \textcolor{keywordtype}{int} i = internal::random<int>(0,rows-1);
+00092     VERIFY\_IS\_APPROX(v1.dot(m1.col(i)), refV1.dot(refM1.col(i)));
+00093   \}
+00094 
+00095 
+00096   VERIFY\_IS\_APPROX(v1.squaredNorm(), refV1.squaredNorm());
+00097   
+00098   VERIFY\_IS\_APPROX(v1.blueNorm(), refV1.blueNorm());
+00099 
+00100   \textcolor{comment}{// test aliasing}
+00101   VERIFY\_IS\_APPROX((v1 = -v1), (refV1 = -refV1));
+00102   VERIFY\_IS\_APPROX((v1 = v1.transpose()), (refV1 = refV1.transpose().eval()));
+00103   VERIFY\_IS\_APPROX((v1 += -v1), (refV1 += -refV1));
+00104   
+00105   \textcolor{comment}{// sparse matrix to sparse vector}
+00106   SparseMatrixType mv1;
+00107   VERIFY\_IS\_APPROX((mv1=v1),v1);
+00108   VERIFY\_IS\_APPROX(mv1,(v1=mv1));
+00109   VERIFY\_IS\_APPROX(mv1,(v1=mv1.transpose()));
+00110   
+00111   \textcolor{comment}{// check copy to dense vector with transpose}
+00112   refV3.resize(0);
+00113   VERIFY\_IS\_APPROX(refV3 = v1.transpose(),v1.toDense()); 
+00114   VERIFY\_IS\_APPROX(DenseVector(v1),v1.toDense()); 
+00115 
+00116   \textcolor{comment}{// test conservative resize}
+00117   \{
+00118     std::vector<StorageIndex> inc;
+00119     \textcolor{keywordflow}{if}(rows > 3)
+00120       inc.push\_back(-3);
+00121     inc.push\_back(0);
+00122     inc.push\_back(3);
+00123     inc.push\_back(1);
+00124     inc.push\_back(10);
+00125 
+00126     \textcolor{keywordflow}{for}(std::size\_t i = 0; i< inc.size(); i++) \{
+00127       StorageIndex incRows = inc[i];
+00128       SparseVectorType vec1(rows);
+00129       DenseVector refVec1 = DenseVector::Zero(rows);
+00130       initSparse<Scalar>(densityVec, refVec1, vec1);
+00131 
+00132       vec1.conservativeResize(rows+incRows);
+00133       refVec1.conservativeResize(rows+incRows);
+00134       \textcolor{keywordflow}{if} (incRows > 0) refVec1.tail(incRows).setZero();
+00135 
+00136       VERIFY\_IS\_APPROX(vec1, refVec1);
+00137 
+00138       \textcolor{comment}{// Insert new values}
+00139       \textcolor{keywordflow}{if} (incRows > 0)
+00140         vec1.insert(vec1.rows()-1) = refVec1(refVec1.rows()-1) = 1;
+00141 
+00142       VERIFY\_IS\_APPROX(vec1, refVec1);
+00143     \}
+00144   \}
+00145 
+00146 \}
+00147 
+00148 \textcolor{keywordtype}{void} test\_sparse\_vector()
+00149 \{
+00150   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00151     \textcolor{keywordtype}{int} r = Eigen::internal::random<int>(1,500), c = Eigen::internal::random<int>(1,500);
+00152     \textcolor{keywordflow}{if}(Eigen::internal::random<int>(0,4) == 0) \{
+00153       r = c; \textcolor{comment}{// check square matrices in 25% of tries}
+00154     \}
+00155     EIGEN\_UNUSED\_VARIABLE(r+c);
+00156 
+00157     CALL\_SUBTEST\_1(( sparse\_vector<double,int>(8, 8) ));
+00158     CALL\_SUBTEST\_2(( sparse\_vector<std::complex<double>, \textcolor{keywordtype}{int}>(r, c) ));
+00159     CALL\_SUBTEST\_1(( sparse\_vector<double,long int>(r, c) ));
+00160     CALL\_SUBTEST\_1(( sparse\_vector<double,short>(r, c) ));
+00161   \}
+00162 \}
+00163 
+\end{DoxyCode}

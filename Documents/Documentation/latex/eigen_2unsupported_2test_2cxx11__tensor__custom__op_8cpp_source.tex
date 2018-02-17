@@ -1,0 +1,120 @@
+\hypertarget{eigen_2unsupported_2test_2cxx11__tensor__custom__op_8cpp_source}{}\section{eigen/unsupported/test/cxx11\+\_\+tensor\+\_\+custom\+\_\+op.cpp}
+\label{eigen_2unsupported_2test_2cxx11__tensor__custom__op_8cpp_source}\index{cxx11\+\_\+tensor\+\_\+custom\+\_\+op.\+cpp@{cxx11\+\_\+tensor\+\_\+custom\+\_\+op.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2014 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 \textcolor{preprocessor}{#include <Eigen/CXX11/Tensor>}
+00013 
+00014 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor};
+00015 
+00016 
+\Hypertarget{eigen_2unsupported_2test_2cxx11__tensor__custom__op_8cpp_source_l00017}\hyperlink{struct_insert_zeros}{00017} \textcolor{keyword}{struct }\hyperlink{struct_insert_zeros}{InsertZeros} \{
+00018   DSizes<DenseIndex, 2> dimensions(\textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2>}& input)\textcolor{keyword}{ const }\{
+00019     DSizes<DenseIndex, 2> result;
+00020     result[0] = input.dimension(0) * 2;
+00021     result[1] = input.dimension(1) * 2;
+00022     \textcolor{keywordflow}{return} result;
+00023   \}
+00024 
+00025   \textcolor{keyword}{template} <\textcolor{keyword}{typename} Output, \textcolor{keyword}{typename} Device>
+00026   \textcolor{keywordtype}{void} eval(\textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2>}& input, Output& output, \textcolor{keyword}{const} Device& device)\textcolor{keyword}{ const}
+00027 \textcolor{keyword}{  }\{
+00028     array<DenseIndex, 2> strides;
+00029     strides[0] = 2;
+00030     strides[1] = 2;
+00031     output.stride(strides).device(device) = input;
+00032 
+00033     \hyperlink{struct_eigen_1_1_d_sizes}{Eigen::DSizes<DenseIndex, 2>} offsets(1,1);
+00034     \hyperlink{struct_eigen_1_1_d_sizes}{Eigen::DSizes<DenseIndex, 2>} extents(output.dimension(0)-1, output.
+      dimension(1)-1);
+00035     output.slice(offsets, extents).stride(strides).device(device) = input.constant(0.0f);
+00036   \}
+00037 \};
+00038 
+00039 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_custom\_unary\_op()
+00040 \{
+00041   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2>} tensor(3,5);
+00042   tensor.setRandom();
+00043 
+00044   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2>} result = tensor.customOp(\hyperlink{struct_insert_zeros}{InsertZeros}());
+00045   VERIFY\_IS\_EQUAL(result.dimension(0), 6);
+00046   VERIFY\_IS\_EQUAL(result.dimension(1), 10);
+00047 
+00048   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 6; i+=2) \{
+00049     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 10; j+=2) \{
+00050       VERIFY\_IS\_EQUAL(result(i, j), tensor(i/2, j/2));
+00051     \}
+00052   \}
+00053   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 1; i < 6; i+=2) \{
+00054     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 1; j < 10; j+=2) \{
+00055       VERIFY\_IS\_EQUAL(result(i, j), 0);
+00056     \}
+00057   \}
+00058 \}
+00059 
+00060 
+\Hypertarget{eigen_2unsupported_2test_2cxx11__tensor__custom__op_8cpp_source_l00061}\hyperlink{struct_batch_mat_mul}{00061} \textcolor{keyword}{struct }\hyperlink{struct_batch_mat_mul}{BatchMatMul} \{
+00062   DSizes<DenseIndex, 3> dimensions(\textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>}& input1, \textcolor{keyword}{const} 
+      \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>}& input2)\textcolor{keyword}{ const }\{
+00063     DSizes<DenseIndex, 3> result;
+00064     result[0] = input1.dimension(0);
+00065     result[1] = input2.dimension(1);
+00066     result[2] = input2.dimension(2);
+00067     \textcolor{keywordflow}{return} result;
+00068   \}
+00069 
+00070   \textcolor{keyword}{template} <\textcolor{keyword}{typename} Output, \textcolor{keyword}{typename} Device>
+00071   \textcolor{keywordtype}{void} eval(\textcolor{keyword}{const} \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>}& input1, \textcolor{keyword}{const} 
+      \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>}& input2,
+00072             Output& output, \textcolor{keyword}{const} Device& device)\textcolor{keyword}{ const}
+00073 \textcolor{keyword}{  }\{
+00074     \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>::DimensionPair} DimPair;
+00075     array<DimPair, 1> dims;
+00076     dims[0] = DimPair(1, 0);
+00077     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < output.dimension(2); ++i) \{
+00078       output.template chip<2>(i).device(device) = input1.chip<2>(i).contract(input2.chip<2>(i), dims);
+00079     \}
+00080   \}
+00081 \};
+00082 
+00083 
+00084 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_custom\_binary\_op()
+00085 \{
+00086   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>} tensor1(2,3,5);
+00087   tensor1.setRandom();
+00088   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>} tensor2(3,7,5);
+00089   tensor2.setRandom();
+00090 
+00091   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>} result = tensor1.customOp(tensor2, 
+      \hyperlink{struct_batch_mat_mul}{BatchMatMul}());
+00092   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 5; ++i) \{
+00093     \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>::DimensionPair} DimPair;
+00094     array<DimPair, 1> dims;
+00095     dims[0] = DimPair(1, 0);
+00096     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2>} reference = tensor1.chip<2>(i).contract(tensor2.chip<2>(i), dims);
+00097     TensorRef<Tensor<float, 2> > val = result.chip<2>(i);
+00098     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 2; ++j) \{
+00099       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 7; ++k) \{
+00100         VERIFY\_IS\_APPROX(val(j, k), reference(j, k));
+00101       \}
+00102     \}
+00103   \}
+00104 \}
+00105 
+00106 
+00107 \textcolor{keywordtype}{void} test\_cxx11\_tensor\_custom\_op()
+00108 \{
+00109   CALL\_SUBTEST(test\_custom\_unary\_op());
+00110   CALL\_SUBTEST(test\_custom\_binary\_op());
+00111 \}
+\end{DoxyCode}

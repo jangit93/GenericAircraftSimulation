@@ -1,0 +1,580 @@
+\hypertarget{eigen_2_eigen_2src_2_core_2products_2_selfadjoint_matrix_matrix_8h_source}{}\section{eigen/\+Eigen/src/\+Core/products/\+Selfadjoint\+Matrix\+Matrix.h}
+\label{eigen_2_eigen_2src_2_core_2products_2_selfadjoint_matrix_matrix_8h_source}\index{Selfadjoint\+Matrix\+Matrix.\+h@{Selfadjoint\+Matrix\+Matrix.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_SELFADJOINT\_MATRIX\_MATRIX\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_SELFADJOINT\_MATRIX\_MATRIX\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016 
+00017 \textcolor{comment}{// pack a selfadjoint block diagonal for use with the gebp\_kernel}
+00018 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} Index, \textcolor{keywordtype}{int} Pack1, \textcolor{keywordtype}{int} Pack2\_dummy, \textcolor{keywordtype}{int} StorageOrder>
+\Hypertarget{eigen_2_eigen_2src_2_core_2products_2_selfadjoint_matrix_matrix_8h_source_l00019}\hyperlink{struct_eigen_1_1internal_1_1symm__pack__lhs}{00019} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1symm__pack__lhs}{symm\_pack\_lhs}
+00020 \{
+00021   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} BlockRows> \textcolor{keyword}{inline}
+00022   \textcolor{keywordtype}{void} pack(Scalar* blockA, \textcolor{keyword}{const} 
+      \hyperlink{class_eigen_1_1internal_1_1const__blas__data__mapper}{const\_blas\_data\_mapper<Scalar,Index,StorageOrder>}& lhs, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& count)
+00023   \{
+00024     \textcolor{comment}{// normal copy}
+00025     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=0; k<i; k++)
+00026       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} w=0; w<BlockRows; w++)
+00027         blockA[count++] = lhs(i+w,k);           \textcolor{comment}{// normal}
+00028     \textcolor{comment}{// symmetric copy}
+00029     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} h = 0;
+00030     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=i; k<i+BlockRows; k++)
+00031     \{
+00032       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} w=0; w<h; w++)
+00033         blockA[count++] = numext::conj(lhs(k, i+w)); \textcolor{comment}{// transposed}
+00034 
+00035       blockA[count++] = numext::real(lhs(k,k));   \textcolor{comment}{// real (diagonal)}
+00036 
+00037       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} w=h+1; w<BlockRows; w++)
+00038         blockA[count++] = lhs(i+w, k);          \textcolor{comment}{// normal}
+00039       ++h;
+00040     \}
+00041     \textcolor{comment}{// transposed copy}
+00042     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=i+BlockRows; k<cols; k++)
+00043       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} w=0; w<BlockRows; w++)
+00044         blockA[count++] = numext::conj(lhs(k, i+w)); \textcolor{comment}{// transposed}
+00045   \}
+00046   \textcolor{keywordtype}{void} operator()(Scalar* blockA, \textcolor{keyword}{const} Scalar* \_lhs, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} lhsStride, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows)
+00047   \{
+00048     \textcolor{keyword}{enum} \{ PacketSize = \hyperlink{struct_eigen_1_1internal_1_1packet__traits}{packet\_traits<Scalar>::size} \};
+00049     \hyperlink{class_eigen_1_1internal_1_1const__blas__data__mapper}{const\_blas\_data\_mapper<Scalar,Index,StorageOrder>} lhs(
+      \_lhs,lhsStride);
+00050     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} count = 0;
+00051     \textcolor{comment}{//Index peeled\_mc3 = (rows/Pack1)*Pack1;}
+00052     
+00053     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} peeled\_mc3 = Pack1>=3*PacketSize ? (rows/(3*PacketSize))*(3*PacketSize) : 0;
+00054     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} peeled\_mc2 = Pack1>=2*PacketSize ? peeled\_mc3+((rows-peeled\_mc3)/(2*PacketSize))*(2*
+      PacketSize) : 0;
+00055     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} peeled\_mc1 = Pack1>=1*PacketSize ? (rows/(1*PacketSize))*(1*PacketSize) : 0;
+00056     
+00057     \textcolor{keywordflow}{if}(Pack1>=3*PacketSize)
+00058       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=0; i<peeled\_mc3; i+=3*PacketSize)
+00059         pack<3*PacketSize>(blockA, lhs, cols, i, count);
+00060     
+00061     \textcolor{keywordflow}{if}(Pack1>=2*PacketSize)
+00062       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=peeled\_mc3; i<peeled\_mc2; i+=2*PacketSize)
+00063         pack<2*PacketSize>(blockA, lhs, cols, i, count);
+00064     
+00065     \textcolor{keywordflow}{if}(Pack1>=1*PacketSize)
+00066       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=peeled\_mc2; i<peeled\_mc1; i+=1*PacketSize)
+00067         pack<1*PacketSize>(blockA, lhs, cols, i, count);
+00068 
+00069     \textcolor{comment}{// do the same with mr==1}
+00070     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=peeled\_mc1; i<rows; i++)
+00071     \{
+00072       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=0; k<i; k++)
+00073         blockA[count++] = lhs(i, k);                   \textcolor{comment}{// normal}
+00074 
+00075       blockA[count++] = numext::real(lhs(i, i));       \textcolor{comment}{// real (diagonal)}
+00076 
+00077       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=i+1; k<cols; k++)
+00078         blockA[count++] = numext::conj(lhs(k, i));     \textcolor{comment}{// transposed}
+00079     \}
+00080   \}
+00081 \};
+00082 
+00083 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} Index, \textcolor{keywordtype}{int} nr, \textcolor{keywordtype}{int} StorageOrder>
+\Hypertarget{eigen_2_eigen_2src_2_core_2products_2_selfadjoint_matrix_matrix_8h_source_l00084}\hyperlink{struct_eigen_1_1internal_1_1symm__pack__rhs}{00084} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1symm__pack__rhs}{symm\_pack\_rhs}
+00085 \{
+00086   \textcolor{keyword}{enum} \{ PacketSize = \hyperlink{struct_eigen_1_1internal_1_1packet__traits}{packet\_traits<Scalar>::size} \};
+00087   \textcolor{keywordtype}{void} operator()(Scalar* blockB, \textcolor{keyword}{const} Scalar* \_rhs, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rhsStride, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k2)
+00088   \{
+00089     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} end\_k = k2 + rows;
+00090     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} count = 0;
+00091     \hyperlink{class_eigen_1_1internal_1_1const__blas__data__mapper}{const\_blas\_data\_mapper<Scalar,Index,StorageOrder>} rhs(
+      \_rhs,rhsStride);
+00092     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} packet\_cols8 = nr>=8 ? (cols/8) * 8 : 0;
+00093     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} packet\_cols4 = nr>=4 ? (cols/4) * 4 : 0;
+00094 
+00095     \textcolor{comment}{// first part: normal case}
+00096     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j2=0; j2<k2; j2+=nr)
+00097     \{
+00098       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=k2; k<end\_k; k++)
+00099       \{
+00100         blockB[count+0] = rhs(k,j2+0);
+00101         blockB[count+1] = rhs(k,j2+1);
+00102         \textcolor{keywordflow}{if} (nr>=4)
+00103         \{
+00104           blockB[count+2] = rhs(k,j2+2);
+00105           blockB[count+3] = rhs(k,j2+3);
+00106         \}
+00107         \textcolor{keywordflow}{if} (nr>=8)
+00108         \{
+00109           blockB[count+4] = rhs(k,j2+4);
+00110           blockB[count+5] = rhs(k,j2+5);
+00111           blockB[count+6] = rhs(k,j2+6);
+00112           blockB[count+7] = rhs(k,j2+7);
+00113         \}
+00114         count += nr;
+00115       \}
+00116     \}
+00117 
+00118     \textcolor{comment}{// second part: diagonal block}
+00119     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} end8 = nr>=8 ? (std::min)(k2+rows,packet\_cols8) : k2;
+00120     \textcolor{keywordflow}{if}(nr>=8)
+00121     \{
+00122       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j2=k2; j2<end8; j2+=8)
+00123       \{
+00124         \textcolor{comment}{// again we can split vertically in three different parts (transpose, symmetric, normal)}
+00125         \textcolor{comment}{// transpose}
+00126         \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=k2; k<j2; k++)
+00127         \{
+00128           blockB[count+0] = numext::conj(rhs(j2+0,k));
+00129           blockB[count+1] = numext::conj(rhs(j2+1,k));
+00130           blockB[count+2] = numext::conj(rhs(j2+2,k));
+00131           blockB[count+3] = numext::conj(rhs(j2+3,k));
+00132           blockB[count+4] = numext::conj(rhs(j2+4,k));
+00133           blockB[count+5] = numext::conj(rhs(j2+5,k));
+00134           blockB[count+6] = numext::conj(rhs(j2+6,k));
+00135           blockB[count+7] = numext::conj(rhs(j2+7,k));
+00136           count += 8;
+00137         \}
+00138         \textcolor{comment}{// symmetric}
+00139         \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} h = 0;
+00140         \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=j2; k<j2+8; k++)
+00141         \{
+00142           \textcolor{comment}{// normal}
+00143           \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} w=0 ; w<h; ++w)
+00144             blockB[count+w] = rhs(k,j2+w);
+00145 
+00146           blockB[count+h] = numext::real(rhs(k,k));
+00147 
+00148           \textcolor{comment}{// transpose}
+00149           \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} w=h+1 ; w<8; ++w)
+00150             blockB[count+w] = numext::conj(rhs(j2+w,k));
+00151           count += 8;
+00152           ++h;
+00153         \}
+00154         \textcolor{comment}{// normal}
+00155         \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=j2+8; k<end\_k; k++)
+00156         \{
+00157           blockB[count+0] = rhs(k,j2+0);
+00158           blockB[count+1] = rhs(k,j2+1);
+00159           blockB[count+2] = rhs(k,j2+2);
+00160           blockB[count+3] = rhs(k,j2+3);
+00161           blockB[count+4] = rhs(k,j2+4);
+00162           blockB[count+5] = rhs(k,j2+5);
+00163           blockB[count+6] = rhs(k,j2+6);
+00164           blockB[count+7] = rhs(k,j2+7);
+00165           count += 8;
+00166         \}
+00167       \}
+00168     \}
+00169     \textcolor{keywordflow}{if}(nr>=4)
+00170     \{
+00171       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j2=end8; j2<(std::min)(k2+rows,packet\_cols4); j2+=4)
+00172       \{
+00173         \textcolor{comment}{// again we can split vertically in three different parts (transpose, symmetric, normal)}
+00174         \textcolor{comment}{// transpose}
+00175         \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=k2; k<j2; k++)
+00176         \{
+00177           blockB[count+0] = numext::conj(rhs(j2+0,k));
+00178           blockB[count+1] = numext::conj(rhs(j2+1,k));
+00179           blockB[count+2] = numext::conj(rhs(j2+2,k));
+00180           blockB[count+3] = numext::conj(rhs(j2+3,k));
+00181           count += 4;
+00182         \}
+00183         \textcolor{comment}{// symmetric}
+00184         \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} h = 0;
+00185         \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=j2; k<j2+4; k++)
+00186         \{
+00187           \textcolor{comment}{// normal}
+00188           \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} w=0 ; w<h; ++w)
+00189             blockB[count+w] = rhs(k,j2+w);
+00190 
+00191           blockB[count+h] = numext::real(rhs(k,k));
+00192 
+00193           \textcolor{comment}{// transpose}
+00194           \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} w=h+1 ; w<4; ++w)
+00195             blockB[count+w] = numext::conj(rhs(j2+w,k));
+00196           count += 4;
+00197           ++h;
+00198         \}
+00199         \textcolor{comment}{// normal}
+00200         \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=j2+4; k<end\_k; k++)
+00201         \{
+00202           blockB[count+0] = rhs(k,j2+0);
+00203           blockB[count+1] = rhs(k,j2+1);
+00204           blockB[count+2] = rhs(k,j2+2);
+00205           blockB[count+3] = rhs(k,j2+3);
+00206           count += 4;
+00207         \}
+00208       \}
+00209     \}
+00210 
+00211     \textcolor{comment}{// third part: transposed}
+00212     \textcolor{keywordflow}{if}(nr>=8)
+00213     \{
+00214       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j2=k2+rows; j2<packet\_cols8; j2+=8)
+00215       \{
+00216         \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=k2; k<end\_k; k++)
+00217         \{
+00218           blockB[count+0] = numext::conj(rhs(j2+0,k));
+00219           blockB[count+1] = numext::conj(rhs(j2+1,k));
+00220           blockB[count+2] = numext::conj(rhs(j2+2,k));
+00221           blockB[count+3] = numext::conj(rhs(j2+3,k));
+00222           blockB[count+4] = numext::conj(rhs(j2+4,k));
+00223           blockB[count+5] = numext::conj(rhs(j2+5,k));
+00224           blockB[count+6] = numext::conj(rhs(j2+6,k));
+00225           blockB[count+7] = numext::conj(rhs(j2+7,k));
+00226           count += 8;
+00227         \}
+00228       \}
+00229     \}
+00230     \textcolor{keywordflow}{if}(nr>=4)
+00231     \{
+00232       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j2=(std::max)(packet\_cols8,k2+rows); j2<packet\_cols4; j2+=4)
+00233       \{
+00234         \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=k2; k<end\_k; k++)
+00235         \{
+00236           blockB[count+0] = numext::conj(rhs(j2+0,k));
+00237           blockB[count+1] = numext::conj(rhs(j2+1,k));
+00238           blockB[count+2] = numext::conj(rhs(j2+2,k));
+00239           blockB[count+3] = numext::conj(rhs(j2+3,k));
+00240           count += 4;
+00241         \}
+00242       \}
+00243     \}
+00244 
+00245     \textcolor{comment}{// copy the remaining columns one at a time (=> the same with nr==1)}
+00246     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j2=packet\_cols4; j2<cols; ++j2)
+00247     \{
+00248       \textcolor{comment}{// transpose}
+00249       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \hyperlink{struct_eigen_1_1half}{half} = (std::min)(end\_k,j2);
+00250       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=k2; k<half; k++)
+00251       \{
+00252         blockB[count] = numext::conj(rhs(j2,k));
+00253         count += 1;
+00254       \}
+00255 
+00256       \textcolor{keywordflow}{if}(half==j2 && half<k2+rows)
+00257       \{
+00258         blockB[count] = numext::real(rhs(j2,j2));
+00259         count += 1;
+00260       \}
+00261       \textcolor{keywordflow}{else}
+00262         half--;
+00263 
+00264       \textcolor{comment}{// normal}
+00265       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k=half+1; k<k2+rows; k++)
+00266       \{
+00267         blockB[count] = rhs(k,j2);
+00268         count += 1;
+00269       \}
+00270     \}
+00271   \}
+00272 \};
+00273 
+00274 \textcolor{comment}{/* Optimized selfadjoint matrix * matrix (\_SYMM) product built on top of}
+00275 \textcolor{comment}{ * the general matrix matrix product.}
+00276 \textcolor{comment}{ */}
+00277 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},
+00278           \textcolor{keywordtype}{int} LhsStorageOrder, \textcolor{keywordtype}{bool} LhsSelfAdjoint, \textcolor{keywordtype}{bool} ConjugateLhs,
+00279           \textcolor{keywordtype}{int} RhsStorageOrder, \textcolor{keywordtype}{bool} RhsSelfAdjoint, \textcolor{keywordtype}{bool} ConjugateRhs,
+00280           \textcolor{keywordtype}{int} ResStorageOrder>
+\Hypertarget{eigen_2_eigen_2src_2_core_2products_2_selfadjoint_matrix_matrix_8h_source_l00281}\hyperlink{struct_eigen_1_1internal_1_1product__selfadjoint__matrix}{00281} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1product__selfadjoint__matrix}{product\_selfadjoint\_matrix};
+00282 
+00283 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},
+00284           \textcolor{keywordtype}{int} LhsStorageOrder, \textcolor{keywordtype}{bool} LhsSelfAdjoint, \textcolor{keywordtype}{bool} ConjugateLhs,
+00285           \textcolor{keywordtype}{int} RhsStorageOrder, \textcolor{keywordtype}{bool} RhsSelfAdjoint, \textcolor{keywordtype}{bool} ConjugateRhs>
+\Hypertarget{eigen_2_eigen_2src_2_core_2products_2_selfadjoint_matrix_matrix_8h_source_l00286}\hyperlink{struct_eigen_1_1internal_1_1product__selfadjoint__matrix_3_01_scalar_00_01_index_00_01_lhs_stora8fa4562df6c92574330a318a01a976cf}{00286} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1product__selfadjoint__matrix}{product\_selfadjoint\_matrix}<Scalar,Index,LhsStorageOrder,LhsSelfAdjoint,
+      ConjugateLhs, RhsStorageOrder,RhsSelfAdjoint,ConjugateRhs,\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}>
+00287 \{
+00288 
+00289   \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} run(
+00290     Index rows, Index cols,
+00291     \textcolor{keyword}{const} Scalar* lhs, Index lhsStride,
+00292     \textcolor{keyword}{const} Scalar* rhs, Index rhsStride,
+00293     Scalar* res,       Index resStride,
+00294     \textcolor{keyword}{const} Scalar& alpha, \hyperlink{class_eigen_1_1internal_1_1level3__blocking}{level3\_blocking<Scalar,Scalar>}& blocking)
+00295   \{
+00296     \hyperlink{struct_eigen_1_1internal_1_1product__selfadjoint__matrix}{product\_selfadjoint\_matrix}<Scalar, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},
+00297       EIGEN\_LOGICAL\_XOR(RhsSelfAdjoint,RhsStorageOrder==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}) ? 
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor} : \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor},
+00298       RhsSelfAdjoint, \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsComplex} && EIGEN\_LOGICAL\_XOR(
+      RhsSelfAdjoint,ConjugateRhs),
+00299       EIGEN\_LOGICAL\_XOR(LhsSelfAdjoint,LhsStorageOrder==\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}) ? 
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor} : \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor},
+00300       LhsSelfAdjoint, \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsComplex} && EIGEN\_LOGICAL\_XOR(
+      LhsSelfAdjoint,ConjugateLhs),
+00301       \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}>
+00302       ::run(cols, rows,  rhs, rhsStride,  lhs, lhsStride,  res, resStride,  alpha, blocking);
+00303   \}
+00304 \};
+00305 
+00306 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},
+00307           \textcolor{keywordtype}{int} LhsStorageOrder, \textcolor{keywordtype}{bool} ConjugateLhs,
+00308           \textcolor{keywordtype}{int} RhsStorageOrder, \textcolor{keywordtype}{bool} ConjugateRhs>
+\Hypertarget{eigen_2_eigen_2src_2_core_2products_2_selfadjoint_matrix_matrix_8h_source_l00309}\hyperlink{struct_eigen_1_1internal_1_1product__selfadjoint__matrix_3_01_scalar_00_01_index_00_01_lhs_storaad3bcb15c8c51e53cb4ff654ee80e230}{00309} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1product__selfadjoint__matrix}{product\_selfadjoint\_matrix}<Scalar,Index,LhsStorageOrder,true,ConjugateLhs,
+       RhsStorageOrder,false,ConjugateRhs,\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}>
+00310 \{
+00311 
+00312   \textcolor{keyword}{static} EIGEN\_DONT\_INLINE \textcolor{keywordtype}{void} run(
+00313     Index rows, Index cols,
+00314     \textcolor{keyword}{const} Scalar* \_lhs, Index lhsStride,
+00315     \textcolor{keyword}{const} Scalar* \_rhs, Index rhsStride,
+00316     Scalar* res,        Index resStride,
+00317     \textcolor{keyword}{const} Scalar& alpha, \hyperlink{class_eigen_1_1internal_1_1level3__blocking}{level3\_blocking<Scalar,Scalar>}& blocking);
+00318 \};
+00319 
+00320 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},
+00321           \textcolor{keywordtype}{int} LhsStorageOrder, \textcolor{keywordtype}{bool} ConjugateLhs,
+00322           \textcolor{keywordtype}{int} RhsStorageOrder, \textcolor{keywordtype}{bool} ConjugateRhs>
+00323 EIGEN\_DONT\_INLINE \textcolor{keywordtype}{void} 
+      \hyperlink{struct_eigen_1_1internal_1_1product__selfadjoint__matrix}{product\_selfadjoint\_matrix<Scalar,Index,LhsStorageOrder,true,ConjugateLhs,
+       RhsStorageOrder,false,ConjugateRhs,ColMajor>::run}
+      (
+00324     Index rows, Index cols,
+00325     \textcolor{keyword}{const} Scalar* \_lhs, Index lhsStride,
+00326     \textcolor{keyword}{const} Scalar* \_rhs, Index rhsStride,
+00327     Scalar* \_res,        Index resStride,
+00328     \textcolor{keyword}{const} Scalar& alpha, \hyperlink{class_eigen_1_1internal_1_1level3__blocking}{level3\_blocking<Scalar,Scalar>}& blocking)
+00329   \{
+00330     Index size = rows;
+00331 
+00332     \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1internal_1_1gebp__traits}{gebp\_traits<Scalar,Scalar>} Traits;
+00333 
+00334     \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1internal_1_1const__blas__data__mapper}{const\_blas\_data\_mapper<Scalar, Index, LhsStorageOrder>}
+       LhsMapper;
+00335     \textcolor{keyword}{typedef} 
+      \hyperlink{class_eigen_1_1internal_1_1const__blas__data__mapper}{const\_blas\_data\_mapper<Scalar, Index, (LhsStorageOrder == RowMajor) ? ColMajor : RowMajor>}
+       LhsTransposeMapper;
+00336     \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1internal_1_1const__blas__data__mapper}{const\_blas\_data\_mapper<Scalar, Index, RhsStorageOrder>}
+       RhsMapper;
+00337     \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1internal_1_1blas__data__mapper}{blas\_data\_mapper<typename Traits::ResScalar, Index, ColMajor>}
+       ResMapper;
+00338     LhsMapper lhs(\_lhs,lhsStride);
+00339     LhsTransposeMapper lhs\_transpose(\_lhs,lhsStride);
+00340     RhsMapper rhs(\_rhs,rhsStride);
+00341     ResMapper res(\_res, resStride);
+00342 
+00343     Index kc = blocking.kc();                   \textcolor{comment}{// cache block size along the K direction}
+00344     Index mc = (std::min)(rows,blocking.mc());  \textcolor{comment}{// cache block size along the M direction}
+00345     \textcolor{comment}{// kc must be smaller than mc}
+00346     kc = (std::min)(kc,mc);
+00347     std::size\_t sizeA = kc*mc;
+00348     std::size\_t sizeB = kc*cols;
+00349     ei\_declare\_aligned\_stack\_constructed\_variable(Scalar, blockA, sizeA, blocking.blockA());
+00350     ei\_declare\_aligned\_stack\_constructed\_variable(Scalar, blockB, sizeB, blocking.blockB());
+00351 
+00352     
+      \hyperlink{struct_eigen_1_1internal_1_1gebp__kernel}{gebp\_kernel<Scalar, Scalar, Index, ResMapper, Traits::mr, Traits::nr, ConjugateLhs, ConjugateRhs>}
+       \hyperlink{struct_eigen_1_1internal_1_1gebp__kernel}{gebp\_kernel};
+00353     
+      \hyperlink{struct_eigen_1_1internal_1_1symm__pack__lhs}{symm\_pack\_lhs<Scalar, Index, Traits::mr, Traits::LhsProgress, LhsStorageOrder>}
+       pack\_lhs;
+00354     \hyperlink{struct_eigen_1_1internal_1_1gemm__pack__rhs}{gemm\_pack\_rhs<Scalar, Index, RhsMapper, Traits::nr,RhsStorageOrder>}
+       pack\_rhs;
+00355     
+      \hyperlink{struct_eigen_1_1internal_1_1gemm__pack__lhs}{gemm\_pack\_lhs<Scalar, Index, LhsTransposeMapper, Traits::mr, Traits::LhsProgress,
+       LhsStorageOrder==RowMajor?ColMajor:RowMajor, true>}
+       pack\_lhs\_transposed;
+00356 
+00357     \textcolor{keywordflow}{for}(Index k2=0; k2<size; k2+=kc)
+00358     \{
+00359       \textcolor{keyword}{const} Index actual\_kc = (std::min)(k2+kc,size)-k2;
+00360 
+00361       \textcolor{comment}{// we have selected one row panel of rhs and one column panel of lhs}
+00362       \textcolor{comment}{// pack rhs's panel into a sequential chunk of memory}
+00363       \textcolor{comment}{// and expand each coeff to a constant packet for further reuse}
+00364       pack\_rhs(blockB, rhs.getSubMapper(k2,0), actual\_kc, cols);
+00365 
+00366       \textcolor{comment}{// the select lhs's panel has to be split in three different parts:}
+00367       \textcolor{comment}{//  1 - the transposed panel above the diagonal block => transposed packed copy}
+00368       \textcolor{comment}{//  2 - the diagonal block => special packed copy}
+00369       \textcolor{comment}{//  3 - the panel below the diagonal block => generic packed copy}
+00370       \textcolor{keywordflow}{for}(Index i2=0; i2<k2; i2+=mc)
+00371       \{
+00372         \textcolor{keyword}{const} Index actual\_mc = (std::min)(i2+mc,k2)-i2;
+00373         \textcolor{comment}{// transposed packed copy}
+00374         pack\_lhs\_transposed(blockA, lhs\_transpose.getSubMapper(i2, k2), actual\_kc, actual\_mc);
+00375 
+00376         gebp\_kernel(res.getSubMapper(i2, 0), blockA, blockB, actual\_mc, actual\_kc, cols, alpha);
+00377       \}
+00378       \textcolor{comment}{// the block diagonal}
+00379       \{
+00380         \textcolor{keyword}{const} Index actual\_mc = (std::min)(k2+kc,size)-k2;
+00381         \textcolor{comment}{// symmetric packed copy}
+00382         pack\_lhs(blockA, &lhs(k2,k2), lhsStride, actual\_kc, actual\_mc);
+00383 
+00384         gebp\_kernel(res.getSubMapper(k2, 0), blockA, blockB, actual\_mc, actual\_kc, cols, alpha);
+00385       \}
+00386 
+00387       \textcolor{keywordflow}{for}(Index i2=k2+kc; i2<size; i2+=mc)
+00388       \{
+00389         \textcolor{keyword}{const} Index actual\_mc = (std::min)(i2+mc,size)-i2;
+00390         
+      \hyperlink{struct_eigen_1_1internal_1_1gemm__pack__lhs}{gemm\_pack\_lhs<Scalar, Index, LhsMapper, Traits::mr, Traits::LhsProgress, LhsStorageOrder,false>}
+      ()
+00391           (blockA, lhs.getSubMapper(i2, k2), actual\_kc, actual\_mc);
+00392 
+00393         gebp\_kernel(res.getSubMapper(i2, 0), blockA, blockB, actual\_mc, actual\_kc, cols, alpha);
+00394       \}
+00395     \}
+00396   \}
+00397 
+00398 \textcolor{comment}{// matrix * selfadjoint product}
+00399 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},
+00400           \textcolor{keywordtype}{int} LhsStorageOrder, \textcolor{keywordtype}{bool} ConjugateLhs,
+00401           \textcolor{keywordtype}{int} RhsStorageOrder, \textcolor{keywordtype}{bool} ConjugateRhs>
+\Hypertarget{eigen_2_eigen_2src_2_core_2products_2_selfadjoint_matrix_matrix_8h_source_l00402}\hyperlink{struct_eigen_1_1internal_1_1product__selfadjoint__matrix_3_01_scalar_00_01_index_00_01_lhs_storadd08b9e76d992b3a954c3041feed2ed9}{00402} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1product__selfadjoint__matrix}{product\_selfadjoint\_matrix}<Scalar,Index,LhsStorageOrder,false,ConjugateLhs
+      , RhsStorageOrder,true,ConjugateRhs,\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}>
+00403 \{
+00404 
+00405   \textcolor{keyword}{static} EIGEN\_DONT\_INLINE \textcolor{keywordtype}{void} run(
+00406     Index rows, Index cols,
+00407     \textcolor{keyword}{const} Scalar* \_lhs, Index lhsStride,
+00408     \textcolor{keyword}{const} Scalar* \_rhs, Index rhsStride,
+00409     Scalar* res,        Index resStride,
+00410     \textcolor{keyword}{const} Scalar& alpha, \hyperlink{class_eigen_1_1internal_1_1level3__blocking}{level3\_blocking<Scalar,Scalar>}& blocking);
+00411 \};
+00412 
+00413 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},
+00414           \textcolor{keywordtype}{int} LhsStorageOrder, \textcolor{keywordtype}{bool} ConjugateLhs,
+00415           \textcolor{keywordtype}{int} RhsStorageOrder, \textcolor{keywordtype}{bool} ConjugateRhs>
+00416 EIGEN\_DONT\_INLINE \textcolor{keywordtype}{void} 
+      \hyperlink{struct_eigen_1_1internal_1_1product__selfadjoint__matrix}{product\_selfadjoint\_matrix<Scalar,Index,LhsStorageOrder,false,ConjugateLhs,
+       RhsStorageOrder,true,ConjugateRhs,ColMajor>::run}
+      (
+00417     Index rows, Index cols,
+00418     \textcolor{keyword}{const} Scalar* \_lhs, Index lhsStride,
+00419     \textcolor{keyword}{const} Scalar* \_rhs, Index rhsStride,
+00420     Scalar* \_res,        Index resStride,
+00421     \textcolor{keyword}{const} Scalar& alpha, \hyperlink{class_eigen_1_1internal_1_1level3__blocking}{level3\_blocking<Scalar,Scalar>}& blocking)
+00422   \{
+00423     Index size = cols;
+00424 
+00425     \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1internal_1_1gebp__traits}{gebp\_traits<Scalar,Scalar>} Traits;
+00426 
+00427     \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1internal_1_1const__blas__data__mapper}{const\_blas\_data\_mapper<Scalar, Index, LhsStorageOrder>}
+       LhsMapper;
+00428     \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1internal_1_1blas__data__mapper}{blas\_data\_mapper<typename Traits::ResScalar, Index, ColMajor>}
+       ResMapper;
+00429     LhsMapper lhs(\_lhs,lhsStride);
+00430     ResMapper res(\_res,resStride);
+00431 
+00432     Index kc = blocking.kc();                   \textcolor{comment}{// cache block size along the K direction}
+00433     Index mc = (std::min)(rows,blocking.mc());  \textcolor{comment}{// cache block size along the M direction}
+00434     std::size\_t sizeA = kc*mc;
+00435     std::size\_t sizeB = kc*cols;
+00436     ei\_declare\_aligned\_stack\_constructed\_variable(Scalar, blockA, sizeA, blocking.blockA());
+00437     ei\_declare\_aligned\_stack\_constructed\_variable(Scalar, blockB, sizeB, blocking.blockB());
+00438 
+00439     
+      \hyperlink{struct_eigen_1_1internal_1_1gebp__kernel}{gebp\_kernel<Scalar, Scalar, Index, ResMapper, Traits::mr, Traits::nr, ConjugateLhs, ConjugateRhs>}
+       \hyperlink{struct_eigen_1_1internal_1_1gebp__kernel}{gebp\_kernel};
+00440     
+      \hyperlink{struct_eigen_1_1internal_1_1gemm__pack__lhs}{gemm\_pack\_lhs<Scalar, Index, LhsMapper, Traits::mr, Traits::LhsProgress, LhsStorageOrder>}
+       pack\_lhs;
+00441     \hyperlink{struct_eigen_1_1internal_1_1symm__pack__rhs}{symm\_pack\_rhs<Scalar, Index, Traits::nr,RhsStorageOrder>}
+       pack\_rhs;
+00442 
+00443     \textcolor{keywordflow}{for}(Index k2=0; k2<size; k2+=kc)
+00444     \{
+00445       \textcolor{keyword}{const} Index actual\_kc = (std::min)(k2+kc,size)-k2;
+00446 
+00447       pack\_rhs(blockB, \_rhs, rhsStride, actual\_kc, cols, k2);
+00448 
+00449       \textcolor{comment}{// => GEPP}
+00450       \textcolor{keywordflow}{for}(Index i2=0; i2<rows; i2+=mc)
+00451       \{
+00452         \textcolor{keyword}{const} Index actual\_mc = (std::min)(i2+mc,rows)-i2;
+00453         pack\_lhs(blockA, lhs.getSubMapper(i2, k2), actual\_kc, actual\_mc);
+00454 
+00455         gebp\_kernel(res.getSubMapper(i2, 0), blockA, blockB, actual\_mc, actual\_kc, cols, alpha);
+00456       \}
+00457     \}
+00458   \}
+00459 
+00460 \} \textcolor{comment}{// end namespace internal}
+00461 
+00462 \textcolor{comment}{/***************************************************************************}
+00463 \textcolor{comment}{* Wrapper to product\_selfadjoint\_matrix}
+00464 \textcolor{comment}{***************************************************************************/}
+00465 
+00466 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00467   
+00468 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keywordtype}{int} LhsMode, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} RhsMode>
+\Hypertarget{eigen_2_eigen_2src_2_core_2products_2_selfadjoint_matrix_matrix_8h_source_l00469}\hyperlink{struct_eigen_1_1internal_1_1selfadjoint__product__impl_3_01_lhs_00_01_lhs_mode_00_01false_00_01_0e7941e7b3bc2131c413f23ec856f76c}{00469} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1selfadjoint__product__impl}{selfadjoint\_product\_impl}<Lhs,LhsMode,false,Rhs,RhsMode,false>
+00470 \{
+00471   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_product}{Product<Lhs,Rhs>::Scalar} Scalar;
+00472   
+00473   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1blas__traits}{internal::blas\_traits<Lhs>} \hyperlink{struct_eigen_1_1internal_1_1blas__traits}{LhsBlasTraits};
+00474   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{LhsBlasTraits::DirectLinearAccessType} 
+      \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{ActualLhsType};
+00475   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1blas__traits}{internal::blas\_traits<Rhs>} \hyperlink{struct_eigen_1_1internal_1_1blas__traits}{RhsBlasTraits};
+00476   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{RhsBlasTraits::DirectLinearAccessType} 
+      \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{ActualRhsType};
+00477   
+00478   \textcolor{keyword}{enum} \{
+00479     LhsIsUpper = (LhsMode&(\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}|\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}))==\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper},
+00480     LhsIsSelfAdjoint = (LhsMode&\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda2491fc6765056421f504eb7e16083e8f}{SelfAdjoint})==\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda2491fc6765056421f504eb7e16083e8f}{SelfAdjoint},
+00481     RhsIsUpper = (RhsMode&(\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}|\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}))==\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper},
+00482     RhsIsSelfAdjoint = (RhsMode&\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda2491fc6765056421f504eb7e16083e8f}{SelfAdjoint})==SelfAdjoint
+00483   \};
+00484   
+00485   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00486   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(Dest &dst, \textcolor{keyword}{const} Lhs &a\_lhs, \textcolor{keyword}{const} Rhs &a\_rhs, \textcolor{keyword}{const} Scalar& alpha)
+00487   \{
+00488     eigen\_assert(dst.rows()==a\_lhs.rows() && dst.cols()==a\_rhs.cols());
+00489 
+00490     \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{internal::add\_const\_on\_value\_type<ActualLhsType>::type}
+       lhs = LhsBlasTraits::extract(a\_lhs);
+00491     \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{internal::add\_const\_on\_value\_type<ActualRhsType>::type}
+       rhs = RhsBlasTraits::extract(a\_rhs);
+00492 
+00493     Scalar actualAlpha = alpha * LhsBlasTraits::extractScalarFactor(a\_lhs)
+00494                                * RhsBlasTraits::extractScalarFactor(a\_rhs);
+00495 
+00496     \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1internal_1_1gemm__blocking__space}{internal::gemm\_blocking\_space}<(Dest::Flags&
+      \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}) ? \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor} : \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor},Scalar,Scalar,
+00497               Lhs::MaxRowsAtCompileTime, Rhs::MaxColsAtCompileTime, Lhs::MaxColsAtCompileTime,1> 
+      BlockingType;
+00498 
+00499     BlockingType blocking(lhs.rows(), rhs.cols(), lhs.cols(), 1, \textcolor{keyword}{false});
+00500 
+00501     \hyperlink{struct_eigen_1_1internal_1_1product__selfadjoint__matrix}{internal::product\_selfadjoint\_matrix}<Scalar, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},
+00502       EIGEN\_LOGICAL\_XOR(LhsIsUpper,\hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Lhs>::Flags} &
+      \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}) ? \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor} : \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}, LhsIsSelfAdjoint,
+00503       \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsComplex} && EIGEN\_LOGICAL\_XOR(LhsIsUpper,\textcolor{keywordtype}{bool}(
+      LhsBlasTraits::NeedToConjugate)),
+00504       EIGEN\_LOGICAL\_XOR(RhsIsUpper,\hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Rhs>::Flags} &RowMajorBit) ?
+       \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor} : \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}, RhsIsSelfAdjoint,
+00505       \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsComplex} && EIGEN\_LOGICAL\_XOR(RhsIsUpper,\textcolor{keywordtype}{bool}(
+      RhsBlasTraits::NeedToConjugate)),
+00506       \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Dest>::Flags}&RowMajorBit  ? 
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor} : ColMajor>
+00507       ::run(
+00508         lhs.rows(), rhs.cols(),                 \textcolor{comment}{// sizes}
+00509         &lhs.coeffRef(0,0), lhs.outerStride(),  \textcolor{comment}{// lhs info}
+00510         &rhs.coeffRef(0,0), rhs.outerStride(),  \textcolor{comment}{// rhs info}
+00511         &dst.coeffRef(0,0), dst.outerStride(),  \textcolor{comment}{// result info}
+00512         actualAlpha, blocking                   \textcolor{comment}{// alpha}
+00513       );
+00514   \}
+00515 \};
+00516 
+00517 \} \textcolor{comment}{// end namespace internal}
+00518 
+00519 \} \textcolor{comment}{// end namespace Eigen}
+00520 
+00521 \textcolor{preprocessor}{#endif // EIGEN\_SELFADJOINT\_MATRIX\_MATRIX\_H}
+\end{DoxyCode}

@@ -1,0 +1,713 @@
+\hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source}{}\section{eigen/unsupported/\+Eigen/\+C\+X\+X11/src/\+Tensor/\+Tensor\+Evaluator.h}
+\label{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source}\index{Tensor\+Evaluator.\+h@{Tensor\+Evaluator.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2014 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_CXX11\_TENSOR\_TENSOR\_EVALUATOR\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_CXX11\_TENSOR\_TENSOR\_EVALUATOR\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00026 \textcolor{comment}{// Generic evaluator}
+00027 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived, \textcolor{keyword}{typename} Device>
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00028}\hyperlink{struct_eigen_1_1_tensor_evaluator}{00028} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}
+00029 \{
+00030   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Derived::Index Index;
+00031   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Derived::Scalar Scalar;
+00032   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Derived::Scalar CoeffReturnType;
+00033   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{PacketType<CoeffReturnType, Device>::type} 
+      \hyperlink{group___sparse_core___module}{PacketReturnType};
+00034   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Derived::Dimensions Dimensions;
+00035 
+00036   \textcolor{comment}{// NumDimensions is -1 for variable dim tensors}
+00037   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} NumCoords = \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::NumDimensions}
+       > 0 ?
+00038                                \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::NumDimensions}
+       : 0;
+00039 
+00040   \textcolor{keyword}{enum} \{
+00041     IsAligned = Derived::IsAligned,
+00042     PacketAccess = (\hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{internal::unpacket\_traits<PacketReturnType>::size}
+       > 1),
+00043     Layout = Derived::Layout,
+00044     CoordAccess = NumCoords > 0,
+00045     RawAccess = \textcolor{keyword}{true}
+00046   \};
+00047 
+00048   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}(\textcolor{keyword}{const} Derived& m, \textcolor{keyword}{const} Device& 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device})
+00049       : m\_data(\textcolor{keyword}{const\_cast<}typename \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::template} 
+      MakePointer<Scalar>::Type\textcolor{keyword}{>}(m.data())), m\_dims(m.dimensions()), m\_device(device), m\_impl(m)
+00050   \{ \}
+00051 
+00052   \textcolor{comment}{// Used for accessor extraction in SYCL Managed TensorMap:}
+00053   \textcolor{keyword}{const} Derived& derived()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_impl; \}
+00054   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{const} Dimensions& dimensions()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_dims; \}
+00055 
+00056   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{bool} evalSubExprsIfNeeded(CoeffReturnType* dest) \{
+00057     \textcolor{keywordflow}{if} (dest) \{
+00058       m\_device.memcpy((\textcolor{keywordtype}{void}*)dest, m\_data, \textcolor{keyword}{sizeof}(Scalar) * m\_dims.TotalSize());
+00059       \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00060     \}
+00061     \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00062   \}
+00063 
+00064   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} cleanup() \{ \}
+00065 
+00066   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE CoeffReturnType coeff(Index index)\textcolor{keyword}{ const }\{
+00067     eigen\_assert(m\_data);
+00068     \textcolor{keywordflow}{return} m\_data[index];
+00069   \}
+00070 
+00071   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE Scalar& coeffRef(Index index) \{
+00072     eigen\_assert(m\_data);
+00073     \textcolor{keywordflow}{return} m\_data[index];
+00074   \}
+00075 
+00076   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00077   PacketReturnType packet(Index index)\textcolor{keyword}{ const}
+00078 \textcolor{keyword}{  }\{
+00079     \textcolor{keywordflow}{return} internal::ploadt<PacketReturnType, LoadMode>(m\_data + index);
+00080   \}
+00081 
+00082   \textcolor{keyword}{template} <\textcolor{keywordtype}{int} StoreMode> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00083   \textcolor{keywordtype}{void} writePacket(Index index, \textcolor{keyword}{const} PacketReturnType& x)
+00084   \{
+00085     \textcolor{keywordflow}{return} internal::pstoret<Scalar, PacketReturnType, StoreMode>(m\_data + index, x);
+00086   \}
+00087 
+00088   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE CoeffReturnType coeff(\textcolor{keyword}{const} 
+      \hyperlink{class_eigen_1_1array}{array<DenseIndex, NumCoords>}& coords)\textcolor{keyword}{ const }\{
+00089     eigen\_assert(m\_data);
+00090     \textcolor{keywordflow}{if} (static\_cast<int>(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})) \{
+00091       \textcolor{keywordflow}{return} m\_data[m\_dims.IndexOfColMajor(coords)];
+00092     \} \textcolor{keywordflow}{else} \{
+00093       \textcolor{keywordflow}{return} m\_data[m\_dims.IndexOfRowMajor(coords)];
+00094     \}
+00095   \}
+00096 
+00097   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE Scalar& coeffRef(\textcolor{keyword}{const} 
+      \hyperlink{class_eigen_1_1array}{array<DenseIndex, NumCoords>}& coords) \{
+00098     eigen\_assert(m\_data);
+00099     \textcolor{keywordflow}{if} (static\_cast<int>(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})) \{
+00100       \textcolor{keywordflow}{return} m\_data[m\_dims.IndexOfColMajor(coords)];
+00101     \} \textcolor{keywordflow}{else} \{
+00102       \textcolor{keywordflow}{return} m\_data[m\_dims.IndexOfRowMajor(coords)];
+00103     \}
+00104   \}
+00105 
+00106   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost} costPerCoeff(\textcolor{keywordtype}{bool} vectorized)\textcolor{keyword}{ const }\{
+00107     \textcolor{keywordflow}{return} \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost}(\textcolor{keyword}{sizeof}(CoeffReturnType), 0, 0, vectorized,
+00108                         \hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{internal::unpacket\_traits<PacketReturnType>::size}
+      );
+00109   \}
+00110 
+00111   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::template} 
+      MakePointer<Scalar>::Type data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_data; \}
+00112 
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00114}\hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{00114}   \textcolor{keyword}{const} Device& \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device}()\textcolor{keyword}{ const}\{\textcolor{keywordflow}{return} m\_device;\}
+00115 
+00116  \textcolor{keyword}{protected}:
+00117   \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::template} MakePointer<Scalar>::Type
+       m\_data;
+00118   Dimensions m\_dims;
+00119   \textcolor{keyword}{const} Device& m\_device;
+00120   \textcolor{keyword}{const} Derived& m\_impl;
+00121 \};
+00122 
+00123 \textcolor{keyword}{namespace }\{
+00124 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+00125 \hyperlink{group___sparse_core___module}{T} loadConstant(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module}{T}* address) \{
+00126   \textcolor{keywordflow}{return} *address;
+00127 \}
+00128 \textcolor{comment}{// Use the texture cache on CUDA devices whenever possible}
+00129 \textcolor{preprocessor}{#if defined(\_\_CUDA\_ARCH\_\_) && \_\_CUDA\_ARCH\_\_ >= 350}
+00130 \textcolor{keyword}{template} <> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+00131 \textcolor{keywordtype}{float} loadConstant(\textcolor{keyword}{const} \textcolor{keywordtype}{float}* address) \{
+00132   \textcolor{keywordflow}{return} \_\_ldg(address);
+00133 \}
+00134 \textcolor{keyword}{template} <> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+00135 \textcolor{keywordtype}{double} loadConstant(\textcolor{keyword}{const} \textcolor{keywordtype}{double}* address) \{
+00136   \textcolor{keywordflow}{return} \_\_ldg(address);
+00137 \}
+00138 \textcolor{keyword}{template} <> EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE
+00139 \hyperlink{struct_eigen_1_1half}{Eigen::half} loadConstant(\textcolor{keyword}{const} \hyperlink{struct_eigen_1_1half}{Eigen::half}* address) \{
+00140   \textcolor{keywordflow}{return} \hyperlink{struct_eigen_1_1half}{Eigen::half}(half\_impl::raw\_uint16\_to\_half(\_\_ldg(&address->x)));
+00141 \}
+00142 \textcolor{preprocessor}{#endif}
+00143 \}
+00144 
+00145 
+00146 \textcolor{comment}{// Default evaluator for rvalues}
+00147 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived, \textcolor{keyword}{typename} Device>
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00148}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_derived_00_01_device_01_4}{00148} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}<const Derived, Device>
+00149 \{
+00150   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Derived::Index Index;
+00151   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Derived::Scalar Scalar;
+00152   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Derived::Scalar CoeffReturnType;
+00153   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{PacketType<CoeffReturnType, Device>::type} 
+      \hyperlink{group___sparse_core___module}{PacketReturnType};
+00154   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Derived::Dimensions Dimensions;
+00155 
+00156   \textcolor{comment}{// NumDimensions is -1 for variable dim tensors}
+00157   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} NumCoords = \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::NumDimensions}
+       > 0 ?
+00158                                \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::NumDimensions}
+       : 0;
+00159 
+00160   \textcolor{keyword}{enum} \{
+00161     IsAligned = Derived::IsAligned,
+00162     PacketAccess = (\hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{internal::unpacket\_traits<PacketReturnType>::size}
+       > 1),
+00163     Layout = Derived::Layout,
+00164     CoordAccess = NumCoords > 0,
+00165     RawAccess = \textcolor{keyword}{true}
+00166   \};
+00167 
+00168   \textcolor{comment}{// Used for accessor extraction in SYCL Managed TensorMap:}
+00169   \textcolor{keyword}{const} Derived& derived()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_impl; \}
+00170 
+00171   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}(\textcolor{keyword}{const} Derived& m, \textcolor{keyword}{const} Device& 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device})
+00172       : m\_data(m.data()), m\_dims(m.dimensions()), m\_device(device), m\_impl(m)
+00173   \{ \}
+00174 
+00175   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{const} Dimensions& dimensions()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_dims; \}
+00176 
+00177   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{bool} evalSubExprsIfNeeded(CoeffReturnType* data) \{
+00178     \textcolor{keywordflow}{if} (!\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits}<\textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{internal::remove\_const<Scalar>::type}
+      >::RequireInitialization && data) \{
+00179       m\_device.memcpy((\textcolor{keywordtype}{void}*)data, m\_data, m\_dims.TotalSize() * \textcolor{keyword}{sizeof}(Scalar));
+00180       \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00181     \}
+00182     \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00183   \}
+00184 
+00185   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} cleanup() \{ \}
+00186 
+00187   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE CoeffReturnType coeff(Index index)\textcolor{keyword}{ const }\{
+00188     eigen\_assert(m\_data);
+00189     \textcolor{keywordflow}{return} loadConstant(m\_data+index);
+00190   \}
+00191 
+00192   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00193   PacketReturnType packet(Index index)\textcolor{keyword}{ const}
+00194 \textcolor{keyword}{  }\{
+00195     \textcolor{keywordflow}{return} internal::ploadt\_ro<PacketReturnType, LoadMode>(m\_data + index);
+00196   \}
+00197 
+00198   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE CoeffReturnType coeff(\textcolor{keyword}{const} 
+      \hyperlink{class_eigen_1_1array}{array<DenseIndex, NumCoords>}& coords)\textcolor{keyword}{ const }\{
+00199     eigen\_assert(m\_data);
+00200     \textcolor{keyword}{const} Index index = (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})) ? m\_dims.
+      IndexOfColMajor(coords)
+00201                         : m\_dims.IndexOfRowMajor(coords);
+00202     \textcolor{keywordflow}{return} loadConstant(m\_data+index);
+00203   \}
+00204 
+00205   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost} costPerCoeff(\textcolor{keywordtype}{bool} vectorized)\textcolor{keyword}{ const }\{
+00206     \textcolor{keywordflow}{return} \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost}(\textcolor{keyword}{sizeof}(CoeffReturnType), 0, 0, vectorized,
+00207                         \hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{internal::unpacket\_traits<PacketReturnType>::size}
+      );
+00208   \}
+00209 
+00210   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::template} 
+      MakePointer<const Scalar>::Type data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_data; \}
+00211 
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00213}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_derived_00_01_device_01_4_ac5b59eb35ea904aca2c6e6fa6e719ff4}{00213}   \textcolor{keyword}{const} Device& \hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_derived_00_01_device_01_4_ac5b59eb35ea904aca2c6e6fa6e719ff4}{device}()\textcolor{keyword}{ const}\{\textcolor{keywordflow}{return} m\_device;\}
+00214 
+00215  \textcolor{keyword}{protected}:
+00216   \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::template} MakePointer<const
+       Scalar>::Type m\_data;
+00217   Dimensions m\_dims;
+00218   \textcolor{keyword}{const} Device& m\_device;
+00219   \textcolor{keyword}{const} Derived& m\_impl;
+00220 \};
+00221 
+00222 
+00223 
+00224 
+00225 \textcolor{comment}{// -------------------- CwiseNullaryOp --------------------}
+00226 
+00227 \textcolor{keyword}{template}<\textcolor{keyword}{typename} NullaryOp, \textcolor{keyword}{typename} ArgType, \textcolor{keyword}{typename} Device>
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00228}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_nullary_op_3_01_nullary_op_00_01_arg_type_01_4_00_01_device_01_4}{00228} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}<const \hyperlink{class_eigen_1_1_tensor_cwise_nullary_op}{TensorCwiseNullaryOp}<NullaryOp, ArgType>, 
+      Device>
+00229 \{
+00230   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor_cwise_nullary_op}{TensorCwiseNullaryOp<NullaryOp, ArgType>} 
+      \hyperlink{class_eigen_1_1_tensor_cwise_nullary_op}{XprType};
+00231 
+00232   \textcolor{keyword}{enum} \{
+00233     IsAligned = \textcolor{keyword}{true},
+00234     PacketAccess = \hyperlink{struct_eigen_1_1internal_1_1functor__traits}{internal::functor\_traits<NullaryOp>::PacketAccess}
+      ,
+00235     Layout = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ArgType, Device>::Layout},
+00236     CoordAccess = \textcolor{keyword}{false},  \textcolor{comment}{// to be implemented}
+00237     RawAccess = \textcolor{keyword}{false}
+00238   \};
+00239 
+00240   EIGEN\_DEVICE\_FUNC
+00241   \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}(\textcolor{keyword}{const} XprType& op, \textcolor{keyword}{const} Device& \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device})
+00242       : m\_functor(op.functor()), m\_argImpl(op.nestedExpression(), \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device}), m\_wrapper()
+00243   \{ \}
+00244 
+00245   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Index Index;
+00246   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Scalar Scalar;
+00247   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<XprType>::Scalar} CoeffReturnType;
+00248   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{PacketType<CoeffReturnType, Device>::type} 
+      \hyperlink{group___sparse_core___module}{PacketReturnType};
+00249   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} PacketSize = 
+      \hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{internal::unpacket\_traits<PacketReturnType>::size};
+00250   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ArgType, Device>::Dimensions}
+       Dimensions;
+00251 
+00252   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} Dimensions& dimensions()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_argImpl.dimensions(); \}
+00253 
+00254   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{bool} evalSubExprsIfNeeded(CoeffReturnType*) \{ \textcolor{keywordflow}{return} \textcolor{keyword}{true}; \}
+00255   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} cleanup() \{ \}
+00256 
+00257   EIGEN\_DEVICE\_FUNC CoeffReturnType coeff(Index index)\textcolor{keyword}{ const}
+00258 \textcolor{keyword}{  }\{
+00259     \textcolor{keywordflow}{return} m\_wrapper(m\_functor, index);
+00260   \}
+00261 
+00262   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode>
+00263   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE PacketReturnType packet(Index index)\textcolor{keyword}{ const}
+00264 \textcolor{keyword}{  }\{
+00265     \textcolor{keywordflow}{return} m\_wrapper.template packetOp<PacketReturnType, Index>(m\_functor, index);
+00266   \}
+00267 
+00268   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost}
+00269   costPerCoeff(\textcolor{keywordtype}{bool} vectorized)\textcolor{keyword}{ const }\{
+00270     \textcolor{keywordflow}{return} \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost}(\textcolor{keyword}{sizeof}(CoeffReturnType), 0, 0, vectorized,
+00271                         \hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{internal::unpacket\_traits<PacketReturnType>::size}
+      );
+00272   \}
+00273 
+00274   EIGEN\_DEVICE\_FUNC CoeffReturnType* data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} NULL; \}
+00275 
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00277}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_nullary_op_3_01_nullary_op_00_01_arg_type_01_4_00_01_device_01_4_a72a3fd3dcff859c87f7eb5d634d35f21}{00277}   \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ArgType, Device>}& \hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_nullary_op_3_01_nullary_op_00_01_arg_type_01_4_00_01_device_01_4_a72a3fd3dcff859c87f7eb5d634d35f21}{impl}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} 
+      m\_argImpl; \}
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00279}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_nullary_op_3_01_nullary_op_00_01_arg_type_01_4_00_01_device_01_4_a9526ddfd7e9532ffdcb3e3ff8defb11f}{00279}   NullaryOp \hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_nullary_op_3_01_nullary_op_00_01_arg_type_01_4_00_01_device_01_4_a9526ddfd7e9532ffdcb3e3ff8defb11f}{functor}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_functor; \}
+00280 
+00281 
+00282  \textcolor{keyword}{private}:
+00283   \textcolor{keyword}{const} NullaryOp m\_functor;
+00284   \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ArgType, Device>} m\_argImpl;
+00285   \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1internal_1_1nullary__wrapper}{internal::nullary\_wrapper<CoeffReturnType,NullaryOp>}
+       m\_wrapper;
+00286 \};
+00287 
+00288 
+00289 
+00290 \textcolor{comment}{// -------------------- CwiseUnaryOp --------------------}
+00291 
+00292 \textcolor{keyword}{template}<\textcolor{keyword}{typename} UnaryOp, \textcolor{keyword}{typename} ArgType, \textcolor{keyword}{typename} Device>
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00293}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_unary_op_3_01_unary_op_00_01_arg_type_01_4_00_01_device_01_4}{00293} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}<const \hyperlink{class_eigen_1_1_tensor_cwise_unary_op}{TensorCwiseUnaryOp}<UnaryOp, ArgType>, Device>
+00294 \{
+00295   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor_cwise_unary_op}{TensorCwiseUnaryOp<UnaryOp, ArgType>} 
+      \hyperlink{class_eigen_1_1_tensor_cwise_unary_op}{XprType};
+00296 
+00297   \textcolor{keyword}{enum} \{
+00298     IsAligned = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ArgType, Device>::IsAligned},
+00299     PacketAccess = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ArgType, Device>::PacketAccess}
+       & \hyperlink{struct_eigen_1_1internal_1_1functor__traits}{internal::functor\_traits<UnaryOp>::PacketAccess},
+00300     Layout = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ArgType, Device>::Layout},
+00301     CoordAccess = \textcolor{keyword}{false},  \textcolor{comment}{// to be implemented}
+00302     RawAccess = \textcolor{keyword}{false}
+00303   \};
+00304 
+00305   EIGEN\_DEVICE\_FUNC \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}(\textcolor{keyword}{const} XprType& op, \textcolor{keyword}{const} Device& 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device})
+00306     : m\_functor(op.functor()),
+00307       m\_argImpl(op.\hyperlink{class_eigen_1_1_tensor_cwise_unary_op_af3a260b2117072817e641d72038cce51}{nestedExpression}(), \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device})
+00308   \{ \}
+00309 
+00310   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Index Index;
+00311   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Scalar Scalar;
+00312   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<XprType>::Scalar} CoeffReturnType;
+00313   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{PacketType<CoeffReturnType, Device>::type} 
+      \hyperlink{group___sparse_core___module}{PacketReturnType};
+00314   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} PacketSize = 
+      \hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{internal::unpacket\_traits<PacketReturnType>::size};
+00315   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ArgType, Device>::Dimensions}
+       Dimensions;
+00316 
+00317   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} Dimensions& dimensions()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_argImpl.dimensions(); \}
+00318 
+00319   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{bool} evalSubExprsIfNeeded(Scalar*) \{
+00320     m\_argImpl.evalSubExprsIfNeeded(NULL);
+00321     \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00322   \}
+00323   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} cleanup() \{
+00324     m\_argImpl.cleanup();
+00325   \}
+00326 
+00327   EIGEN\_DEVICE\_FUNC CoeffReturnType coeff(Index index)\textcolor{keyword}{ const}
+00328 \textcolor{keyword}{  }\{
+00329     \textcolor{keywordflow}{return} m\_functor(m\_argImpl.coeff(index));
+00330   \}
+00331 
+00332   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode>
+00333   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE PacketReturnType packet(Index index)\textcolor{keyword}{ const}
+00334 \textcolor{keyword}{  }\{
+00335     \textcolor{keywordflow}{return} m\_functor.packetOp(m\_argImpl.template packet<LoadMode>(index));
+00336   \}
+00337 
+00338   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost} costPerCoeff(\textcolor{keywordtype}{bool} vectorized)\textcolor{keyword}{ const }\{
+00339     \textcolor{keyword}{const} \textcolor{keywordtype}{double} functor\_cost = \hyperlink{struct_eigen_1_1internal_1_1functor__traits}{internal::functor\_traits<UnaryOp>::Cost}
+      ;
+00340     \textcolor{keywordflow}{return} m\_argImpl.costPerCoeff(vectorized) +
+00341         \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost}(0, 0, functor\_cost, vectorized, PacketSize);
+00342   \}
+00343 
+00344   EIGEN\_DEVICE\_FUNC CoeffReturnType* data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} NULL; \}
+00345 
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00347}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_unary_op_3_01_unary_op_00_01_arg_type_01_4_00_01_device_01_4_a80a58a89394506341c8f5f10d13c03e7}{00347}   \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ArgType, Device>} & \hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_unary_op_3_01_unary_op_00_01_arg_type_01_4_00_01_device_01_4_a80a58a89394506341c8f5f10d13c03e7}{impl}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} 
+      m\_argImpl; \}
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00349}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_unary_op_3_01_unary_op_00_01_arg_type_01_4_00_01_device_01_4_af6eec0085dcded391be5fbbb271ea82e}{00349}   UnaryOp \hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_unary_op_3_01_unary_op_00_01_arg_type_01_4_00_01_device_01_4_af6eec0085dcded391be5fbbb271ea82e}{functor}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_functor; \}
+00350 
+00351 
+00352  \textcolor{keyword}{private}:
+00353   \textcolor{keyword}{const} UnaryOp m\_functor;
+00354   \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ArgType, Device>} m\_argImpl;
+00355 \};
+00356 
+00357 
+00358 \textcolor{comment}{// -------------------- CwiseBinaryOp --------------------}
+00359 
+00360 \textcolor{keyword}{template}<\textcolor{keyword}{typename} BinaryOp, \textcolor{keyword}{typename} LeftArgType, \textcolor{keyword}{typename} RightArgType, \textcolor{keyword}{typename} Device>
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00361}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_binary_op_3_01_binary_op_00_01_left_d0674d2fbf9b5f3fd40347d3eda7a38d}{00361} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}<const \hyperlink{class_eigen_1_1_tensor_cwise_binary_op}{TensorCwiseBinaryOp}<BinaryOp, LeftArgType, 
+      RightArgType>, Device>
+00362 \{
+00363   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor_cwise_binary_op}{TensorCwiseBinaryOp<BinaryOp, LeftArgType, RightArgType>}
+       \hyperlink{class_eigen_1_1_tensor_cwise_binary_op}{XprType};
+00364 
+00365   \textcolor{keyword}{enum} \{
+00366     IsAligned = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<LeftArgType, Device>::IsAligned}
+       & \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<RightArgType, Device>::IsAligned},
+00367     PacketAccess = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<LeftArgType, Device>::PacketAccess}
+       & \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<RightArgType, Device>::PacketAccess} &
+00368                    \hyperlink{struct_eigen_1_1internal_1_1functor__traits}{internal::functor\_traits<BinaryOp>::PacketAccess}
+      ,
+00369     Layout = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<LeftArgType, Device>::Layout},
+00370     CoordAccess = \textcolor{keyword}{false},  \textcolor{comment}{// to be implemented}
+00371     RawAccess = \textcolor{keyword}{false}
+00372   \};
+00373 
+00374   EIGEN\_DEVICE\_FUNC \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}(\textcolor{keyword}{const} XprType& op, \textcolor{keyword}{const} Device& 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device})
+00375     : m\_functor(op.functor()),
+00376       m\_leftImpl(op.\hyperlink{class_eigen_1_1_tensor_cwise_binary_op_abe293a3a1ee663b55c0363d2fb751397}{lhsExpression}(), \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device}),
+00377       m\_rightImpl(op.rhsExpression(), \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device})
+00378   \{
+00379     EIGEN\_STATIC\_ASSERT((static\_cast<int>(
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<LeftArgType, Device>::Layout}) == 
+      static\_cast<int>(\hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<RightArgType, Device>::Layout}) || 
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<XprType>::NumDimensions} <= 1), 
+      YOU\_MADE\_A\_PROGRAMMING\_MISTAKE);
+00380     eigen\_assert(dimensions\_match(m\_leftImpl.dimensions(), m\_rightImpl.dimensions()));
+00381   \}
+00382 
+00383   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Index Index;
+00384   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Scalar Scalar;
+00385   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<XprType>::Scalar} CoeffReturnType;
+00386   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{PacketType<CoeffReturnType, Device>::type} 
+      \hyperlink{group___sparse_core___module}{PacketReturnType};
+00387   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} PacketSize = 
+      \hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{internal::unpacket\_traits<PacketReturnType>::size};
+00388   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<LeftArgType, Device>::Dimensions}
+       Dimensions;
+00389 
+00390   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} Dimensions& dimensions()\textcolor{keyword}{ const}
+00391 \textcolor{keyword}{  }\{
+00392     \textcolor{comment}{// TODO: use right impl instead if right impl dimensions are known at compile time.}
+00393     \textcolor{keywordflow}{return} m\_leftImpl.dimensions();
+00394   \}
+00395 
+00396   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{bool} evalSubExprsIfNeeded(CoeffReturnType*) \{
+00397     m\_leftImpl.evalSubExprsIfNeeded(NULL);
+00398     m\_rightImpl.evalSubExprsIfNeeded(NULL);
+00399     \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00400   \}
+00401   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} cleanup() \{
+00402     m\_leftImpl.cleanup();
+00403     m\_rightImpl.cleanup();
+00404   \}
+00405 
+00406   EIGEN\_DEVICE\_FUNC CoeffReturnType coeff(Index index)\textcolor{keyword}{ const}
+00407 \textcolor{keyword}{  }\{
+00408     \textcolor{keywordflow}{return} m\_functor(m\_leftImpl.coeff(index), m\_rightImpl.coeff(index));
+00409   \}
+00410   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode>
+00411   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE PacketReturnType packet(Index index)\textcolor{keyword}{ const}
+00412 \textcolor{keyword}{  }\{
+00413     \textcolor{keywordflow}{return} m\_functor.packetOp(m\_leftImpl.template packet<LoadMode>(index), m\_rightImpl.template 
+      packet<LoadMode>(index));
+00414   \}
+00415 
+00416   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost}
+00417   costPerCoeff(\textcolor{keywordtype}{bool} vectorized)\textcolor{keyword}{ const }\{
+00418     \textcolor{keyword}{const} \textcolor{keywordtype}{double} functor\_cost = \hyperlink{struct_eigen_1_1internal_1_1functor__traits}{internal::functor\_traits<BinaryOp>::Cost}
+      ;
+00419     \textcolor{keywordflow}{return} m\_leftImpl.costPerCoeff(vectorized) +
+00420            m\_rightImpl.costPerCoeff(vectorized) +
+00421            \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost}(0, 0, functor\_cost, vectorized, PacketSize);
+00422   \}
+00423 
+00424   EIGEN\_DEVICE\_FUNC CoeffReturnType* data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} NULL; \}
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00426}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_binary_op_3_01_binary_op_00_01_left_d0674d2fbf9b5f3fd40347d3eda7a38d_a0aed421d76c236f84852ecff91aac3ce}{00426}   \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<LeftArgType, Device>}& 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_binary_op_3_01_binary_op_00_01_left_d0674d2fbf9b5f3fd40347d3eda7a38d_a0aed421d76c236f84852ecff91aac3ce}{left\_impl}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_leftImpl; \}
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00428}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_binary_op_3_01_binary_op_00_01_left_d0674d2fbf9b5f3fd40347d3eda7a38d_a325bdec16dd97ac649116cd578d9aac3}{00428}   \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<RightArgType, Device>}& 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_binary_op_3_01_binary_op_00_01_left_d0674d2fbf9b5f3fd40347d3eda7a38d_a325bdec16dd97ac649116cd578d9aac3}{right\_impl}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_rightImpl; \}
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00430}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_binary_op_3_01_binary_op_00_01_left_d0674d2fbf9b5f3fd40347d3eda7a38d_a2918eff26a6ece37e4a53bc8d3fdbb55}{00430}   BinaryOp \hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_binary_op_3_01_binary_op_00_01_left_d0674d2fbf9b5f3fd40347d3eda7a38d_a2918eff26a6ece37e4a53bc8d3fdbb55}{functor}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_functor; \}
+00431 
+00432  \textcolor{keyword}{private}:
+00433   \textcolor{keyword}{const} BinaryOp m\_functor;
+00434   \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<LeftArgType, Device>} m\_leftImpl;
+00435   \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<RightArgType, Device>} m\_rightImpl;
+00436 \};
+00437 
+00438 \textcolor{comment}{// -------------------- CwiseTernaryOp --------------------}
+00439 
+00440 \textcolor{keyword}{template}<\textcolor{keyword}{typename} TernaryOp, \textcolor{keyword}{typename} Arg1Type, \textcolor{keyword}{typename} Arg2Type, \textcolor{keyword}{typename} Arg3Type, \textcolor{keyword}{typename} Device>
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00441}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_ternary_op_3_01_ternary_op_00_01_arg9fef65261bbea39b0e5e8b56a6f07cfb}{00441} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}<const \hyperlink{class_eigen_1_1_tensor_cwise_ternary_op}{TensorCwiseTernaryOp}<TernaryOp, Arg1Type, 
+      Arg2Type, Arg3Type>, Device>
+00442 \{
+00443   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor_cwise_ternary_op}{TensorCwiseTernaryOp<TernaryOp, Arg1Type, Arg2Type, Arg3Type>}
+       \hyperlink{class_eigen_1_1_tensor_cwise_ternary_op}{XprType};
+00444 
+00445   \textcolor{keyword}{enum} \{
+00446     IsAligned = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<Arg1Type, Device>::IsAligned} & 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<Arg2Type, Device>::IsAligned} & 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<Arg3Type, Device>::IsAligned},
+00447     PacketAccess = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<Arg1Type, Device>::PacketAccess}
+       & \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<Arg2Type, Device>::PacketAccess} & 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<Arg3Type, Device>::PacketAccess} &
+00448                    \hyperlink{struct_eigen_1_1internal_1_1functor__traits}{internal::functor\_traits<TernaryOp>::PacketAccess}
+      ,
+00449     Layout = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<Arg1Type, Device>::Layout},
+00450     CoordAccess = \textcolor{keyword}{false},  \textcolor{comment}{// to be implemented}
+00451     RawAccess = \textcolor{keyword}{false}
+00452   \};
+00453 
+00454   EIGEN\_DEVICE\_FUNC \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}(\textcolor{keyword}{const} XprType& op, \textcolor{keyword}{const} Device& 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device})
+00455     : m\_functor(op.functor()),
+00456       m\_arg1Impl(op.\hyperlink{class_eigen_1_1_tensor_cwise_ternary_op_a6e797469eff84e6b24dab5bf5f2c1da8}{arg1Expression}(), \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device}),
+00457       m\_arg2Impl(op.arg2Expression(), \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device}),
+00458       m\_arg3Impl(op.arg3Expression(), \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device})
+00459   \{
+00460     EIGEN\_STATIC\_ASSERT((static\_cast<int>(
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<Arg1Type, Device>::Layout}) == static\_cast<int>(
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<Arg3Type, Device>::Layout}) || 
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<XprType>::NumDimensions} <= 1), 
+      YOU\_MADE\_A\_PROGRAMMING\_MISTAKE);
+00461 
+00462     EIGEN\_STATIC\_ASSERT((\hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same}<\textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Arg1Type>::StorageKind},
+00463                          \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Arg2Type>::StorageKind}
+      >::value),
+00464                         STORAGE\_KIND\_MUST\_MATCH)
+00465     EIGEN\_STATIC\_ASSERT((\hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same}<\textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Arg1Type>::StorageKind},
+00466                          \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Arg3Type>::StorageKind}
+      >::value),
+00467                         STORAGE\_KIND\_MUST\_MATCH)
+00468     EIGEN\_STATIC\_ASSERT((\hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same}<\textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Arg1Type>::Index},
+00469                          \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Arg2Type>::Index}>::
+      value),
+00470                         STORAGE\_INDEX\_MUST\_MATCH)
+00471     EIGEN\_STATIC\_ASSERT((\hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same}<\textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Arg1Type>::Index},
+00472                          \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Arg3Type>::Index}>::
+      value),
+00473                         STORAGE\_INDEX\_MUST\_MATCH)
+00474 
+00475     eigen\_assert(dimensions\_match(m\_arg1Impl.dimensions(), m\_arg2Impl.dimensions()) && dimensions\_match(
+      m\_arg1Impl.dimensions(), m\_arg3Impl.dimensions()));
+00476   \}
+00477 
+00478   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Index Index;
+00479   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Scalar Scalar;
+00480   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<XprType>::Scalar} CoeffReturnType;
+00481   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{PacketType<CoeffReturnType, Device>::type} 
+      \hyperlink{group___sparse_core___module}{PacketReturnType};
+00482   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} PacketSize = 
+      \hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{internal::unpacket\_traits<PacketReturnType>::size};
+00483   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<Arg1Type, Device>::Dimensions}
+       Dimensions;
+00484 
+00485   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} Dimensions& dimensions()\textcolor{keyword}{ const}
+00486 \textcolor{keyword}{  }\{
+00487     \textcolor{comment}{// TODO: use arg2 or arg3 dimensions if they are known at compile time.}
+00488     \textcolor{keywordflow}{return} m\_arg1Impl.dimensions();
+00489   \}
+00490 
+00491   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{bool} evalSubExprsIfNeeded(CoeffReturnType*) \{
+00492     m\_arg1Impl.evalSubExprsIfNeeded(NULL);
+00493     m\_arg2Impl.evalSubExprsIfNeeded(NULL);
+00494     m\_arg3Impl.evalSubExprsIfNeeded(NULL);
+00495     \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00496   \}
+00497   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} cleanup() \{
+00498     m\_arg1Impl.cleanup();
+00499     m\_arg2Impl.cleanup();
+00500     m\_arg3Impl.cleanup();
+00501   \}
+00502 
+00503   EIGEN\_DEVICE\_FUNC CoeffReturnType coeff(Index index)\textcolor{keyword}{ const}
+00504 \textcolor{keyword}{  }\{
+00505     \textcolor{keywordflow}{return} m\_functor(m\_arg1Impl.coeff(index), m\_arg2Impl.coeff(index), m\_arg3Impl.coeff(index));
+00506   \}
+00507   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode>
+00508   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE PacketReturnType packet(Index index)\textcolor{keyword}{ const}
+00509 \textcolor{keyword}{  }\{
+00510     \textcolor{keywordflow}{return} m\_functor.packetOp(m\_arg1Impl.template packet<LoadMode>(index),
+00511                               m\_arg2Impl.template packet<LoadMode>(index),
+00512                               m\_arg3Impl.template packet<LoadMode>(index));
+00513   \}
+00514 
+00515   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost}
+00516   costPerCoeff(\textcolor{keywordtype}{bool} vectorized)\textcolor{keyword}{ const }\{
+00517     \textcolor{keyword}{const} \textcolor{keywordtype}{double} functor\_cost = \hyperlink{struct_eigen_1_1internal_1_1functor__traits}{internal::functor\_traits<TernaryOp>::Cost}
+      ;
+00518     \textcolor{keywordflow}{return} m\_arg1Impl.costPerCoeff(vectorized) +
+00519            m\_arg2Impl.costPerCoeff(vectorized) +
+00520            m\_arg3Impl.costPerCoeff(vectorized) +
+00521            \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost}(0, 0, functor\_cost, vectorized, PacketSize);
+00522   \}
+00523 
+00524   EIGEN\_DEVICE\_FUNC CoeffReturnType* data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} NULL; \}
+00525 
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00527}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_ternary_op_3_01_ternary_op_00_01_arg9fef65261bbea39b0e5e8b56a6f07cfb_a6e9e8b5cc53638c9a0c1267a5a1d0217}{00527}   \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<Arg1Type, Device>} & 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_ternary_op_3_01_ternary_op_00_01_arg9fef65261bbea39b0e5e8b56a6f07cfb_a6e9e8b5cc53638c9a0c1267a5a1d0217}{arg1Impl}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_arg1Impl; \}
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00529}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_ternary_op_3_01_ternary_op_00_01_arg9fef65261bbea39b0e5e8b56a6f07cfb_a73aee3fd35d2e94dd45ccc2d17dfe976}{00529}   \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<Arg2Type, Device>}& 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_ternary_op_3_01_ternary_op_00_01_arg9fef65261bbea39b0e5e8b56a6f07cfb_a73aee3fd35d2e94dd45ccc2d17dfe976}{arg2Impl}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_arg2Impl; \}
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00531}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_ternary_op_3_01_ternary_op_00_01_arg9fef65261bbea39b0e5e8b56a6f07cfb_ab99cdf4bb3e47617ee3595792aa62ac4}{00531}   \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<Arg3Type, Device>}& 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_cwise_ternary_op_3_01_ternary_op_00_01_arg9fef65261bbea39b0e5e8b56a6f07cfb_ab99cdf4bb3e47617ee3595792aa62ac4}{arg3Impl}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_arg3Impl; \}
+00532 
+00533  \textcolor{keyword}{private}:
+00534   \textcolor{keyword}{const} TernaryOp m\_functor;
+00535   \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<Arg1Type, Device>} m\_arg1Impl;
+00536   \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<Arg2Type, Device>} m\_arg2Impl;
+00537   \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<Arg3Type, Device>} m\_arg3Impl;
+00538 \};
+00539 
+00540 
+00541 \textcolor{comment}{// -------------------- SelectOp --------------------}
+00542 
+00543 \textcolor{keyword}{template}<\textcolor{keyword}{typename} IfArgType, \textcolor{keyword}{typename} ThenArgType, \textcolor{keyword}{typename} ElseArgType, \textcolor{keyword}{typename} Device>
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00544}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_select_op_3_01_if_arg_type_00_01_then_arg_346b931156fad56ae8aa875afe41cb55}{00544} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}<const \hyperlink{class_eigen_1_1_tensor_select_op}{TensorSelectOp}<IfArgType, ThenArgType, 
+      ElseArgType>, Device>
+00545 \{
+00546   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor_select_op}{TensorSelectOp<IfArgType, ThenArgType, ElseArgType>}
+       \hyperlink{class_eigen_1_1_tensor_select_op}{XprType};
+00547   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Scalar Scalar;
+00548 
+00549   \textcolor{keyword}{enum} \{
+00550     IsAligned = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ThenArgType, Device>::IsAligned}
+       & \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ElseArgType, Device>::IsAligned},
+00551     PacketAccess = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ThenArgType, Device>::PacketAccess}
+       & \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ElseArgType, Device>::PacketAccess} &
+00552                    \hyperlink{struct_eigen_1_1internal_1_1packet__traits}{internal::packet\_traits<Scalar>::HasBlend},
+00553     Layout = \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<IfArgType, Device>::Layout},
+00554     CoordAccess = \textcolor{keyword}{false},  \textcolor{comment}{// to be implemented}
+00555     RawAccess = \textcolor{keyword}{false}
+00556   \};
+00557 
+00558   EIGEN\_DEVICE\_FUNC \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator}(\textcolor{keyword}{const} XprType& op, \textcolor{keyword}{const} Device& 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device})
+00559     : m\_condImpl(op.ifExpression(), \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device}),
+00560       m\_thenImpl(op.thenExpression(), \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device}),
+00561       m\_elseImpl(op.elseExpression(), \hyperlink{struct_eigen_1_1_tensor_evaluator_a98b51809ed8f7a1f736eb7b952b9636e}{device})
+00562   \{
+00563     EIGEN\_STATIC\_ASSERT((static\_cast<int>(
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<IfArgType, Device>::Layout}) == static\_cast<int>(
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ThenArgType, Device>::Layout})), 
+      YOU\_MADE\_A\_PROGRAMMING\_MISTAKE);
+00564     EIGEN\_STATIC\_ASSERT((static\_cast<int>(
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<IfArgType, Device>::Layout}) == static\_cast<int>(
+      \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ElseArgType, Device>::Layout})), 
+      YOU\_MADE\_A\_PROGRAMMING\_MISTAKE);
+00565     eigen\_assert(dimensions\_match(m\_condImpl.dimensions(), m\_thenImpl.dimensions()));
+00566     eigen\_assert(dimensions\_match(m\_thenImpl.dimensions(), m\_elseImpl.dimensions()));
+00567   \}
+00568 
+00569   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Index Index;
+00570   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<XprType>::Scalar} CoeffReturnType;
+00571   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{PacketType<CoeffReturnType, Device>::type} 
+      \hyperlink{group___sparse_core___module}{PacketReturnType};
+00572   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} PacketSize = 
+      \hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{internal::unpacket\_traits<PacketReturnType>::size};
+00573   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<IfArgType, Device>::Dimensions}
+       Dimensions;
+00574 
+00575   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} Dimensions& dimensions()\textcolor{keyword}{ const}
+00576 \textcolor{keyword}{  }\{
+00577     \textcolor{comment}{// TODO: use then or else impl instead if they happen to be known at compile time.}
+00578     \textcolor{keywordflow}{return} m\_condImpl.dimensions();
+00579   \}
+00580 
+00581   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{bool} evalSubExprsIfNeeded(CoeffReturnType*) \{
+00582     m\_condImpl.evalSubExprsIfNeeded(NULL);
+00583     m\_thenImpl.evalSubExprsIfNeeded(NULL);
+00584     m\_elseImpl.evalSubExprsIfNeeded(NULL);
+00585     \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00586   \}
+00587   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} cleanup() \{
+00588     m\_condImpl.cleanup();
+00589     m\_thenImpl.cleanup();
+00590     m\_elseImpl.cleanup();
+00591   \}
+00592 
+00593   EIGEN\_DEVICE\_FUNC CoeffReturnType coeff(Index index)\textcolor{keyword}{ const}
+00594 \textcolor{keyword}{  }\{
+00595     \textcolor{keywordflow}{return} m\_condImpl.coeff(index) ? m\_thenImpl.coeff(index) : m\_elseImpl.coeff(index);
+00596   \}
+00597   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode>
+00598   EIGEN\_DEVICE\_FUNC PacketReturnType packet(Index index)\textcolor{keyword}{ const}
+00599 \textcolor{keyword}{  }\{
+00600     \hyperlink{struct_eigen_1_1internal_1_1_selector}{internal::Selector<PacketSize>} select;
+00601     \textcolor{keywordflow}{for} (Index i = 0; i < PacketSize; ++i) \{
+00602       select.select[i] = m\_condImpl.coeff(index+i);
+00603     \}
+00604     \textcolor{keywordflow}{return} internal::pblend(select,
+00605                             m\_thenImpl.template packet<LoadMode>(index),
+00606                             m\_elseImpl.template packet<LoadMode>(index));
+00607   \}
+00608 
+00609   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1_tensor_op_cost}{TensorOpCost}
+00610   costPerCoeff(\textcolor{keywordtype}{bool} vectorized)\textcolor{keyword}{ const }\{
+00611     \textcolor{keywordflow}{return} m\_condImpl.costPerCoeff(vectorized) +
+00612            m\_thenImpl.costPerCoeff(vectorized)
+00613         .cwiseMax(m\_elseImpl.costPerCoeff(vectorized));
+00614   \}
+00615 
+00616   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE CoeffReturnType* data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} NULL; \}
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00618}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_select_op_3_01_if_arg_type_00_01_then_arg_346b931156fad56ae8aa875afe41cb55_a6f8fea23435b866049d90dadd25955f3}{00618}   \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<IfArgType, Device>} & 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_select_op_3_01_if_arg_type_00_01_then_arg_346b931156fad56ae8aa875afe41cb55_a6f8fea23435b866049d90dadd25955f3}{cond\_impl}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_condImpl; \}
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00620}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_select_op_3_01_if_arg_type_00_01_then_arg_346b931156fad56ae8aa875afe41cb55_aba02423503271daeef9165ec50b3b93d}{00620}   \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ThenArgType, Device>}& 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_select_op_3_01_if_arg_type_00_01_then_arg_346b931156fad56ae8aa875afe41cb55_aba02423503271daeef9165ec50b3b93d}{then\_impl}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_thenImpl; \}
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_evaluator_8h_source_l00622}\hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_select_op_3_01_if_arg_type_00_01_then_arg_346b931156fad56ae8aa875afe41cb55_a29162f5f68ca5bb5cd7d431523a6e8e9}{00622}   \textcolor{keyword}{const} \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ElseArgType, Device>}& 
+      \hyperlink{struct_eigen_1_1_tensor_evaluator_3_01const_01_tensor_select_op_3_01_if_arg_type_00_01_then_arg_346b931156fad56ae8aa875afe41cb55_a29162f5f68ca5bb5cd7d431523a6e8e9}{else\_impl}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_elseImpl; \}
+00623 
+00624  \textcolor{keyword}{private}:
+00625   \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<IfArgType, Device>} m\_condImpl;
+00626   \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ThenArgType, Device>} m\_thenImpl;
+00627   \hyperlink{struct_eigen_1_1_tensor_evaluator}{TensorEvaluator<ElseArgType, Device>} m\_elseImpl;
+00628 \};
+00629 
+00630 
+00631 \} \textcolor{comment}{// end namespace Eigen}
+00632 
+00633 \textcolor{preprocessor}{#endif // EIGEN\_CXX11\_TENSOR\_TENSOR\_EVALUATOR\_H}
+\end{DoxyCode}

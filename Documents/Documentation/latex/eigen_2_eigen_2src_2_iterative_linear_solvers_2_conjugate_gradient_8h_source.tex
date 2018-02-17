@@ -1,0 +1,191 @@
+\hypertarget{eigen_2_eigen_2src_2_iterative_linear_solvers_2_conjugate_gradient_8h_source}{}\section{eigen/\+Eigen/src/\+Iterative\+Linear\+Solvers/\+Conjugate\+Gradient.h}
+\label{eigen_2_eigen_2src_2_iterative_linear_solvers_2_conjugate_gradient_8h_source}\index{Conjugate\+Gradient.\+h@{Conjugate\+Gradient.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2011-2014 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_CONJUGATE\_GRADIENT\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_CONJUGATE\_GRADIENT\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016 
+00026 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Dest, \textcolor{keyword}{typename} Preconditioner>
+00027 EIGEN\_DONT\_INLINE
+00028 \textcolor{keywordtype}{void} conjugate\_gradient(\textcolor{keyword}{const} MatrixType& mat, \textcolor{keyword}{const} Rhs& rhs, Dest& x,
+00029                         \textcolor{keyword}{const} Preconditioner& precond, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& iters,
+00030                         \textcolor{keyword}{typename} Dest::RealScalar& tol\_error)
+00031 \{
+00032   \textcolor{keyword}{using} std::sqrt;
+00033   \textcolor{keyword}{using} std::abs;
+00034   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Dest::RealScalar RealScalar;
+00035   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Dest::Scalar Scalar;
+00036   \textcolor{keyword}{typedef} Matrix<Scalar,Dynamic,1> \hyperlink{struct_vector_type}{VectorType};
+00037   
+00038   RealScalar tol = tol\_error;
+00039   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} maxIters = iters;
+00040   
+00041   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} n = mat.cols();
+00042 
+00043   VectorType residual = rhs - mat * x; \textcolor{comment}{//initial residual}
+00044 
+00045   RealScalar rhsNorm2 = rhs.squaredNorm();
+00046   \textcolor{keywordflow}{if}(rhsNorm2 == 0) 
+00047   \{
+00048     x.setZero();
+00049     iters = 0;
+00050     tol\_error = 0;
+00051     \textcolor{keywordflow}{return};
+00052   \}
+00053   RealScalar threshold = tol*tol*rhsNorm2;
+00054   RealScalar residualNorm2 = residual.squaredNorm();
+00055   \textcolor{keywordflow}{if} (residualNorm2 < threshold)
+00056   \{
+00057     iters = 0;
+00058     tol\_error = sqrt(residualNorm2 / rhsNorm2);
+00059     \textcolor{keywordflow}{return};
+00060   \}
+00061   
+00062   VectorType p(n);
+00063   p = precond.solve(residual);      \textcolor{comment}{// initial search direction}
+00064 
+00065   VectorType z(n), tmp(n);
+00066   RealScalar absNew = numext::real(residual.dot(p));  \textcolor{comment}{// the square of the absolute value of r scaled by
+       invM}
+00067   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i = 0;
+00068   \textcolor{keywordflow}{while}(i < maxIters)
+00069   \{
+00070     tmp.noalias() = mat * p;                    \textcolor{comment}{// the bottleneck of the algorithm}
+00071 
+00072     Scalar alpha = absNew / p.dot(tmp);         \textcolor{comment}{// the amount we travel on dir}
+00073     x += alpha * p;                             \textcolor{comment}{// update solution}
+00074     residual -= alpha * tmp;                    \textcolor{comment}{// update residual}
+00075     
+00076     residualNorm2 = residual.squaredNorm();
+00077     \textcolor{keywordflow}{if}(residualNorm2 < threshold)
+00078       \textcolor{keywordflow}{break};
+00079     
+00080     z = precond.solve(residual);                \textcolor{comment}{// approximately solve for "A z = residual"}
+00081 
+00082     RealScalar absOld = absNew;
+00083     absNew = numext::real(residual.dot(z));     \textcolor{comment}{// update the absolute value of r}
+00084     RealScalar beta = absNew / absOld;          \textcolor{comment}{// calculate the Gram-Schmidt value used to create the new
+       search direction}
+00085     p = z + beta * p;                           \textcolor{comment}{// update search direction}
+00086     i++;
+00087   \}
+00088   tol\_error = sqrt(residualNorm2 / rhsNorm2);
+00089   iters = i;
+00090 \}
+00091 
+00092 \}
+00093 
+00094 \textcolor{keyword}{template}< \textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{int} \_UpLo=\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower},
+00095           \textcolor{keyword}{typename} \_Preconditioner = DiagonalPreconditioner<typename \_MatrixType::Scalar> >
+\Hypertarget{eigen_2_eigen_2src_2_iterative_linear_solvers_2_conjugate_gradient_8h_source_l00096}\hyperlink{group___iterative_linear_solvers___module}{00096} \textcolor{keyword}{class }\hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_conjugate_gradient}{ConjugateGradient};
+00097 
+00098 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00099 
+00100 \textcolor{keyword}{template}< \textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{int} \_UpLo, \textcolor{keyword}{typename} \_Preconditioner>
+\Hypertarget{eigen_2_eigen_2src_2_iterative_linear_solvers_2_conjugate_gradient_8h_source_l00101}\hyperlink{struct_eigen_1_1internal_1_1traits_3_01_conjugate_gradient_3_01___matrix_type_00_01___up_lo_00_01___preconditioner_01_4_01_4}{00101} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1traits}{traits}<\hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_conjugate_gradient}{ConjugateGradient}<\_MatrixType,\_UpLo,\_Preconditioner> >
+00102 \{
+00103   \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00104   \textcolor{keyword}{typedef} \_Preconditioner Preconditioner;
+00105 \};
+00106 
+00107 \}
+00108 
+00156 \textcolor{keyword}{template}< \textcolor{keyword}{typename} \_MatrixType, \textcolor{keywordtype}{int} \_UpLo, \textcolor{keyword}{typename} \_Preconditioner>
+00157 \textcolor{keyword}{class }\hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_conjugate_gradient}{ConjugateGradient} : \textcolor{keyword}{public} \hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_iterative_solver_base}{IterativeSolverBase}<ConjugateGradient<
+      \_MatrixType,\_UpLo,\_Preconditioner> >
+00158 \{
+00159   \textcolor{keyword}{typedef} \hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_iterative_solver_base}{IterativeSolverBase<ConjugateGradient>} Base;
+00160   \textcolor{keyword}{using} Base::matrix;
+00161   \textcolor{keyword}{using} Base::m\_error;
+00162   \textcolor{keyword}{using} Base::m\_iterations;
+00163   \textcolor{keyword}{using} Base::m\_info;
+00164   \textcolor{keyword}{using} Base::m\_isInitialized;
+00165 \textcolor{keyword}{public}:
+00166   \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00167   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00168   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00169   \textcolor{keyword}{typedef} \_Preconditioner Preconditioner;
+00170 
+00171   \textcolor{keyword}{enum} \{
+00172     UpLo = \_UpLo
+00173   \};
+00174 
+00175 \textcolor{keyword}{public}:
+00176 
+\Hypertarget{eigen_2_eigen_2src_2_iterative_linear_solvers_2_conjugate_gradient_8h_source_l00178}\hyperlink{group___iterative_linear_solvers___module_a92a9656ca9fa4da240194f89229255eb}{00178}   \hyperlink{group___iterative_linear_solvers___module_a92a9656ca9fa4da240194f89229255eb}{ConjugateGradient}() : Base() \{\}
+00179 
+00190   \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixDerived>
+\Hypertarget{eigen_2_eigen_2src_2_iterative_linear_solvers_2_conjugate_gradient_8h_source_l00191}\hyperlink{group___iterative_linear_solvers___module_ac10f778fcd137eca1f6057c8ddd3d644}{00191}   \textcolor{keyword}{explicit} \hyperlink{group___iterative_linear_solvers___module_ac10f778fcd137eca1f6057c8ddd3d644}{ConjugateGradient}(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<MatrixDerived>}& 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}) : Base(A.derived()) \{\}
+00192 
+00193   ~\hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_conjugate_gradient}{ConjugateGradient}() \{\}
+00194 
+00196   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs,\textcolor{keyword}{typename} Dest>
+00197   \textcolor{keywordtype}{void} \_solve\_with\_guess\_impl(\textcolor{keyword}{const} Rhs& b, Dest& x)\textcolor{keyword}{ const}
+00198 \textcolor{keyword}{  }\{
+00199     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1generic__matrix__wrapper}{Base::MatrixWrapper} \hyperlink{class_eigen_1_1internal_1_1generic__matrix__wrapper}{MatrixWrapper};
+00200     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Base::ActualMatrixType ActualMatrixType;
+00201     \textcolor{keyword}{enum} \{
+00202       TransposeInput  =   (!MatrixWrapper::MatrixFree)
+00203                       &&  (UpLo==(\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}|\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}))
+00204                       &&  (!MatrixType::IsRowMajor)
+00205                       &&  (!\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsComplex})
+00206     \};
+00207     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1conditional}{internal::conditional<TransposeInput,Transpose<const ActualMatrixType>}
+      , ActualMatrixType \textcolor{keyword}{const}&>::type RowMajorWrapper;
+00208     EIGEN\_STATIC\_ASSERT(EIGEN\_IMPLIES(MatrixWrapper::MatrixFree,UpLo==(\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}|
+      \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper})),MATRIX\_FREE\_CONJUGATE\_GRADIENT\_IS\_COMPATIBLE\_WITH\_UPPER\_UNION\_LOWER\_MODE\_ONLY);
+00209     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1conditional}{internal::conditional}<UpLo==(\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}|
+      \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}),
+00210                                            RowMajorWrapper,
+00211                                            \textcolor{keyword}{typename} MatrixWrapper::template 
+      ConstSelfAdjointViewReturnType<UpLo>::Type
+00212                                           >::type SelfAdjointWrapper;
+00213     m\_iterations = Base::maxIterations();
+00214     m\_error = Base::m\_tolerance;
+00215 
+00216     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j=0; j<b.cols(); ++j)
+00217     \{
+00218       m\_iterations = Base::maxIterations();
+00219       m\_error = Base::m\_tolerance;
+00220 
+00221       \textcolor{keyword}{typename} Dest::ColXpr xj(x,j);
+00222       RowMajorWrapper row\_mat(matrix());
+00223       internal::conjugate\_gradient(SelfAdjointWrapper(row\_mat), b.col(j), xj, Base::m\_preconditioner, 
+      m\_iterations, m\_error);
+00224     \}
+00225 
+00226     m\_isInitialized = \textcolor{keyword}{true};
+00227     m\_info = m\_error <= Base::m\_tolerance ? \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success} : \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaba1c8763d1179778070f365ecc4157a8}{NoConvergence};
+00228   \}
+00229   
+00231   \textcolor{keyword}{using} Base::\_solve\_impl;
+00232   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs,\textcolor{keyword}{typename} Dest>
+00233   \textcolor{keywordtype}{void} \_solve\_impl(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Rhs>}& b, Dest& x)\textcolor{keyword}{ const}
+00234 \textcolor{keyword}{  }\{
+00235     x.setZero();
+00236     \_solve\_with\_guess\_impl(b.derived(),x);
+00237   \}
+00238 
+00239 \textcolor{keyword}{protected}:
+00240 
+00241 \};
+00242 
+00243 \} \textcolor{comment}{// end namespace Eigen}
+00244 
+00245 \textcolor{preprocessor}{#endif // EIGEN\_CONJUGATE\_GRADIENT\_H}
+\end{DoxyCode}

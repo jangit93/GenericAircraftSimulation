@@ -16,11 +16,11 @@ void Guidance::selectGuidance(int Type)
 	switch (Type)
 	{
 	case 1:
-		std::cout << "Guidance\t" << "Base Guidance" << std::endl;
+		std::cout << "Guidance:\t" << "Base Guidance" << std::endl;
 		guidance = new BaseGuidance;
 		break;
 	case 2:
-		std::cout << "Guidance\t" << "acceleration Table Guidance" << std::endl;
+		std::cout << "Guidance:\t" << "acceleration Table Guidance" << std::endl;
 		guidance = new accTable;
 		break;
 
@@ -34,17 +34,13 @@ void Guidance::initGuidance()
 
 void Guidance::updateGuidance(Float64 FlightTime, 
 							  AerodynamicStruct & AeroData,
-							  ThrustStruct & ThrustData, 
-							  AircraftStruct & AircraftData, 
-							  AirframeStruct & AirframeData, 
-							  AtmosphereStruct & AtmosphereData, 
+							  ThrustStruct & ThrustData,  
+							  AirframeStruct & AirframeData,
 						      GuidanceStruct &GuidanceData)
 {
 	guidance->updateGuidance(FlightTime,
 							 AeroData,
 							 ThrustData,
-							 AircraftData,
 							 AirframeData,
-							 AtmosphereData,
 							 GuidanceData);
 }

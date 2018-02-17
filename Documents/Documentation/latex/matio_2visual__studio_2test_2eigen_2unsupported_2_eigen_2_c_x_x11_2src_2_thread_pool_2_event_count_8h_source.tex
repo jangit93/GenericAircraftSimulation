@@ -1,0 +1,238 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_thread_pool_2_event_count_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/\+C\+X\+X11/src/\+Thread\+Pool/\+Event\+Count.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_thread_pool_2_event_count_8h_source}\index{Event\+Count.\+h@{Event\+Count.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2016 Dmitry Vyukov <dvyukov@google.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_CXX11\_THREADPOOL\_EVENTCOUNT\_H\_}
+00011 \textcolor{preprocessor}{#define EIGEN\_CXX11\_THREADPOOL\_EVENTCOUNT\_H\_}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00015 \textcolor{comment}{// EventCount allows to wait for arbitrary predicates in non-blocking}
+00016 \textcolor{comment}{// algorithms. Think of condition variable, but wait predicate does not need to}
+00017 \textcolor{comment}{// be protected by a mutex. Usage:}
+00018 \textcolor{comment}{// Waiting thread does:}
+00019 \textcolor{comment}{//}
+00020 \textcolor{comment}{//   if (predicate)}
+00021 \textcolor{comment}{//     return act();}
+00022 \textcolor{comment}{//   EventCount::Waiter& w = waiters[my\_index];}
+00023 \textcolor{comment}{//   ec.Prewait(&w);}
+00024 \textcolor{comment}{//   if (predicate) \{}
+00025 \textcolor{comment}{//     ec.CancelWait(&w);}
+00026 \textcolor{comment}{//     return act();}
+00027 \textcolor{comment}{//   \}}
+00028 \textcolor{comment}{//   ec.CommitWait(&w);}
+00029 \textcolor{comment}{//}
+00030 \textcolor{comment}{// Notifying thread does:}
+00031 \textcolor{comment}{//}
+00032 \textcolor{comment}{//   predicate = true;}
+00033 \textcolor{comment}{//   ec.Notify(true);}
+00034 \textcolor{comment}{//}
+00035 \textcolor{comment}{// Notify is cheap if there are no waiting threads. Prewait/CommitWait are not}
+00036 \textcolor{comment}{// cheap, but they are executed only if the preceeding predicate check has}
+00037 \textcolor{comment}{// failed.}
+00038 \textcolor{comment}{//}
+00039 \textcolor{comment}{// Algorihtm outline:}
+00040 \textcolor{comment}{// There are two main variables: predicate (managed by user) and state\_.}
+00041 \textcolor{comment}{// Operation closely resembles Dekker mutual algorithm:}
+00042 \textcolor{comment}{// https://en.wikipedia.org/wiki/Dekker%27s\_algorithm}
+00043 \textcolor{comment}{// Waiting thread sets state\_ then checks predicate, Notifying thread sets}
+00044 \textcolor{comment}{// predicate then checks state\_. Due to seq\_cst fences in between these}
+00045 \textcolor{comment}{// operations it is guaranteed than either waiter will see predicate change}
+00046 \textcolor{comment}{// and won't block, or notifying thread will see state\_ change and will unblock}
+00047 \textcolor{comment}{// the waiter, or both. But it can't happen that both threads don't see each}
+00048 \textcolor{comment}{// other changes, which would lead to deadlock.}
+00049 \textcolor{keyword}{class }EventCount \{
+00050  \textcolor{keyword}{public}:
+00051   \textcolor{keyword}{class }Waiter;
+00052 
+00053   EventCount(MaxSizeVector<Waiter>& waiters) : waiters\_(waiters) \{
+00054     eigen\_assert(waiters.size() < (1 << kWaiterBits) - 1);
+00055     \textcolor{comment}{// Initialize epoch to something close to overflow to test overflow.}
+00056     state\_ = kStackMask | (kEpochMask - kEpochInc * waiters.size() * 2);
+00057   \}
+00058 
+00059   ~EventCount() \{
+00060     \textcolor{comment}{// Ensure there are no waiters.}
+00061     eigen\_assert((state\_.load() & (kStackMask | kWaiterMask)) == kStackMask);
+00062   \}
+00063 
+00064   \textcolor{comment}{// Prewait prepares for waiting.}
+00065   \textcolor{comment}{// After calling this function the thread must re-check the wait predicate}
+00066   \textcolor{comment}{// and call either CancelWait or CommitWait passing the same Waiter object.}
+00067   \textcolor{keywordtype}{void} Prewait(Waiter* w) \{
+00068     w->epoch = state\_.fetch\_add(kWaiterInc, std::memory\_order\_relaxed);
+00069     std::atomic\_thread\_fence(std::memory\_order\_seq\_cst);
+00070   \}
+00071 
+00072   \textcolor{comment}{// CommitWait commits waiting.}
+00073   \textcolor{keywordtype}{void} CommitWait(Waiter* w) \{
+00074     w->state = Waiter::kNotSignaled;
+00075     \textcolor{comment}{// Modification epoch of this waiter.}
+00076     uint64\_t epoch =
+00077         (w->epoch & kEpochMask) +
+00078         (((w->epoch & kWaiterMask) >> kWaiterShift) << kEpochShift);
+00079     uint64\_t \hyperlink{structstate}{state} = state\_.load(std::memory\_order\_seq\_cst);
+00080     \textcolor{keywordflow}{for} (;;) \{
+00081       \textcolor{keywordflow}{if} (int64\_t((state & kEpochMask) - epoch) < 0) \{
+00082         \textcolor{comment}{// The preceeding waiter has not decided on its fate. Wait until it}
+00083         \textcolor{comment}{// calls either CancelWait or CommitWait, or is notified.}
+00084         EIGEN\_THREAD\_YIELD();
+00085         state = state\_.load(std::memory\_order\_seq\_cst);
+00086         \textcolor{keywordflow}{continue};
+00087       \}
+00088       \textcolor{comment}{// We've already been notified.}
+00089       \textcolor{keywordflow}{if} (int64\_t((state & kEpochMask) - epoch) > 0) \textcolor{keywordflow}{return};
+00090       \textcolor{comment}{// Remove this thread from prewait counter and add it to the waiter list.}
+00091       eigen\_assert((state & kWaiterMask) != 0);
+00092       uint64\_t newstate = state - kWaiterInc + kEpochInc;
+00093       newstate = (newstate & ~kStackMask) | (w - &waiters\_[0]);
+00094       \textcolor{keywordflow}{if} ((state & kStackMask) == kStackMask)
+00095         w->next.store(\textcolor{keyword}{nullptr}, std::memory\_order\_relaxed);
+00096       \textcolor{keywordflow}{else}
+00097         w->next.store(&waiters\_[state & kStackMask], std::memory\_order\_relaxed);
+00098       \textcolor{keywordflow}{if} (state\_.compare\_exchange\_weak(state, newstate,
+00099                                        std::memory\_order\_release))
+00100         \textcolor{keywordflow}{break};
+00101     \}
+00102     Park(w);
+00103   \}
+00104 
+00105   \textcolor{comment}{// CancelWait cancels effects of the previous Prewait call.}
+00106   \textcolor{keywordtype}{void} CancelWait(Waiter* w) \{
+00107     uint64\_t epoch =
+00108         (w->epoch & kEpochMask) +
+00109         (((w->epoch & kWaiterMask) >> kWaiterShift) << kEpochShift);
+00110     uint64\_t state = state\_.load(std::memory\_order\_relaxed);
+00111     \textcolor{keywordflow}{for} (;;) \{
+00112       \textcolor{keywordflow}{if} (int64\_t((state & kEpochMask) - epoch) < 0) \{
+00113         \textcolor{comment}{// The preceeding waiter has not decided on its fate. Wait until it}
+00114         \textcolor{comment}{// calls either CancelWait or CommitWait, or is notified.}
+00115         EIGEN\_THREAD\_YIELD();
+00116         state = state\_.load(std::memory\_order\_relaxed);
+00117         \textcolor{keywordflow}{continue};
+00118       \}
+00119       \textcolor{comment}{// We've already been notified.}
+00120       \textcolor{keywordflow}{if} (int64\_t((state & kEpochMask) - epoch) > 0) \textcolor{keywordflow}{return};
+00121       \textcolor{comment}{// Remove this thread from prewait counter.}
+00122       eigen\_assert((state & kWaiterMask) != 0);
+00123       \textcolor{keywordflow}{if} (state\_.compare\_exchange\_weak(state, state - kWaiterInc + kEpochInc,
+00124                                        std::memory\_order\_relaxed))
+00125         \textcolor{keywordflow}{return};
+00126     \}
+00127   \}
+00128 
+00129   \textcolor{comment}{// Notify wakes one or all waiting threads.}
+00130   \textcolor{comment}{// Must be called after changing the associated wait predicate.}
+00131   \textcolor{keywordtype}{void} Notify(\textcolor{keywordtype}{bool} all) \{
+00132     std::atomic\_thread\_fence(std::memory\_order\_seq\_cst);
+00133     uint64\_t state = state\_.load(std::memory\_order\_acquire);
+00134     \textcolor{keywordflow}{for} (;;) \{
+00135       \textcolor{comment}{// Easy case: no waiters.}
+00136       \textcolor{keywordflow}{if} ((state & kStackMask) == kStackMask && (state & kWaiterMask) == 0)
+00137         \textcolor{keywordflow}{return};
+00138       uint64\_t waiters = (state & kWaiterMask) >> kWaiterShift;
+00139       uint64\_t newstate;
+00140       \textcolor{keywordflow}{if} (all) \{
+00141         \textcolor{comment}{// Reset prewait counter and empty wait list.}
+00142         newstate = (state & kEpochMask) + (kEpochInc * waiters) + kStackMask;
+00143       \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (waiters) \{
+00144         \textcolor{comment}{// There is a thread in pre-wait state, unblock it.}
+00145         newstate = state + kEpochInc - kWaiterInc;
+00146       \} \textcolor{keywordflow}{else} \{
+00147         \textcolor{comment}{// Pop a waiter from list and unpark it.}
+00148         Waiter* w = &waiters\_[state & kStackMask];
+00149         Waiter* wnext = w->next.load(std::memory\_order\_relaxed);
+00150         uint64\_t next = kStackMask;
+00151         \textcolor{keywordflow}{if} (wnext != \textcolor{keyword}{nullptr}) next = wnext - &waiters\_[0];
+00152         \textcolor{comment}{// Note: we don't add kEpochInc here. ABA problem on the lock-free stack}
+00153         \textcolor{comment}{// can't happen because a waiter is re-pushed onto the stack only after}
+00154         \textcolor{comment}{// it was in the pre-wait state which inevitably leads to epoch}
+00155         \textcolor{comment}{// increment.}
+00156         newstate = (state & kEpochMask) + next;
+00157       \}
+00158       \textcolor{keywordflow}{if} (state\_.compare\_exchange\_weak(state, newstate,
+00159                                        std::memory\_order\_acquire)) \{
+00160         \textcolor{keywordflow}{if} (!all && waiters) \textcolor{keywordflow}{return};  \textcolor{comment}{// unblocked pre-wait thread}
+00161         \textcolor{keywordflow}{if} ((state & kStackMask) == kStackMask) \textcolor{keywordflow}{return};
+00162         Waiter* w = &waiters\_[state & kStackMask];
+00163         \textcolor{keywordflow}{if} (!all) w->next.store(\textcolor{keyword}{nullptr}, std::memory\_order\_relaxed);
+00164         Unpark(w);
+00165         \textcolor{keywordflow}{return};
+00166       \}
+00167     \}
+00168   \}
+00169 
+00170   \textcolor{keyword}{class }Waiter \{
+00171     \textcolor{keyword}{friend} \textcolor{keyword}{class }EventCount;
+00172     \textcolor{comment}{// Align to 128 byte boundary to prevent false sharing with other Waiter objects in the same vector.}
+00173     EIGEN\_ALIGN\_TO\_BOUNDARY(128) \hyperlink{namespacestd}{std}::atomic<Waiter*> next;
+00174     \hyperlink{namespacestd}{std}::mutex mu;
+00175     \hyperlink{namespacestd}{std}::condition\_variable cv;
+00176     uint64\_t epoch;
+00177     \textcolor{keywordtype}{unsigned} state;
+00178     enum \{
+00179       kNotSignaled,
+00180       kWaiting,
+00181       kSignaled,
+00182     \};
+00183   \};
+00184 
+00185  \textcolor{keyword}{private}:
+00186   \textcolor{comment}{// State\_ layout:}
+00187   \textcolor{comment}{// - low kStackBits is a stack of waiters committed wait.}
+00188   \textcolor{comment}{// - next kWaiterBits is count of waiters in prewait state.}
+00189   \textcolor{comment}{// - next kEpochBits is modification counter.}
+00190   \textcolor{keyword}{static} \textcolor{keyword}{const} uint64\_t kStackBits = 16;
+00191   \textcolor{keyword}{static} \textcolor{keyword}{const} uint64\_t kStackMask = (1ull << kStackBits) - 1;
+00192   \textcolor{keyword}{static} \textcolor{keyword}{const} uint64\_t kWaiterBits = 16;
+00193   \textcolor{keyword}{static} \textcolor{keyword}{const} uint64\_t kWaiterShift = 16;
+00194   \textcolor{keyword}{static} \textcolor{keyword}{const} uint64\_t kWaiterMask = ((1ull << kWaiterBits) - 1)
+00195                                       << kWaiterShift;
+00196   \textcolor{keyword}{static} \textcolor{keyword}{const} uint64\_t kWaiterInc = 1ull << kWaiterBits;
+00197   \textcolor{keyword}{static} \textcolor{keyword}{const} uint64\_t kEpochBits = 32;
+00198   \textcolor{keyword}{static} \textcolor{keyword}{const} uint64\_t kEpochShift = 32;
+00199   \textcolor{keyword}{static} \textcolor{keyword}{const} uint64\_t kEpochMask = ((1ull << kEpochBits) - 1) << kEpochShift;
+00200   \textcolor{keyword}{static} \textcolor{keyword}{const} uint64\_t kEpochInc = 1ull << kEpochShift;
+00201   std::atomic<uint64\_t> state\_;
+00202   MaxSizeVector<Waiter>& waiters\_;
+00203 
+00204   \textcolor{keywordtype}{void} Park(Waiter* w) \{
+00205     std::unique\_lock<std::mutex> lock(w->mu);
+00206     \textcolor{keywordflow}{while} (w->state != Waiter::kSignaled) \{
+00207       w->state = Waiter::kWaiting;
+00208       w->cv.wait(lock);
+00209     \}
+00210   \}
+00211 
+00212   \textcolor{keywordtype}{void} Unpark(Waiter* waiters) \{
+00213     Waiter* next = \textcolor{keyword}{nullptr};
+00214     \textcolor{keywordflow}{for} (Waiter* w = waiters; w; w = next) \{
+00215       next = w->next.load(std::memory\_order\_relaxed);
+00216       \textcolor{keywordtype}{unsigned} state;
+00217       \{
+00218         std::unique\_lock<std::mutex> lock(w->mu);
+00219         state = w->state;
+00220         w->state = Waiter::kSignaled;
+00221       \}
+00222       \textcolor{comment}{// Avoid notifying if it wasn't waiting.}
+00223       \textcolor{keywordflow}{if} (state == Waiter::kWaiting) w->cv.notify\_one();
+00224     \}
+00225   \}
+00226 
+00227   EventCount(\textcolor{keyword}{const} EventCount&) = \textcolor{keyword}{delete};
+00228   \textcolor{keywordtype}{void} operator=(\textcolor{keyword}{const} EventCount&) = \textcolor{keyword}{delete};
+00229 \};
+00230 
+00231 \}  \textcolor{comment}{// namespace Eigen}
+00232 
+00233 \textcolor{preprocessor}{#endif  // EIGEN\_CXX11\_THREADPOOL\_EVENTCOUNT\_H\_}
+\end{DoxyCode}

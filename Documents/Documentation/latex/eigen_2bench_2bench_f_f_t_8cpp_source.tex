@@ -1,0 +1,121 @@
+\hypertarget{eigen_2bench_2bench_f_f_t_8cpp_source}{}\section{eigen/bench/bench\+F\+FT.cpp}
+\label{eigen_2bench_2bench_f_f_t_8cpp_source}\index{bench\+F\+F\+T.\+cpp@{bench\+F\+F\+T.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2009 Mark Borgerding mark a borgerding net}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include <iostream>}
+00011 
+00012 \textcolor{preprocessor}{#include <bench/BenchUtil.h>}
+00013 \textcolor{preprocessor}{#include <complex>}
+00014 \textcolor{preprocessor}{#include <vector>}
+00015 \textcolor{preprocessor}{#include <Eigen/Core>}
+00016 
+00017 \textcolor{preprocessor}{#include <unsupported/Eigen/FFT>}
+00018 
+00019 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00020 \textcolor{keyword}{using namespace }\hyperlink{namespacestd}{std};
+00021 
+00022 
+00023 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00024 \textcolor{keywordtype}{string} nameof();
+00025 
+00026 \textcolor{keyword}{template} <> \textcolor{keywordtype}{string} nameof<float>() \{\textcolor{keywordflow}{return} \textcolor{stringliteral}{"float"};\}
+00027 \textcolor{keyword}{template} <> \textcolor{keywordtype}{string} nameof<double>() \{\textcolor{keywordflow}{return} \textcolor{stringliteral}{"double"};\}
+00028 \textcolor{keyword}{template} <> \textcolor{keywordtype}{string} nameof<long double>() \{\textcolor{keywordflow}{return} \textcolor{stringliteral}{"long double"};\}
+00029 
+00030 \textcolor{preprocessor}{#ifndef TYPE}
+00031 \textcolor{preprocessor}{#define TYPE float}
+00032 \textcolor{preprocessor}{#endif}
+00033 
+00034 \textcolor{preprocessor}{#ifndef NFFT}
+00035 \textcolor{preprocessor}{#define NFFT 1024}
+00036 \textcolor{preprocessor}{#endif}
+00037 \textcolor{preprocessor}{#ifndef NDATA}
+00038 \textcolor{preprocessor}{#define NDATA 1000000}
+00039 \textcolor{preprocessor}{#endif}
+00040 
+00041 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00042 
+00043 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00044 \textcolor{keywordtype}{void} bench(\textcolor{keywordtype}{int} nfft,\textcolor{keywordtype}{bool} fwd,\textcolor{keywordtype}{bool} unscaled=\textcolor{keyword}{false}, \textcolor{keywordtype}{bool} halfspec=\textcolor{keyword}{false})
+00045 \{
+00046     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<T>::Real} Scalar;
+00047     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} std::complex<Scalar> Complex;
+00048     \textcolor{keywordtype}{int} nits = NDATA/nfft;
+00049     vector<T> inbuf(nfft);
+00050     vector<Complex > outbuf(nfft);
+00051     FFT< Scalar > fft;
+00052 
+00053     \textcolor{keywordflow}{if} (unscaled) \{
+00054         fft.SetFlag(fft.Unscaled);
+00055         cout << \textcolor{stringliteral}{"unscaled "};
+00056     \}
+00057     \textcolor{keywordflow}{if} (halfspec) \{
+00058         fft.SetFlag(fft.HalfSpectrum);
+00059         cout << \textcolor{stringliteral}{"halfspec "};
+00060     \}
+00061 
+00062 
+00063     std::fill(inbuf.begin(),inbuf.end(),0);
+00064     fft.fwd( outbuf , inbuf);
+00065 
+00066     \hyperlink{class_eigen_1_1_bench_timer}{BenchTimer} timer;
+00067     timer.reset();
+00068     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k=0;k<8;++k) \{
+00069         timer.start();
+00070         \textcolor{keywordflow}{if} (fwd)
+00071             \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < nits; i++)
+00072                 fft.fwd( outbuf , inbuf);
+00073         \textcolor{keywordflow}{else}
+00074             \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < nits; i++)
+00075                 fft.inv(inbuf,outbuf);
+00076         timer.stop();
+00077     \}
+00078 
+00079     cout << nameof<Scalar>() << \textcolor{stringliteral}{" "};
+00080     \textcolor{keywordtype}{double} mflops = 5.*nfft*log2((\textcolor{keywordtype}{double})nfft) / (1e6 * timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}() / (double)nits );
+00081     \textcolor{keywordflow}{if} ( \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<T>::IsComplex} ) \{
+00082         cout << \textcolor{stringliteral}{"complex"};
+00083     \}\textcolor{keywordflow}{else}\{
+00084         cout << \textcolor{stringliteral}{"real   "};
+00085         mflops /= 2;
+00086     \}
+00087 
+00088 
+00089     \textcolor{keywordflow}{if} (fwd)
+00090         cout << \textcolor{stringliteral}{" fwd"};
+00091     \textcolor{keywordflow}{else}
+00092         cout << \textcolor{stringliteral}{" inv"};
+00093 
+00094     cout << \textcolor{stringliteral}{" NFFT="} << nfft << \textcolor{stringliteral}{"  "} << (double(1e-6*nfft*nits)/timer.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()) << \textcolor{stringliteral}{" MS/s  "} << mflops 
+      << \textcolor{stringliteral}{"MFLOPS\(\backslash\)n"};
+00095 \}
+00096 
+00097 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc,\textcolor{keywordtype}{char} ** argv)
+00098 \{
+00099     bench<complex<float> >(NFFT,\textcolor{keyword}{true});
+00100     bench<complex<float> >(NFFT,\textcolor{keyword}{false});
+00101     bench<float>(NFFT,\textcolor{keyword}{true});
+00102     bench<float>(NFFT,\textcolor{keyword}{false});
+00103     bench<float>(NFFT,\textcolor{keyword}{false},\textcolor{keyword}{true});
+00104     bench<float>(NFFT,\textcolor{keyword}{false},\textcolor{keyword}{true},\textcolor{keyword}{true});
+00105 
+00106     bench<complex<double> >(NFFT,\textcolor{keyword}{true});
+00107     bench<complex<double> >(NFFT,\textcolor{keyword}{false});
+00108     bench<double>(NFFT,\textcolor{keyword}{true});
+00109     bench<double>(NFFT,\textcolor{keyword}{false});
+00110     bench<complex<long double> >(NFFT,\textcolor{keyword}{true});
+00111     bench<complex<long double> >(NFFT,\textcolor{keyword}{false});
+00112     bench<long double>(NFFT,\textcolor{keyword}{true});
+00113     bench<long double>(NFFT,\textcolor{keyword}{false});
+00114     \textcolor{keywordflow}{return} 0;
+00115 \}
+\end{DoxyCode}

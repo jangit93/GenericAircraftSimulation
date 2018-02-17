@@ -1,0 +1,102 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_g_2h5ex__g__intermediate_8c_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+C/\+H5\+G/h5ex\+\_\+g\+\_\+intermediate.c}
+\label{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_g_2h5ex__g__intermediate_8c_source}\index{h5ex\+\_\+g\+\_\+intermediate.\+c@{h5ex\+\_\+g\+\_\+intermediate.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/************************************************************}
+00002 \textcolor{comment}{}
+00003 \textcolor{comment}{  This example shows how to create intermediate groups with}
+00004 \textcolor{comment}{  a single call to H5Gcreate.}
+00005 \textcolor{comment}{}
+00006 \textcolor{comment}{  This file is intended for use with HDF5 Library version 1.8}
+00007 \textcolor{comment}{}
+00008 \textcolor{comment}{ ************************************************************/}
+00009 
+00010 \textcolor{preprocessor}{#include "hdf5.h"}
+00011 
+00012 \textcolor{preprocessor}{#define FILE            "h5ex\_g\_intermediate.h5"}
+00013 
+00014 \textcolor{comment}{/*}
+00015 \textcolor{comment}{ * Operator function to be called by H5Ovisit.}
+00016 \textcolor{comment}{ */}
+00017 herr\_t op\_func (hid\_t loc\_id, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name, \textcolor{keyword}{const} \hyperlink{struct_h5_o__info__t}{H5O\_info\_t} *info,
+00018             \textcolor{keywordtype}{void} *operator\_data);
+00019 
+00020 \textcolor{keywordtype}{int}
+00021 main(\textcolor{keywordtype}{void})
+00022 \{
+00023     hid\_t       \hyperlink{structfile}{file}, group, gcpl;      \textcolor{comment}{/* Handles */}
+00024     herr\_t      status;
+00025 
+00026     \textcolor{comment}{/*}
+00027 \textcolor{comment}{     * Create a new file using the default properties.}
+00028 \textcolor{comment}{     */}
+00029     file = H5Fcreate (FILE, H5F\_ACC\_TRUNC, H5P\_DEFAULT, H5P\_DEFAULT);
+00030 
+00031     \textcolor{comment}{/*}
+00032 \textcolor{comment}{     * Create group creation property list and set it to allow creation}
+00033 \textcolor{comment}{     * of intermediate groups.}
+00034 \textcolor{comment}{     */}
+00035     gcpl = H5Pcreate (H5P\_LINK\_CREATE);
+00036     status = H5Pset\_create\_intermediate\_group (gcpl, 1);
+00037 
+00038     \textcolor{comment}{/*}
+00039 \textcolor{comment}{     * Create the group /G1/G2/G3.  Note that /G1 and /G1/G2 do not}
+00040 \textcolor{comment}{     * exist yet.  This call would cause an error if we did not use the}
+00041 \textcolor{comment}{     * previously created property list.}
+00042 \textcolor{comment}{     */}
+00043     group = H5Gcreate (file, \textcolor{stringliteral}{"/G1/G2/G3"}, gcpl, H5P\_DEFAULT, H5P\_DEFAULT);
+00044 
+00045     \textcolor{comment}{/*}
+00046 \textcolor{comment}{     * Print all the objects in the files to show that intermediate}
+00047 \textcolor{comment}{     * groups have been created.  See h5ex\_g\_visit for more information}
+00048 \textcolor{comment}{     * on how to use H5Ovisit.}
+00049 \textcolor{comment}{     */}
+00050     printf (\textcolor{stringliteral}{"Objects in the file:\(\backslash\)n"});
+00051     status = H5Ovisit (file, H5\_INDEX\_NAME, H5\_ITER\_NATIVE, op\_func, NULL);
+00052 
+00053     \textcolor{comment}{/*}
+00054 \textcolor{comment}{     * Close and release resources.}
+00055 \textcolor{comment}{     */}
+00056     status = H5Pclose (gcpl);
+00057     status = H5Gclose (group);
+00058     status = H5Fclose (file);
+00059 
+00060     \textcolor{keywordflow}{return} 0;
+00061 \}
+00062 
+00063 
+00064 \textcolor{comment}{/************************************************************}
+00065 \textcolor{comment}{}
+00066 \textcolor{comment}{  Operator function for H5Ovisit.  This function prints the}
+00067 \textcolor{comment}{  name and type of the object passed to it.}
+00068 \textcolor{comment}{}
+00069 \textcolor{comment}{ ************************************************************/}
+00070 herr\_t op\_func (hid\_t loc\_id, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name, \textcolor{keyword}{const} \hyperlink{struct_h5_o__info__t}{H5O\_info\_t} *info,
+00071             \textcolor{keywordtype}{void} *operator\_data)
+00072 \{
+00073     printf (\textcolor{stringliteral}{"/"});               \textcolor{comment}{/* Print root group in object path */}
+00074 
+00075     \textcolor{comment}{/*}
+00076 \textcolor{comment}{     * Check if the current object is the root group, and if not print}
+00077 \textcolor{comment}{     * the full path name and type.}
+00078 \textcolor{comment}{     */}
+00079     \textcolor{keywordflow}{if} (name[0] == \textcolor{charliteral}{'.'})         \textcolor{comment}{/* Root group, do not print '.' */}
+00080         printf (\textcolor{stringliteral}{"  (Group)\(\backslash\)n"});
+00081     \textcolor{keywordflow}{else}
+00082         \textcolor{keywordflow}{switch} (info->type) \{
+00083             \textcolor{keywordflow}{case} H5O\_TYPE\_GROUP:
+00084                 printf (\textcolor{stringliteral}{"%s  (Group)\(\backslash\)n"}, name);
+00085                 \textcolor{keywordflow}{break};
+00086             \textcolor{keywordflow}{case} H5O\_TYPE\_DATASET:
+00087                 printf (\textcolor{stringliteral}{"%s  (Dataset)\(\backslash\)n"}, name);
+00088                 \textcolor{keywordflow}{break};
+00089             \textcolor{keywordflow}{case} H5O\_TYPE\_NAMED\_DATATYPE:
+00090                 printf (\textcolor{stringliteral}{"%s  (Datatype)\(\backslash\)n"}, name);
+00091                 \textcolor{keywordflow}{break};
+00092             \textcolor{keywordflow}{default}:
+00093                 printf (\textcolor{stringliteral}{"%s  (Unknown)\(\backslash\)n"}, name);
+00094         \}
+00095 
+00096     \textcolor{keywordflow}{return} 0;
+00097 \}
+\end{DoxyCode}

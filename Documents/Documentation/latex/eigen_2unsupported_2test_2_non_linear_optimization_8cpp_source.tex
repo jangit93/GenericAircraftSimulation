@@ -1,0 +1,2017 @@
+\hypertarget{eigen_2unsupported_2test_2_non_linear_optimization_8cpp_source}{}\section{eigen/unsupported/test/\+Non\+Linear\+Optimization.cpp}
+\label{eigen_2unsupported_2test_2_non_linear_optimization_8cpp_source}\index{Non\+Linear\+Optimization.\+cpp@{Non\+Linear\+Optimization.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2009 Thomas Capricelli <orzel@freehackers.org>}
+00005 
+00006 \textcolor{preprocessor}{#include <stdio.h>}
+00007 
+00008 \textcolor{preprocessor}{#include "main.h"}
+00009 \textcolor{preprocessor}{#include <unsupported/Eigen/NonLinearOptimization>}
+00010 
+00011 \textcolor{comment}{// This disables some useless Warnings on MSVC.}
+00012 \textcolor{comment}{// It is intended to be done for this test only.}
+00013 \textcolor{preprocessor}{#include <Eigen/src/Core/util/DisableStupidWarnings.h>}
+00014 
+00015 \textcolor{comment}{// tolerance for chekcing number of iterations}
+00016 \textcolor{preprocessor}{#define LM\_EVAL\_COUNT\_TOL 4/3}
+00017 
+00018 \textcolor{keywordtype}{int} fcn\_chkder(\textcolor{keyword}{const} VectorXd &x, VectorXd &fvec, MatrixXd &fjac, \textcolor{keywordtype}{int} iflag)
+00019 \{
+00020     \textcolor{comment}{/*      subroutine fcn for chkder example. */}
+00021 
+00022     \textcolor{keywordtype}{int} i;
+00023     assert(15 ==  fvec.size());
+00024     assert(3 ==  x.size());
+00025     \textcolor{keywordtype}{double} tmp1, tmp2, tmp3, tmp4;
+00026     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} y[15]=\{1.4e-1, 1.8e-1, 2.2e-1, 2.5e-1, 2.9e-1, 3.2e-1, 3.5e-1,
+00027         3.9e-1, 3.7e-1, 5.8e-1, 7.3e-1, 9.6e-1, 1.34, 2.1, 4.39\};
+00028 
+00029 
+00030     \textcolor{keywordflow}{if} (iflag == 0)
+00031         \textcolor{keywordflow}{return} 0;
+00032 
+00033     \textcolor{keywordflow}{if} (iflag != 2)
+00034         \textcolor{keywordflow}{for} (i=0; i<15; i++) \{
+00035             tmp1 = i+1;
+00036             tmp2 = 16-i-1;
+00037             tmp3 = tmp1;
+00038             \textcolor{keywordflow}{if} (i >= 8) tmp3 = tmp2;
+00039             fvec[i] = y[i] - (x[0] + tmp1/(x[1]*tmp2 + x[2]*tmp3));
+00040         \}
+00041     \textcolor{keywordflow}{else} \{
+00042         \textcolor{keywordflow}{for} (i = 0; i < 15; i++) \{
+00043             tmp1 = i+1;
+00044             tmp2 = 16-i-1;
+00045 
+00046             \textcolor{comment}{/* error introduced into next statement for illustration. */}
+00047             \textcolor{comment}{/* corrected statement should read    tmp3 = tmp1 . */}
+00048 
+00049             tmp3 = tmp2;
+00050             \textcolor{keywordflow}{if} (i >= 8) tmp3 = tmp2;
+00051             tmp4 = (x[1]*tmp2 + x[2]*tmp3); tmp4=tmp4*tmp4;
+00052             fjac(i,0) = -1.;
+00053             fjac(i,1) = tmp1*tmp2/tmp4;
+00054             fjac(i,2) = tmp1*tmp3/tmp4;
+00055         \}
+00056     \}
+00057     \textcolor{keywordflow}{return} 0;
+00058 \}
+00059 
+00060 
+00061 \textcolor{keywordtype}{void} testChkder()
+00062 \{
+00063   \textcolor{keyword}{const} \textcolor{keywordtype}{int} m=15, n=3;
+00064   VectorXd x(n), fvec(m), xp, fvecp(m), err;
+00065   MatrixXd fjac(m,n);
+00066   VectorXi ipvt;
+00067 
+00068   \textcolor{comment}{/*      the following values should be suitable for */}
+00069   \textcolor{comment}{/*      checking the jacobian matrix. */}
+00070   x << 9.2e-1, 1.3e-1, 5.4e-1;
+00071 
+00072   internal::chkder(x, fvec, fjac, xp, fvecp, 1, err);
+00073   fcn\_chkder(x, fvec, fjac, 1);
+00074   fcn\_chkder(x, fvec, fjac, 2);
+00075   fcn\_chkder(xp, fvecp, fjac, 1);
+00076   internal::chkder(x, fvec, fjac, xp, fvecp, 2, err);
+00077 
+00078   fvecp -= fvec;
+00079 
+00080   \textcolor{comment}{// check those}
+00081   VectorXd fvec\_ref(m), fvecp\_ref(m), err\_ref(m);
+00082   fvec\_ref <<
+00083       -1.181606, -1.429655, -1.606344,
+00084       -1.745269, -1.840654, -1.921586,
+00085       -1.984141, -2.022537, -2.468977,
+00086       -2.827562, -3.473582, -4.437612,
+00087       -6.047662, -9.267761, -18.91806;
+00088   fvecp\_ref <<
+00089       -7.724666e-09, -3.432406e-09, -2.034843e-10,
+00090       2.313685e-09,  4.331078e-09,  5.984096e-09,
+00091       7.363281e-09,   8.53147e-09,  1.488591e-08,
+00092       2.33585e-08,  3.522012e-08,  5.301255e-08,
+00093       8.26666e-08,  1.419747e-07,   3.19899e-07;
+00094   err\_ref <<
+00095       0.1141397,  0.09943516,  0.09674474,
+00096       0.09980447,  0.1073116, 0.1220445,
+00097       0.1526814, 1, 1,
+00098       1, 1, 1,
+00099       1, 1, 1;
+00100 
+00101   VERIFY\_IS\_APPROX(fvec, fvec\_ref);
+00102   VERIFY\_IS\_APPROX(fvecp, fvecp\_ref);
+00103   VERIFY\_IS\_APPROX(err, err\_ref);
+00104 \}
+00105 
+00106 \textcolor{comment}{// Generic functor}
+00107 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} NX=Dynamic, \textcolor{keywordtype}{int} NY=Dynamic>
+\Hypertarget{eigen_2unsupported_2test_2_non_linear_optimization_8cpp_source_l00108}\hyperlink{struct_functor}{00108} \textcolor{keyword}{struct }\hyperlink{struct_functor}{Functor}
+00109 \{
+00110   \textcolor{keyword}{typedef} \_Scalar Scalar;
+00111   \textcolor{keyword}{enum} \{
+00112     InputsAtCompileTime = NX,
+00113     ValuesAtCompileTime = NY
+00114   \};
+00115   \textcolor{keyword}{typedef} Matrix<Scalar,InputsAtCompileTime,1> InputType;
+00116   \textcolor{keyword}{typedef} Matrix<Scalar,ValuesAtCompileTime,1> ValueType;
+00117   \textcolor{keyword}{typedef} Matrix<Scalar,ValuesAtCompileTime,InputsAtCompileTime> JacobianType;
+00118 
+00119   \textcolor{keyword}{const} \textcolor{keywordtype}{int} m\_inputs, m\_values;
+00120 
+00121   \hyperlink{struct_functor}{Functor}() : m\_inputs(InputsAtCompileTime), m\_values(ValuesAtCompileTime) \{\}
+00122   \hyperlink{struct_functor}{Functor}(\textcolor{keywordtype}{int} inputs, \textcolor{keywordtype}{int} values) : m\_inputs(inputs), m\_values(values) \{\}
+00123 
+00124   \textcolor{keywordtype}{int} inputs()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_inputs; \}
+00125   \textcolor{keywordtype}{int} values()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_values; \}
+00126 
+00127   \textcolor{comment}{// you should define that in the subclass :}
+00128 \textcolor{comment}{//  void operator() (const InputType& x, ValueType* v, JacobianType* \_j=0) const;}
+00129 \};
+00130 
+00131 \textcolor{keyword}{struct }\hyperlink{structlmder__functor}{lmder\_functor} : \hyperlink{struct_functor}{Functor}<double>
+00132 \{
+00133     \hyperlink{structlmder__functor}{lmder\_functor}(\textcolor{keywordtype}{void}): \hyperlink{struct_functor}{Functor<double>}(3,15) \{\}
+00134     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &x, VectorXd &fvec)\textcolor{keyword}{ const}
+00135 \textcolor{keyword}{    }\{
+00136         \textcolor{keywordtype}{double} tmp1, tmp2, tmp3;
+00137         \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} y[15] = \{1.4e-1, 1.8e-1, 2.2e-1, 2.5e-1, 2.9e-1, 3.2e-1, 3.5e-1,
+00138             3.9e-1, 3.7e-1, 5.8e-1, 7.3e-1, 9.6e-1, 1.34, 2.1, 4.39\};
+00139 
+00140         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < values(); i++)
+00141         \{
+00142             tmp1 = i+1;
+00143             tmp2 = 16 - i - 1;
+00144             tmp3 = (i>=8)? tmp2 : tmp1;
+00145             fvec[i] = y[i] - (x[0] + tmp1/(x[1]*tmp2 + x[2]*tmp3));
+00146         \}
+00147         \textcolor{keywordflow}{return} 0;
+00148     \}
+00149 
+00150     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &x, MatrixXd &fjac)\textcolor{keyword}{ const}
+00151 \textcolor{keyword}{    }\{
+00152         \textcolor{keywordtype}{double} tmp1, tmp2, tmp3, tmp4;
+00153         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < values(); i++)
+00154         \{
+00155             tmp1 = i+1;
+00156             tmp2 = 16 - i - 1;
+00157             tmp3 = (i>=8)? tmp2 : tmp1;
+00158             tmp4 = (x[1]*tmp2 + x[2]*tmp3); tmp4 = tmp4*tmp4;
+00159             fjac(i,0) = -1;
+00160             fjac(i,1) = tmp1*tmp2/tmp4;
+00161             fjac(i,2) = tmp1*tmp3/tmp4;
+00162         \}
+00163         \textcolor{keywordflow}{return} 0;
+00164     \}
+00165 \};
+00166 
+00167 \textcolor{keywordtype}{void} testLmder1()
+00168 \{
+00169   \textcolor{keywordtype}{int} n=3, info;
+00170 
+00171   VectorXd x;
+00172 
+00173   \textcolor{comment}{/* the following starting values provide a rough fit. */}
+00174   x.setConstant(n, 1.);
+00175 
+00176   \textcolor{comment}{// do the computation}
+00177   \hyperlink{structlmder__functor}{lmder\_functor} functor;
+00178   LevenbergMarquardt<lmder\_functor> lm(functor);
+00179   info = lm.lmder1(x);
+00180 
+00181   \textcolor{comment}{// check return value}
+00182   VERIFY\_IS\_EQUAL(info, 1);
+00183   VERIFY\_IS\_EQUAL(lm.nfev, 6);
+00184   VERIFY\_IS\_EQUAL(lm.njev, 5);
+00185 
+00186   \textcolor{comment}{// check norm}
+00187   VERIFY\_IS\_APPROX(lm.fvec.blueNorm(), 0.09063596);
+00188 
+00189   \textcolor{comment}{// check x}
+00190   VectorXd x\_ref(n);
+00191   x\_ref << 0.08241058, 1.133037, 2.343695;
+00192   VERIFY\_IS\_APPROX(x, x\_ref);
+00193 \}
+00194 
+00195 \textcolor{keywordtype}{void} testLmder()
+00196 \{
+00197   \textcolor{keyword}{const} \textcolor{keywordtype}{int} m=15, n=3;
+00198   \textcolor{keywordtype}{int} info;
+00199   \textcolor{keywordtype}{double} fnorm, covfac;
+00200   VectorXd x;
+00201 
+00202   \textcolor{comment}{/* the following starting values provide a rough fit. */}
+00203   x.setConstant(n, 1.);
+00204 
+00205   \textcolor{comment}{// do the computation}
+00206   \hyperlink{structlmder__functor}{lmder\_functor} functor;
+00207   LevenbergMarquardt<lmder\_functor> lm(functor);
+00208   info = lm.minimize(x);
+00209 
+00210   \textcolor{comment}{// check return values}
+00211   VERIFY\_IS\_EQUAL(info, 1);
+00212   VERIFY\_IS\_EQUAL(lm.nfev, 6);
+00213   VERIFY\_IS\_EQUAL(lm.njev, 5);
+00214 
+00215   \textcolor{comment}{// check norm}
+00216   fnorm = lm.fvec.blueNorm();
+00217   VERIFY\_IS\_APPROX(fnorm, 0.09063596);
+00218 
+00219   \textcolor{comment}{// check x}
+00220   VectorXd x\_ref(n);
+00221   x\_ref << 0.08241058, 1.133037, 2.343695;
+00222   VERIFY\_IS\_APPROX(x, x\_ref);
+00223 
+00224   \textcolor{comment}{// check covariance}
+00225   covfac = fnorm*fnorm/(m-n);
+00226   internal::covar(lm.fjac, lm.permutation.indices()); \textcolor{comment}{// TODO : move this as a function of lm}
+00227 
+00228   MatrixXd cov\_ref(n,n);
+00229   cov\_ref <<
+00230       0.0001531202,   0.002869941,  -0.002656662,
+00231       0.002869941,    0.09480935,   -0.09098995,
+00232       -0.002656662,   -0.09098995,    0.08778727;
+00233 
+00234 \textcolor{comment}{//  std::cout << fjac*covfac << std::endl;}
+00235 
+00236   MatrixXd cov;
+00237   cov =  covfac*lm.fjac.topLeftCorner<n,n>();
+00238   VERIFY\_IS\_APPROX( cov, cov\_ref);
+00239   \textcolor{comment}{// TODO: why isn't this allowed ? :}
+00240   \textcolor{comment}{// VERIFY\_IS\_APPROX( covfac*fjac.topLeftCorner<n,n>() , cov\_ref);}
+00241 \}
+00242 
+\Hypertarget{eigen_2unsupported_2test_2_non_linear_optimization_8cpp_source_l00243}\hyperlink{structhybrj__functor}{00243} \textcolor{keyword}{struct }\hyperlink{structhybrj__functor}{hybrj\_functor} : \hyperlink{struct_functor}{Functor}<double>
+00244 \{
+00245     \hyperlink{structhybrj__functor}{hybrj\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(9,9) \{\}
+00246 
+00247     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &x, VectorXd &fvec)
+00248     \{
+00249         \textcolor{keywordtype}{double} temp, temp1, temp2;
+00250         \textcolor{keyword}{const} VectorXd::Index n = x.size();
+00251         assert(fvec.size()==n);
+00252         \textcolor{keywordflow}{for} (VectorXd::Index k = 0; k < n; k++)
+00253         \{
+00254             temp = (3. - 2.*x[k])*x[k];
+00255             temp1 = 0.;
+00256             \textcolor{keywordflow}{if} (k) temp1 = x[k-1];
+00257             temp2 = 0.;
+00258             \textcolor{keywordflow}{if} (k != n-1) temp2 = x[k+1];
+00259             fvec[k] = temp - temp1 - 2.*temp2 + 1.;
+00260         \}
+00261         \textcolor{keywordflow}{return} 0;
+00262     \}
+00263     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &x, MatrixXd &fjac)
+00264     \{
+00265         \textcolor{keyword}{const} VectorXd::Index n = x.size();
+00266         assert(fjac.rows()==n);
+00267         assert(fjac.cols()==n);
+00268         \textcolor{keywordflow}{for} (VectorXd::Index k = 0; k < n; k++)
+00269         \{
+00270             \textcolor{keywordflow}{for} (VectorXd::Index j = 0; j < n; j++)
+00271                 fjac(k,j) = 0.;
+00272             fjac(k,k) = 3.- 4.*x[k];
+00273             \textcolor{keywordflow}{if} (k) fjac(k,k-1) = -1.;
+00274             \textcolor{keywordflow}{if} (k != n-1) fjac(k,k+1) = -2.;
+00275         \}
+00276         \textcolor{keywordflow}{return} 0;
+00277     \}
+00278 \};
+00279 
+00280 
+00281 \textcolor{keywordtype}{void} testHybrj1()
+00282 \{
+00283   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=9;
+00284   \textcolor{keywordtype}{int} info;
+00285   VectorXd x(n);
+00286 
+00287   \textcolor{comment}{/* the following starting values provide a rough fit. */}
+00288   x.setConstant(n, -1.);
+00289 
+00290   \textcolor{comment}{// do the computation}
+00291   \hyperlink{structhybrj__functor}{hybrj\_functor} functor;
+00292   HybridNonLinearSolver<hybrj\_functor> solver(functor);
+00293   info = solver.hybrj1(x);
+00294 
+00295   \textcolor{comment}{// check return value}
+00296   VERIFY\_IS\_EQUAL(info, 1);
+00297   VERIFY\_IS\_EQUAL(solver.nfev, 11);
+00298   VERIFY\_IS\_EQUAL(solver.njev, 1);
+00299 
+00300   \textcolor{comment}{// check norm}
+00301   VERIFY\_IS\_APPROX(solver.fvec.blueNorm(), 1.192636e-08);
+00302 
+00303 
+00304 \textcolor{comment}{// check x}
+00305   VectorXd x\_ref(n);
+00306   x\_ref <<
+00307      -0.5706545,    -0.6816283,    -0.7017325,
+00308      -0.7042129,     -0.701369,    -0.6918656,
+00309      -0.665792,    -0.5960342,    -0.4164121;
+00310   VERIFY\_IS\_APPROX(x, x\_ref);
+00311 \}
+00312 
+00313 \textcolor{keywordtype}{void} testHybrj()
+00314 \{
+00315   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=9;
+00316   \textcolor{keywordtype}{int} info;
+00317   VectorXd x(n);
+00318 
+00319   \textcolor{comment}{/* the following starting values provide a rough fit. */}
+00320   x.setConstant(n, -1.);
+00321 
+00322 
+00323   \textcolor{comment}{// do the computation}
+00324   \hyperlink{structhybrj__functor}{hybrj\_functor} functor;
+00325   HybridNonLinearSolver<hybrj\_functor> solver(functor);
+00326   solver.diag.setConstant(n, 1.);
+00327   solver.useExternalScaling = \textcolor{keyword}{true};
+00328   info = solver.solve(x);
+00329 
+00330   \textcolor{comment}{// check return value}
+00331   VERIFY\_IS\_EQUAL(info, 1);
+00332   VERIFY\_IS\_EQUAL(solver.nfev, 11);
+00333   VERIFY\_IS\_EQUAL(solver.njev, 1);
+00334 
+00335   \textcolor{comment}{// check norm}
+00336   VERIFY\_IS\_APPROX(solver.fvec.blueNorm(), 1.192636e-08);
+00337 
+00338 
+00339 \textcolor{comment}{// check x}
+00340   VectorXd x\_ref(n);
+00341   x\_ref <<
+00342      -0.5706545,    -0.6816283,    -0.7017325,
+00343      -0.7042129,     -0.701369,    -0.6918656,
+00344      -0.665792,    -0.5960342,    -0.4164121;
+00345   VERIFY\_IS\_APPROX(x, x\_ref);
+00346 
+00347 \}
+00348 
+\Hypertarget{eigen_2unsupported_2test_2_non_linear_optimization_8cpp_source_l00349}\hyperlink{structhybrd__functor}{00349} \textcolor{keyword}{struct }\hyperlink{structhybrd__functor}{hybrd\_functor} : \hyperlink{struct_functor}{Functor}<double>
+00350 \{
+00351     \hyperlink{structhybrd__functor}{hybrd\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(9,9) \{\}
+00352     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &x, VectorXd &fvec)\textcolor{keyword}{ const}
+00353 \textcolor{keyword}{    }\{
+00354         \textcolor{keywordtype}{double} temp, temp1, temp2;
+00355         \textcolor{keyword}{const} VectorXd::Index n = x.size();
+00356 
+00357         assert(fvec.size()==n);
+00358         \textcolor{keywordflow}{for} (VectorXd::Index k=0; k < n; k++)
+00359         \{
+00360             temp = (3. - 2.*x[k])*x[k];
+00361             temp1 = 0.;
+00362             \textcolor{keywordflow}{if} (k) temp1 = x[k-1];
+00363             temp2 = 0.;
+00364             \textcolor{keywordflow}{if} (k != n-1) temp2 = x[k+1];
+00365             fvec[k] = temp - temp1 - 2.*temp2 + 1.;
+00366         \}
+00367         \textcolor{keywordflow}{return} 0;
+00368     \}
+00369 \};
+00370 
+00371 \textcolor{keywordtype}{void} testHybrd1()
+00372 \{
+00373   \textcolor{keywordtype}{int} n=9, info;
+00374   VectorXd x(n);
+00375 
+00376   \textcolor{comment}{/* the following starting values provide a rough solution. */}
+00377   x.setConstant(n, -1.);
+00378 
+00379   \textcolor{comment}{// do the computation}
+00380   \hyperlink{structhybrd__functor}{hybrd\_functor} functor;
+00381   HybridNonLinearSolver<hybrd\_functor> solver(functor);
+00382   info = solver.hybrd1(x);
+00383 
+00384   \textcolor{comment}{// check return value}
+00385   VERIFY\_IS\_EQUAL(info, 1);
+00386   VERIFY\_IS\_EQUAL(solver.nfev, 20);
+00387 
+00388   \textcolor{comment}{// check norm}
+00389   VERIFY\_IS\_APPROX(solver.fvec.blueNorm(), 1.192636e-08);
+00390 
+00391   \textcolor{comment}{// check x}
+00392   VectorXd x\_ref(n);
+00393   x\_ref << -0.5706545, -0.6816283, -0.7017325, -0.7042129, -0.701369, -0.6918656, -0.665792, -0.5960342, -0
+      .4164121;
+00394   VERIFY\_IS\_APPROX(x, x\_ref);
+00395 \}
+00396 
+00397 \textcolor{keywordtype}{void} testHybrd()
+00398 \{
+00399   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=9;
+00400   \textcolor{keywordtype}{int} info;
+00401   VectorXd x;
+00402 
+00403   \textcolor{comment}{/* the following starting values provide a rough fit. */}
+00404   x.setConstant(n, -1.);
+00405 
+00406   \textcolor{comment}{// do the computation}
+00407   \hyperlink{structhybrd__functor}{hybrd\_functor} functor;
+00408   HybridNonLinearSolver<hybrd\_functor> solver(functor);
+00409   solver.parameters.nb\_of\_subdiagonals = 1;
+00410   solver.parameters.nb\_of\_superdiagonals = 1;
+00411   solver.diag.setConstant(n, 1.);
+00412   solver.useExternalScaling = \textcolor{keyword}{true};
+00413   info = solver.solveNumericalDiff(x);
+00414 
+00415   \textcolor{comment}{// check return value}
+00416   VERIFY\_IS\_EQUAL(info, 1);
+00417   VERIFY\_IS\_EQUAL(solver.nfev, 14);
+00418 
+00419   \textcolor{comment}{// check norm}
+00420   VERIFY\_IS\_APPROX(solver.fvec.blueNorm(), 1.192636e-08);
+00421 
+00422   \textcolor{comment}{// check x}
+00423   VectorXd x\_ref(n);
+00424   x\_ref <<
+00425       -0.5706545,    -0.6816283,    -0.7017325,
+00426       -0.7042129,     -0.701369,    -0.6918656,
+00427       -0.665792,    -0.5960342,    -0.4164121;
+00428   VERIFY\_IS\_APPROX(x, x\_ref);
+00429 \}
+00430 
+\Hypertarget{eigen_2unsupported_2test_2_non_linear_optimization_8cpp_source_l00431}\hyperlink{structlmstr__functor}{00431} \textcolor{keyword}{struct }\hyperlink{structlmstr__functor}{lmstr\_functor} : \hyperlink{struct_functor}{Functor}<double>
+00432 \{
+00433     \hyperlink{structlmstr__functor}{lmstr\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(3,15) \{\}
+00434     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &x, VectorXd &fvec)
+00435     \{
+00436         \textcolor{comment}{/*  subroutine fcn for lmstr1 example. */}
+00437         \textcolor{keywordtype}{double} tmp1, tmp2, tmp3;
+00438         \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} y[15]=\{1.4e-1, 1.8e-1, 2.2e-1, 2.5e-1, 2.9e-1, 3.2e-1, 3.5e-1,
+00439             3.9e-1, 3.7e-1, 5.8e-1, 7.3e-1, 9.6e-1, 1.34, 2.1, 4.39\};
+00440 
+00441         assert(15==fvec.size());
+00442         assert(3==x.size());
+00443 
+00444         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<15; i++)
+00445         \{
+00446             tmp1 = i+1;
+00447             tmp2 = 16 - i - 1;
+00448             tmp3 = (i>=8)? tmp2 : tmp1;
+00449             fvec[i] = y[i] - (x[0] + tmp1/(x[1]*tmp2 + x[2]*tmp3));
+00450         \}
+00451         \textcolor{keywordflow}{return} 0;
+00452     \}
+00453     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &x, VectorXd &jac\_row, VectorXd::Index rownb)
+00454     \{
+00455         assert(x.size()==3);
+00456         assert(jac\_row.size()==x.size());
+00457         \textcolor{keywordtype}{double} tmp1, tmp2, tmp3, tmp4;
+00458 
+00459         VectorXd::Index i = rownb-2;
+00460         tmp1 = i+1;
+00461         tmp2 = 16 - i - 1;
+00462         tmp3 = (i>=8)? tmp2 : tmp1;
+00463         tmp4 = (x[1]*tmp2 + x[2]*tmp3); tmp4 = tmp4*tmp4;
+00464         jac\_row[0] = -1;
+00465         jac\_row[1] = tmp1*tmp2/tmp4;
+00466         jac\_row[2] = tmp1*tmp3/tmp4;
+00467         \textcolor{keywordflow}{return} 0;
+00468     \}
+00469 \};
+00470 
+00471 \textcolor{keywordtype}{void} testLmstr1()
+00472 \{
+00473   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=3;
+00474   \textcolor{keywordtype}{int} info;
+00475 
+00476   VectorXd x(n);
+00477 
+00478   \textcolor{comment}{/* the following starting values provide a rough fit. */}
+00479   x.setConstant(n, 1.);
+00480 
+00481   \textcolor{comment}{// do the computation}
+00482   \hyperlink{structlmstr__functor}{lmstr\_functor} functor;
+00483   LevenbergMarquardt<lmstr\_functor> lm(functor);
+00484   info = lm.lmstr1(x);
+00485 
+00486   \textcolor{comment}{// check return value}
+00487   VERIFY\_IS\_EQUAL(info, 1);
+00488   VERIFY\_IS\_EQUAL(lm.nfev, 6);
+00489   VERIFY\_IS\_EQUAL(lm.njev, 5);
+00490 
+00491   \textcolor{comment}{// check norm}
+00492   VERIFY\_IS\_APPROX(lm.fvec.blueNorm(), 0.09063596);
+00493 
+00494   \textcolor{comment}{// check x}
+00495   VectorXd x\_ref(n);
+00496   x\_ref << 0.08241058, 1.133037, 2.343695 ;
+00497   VERIFY\_IS\_APPROX(x, x\_ref);
+00498 \}
+00499 
+00500 \textcolor{keywordtype}{void} testLmstr()
+00501 \{
+00502   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=3;
+00503   \textcolor{keywordtype}{int} info;
+00504   \textcolor{keywordtype}{double} fnorm;
+00505   VectorXd x(n);
+00506 
+00507   \textcolor{comment}{/* the following starting values provide a rough fit. */}
+00508   x.setConstant(n, 1.);
+00509 
+00510   \textcolor{comment}{// do the computation}
+00511   \hyperlink{structlmstr__functor}{lmstr\_functor} functor;
+00512   LevenbergMarquardt<lmstr\_functor> lm(functor);
+00513   info = lm.minimizeOptimumStorage(x);
+00514 
+00515   \textcolor{comment}{// check return values}
+00516   VERIFY\_IS\_EQUAL(info, 1);
+00517   VERIFY\_IS\_EQUAL(lm.nfev, 6);
+00518   VERIFY\_IS\_EQUAL(lm.njev, 5);
+00519 
+00520   \textcolor{comment}{// check norm}
+00521   fnorm = lm.fvec.blueNorm();
+00522   VERIFY\_IS\_APPROX(fnorm, 0.09063596);
+00523 
+00524   \textcolor{comment}{// check x}
+00525   VectorXd x\_ref(n);
+00526   x\_ref << 0.08241058, 1.133037, 2.343695;
+00527   VERIFY\_IS\_APPROX(x, x\_ref);
+00528 
+00529 \}
+00530 
+00531 \textcolor{keyword}{struct }\hyperlink{structlmdif__functor}{lmdif\_functor} : \hyperlink{struct_functor}{Functor}<double>
+00532 \{
+00533     \hyperlink{structlmdif__functor}{lmdif\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(3,15) \{\}
+00534     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &x, VectorXd &fvec)\textcolor{keyword}{ const}
+00535 \textcolor{keyword}{    }\{
+00536         \textcolor{keywordtype}{int} i;
+00537         \textcolor{keywordtype}{double} tmp1,tmp2,tmp3;
+00538         \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} y[15]=\{1.4e-1,1.8e-1,2.2e-1,2.5e-1,2.9e-1,3.2e-1,3.5e-1,3.9e-1,
+00539             3.7e-1,5.8e-1,7.3e-1,9.6e-1,1.34e0,2.1e0,4.39e0\};
+00540 
+00541         assert(x.size()==3);
+00542         assert(fvec.size()==15);
+00543         \textcolor{keywordflow}{for} (i=0; i<15; i++)
+00544         \{
+00545             tmp1 = i+1;
+00546             tmp2 = 15 - i;
+00547             tmp3 = tmp1;
+00548 
+00549             \textcolor{keywordflow}{if} (i >= 8) tmp3 = tmp2;
+00550             fvec[i] = y[i] - (x[0] + tmp1/(x[1]*tmp2 + x[2]*tmp3));
+00551         \}
+00552         \textcolor{keywordflow}{return} 0;
+00553     \}
+00554 \};
+00555 
+00556 \textcolor{keywordtype}{void} testLmdif1()
+00557 \{
+00558   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=3;
+00559   \textcolor{keywordtype}{int} info;
+00560 
+00561   VectorXd x(n), fvec(15);
+00562 
+00563   \textcolor{comment}{/* the following starting values provide a rough fit. */}
+00564   x.setConstant(n, 1.);
+00565 
+00566   \textcolor{comment}{// do the computation}
+00567   \hyperlink{structlmdif__functor}{lmdif\_functor} functor;
+00568   DenseIndex nfev;
+00569   info = LevenbergMarquardt<lmdif\_functor>::lmdif1(functor, x, &nfev);
+00570 
+00571   \textcolor{comment}{// check return value}
+00572   VERIFY\_IS\_EQUAL(info, 1);
+00573   VERIFY\_IS\_EQUAL(nfev, 26);
+00574 
+00575   \textcolor{comment}{// check norm}
+00576   functor(x, fvec);
+00577   VERIFY\_IS\_APPROX(fvec.blueNorm(), 0.09063596);
+00578 
+00579   \textcolor{comment}{// check x}
+00580   VectorXd x\_ref(n);
+00581   x\_ref << 0.0824106, 1.1330366, 2.3436947;
+00582   VERIFY\_IS\_APPROX(x, x\_ref);
+00583 
+00584 \}
+00585 
+00586 \textcolor{keywordtype}{void} testLmdif()
+00587 \{
+00588   \textcolor{keyword}{const} \textcolor{keywordtype}{int} m=15, n=3;
+00589   \textcolor{keywordtype}{int} info;
+00590   \textcolor{keywordtype}{double} fnorm, covfac;
+00591   VectorXd x(n);
+00592 
+00593   \textcolor{comment}{/* the following starting values provide a rough fit. */}
+00594   x.setConstant(n, 1.);
+00595 
+00596   \textcolor{comment}{// do the computation}
+00597   \hyperlink{structlmdif__functor}{lmdif\_functor} functor;
+00598   NumericalDiff<lmdif\_functor> numDiff(functor);
+00599   LevenbergMarquardt<NumericalDiff<lmdif\_functor> > lm(numDiff);
+00600   info = lm.minimize(x);
+00601 
+00602   \textcolor{comment}{// check return values}
+00603   VERIFY\_IS\_EQUAL(info, 1);
+00604   VERIFY\_IS\_EQUAL(lm.nfev, 26);
+00605 
+00606   \textcolor{comment}{// check norm}
+00607   fnorm = lm.fvec.blueNorm();
+00608   VERIFY\_IS\_APPROX(fnorm, 0.09063596);
+00609 
+00610   \textcolor{comment}{// check x}
+00611   VectorXd x\_ref(n);
+00612   x\_ref << 0.08241058, 1.133037, 2.343695;
+00613   VERIFY\_IS\_APPROX(x, x\_ref);
+00614 
+00615   \textcolor{comment}{// check covariance}
+00616   covfac = fnorm*fnorm/(m-n);
+00617   internal::covar(lm.fjac, lm.permutation.indices()); \textcolor{comment}{// TODO : move this as a function of lm}
+00618 
+00619   MatrixXd cov\_ref(n,n);
+00620   cov\_ref <<
+00621       0.0001531202,   0.002869942,  -0.002656662,
+00622       0.002869942,    0.09480937,   -0.09098997,
+00623       -0.002656662,   -0.09098997,    0.08778729;
+00624 
+00625 \textcolor{comment}{//  std::cout << fjac*covfac << std::endl;}
+00626 
+00627   MatrixXd cov;
+00628   cov =  covfac*lm.fjac.topLeftCorner<n,n>();
+00629   VERIFY\_IS\_APPROX( cov, cov\_ref);
+00630   \textcolor{comment}{// TODO: why isn't this allowed ? :}
+00631   \textcolor{comment}{// VERIFY\_IS\_APPROX( covfac*fjac.topLeftCorner<n,n>() , cov\_ref);}
+00632 \}
+00633 
+00634 \textcolor{keyword}{struct }\hyperlink{structchwirut2__functor}{chwirut2\_functor} : \hyperlink{struct_functor}{Functor}<double>
+00635 \{
+00636     \hyperlink{structchwirut2__functor}{chwirut2\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(3,54) \{\}
+00637     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} m\_x[54];
+00638     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} m\_y[54];
+00639     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &b, VectorXd &fvec)
+00640     \{
+00641         \textcolor{keywordtype}{int} i;
+00642 
+00643         assert(b.size()==3);
+00644         assert(fvec.size()==54);
+00645         \textcolor{keywordflow}{for}(i=0; i<54; i++) \{
+00646             \textcolor{keywordtype}{double} x = m\_x[i];
+00647             fvec[i] = exp(-b[0]*x)/(b[1]+b[2]*x) - m\_y[i];
+00648         \}
+00649         \textcolor{keywordflow}{return} 0;
+00650     \}
+00651     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &b, MatrixXd &fjac)
+00652     \{
+00653         assert(b.size()==3);
+00654         assert(fjac.rows()==54);
+00655         assert(fjac.cols()==3);
+00656         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<54; i++) \{
+00657             \textcolor{keywordtype}{double} x = m\_x[i];
+00658             \textcolor{keywordtype}{double} factor = 1./(b[1]+b[2]*x);
+00659             \textcolor{keywordtype}{double} e = exp(-b[0]*x);
+00660             fjac(i,0) = -x*e*factor;
+00661             fjac(i,1) = -e*factor*factor;
+00662             fjac(i,2) = -x*e*factor*factor;
+00663         \}
+00664         \textcolor{keywordflow}{return} 0;
+00665     \}
+00666 \};
+00667 \textcolor{keyword}{const} \textcolor{keywordtype}{double} chwirut2\_functor::m\_x[54] = \{ 0.500E0, 1.000E0, 1.750E0, 3.750E0, 5.750E0, 0.875E0, 2.250E0, 3
+      .250E0, 5.250E0, 0.750E0, 1.750E0, 2.750E0, 4.750E0, 0.625E0, 1.250E0, 2.250E0, 4.250E0, .500E0, 3.000E0, .7
+      50E0, 3.000E0, 1.500E0, 6.000E0, 3.000E0, 6.000E0, 1.500E0, 3.000E0, .500E0, 2.000E0, 4.000E0, .750E0, 2.000
+      E0, 5.000E0, .750E0, 2.250E0, 3.750E0, 5.750E0, 3.000E0, .750E0, 2.500E0, 4.000E0, .750E0, 2.500E0, 4.000E0,
+       .750E0, 2.500E0, 4.000E0, .500E0, 6.000E0, 3.000E0, .500E0, 2.750E0, .500E0, 1.750E0\};
+00668 \textcolor{keyword}{const} \textcolor{keywordtype}{double} chwirut2\_functor::m\_y[54] = \{ 92.9000E0 ,57.1000E0 ,31.0500E0 ,11.5875E0 ,8.0250E0 ,63.6000E0 
+      ,21.4000E0 ,14.2500E0 ,8.4750E0 ,63.8000E0 ,26.8000E0 ,16.4625E0 ,7.1250E0 ,67.3000E0 ,41.0000E0 ,21.1500E0 
+      ,8.1750E0 ,81.5000E0 ,13.1200E0 ,59.9000E0 ,14.6200E0 ,32.9000E0 ,5.4400E0 ,12.5600E0 ,5.4400E0 ,32.0000E0 ,
+      13.9500E0 ,75.8000E0 ,20.0000E0 ,10.4200E0 ,59.5000E0 ,21.6700E0 ,8.5500E0 ,62.0000E0 ,20.2000E0 ,7.7600E0 ,
+      3.7500E0 ,11.8100E0 ,54.7000E0 ,23.7000E0 ,11.5500E0 ,61.3000E0 ,17.7000E0 ,8.7400E0 ,59.2000E0 ,16.3000E0 ,
+      8.6200E0 ,81.0000E0 ,4.8700E0 ,14.6200E0 ,81.7000E0 ,17.1700E0 ,81.3000E0 ,28.9000E0  \};
+00669 
+00670 \textcolor{comment}{// http://www.itl.nist.gov/div898/strd/nls/data/chwirut2.shtml}
+00671 \textcolor{keywordtype}{void} testNistChwirut2(\textcolor{keywordtype}{void})
+00672 \{
+00673   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=3;
+00674   \textcolor{keywordtype}{int} info;
+00675 
+00676   VectorXd x(n);
+00677 
+00678   \textcolor{comment}{/*}
+00679 \textcolor{comment}{   * First try}
+00680 \textcolor{comment}{   */}
+00681   x<< 0.1, 0.01, 0.02;
+00682   \textcolor{comment}{// do the computation}
+00683   \hyperlink{structchwirut2__functor}{chwirut2\_functor} functor;
+00684   LevenbergMarquardt<chwirut2\_functor> lm(functor);
+00685   info = lm.minimize(x);
+00686 
+00687   \textcolor{comment}{// check return value}
+00688   VERIFY\_IS\_EQUAL(info, 1);
+00689   VERIFY\_IS\_EQUAL(lm.nfev, 10);
+00690   VERIFY\_IS\_EQUAL(lm.njev, 8);
+00691   \textcolor{comment}{// check norm^2}
+00692   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 5.1304802941E+02);
+00693   \textcolor{comment}{// check x}
+00694   VERIFY\_IS\_APPROX(x[0], 1.6657666537E-01);
+00695   VERIFY\_IS\_APPROX(x[1], 5.1653291286E-03);
+00696   VERIFY\_IS\_APPROX(x[2], 1.2150007096E-02);
+00697 
+00698   \textcolor{comment}{/*}
+00699 \textcolor{comment}{   * Second try}
+00700 \textcolor{comment}{   */}
+00701   x<< 0.15, 0.008, 0.010;
+00702   \textcolor{comment}{// do the computation}
+00703   lm.resetParameters();
+00704   lm.parameters.ftol = 1.E6*NumTraits<double>::epsilon();
+00705   lm.parameters.xtol = 1.E6*NumTraits<double>::epsilon();
+00706   info = lm.minimize(x);
+00707 
+00708   \textcolor{comment}{// check return value}
+00709   VERIFY\_IS\_EQUAL(info, 1);
+00710   VERIFY\_IS\_EQUAL(lm.nfev, 7);
+00711   VERIFY\_IS\_EQUAL(lm.njev, 6);
+00712   \textcolor{comment}{// check norm^2}
+00713   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 5.1304802941E+02);
+00714   \textcolor{comment}{// check x}
+00715   VERIFY\_IS\_APPROX(x[0], 1.6657666537E-01);
+00716   VERIFY\_IS\_APPROX(x[1], 5.1653291286E-03);
+00717   VERIFY\_IS\_APPROX(x[2], 1.2150007096E-02);
+00718 \}
+00719 
+00720 
+00721 \textcolor{keyword}{struct }\hyperlink{structmisra1a__functor}{misra1a\_functor} : \hyperlink{struct_functor}{Functor}<double>
+00722 \{
+00723     \hyperlink{structmisra1a__functor}{misra1a\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(2,14) \{\}
+00724     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} m\_x[14];
+00725     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} m\_y[14];
+00726     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &b, VectorXd &fvec)
+00727     \{
+00728         assert(b.size()==2);
+00729         assert(fvec.size()==14);
+00730         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<14; i++) \{
+00731             fvec[i] = b[0]*(1.-exp(-b[1]*m\_x[i])) - m\_y[i] ;
+00732         \}
+00733         \textcolor{keywordflow}{return} 0;
+00734     \}
+00735     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &b, MatrixXd &fjac)
+00736     \{
+00737         assert(b.size()==2);
+00738         assert(fjac.rows()==14);
+00739         assert(fjac.cols()==2);
+00740         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<14; i++) \{
+00741             fjac(i,0) = (1.-exp(-b[1]*m\_x[i]));
+00742             fjac(i,1) = (b[0]*m\_x[i]*exp(-b[1]*m\_x[i]));
+00743         \}
+00744         \textcolor{keywordflow}{return} 0;
+00745     \}
+00746 \};
+00747 \textcolor{keyword}{const} \textcolor{keywordtype}{double} misra1a\_functor::m\_x[14] = \{ 77.6E0, 114.9E0, 141.1E0, 190.8E0, 239.9E0, 289.0E0, 332.8E0, 378
+      .4E0, 434.8E0, 477.3E0, 536.8E0, 593.1E0, 689.1E0, 760.0E0\};
+00748 \textcolor{keyword}{const} \textcolor{keywordtype}{double} misra1a\_functor::m\_y[14] = \{ 10.07E0, 14.73E0, 17.94E0, 23.93E0, 29.61E0, 35.18E0, 40.02E0, 44
+      .82E0, 50.76E0, 55.05E0, 61.01E0, 66.40E0, 75.47E0, 81.78E0\};
+00749 
+00750 \textcolor{comment}{// http://www.itl.nist.gov/div898/strd/nls/data/misra1a.shtml}
+00751 \textcolor{keywordtype}{void} testNistMisra1a(\textcolor{keywordtype}{void})
+00752 \{
+00753   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=2;
+00754   \textcolor{keywordtype}{int} info;
+00755 
+00756   VectorXd x(n);
+00757 
+00758   \textcolor{comment}{/*}
+00759 \textcolor{comment}{   * First try}
+00760 \textcolor{comment}{   */}
+00761   x<< 500., 0.0001;
+00762   \textcolor{comment}{// do the computation}
+00763   \hyperlink{structmisra1a__functor}{misra1a\_functor} functor;
+00764   LevenbergMarquardt<misra1a\_functor> lm(functor);
+00765   info = lm.minimize(x);
+00766 
+00767   \textcolor{comment}{// check return value}
+00768   VERIFY\_IS\_EQUAL(info, 1);
+00769   VERIFY\_IS\_EQUAL(lm.nfev, 19);
+00770   VERIFY\_IS\_EQUAL(lm.njev, 15);
+00771   \textcolor{comment}{// check norm^2}
+00772   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 1.2455138894E-01);
+00773   \textcolor{comment}{// check x}
+00774   VERIFY\_IS\_APPROX(x[0], 2.3894212918E+02);
+00775   VERIFY\_IS\_APPROX(x[1], 5.5015643181E-04);
+00776 
+00777   \textcolor{comment}{/*}
+00778 \textcolor{comment}{   * Second try}
+00779 \textcolor{comment}{   */}
+00780   x<< 250., 0.0005;
+00781   \textcolor{comment}{// do the computation}
+00782   info = lm.minimize(x);
+00783 
+00784   \textcolor{comment}{// check return value}
+00785   VERIFY\_IS\_EQUAL(info, 1);
+00786   VERIFY\_IS\_EQUAL(lm.nfev, 5);
+00787   VERIFY\_IS\_EQUAL(lm.njev, 4);
+00788   \textcolor{comment}{// check norm^2}
+00789   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 1.2455138894E-01);
+00790   \textcolor{comment}{// check x}
+00791   VERIFY\_IS\_APPROX(x[0], 2.3894212918E+02);
+00792   VERIFY\_IS\_APPROX(x[1], 5.5015643181E-04);
+00793 \}
+00794 
+00795 \textcolor{keyword}{struct }\hyperlink{structhahn1__functor}{hahn1\_functor} : \hyperlink{struct_functor}{Functor}<double>
+00796 \{
+00797     \hyperlink{structhahn1__functor}{hahn1\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(7,236) \{\}
+00798     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} m\_x[236];
+00799     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &b, VectorXd &fvec)
+00800     \{
+00801         \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} m\_y[236] = \{ .591E0 , 1.547E0 , 2.902E0 , 2.894E0 , 4.703E0 , 6.307E0 , 7.03E0 
+       , 7.898E0 , 9.470E0 , 9.484E0 , 10.072E0 , 10.163E0 , 11.615E0 , 12.005E0 , 12.478E0 , 12.982E0 , 12.970E0 
+      , 13.926E0 , 14.452E0 , 14.404E0 , 15.190E0 , 15.550E0 , 15.528E0 , 15.499E0 , 16.131E0 , 16.438E0 , 16.387
+      E0 , 16.549E0 , 16.872E0 , 16.830E0 , 16.926E0 , 16.907E0 , 16.966E0 , 17.060E0 , 17.122E0 , 17.311E0 , 17.35
+      5E0 , 17.668E0 , 17.767E0 , 17.803E0 , 17.765E0 , 17.768E0 , 17.736E0 , 17.858E0 , 17.877E0 , 17.912E0 , 18.
+      046E0 , 18.085E0 , 18.291E0 , 18.357E0 , 18.426E0 , 18.584E0 , 18.610E0 , 18.870E0 , 18.795E0 , 19.111E0 , .
+      367E0 , .796E0 , 0.892E0 , 1.903E0 , 2.150E0 , 3.697E0 , 5.870E0 , 6.421E0 , 7.422E0 , 9.944E0 , 11.023E0 , 
+      11.87E0  , 12.786E0 , 14.067E0 , 13.974E0 , 14.462E0 , 14.464E0 , 15.381E0 , 15.483E0 , 15.59E0  , 16.075E0 
+      , 16.347E0 , 16.181E0 , 16.915E0 , 17.003E0 , 16.978E0 , 17.756E0 , 17.808E0 , 17.868E0 , 18.481E0 , 18.486
+      E0 , 19.090E0 , 16.062E0 , 16.337E0 , 16.345E0 ,
+00802         16.388E0 , 17.159E0 , 17.116E0 , 17.164E0 , 17.123E0 , 17.979E0 , 17.974E0 , 18.007E0 , 17.993E0 , 
+      18.523E0 , 18.669E0 , 18.617E0 , 19.371E0 , 19.330E0 , 0.080E0 , 0.248E0 , 1.089E0 , 1.418E0 , 2.278E0 , 3.6
+      24E0 , 4.574E0 , 5.556E0 , 7.267E0 , 7.695E0 , 9.136E0 , 9.959E0 , 9.957E0 , 11.600E0 , 13.138E0 , 13.564E0 
+      , 13.871E0 , 13.994E0 , 14.947E0 , 15.473E0 , 15.379E0 , 15.455E0 , 15.908E0 , 16.114E0 , 17.071E0 , 17.135
+      E0 , 17.282E0 , 17.368E0 , 17.483E0 , 17.764E0 , 18.185E0 , 18.271E0 , 18.236E0 , 18.237E0 , 18.523E0 , 18.62
+      7E0 , 18.665E0 , 19.086E0 , 0.214E0 , 0.943E0 , 1.429E0 , 2.241E0 , 2.951E0 , 3.782E0 , 4.757E0 , 5.602E0 , 
+      7.169E0 , 8.920E0 , 10.055E0 , 12.035E0 , 12.861E0 , 13.436E0 , 14.167E0 , 14.755E0 , 15.168E0 , 15.651E0 , 
+      15.746E0 , 16.216E0 , 16.445E0 , 16.965E0 , 17.121E0 , 17.206E0 , 17.250E0 , 17.339E0 , 17.793E0 , 18.123E0 
+      , 18.49E0  , 18.566E0 , 18.645E0 , 18.706E0 , 18.924E0 , 19.1E0   , 0.375E0 , 0.471E0 , 1.504E0 , 2.204E0 , 
+      2.813E0 , 4.765E0 , 9.835E0 , 10.040E0 , 11.946E0 , 12.596E0 , 
+00803 13.303E0 , 13.922E0 , 14.440E0 , 14.951E0 , 15.627E0 , 15.639E0 , 15.814E0 , 16.315E0 , 16.334E0 , 16.430E0
+       , 16.423E0 , 17.024E0 , 17.009E0 , 17.165E0 , 17.134E0 , 17.349E0 , 17.576E0 , 17.848E0 , 18.090E0 , 18.276
+      E0 , 18.404E0 , 18.519E0 , 19.133E0 , 19.074E0 , 19.239E0 , 19.280E0 , 19.101E0 , 19.398E0 , 19.252E0 , 19.8
+      9E0  , 20.007E0 , 19.929E0 , 19.268E0 , 19.324E0 , 20.049E0 , 20.107E0 , 20.062E0 , 20.065E0 , 19.286E0 , 19
+      .972E0 , 20.088E0 , 20.743E0 , 20.83E0  , 20.935E0 , 21.035E0 , 20.93E0  , 21.074E0 , 21.085E0 , 20.935E0 \};
+00804 
+00805         \textcolor{comment}{//        int called=0; printf("call hahn1\_functor with  iflag=%d, called=%d\(\backslash\)n", iflag, called); if
+       (iflag==1) called++;}
+00806 
+00807         assert(b.size()==7);
+00808         assert(fvec.size()==236);
+00809         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<236; i++) \{
+00810             \textcolor{keywordtype}{double} x=m\_x[i], xx=x*x, xxx=xx*x;
+00811             fvec[i] = (b[0]+b[1]*x+b[2]*xx+b[3]*xxx) / (1.+b[4]*x+b[5]*xx+b[6]*xxx) - m\_y[i];
+00812         \}
+00813         \textcolor{keywordflow}{return} 0;
+00814     \}
+00815 
+00816     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &b, MatrixXd &fjac)
+00817     \{
+00818         assert(b.size()==7);
+00819         assert(fjac.rows()==236);
+00820         assert(fjac.cols()==7);
+00821         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<236; i++) \{
+00822             \textcolor{keywordtype}{double} x=m\_x[i], xx=x*x, xxx=xx*x;
+00823             \textcolor{keywordtype}{double} fact = 1./(1.+b[4]*x+b[5]*xx+b[6]*xxx);
+00824             fjac(i,0) = 1.*fact;
+00825             fjac(i,1) = x*fact;
+00826             fjac(i,2) = xx*fact;
+00827             fjac(i,3) = xxx*fact;
+00828             fact = - (b[0]+b[1]*x+b[2]*xx+b[3]*xxx) * fact * fact;
+00829             fjac(i,4) = x*fact;
+00830             fjac(i,5) = xx*fact;
+00831             fjac(i,6) = xxx*fact;
+00832         \}
+00833         \textcolor{keywordflow}{return} 0;
+00834     \}
+00835 \};
+00836 \textcolor{keyword}{const} \textcolor{keywordtype}{double} hahn1\_functor::m\_x[236] = \{ 24.41E0 , 34.82E0 , 44.09E0 , 45.07E0 , 54.98E0 , 65.51E0 , 70.53
+      E0 , 75.70E0 , 89.57E0 , 91.14E0 , 96.40E0 , 97.19E0 , 114.26E0 , 120.25E0 , 127.08E0 , 133.55E0 , 133.61E0 ,
+       158.67E0 , 172.74E0 , 171.31E0 , 202.14E0 , 220.55E0 , 221.05E0 , 221.39E0 , 250.99E0 , 268.99E0 , 271.80E0
+       , 271.97E0 , 321.31E0 , 321.69E0 , 330.14E0 , 333.03E0 , 333.47E0 , 340.77E0 , 345.65E0 , 373.11E0 , 373.79
+      E0 , 411.82E0 , 419.51E0 , 421.59E0 , 422.02E0 , 422.47E0 , 422.61E0 , 441.75E0 , 447.41E0 , 448.7E0  , 472.
+      89E0 , 476.69E0 , 522.47E0 , 522.62E0 , 524.43E0 , 546.75E0 , 549.53E0 , 575.29E0 , 576.00E0 , 625.55E0 , 20
+      .15E0 , 28.78E0 , 29.57E0 , 37.41E0 , 39.12E0 , 50.24E0 , 61.38E0 , 66.25E0 , 73.42E0 , 95.52E0 , 107.32E0 ,
+       122.04E0 , 134.03E0 , 163.19E0 , 163.48E0 , 175.70E0 , 179.86E0 , 211.27E0 , 217.78E0 , 219.14E0 , 262.52E0
+       , 268.01E0 , 268.62E0 , 336.25E0 , 337.23E0 , 339.33E0 , 427.38E0 , 428.58E0 , 432.68E0 , 528.99E0 , 531.08
+      E0 , 628.34E0 , 253.24E0 , 273.13E0 , 273.66E0 ,
+00837 282.10E0 , 346.62E0 , 347.19E0 , 348.78E0 , 351.18E0 , 450.10E0 , 450.35E0 , 451.92E0 , 455.56E0 , 552.22E0
+       , 553.56E0 , 555.74E0 , 652.59E0 , 656.20E0 , 14.13E0 , 20.41E0 , 31.30E0 , 33.84E0 , 39.70E0 , 48.83E0 , 
+      54.50E0 , 60.41E0 , 72.77E0 , 75.25E0 , 86.84E0 , 94.88E0 , 96.40E0 , 117.37E0 , 139.08E0 , 147.73E0 , 158.63
+      E0 , 161.84E0 , 192.11E0 , 206.76E0 , 209.07E0 , 213.32E0 , 226.44E0 , 237.12E0 , 330.90E0 , 358.72E0 , 370.
+      77E0 , 372.72E0 , 396.24E0 , 416.59E0 , 484.02E0 , 495.47E0 , 514.78E0 , 515.65E0 , 519.47E0 , 544.47E0 , 
+      560.11E0 , 620.77E0 , 18.97E0 , 28.93E0 , 33.91E0 , 40.03E0 , 44.66E0 , 49.87E0 , 55.16E0 , 60.90E0 , 72.08E0 
+      , 85.15E0 , 97.06E0 , 119.63E0 , 133.27E0 , 143.84E0 , 161.91E0 , 180.67E0 , 198.44E0 , 226.86E0 , 229.65E0 
+      , 258.27E0 , 273.77E0 , 339.15E0 , 350.13E0 , 362.75E0 , 371.03E0 , 393.32E0 , 448.53E0 , 473.78E0 , 511.12
+      E0 , 524.70E0 , 548.75E0 , 551.64E0 , 574.02E0 , 623.86E0 , 21.46E0 , 24.33E0 , 33.43E0 , 39.22E0 , 44.18E0 ,
+       55.02E0 , 94.33E0 , 96.44E0 , 118.82E0 , 128.48E0 ,
+00838 141.94E0 , 156.92E0 , 171.65E0 , 190.00E0 , 223.26E0 , 223.88E0 , 231.50E0 , 265.05E0 , 269.44E0 , 271.78E0
+       , 273.46E0 , 334.61E0 , 339.79E0 , 349.52E0 , 358.18E0 , 377.98E0 , 394.77E0 , 429.66E0 , 468.22E0 , 487.27
+      E0 , 519.54E0 , 523.03E0 , 612.99E0 , 638.59E0 , 641.36E0 , 622.05E0 , 631.50E0 , 663.97E0 , 646.9E0  , 748.
+      29E0 , 749.21E0 , 750.14E0 , 647.04E0 , 646.89E0 , 746.9E0  , 748.43E0 , 747.35E0 , 749.27E0 , 647.61E0 , 
+      747.78E0 , 750.51E0 , 851.37E0 , 845.97E0 , 847.54E0 , 849.93E0 , 851.61E0 , 849.75E0 , 850.98E0 , 848.23E0\};
+00839 
+00840 \textcolor{comment}{// http://www.itl.nist.gov/div898/strd/nls/data/hahn1.shtml}
+00841 \textcolor{keywordtype}{void} testNistHahn1(\textcolor{keywordtype}{void})
+00842 \{
+00843   \textcolor{keyword}{const} \textcolor{keywordtype}{int}  n=7;
+00844   \textcolor{keywordtype}{int} info;
+00845 
+00846   VectorXd x(n);
+00847 
+00848   \textcolor{comment}{/*}
+00849 \textcolor{comment}{   * First try}
+00850 \textcolor{comment}{   */}
+00851   x<< 10., -1., .05, -.00001, -.05, .001, -.000001;
+00852   \textcolor{comment}{// do the computation}
+00853   \hyperlink{structhahn1__functor}{hahn1\_functor} functor;
+00854   LevenbergMarquardt<hahn1\_functor> lm(functor);
+00855   info = lm.minimize(x);
+00856 
+00857   \textcolor{comment}{// check return value}
+00858   VERIFY\_IS\_EQUAL(info, 1);
+00859   VERIFY\_IS\_EQUAL(lm.nfev, 11);
+00860   VERIFY\_IS\_EQUAL(lm.njev, 10);
+00861   \textcolor{comment}{// check norm^2}
+00862   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 1.5324382854E+00);
+00863   \textcolor{comment}{// check x}
+00864   VERIFY\_IS\_APPROX(x[0], 1.0776351733E+00);
+00865   VERIFY\_IS\_APPROX(x[1],-1.2269296921E-01);
+00866   VERIFY\_IS\_APPROX(x[2], 4.0863750610E-03);
+00867   VERIFY\_IS\_APPROX(x[3],-1.426264e-06); \textcolor{comment}{// shoulde be : -1.4262662514E-06}
+00868   VERIFY\_IS\_APPROX(x[4],-5.7609940901E-03);
+00869   VERIFY\_IS\_APPROX(x[5], 2.4053735503E-04);
+00870   VERIFY\_IS\_APPROX(x[6],-1.2314450199E-07);
+00871 
+00872   \textcolor{comment}{/*}
+00873 \textcolor{comment}{   * Second try}
+00874 \textcolor{comment}{   */}
+00875   x<< .1, -.1, .005, -.000001, -.005, .0001, -.0000001;
+00876   \textcolor{comment}{// do the computation}
+00877   info = lm.minimize(x);
+00878 
+00879   \textcolor{comment}{// check return value}
+00880   VERIFY\_IS\_EQUAL(info, 1);
+00881   VERIFY\_IS\_EQUAL(lm.nfev, 11);
+00882   VERIFY\_IS\_EQUAL(lm.njev, 10);
+00883   \textcolor{comment}{// check norm^2}
+00884   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 1.5324382854E+00);
+00885   \textcolor{comment}{// check x}
+00886   VERIFY\_IS\_APPROX(x[0], 1.077640); \textcolor{comment}{// should be :  1.0776351733E+00}
+00887   VERIFY\_IS\_APPROX(x[1], -0.1226933); \textcolor{comment}{// should be : -1.2269296921E-01}
+00888   VERIFY\_IS\_APPROX(x[2], 0.004086383); \textcolor{comment}{// should be : 4.0863750610E-03}
+00889   VERIFY\_IS\_APPROX(x[3], -1.426277e-06); \textcolor{comment}{// shoulde be : -1.4262662514E-06}
+00890   VERIFY\_IS\_APPROX(x[4],-5.7609940901E-03);
+00891   VERIFY\_IS\_APPROX(x[5], 0.00024053772); \textcolor{comment}{// should be : 2.4053735503E-04}
+00892   VERIFY\_IS\_APPROX(x[6], -1.231450e-07); \textcolor{comment}{// should be : -1.2314450199E-07}
+00893 
+00894 \}
+00895 
+00896 \textcolor{keyword}{struct }\hyperlink{structmisra1d__functor}{misra1d\_functor} : \hyperlink{struct_functor}{Functor}<double>
+00897 \{
+00898     \hyperlink{structmisra1d__functor}{misra1d\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(2,14) \{\}
+00899     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} x[14];
+00900     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} y[14];
+00901     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &b, VectorXd &fvec)
+00902     \{
+00903         assert(b.size()==2);
+00904         assert(fvec.size()==14);
+00905         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<14; i++) \{
+00906             fvec[i] = b[0]*b[1]*x[i]/(1.+b[1]*x[i]) - y[i];
+00907         \}
+00908         \textcolor{keywordflow}{return} 0;
+00909     \}
+00910     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &b, MatrixXd &fjac)
+00911     \{
+00912         assert(b.size()==2);
+00913         assert(fjac.rows()==14);
+00914         assert(fjac.cols()==2);
+00915         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<14; i++) \{
+00916             \textcolor{keywordtype}{double} den = 1.+b[1]*x[i];
+00917             fjac(i,0) = b[1]*x[i] / den;
+00918             fjac(i,1) = b[0]*x[i]*(den-b[1]*x[i])/den/den;
+00919         \}
+00920         \textcolor{keywordflow}{return} 0;
+00921     \}
+00922 \};
+00923 \textcolor{keyword}{const} \textcolor{keywordtype}{double} misra1d\_functor::x[14] = \{ 77.6E0, 114.9E0, 141.1E0, 190.8E0, 239.9E0, 289.0E0, 332.8E0, 378.4
+      E0, 434.8E0, 477.3E0, 536.8E0, 593.1E0, 689.1E0, 760.0E0\};
+00924 \textcolor{keyword}{const} \textcolor{keywordtype}{double} misra1d\_functor::y[14] = \{ 10.07E0, 14.73E0, 17.94E0, 23.93E0, 29.61E0, 35.18E0, 40.02E0, 44.8
+      2E0, 50.76E0, 55.05E0, 61.01E0, 66.40E0, 75.47E0, 81.78E0\};
+00925 
+00926 \textcolor{comment}{// http://www.itl.nist.gov/div898/strd/nls/data/misra1d.shtml}
+00927 \textcolor{keywordtype}{void} testNistMisra1d(\textcolor{keywordtype}{void})
+00928 \{
+00929   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=2;
+00930   \textcolor{keywordtype}{int} info;
+00931 
+00932   VectorXd x(n);
+00933 
+00934   \textcolor{comment}{/*}
+00935 \textcolor{comment}{   * First try}
+00936 \textcolor{comment}{   */}
+00937   x<< 500., 0.0001;
+00938   \textcolor{comment}{// do the computation}
+00939   \hyperlink{structmisra1d__functor}{misra1d\_functor} functor;
+00940   LevenbergMarquardt<misra1d\_functor> lm(functor);
+00941   info = lm.minimize(x);
+00942 
+00943   \textcolor{comment}{// check return value}
+00944   VERIFY\_IS\_EQUAL(info, 3);
+00945   VERIFY\_IS\_EQUAL(lm.nfev, 9);
+00946   VERIFY\_IS\_EQUAL(lm.njev, 7);
+00947   \textcolor{comment}{// check norm^2}
+00948   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 5.6419295283E-02);
+00949   \textcolor{comment}{// check x}
+00950   VERIFY\_IS\_APPROX(x[0], 4.3736970754E+02);
+00951   VERIFY\_IS\_APPROX(x[1], 3.0227324449E-04);
+00952 
+00953   \textcolor{comment}{/*}
+00954 \textcolor{comment}{   * Second try}
+00955 \textcolor{comment}{   */}
+00956   x<< 450., 0.0003;
+00957   \textcolor{comment}{// do the computation}
+00958   info = lm.minimize(x);
+00959 
+00960   \textcolor{comment}{// check return value}
+00961   VERIFY\_IS\_EQUAL(info, 1);
+00962   VERIFY\_IS\_EQUAL(lm.nfev, 4);
+00963   VERIFY\_IS\_EQUAL(lm.njev, 3);
+00964   \textcolor{comment}{// check norm^2}
+00965   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 5.6419295283E-02);
+00966   \textcolor{comment}{// check x}
+00967   VERIFY\_IS\_APPROX(x[0], 4.3736970754E+02);
+00968   VERIFY\_IS\_APPROX(x[1], 3.0227324449E-04);
+00969 \}
+00970 
+00971 
+00972 \textcolor{keyword}{struct }\hyperlink{structlanczos1__functor}{lanczos1\_functor} : \hyperlink{struct_functor}{Functor}<double>
+00973 \{
+00974     \hyperlink{structlanczos1__functor}{lanczos1\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(6,24) \{\}
+00975     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} x[24];
+00976     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} y[24];
+00977     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &b, VectorXd &fvec)
+00978     \{
+00979         assert(b.size()==6);
+00980         assert(fvec.size()==24);
+00981         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<24; i++)
+00982             fvec[i] = b[0]*exp(-b[1]*x[i]) + b[2]*exp(-b[3]*x[i]) + b[4]*exp(-b[5]*x[i])  - y[i];
+00983         \textcolor{keywordflow}{return} 0;
+00984     \}
+00985     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &b, MatrixXd &fjac)
+00986     \{
+00987         assert(b.size()==6);
+00988         assert(fjac.rows()==24);
+00989         assert(fjac.cols()==6);
+00990         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<24; i++) \{
+00991             fjac(i,0) = exp(-b[1]*x[i]);
+00992             fjac(i,1) = -b[0]*x[i]*exp(-b[1]*x[i]);
+00993             fjac(i,2) = exp(-b[3]*x[i]);
+00994             fjac(i,3) = -b[2]*x[i]*exp(-b[3]*x[i]);
+00995             fjac(i,4) = exp(-b[5]*x[i]);
+00996             fjac(i,5) = -b[4]*x[i]*exp(-b[5]*x[i]);
+00997         \}
+00998         \textcolor{keywordflow}{return} 0;
+00999     \}
+01000 \};
+01001 \textcolor{keyword}{const} \textcolor{keywordtype}{double} lanczos1\_functor::x[24] = \{ 0.000000000000E+00, 5.000000000000E-02, 1.000000000000E-01, 1.5000
+      00000000E-01, 2.000000000000E-01, 2.500000000000E-01, 3.000000000000E-01, 3.500000000000E-01, 4.000000000000
+      E-01, 4.500000000000E-01, 5.000000000000E-01, 5.500000000000E-01, 6.000000000000E-01, 6.500000000000E-01, 7.
+      000000000000E-01, 7.500000000000E-01, 8.000000000000E-01, 8.500000000000E-01, 9.000000000000E-01, 9.50000000
+      0000E-01, 1.000000000000E+00, 1.050000000000E+00, 1.100000000000E+00, 1.150000000000E+00 \};
+01002 \textcolor{keyword}{const} \textcolor{keywordtype}{double} lanczos1\_functor::y[24] = \{ 2.513400000000E+00 ,2.044333373291E+00 ,1.668404436564E+00 ,1.3664
+      18021208E+00 ,1.123232487372E+00 ,9.268897180037E-01 ,7.679338563728E-01 ,6.388775523106E-01 ,5.337835317402
+      E-01 ,4.479363617347E-01 ,3.775847884350E-01 ,3.197393199326E-01 ,2.720130773746E-01 ,2.324965529032E-01 ,1.
+      996589546065E-01 ,1.722704126914E-01 ,1.493405660168E-01 ,1.300700206922E-01 ,1.138119324644E-01 ,1.00041558
+      7559E-01 ,8.833209084540E-02 ,7.833544019350E-02 ,6.976693743449E-02 ,6.239312536719E-02 \};
+01003 
+01004 \textcolor{comment}{// http://www.itl.nist.gov/div898/strd/nls/data/lanczos1.shtml}
+01005 \textcolor{keywordtype}{void} testNistLanczos1(\textcolor{keywordtype}{void})
+01006 \{
+01007   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=6;
+01008   \textcolor{keywordtype}{int} info;
+01009 
+01010   VectorXd x(n);
+01011 
+01012   \textcolor{comment}{/*}
+01013 \textcolor{comment}{   * First try}
+01014 \textcolor{comment}{   */}
+01015   x<< 1.2, 0.3, 5.6, 5.5, 6.5, 7.6;
+01016   \textcolor{comment}{// do the computation}
+01017   \hyperlink{structlanczos1__functor}{lanczos1\_functor} functor;
+01018   LevenbergMarquardt<lanczos1\_functor> lm(functor);
+01019   info = lm.minimize(x);
+01020 
+01021   \textcolor{comment}{// check return value}
+01022   VERIFY\_IS\_EQUAL(info, 2);
+01023   VERIFY\_IS\_EQUAL(lm.nfev, 79);
+01024   VERIFY\_IS\_EQUAL(lm.njev, 72);
+01025   \textcolor{comment}{// check norm^2}
+01026   std::cout.precision(30);
+01027   std::cout << lm.fvec.squaredNorm() << \textcolor{stringliteral}{"\(\backslash\)n"};
+01028   VERIFY(lm.fvec.squaredNorm() <= 1.4307867721E-25);
+01029   \textcolor{comment}{// check x}
+01030   VERIFY\_IS\_APPROX(x[0], 9.5100000027E-02);
+01031   VERIFY\_IS\_APPROX(x[1], 1.0000000001E+00);
+01032   VERIFY\_IS\_APPROX(x[2], 8.6070000013E-01);
+01033   VERIFY\_IS\_APPROX(x[3], 3.0000000002E+00);
+01034   VERIFY\_IS\_APPROX(x[4], 1.5575999998E+00);
+01035   VERIFY\_IS\_APPROX(x[5], 5.0000000001E+00);
+01036 
+01037   \textcolor{comment}{/*}
+01038 \textcolor{comment}{   * Second try}
+01039 \textcolor{comment}{   */}
+01040   x<< 0.5, 0.7, 3.6, 4.2, 4., 6.3;
+01041   \textcolor{comment}{// do the computation}
+01042   info = lm.minimize(x);
+01043 
+01044   \textcolor{comment}{// check return value}
+01045   VERIFY\_IS\_EQUAL(info, 2);
+01046   VERIFY\_IS\_EQUAL(lm.nfev, 9);
+01047   VERIFY\_IS\_EQUAL(lm.njev, 8);
+01048   \textcolor{comment}{// check norm^2}
+01049   VERIFY(lm.fvec.squaredNorm() <= 1.4307867721E-25);
+01050   \textcolor{comment}{// check x}
+01051   VERIFY\_IS\_APPROX(x[0], 9.5100000027E-02);
+01052   VERIFY\_IS\_APPROX(x[1], 1.0000000001E+00);
+01053   VERIFY\_IS\_APPROX(x[2], 8.6070000013E-01);
+01054   VERIFY\_IS\_APPROX(x[3], 3.0000000002E+00);
+01055   VERIFY\_IS\_APPROX(x[4], 1.5575999998E+00);
+01056   VERIFY\_IS\_APPROX(x[5], 5.0000000001E+00);
+01057 
+01058 \}
+01059 
+01060 \textcolor{keyword}{struct }\hyperlink{structrat42__functor}{rat42\_functor} : \hyperlink{struct_functor}{Functor}<double>
+01061 \{
+01062     \hyperlink{structrat42__functor}{rat42\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(3,9) \{\}
+01063     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} x[9];
+01064     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} y[9];
+01065     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &b, VectorXd &fvec)
+01066     \{
+01067         assert(b.size()==3);
+01068         assert(fvec.size()==9);
+01069         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<9; i++) \{
+01070             fvec[i] = b[0] / (1.+exp(b[1]-b[2]*x[i])) - y[i];
+01071         \}
+01072         \textcolor{keywordflow}{return} 0;
+01073     \}
+01074 
+01075     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &b, MatrixXd &fjac)
+01076     \{
+01077         assert(b.size()==3);
+01078         assert(fjac.rows()==9);
+01079         assert(fjac.cols()==3);
+01080         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<9; i++) \{
+01081             \textcolor{keywordtype}{double} e = exp(b[1]-b[2]*x[i]);
+01082             fjac(i,0) = 1./(1.+e);
+01083             fjac(i,1) = -b[0]*e/(1.+e)/(1.+e);
+01084             fjac(i,2) = +b[0]*e*x[i]/(1.+e)/(1.+e);
+01085         \}
+01086         \textcolor{keywordflow}{return} 0;
+01087     \}
+01088 \};
+01089 \textcolor{keyword}{const} \textcolor{keywordtype}{double} rat42\_functor::x[9] = \{ 9.000E0, 14.000E0, 21.000E0, 28.000E0, 42.000E0, 57.000E0, 63.000E0, 
+      70.000E0, 79.000E0 \};
+01090 \textcolor{keyword}{const} \textcolor{keywordtype}{double} rat42\_functor::y[9] = \{ 8.930E0 ,10.800E0 ,18.590E0 ,22.330E0 ,39.350E0 ,56.110E0 ,61.730E0 ,
+      64.620E0 ,67.080E0 \};
+01091 
+01092 \textcolor{comment}{// http://www.itl.nist.gov/div898/strd/nls/data/ratkowsky2.shtml}
+01093 \textcolor{keywordtype}{void} testNistRat42(\textcolor{keywordtype}{void})
+01094 \{
+01095   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=3;
+01096   \textcolor{keywordtype}{int} info;
+01097 
+01098   VectorXd x(n);
+01099 
+01100   \textcolor{comment}{/*}
+01101 \textcolor{comment}{   * First try}
+01102 \textcolor{comment}{   */}
+01103   x<< 100., 1., 0.1;
+01104   \textcolor{comment}{// do the computation}
+01105   \hyperlink{structrat42__functor}{rat42\_functor} functor;
+01106   LevenbergMarquardt<rat42\_functor> lm(functor);
+01107   info = lm.minimize(x);
+01108 
+01109   \textcolor{comment}{// check return value}
+01110   VERIFY\_IS\_EQUAL(info, 1);
+01111   VERIFY\_IS\_EQUAL(lm.nfev, 10);
+01112   VERIFY\_IS\_EQUAL(lm.njev, 8);
+01113   \textcolor{comment}{// check norm^2}
+01114   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 8.0565229338E+00);
+01115   \textcolor{comment}{// check x}
+01116   VERIFY\_IS\_APPROX(x[0], 7.2462237576E+01);
+01117   VERIFY\_IS\_APPROX(x[1], 2.6180768402E+00);
+01118   VERIFY\_IS\_APPROX(x[2], 6.7359200066E-02);
+01119 
+01120   \textcolor{comment}{/*}
+01121 \textcolor{comment}{   * Second try}
+01122 \textcolor{comment}{   */}
+01123   x<< 75., 2.5, 0.07;
+01124   \textcolor{comment}{// do the computation}
+01125   info = lm.minimize(x);
+01126 
+01127   \textcolor{comment}{// check return value}
+01128   VERIFY\_IS\_EQUAL(info, 1);
+01129   VERIFY\_IS\_EQUAL(lm.nfev, 6);
+01130   VERIFY\_IS\_EQUAL(lm.njev, 5);
+01131   \textcolor{comment}{// check norm^2}
+01132   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 8.0565229338E+00);
+01133   \textcolor{comment}{// check x}
+01134   VERIFY\_IS\_APPROX(x[0], 7.2462237576E+01);
+01135   VERIFY\_IS\_APPROX(x[1], 2.6180768402E+00);
+01136   VERIFY\_IS\_APPROX(x[2], 6.7359200066E-02);
+01137 \}
+01138 
+01139 \textcolor{keyword}{struct }\hyperlink{struct_m_g_h10__functor}{MGH10\_functor} : \hyperlink{struct_functor}{Functor}<double>
+01140 \{
+01141     \hyperlink{struct_m_g_h10__functor}{MGH10\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(3,16) \{\}
+01142     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} x[16];
+01143     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} y[16];
+01144     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &b, VectorXd &fvec)
+01145     \{
+01146         assert(b.size()==3);
+01147         assert(fvec.size()==16);
+01148         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<16; i++)
+01149             fvec[i] =  b[0] * exp(b[1]/(x[i]+b[2])) - y[i];
+01150         \textcolor{keywordflow}{return} 0;
+01151     \}
+01152     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &b, MatrixXd &fjac)
+01153     \{
+01154         assert(b.size()==3);
+01155         assert(fjac.rows()==16);
+01156         assert(fjac.cols()==3);
+01157         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<16; i++) \{
+01158             \textcolor{keywordtype}{double} factor = 1./(x[i]+b[2]);
+01159             \textcolor{keywordtype}{double} e = exp(b[1]*factor);
+01160             fjac(i,0) = e;
+01161             fjac(i,1) = b[0]*factor*e;
+01162             fjac(i,2) = -b[1]*b[0]*factor*factor*e;
+01163         \}
+01164         \textcolor{keywordflow}{return} 0;
+01165     \}
+01166 \};
+01167 \textcolor{keyword}{const} \textcolor{keywordtype}{double} MGH10\_functor::x[16] = \{ 5.000000E+01, 5.500000E+01, 6.000000E+01, 6.500000E+01, 7.000000E+01,
+       7.500000E+01, 8.000000E+01, 8.500000E+01, 9.000000E+01, 9.500000E+01, 1.000000E+02, 1.050000E+02, 1.100000E
+      +02, 1.150000E+02, 1.200000E+02, 1.250000E+02 \};
+01168 \textcolor{keyword}{const} \textcolor{keywordtype}{double} MGH10\_functor::y[16] = \{ 3.478000E+04, 2.861000E+04, 2.365000E+04, 1.963000E+04, 1.637000E+04,
+       1.372000E+04, 1.154000E+04, 9.744000E+03, 8.261000E+03, 7.030000E+03, 6.005000E+03, 5.147000E+03, 4.427000E
+      +03, 3.820000E+03, 3.307000E+03, 2.872000E+03 \};
+01169 
+01170 \textcolor{comment}{// http://www.itl.nist.gov/div898/strd/nls/data/mgh10.shtml}
+01171 \textcolor{keywordtype}{void} testNistMGH10(\textcolor{keywordtype}{void})
+01172 \{
+01173   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=3;
+01174   \textcolor{keywordtype}{int} info;
+01175 
+01176   VectorXd x(n);
+01177 
+01178   \textcolor{comment}{/*}
+01179 \textcolor{comment}{   * First try}
+01180 \textcolor{comment}{   */}
+01181   x<< 2., 400000., 25000.;
+01182   \textcolor{comment}{// do the computation}
+01183   \hyperlink{struct_m_g_h10__functor}{MGH10\_functor} functor;
+01184   LevenbergMarquardt<MGH10\_functor> lm(functor);
+01185   info = lm.minimize(x);
+01186 
+01187   \textcolor{comment}{// check return value}
+01188   VERIFY\_IS\_EQUAL(info, 2); 
+01189   VERIFY\_IS\_EQUAL(lm.nfev, 284 ); 
+01190   VERIFY\_IS\_EQUAL(lm.njev, 249 ); 
+01191   \textcolor{comment}{// check norm^2}
+01192   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 8.7945855171E+01);
+01193   \textcolor{comment}{// check x}
+01194   VERIFY\_IS\_APPROX(x[0], 5.6096364710E-03);
+01195   VERIFY\_IS\_APPROX(x[1], 6.1813463463E+03);
+01196   VERIFY\_IS\_APPROX(x[2], 3.4522363462E+02);
+01197 
+01198   \textcolor{comment}{/*}
+01199 \textcolor{comment}{   * Second try}
+01200 \textcolor{comment}{   */}
+01201   x<< 0.02, 4000., 250.;
+01202   \textcolor{comment}{// do the computation}
+01203   info = lm.minimize(x);
+01204 
+01205   \textcolor{comment}{// check return value}
+01206   VERIFY\_IS\_EQUAL(info, 3);
+01207   VERIFY\_IS\_EQUAL(lm.nfev, 126);
+01208   VERIFY\_IS\_EQUAL(lm.njev, 116);
+01209   \textcolor{comment}{// check norm^2}
+01210   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 8.7945855171E+01);
+01211   \textcolor{comment}{// check x}
+01212   VERIFY\_IS\_APPROX(x[0], 5.6096364710E-03);
+01213   VERIFY\_IS\_APPROX(x[1], 6.1813463463E+03);
+01214   VERIFY\_IS\_APPROX(x[2], 3.4522363462E+02);
+01215 \}
+01216 
+01217 
+01218 \textcolor{keyword}{struct }\hyperlink{struct_box_b_o_d__functor}{BoxBOD\_functor} : \hyperlink{struct_functor}{Functor}<double>
+01219 \{
+01220     \hyperlink{struct_box_b_o_d__functor}{BoxBOD\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(2,6) \{\}
+01221     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} x[6];
+01222     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &b, VectorXd &fvec)
+01223     \{
+01224         \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} y[6] = \{ 109., 149., 149., 191., 213., 224. \};
+01225         assert(b.size()==2);
+01226         assert(fvec.size()==6);
+01227         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<6; i++)
+01228             fvec[i] =  b[0]*(1.-exp(-b[1]*x[i])) - y[i];
+01229         \textcolor{keywordflow}{return} 0;
+01230     \}
+01231     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &b, MatrixXd &fjac)
+01232     \{
+01233         assert(b.size()==2);
+01234         assert(fjac.rows()==6);
+01235         assert(fjac.cols()==2);
+01236         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<6; i++) \{
+01237             \textcolor{keywordtype}{double} e = exp(-b[1]*x[i]);
+01238             fjac(i,0) = 1.-e;
+01239             fjac(i,1) = b[0]*x[i]*e;
+01240         \}
+01241         \textcolor{keywordflow}{return} 0;
+01242     \}
+01243 \};
+01244 \textcolor{keyword}{const} \textcolor{keywordtype}{double} BoxBOD\_functor::x[6] = \{ 1., 2., 3., 5., 7., 10. \};
+01245 
+01246 \textcolor{comment}{// http://www.itl.nist.gov/div898/strd/nls/data/boxbod.shtml}
+01247 \textcolor{keywordtype}{void} testNistBoxBOD(\textcolor{keywordtype}{void})
+01248 \{
+01249   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=2;
+01250   \textcolor{keywordtype}{int} info;
+01251 
+01252   VectorXd x(n);
+01253 
+01254   \textcolor{comment}{/*}
+01255 \textcolor{comment}{   * First try}
+01256 \textcolor{comment}{   */}
+01257   x<< 1., 1.;
+01258   \textcolor{comment}{// do the computation}
+01259   \hyperlink{struct_box_b_o_d__functor}{BoxBOD\_functor} functor;
+01260   LevenbergMarquardt<BoxBOD\_functor> lm(functor);
+01261   lm.parameters.ftol = 1.E6*NumTraits<double>::epsilon();
+01262   lm.parameters.xtol = 1.E6*NumTraits<double>::epsilon();
+01263   lm.parameters.factor = 10.;
+01264   info = lm.minimize(x);
+01265 
+01266   \textcolor{comment}{// check return value}
+01267   VERIFY\_IS\_EQUAL(info, 1);
+01268   VERIFY(lm.nfev < 31); \textcolor{comment}{// 31}
+01269   VERIFY(lm.njev < 25); \textcolor{comment}{// 25}
+01270   \textcolor{comment}{// check norm^2}
+01271   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 1.1680088766E+03);
+01272   \textcolor{comment}{// check x}
+01273   VERIFY\_IS\_APPROX(x[0], 2.1380940889E+02);
+01274   VERIFY\_IS\_APPROX(x[1], 5.4723748542E-01);
+01275 
+01276   \textcolor{comment}{/*}
+01277 \textcolor{comment}{   * Second try}
+01278 \textcolor{comment}{   */}
+01279   x<< 100., 0.75;
+01280   \textcolor{comment}{// do the computation}
+01281   lm.resetParameters();
+01282   lm.parameters.ftol = NumTraits<double>::epsilon();
+01283   lm.parameters.xtol = NumTraits<double>::epsilon();
+01284   info = lm.minimize(x);
+01285 
+01286   \textcolor{comment}{// check return value}
+01287   VERIFY\_IS\_EQUAL(info, 1); 
+01288   VERIFY\_IS\_EQUAL(lm.nfev, 15 ); 
+01289   VERIFY\_IS\_EQUAL(lm.njev, 14 ); 
+01290   \textcolor{comment}{// check norm^2}
+01291   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 1.1680088766E+03);
+01292   \textcolor{comment}{// check x}
+01293   VERIFY\_IS\_APPROX(x[0], 2.1380940889E+02);
+01294   VERIFY\_IS\_APPROX(x[1], 5.4723748542E-01);
+01295 \}
+01296 
+01297 \textcolor{keyword}{struct }\hyperlink{struct_m_g_h17__functor}{MGH17\_functor} : \hyperlink{struct_functor}{Functor}<double>
+01298 \{
+01299     \hyperlink{struct_m_g_h17__functor}{MGH17\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(5,33) \{\}
+01300     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} x[33];
+01301     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} y[33];
+01302     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &b, VectorXd &fvec)
+01303     \{
+01304         assert(b.size()==5);
+01305         assert(fvec.size()==33);
+01306         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<33; i++)
+01307             fvec[i] =  b[0] + b[1]*exp(-b[3]*x[i]) +  b[2]*exp(-b[4]*x[i]) - y[i];
+01308         \textcolor{keywordflow}{return} 0;
+01309     \}
+01310     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &b, MatrixXd &fjac)
+01311     \{
+01312         assert(b.size()==5);
+01313         assert(fjac.rows()==33);
+01314         assert(fjac.cols()==5);
+01315         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<33; i++) \{
+01316             fjac(i,0) = 1.;
+01317             fjac(i,1) = exp(-b[3]*x[i]);
+01318             fjac(i,2) = exp(-b[4]*x[i]);
+01319             fjac(i,3) = -x[i]*b[1]*exp(-b[3]*x[i]);
+01320             fjac(i,4) = -x[i]*b[2]*exp(-b[4]*x[i]);
+01321         \}
+01322         \textcolor{keywordflow}{return} 0;
+01323     \}
+01324 \};
+01325 \textcolor{keyword}{const} \textcolor{keywordtype}{double} MGH17\_functor::x[33] = \{ 0.000000E+00, 1.000000E+01, 2.000000E+01, 3.000000E+01, 4.000000E+01,
+       5.000000E+01, 6.000000E+01, 7.000000E+01, 8.000000E+01, 9.000000E+01, 1.000000E+02, 1.100000E+02, 1.200000E
+      +02, 1.300000E+02, 1.400000E+02, 1.500000E+02, 1.600000E+02, 1.700000E+02, 1.800000E+02, 1.900000E+02, 2.000
+      000E+02, 2.100000E+02, 2.200000E+02, 2.300000E+02, 2.400000E+02, 2.500000E+02, 2.600000E+02, 2.700000E+02, 2
+      .800000E+02, 2.900000E+02, 3.000000E+02, 3.100000E+02, 3.200000E+02 \};
+01326 \textcolor{keyword}{const} \textcolor{keywordtype}{double} MGH17\_functor::y[33] = \{ 8.440000E-01, 9.080000E-01, 9.320000E-01, 9.360000E-01, 9.250000E-01,
+       9.080000E-01, 8.810000E-01, 8.500000E-01, 8.180000E-01, 7.840000E-01, 7.510000E-01, 7.180000E-01, 6.850000E
+      -01, 6.580000E-01, 6.280000E-01, 6.030000E-01, 5.800000E-01, 5.580000E-01, 5.380000E-01, 5.220000E-01, 5.060
+      000E-01, 4.900000E-01, 4.780000E-01, 4.670000E-01, 4.570000E-01, 4.480000E-01, 4.380000E-01, 4.310000E-01, 4
+      .240000E-01, 4.200000E-01, 4.140000E-01, 4.110000E-01, 4.060000E-01 \};
+01327 
+01328 \textcolor{comment}{// http://www.itl.nist.gov/div898/strd/nls/data/mgh17.shtml}
+01329 \textcolor{keywordtype}{void} testNistMGH17(\textcolor{keywordtype}{void})
+01330 \{
+01331   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=5;
+01332   \textcolor{keywordtype}{int} info;
+01333 
+01334   VectorXd x(n);
+01335 
+01336   \textcolor{comment}{/*}
+01337 \textcolor{comment}{   * First try}
+01338 \textcolor{comment}{   */}
+01339   x<< 50., 150., -100., 1., 2.;
+01340   \textcolor{comment}{// do the computation}
+01341   \hyperlink{struct_m_g_h17__functor}{MGH17\_functor} functor;
+01342   LevenbergMarquardt<MGH17\_functor> lm(functor);
+01343   lm.parameters.ftol = NumTraits<double>::epsilon();
+01344   lm.parameters.xtol = NumTraits<double>::epsilon();
+01345   lm.parameters.maxfev = 1000;
+01346   info = lm.minimize(x);
+01347 
+01348   \textcolor{comment}{// check norm^2}
+01349   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 5.4648946975E-05);
+01350   \textcolor{comment}{// check x}
+01351   VERIFY\_IS\_APPROX(x[0], 3.7541005211E-01);
+01352   VERIFY\_IS\_APPROX(x[1], 1.9358469127E+00);
+01353   VERIFY\_IS\_APPROX(x[2], -1.4646871366E+00);
+01354   VERIFY\_IS\_APPROX(x[3], 1.2867534640E-02);
+01355   VERIFY\_IS\_APPROX(x[4], 2.2122699662E-02);
+01356   
+01357   \textcolor{comment}{// check return value}
+01358   VERIFY\_IS\_EQUAL(info, 2); 
+01359   ++g\_test\_level;
+01360   VERIFY\_IS\_EQUAL(lm.nfev, 602);  \textcolor{comment}{// 602}
+01361   VERIFY\_IS\_EQUAL(lm.njev, 545);  \textcolor{comment}{// 545}
+01362   --g\_test\_level;
+01363   VERIFY(lm.nfev < 602 * LM\_EVAL\_COUNT\_TOL);
+01364   VERIFY(lm.njev < 545 * LM\_EVAL\_COUNT\_TOL);
+01365 
+01366   \textcolor{comment}{/*}
+01367 \textcolor{comment}{   * Second try}
+01368 \textcolor{comment}{   */}
+01369   x<< 0.5  ,1.5  ,-1   ,0.01 ,0.02;
+01370   \textcolor{comment}{// do the computation}
+01371   lm.resetParameters();
+01372   info = lm.minimize(x);
+01373 
+01374   \textcolor{comment}{// check return value}
+01375   VERIFY\_IS\_EQUAL(info, 1);
+01376   VERIFY\_IS\_EQUAL(lm.nfev, 18);
+01377   VERIFY\_IS\_EQUAL(lm.njev, 15);
+01378   \textcolor{comment}{// check norm^2}
+01379   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 5.4648946975E-05);
+01380   \textcolor{comment}{// check x}
+01381   VERIFY\_IS\_APPROX(x[0], 3.7541005211E-01);
+01382   VERIFY\_IS\_APPROX(x[1], 1.9358469127E+00);
+01383   VERIFY\_IS\_APPROX(x[2], -1.4646871366E+00);
+01384   VERIFY\_IS\_APPROX(x[3], 1.2867534640E-02);
+01385   VERIFY\_IS\_APPROX(x[4], 2.2122699662E-02);
+01386 \}
+01387 
+01388 \textcolor{keyword}{struct }\hyperlink{struct_m_g_h09__functor}{MGH09\_functor} : \hyperlink{struct_functor}{Functor}<double>
+01389 \{
+01390     \hyperlink{struct_m_g_h09__functor}{MGH09\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(4,11) \{\}
+01391     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} \_x[11];
+01392     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} y[11];
+01393     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &b, VectorXd &fvec)
+01394     \{
+01395         assert(b.size()==4);
+01396         assert(fvec.size()==11);
+01397         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<11; i++) \{
+01398             \textcolor{keywordtype}{double} x = \_x[i], xx=x*x;
+01399             fvec[i] = b[0]*(xx+x*b[1])/(xx+x*b[2]+b[3]) - y[i];
+01400         \}
+01401         \textcolor{keywordflow}{return} 0;
+01402     \}
+01403     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &b, MatrixXd &fjac)
+01404     \{
+01405         assert(b.size()==4);
+01406         assert(fjac.rows()==11);
+01407         assert(fjac.cols()==4);
+01408         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<11; i++) \{
+01409             \textcolor{keywordtype}{double} x = \_x[i], xx=x*x;
+01410             \textcolor{keywordtype}{double} factor = 1./(xx+x*b[2]+b[3]);
+01411             fjac(i,0) = (xx+x*b[1]) * factor;
+01412             fjac(i,1) = b[0]*x* factor;
+01413             fjac(i,2) = - b[0]*(xx+x*b[1]) * x * factor * factor;
+01414             fjac(i,3) = - b[0]*(xx+x*b[1]) * factor * factor;
+01415         \}
+01416         \textcolor{keywordflow}{return} 0;
+01417     \}
+01418 \};
+01419 \textcolor{keyword}{const} \textcolor{keywordtype}{double} MGH09\_functor::\_x[11] = \{ 4., 2., 1., 5.E-1 , 2.5E-01, 1.670000E-01, 1.250000E-01,  1.E-01, 8.
+      330000E-02, 7.140000E-02, 6.250000E-02 \};
+01420 \textcolor{keyword}{const} \textcolor{keywordtype}{double} MGH09\_functor::y[11] = \{ 1.957000E-01, 1.947000E-01, 1.735000E-01, 1.600000E-01, 8.440000E-02,
+       6.270000E-02, 4.560000E-02, 3.420000E-02, 3.230000E-02, 2.350000E-02, 2.460000E-02 \};
+01421 
+01422 \textcolor{comment}{// http://www.itl.nist.gov/div898/strd/nls/data/mgh09.shtml}
+01423 \textcolor{keywordtype}{void} testNistMGH09(\textcolor{keywordtype}{void})
+01424 \{
+01425   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=4;
+01426   \textcolor{keywordtype}{int} info;
+01427 
+01428   VectorXd x(n);
+01429 
+01430   \textcolor{comment}{/*}
+01431 \textcolor{comment}{   * First try}
+01432 \textcolor{comment}{   */}
+01433   x<< 25., 39, 41.5, 39.;
+01434   \textcolor{comment}{// do the computation}
+01435   \hyperlink{struct_m_g_h09__functor}{MGH09\_functor} functor;
+01436   LevenbergMarquardt<MGH09\_functor> lm(functor);
+01437   lm.parameters.maxfev = 1000;
+01438   info = lm.minimize(x);
+01439 
+01440   \textcolor{comment}{// check return value}
+01441   VERIFY\_IS\_EQUAL(info, 1); 
+01442   VERIFY\_IS\_EQUAL(lm.nfev, 490 ); 
+01443   VERIFY\_IS\_EQUAL(lm.njev, 376 ); 
+01444   \textcolor{comment}{// check norm^2}
+01445   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 3.0750560385E-04);
+01446   \textcolor{comment}{// check x}
+01447   VERIFY\_IS\_APPROX(x[0], 0.1928077089); \textcolor{comment}{// should be 1.9280693458E-01}
+01448   VERIFY\_IS\_APPROX(x[1], 0.19126423573); \textcolor{comment}{// should be 1.9128232873E-01}
+01449   VERIFY\_IS\_APPROX(x[2], 0.12305309914); \textcolor{comment}{// should be 1.2305650693E-01}
+01450   VERIFY\_IS\_APPROX(x[3], 0.13605395375); \textcolor{comment}{// should be 1.3606233068E-01}
+01451 
+01452   \textcolor{comment}{/*}
+01453 \textcolor{comment}{   * Second try}
+01454 \textcolor{comment}{   */}
+01455   x<< 0.25, 0.39, 0.415, 0.39;
+01456   \textcolor{comment}{// do the computation}
+01457   lm.resetParameters();
+01458   info = lm.minimize(x);
+01459 
+01460   \textcolor{comment}{// check return value}
+01461   VERIFY\_IS\_EQUAL(info, 1);
+01462   VERIFY\_IS\_EQUAL(lm.nfev, 18);
+01463   VERIFY\_IS\_EQUAL(lm.njev, 16);
+01464   \textcolor{comment}{// check norm^2}
+01465   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 3.0750560385E-04);
+01466   \textcolor{comment}{// check x}
+01467   VERIFY\_IS\_APPROX(x[0], 0.19280781); \textcolor{comment}{// should be 1.9280693458E-01}
+01468   VERIFY\_IS\_APPROX(x[1], 0.19126265); \textcolor{comment}{// should be 1.9128232873E-01}
+01469   VERIFY\_IS\_APPROX(x[2], 0.12305280); \textcolor{comment}{// should be 1.2305650693E-01}
+01470   VERIFY\_IS\_APPROX(x[3], 0.13605322); \textcolor{comment}{// should be 1.3606233068E-01}
+01471 \}
+01472 
+01473 
+01474 
+01475 \textcolor{keyword}{struct }\hyperlink{struct_bennett5__functor}{Bennett5\_functor} : \hyperlink{struct_functor}{Functor}<double>
+01476 \{
+01477     \hyperlink{struct_bennett5__functor}{Bennett5\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(3,154) \{\}
+01478     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} x[154];
+01479     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} y[154];
+01480     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &b, VectorXd &fvec)
+01481     \{
+01482         assert(b.size()==3);
+01483         assert(fvec.size()==154);
+01484         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<154; i++)
+01485             fvec[i] = b[0]* pow(b[1]+x[i],-1./b[2]) - y[i];
+01486         \textcolor{keywordflow}{return} 0;
+01487     \}
+01488     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &b, MatrixXd &fjac)
+01489     \{
+01490         assert(b.size()==3);
+01491         assert(fjac.rows()==154);
+01492         assert(fjac.cols()==3);
+01493         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<154; i++) \{
+01494             \textcolor{keywordtype}{double} e = pow(b[1]+x[i],-1./b[2]);
+01495             fjac(i,0) = e;
+01496             fjac(i,1) = - b[0]*e/b[2]/(b[1]+x[i]);
+01497             fjac(i,2) = b[0]*e*\hyperlink{structlog}{log}(b[1]+x[i])/b[2]/b[2];
+01498         \}
+01499         \textcolor{keywordflow}{return} 0;
+01500     \}
+01501 \};
+01502 \textcolor{keyword}{const} \textcolor{keywordtype}{double} Bennett5\_functor::x[154] = \{ 7.447168E0, 8.102586E0, 8.452547E0, 8.711278E0, 8.916774E0, 9.087
+      155E0, 9.232590E0, 9.359535E0, 9.472166E0, 9.573384E0, 9.665293E0, 9.749461E0, 9.827092E0, 9.899128E0, 9.966
+      321E0, 10.029280E0, 10.088510E0, 10.144430E0, 10.197380E0, 10.247670E0, 10.295560E0, 10.341250E0, 10.384950
+      E0, 10.426820E0, 10.467000E0, 10.505640E0, 10.542830E0, 10.578690E0, 10.613310E0, 10.646780E0, 10.679150E0, 
+      10.710520E0, 10.740920E0, 10.770440E0, 10.799100E0, 10.826970E0, 10.854080E0, 10.880470E0, 10.906190E0, 10.93
+      1260E0, 10.955720E0, 10.979590E0, 11.002910E0, 11.025700E0, 11.047980E0, 11.069770E0, 11.091100E0, 11.111980
+      E0, 11.132440E0, 11.152480E0, 11.172130E0, 11.191410E0, 11.210310E0, 11.228870E0, 11.247090E0, 11.264980E0, 
+      11.282560E0, 11.299840E0, 11.316820E0, 11.333520E0, 11.349940E0, 11.366100E0, 11.382000E0, 11.397660E0, 11.4
+      13070E0, 11.428240E0, 11.443200E0, 11.457930E0, 11.472440E0, 11.486750E0, 11.500860E0, 11.514770E0, 11.52849
+      0E0, 11.542020E0, 11.555380E0, 11.568550E0,
+01503 11.581560E0, 11.594420E0, 11.607121E0, 11.619640E0, 11.632000E0, 11.644210E0, 11.656280E0, 11.668200E0, 11.
+      679980E0, 11.691620E0, 11.703130E0, 11.714510E0, 11.725760E0, 11.736880E0, 11.747890E0, 11.758780E0, 11.7695
+      50E0, 11.780200E0, 11.790730E0, 11.801160E0, 11.811480E0, 11.821700E0, 11.831810E0, 11.841820E0, 11.851730E0
+      , 11.861550E0, 11.871270E0, 11.880890E0, 11.890420E0, 11.899870E0, 11.909220E0, 11.918490E0, 11.927680E0, 11
+      .936780E0, 11.945790E0, 11.954730E0, 11.963590E0, 11.972370E0, 11.981070E0, 11.989700E0, 11.998260E0, 12.006
+      740E0, 12.015150E0, 12.023490E0, 12.031760E0, 12.039970E0, 12.048100E0, 12.056170E0, 12.064180E0, 12.072120
+      E0, 12.080010E0, 12.087820E0, 12.095580E0, 12.103280E0, 12.110920E0, 12.118500E0, 12.126030E0, 12.133500E0, 
+      12.140910E0, 12.148270E0, 12.155570E0, 12.162830E0, 12.170030E0, 12.177170E0, 12.184270E0, 12.191320E0, 12.19
+      8320E0, 12.205270E0, 12.212170E0, 12.219030E0, 12.225840E0, 12.232600E0, 12.239320E0, 12.245990E0, 12.252620
+      E0, 12.259200E0, 12.265750E0, 12.272240E0 \};
+01504 \textcolor{keyword}{const} \textcolor{keywordtype}{double} Bennett5\_functor::y[154] = \{ -34.834702E0 ,-34.393200E0 ,-34.152901E0 ,-33.979099E0 ,-33.84590
+      1E0 ,-33.732899E0 ,-33.640301E0 ,-33.559200E0 ,-33.486801E0 ,-33.423100E0 ,-33.365101E0 ,-33.313000E0 ,-33.2
+      60899E0 ,-33.217400E0 ,-33.176899E0 ,-33.139198E0 ,-33.101601E0 ,-33.066799E0 ,-33.035000E0 ,-33.003101E0 ,-
+      32.971298E0 ,-32.942299E0 ,-32.916302E0 ,-32.890202E0 ,-32.864101E0 ,-32.841000E0 ,-32.817799E0 ,-32.797501
+      E0 ,-32.774300E0 ,-32.757000E0 ,-32.733799E0 ,-32.716400E0 ,-32.699100E0 ,-32.678799E0 ,-32.661400E0 ,-32.644
+      001E0 ,-32.626701E0 ,-32.612202E0 ,-32.597698E0 ,-32.583199E0 ,-32.568699E0 ,-32.554298E0 ,-32.539799E0 ,-32
+      .525299E0 ,-32.510799E0 ,-32.499199E0 ,-32.487598E0 ,-32.473202E0 ,-32.461601E0 ,-32.435501E0 ,-32.435501E0 
+      ,-32.426800E0 ,-32.412300E0 ,-32.400799E0 ,-32.392101E0 ,-32.380501E0 ,-32.366001E0 ,-32.357300E0 ,-32.34859
+      8E0 ,-32.339901E0 ,-32.328400E0 ,-32.319698E0 ,-32.311001E0 ,-32.299400E0 ,-32.290699E0 ,-32.282001E0 ,-32.2
+      73300E0 ,-32.264599E0 ,-32.256001E0 ,-32.247299E0
+01505 ,-32.238602E0 ,-32.229900E0 ,-32.224098E0 ,-32.215401E0 ,-32.203800E0 ,-32.198002E0 ,-32.189400E0 ,-32.1836
+      01E0 ,-32.174900E0 ,-32.169102E0 ,-32.163300E0 ,-32.154598E0 ,-32.145901E0 ,-32.140099E0 ,-32.131401E0 ,-32.
+      125599E0 ,-32.119801E0 ,-32.111198E0 ,-32.105400E0 ,-32.096699E0 ,-32.090900E0 ,-32.088001E0 ,-32.079300E0 ,
+      -32.073502E0 ,-32.067699E0 ,-32.061901E0 ,-32.056099E0 ,-32.050301E0 ,-32.044498E0 ,-32.038799E0 ,-32.033001
+      E0 ,-32.027199E0 ,-32.024300E0 ,-32.018501E0 ,-32.012699E0 ,-32.004002E0 ,-32.001099E0 ,-31.995300E0 ,-31.98
+      9500E0 ,-31.983700E0 ,-31.977900E0 ,-31.972099E0 ,-31.969299E0 ,-31.963501E0 ,-31.957701E0 ,-31.951900E0 ,-
+      31.946100E0 ,-31.940300E0 ,-31.937401E0 ,-31.931601E0 ,-31.925800E0 ,-31.922899E0 ,-31.917101E0 ,-31.911301E0
+       ,-31.908400E0 ,-31.902599E0 ,-31.896900E0 ,-31.893999E0 ,-31.888201E0 ,-31.885300E0 ,-31.882401E0 ,-31.8766
+      00E0 ,-31.873699E0 ,-31.867901E0 ,-31.862101E0 ,-31.859200E0 ,-31.856300E0 ,-31.850500E0 ,-31.844700E0 ,-31.
+      841801E0 ,-31.838900E0 ,-31.833099E0 ,-31.830200E0 ,
+01506 -31.827299E0 ,-31.821600E0 ,-31.818701E0 ,-31.812901E0 ,-31.809999E0 ,-31.807100E0 ,-31.801300E0 ,-31.79840
+      1E0 ,-31.795500E0 ,-31.789700E0 ,-31.786800E0 \};
+01507 
+01508 \textcolor{comment}{// http://www.itl.nist.gov/div898/strd/nls/data/bennett5.shtml}
+01509 \textcolor{keywordtype}{void} testNistBennett5(\textcolor{keywordtype}{void})
+01510 \{
+01511   \textcolor{keyword}{const} \textcolor{keywordtype}{int}  n=3;
+01512   \textcolor{keywordtype}{int} info;
+01513 
+01514   VectorXd x(n);
+01515 
+01516   \textcolor{comment}{/*}
+01517 \textcolor{comment}{   * First try}
+01518 \textcolor{comment}{   */}
+01519   x<< -2000., 50., 0.8;
+01520   \textcolor{comment}{// do the computation}
+01521   \hyperlink{struct_bennett5__functor}{Bennett5\_functor} functor;
+01522   LevenbergMarquardt<Bennett5\_functor> lm(functor);
+01523   lm.parameters.maxfev = 1000;
+01524   info = lm.minimize(x);
+01525 
+01526   \textcolor{comment}{// check return value}
+01527   VERIFY\_IS\_EQUAL(info, 1);
+01528   VERIFY\_IS\_EQUAL(lm.nfev, 758);
+01529   VERIFY\_IS\_EQUAL(lm.njev, 744);
+01530   \textcolor{comment}{// check norm^2}
+01531   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 5.2404744073E-04);
+01532   \textcolor{comment}{// check x}
+01533   VERIFY\_IS\_APPROX(x[0], -2.5235058043E+03);
+01534   VERIFY\_IS\_APPROX(x[1], 4.6736564644E+01);
+01535   VERIFY\_IS\_APPROX(x[2], 9.3218483193E-01);
+01536   \textcolor{comment}{/*}
+01537 \textcolor{comment}{   * Second try}
+01538 \textcolor{comment}{   */}
+01539   x<< -1500., 45., 0.85;
+01540   \textcolor{comment}{// do the computation}
+01541   lm.resetParameters();
+01542   info = lm.minimize(x);
+01543 
+01544   \textcolor{comment}{// check return value}
+01545   VERIFY\_IS\_EQUAL(info, 1);
+01546   VERIFY\_IS\_EQUAL(lm.nfev, 203);
+01547   VERIFY\_IS\_EQUAL(lm.njev, 192);
+01548   \textcolor{comment}{// check norm^2}
+01549   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 5.2404744073E-04);
+01550   \textcolor{comment}{// check x}
+01551   VERIFY\_IS\_APPROX(x[0], -2523.3007865); \textcolor{comment}{// should be -2.5235058043E+03}
+01552   VERIFY\_IS\_APPROX(x[1], 46.735705771); \textcolor{comment}{// should be 4.6736564644E+01);}
+01553   VERIFY\_IS\_APPROX(x[2], 0.93219881891); \textcolor{comment}{// should be 9.3218483193E-01);}
+01554 \}
+01555 
+01556 \textcolor{keyword}{struct }\hyperlink{structthurber__functor}{thurber\_functor} : \hyperlink{struct_functor}{Functor}<double>
+01557 \{
+01558     \hyperlink{structthurber__functor}{thurber\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(7,37) \{\}
+01559     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} \_x[37];
+01560     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} \_y[37];
+01561     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &b, VectorXd &fvec)
+01562     \{
+01563         \textcolor{comment}{//        int called=0; printf("call hahn1\_functor with  iflag=%d, called=%d\(\backslash\)n", iflag, called); if
+       (iflag==1) called++;}
+01564         assert(b.size()==7);
+01565         assert(fvec.size()==37);
+01566         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<37; i++) \{
+01567             \textcolor{keywordtype}{double} x=\_x[i], xx=x*x, xxx=xx*x;
+01568             fvec[i] = (b[0]+b[1]*x+b[2]*xx+b[3]*xxx) / (1.+b[4]*x+b[5]*xx+b[6]*xxx) - \_y[i];
+01569         \}
+01570         \textcolor{keywordflow}{return} 0;
+01571     \}
+01572     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &b, MatrixXd &fjac)
+01573     \{
+01574         assert(b.size()==7);
+01575         assert(fjac.rows()==37);
+01576         assert(fjac.cols()==7);
+01577         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<37; i++) \{
+01578             \textcolor{keywordtype}{double} x=\_x[i], xx=x*x, xxx=xx*x;
+01579             \textcolor{keywordtype}{double} fact = 1./(1.+b[4]*x+b[5]*xx+b[6]*xxx);
+01580             fjac(i,0) = 1.*fact;
+01581             fjac(i,1) = x*fact;
+01582             fjac(i,2) = xx*fact;
+01583             fjac(i,3) = xxx*fact;
+01584             fact = - (b[0]+b[1]*x+b[2]*xx+b[3]*xxx) * fact * fact;
+01585             fjac(i,4) = x*fact;
+01586             fjac(i,5) = xx*fact;
+01587             fjac(i,6) = xxx*fact;
+01588         \}
+01589         \textcolor{keywordflow}{return} 0;
+01590     \}
+01591 \};
+01592 \textcolor{keyword}{const} \textcolor{keywordtype}{double} thurber\_functor::\_x[37] = \{ -3.067E0, -2.981E0, -2.921E0, -2.912E0, -2.840E0, -2.797E0, -2.702
+      E0, -2.699E0, -2.633E0, -2.481E0, -2.363E0, -2.322E0, -1.501E0, -1.460E0, -1.274E0, -1.212E0, -1.100E0, -1.0
+      46E0, -0.915E0, -0.714E0, -0.566E0, -0.545E0, -0.400E0, -0.309E0, -0.109E0, -0.103E0, 0.010E0, 0.119E0, 0.37
+      7E0, 0.790E0, 0.963E0, 1.006E0, 1.115E0, 1.572E0, 1.841E0, 2.047E0, 2.200E0 \};
+01593 \textcolor{keyword}{const} \textcolor{keywordtype}{double} thurber\_functor::\_y[37] = \{ 80.574E0, 84.248E0, 87.264E0, 87.195E0, 89.076E0, 89.608E0, 89.868
+      E0, 90.101E0, 92.405E0, 95.854E0, 100.696E0, 101.060E0, 401.672E0, 390.724E0, 567.534E0, 635.316E0, 733.054
+      E0, 759.087E0, 894.206E0, 990.785E0, 1090.109E0, 1080.914E0, 1122.643E0, 1178.351E0, 1260.531E0, 1273.514E0, 
+      1288.339E0, 1327.543E0, 1353.863E0, 1414.509E0, 1425.208E0, 1421.384E0, 1442.962E0, 1464.350E0, 1468.705E0, 
+      1447.894E0, 1457.628E0\};
+01594 
+01595 \textcolor{comment}{// http://www.itl.nist.gov/div898/strd/nls/data/thurber.shtml}
+01596 \textcolor{keywordtype}{void} testNistThurber(\textcolor{keywordtype}{void})
+01597 \{
+01598   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=7;
+01599   \textcolor{keywordtype}{int} info;
+01600 
+01601   VectorXd x(n);
+01602 
+01603   \textcolor{comment}{/*}
+01604 \textcolor{comment}{   * First try}
+01605 \textcolor{comment}{   */}
+01606   x<< 1000 ,1000 ,400 ,40 ,0.7,0.3,0.0 ;
+01607   \textcolor{comment}{// do the computation}
+01608   \hyperlink{structthurber__functor}{thurber\_functor} functor;
+01609   LevenbergMarquardt<thurber\_functor> lm(functor);
+01610   lm.parameters.ftol = 1.E4*NumTraits<double>::epsilon();
+01611   lm.parameters.xtol = 1.E4*NumTraits<double>::epsilon();
+01612   info = lm.minimize(x);
+01613 
+01614   \textcolor{comment}{// check return value}
+01615   VERIFY\_IS\_EQUAL(info, 1);
+01616   VERIFY\_IS\_EQUAL(lm.nfev, 39);
+01617   VERIFY\_IS\_EQUAL(lm.njev, 36);
+01618   \textcolor{comment}{// check norm^2}
+01619   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 5.6427082397E+03);
+01620   \textcolor{comment}{// check x}
+01621   VERIFY\_IS\_APPROX(x[0], 1.2881396800E+03);
+01622   VERIFY\_IS\_APPROX(x[1], 1.4910792535E+03);
+01623   VERIFY\_IS\_APPROX(x[2], 5.8323836877E+02);
+01624   VERIFY\_IS\_APPROX(x[3], 7.5416644291E+01);
+01625   VERIFY\_IS\_APPROX(x[4], 9.6629502864E-01);
+01626   VERIFY\_IS\_APPROX(x[5], 3.9797285797E-01);
+01627   VERIFY\_IS\_APPROX(x[6], 4.9727297349E-02);
+01628 
+01629   \textcolor{comment}{/*}
+01630 \textcolor{comment}{   * Second try}
+01631 \textcolor{comment}{   */}
+01632   x<< 1300 ,1500 ,500  ,75   ,1    ,0.4  ,0.05  ;
+01633   \textcolor{comment}{// do the computation}
+01634   lm.resetParameters();
+01635   lm.parameters.ftol = 1.E4*NumTraits<double>::epsilon();
+01636   lm.parameters.xtol = 1.E4*NumTraits<double>::epsilon();
+01637   info = lm.minimize(x);
+01638 
+01639   \textcolor{comment}{// check return value}
+01640   VERIFY\_IS\_EQUAL(info, 1);
+01641   VERIFY\_IS\_EQUAL(lm.nfev, 29);
+01642   VERIFY\_IS\_EQUAL(lm.njev, 28);
+01643   \textcolor{comment}{// check norm^2}
+01644   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 5.6427082397E+03);
+01645   \textcolor{comment}{// check x}
+01646   VERIFY\_IS\_APPROX(x[0], 1.2881396800E+03);
+01647   VERIFY\_IS\_APPROX(x[1], 1.4910792535E+03);
+01648   VERIFY\_IS\_APPROX(x[2], 5.8323836877E+02);
+01649   VERIFY\_IS\_APPROX(x[3], 7.5416644291E+01);
+01650   VERIFY\_IS\_APPROX(x[4], 9.6629502864E-01);
+01651   VERIFY\_IS\_APPROX(x[5], 3.9797285797E-01);
+01652   VERIFY\_IS\_APPROX(x[6], 4.9727297349E-02);
+01653 \}
+01654 
+01655 \textcolor{keyword}{struct }\hyperlink{structrat43__functor}{rat43\_functor} : \hyperlink{struct_functor}{Functor}<double>
+01656 \{
+01657     \hyperlink{structrat43__functor}{rat43\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(4,15) \{\}
+01658     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} x[15];
+01659     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} y[15];
+01660     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &b, VectorXd &fvec)
+01661     \{
+01662         assert(b.size()==4);
+01663         assert(fvec.size()==15);
+01664         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<15; i++)
+01665             fvec[i] = b[0] * pow(1.+exp(b[1]-b[2]*x[i]),-1./b[3]) - y[i];
+01666         \textcolor{keywordflow}{return} 0;
+01667     \}
+01668     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &b, MatrixXd &fjac)
+01669     \{
+01670         assert(b.size()==4);
+01671         assert(fjac.rows()==15);
+01672         assert(fjac.cols()==4);
+01673         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<15; i++) \{
+01674             \textcolor{keywordtype}{double} e = exp(b[1]-b[2]*x[i]);
+01675             \textcolor{keywordtype}{double} power = -1./b[3];
+01676             fjac(i,0) = pow(1.+e, power);
+01677             fjac(i,1) = power*b[0]*e*pow(1.+e, power-1.);
+01678             fjac(i,2) = -power*b[0]*e*x[i]*pow(1.+e, power-1.);
+01679             fjac(i,3) = b[0]*power*power*\hyperlink{structlog}{log}(1.+e)*pow(1.+e, power);
+01680         \}
+01681         \textcolor{keywordflow}{return} 0;
+01682     \}
+01683 \};
+01684 \textcolor{keyword}{const} \textcolor{keywordtype}{double} rat43\_functor::x[15] = \{ 1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15. \};
+01685 \textcolor{keyword}{const} \textcolor{keywordtype}{double} rat43\_functor::y[15] = \{ 16.08, 33.83, 65.80, 97.20, 191.55, 326.20, 386.87, 520.53, 590.03, 
+      651.92, 724.93, 699.56, 689.96, 637.56, 717.41 \};
+01686 
+01687 \textcolor{comment}{// http://www.itl.nist.gov/div898/strd/nls/data/ratkowsky3.shtml}
+01688 \textcolor{keywordtype}{void} testNistRat43(\textcolor{keywordtype}{void})
+01689 \{
+01690   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=4;
+01691   \textcolor{keywordtype}{int} info;
+01692 
+01693   VectorXd x(n);
+01694 
+01695   \textcolor{comment}{/*}
+01696 \textcolor{comment}{   * First try}
+01697 \textcolor{comment}{   */}
+01698   x<< 100., 10., 1., 1.;
+01699   \textcolor{comment}{// do the computation}
+01700   \hyperlink{structrat43__functor}{rat43\_functor} functor;
+01701   LevenbergMarquardt<rat43\_functor> lm(functor);
+01702   lm.parameters.ftol = 1.E6*NumTraits<double>::epsilon();
+01703   lm.parameters.xtol = 1.E6*NumTraits<double>::epsilon();
+01704   info = lm.minimize(x);
+01705 
+01706   \textcolor{comment}{// check return value}
+01707   VERIFY\_IS\_EQUAL(info, 1);
+01708   VERIFY\_IS\_EQUAL(lm.nfev, 27);
+01709   VERIFY\_IS\_EQUAL(lm.njev, 20);
+01710   \textcolor{comment}{// check norm^2}
+01711   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 8.7864049080E+03);
+01712   \textcolor{comment}{// check x}
+01713   VERIFY\_IS\_APPROX(x[0], 6.9964151270E+02);
+01714   VERIFY\_IS\_APPROX(x[1], 5.2771253025E+00);
+01715   VERIFY\_IS\_APPROX(x[2], 7.5962938329E-01);
+01716   VERIFY\_IS\_APPROX(x[3], 1.2792483859E+00);
+01717 
+01718   \textcolor{comment}{/*}
+01719 \textcolor{comment}{   * Second try}
+01720 \textcolor{comment}{   */}
+01721   x<< 700., 5., 0.75, 1.3;
+01722   \textcolor{comment}{// do the computation}
+01723   lm.resetParameters();
+01724   lm.parameters.ftol = 1.E5*NumTraits<double>::epsilon();
+01725   lm.parameters.xtol = 1.E5*NumTraits<double>::epsilon();
+01726   info = lm.minimize(x);
+01727 
+01728   \textcolor{comment}{// check return value}
+01729   VERIFY\_IS\_EQUAL(info, 1);
+01730   VERIFY\_IS\_EQUAL(lm.nfev, 9);
+01731   VERIFY\_IS\_EQUAL(lm.njev, 8);
+01732   \textcolor{comment}{// check norm^2}
+01733   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 8.7864049080E+03);
+01734   \textcolor{comment}{// check x}
+01735   VERIFY\_IS\_APPROX(x[0], 6.9964151270E+02);
+01736   VERIFY\_IS\_APPROX(x[1], 5.2771253025E+00);
+01737   VERIFY\_IS\_APPROX(x[2], 7.5962938329E-01);
+01738   VERIFY\_IS\_APPROX(x[3], 1.2792483859E+00);
+01739 \}
+01740 
+01741 
+01742 
+01743 \textcolor{keyword}{struct }\hyperlink{structeckerle4__functor}{eckerle4\_functor} : \hyperlink{struct_functor}{Functor}<double>
+01744 \{
+01745     \hyperlink{structeckerle4__functor}{eckerle4\_functor}(\textcolor{keywordtype}{void}) : \hyperlink{struct_functor}{Functor<double>}(3,35) \{\}
+01746     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} x[35];
+01747     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{double} y[35];
+01748     \textcolor{keywordtype}{int} operator()(\textcolor{keyword}{const} VectorXd &b, VectorXd &fvec)
+01749     \{
+01750         assert(b.size()==3);
+01751         assert(fvec.size()==35);
+01752         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<35; i++)
+01753             fvec[i] = b[0]/b[1] * exp(-0.5*(x[i]-b[2])*(x[i]-b[2])/(b[1]*b[1])) - y[i];
+01754         \textcolor{keywordflow}{return} 0;
+01755     \}
+01756     \textcolor{keywordtype}{int} df(\textcolor{keyword}{const} VectorXd &b, MatrixXd &fjac)
+01757     \{
+01758         assert(b.size()==3);
+01759         assert(fjac.rows()==35);
+01760         assert(fjac.cols()==3);
+01761         \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<35; i++) \{
+01762             \textcolor{keywordtype}{double} b12 = b[1]*b[1];
+01763             \textcolor{keywordtype}{double} e = exp(-0.5*(x[i]-b[2])*(x[i]-b[2])/b12);
+01764             fjac(i,0) = e / b[1];
+01765             fjac(i,1) = ((x[i]-b[2])*(x[i]-b[2])/b12-1.) * b[0]*e/b12;
+01766             fjac(i,2) = (x[i]-b[2])*e*b[0]/b[1]/b12;
+01767         \}
+01768         \textcolor{keywordflow}{return} 0;
+01769     \}
+01770 \};
+01771 \textcolor{keyword}{const} \textcolor{keywordtype}{double} eckerle4\_functor::x[35] = \{ 400.0, 405.0, 410.0, 415.0, 420.0, 425.0, 430.0, 435.0, 436.5, 438
+      .0, 439.5, 441.0, 442.5, 444.0, 445.5, 447.0, 448.5, 450.0, 451.5, 453.0, 454.5, 456.0, 457.5, 459.0, 460.5,
+       462.0, 463.5, 465.0, 470.0, 475.0, 480.0, 485.0, 490.0, 495.0, 500.0\};
+01772 \textcolor{keyword}{const} \textcolor{keywordtype}{double} eckerle4\_functor::y[35] = \{ 0.0001575, 0.0001699, 0.0002350, 0.0003102, 0.0004917, 0.0008710, 
+      0.0017418, 0.0046400, 0.0065895, 0.0097302, 0.0149002, 0.0237310, 0.0401683, 0.0712559, 0.1264458, 0.2073413
+      , 0.2902366, 0.3445623, 0.3698049, 0.3668534, 0.3106727, 0.2078154, 0.1164354, 0.0616764, 0.0337200, 0.01940
+      23, 0.0117831, 0.0074357, 0.0022732, 0.0008800, 0.0004579, 0.0002345, 0.0001586, 0.0001143, 0.0000710 \};
+01773 
+01774 \textcolor{comment}{// http://www.itl.nist.gov/div898/strd/nls/data/eckerle4.shtml}
+01775 \textcolor{keywordtype}{void} testNistEckerle4(\textcolor{keywordtype}{void})
+01776 \{
+01777   \textcolor{keyword}{const} \textcolor{keywordtype}{int} n=3;
+01778   \textcolor{keywordtype}{int} info;
+01779 
+01780   VectorXd x(n);
+01781 
+01782   \textcolor{comment}{/*}
+01783 \textcolor{comment}{   * First try}
+01784 \textcolor{comment}{   */}
+01785   x<< 1., 10., 500.;
+01786   \textcolor{comment}{// do the computation}
+01787   \hyperlink{structeckerle4__functor}{eckerle4\_functor} functor;
+01788   LevenbergMarquardt<eckerle4\_functor> lm(functor);
+01789   info = lm.minimize(x);
+01790 
+01791   \textcolor{comment}{// check return value}
+01792   VERIFY\_IS\_EQUAL(info, 1);
+01793   VERIFY\_IS\_EQUAL(lm.nfev, 18);
+01794   VERIFY\_IS\_EQUAL(lm.njev, 15);
+01795   \textcolor{comment}{// check norm^2}
+01796   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 1.4635887487E-03);
+01797   \textcolor{comment}{// check x}
+01798   VERIFY\_IS\_APPROX(x[0], 1.5543827178);
+01799   VERIFY\_IS\_APPROX(x[1], 4.0888321754);
+01800   VERIFY\_IS\_APPROX(x[2], 4.5154121844E+02);
+01801 
+01802   \textcolor{comment}{/*}
+01803 \textcolor{comment}{   * Second try}
+01804 \textcolor{comment}{   */}
+01805   x<< 1.5, 5., 450.;
+01806   \textcolor{comment}{// do the computation}
+01807   info = lm.minimize(x);
+01808 
+01809   \textcolor{comment}{// check return value}
+01810   VERIFY\_IS\_EQUAL(info, 1);
+01811   VERIFY\_IS\_EQUAL(lm.nfev, 7);
+01812   VERIFY\_IS\_EQUAL(lm.njev, 6);
+01813   \textcolor{comment}{// check norm^2}
+01814   VERIFY\_IS\_APPROX(lm.fvec.squaredNorm(), 1.4635887487E-03);
+01815   \textcolor{comment}{// check x}
+01816   VERIFY\_IS\_APPROX(x[0], 1.5543827178);
+01817   VERIFY\_IS\_APPROX(x[1], 4.0888321754);
+01818   VERIFY\_IS\_APPROX(x[2], 4.5154121844E+02);
+01819 \}
+01820 
+01821 \textcolor{keywordtype}{void} test\_NonLinearOptimization()
+01822 \{
+01823     \textcolor{comment}{// Tests using the examples provided by (c)minpack}
+01824     CALL\_SUBTEST\textcolor{comment}{/*\_1*/}(testChkder());
+01825     CALL\_SUBTEST\textcolor{comment}{/*\_1*/}(testLmder1());
+01826     CALL\_SUBTEST\textcolor{comment}{/*\_1*/}(testLmder());
+01827     CALL\_SUBTEST\textcolor{comment}{/*\_2*/}(testHybrj1());
+01828     CALL\_SUBTEST\textcolor{comment}{/*\_2*/}(testHybrj());
+01829     CALL\_SUBTEST\textcolor{comment}{/*\_2*/}(testHybrd1());
+01830     CALL\_SUBTEST\textcolor{comment}{/*\_2*/}(testHybrd());
+01831     CALL\_SUBTEST\textcolor{comment}{/*\_3*/}(testLmstr1());
+01832     CALL\_SUBTEST\textcolor{comment}{/*\_3*/}(testLmstr());
+01833     CALL\_SUBTEST\textcolor{comment}{/*\_3*/}(testLmdif1());
+01834     CALL\_SUBTEST\textcolor{comment}{/*\_3*/}(testLmdif());
+01835 
+01836     \textcolor{comment}{// NIST tests, level of difficulty = "Lower"}
+01837     CALL\_SUBTEST\textcolor{comment}{/*\_4*/}(testNistMisra1a());
+01838     CALL\_SUBTEST\textcolor{comment}{/*\_4*/}(testNistChwirut2());
+01839 
+01840     \textcolor{comment}{// NIST tests, level of difficulty = "Average"}
+01841     CALL\_SUBTEST\textcolor{comment}{/*\_5*/}(testNistHahn1());
+01842     CALL\_SUBTEST\textcolor{comment}{/*\_6*/}(testNistMisra1d());
+01843     CALL\_SUBTEST\textcolor{comment}{/*\_7*/}(testNistMGH17());
+01844     CALL\_SUBTEST\textcolor{comment}{/*\_8*/}(testNistLanczos1());
+01845 
+01846 \textcolor{comment}{//     // NIST tests, level of difficulty = "Higher"}
+01847     CALL\_SUBTEST\textcolor{comment}{/*\_9*/}(testNistRat42());
+01848 \textcolor{comment}{//     CALL\_SUBTEST/*\_10*/(testNistMGH10());}
+01849     CALL\_SUBTEST\textcolor{comment}{/*\_11*/}(testNistBoxBOD());
+01850 \textcolor{comment}{//     CALL\_SUBTEST/*\_12*/(testNistMGH09());}
+01851     CALL\_SUBTEST\textcolor{comment}{/*\_13*/}(testNistBennett5());
+01852     CALL\_SUBTEST\textcolor{comment}{/*\_14*/}(testNistThurber());
+01853     CALL\_SUBTEST\textcolor{comment}{/*\_15*/}(testNistRat43());
+01854     CALL\_SUBTEST\textcolor{comment}{/*\_16*/}(testNistEckerle4());
+01855 \}
+01856 
+01857 \textcolor{comment}{/*}
+01858 \textcolor{comment}{ * Can be useful for debugging...}
+01859 \textcolor{comment}{  printf("info, nfev : %d, %d\(\backslash\)n", info, lm.nfev);}
+01860 \textcolor{comment}{  printf("info, nfev, njev : %d, %d, %d\(\backslash\)n", info, solver.nfev, solver.njev);}
+01861 \textcolor{comment}{  printf("info, nfev : %d, %d\(\backslash\)n", info, solver.nfev);}
+01862 \textcolor{comment}{  printf("x[0] : %.32g\(\backslash\)n", x[0]);}
+01863 \textcolor{comment}{  printf("x[1] : %.32g\(\backslash\)n", x[1]);}
+01864 \textcolor{comment}{  printf("x[2] : %.32g\(\backslash\)n", x[2]);}
+01865 \textcolor{comment}{  printf("x[3] : %.32g\(\backslash\)n", x[3]);}
+01866 \textcolor{comment}{  printf("fvec.blueNorm() : %.32g\(\backslash\)n", solver.fvec.blueNorm());}
+01867 \textcolor{comment}{  printf("fvec.blueNorm() : %.32g\(\backslash\)n", lm.fvec.blueNorm());}
+01868 \textcolor{comment}{}
+01869 \textcolor{comment}{  printf("info, nfev, njev : %d, %d, %d\(\backslash\)n", info, lm.nfev, lm.njev);}
+01870 \textcolor{comment}{  printf("fvec.squaredNorm() : %.13g\(\backslash\)n", lm.fvec.squaredNorm());}
+01871 \textcolor{comment}{  std::cout << x << std::endl;}
+01872 \textcolor{comment}{  std::cout.precision(9);}
+01873 \textcolor{comment}{  std::cout << x[0] << std::endl;}
+01874 \textcolor{comment}{  std::cout << x[1] << std::endl;}
+01875 \textcolor{comment}{  std::cout << x[2] << std::endl;}
+01876 \textcolor{comment}{  std::cout << x[3] << std::endl;}
+01877 \textcolor{comment}{*/}
+01878 
+\end{DoxyCode}

@@ -1,0 +1,592 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_storage_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Core/\+Dense\+Storage.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_dense_storage_8h_source}\index{Dense\+Storage.\+h@{Dense\+Storage.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2006-2009 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00006 \textcolor{comment}{// Copyright (C) 2010-2013 Hauke Heibel <hauke.heibel@gmail.com>}
+00007 \textcolor{comment}{//}
+00008 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00009 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00010 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00011 
+00012 \textcolor{preprocessor}{#ifndef EIGEN\_MATRIXSTORAGE\_H}
+00013 \textcolor{preprocessor}{#define EIGEN\_MATRIXSTORAGE\_H}
+00014 
+00015 \textcolor{preprocessor}{#ifdef EIGEN\_DENSE\_STORAGE\_CTOR\_PLUGIN}
+00016 \textcolor{preprocessor}{  #define EIGEN\_INTERNAL\_DENSE\_STORAGE\_CTOR\_PLUGIN(X) X; EIGEN\_DENSE\_STORAGE\_CTOR\_PLUGIN;}
+00017 \textcolor{preprocessor}{#else}
+00018 \textcolor{preprocessor}{  #define EIGEN\_INTERNAL\_DENSE\_STORAGE\_CTOR\_PLUGIN(X)}
+00019 \textcolor{preprocessor}{#endif}
+00020 
+00021 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00022 
+00023 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00024 
+00025 \textcolor{keyword}{struct }constructor\_without\_unaligned\_array\_assert \{\};
+00026 
+00027 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} Size>
+00028 EIGEN\_DEVICE\_FUNC
+00029 \textcolor{keywordtype}{void} check\_static\_allocation\_size()
+00030 \{
+00031   \textcolor{comment}{// if EIGEN\_STACK\_ALLOCATION\_LIMIT is defined to 0, then no limit}
+00032 \textcolor{preprocessor}{  #if EIGEN\_STACK\_ALLOCATION\_LIMIT}
+00033   EIGEN\_STATIC\_ASSERT(Size * \textcolor{keyword}{sizeof}(\hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}) <= EIGEN\_STACK\_ALLOCATION\_LIMIT, 
+      OBJECT\_ALLOCATED\_ON\_STACK\_IS\_TOO\_BIG);
+00034 \textcolor{preprocessor}{  #endif}
+00035 \}
+00036 
+00041 \textcolor{keyword}{template} <\textcolor{keyword}{typename} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}, \textcolor{keywordtype}{int} Size, \textcolor{keywordtype}{int} MatrixOrArrayOptions,
+00042           \textcolor{keywordtype}{int} Alignment = (MatrixOrArrayOptions&\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a40a452614141522dd313363dbbd65726}{DontAlign}) ? 0
+00043                         : compute\_default\_alignment<T,Size>::value >
+00044 \textcolor{keyword}{struct} plain\_array
+00045 \{
+00046   \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} array[Size];
+00047 
+00048   EIGEN\_DEVICE\_FUNC
+00049   plain\_array()
+00050   \{ 
+00051     check\_static\_allocation\_size<T,Size>();
+00052   \}
+00053 
+00054   EIGEN\_DEVICE\_FUNC
+00055   plain\_array(constructor\_without\_unaligned\_array\_assert)
+00056   \{ 
+00057     check\_static\_allocation\_size<T,Size>();
+00058   \}
+00059 \};
+00060 
+00061 \textcolor{preprocessor}{#if defined(EIGEN\_DISABLE\_UNALIGNED\_ARRAY\_ASSERT)}
+00062 \textcolor{preprocessor}{  #define EIGEN\_MAKE\_UNALIGNED\_ARRAY\_ASSERT(sizemask)}
+00063 \textcolor{preprocessor}{#elif EIGEN\_GNUC\_AT\_LEAST(4,7) }
+00064   \textcolor{comment}{// GCC 4.7 is too aggressive in its optimizations and remove the alignement test based on the fact the
+       array is declared to be aligned.}
+00065   \textcolor{comment}{// See this bug report: http://gcc.gnu.org/bugzilla/show\_bug.cgi?id=53900}
+00066   \textcolor{comment}{// Hiding the origin of the array pointer behind a function argument seems to do the trick even if the
+       function is inlined:}
+00067   \textcolor{keyword}{template}<\textcolor{keyword}{typename} PtrType>
+00068   EIGEN\_ALWAYS\_INLINE PtrType eigen\_unaligned\_array\_assert\_workaround\_gcc47(PtrType array) \{ \textcolor{keywordflow}{return} array; 
+      \}
+00069 \textcolor{preprocessor}{  #define EIGEN\_MAKE\_UNALIGNED\_ARRAY\_ASSERT(sizemask) \(\backslash\)}
+00070 \textcolor{preprocessor}{    eigen\_assert((internal::UIntPtr(eigen\_unaligned\_array\_assert\_workaround\_gcc47(array)) & (sizemask)) ==
+       0 \(\backslash\)}
+00071 \textcolor{preprocessor}{              && "this assertion is explained here: " \(\backslash\)}
+00072 \textcolor{preprocessor}{              "http://eigen.tuxfamily.org/dox-devel/group\_\_TopicUnalignedArrayAssert.html" \(\backslash\)}
+00073 \textcolor{preprocessor}{              " **** READ THIS WEB PAGE !!! ****");}
+00074 \textcolor{preprocessor}{#else}
+00075 \textcolor{preprocessor}{  #define EIGEN\_MAKE\_UNALIGNED\_ARRAY\_ASSERT(sizemask) \(\backslash\)}
+00076 \textcolor{preprocessor}{    eigen\_assert((internal::UIntPtr(array) & (sizemask)) == 0 \(\backslash\)}
+00077 \textcolor{preprocessor}{              && "this assertion is explained here: " \(\backslash\)}
+00078 \textcolor{preprocessor}{              "http://eigen.tuxfamily.org/dox-devel/group\_\_TopicUnalignedArrayAssert.html" \(\backslash\)}
+00079 \textcolor{preprocessor}{              " **** READ THIS WEB PAGE !!! ****");}
+00080 \textcolor{preprocessor}{#endif}
+00081 
+00082 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} Size, \textcolor{keywordtype}{int} MatrixOrArrayOptions>
+00083 \textcolor{keyword}{struct }plain\_array<T, Size, MatrixOrArrayOptions, 8>
+00084 \{
+00085   EIGEN\_ALIGN\_TO\_BOUNDARY(8) \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} array[Size];
+00086 
+00087   EIGEN\_DEVICE\_FUNC
+00088   plain\_array() 
+00089   \{
+00090     EIGEN\_MAKE\_UNALIGNED\_ARRAY\_ASSERT(7);
+00091     check\_static\_allocation\_size<T,Size>();
+00092   \}
+00093 
+00094   EIGEN\_DEVICE\_FUNC
+00095   plain\_array(constructor\_without\_unaligned\_array\_assert) 
+00096   \{ 
+00097     check\_static\_allocation\_size<T,Size>();
+00098   \}
+00099 \};
+00100 
+00101 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} Size, \textcolor{keywordtype}{int} MatrixOrArrayOptions>
+00102 \textcolor{keyword}{struct }plain\_array<T, Size, MatrixOrArrayOptions, 16>
+00103 \{
+00104   EIGEN\_ALIGN\_TO\_BOUNDARY(16) \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} array[Size];
+00105 
+00106   EIGEN\_DEVICE\_FUNC
+00107   plain\_array() 
+00108   \{ 
+00109     EIGEN\_MAKE\_UNALIGNED\_ARRAY\_ASSERT(15);
+00110     check\_static\_allocation\_size<T,Size>();
+00111   \}
+00112 
+00113   EIGEN\_DEVICE\_FUNC
+00114   plain\_array(constructor\_without\_unaligned\_array\_assert) 
+00115   \{ 
+00116     check\_static\_allocation\_size<T,Size>();
+00117   \}
+00118 \};
+00119 
+00120 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} Size, \textcolor{keywordtype}{int} MatrixOrArrayOptions>
+00121 \textcolor{keyword}{struct }plain\_array<T, Size, MatrixOrArrayOptions, 32>
+00122 \{
+00123   EIGEN\_ALIGN\_TO\_BOUNDARY(32) \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} array[Size];
+00124 
+00125   EIGEN\_DEVICE\_FUNC
+00126   plain\_array() 
+00127   \{
+00128     EIGEN\_MAKE\_UNALIGNED\_ARRAY\_ASSERT(31);
+00129     check\_static\_allocation\_size<T,Size>();
+00130   \}
+00131 
+00132   EIGEN\_DEVICE\_FUNC
+00133   plain\_array(constructor\_without\_unaligned\_array\_assert) 
+00134   \{ 
+00135     check\_static\_allocation\_size<T,Size>();
+00136   \}
+00137 \};
+00138 
+00139 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} Size, \textcolor{keywordtype}{int} MatrixOrArrayOptions>
+00140 \textcolor{keyword}{struct }plain\_array<T, Size, MatrixOrArrayOptions, 64>
+00141 \{
+00142   EIGEN\_ALIGN\_TO\_BOUNDARY(64) \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} array[Size];
+00143 
+00144   EIGEN\_DEVICE\_FUNC
+00145   plain\_array() 
+00146   \{ 
+00147     EIGEN\_MAKE\_UNALIGNED\_ARRAY\_ASSERT(63);
+00148     check\_static\_allocation\_size<T,Size>();
+00149   \}
+00150 
+00151   EIGEN\_DEVICE\_FUNC
+00152   plain\_array(constructor\_without\_unaligned\_array\_assert) 
+00153   \{ 
+00154     check\_static\_allocation\_size<T,Size>();
+00155   \}
+00156 \};
+00157 
+00158 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} MatrixOrArrayOptions, \textcolor{keywordtype}{int} Alignment>
+00159 \textcolor{keyword}{struct }plain\_array<T, 0, MatrixOrArrayOptions, Alignment>
+00160 \{
+00161   \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} array[1];
+00162   EIGEN\_DEVICE\_FUNC plain\_array() \{\}
+00163   EIGEN\_DEVICE\_FUNC plain\_array(constructor\_without\_unaligned\_array\_assert) \{\}
+00164 \};
+00165 
+00166 \} \textcolor{comment}{// end namespace internal}
+00167 
+00180 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} Size, \textcolor{keywordtype}{int} \_Rows, \textcolor{keywordtype}{int} \_Cols, \textcolor{keywordtype}{int} \_Options> \textcolor{keyword}{class }DenseStorage;
+00181 
+00182 \textcolor{comment}{// purely fixed-size matrix}
+00183 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} Size, \textcolor{keywordtype}{int} \_Rows, \textcolor{keywordtype}{int} \_Cols, \textcolor{keywordtype}{int} \_Options> \textcolor{keyword}{class }DenseStorage
+00184 \{
+00185     internal::plain\_array<T,Size,\_Options> m\_data;
+00186   \textcolor{keyword}{public}:
+00187     EIGEN\_DEVICE\_FUNC DenseStorage() \{
+00188       EIGEN\_INTERNAL\_DENSE\_STORAGE\_CTOR\_PLUGIN(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = Size)
+00189     \}
+00190     EIGEN\_DEVICE\_FUNC
+00191     \textcolor{keyword}{explicit} DenseStorage(internal::constructor\_without\_unaligned\_array\_assert)
+00192       : m\_data(\hyperlink{namespaceinternal}{internal}::constructor\_without\_unaligned\_array\_assert()) \{\}
+00193     EIGEN\_DEVICE\_FUNC 
+00194     DenseStorage(\textcolor{keyword}{const} DenseStorage& other) : m\_data(other.m\_data) \{
+00195       EIGEN\_INTERNAL\_DENSE\_STORAGE\_CTOR\_PLUGIN(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = Size)
+00196     \}
+00197     EIGEN\_DEVICE\_FUNC 
+00198     DenseStorage& operator=(\textcolor{keyword}{const} DenseStorage& other)
+00199     \{ 
+00200       \textcolor{keywordflow}{if} (\textcolor{keyword}{this} != &other) m\_data = other.m\_data;
+00201       \textcolor{keywordflow}{return} *\textcolor{keyword}{this}; 
+00202     \}
+00203     EIGEN\_DEVICE\_FUNC DenseStorage(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols) \{
+00204       EIGEN\_INTERNAL\_DENSE\_STORAGE\_CTOR\_PLUGIN(\{\})
+00205       eigen\_internal\_assert(size==rows*cols && rows==\_Rows && cols==\_Cols);
+00206       EIGEN\_UNUSED\_VARIABLE(size);
+00207       EIGEN\_UNUSED\_VARIABLE(rows);
+00208       EIGEN\_UNUSED\_VARIABLE(cols);
+00209     \}
+00210     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(DenseStorage& other) \{ \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_data,other.m\_data); \}
+00211     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows(\textcolor{keywordtype}{void}) \{\textcolor{keywordflow}{return} \_Rows;\}
+00212     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols(\textcolor{keywordtype}{void}) \{\textcolor{keywordflow}{return} \_Cols;\}
+00213     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} conservativeResize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}) \{\}
+00214     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} resize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}) \{\}
+00215     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_data.array; \}
+00216     EIGEN\_DEVICE\_FUNC \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *data() \{ \textcolor{keywordflow}{return} m\_data.array; \}
+00217 \};
+00218 
+00219 \textcolor{comment}{// null matrix}
+00220 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} \_Rows, \textcolor{keywordtype}{int} \_Cols, \textcolor{keywordtype}{int} \_Options> \textcolor{keyword}{class }DenseStorage<T, 0, \_Rows, \_Cols, \_Options>
+00221 \{
+00222   \textcolor{keyword}{public}:
+00223     EIGEN\_DEVICE\_FUNC DenseStorage() \{\}
+00224     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{explicit} DenseStorage(internal::constructor\_without\_unaligned\_array\_assert) \{\}
+00225     EIGEN\_DEVICE\_FUNC DenseStorage(\textcolor{keyword}{const} DenseStorage&) \{\}
+00226     EIGEN\_DEVICE\_FUNC DenseStorage& operator=(\textcolor{keyword}{const} DenseStorage&) \{ \textcolor{keywordflow}{return} *\textcolor{keyword}{this}; \}
+00227     EIGEN\_DEVICE\_FUNC DenseStorage(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}) \{\}
+00228     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(DenseStorage& ) \{\}
+00229     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows(\textcolor{keywordtype}{void}) \{\textcolor{keywordflow}{return} \_Rows;\}
+00230     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols(\textcolor{keywordtype}{void}) \{\textcolor{keywordflow}{return} \_Cols;\}
+00231     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} conservativeResize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}) \{\}
+00232     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} resize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}) \{\}
+00233     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} 0; \}
+00234     EIGEN\_DEVICE\_FUNC \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *data() \{ \textcolor{keywordflow}{return} 0; \}
+00235 \};
+00236 
+00237 \textcolor{comment}{// more specializations for null matrices; these are necessary to resolve ambiguities}
+00238 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} \_Options> \textcolor{keyword}{class }DenseStorage<T, 0, Dynamic, Dynamic, \_Options>
+00239 : \textcolor{keyword}{public} DenseStorage<T, 0, 0, 0, \_Options> \{ \};
+00240 
+00241 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} \_Rows, \textcolor{keywordtype}{int} \_Options> \textcolor{keyword}{class }DenseStorage<T, 0, \_Rows, Dynamic, \_Options>
+00242 : \textcolor{keyword}{public} DenseStorage<T, 0, 0, 0, \_Options> \{ \};
+00243 
+00244 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} \_Cols, \textcolor{keywordtype}{int} \_Options> \textcolor{keyword}{class }DenseStorage<T, 0, Dynamic, \_Cols, \_Options>
+00245 : \textcolor{keyword}{public} DenseStorage<T, 0, 0, 0, \_Options> \{ \};
+00246 
+00247 \textcolor{comment}{// dynamic-size matrix with fixed-size storage}
+00248 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} Size, \textcolor{keywordtype}{int} \_Options> \textcolor{keyword}{class }DenseStorage<T, Size, Dynamic, Dynamic, \_Options>
+00249 \{
+00250     internal::plain\_array<T,Size,\_Options> m\_data;
+00251     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_rows;
+00252     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_cols;
+00253   \textcolor{keyword}{public}:
+00254     EIGEN\_DEVICE\_FUNC DenseStorage() : m\_rows(0), m\_cols(0) \{\}
+00255     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{explicit} DenseStorage(internal::constructor\_without\_unaligned\_array\_assert)
+00256       : m\_data(\hyperlink{namespaceinternal}{internal}::constructor\_without\_unaligned\_array\_assert()), m\_rows(0), m\_cols(0) \{\}
+00257     EIGEN\_DEVICE\_FUNC DenseStorage(\textcolor{keyword}{const} DenseStorage& other) : m\_data(other.m\_data), m\_rows(other.m\_rows),
+       m\_cols(other.m\_cols) \{\}
+00258     EIGEN\_DEVICE\_FUNC DenseStorage& operator=(\textcolor{keyword}{const} DenseStorage& other) 
+00259     \{ 
+00260       \textcolor{keywordflow}{if} (\textcolor{keyword}{this} != &other)
+00261       \{
+00262         m\_data = other.m\_data;
+00263         m\_rows = other.m\_rows;
+00264         m\_cols = other.m\_cols;
+00265       \}
+00266       \textcolor{keywordflow}{return} *\textcolor{keyword}{this}; 
+00267     \}
+00268     EIGEN\_DEVICE\_FUNC DenseStorage(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols) : m\_rows(rows), m\_cols(
+      cols) \{\}
+00269     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(DenseStorage& other)
+00270     \{ \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_data,other.m\_data); \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_rows,other.m\_rows); 
+      \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_cols,other.m\_cols); \}
+00271     EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows()\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} m\_rows;\}
+00272     EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols()\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} m\_cols;\}
+00273     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} conservativeResize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols) \{ m\_rows = rows
+      ; m\_cols = cols; \}
+00274     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} resize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols) \{ m\_rows = rows; m\_cols = 
+      cols; \}
+00275     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_data.array; \}
+00276     EIGEN\_DEVICE\_FUNC \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *data() \{ \textcolor{keywordflow}{return} m\_data.array; \}
+00277 \};
+00278 
+00279 \textcolor{comment}{// dynamic-size matrix with fixed-size storage and fixed width}
+00280 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} Size, \textcolor{keywordtype}{int} \_Cols, \textcolor{keywordtype}{int} \_Options> \textcolor{keyword}{class }DenseStorage<T, Size, Dynamic, \_Cols,
+       \_Options>
+00281 \{
+00282     internal::plain\_array<T,Size,\_Options> m\_data;
+00283     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_rows;
+00284   \textcolor{keyword}{public}:
+00285     EIGEN\_DEVICE\_FUNC DenseStorage() : m\_rows(0) \{\}
+00286     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{explicit} DenseStorage(internal::constructor\_without\_unaligned\_array\_assert)
+00287       : m\_data(\hyperlink{namespaceinternal}{internal}::constructor\_without\_unaligned\_array\_assert()), m\_rows(0) \{\}
+00288     EIGEN\_DEVICE\_FUNC DenseStorage(\textcolor{keyword}{const} DenseStorage& other) : m\_data(other.m\_data), m\_rows(other.m\_rows) 
+      \{\}
+00289     EIGEN\_DEVICE\_FUNC DenseStorage& operator=(\textcolor{keyword}{const} DenseStorage& other) 
+00290     \{
+00291       \textcolor{keywordflow}{if} (\textcolor{keyword}{this} != &other)
+00292       \{
+00293         m\_data = other.m\_data;
+00294         m\_rows = other.m\_rows;
+00295       \}
+00296       \textcolor{keywordflow}{return} *\textcolor{keyword}{this}; 
+00297     \}
+00298     EIGEN\_DEVICE\_FUNC DenseStorage(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}) : m\_rows(rows) \{\}
+00299     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(DenseStorage& other) \{ \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_data,other.m\_data); 
+      \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_rows,other.m\_rows); \}
+00300     EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows(\textcolor{keywordtype}{void})\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} m\_rows;\}
+00301     EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols(\textcolor{keywordtype}{void})\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} \_Cols;\}
+00302     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} conservativeResize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}) \{ m\_rows = rows; \}
+00303     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} resize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}) \{ m\_rows = rows; \}
+00304     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_data.array; \}
+00305     EIGEN\_DEVICE\_FUNC \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *data() \{ \textcolor{keywordflow}{return} m\_data.array; \}
+00306 \};
+00307 
+00308 \textcolor{comment}{// dynamic-size matrix with fixed-size storage and fixed height}
+00309 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} Size, \textcolor{keywordtype}{int} \_Rows, \textcolor{keywordtype}{int} \_Options> \textcolor{keyword}{class }DenseStorage<T, Size, \_Rows, Dynamic,
+       \_Options>
+00310 \{
+00311     internal::plain\_array<T,Size,\_Options> m\_data;
+00312     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_cols;
+00313   \textcolor{keyword}{public}:
+00314     EIGEN\_DEVICE\_FUNC DenseStorage() : m\_cols(0) \{\}
+00315     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{explicit} DenseStorage(internal::constructor\_without\_unaligned\_array\_assert)
+00316       : m\_data(\hyperlink{namespaceinternal}{internal}::constructor\_without\_unaligned\_array\_assert()), m\_cols(0) \{\}
+00317     EIGEN\_DEVICE\_FUNC DenseStorage(\textcolor{keyword}{const} DenseStorage& other) : m\_data(other.m\_data), m\_cols(other.m\_cols) 
+      \{\}
+00318     EIGEN\_DEVICE\_FUNC DenseStorage& operator=(\textcolor{keyword}{const} DenseStorage& other)
+00319     \{
+00320       \textcolor{keywordflow}{if} (\textcolor{keyword}{this} != &other)
+00321       \{
+00322         m\_data = other.m\_data;
+00323         m\_cols = other.m\_cols;
+00324       \}
+00325       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00326     \}
+00327     EIGEN\_DEVICE\_FUNC DenseStorage(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols) : m\_cols(cols) \{\}
+00328     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(DenseStorage& other) \{ \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_data,other.m\_data); 
+      \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_cols,other.m\_cols); \}
+00329     EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows(\textcolor{keywordtype}{void})\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} \_Rows;\}
+00330     EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols(\textcolor{keywordtype}{void})\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} m\_cols;\}
+00331     \textcolor{keywordtype}{void} conservativeResize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols) \{ m\_cols = cols; \}
+00332     \textcolor{keywordtype}{void} resize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols) \{ m\_cols = cols; \}
+00333     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_data.array; \}
+00334     EIGEN\_DEVICE\_FUNC \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *data() \{ \textcolor{keywordflow}{return} m\_data.array; \}
+00335 \};
+00336 
+00337 \textcolor{comment}{// purely dynamic matrix.}
+00338 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} \_Options> \textcolor{keyword}{class }DenseStorage<T, Dynamic, Dynamic, Dynamic, \_Options>
+00339 \{
+00340     \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *m\_data;
+00341     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_rows;
+00342     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_cols;
+00343   \textcolor{keyword}{public}:
+00344     EIGEN\_DEVICE\_FUNC DenseStorage() : m\_data(0), m\_rows(0), m\_cols(0) \{\}
+00345     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{explicit} DenseStorage(internal::constructor\_without\_unaligned\_array\_assert)
+00346        : m\_data(0), m\_rows(0), m\_cols(0) \{\}
+00347     EIGEN\_DEVICE\_FUNC DenseStorage(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00348       : m\_data(\hyperlink{namespaceinternal}{internal}::conditional\_aligned\_new\_auto<\hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T},(\_Options&
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a40a452614141522dd313363dbbd65726}{DontAlign})==0>(size)), m\_rows(rows), m\_cols(cols)
+00349     \{
+00350       EIGEN\_INTERNAL\_DENSE\_STORAGE\_CTOR\_PLUGIN(\{\})
+00351       eigen\_internal\_assert(size==rows*cols && rows>=0 && cols >=0);
+00352     \}
+00353     EIGEN\_DEVICE\_FUNC DenseStorage(\textcolor{keyword}{const} DenseStorage& other)
+00354       : m\_data(\hyperlink{namespaceinternal}{internal}::conditional\_aligned\_new\_auto<\hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T},(\_Options&
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a40a452614141522dd313363dbbd65726}{DontAlign})==0>(other.m\_rows*other.m\_cols))
+00355       , m\_rows(other.m\_rows)
+00356       , m\_cols(other.m\_cols)
+00357     \{
+00358       EIGEN\_INTERNAL\_DENSE\_STORAGE\_CTOR\_PLUGIN(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = m\_rows*m\_cols)
+00359       internal::smart\_copy(other.m\_data, other.m\_data+other.m\_rows*other.m\_cols, m\_data);
+00360     \}
+00361     EIGEN\_DEVICE\_FUNC DenseStorage& operator=(\textcolor{keyword}{const} DenseStorage& other)
+00362     \{
+00363       \textcolor{keywordflow}{if} (\textcolor{keyword}{this} != &other)
+00364       \{
+00365         DenseStorage tmp(other);
+00366         this->\hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(tmp);
+00367       \}
+00368       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00369     \}
+00370 \textcolor{preprocessor}{#if EIGEN\_HAS\_RVALUE\_REFERENCES}
+00371     EIGEN\_DEVICE\_FUNC
+00372     DenseStorage(DenseStorage&& other) EIGEN\_NOEXCEPT
+00373       : m\_data(std::move(other.m\_data))
+00374       , m\_rows(std::move(other.m\_rows))
+00375       , m\_cols(std::move(other.m\_cols))
+00376     \{
+00377       other.m\_data = \textcolor{keyword}{nullptr};
+00378       other.m\_rows = 0;
+00379       other.m\_cols = 0;
+00380     \}
+00381     EIGEN\_DEVICE\_FUNC
+00382     DenseStorage& operator=(DenseStorage&& other) EIGEN\_NOEXCEPT
+00383     \{
+00384       \textcolor{keyword}{using} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap};
+00385       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(m\_data, other.m\_data);
+00386       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(m\_rows, other.m\_rows);
+00387       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(m\_cols, other.m\_cols);
+00388       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00389     \}
+00390 \textcolor{preprocessor}{#endif}
+00391     EIGEN\_DEVICE\_FUNC ~DenseStorage() \{ 
+      internal::conditional\_aligned\_delete\_auto<T,(\_Options&DontAlign)==0>(m\_data, m\_rows*m\_cols); \}
+00392     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(DenseStorage& other)
+00393     \{ \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_data,other.m\_data); \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_rows,other.m\_rows); 
+      \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_cols,other.m\_cols); \}
+00394     EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows(\textcolor{keywordtype}{void})\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} m\_rows;\}
+00395     EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols(\textcolor{keywordtype}{void})\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} m\_cols;\}
+00396     \textcolor{keywordtype}{void} conservativeResize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00397     \{
+00398       m\_data = internal::conditional\_aligned\_realloc\_new\_auto<T,(\_Options&DontAlign)==0>(m\_data, size, 
+      m\_rows*m\_cols);
+00399       m\_rows = rows;
+00400       m\_cols = cols;
+00401     \}
+00402     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} resize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00403     \{
+00404       \textcolor{keywordflow}{if}(size != m\_rows*m\_cols)
+00405       \{
+00406         internal::conditional\_aligned\_delete\_auto<T,(\_Options&DontAlign)==0>(m\_data, m\_rows*m\_cols);
+00407         \textcolor{keywordflow}{if} (size)
+00408           m\_data = internal::conditional\_aligned\_new\_auto<T,(\_Options&DontAlign)==0>(size);
+00409         \textcolor{keywordflow}{else}
+00410           m\_data = 0;
+00411         EIGEN\_INTERNAL\_DENSE\_STORAGE\_CTOR\_PLUGIN(\{\})
+00412       \}
+00413       m\_rows = rows;
+00414       m\_cols = cols;
+00415     \}
+00416     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_data; \}
+00417     EIGEN\_DEVICE\_FUNC \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *data() \{ \textcolor{keywordflow}{return} m\_data; \}
+00418 \};
+00419 
+00420 \textcolor{comment}{// matrix with dynamic width and fixed height (so that matrix has dynamic size).}
+00421 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} \_Rows, \textcolor{keywordtype}{int} \_Options> \textcolor{keyword}{class }DenseStorage<T, Dynamic, \_Rows, Dynamic, \_Options>
+00422 \{
+00423     \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *m\_data;
+00424     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_cols;
+00425   \textcolor{keyword}{public}:
+00426     EIGEN\_DEVICE\_FUNC DenseStorage() : m\_data(0), m\_cols(0) \{\}
+00427     \textcolor{keyword}{explicit} DenseStorage(internal::constructor\_without\_unaligned\_array\_assert) : m\_data(0), m\_cols(0) \{\}
+00428     EIGEN\_DEVICE\_FUNC DenseStorage(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols) : m\_data(
+      \hyperlink{namespaceinternal}{internal}::conditional\_aligned\_new\_auto<\hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T},(\_Options&\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a40a452614141522dd313363dbbd65726}{DontAlign})==0>(size)), m\_cols(cols)
+00429     \{
+00430       EIGEN\_INTERNAL\_DENSE\_STORAGE\_CTOR\_PLUGIN(\{\})
+00431       eigen\_internal\_assert(size==rows*cols && rows==\_Rows && cols >=0);
+00432       EIGEN\_UNUSED\_VARIABLE(rows);
+00433     \}
+00434     EIGEN\_DEVICE\_FUNC DenseStorage(\textcolor{keyword}{const} DenseStorage& other)
+00435       : m\_data(\hyperlink{namespaceinternal}{internal}::conditional\_aligned\_new\_auto<\hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T},(\_Options&
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a40a452614141522dd313363dbbd65726}{DontAlign})==0>(\_Rows*other.m\_cols))
+00436       , m\_cols(other.m\_cols)
+00437     \{
+00438       EIGEN\_INTERNAL\_DENSE\_STORAGE\_CTOR\_PLUGIN(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = m\_cols*\_Rows)
+00439       internal::smart\_copy(other.m\_data, other.m\_data+\_Rows*m\_cols, m\_data);
+00440     \}
+00441     EIGEN\_DEVICE\_FUNC DenseStorage& operator=(\textcolor{keyword}{const} DenseStorage& other)
+00442     \{
+00443       \textcolor{keywordflow}{if} (\textcolor{keyword}{this} != &other)
+00444       \{
+00445         DenseStorage tmp(other);
+00446         this->\hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(tmp);
+00447       \}
+00448       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00449     \}    
+00450 \textcolor{preprocessor}{#if EIGEN\_HAS\_RVALUE\_REFERENCES}
+00451     EIGEN\_DEVICE\_FUNC
+00452     DenseStorage(DenseStorage&& other) EIGEN\_NOEXCEPT
+00453       : m\_data(std::move(other.m\_data))
+00454       , m\_cols(std::move(other.m\_cols))
+00455     \{
+00456       other.m\_data = \textcolor{keyword}{nullptr};
+00457       other.m\_cols = 0;
+00458     \}
+00459     EIGEN\_DEVICE\_FUNC
+00460     DenseStorage& operator=(DenseStorage&& other) EIGEN\_NOEXCEPT
+00461     \{
+00462       \textcolor{keyword}{using} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap};
+00463       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(m\_data, other.m\_data);
+00464       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(m\_cols, other.m\_cols);
+00465       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00466     \}
+00467 \textcolor{preprocessor}{#endif}
+00468     EIGEN\_DEVICE\_FUNC ~DenseStorage() \{ 
+      internal::conditional\_aligned\_delete\_auto<T,(\_Options&DontAlign)==0>(m\_data, \_Rows*m\_cols); \}
+00469     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(DenseStorage& other) \{ \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_data,other.m\_data); 
+      \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_cols,other.m\_cols); \}
+00470     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows(\textcolor{keywordtype}{void}) \{\textcolor{keywordflow}{return} \_Rows;\}
+00471     EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols(\textcolor{keywordtype}{void})\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} m\_cols;\}
+00472     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} conservativeResize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00473     \{
+00474       m\_data = internal::conditional\_aligned\_realloc\_new\_auto<T,(\_Options&DontAlign)==0>(m\_data, size, 
+      \_Rows*m\_cols);
+00475       m\_cols = cols;
+00476     \}
+00477     EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} resize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00478     \{
+00479       \textcolor{keywordflow}{if}(size != \_Rows*m\_cols)
+00480       \{
+00481         internal::conditional\_aligned\_delete\_auto<T,(\_Options&DontAlign)==0>(m\_data, \_Rows*m\_cols);
+00482         \textcolor{keywordflow}{if} (size)
+00483           m\_data = internal::conditional\_aligned\_new\_auto<T,(\_Options&DontAlign)==0>(size);
+00484         \textcolor{keywordflow}{else}
+00485           m\_data = 0;
+00486         EIGEN\_INTERNAL\_DENSE\_STORAGE\_CTOR\_PLUGIN(\{\})
+00487       \}
+00488       m\_cols = cols;
+00489     \}
+00490     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_data; \}
+00491     EIGEN\_DEVICE\_FUNC \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *data() \{ \textcolor{keywordflow}{return} m\_data; \}
+00492 \};
+00493 
+00494 \textcolor{comment}{// matrix with dynamic height and fixed width (so that matrix has dynamic size).}
+00495 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keywordtype}{int} \_Cols, \textcolor{keywordtype}{int} \_Options> \textcolor{keyword}{class }DenseStorage<T, Dynamic, Dynamic, \_Cols, \_Options>
+00496 \{
+00497     \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *m\_data;
+00498     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_rows;
+00499   \textcolor{keyword}{public}:
+00500     EIGEN\_DEVICE\_FUNC DenseStorage() : m\_data(0), m\_rows(0) \{\}
+00501     \textcolor{keyword}{explicit} DenseStorage(internal::constructor\_without\_unaligned\_array\_assert) : m\_data(0), m\_rows(0) \{\}
+00502     EIGEN\_DEVICE\_FUNC DenseStorage(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols) : m\_data(
+      \hyperlink{namespaceinternal}{internal}::conditional\_aligned\_new\_auto<\hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T},(\_Options&\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a40a452614141522dd313363dbbd65726}{DontAlign})==0>(size)), m\_rows(rows)
+00503     \{
+00504       EIGEN\_INTERNAL\_DENSE\_STORAGE\_CTOR\_PLUGIN(\{\})
+00505       eigen\_internal\_assert(size==rows*cols && rows>=0 && cols == \_Cols);
+00506       EIGEN\_UNUSED\_VARIABLE(cols);
+00507     \}
+00508     EIGEN\_DEVICE\_FUNC DenseStorage(\textcolor{keyword}{const} DenseStorage& other)
+00509       : m\_data(\hyperlink{namespaceinternal}{internal}::conditional\_aligned\_new\_auto<\hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T},(\_Options&
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a40a452614141522dd313363dbbd65726}{DontAlign})==0>(other.m\_rows*\_Cols))
+00510       , m\_rows(other.m\_rows)
+00511     \{
+00512       EIGEN\_INTERNAL\_DENSE\_STORAGE\_CTOR\_PLUGIN(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = m\_rows*\_Cols)
+00513       internal::smart\_copy(other.m\_data, other.m\_data+other.m\_rows*\_Cols, m\_data);
+00514     \}
+00515     EIGEN\_DEVICE\_FUNC DenseStorage& operator=(\textcolor{keyword}{const} DenseStorage& other)
+00516     \{
+00517       \textcolor{keywordflow}{if} (\textcolor{keyword}{this} != &other)
+00518       \{
+00519         DenseStorage tmp(other);
+00520         this->\hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(tmp);
+00521       \}
+00522       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00523     \}    
+00524 \textcolor{preprocessor}{#if EIGEN\_HAS\_RVALUE\_REFERENCES}
+00525     EIGEN\_DEVICE\_FUNC
+00526     DenseStorage(DenseStorage&& other) EIGEN\_NOEXCEPT
+00527       : m\_data(std::move(other.m\_data))
+00528       , m\_rows(std::move(other.m\_rows))
+00529     \{
+00530       other.m\_data = \textcolor{keyword}{nullptr};
+00531       other.m\_rows = 0;
+00532     \}
+00533     EIGEN\_DEVICE\_FUNC
+00534     DenseStorage& operator=(DenseStorage&& other) EIGEN\_NOEXCEPT
+00535     \{
+00536       \textcolor{keyword}{using} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap};
+00537       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(m\_data, other.m\_data);
+00538       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(m\_rows, other.m\_rows);
+00539       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00540     \}
+00541 \textcolor{preprocessor}{#endif}
+00542     EIGEN\_DEVICE\_FUNC ~DenseStorage() \{ 
+      internal::conditional\_aligned\_delete\_auto<T,(\_Options&DontAlign)==0>(m\_data, \_Cols*m\_rows); \}
+00543     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(DenseStorage& other) \{ \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_data,other.m\_data); 
+      \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(m\_rows,other.m\_rows); \}
+00544     EIGEN\_DEVICE\_FUNC \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows(\textcolor{keywordtype}{void})\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} m\_rows;\}
+00545     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{static} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols(\textcolor{keywordtype}{void}) \{\textcolor{keywordflow}{return} \_Cols;\}
+00546     \textcolor{keywordtype}{void} conservativeResize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index})
+00547     \{
+00548       m\_data = internal::conditional\_aligned\_realloc\_new\_auto<T,(\_Options&DontAlign)==0>(m\_data, size, 
+      m\_rows*\_Cols);
+00549       m\_rows = rows;
+00550     \}
+00551     EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} resize(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index})
+00552     \{
+00553       \textcolor{keywordflow}{if}(size != m\_rows*\_Cols)
+00554       \{
+00555         internal::conditional\_aligned\_delete\_auto<T,(\_Options&DontAlign)==0>(m\_data, \_Cols*m\_rows);
+00556         \textcolor{keywordflow}{if} (size)
+00557           m\_data = internal::conditional\_aligned\_new\_auto<T,(\_Options&DontAlign)==0>(size);
+00558         \textcolor{keywordflow}{else}
+00559           m\_data = 0;
+00560         EIGEN\_INTERNAL\_DENSE\_STORAGE\_CTOR\_PLUGIN(\{\})
+00561       \}
+00562       m\_rows = rows;
+00563     \}
+00564     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_data; \}
+00565     EIGEN\_DEVICE\_FUNC \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} *data() \{ \textcolor{keywordflow}{return} m\_data; \}
+00566 \};
+00567 
+00568 \} \textcolor{comment}{// end namespace Eigen}
+00569 
+00570 \textcolor{preprocessor}{#endif // EIGEN\_MATRIX\_H}
+\end{DoxyCode}

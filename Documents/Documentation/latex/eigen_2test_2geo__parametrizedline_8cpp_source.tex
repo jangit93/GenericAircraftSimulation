@@ -1,0 +1,112 @@
+\hypertarget{eigen_2test_2geo__parametrizedline_8cpp_source}{}\section{eigen/test/geo\+\_\+parametrizedline.cpp}
+\label{eigen_2test_2geo__parametrizedline_8cpp_source}\index{geo\+\_\+parametrizedline.\+cpp@{geo\+\_\+parametrizedline.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2008 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#include "main.h"}
+00012 \textcolor{preprocessor}{#include <Eigen/Geometry>}
+00013 \textcolor{preprocessor}{#include <Eigen/LU>}
+00014 \textcolor{preprocessor}{#include <Eigen/QR>}
+00015 
+00016 \textcolor{keyword}{template}<\textcolor{keyword}{typename} LineType> \textcolor{keywordtype}{void} parametrizedline(\textcolor{keyword}{const} LineType& \_line)
+00017 \{
+00018   \textcolor{comment}{/* this test covers the following files:}
+00019 \textcolor{comment}{     ParametrizedLine.h}
+00020 \textcolor{comment}{  */}
+00021   \textcolor{keyword}{using} std::abs;
+00022   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} LineType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00023   \textcolor{keyword}{const} Index dim = \_line.dim();
+00024   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} LineType::Scalar Scalar;
+00025   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00026   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, LineType::AmbientDimAtCompileTime, 1>}
+       \hyperlink{struct_vector_type}{VectorType};
+00027   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_hyperplane}{Hyperplane<Scalar,LineType::AmbientDimAtCompileTime>}
+       HyperplaneType;
+00028 
+00029   VectorType p0 = VectorType::Random(dim);
+00030   VectorType p1 = VectorType::Random(dim);
+00031 
+00032   VectorType d0 = VectorType::Random(dim).normalized();
+00033 
+00034   LineType l0(p0, d0);
+00035 
+00036   Scalar s0 = internal::random<Scalar>();
+00037   Scalar s1 = abs(internal::random<Scalar>());
+00038 
+00039   VERIFY\_IS\_MUCH\_SMALLER\_THAN( l0.distance(p0), RealScalar(1) );
+00040   VERIFY\_IS\_MUCH\_SMALLER\_THAN( l0.distance(p0+s0*d0), RealScalar(1) );
+00041   VERIFY\_IS\_APPROX( (l0.projection(p1)-p1).norm(), l0.distance(p1) );
+00042   VERIFY\_IS\_MUCH\_SMALLER\_THAN( l0.distance(l0.projection(p1)), RealScalar(1) );
+00043   VERIFY\_IS\_APPROX( Scalar(l0.distance((p0+s0*d0) + d0.unitOrthogonal() * s1)), s1 );
+00044 
+00045   \textcolor{comment}{// casting}
+00046   \textcolor{keyword}{const} \textcolor{keywordtype}{int} Dim = LineType::AmbientDimAtCompileTime;
+00047   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_get_different_type}{GetDifferentType<Scalar>::type} OtherScalar;
+00048   \hyperlink{group___geometry___module_class_eigen_1_1_parametrized_line}{ParametrizedLine<OtherScalar,Dim>} hp1f = l0.template cast<OtherScalar>()
+      ;
+00049   VERIFY\_IS\_APPROX(hp1f.template cast<Scalar>(),l0);
+00050   \hyperlink{group___geometry___module_class_eigen_1_1_parametrized_line}{ParametrizedLine<Scalar,Dim>} hp1d = l0.template cast<Scalar>();
+00051   VERIFY\_IS\_APPROX(hp1d.template cast<Scalar>(),l0);
+00052 
+00053   \textcolor{comment}{// intersections}
+00054   VectorType p2 = VectorType::Random(dim);
+00055   VectorType n2 = VectorType::Random(dim).normalized();
+00056   HyperplaneType hp(p2,n2);
+00057   Scalar t = l0.intersectionParameter(hp);
+00058   VectorType pi = l0.pointAt(t);
+00059   VERIFY\_IS\_MUCH\_SMALLER\_THAN(hp.signedDistance(pi), RealScalar(1));
+00060   VERIFY\_IS\_MUCH\_SMALLER\_THAN(l0.distance(pi), RealScalar(1));
+00061   VERIFY\_IS\_APPROX(l0.intersectionPoint(hp), pi);
+00062 \}
+00063 
+00064 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keywordtype}{void} parametrizedline\_alignment()
+00065 \{
+00066   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_parametrized_line}{ParametrizedLine<Scalar,4,AutoAlign>} Line4a;
+00067   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_parametrized_line}{ParametrizedLine<Scalar,4,DontAlign>} Line4u;
+00068 
+00069   EIGEN\_ALIGN\_MAX Scalar array1[16];
+00070   EIGEN\_ALIGN\_MAX Scalar array2[16];
+00071   EIGEN\_ALIGN\_MAX Scalar array3[16+1];
+00072   Scalar* array3u = array3+1;
+00073 
+00074   Line4a *p1 = ::new(reinterpret\_cast<void*>(array1)) Line4a;
+00075   Line4u *p2 = ::new(reinterpret\_cast<void*>(array2)) Line4u;
+00076   Line4u *p3 = ::new(reinterpret\_cast<void*>(array3u)) Line4u;
+00077   
+00078   p1->origin().setRandom();
+00079   p1->direction().setRandom();
+00080   *p2 = *p1;
+00081   *p3 = *p1;
+00082 
+00083   VERIFY\_IS\_APPROX(p1->origin(), p2->origin());
+00084   VERIFY\_IS\_APPROX(p1->origin(), p3->origin());
+00085   VERIFY\_IS\_APPROX(p1->direction(), p2->direction());
+00086   VERIFY\_IS\_APPROX(p1->direction(), p3->direction());
+00087   
+00088 \textcolor{preprocessor}{  #if defined(EIGEN\_VECTORIZE) && EIGEN\_MAX\_STATIC\_ALIGN\_BYTES>0}
+00089   \textcolor{keywordflow}{if}(internal::packet\_traits<Scalar>::Vectorizable && internal::packet\_traits<Scalar>::size<=4)
+00090     VERIFY\_RAISES\_ASSERT((::\textcolor{keyword}{new}(reinterpret\_cast<void*>(array3u)) Line4a));
+00091 \textcolor{preprocessor}{  #endif}
+00092 \}
+00093 
+00094 \textcolor{keywordtype}{void} test\_geo\_parametrizedline()
+00095 \{
+00096   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00097     CALL\_SUBTEST\_1( parametrizedline(\hyperlink{group___geometry___module_class_eigen_1_1_parametrized_line}{ParametrizedLine<float,2>}()) );
+00098     CALL\_SUBTEST\_2( parametrizedline(\hyperlink{group___geometry___module_class_eigen_1_1_parametrized_line}{ParametrizedLine<float,3>}()) );
+00099     CALL\_SUBTEST\_2( parametrizedline\_alignment<float>() );
+00100     CALL\_SUBTEST\_3( parametrizedline(\hyperlink{group___geometry___module_class_eigen_1_1_parametrized_line}{ParametrizedLine<double,4>}()) );
+00101     CALL\_SUBTEST\_3( parametrizedline\_alignment<double>() );
+00102     CALL\_SUBTEST\_4( parametrizedline(\hyperlink{group___geometry___module_class_eigen_1_1_parametrized_line}{ParametrizedLine}<std::complex<double>,5>()) );
+00103   \}
+00104 \}
+\end{DoxyCode}

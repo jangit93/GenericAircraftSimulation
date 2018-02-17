@@ -1,0 +1,95 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_incomplete_l_u_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/src/\+Iterative\+Solvers/\+Incomplete\+LU.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_incomplete_l_u_8h_source}\index{Incomplete\+L\+U.\+h@{Incomplete\+L\+U.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2011 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_INCOMPLETE\_LU\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_INCOMPLETE\_LU\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00014 
+00015 \textcolor{keyword}{template} <\textcolor{keyword}{typename} \_Scalar>
+00016 \textcolor{keyword}{class }IncompleteLU : \textcolor{keyword}{public} SparseSolverBase<IncompleteLU<\_Scalar> >
+00017 \{
+00018   \textcolor{keyword}{protected}:
+00019     \textcolor{keyword}{typedef} SparseSolverBase<IncompleteLU<\_Scalar> > Base;
+00020     \textcolor{keyword}{using} Base::m\_isInitialized;
+00021     
+00022     \textcolor{keyword}{typedef} \_Scalar Scalar;
+00023     \textcolor{keyword}{typedef} Matrix<Scalar,Dynamic,1> Vector;
+00024     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Vector::Index Index;
+00025     \textcolor{keyword}{typedef} SparseMatrix<Scalar,RowMajor> FactorType;
+00026 
+00027   \textcolor{keyword}{public}:
+00028     \textcolor{keyword}{typedef} Matrix<Scalar,Dynamic,Dynamic> MatrixType;
+00029 
+00030     IncompleteLU() \{\}
+00031 
+00032     \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00033     IncompleteLU(\textcolor{keyword}{const} MatrixType& mat)
+00034     \{
+00035       compute(mat);
+00036     \}
+00037 
+00038     Index rows()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_lu.\hyperlink{group___sparse_core___module_a62e61bb861eee306d5b069ce652b5aa5}{rows}(); \}
+00039     Index cols()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_lu.\hyperlink{group___sparse_core___module_aa391750e3c530227e4a5c3c52e959975}{cols}(); \}
+00040 
+00041     \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00042     IncompleteLU& compute(\textcolor{keyword}{const} MatrixType& mat)
+00043     \{
+00044       m\_lu = mat;
+00045       \textcolor{keywordtype}{int} size = mat.\hyperlink{group___sparse_core___module_aa391750e3c530227e4a5c3c52e959975}{cols}();
+00046       Vector diag(size);
+00047       \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<size; ++i)
+00048       \{
+00049         \textcolor{keyword}{typename} FactorType::InnerIterator k\_it(m\_lu,i);
+00050         \textcolor{keywordflow}{for}(; k\_it && k\_it.index()<i; ++k\_it)
+00051         \{
+00052           \textcolor{keywordtype}{int} k = k\_it.index();
+00053           k\_it.valueRef() /= diag(k);
+00054 
+00055           \textcolor{keyword}{typename} FactorType::InnerIterator j\_it(k\_it);
+00056           \textcolor{keyword}{typename} FactorType::InnerIterator kj\_it(m\_lu, k);
+00057           \textcolor{keywordflow}{while}(kj\_it && kj\_it.index()<=k) ++kj\_it;
+00058           \textcolor{keywordflow}{for}(++j\_it; j\_it; )
+00059           \{
+00060             \textcolor{keywordflow}{if}(kj\_it.index()==j\_it.index())
+00061             \{
+00062               j\_it.valueRef() -= k\_it.value() * kj\_it.value();
+00063               ++j\_it;
+00064               ++kj\_it;
+00065             \}
+00066             \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(kj\_it.index()<j\_it.index()) ++kj\_it;
+00067             \textcolor{keywordflow}{else}                                ++j\_it;
+00068           \}
+00069         \}
+00070         \textcolor{keywordflow}{if}(k\_it && k\_it.index()==i) diag(i) = k\_it.value();
+00071         \textcolor{keywordflow}{else}                        diag(i) = 1;
+00072       \}
+00073       m\_isInitialized = \textcolor{keyword}{true};
+00074       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00075     \}
+00076 
+00077     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Dest>
+00078     \textcolor{keywordtype}{void} \_solve\_impl(\textcolor{keyword}{const} Rhs& b, Dest& x)\textcolor{keyword}{ const}
+00079 \textcolor{keyword}{    }\{
+00080       x = m\_lu.template triangularView<UnitLower>().\hyperlink{group___sparse_core___module_a4a66e9498b06e3ec4ec36f06b26d4e8f}{solve}(b);
+00081       x = m\_lu.template triangularView<Upper>().\hyperlink{group___sparse_core___module_a4a66e9498b06e3ec4ec36f06b26d4e8f}{solve}(x);
+00082     \}
+00083 
+00084   \textcolor{keyword}{protected}:
+00085     FactorType m\_lu;
+00086 \};
+00087 
+00088 \} \textcolor{comment}{// end namespace Eigen}
+00089 
+00090 \textcolor{preprocessor}{#endif // EIGEN\_INCOMPLETE\_LU\_H}
+\end{DoxyCode}

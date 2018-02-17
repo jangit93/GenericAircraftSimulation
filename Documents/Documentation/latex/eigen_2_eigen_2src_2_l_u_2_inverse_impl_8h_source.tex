@@ -1,0 +1,383 @@
+\hypertarget{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source}{}\section{eigen/\+Eigen/src/\+L\+U/\+Inverse\+Impl.h}
+\label{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source}\index{Inverse\+Impl.\+h@{Inverse\+Impl.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2010 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{// Copyright (C) 2014 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_INVERSE\_IMPL\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_INVERSE\_IMPL\_H}
+00013 
+00014 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00015 
+00016 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00017 
+00018 \textcolor{comment}{/**********************************}
+00019 \textcolor{comment}{*** General case implementation ***}
+00020 \textcolor{comment}{**********************************/}
+00021 
+00022 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} ResultType, \textcolor{keywordtype}{int} Size = MatrixType::RowsAtCompileTime>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source_l00023}\hyperlink{struct_eigen_1_1internal_1_1compute__inverse}{00023} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1compute__inverse}{compute\_inverse}
+00024 \{
+00025   EIGEN\_DEVICE\_FUNC
+00026   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} MatrixType& matrix, ResultType& result)
+00027   \{
+00028     result = matrix.partialPivLu().inverse();
+00029   \}
+00030 \};
+00031 
+00032 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} ResultType, \textcolor{keywordtype}{int} Size = MatrixType::RowsAtCompileTime>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source_l00033}\hyperlink{struct_eigen_1_1internal_1_1compute__inverse__and__det__with__check}{00033} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1compute__inverse__and__det__with__check}{compute\_inverse\_and\_det\_with\_check} \{ \textcolor{comment}{/* nothing! general case not
+       supported. */} \};
+00034 
+00035 \textcolor{comment}{/****************************}
+00036 \textcolor{comment}{*** Size 1 implementation ***}
+00037 \textcolor{comment}{****************************/}
+00038 
+00039 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} ResultType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source_l00040}\hyperlink{struct_eigen_1_1internal_1_1compute__inverse_3_01_matrix_type_00_01_result_type_00_011_01_4}{00040} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1compute__inverse}{compute\_inverse}<MatrixType, ResultType, 1>
+00041 \{
+00042   EIGEN\_DEVICE\_FUNC
+00043   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} MatrixType& matrix, ResultType& result)
+00044   \{
+00045     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00046     \hyperlink{struct_eigen_1_1internal_1_1evaluator}{internal::evaluator<MatrixType>} matrixEval(matrix);
+00047     result.coeffRef(0,0) = Scalar(1) / matrixEval.coeff(0,0);
+00048   \}
+00049 \};
+00050 
+00051 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} ResultType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source_l00052}\hyperlink{struct_eigen_1_1internal_1_1compute__inverse__and__det__with__check_3_01_matrix_type_00_01_result_type_00_011_01_4}{00052} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1compute__inverse__and__det__with__check}{compute\_inverse\_and\_det\_with\_check}<MatrixType, ResultType, 1>
+00053 \{
+00054   EIGEN\_DEVICE\_FUNC
+00055   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} run(
+00056     \textcolor{keyword}{const} MatrixType& matrix,
+00057     \textcolor{keyword}{const} \textcolor{keyword}{typename} MatrixType::RealScalar& absDeterminantThreshold,
+00058     ResultType& result,
+00059     \textcolor{keyword}{typename} ResultType::Scalar& determinant,
+00060     \textcolor{keywordtype}{bool}& invertible
+00061   )
+00062   \{
+00063     \textcolor{keyword}{using} std::abs;
+00064     determinant = matrix.coeff(0,0);
+00065     invertible = abs(determinant) > absDeterminantThreshold;
+00066     \textcolor{keywordflow}{if}(invertible) result.coeffRef(0,0) = \textcolor{keyword}{typename} ResultType::Scalar(1) / determinant;
+00067   \}
+00068 \};
+00069 
+00070 \textcolor{comment}{/****************************}
+00071 \textcolor{comment}{*** Size 2 implementation ***}
+00072 \textcolor{comment}{****************************/}
+00073 
+00074 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} ResultType>
+00075 EIGEN\_DEVICE\_FUNC 
+00076 \textcolor{keyword}{inline} \textcolor{keywordtype}{void} compute\_inverse\_size2\_helper(
+00077     \textcolor{keyword}{const} MatrixType& matrix, \textcolor{keyword}{const} \textcolor{keyword}{typename} ResultType::Scalar& invdet,
+00078     ResultType& result)
+00079 \{
+00080   result.coeffRef(0,0) =  matrix.coeff(1,1) * invdet;
+00081   result.coeffRef(1,0) = -matrix.coeff(1,0) * invdet;
+00082   result.coeffRef(0,1) = -matrix.coeff(0,1) * invdet;
+00083   result.coeffRef(1,1) =  matrix.coeff(0,0) * invdet;
+00084 \}
+00085 
+00086 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} ResultType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source_l00087}\hyperlink{struct_eigen_1_1internal_1_1compute__inverse_3_01_matrix_type_00_01_result_type_00_012_01_4}{00087} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1compute__inverse}{compute\_inverse}<MatrixType, ResultType, 2>
+00088 \{
+00089   EIGEN\_DEVICE\_FUNC
+00090   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} MatrixType& matrix, ResultType& result)
+00091   \{
+00092     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ResultType::Scalar Scalar;
+00093     \textcolor{keyword}{const} Scalar invdet = \textcolor{keyword}{typename} MatrixType::Scalar(1) / matrix.determinant();
+00094     compute\_inverse\_size2\_helper(matrix, invdet, result);
+00095   \}
+00096 \};
+00097 
+00098 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} ResultType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source_l00099}\hyperlink{struct_eigen_1_1internal_1_1compute__inverse__and__det__with__check_3_01_matrix_type_00_01_result_type_00_012_01_4}{00099} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1compute__inverse__and__det__with__check}{compute\_inverse\_and\_det\_with\_check}<MatrixType, ResultType, 2>
+00100 \{
+00101   EIGEN\_DEVICE\_FUNC
+00102   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} run(
+00103     \textcolor{keyword}{const} MatrixType& matrix,
+00104     \textcolor{keyword}{const} \textcolor{keyword}{typename} MatrixType::RealScalar& absDeterminantThreshold,
+00105     ResultType& inverse,
+00106     \textcolor{keyword}{typename} ResultType::Scalar& determinant,
+00107     \textcolor{keywordtype}{bool}& invertible
+00108   )
+00109   \{
+00110     \textcolor{keyword}{using} std::abs;
+00111     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ResultType::Scalar Scalar;
+00112     determinant = matrix.determinant();
+00113     invertible = abs(determinant) > absDeterminantThreshold;
+00114     \textcolor{keywordflow}{if}(!invertible) \textcolor{keywordflow}{return};
+00115     \textcolor{keyword}{const} Scalar invdet = Scalar(1) / determinant;
+00116     compute\_inverse\_size2\_helper(matrix, invdet, inverse);
+00117   \}
+00118 \};
+00119 
+00120 \textcolor{comment}{/****************************}
+00121 \textcolor{comment}{*** Size 3 implementation ***}
+00122 \textcolor{comment}{****************************/}
+00123 
+00124 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keywordtype}{int} i, \textcolor{keywordtype}{int} j>
+00125 EIGEN\_DEVICE\_FUNC 
+00126 \textcolor{keyword}{inline} \textcolor{keyword}{typename} MatrixType::Scalar cofactor\_3x3(\textcolor{keyword}{const} MatrixType& m)
+00127 \{
+00128   \textcolor{keyword}{enum} \{
+00129     i1 = (i+1) % 3,
+00130     i2 = (i+2) % 3,
+00131     j1 = (j+1) % 3,
+00132     j2 = (j+2) % 3
+00133   \};
+00134   \textcolor{keywordflow}{return} m.coeff(i1, j1) * m.coeff(i2, j2)
+00135        - m.coeff(i1, j2) * m.coeff(i2, j1);
+00136 \}
+00137 
+00138 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} ResultType>
+00139 EIGEN\_DEVICE\_FUNC
+00140 \textcolor{keyword}{inline} \textcolor{keywordtype}{void} compute\_inverse\_size3\_helper(
+00141     \textcolor{keyword}{const} MatrixType& matrix,
+00142     \textcolor{keyword}{const} \textcolor{keyword}{typename} ResultType::Scalar& invdet,
+00143     \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<typename ResultType::Scalar,3,1>}& cofactors\_col0,
+00144     ResultType& result)
+00145 \{
+00146   result.row(0) = cofactors\_col0 * invdet;
+00147   result.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(1,0) =  cofactor\_3x3<MatrixType,0,1>(matrix) * invdet;
+00148   result.coeffRef(1,1) =  cofactor\_3x3<MatrixType,1,1>(matrix) * invdet;
+00149   result.coeffRef(1,2) =  cofactor\_3x3<MatrixType,2,1>(matrix) * invdet;
+00150   result.coeffRef(2,0) =  cofactor\_3x3<MatrixType,0,2>(matrix) * invdet;
+00151   result.coeffRef(2,1) =  cofactor\_3x3<MatrixType,1,2>(matrix) * invdet;
+00152   result.coeffRef(2,2) =  cofactor\_3x3<MatrixType,2,2>(matrix) * invdet;
+00153 \}
+00154 
+00155 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} ResultType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source_l00156}\hyperlink{struct_eigen_1_1internal_1_1compute__inverse_3_01_matrix_type_00_01_result_type_00_013_01_4}{00156} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1compute__inverse}{compute\_inverse}<MatrixType, ResultType, 3>
+00157 \{
+00158   EIGEN\_DEVICE\_FUNC
+00159   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} MatrixType& matrix, ResultType& result)
+00160   \{
+00161     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ResultType::Scalar Scalar;
+00162     \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<typename MatrixType::Scalar,3,1>} cofactors\_col0;
+00163     cofactors\_col0.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(0) =  cofactor\_3x3<MatrixType,0,0>(matrix);
+00164     cofactors\_col0.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(1) =  cofactor\_3x3<MatrixType,1,0>(matrix);
+00165     cofactors\_col0.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(2) =  cofactor\_3x3<MatrixType,2,0>(matrix);
+00166     \textcolor{keyword}{const} Scalar det = (cofactors\_col0.cwiseProduct(matrix.col(0))).sum();
+00167     \textcolor{keyword}{const} Scalar invdet = Scalar(1) / det;
+00168     compute\_inverse\_size3\_helper(matrix, invdet, cofactors\_col0, result);
+00169   \}
+00170 \};
+00171 
+00172 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} ResultType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source_l00173}\hyperlink{struct_eigen_1_1internal_1_1compute__inverse__and__det__with__check_3_01_matrix_type_00_01_result_type_00_013_01_4}{00173} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1compute__inverse__and__det__with__check}{compute\_inverse\_and\_det\_with\_check}<MatrixType, ResultType, 3>
+00174 \{
+00175   EIGEN\_DEVICE\_FUNC
+00176   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} run(
+00177     \textcolor{keyword}{const} MatrixType& matrix,
+00178     \textcolor{keyword}{const} \textcolor{keyword}{typename} MatrixType::RealScalar& absDeterminantThreshold,
+00179     ResultType& inverse,
+00180     \textcolor{keyword}{typename} ResultType::Scalar& determinant,
+00181     \textcolor{keywordtype}{bool}& invertible
+00182   )
+00183   \{
+00184     \textcolor{keyword}{using} std::abs;
+00185     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ResultType::Scalar Scalar;
+00186     \hyperlink{group___core___module}{Matrix<Scalar,3,1>} cofactors\_col0;
+00187     cofactors\_col0.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(0) =  cofactor\_3x3<MatrixType,0,0>(matrix);
+00188     cofactors\_col0.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(1) =  cofactor\_3x3<MatrixType,1,0>(matrix);
+00189     cofactors\_col0.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(2) =  cofactor\_3x3<MatrixType,2,0>(matrix);
+00190     determinant = (cofactors\_col0.cwiseProduct(matrix.col(0))).sum();
+00191     invertible = abs(determinant) > absDeterminantThreshold;
+00192     \textcolor{keywordflow}{if}(!invertible) \textcolor{keywordflow}{return};
+00193     \textcolor{keyword}{const} Scalar invdet = Scalar(1) / determinant;
+00194     compute\_inverse\_size3\_helper(matrix, invdet, cofactors\_col0, inverse);
+00195   \}
+00196 \};
+00197 
+00198 \textcolor{comment}{/****************************}
+00199 \textcolor{comment}{*** Size 4 implementation ***}
+00200 \textcolor{comment}{****************************/}
+00201 
+00202 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00203 EIGEN\_DEVICE\_FUNC 
+00204 \textcolor{keyword}{inline} \textcolor{keyword}{const} \textcolor{keyword}{typename} Derived::Scalar general\_det3\_helper
+00205 (\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Derived>}& matrix, \textcolor{keywordtype}{int} i1, \textcolor{keywordtype}{int} i2, \textcolor{keywordtype}{int} i3, \textcolor{keywordtype}{int} j1, \textcolor{keywordtype}{int} j2, \textcolor{keywordtype}{int} j3)
+00206 \{
+00207   \textcolor{keywordflow}{return} matrix.coeff(i1,j1)
+00208          * (matrix.coeff(i2,j2) * matrix.coeff(i3,j3) - matrix.coeff(i2,j3) * matrix.coeff(i3,j2));
+00209 \}
+00210 
+00211 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keywordtype}{int} i, \textcolor{keywordtype}{int} j>
+00212 EIGEN\_DEVICE\_FUNC 
+00213 \textcolor{keyword}{inline} \textcolor{keyword}{typename} MatrixType::Scalar cofactor\_4x4(\textcolor{keyword}{const} MatrixType& matrix)
+00214 \{
+00215   \textcolor{keyword}{enum} \{
+00216     i1 = (i+1) % 4,
+00217     i2 = (i+2) % 4,
+00218     i3 = (i+3) % 4,
+00219     j1 = (j+1) % 4,
+00220     j2 = (j+2) % 4,
+00221     j3 = (j+3) % 4
+00222   \};
+00223   \textcolor{keywordflow}{return} general\_det3\_helper(matrix, i1, i2, i3, j1, j2, j3)
+00224        + general\_det3\_helper(matrix, i2, i3, i1, j1, j2, j3)
+00225        + general\_det3\_helper(matrix, i3, i1, i2, j1, j2, j3);
+00226 \}
+00227 
+00228 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Arch, \textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} ResultType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source_l00229}\hyperlink{struct_eigen_1_1internal_1_1compute__inverse__size4}{00229} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1compute__inverse__size4}{compute\_inverse\_size4}
+00230 \{
+00231   EIGEN\_DEVICE\_FUNC
+00232   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} MatrixType& matrix, ResultType& result)
+00233   \{
+00234     result.coeffRef(0,0) =  cofactor\_4x4<MatrixType,0,0>(matrix);
+00235     result.coeffRef(1,0) = -cofactor\_4x4<MatrixType,0,1>(matrix);
+00236     result.coeffRef(2,0) =  cofactor\_4x4<MatrixType,0,2>(matrix);
+00237     result.coeffRef(3,0) = -cofactor\_4x4<MatrixType,0,3>(matrix);
+00238     result.coeffRef(0,2) =  cofactor\_4x4<MatrixType,2,0>(matrix);
+00239     result.coeffRef(1,2) = -cofactor\_4x4<MatrixType,2,1>(matrix);
+00240     result.coeffRef(2,2) =  cofactor\_4x4<MatrixType,2,2>(matrix);
+00241     result.coeffRef(3,2) = -cofactor\_4x4<MatrixType,2,3>(matrix);
+00242     result.coeffRef(0,1) = -cofactor\_4x4<MatrixType,1,0>(matrix);
+00243     result.coeffRef(1,1) =  cofactor\_4x4<MatrixType,1,1>(matrix);
+00244     result.coeffRef(2,1) = -cofactor\_4x4<MatrixType,1,2>(matrix);
+00245     result.coeffRef(3,1) =  cofactor\_4x4<MatrixType,1,3>(matrix);
+00246     result.coeffRef(0,3) = -cofactor\_4x4<MatrixType,3,0>(matrix);
+00247     result.coeffRef(1,3) =  cofactor\_4x4<MatrixType,3,1>(matrix);
+00248     result.coeffRef(2,3) = -cofactor\_4x4<MatrixType,3,2>(matrix);
+00249     result.coeffRef(3,3) =  cofactor\_4x4<MatrixType,3,3>(matrix);
+00250     result /= (matrix.col(0).cwiseProduct(result.row(0).transpose())).sum();
+00251   \}
+00252 \};
+00253 
+00254 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} ResultType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source_l00255}\hyperlink{struct_eigen_1_1internal_1_1compute__inverse_3_01_matrix_type_00_01_result_type_00_014_01_4}{00255} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1compute__inverse}{compute\_inverse}<MatrixType, ResultType, 4>
+00256  : \hyperlink{struct_eigen_1_1internal_1_1compute__inverse__size4}{compute\_inverse\_size4}<Architecture::Target, typename MatrixType::Scalar,
+00257                             MatrixType, ResultType>
+00258 \{
+00259 \};
+00260 
+00261 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} ResultType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source_l00262}\hyperlink{struct_eigen_1_1internal_1_1compute__inverse__and__det__with__check_3_01_matrix_type_00_01_result_type_00_014_01_4}{00262} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1compute__inverse__and__det__with__check}{compute\_inverse\_and\_det\_with\_check}<MatrixType, ResultType, 4>
+00263 \{
+00264   EIGEN\_DEVICE\_FUNC
+00265   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} run(
+00266     \textcolor{keyword}{const} MatrixType& matrix,
+00267     \textcolor{keyword}{const} \textcolor{keyword}{typename} MatrixType::RealScalar& absDeterminantThreshold,
+00268     ResultType& inverse,
+00269     \textcolor{keyword}{typename} ResultType::Scalar& determinant,
+00270     \textcolor{keywordtype}{bool}& invertible
+00271   )
+00272   \{
+00273     \textcolor{keyword}{using} std::abs;
+00274     determinant = matrix.determinant();
+00275     invertible = abs(determinant) > absDeterminantThreshold;
+00276     \textcolor{keywordflow}{if}(invertible) \hyperlink{struct_eigen_1_1internal_1_1compute__inverse}{compute\_inverse<MatrixType, ResultType>::run}
+      (matrix, inverse);
+00277   \}
+00278 \};
+00279 
+00280 \textcolor{comment}{/*************************}
+00281 \textcolor{comment}{*** MatrixBase methods ***}
+00282 \textcolor{comment}{*************************/}
+00283 
+00284 \} \textcolor{comment}{// end namespace internal}
+00285 
+00286 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00287 
+00288 \textcolor{comment}{// Specialization for "dense = dense\_xpr.inverse()"}
+00289 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} XprType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source_l00290}\hyperlink{struct_eigen_1_1internal_1_1_assignment_3_01_dst_xpr_type_00_01_inverse_3_01_xpr_type_01_4_00_019b24182f99081c1fc09beae63c4c392d}{00290} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1_assignment}{Assignment}<DstXprType, \hyperlink{class_eigen_1_1_inverse}{Inverse}<XprType>, \hyperlink{namespaceinternal}{internal}::
+      \hyperlink{struct_eigen_1_1internal_1_1assign__op}{assign\_op}<typename DstXprType::Scalar,typename XprType::Scalar>, 
+      \hyperlink{struct_eigen_1_1internal_1_1_dense2_dense}{Dense2Dense}>
+00291 \{
+00292   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_inverse}{Inverse<XprType>} \hyperlink{class_eigen_1_1_inverse}{SrcXprType};
+00293   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} 
+      \hyperlink{struct_eigen_1_1internal_1_1assign__op}{internal::assign\_op<typename DstXprType::Scalar,typename XprType::Scalar>}
+       &)
+00294   \{
+00295     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} dstRows = src.rows();
+00296     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} dstCols = src.cols();
+00297     \textcolor{keywordflow}{if}((dst.rows()!=dstRows) || (dst.cols()!=dstCols))
+00298       dst.resize(dstRows, dstCols);
+00299     
+00300     \textcolor{keyword}{const} \textcolor{keywordtype}{int} Size = EIGEN\_PLAIN\_ENUM\_MIN(XprType::ColsAtCompileTime,DstXprType::ColsAtCompileTime);
+00301     EIGEN\_ONLY\_USED\_FOR\_DEBUG(Size);
+00302     eigen\_assert(( (Size<=1) || (Size>4) || (extract\_data(src.nestedExpression())!=extract\_data(dst)))
+00303               && \textcolor{stringliteral}{"Aliasing problem detected in inverse(), you need to do inverse().eval() here."});
+00304 
+00305     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} 
+      \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{internal::nested\_eval<XprType,XprType::ColsAtCompileTime>::type}
+        ActualXprType;
+00306     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{internal::remove\_all<ActualXprType>::type}    
+                          ActualXprTypeCleanded;
+00307     
+00308     ActualXprType actual\_xpr(src.nestedExpression());
+00309     
+00310     \hyperlink{struct_eigen_1_1internal_1_1compute__inverse}{compute\_inverse<ActualXprTypeCleanded, DstXprType>::run}
+      (actual\_xpr, dst);
+00311   \}
+00312 \};
+00313 
+00314   
+00315 \} \textcolor{comment}{// end namespace internal}
+00316 
+00334 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source_l00335}\hyperlink{group___core___module_a7712eb69e8ea3c8f7b8da1c44dbdeebf}{00335} \textcolor{keyword}{inline} \textcolor{keyword}{const} \hyperlink{class_eigen_1_1_inverse}{Inverse<Derived>} \hyperlink{group___core___module_a7712eb69e8ea3c8f7b8da1c44dbdeebf}{MatrixBase<Derived>::inverse}()\textcolor{keyword}{
+       const}
+00336 \textcolor{keyword}{}\{
+00337   EIGEN\_STATIC\_ASSERT(!\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsInteger},
+      THIS\_FUNCTION\_IS\_NOT\_FOR\_INTEGER\_NUMERIC\_TYPES)
+00338   eigen\_assert(rows() == cols());
+00339   \textcolor{keywordflow}{return} \hyperlink{class_eigen_1_1_inverse}{Inverse<Derived>}(derived());
+00340 \}
+00341 
+00360 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00361 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ResultType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source_l00362}\hyperlink{group___core___module_a7baaf2fdec0191a2166cf9fd84a2dcb2}{00362} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} \hyperlink{group___core___module_a7baaf2fdec0191a2166cf9fd84a2dcb2}{MatrixBase<Derived>::computeInverseAndDetWithCheck}
+      (
+00363     ResultType& inverse,
+00364     \textcolor{keyword}{typename} ResultType::Scalar& determinant,
+00365     \textcolor{keywordtype}{bool}& invertible,
+00366     \textcolor{keyword}{const} RealScalar& absDeterminantThreshold
+00367   )\textcolor{keyword}{ const}
+00368 \textcolor{keyword}{}\{
+00369   \textcolor{comment}{// i'd love to put some static assertions there, but SFINAE means that they have no effect...}
+00370   eigen\_assert(rows() == cols());
+00371   \textcolor{comment}{// for 2x2, it's worth giving a chance to avoid evaluating.}
+00372   \textcolor{comment}{// for larger sizes, evaluating has negligible cost and limits code size.}
+00373   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1conditional}{internal::conditional}<
+00374     RowsAtCompileTime == 2,
+00375     \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1remove__all}{internal::remove\_all<typename internal::nested\_eval<Derived, 2>::type}
+      >::type,
+00376     \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{PlainObject}
+00377   >::type MatrixType;
+00378   \hyperlink{struct_eigen_1_1internal_1_1compute__inverse__and__det__with__check}{internal::compute\_inverse\_and\_det\_with\_check<MatrixType, ResultType>::run}
+00379     (derived(), absDeterminantThreshold, inverse, determinant, invertible);
+00380 \}
+00381 
+00399 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00400 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ResultType>
+\Hypertarget{eigen_2_eigen_2src_2_l_u_2_inverse_impl_8h_source_l00401}\hyperlink{group___core___module_a116f3b50d2af7dbdf7473e517a5b8b0f}{00401} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} \hyperlink{group___core___module_a116f3b50d2af7dbdf7473e517a5b8b0f}{MatrixBase<Derived>::computeInverseWithCheck}(
+00402     ResultType& inverse,
+00403     \textcolor{keywordtype}{bool}& invertible,
+00404     \textcolor{keyword}{const} RealScalar& absDeterminantThreshold
+00405   )\textcolor{keyword}{ const}
+00406 \textcolor{keyword}{}\{
+00407   RealScalar determinant;
+00408   \textcolor{comment}{// i'd love to put some static assertions there, but SFINAE means that they have no effect...}
+00409   eigen\_assert(rows() == cols());
+00410   computeInverseAndDetWithCheck(inverse,determinant,invertible,absDeterminantThreshold);
+00411 \}
+00412 
+00413 \} \textcolor{comment}{// end namespace Eigen}
+00414 
+00415 \textcolor{preprocessor}{#endif // EIGEN\_INVERSE\_IMPL\_H}
+\end{DoxyCode}

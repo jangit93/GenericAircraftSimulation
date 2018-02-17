@@ -1,0 +1,105 @@
+\hypertarget{eigen_2blas_2_band_triangular_solver_8h_source}{}\section{eigen/blas/\+Band\+Triangular\+Solver.h}
+\label{eigen_2blas_2_band_triangular_solver_8h_source}\index{Band\+Triangular\+Solver.\+h@{Band\+Triangular\+Solver.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2011 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_BAND\_TRIANGULARSOLVER\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_BAND\_TRIANGULARSOLVER\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00014 
+00015  \textcolor{comment}{/* \(\backslash\)internal}
+00016 \textcolor{comment}{  * Solve Ax=b with A a band triangular matrix}
+00017 \textcolor{comment}{  * TODO: extend it to matrices for x abd b */}
+00018 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Index, \textcolor{keywordtype}{int} Mode, \textcolor{keyword}{typename} LhsScalar, \textcolor{keywordtype}{bool} ConjLhs, \textcolor{keyword}{typename} RhsScalar, \textcolor{keywordtype}{int} StorageOrder>
+\Hypertarget{eigen_2blas_2_band_triangular_solver_8h_source_l00019}\hyperlink{structinternal_1_1band__solve__triangular__selector}{00019} \textcolor{keyword}{struct }\hyperlink{structinternal_1_1band__solve__triangular__selector}{band\_solve\_triangular\_selector};
+00020 
+00021 
+00022 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Index, \textcolor{keywordtype}{int} Mode, \textcolor{keyword}{typename} LhsScalar, \textcolor{keywordtype}{bool} ConjLhs, \textcolor{keyword}{typename} RhsScalar>
+\Hypertarget{eigen_2blas_2_band_triangular_solver_8h_source_l00023}\hyperlink{structinternal_1_1band__solve__triangular__selector_3_01_index_00_01_mode_00_01_lhs_scalar_00_0193d039d924d700ecb916fd425a10f1bb}{00023} \textcolor{keyword}{struct }\hyperlink{structinternal_1_1band__solve__triangular__selector}{band\_solve\_triangular\_selector}<Index,Mode,LhsScalar,ConjLhs,RhsScalar,
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}>
+00024 \{
+00025   \textcolor{keyword}{typedef} Map<const Matrix<LhsScalar,Dynamic,Dynamic,RowMajor>, 0, OuterStride<> > LhsMap;
+00026   \textcolor{keyword}{typedef} Map<Matrix<RhsScalar,Dynamic,1> > RhsMap;
+00027   \textcolor{keyword}{enum} \{ IsLower = (Mode&\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}) ? 1 : 0 \};
+00028   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(Index size, Index k, \textcolor{keyword}{const} LhsScalar* \_lhs, Index lhsStride, RhsScalar* \_other)
+00029   \{
+00030     \textcolor{keyword}{const} LhsMap lhs(\_lhs,size,k+1,OuterStride<>(lhsStride));
+00031     RhsMap other(\_other,size,1);
+00032     \textcolor{keyword}{typename} internal::conditional<
+00033                           ConjLhs,
+00034                           \textcolor{keyword}{const} CwiseUnaryOp<typename internal::scalar\_conjugate\_op<LhsScalar>,LhsMap>,
+00035                           \textcolor{keyword}{const} LhsMap&>
+00036                         ::type cjLhs(lhs);
+00037                         
+00038     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} col=0 ; col<other.cols() ; ++col)
+00039     \{
+00040       \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} ii=0; ii<size; ++ii)
+00041       \{
+00042         \textcolor{keywordtype}{int} i = IsLower ? ii : size-ii-1;
+00043         \textcolor{keywordtype}{int} actual\_k = (std::min)(k,ii);
+00044         \textcolor{keywordtype}{int} actual\_start = IsLower ? k-actual\_k : 1;
+00045         
+00046         \textcolor{keywordflow}{if}(actual\_k>0)
+00047           other.coeffRef(i,col) -= cjLhs.row(i).segment(actual\_start,actual\_k).transpose()
+00048                                   .cwiseProduct(other.col(col).segment(IsLower ? i-actual\_k : i+1,actual\_k)
+      ).sum();
+00049 
+00050         \textcolor{keywordflow}{if}((Mode&\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdaddb72f888ac85d5a1c52333e54f9374b}{UnitDiag})==0)
+00051           other.coeffRef(i,col) /= cjLhs(i,IsLower ? k : 0);
+00052       \}
+00053     \}
+00054   \}
+00055   
+00056 \};
+00057 
+00058 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Index, \textcolor{keywordtype}{int} Mode, \textcolor{keyword}{typename} LhsScalar, \textcolor{keywordtype}{bool} ConjLhs, \textcolor{keyword}{typename} RhsScalar>
+\Hypertarget{eigen_2blas_2_band_triangular_solver_8h_source_l00059}\hyperlink{structinternal_1_1band__solve__triangular__selector_3_01_index_00_01_mode_00_01_lhs_scalar_00_0137de00cf99d429d0f5d51514cfce90a6}{00059} \textcolor{keyword}{struct }\hyperlink{structinternal_1_1band__solve__triangular__selector}{band\_solve\_triangular\_selector}<Index,Mode,LhsScalar,ConjLhs,RhsScalar,
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}>
+00060 \{
+00061   \textcolor{keyword}{typedef} Map<const Matrix<LhsScalar,Dynamic,Dynamic,ColMajor>, 0, OuterStride<> > LhsMap;
+00062   \textcolor{keyword}{typedef} Map<Matrix<RhsScalar,Dynamic,1> > RhsMap;
+00063   \textcolor{keyword}{enum} \{ IsLower = (Mode&\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}) ? 1 : 0 \};
+00064   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(Index size, Index k, \textcolor{keyword}{const} LhsScalar* \_lhs, Index lhsStride, RhsScalar* \_other)
+00065   \{
+00066     \textcolor{keyword}{const} LhsMap lhs(\_lhs,k+1,size,OuterStride<>(lhsStride));
+00067     RhsMap other(\_other,size,1);
+00068     \textcolor{keyword}{typename} internal::conditional<
+00069                           ConjLhs,
+00070                           \textcolor{keyword}{const} CwiseUnaryOp<typename internal::scalar\_conjugate\_op<LhsScalar>,LhsMap>,
+00071                           \textcolor{keyword}{const} LhsMap&>
+00072                         ::type cjLhs(lhs);
+00073                         
+00074     \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} col=0 ; col<other.cols() ; ++col)
+00075     \{
+00076       \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} ii=0; ii<size; ++ii)
+00077       \{
+00078         \textcolor{keywordtype}{int} i = IsLower ? ii : size-ii-1;
+00079         \textcolor{keywordtype}{int} actual\_k = (std::min)(k,size-ii-1);
+00080         \textcolor{keywordtype}{int} actual\_start = IsLower ? 1 : k-actual\_k;
+00081         
+00082         \textcolor{keywordflow}{if}((Mode&\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdaddb72f888ac85d5a1c52333e54f9374b}{UnitDiag})==0)
+00083           other.coeffRef(i,col) /= cjLhs(IsLower ? 0 : k, i);
+00084 
+00085         \textcolor{keywordflow}{if}(actual\_k>0)
+00086           other.col(col).segment(IsLower ? i+1 : i-actual\_k, actual\_k)
+00087               -= other.coeff(i,col) * cjLhs.col(i).segment(actual\_start,actual\_k);
+00088         
+00089       \}
+00090     \}
+00091   \}
+00092 \};
+00093 
+00094 
+00095 \} \textcolor{comment}{// end namespace internal}
+00096 
+00097 \textcolor{preprocessor}{#endif // EIGEN\_BAND\_TRIANGULARSOLVER\_H}
+\end{DoxyCode}

@@ -1,0 +1,72 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2bench_2perf__monitoring_2gemm_2gemm_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/bench/perf\+\_\+monitoring/gemm/gemm.cpp}
+\label{matio_2visual__studio_2test_2eigen_2bench_2perf__monitoring_2gemm_2gemm_8cpp_source}\index{gemm.\+cpp@{gemm.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{preprocessor}{#include <iostream>}
+00002 \textcolor{preprocessor}{#include <fstream>}
+00003 \textcolor{preprocessor}{#include <vector>}
+00004 \textcolor{preprocessor}{#include <Eigen/Core>}
+00005 \textcolor{preprocessor}{#include "../../BenchTimer.h"}
+00006 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00007 
+00008 \textcolor{preprocessor}{#ifndef SCALAR}
+00009 \textcolor{preprocessor}{#error SCALAR must be defined}
+00010 \textcolor{preprocessor}{#endif}
+00011 
+00012 \textcolor{keyword}{typedef} SCALAR Scalar;
+00013 
+00014 \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,Dynamic>} \hyperlink{group___core___module}{Mat};
+00015 
+00016 EIGEN\_DONT\_INLINE
+00017 \textcolor{keywordtype}{void} gemm(\textcolor{keyword}{const} \hyperlink{group___core___module}{Mat} &\hyperlink{group___core___module_class_eigen_1_1_matrix}{A}, \textcolor{keyword}{const} \hyperlink{group___core___module}{Mat} &\hyperlink{group___core___module_class_eigen_1_1_matrix}{B}, \hyperlink{group___core___module}{Mat} &\hyperlink{group___core___module}{C})
+00018 \{
+00019   C.noalias() += A * B;
+00020 \}
+00021 
+00022 EIGEN\_DONT\_INLINE
+00023 \textcolor{keywordtype}{double} bench(\textcolor{keywordtype}{long} m, \textcolor{keywordtype}{long} n, \textcolor{keywordtype}{long} k)
+00024 \{
+00025   \hyperlink{group___core___module}{Mat} A(m,k);
+00026   \hyperlink{group___core___module}{Mat} B(k,n);
+00027   \hyperlink{group___core___module}{Mat} C(m,n);
+00028   A.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00029   B.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00030   C.\hyperlink{class_eigen_1_1_plain_object_base_ac21ad5f989f320e46958b75ac8d9a1da}{setZero}();
+00031   
+00032   \hyperlink{class_eigen_1_1_bench_timer}{BenchTimer} t;
+00033   
+00034   \textcolor{keywordtype}{double} up = 1e8*4/\textcolor{keyword}{sizeof}(Scalar);
+00035   \textcolor{keywordtype}{double} tm0 = 4, tm1 = 10;
+00036   \textcolor{keywordflow}{if}(\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsComplex})
+00037   \{
+00038     up /= 4;
+00039     tm0 = 2;
+00040     tm1 = 4;
+00041   \}
+00042   
+00043   \textcolor{keywordtype}{double} flops = 2. * m * n * k;
+00044   \textcolor{keywordtype}{long} rep = std::max(1., std::min(100., up/flops) );
+00045   \textcolor{keywordtype}{long} tries = std::max(tm0, std::min(tm1, up/flops) );
+00046   
+00047   BENCH(t, tries, rep, gemm(A,B,C));
+00048   
+00049   \textcolor{keywordflow}{return} 1e-9 * rep * flops / t.\hyperlink{class_eigen_1_1_bench_timer_ae8b673b0fa356d3432c7a65c79e8af0e}{best}();
+00050 \}
+00051 
+00052 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} **argv)
+00053 \{
+00054   std::vector<double> results;
+00055   
+00056   std::ifstream settings(\textcolor{stringliteral}{"gemm\_settings.txt"});
+00057   \textcolor{keywordtype}{long} m, n, k;
+00058   \textcolor{keywordflow}{while}(settings >> m >> n >> k)
+00059   \{
+00060     \textcolor{comment}{//std::cerr << "  Testing " << m << " " << n << " " << k << std::endl;}
+00061     results.push\_back( bench(m, n, k) );
+00062   \}
+00063   
+00064   std::cout << RowVectorXd::Map(results.data(), results.size());
+00065   
+00066   \textcolor{keywordflow}{return} 0;
+00067 \}
+\end{DoxyCode}

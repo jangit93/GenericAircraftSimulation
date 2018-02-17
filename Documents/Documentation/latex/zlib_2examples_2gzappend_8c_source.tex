@@ -1,0 +1,509 @@
+\hypertarget{zlib_2examples_2gzappend_8c_source}{}\section{zlib/examples/gzappend.c}
+\label{zlib_2examples_2gzappend_8c_source}\index{gzappend.\+c@{gzappend.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* gzappend -- command to append to a gzip file}
+00002 \textcolor{comment}{}
+00003 \textcolor{comment}{  Copyright (C) 2003, 2012 Mark Adler, all rights reserved}
+00004 \textcolor{comment}{  version 1.2, 11 Oct 2012}
+00005 \textcolor{comment}{}
+00006 \textcolor{comment}{  This software is provided 'as-is', without any express or implied}
+00007 \textcolor{comment}{  warranty.  In no event will the author be held liable for any damages}
+00008 \textcolor{comment}{  arising from the use of this software.}
+00009 \textcolor{comment}{}
+00010 \textcolor{comment}{  Permission is granted to anyone to use this software for any purpose,}
+00011 \textcolor{comment}{  including commercial applications, and to alter it and redistribute it}
+00012 \textcolor{comment}{  freely, subject to the following restrictions:}
+00013 \textcolor{comment}{}
+00014 \textcolor{comment}{  1. The origin of this software must not be misrepresented; you must not}
+00015 \textcolor{comment}{     claim that you wrote the original software. If you use this software}
+00016 \textcolor{comment}{     in a product, an acknowledgment in the product documentation would be}
+00017 \textcolor{comment}{     appreciated but is not required.}
+00018 \textcolor{comment}{  2. Altered source versions must be plainly marked as such, and must not be}
+00019 \textcolor{comment}{     misrepresented as being the original software.}
+00020 \textcolor{comment}{  3. This notice may not be removed or altered from any source distribution.}
+00021 \textcolor{comment}{}
+00022 \textcolor{comment}{  Mark Adler    madler@alumni.caltech.edu}
+00023 \textcolor{comment}{ */}
+00024 
+00025 \textcolor{comment}{/*}
+00026 \textcolor{comment}{ * Change history:}
+00027 \textcolor{comment}{ *}
+00028 \textcolor{comment}{ * 1.0  19 Oct 2003     - First version}
+00029 \textcolor{comment}{ * 1.1   4 Nov 2003     - Expand and clarify some comments and notes}
+00030 \textcolor{comment}{ *                      - Add version and copyright to help}
+00031 \textcolor{comment}{ *                      - Send help to stdout instead of stderr}
+00032 \textcolor{comment}{ *                      - Add some preemptive typecasts}
+00033 \textcolor{comment}{ *                      - Add L to constants in lseek() calls}
+00034 \textcolor{comment}{ *                      - Remove some debugging information in error messages}
+00035 \textcolor{comment}{ *                      - Use new data\_type definition for zlib 1.2.1}
+00036 \textcolor{comment}{ *                      - Simplfy and unify file operations}
+00037 \textcolor{comment}{ *                      - Finish off gzip file in gztack()}
+00038 \textcolor{comment}{ *                      - Use deflatePrime() instead of adding empty blocks}
+00039 \textcolor{comment}{ *                      - Keep gzip file clean on appended file read errors}
+00040 \textcolor{comment}{ *                      - Use in-place rotate instead of auxiliary buffer}
+00041 \textcolor{comment}{ *                        (Why you ask?  Because it was fun to write!)}
+00042 \textcolor{comment}{ * 1.2  11 Oct 2012     - Fix for proper z\_const usage}
+00043 \textcolor{comment}{ *                      - Check for input buffer malloc failure}
+00044 \textcolor{comment}{ */}
+00045 
+00046 \textcolor{comment}{/*}
+00047 \textcolor{comment}{   gzappend takes a gzip file and appends to it, compressing files from the}
+00048 \textcolor{comment}{   command line or data from stdin.  The gzip file is written to directly, to}
+00049 \textcolor{comment}{   avoid copying that file, in case it's large.  Note that this results in the}
+00050 \textcolor{comment}{   unfriendly behavior that if gzappend fails, the gzip file is corrupted.}
+00051 \textcolor{comment}{}
+00052 \textcolor{comment}{   This program was written to illustrate the use of the new Z\_BLOCK option of}
+00053 \textcolor{comment}{   zlib 1.2.x's inflate() function.  This option returns from inflate() at each}
+00054 \textcolor{comment}{   block boundary to facilitate locating and modifying the last block bit at}
+00055 \textcolor{comment}{   the start of the final deflate block.  Also whether using Z\_BLOCK or not,}
+00056 \textcolor{comment}{   another required feature of zlib 1.2.x is that inflate() now provides the}
+00057 \textcolor{comment}{   number of unusued bits in the last input byte used.  gzappend will not work}
+00058 \textcolor{comment}{   with versions of zlib earlier than 1.2.1.}
+00059 \textcolor{comment}{}
+00060 \textcolor{comment}{   gzappend first decompresses the gzip file internally, discarding all but}
+00061 \textcolor{comment}{   the last 32K of uncompressed data, and noting the location of the last block}
+00062 \textcolor{comment}{   bit and the number of unused bits in the last byte of the compressed data.}
+00063 \textcolor{comment}{   The gzip trailer containing the CRC-32 and length of the uncompressed data}
+00064 \textcolor{comment}{   is verified.  This trailer will be later overwritten.}
+00065 \textcolor{comment}{}
+00066 \textcolor{comment}{   Then the last block bit is cleared by seeking back in the file and rewriting}
+00067 \textcolor{comment}{   the byte that contains it.  Seeking forward, the last byte of the compressed}
+00068 \textcolor{comment}{   data is saved along with the number of unused bits to initialize deflate.}
+00069 \textcolor{comment}{}
+00070 \textcolor{comment}{   A deflate process is initialized, using the last 32K of the uncompressed}
+00071 \textcolor{comment}{   data from the gzip file to initialize the dictionary.  If the total}
+00072 \textcolor{comment}{   uncompressed data was less than 32K, then all of it is used to initialize}
+00073 \textcolor{comment}{   the dictionary.  The deflate output bit buffer is also initialized with the}
+00074 \textcolor{comment}{   last bits from the original deflate stream.  From here on, the data to}
+00075 \textcolor{comment}{   append is simply compressed using deflate, and written to the gzip file.}
+00076 \textcolor{comment}{   When that is complete, the new CRC-32 and uncompressed length are written}
+00077 \textcolor{comment}{   as the trailer of the gzip file.}
+00078 \textcolor{comment}{ */}
+00079 
+00080 \textcolor{preprocessor}{#include <stdio.h>}
+00081 \textcolor{preprocessor}{#include <stdlib.h>}
+00082 \textcolor{preprocessor}{#include <string.h>}
+00083 \textcolor{preprocessor}{#include <fcntl.h>}
+00084 \textcolor{preprocessor}{#include <unistd.h>}
+00085 \textcolor{preprocessor}{#include "zlib.h"}
+00086 
+00087 \textcolor{preprocessor}{#define local static}
+00088 \textcolor{preprocessor}{#define LGCHUNK 14}
+00089 \textcolor{preprocessor}{#define CHUNK (1U << LGCHUNK)}
+00090 \textcolor{preprocessor}{#define DSIZE 32768U}
+00091 
+00092 \textcolor{comment}{/* print an error message and terminate with extreme prejudice */}
+00093 local \textcolor{keywordtype}{void} bye(\textcolor{keywordtype}{char} *msg1, \textcolor{keywordtype}{char} *msg2)
+00094 \{
+00095     fprintf(stderr, \textcolor{stringliteral}{"gzappend error: %s%s\(\backslash\)n"}, msg1, msg2);
+00096     exit(1);
+00097 \}
+00098 
+00099 \textcolor{comment}{/* return the greatest common divisor of a and b using Euclid's algorithm,}
+00100 \textcolor{comment}{   modified to be fast when one argument much greater than the other, and}
+00101 \textcolor{comment}{   coded to avoid unnecessary swapping */}
+00102 local \textcolor{keywordtype}{unsigned} gcd(\textcolor{keywordtype}{unsigned} a, \textcolor{keywordtype}{unsigned} b)
+00103 \{
+00104     \textcolor{keywordtype}{unsigned} c;
+00105 
+00106     \textcolor{keywordflow}{while} (a && b)
+00107         \textcolor{keywordflow}{if} (a > b) \{
+00108             c = b;
+00109             \textcolor{keywordflow}{while} (a - c >= c)
+00110                 c <<= 1;
+00111             a -= c;
+00112         \}
+00113         \textcolor{keywordflow}{else} \{
+00114             c = a;
+00115             \textcolor{keywordflow}{while} (b - c >= c)
+00116                 c <<= 1;
+00117             b -= c;
+00118         \}
+00119     \textcolor{keywordflow}{return} a + b;
+00120 \}
+00121 
+00122 \textcolor{comment}{/* rotate list[0..len-1] left by rot positions, in place */}
+00123 local \textcolor{keywordtype}{void} rotate(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *list, \textcolor{keywordtype}{unsigned} len, \textcolor{keywordtype}{unsigned} rot)
+00124 \{
+00125     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} tmp;
+00126     \textcolor{keywordtype}{unsigned} cycles;
+00127     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *start, *last, *to, *from;
+00128 
+00129     \textcolor{comment}{/* normalize rot and handle degenerate cases */}
+00130     \textcolor{keywordflow}{if} (len < 2) \textcolor{keywordflow}{return};
+00131     \textcolor{keywordflow}{if} (rot >= len) rot %= len;
+00132     \textcolor{keywordflow}{if} (rot == 0) \textcolor{keywordflow}{return};
+00133 
+00134     \textcolor{comment}{/* pointer to last entry in list */}
+00135     last = list + (len - 1);
+00136 
+00137     \textcolor{comment}{/* do simple left shift by one */}
+00138     \textcolor{keywordflow}{if} (rot == 1) \{
+00139         tmp = *list;
+00140         memcpy(list, list + 1, len - 1);
+00141         *last = tmp;
+00142         \textcolor{keywordflow}{return};
+00143     \}
+00144 
+00145     \textcolor{comment}{/* do simple right shift by one */}
+00146     \textcolor{keywordflow}{if} (rot == len - 1) \{
+00147         tmp = *last;
+00148         memmove(list + 1, list, len - 1);
+00149         *list = tmp;
+00150         \textcolor{keywordflow}{return};
+00151     \}
+00152 
+00153     \textcolor{comment}{/* otherwise do rotate as a set of cycles in place */}
+00154     cycles = gcd(len, rot);             \textcolor{comment}{/* number of cycles */}
+00155     \textcolor{keywordflow}{do} \{
+00156         start = from = list + cycles;   \textcolor{comment}{/* start index is arbitrary */}
+00157         tmp = *from;                    \textcolor{comment}{/* save entry to be overwritten */}
+00158         \textcolor{keywordflow}{for} (;;) \{
+00159             to = from;                  \textcolor{comment}{/* next step in cycle */}
+00160             from += rot;                \textcolor{comment}{/* go right rot positions */}
+00161             \textcolor{keywordflow}{if} (from > last) from -= len;   \textcolor{comment}{/* (pointer better not wrap) */}
+00162             \textcolor{keywordflow}{if} (from == start) \textcolor{keywordflow}{break};   \textcolor{comment}{/* all but one shifted */}
+00163             *to = *from;                \textcolor{comment}{/* shift left */}
+00164         \}
+00165         *to = tmp;                      \textcolor{comment}{/* complete the circle */}
+00166     \} \textcolor{keywordflow}{while} (--cycles);
+00167 \}
+00168 
+00169 \textcolor{comment}{/* structure for gzip file read operations */}
+00170 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\{
+00171     \textcolor{keywordtype}{int} fd;                     \textcolor{comment}{/* file descriptor */}
+00172     \textcolor{keywordtype}{int} size;                   \textcolor{comment}{/* 1 << size is bytes in buf */}
+00173     \textcolor{keywordtype}{unsigned} left;              \textcolor{comment}{/* bytes available at next */}
+00174     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *buf;         \textcolor{comment}{/* buffer */}
+00175     z\_const \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *next;    \textcolor{comment}{/* next byte in buffer */}
+00176     \textcolor{keywordtype}{char} *name;                 \textcolor{comment}{/* file name for error messages */}
+00177 \} \hyperlink{structfile}{file};
+00178 
+00179 \textcolor{comment}{/* reload buffer */}
+00180 local \textcolor{keywordtype}{int} readin(\hyperlink{structfile}{file} *in)
+00181 \{
+00182     \textcolor{keywordtype}{int} len;
+00183 
+00184     len = read(in->fd, in->buf, 1 << in->size);
+00185     \textcolor{keywordflow}{if} (len == -1) bye(\textcolor{stringliteral}{"error reading "}, in->name);
+00186     in->left = (unsigned)len;
+00187     in->next = in->buf;
+00188     \textcolor{keywordflow}{return} len;
+00189 \}
+00190 
+00191 \textcolor{comment}{/* read from file in, exit if end-of-file */}
+00192 local \textcolor{keywordtype}{int} readmore(\hyperlink{structfile}{file} *in)
+00193 \{
+00194     \textcolor{keywordflow}{if} (readin(in) == 0) bye(\textcolor{stringliteral}{"unexpected end of "}, in->name);
+00195     \textcolor{keywordflow}{return} 0;
+00196 \}
+00197 
+00198 \textcolor{preprocessor}{#define read1(in) (in->left == 0 ? readmore(in) : 0, \(\backslash\)}
+00199 \textcolor{preprocessor}{                   in->left--, *(in->next)++)}
+00200 
+00201 \textcolor{comment}{/* skip over n bytes of in */}
+00202 local \textcolor{keywordtype}{void} skip(\hyperlink{structfile}{file} *in, \textcolor{keywordtype}{unsigned} n)
+00203 \{
+00204     \textcolor{keywordtype}{unsigned} bypass;
+00205 
+00206     \textcolor{keywordflow}{if} (n > in->left) \{
+00207         n -= in->left;
+00208         bypass = n & ~((1U << in->size) - 1);
+00209         \textcolor{keywordflow}{if} (bypass) \{
+00210             \textcolor{keywordflow}{if} (lseek(in->fd, (off\_t)bypass, SEEK\_CUR) == -1)
+00211                 bye(\textcolor{stringliteral}{"seeking "}, in->name);
+00212             n -= bypass;
+00213         \}
+00214         readmore(in);
+00215         \textcolor{keywordflow}{if} (n > in->left)
+00216             bye(\textcolor{stringliteral}{"unexpected end of "}, in->name);
+00217     \}
+00218     in->left -= n;
+00219     in->next += n;
+00220 \}
+00221 
+00222 \textcolor{comment}{/* read a four-byte unsigned integer, little-endian, from in */}
+00223 \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} read4(\hyperlink{structfile}{file} *in)
+00224 \{
+00225     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} val;
+00226 
+00227     val = read1(in);
+00228     val += (unsigned)read1(in) << 8;
+00229     val += (\textcolor{keywordtype}{unsigned} long)read1(in) << 16;
+00230     val += (\textcolor{keywordtype}{unsigned} long)read1(in) << 24;
+00231     \textcolor{keywordflow}{return} val;
+00232 \}
+00233 
+00234 \textcolor{comment}{/* skip over gzip header */}
+00235 local \textcolor{keywordtype}{void} gzheader(\hyperlink{structfile}{file} *in)
+00236 \{
+00237     \textcolor{keywordtype}{int} flags;
+00238     \textcolor{keywordtype}{unsigned} n;
+00239 
+00240     \textcolor{keywordflow}{if} (read1(in) != 31 || read1(in) != 139) bye(in->name, \textcolor{stringliteral}{" not a gzip file"});
+00241     \textcolor{keywordflow}{if} (read1(in) != 8) bye(\textcolor{stringliteral}{"unknown compression method in"}, in->name);
+00242     flags = read1(in);
+00243     \textcolor{keywordflow}{if} (flags & 0xe0) bye(\textcolor{stringliteral}{"unknown header flags set in"}, in->name);
+00244     skip(in, 6);
+00245     \textcolor{keywordflow}{if} (flags & 4) \{
+00246         n = read1(in);
+00247         n += (unsigned)(read1(in)) << 8;
+00248         skip(in, n);
+00249     \}
+00250     \textcolor{keywordflow}{if} (flags & 8) \textcolor{keywordflow}{while} (read1(in) != 0) ;
+00251     \textcolor{keywordflow}{if} (flags & 16) \textcolor{keywordflow}{while} (read1(in) != 0) ;
+00252     \textcolor{keywordflow}{if} (flags & 2) skip(in, 2);
+00253 \}
+00254 
+00255 \textcolor{comment}{/* decompress gzip file "name", return strm with a deflate stream ready to}
+00256 \textcolor{comment}{   continue compression of the data in the gzip file, and return a file}
+00257 \textcolor{comment}{   descriptor pointing to where to write the compressed data -- the deflate}
+00258 \textcolor{comment}{   stream is initialized to compress using level "level" */}
+00259 local \textcolor{keywordtype}{int} gzscan(\textcolor{keywordtype}{char} *name, \hyperlink{structz__stream__s}{z\_stream} *strm, \textcolor{keywordtype}{int} level)
+00260 \{
+00261     \textcolor{keywordtype}{int} ret, lastbit, left, full;
+00262     \textcolor{keywordtype}{unsigned} have;
+00263     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} crc, tot;
+00264     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *window;
+00265     off\_t lastoff, end;
+00266     \hyperlink{structfile}{file} gz;
+00267 
+00268     \textcolor{comment}{/* open gzip file */}
+00269     gz.name = name;
+00270     gz.fd = open(name, O\_RDWR, 0);
+00271     \textcolor{keywordflow}{if} (gz.fd == -1) bye(\textcolor{stringliteral}{"cannot open "}, name);
+00272     gz.buf = malloc(CHUNK);
+00273     \textcolor{keywordflow}{if} (gz.buf == NULL) bye(\textcolor{stringliteral}{"out of memory"}, \textcolor{stringliteral}{""});
+00274     gz.size = LGCHUNK;
+00275     gz.left = 0;
+00276 
+00277     \textcolor{comment}{/* skip gzip header */}
+00278     gzheader(&gz);
+00279 
+00280     \textcolor{comment}{/* prepare to decompress */}
+00281     window = malloc(DSIZE);
+00282     \textcolor{keywordflow}{if} (window == NULL) bye(\textcolor{stringliteral}{"out of memory"}, \textcolor{stringliteral}{""});
+00283     strm->zalloc = Z\_NULL;
+00284     strm->zfree = Z\_NULL;
+00285     strm->opaque = Z\_NULL;
+00286     ret = inflateInit2(strm, -15);
+00287     \textcolor{keywordflow}{if} (ret != Z\_OK) bye(\textcolor{stringliteral}{"out of memory"}, \textcolor{stringliteral}{" or library mismatch"});
+00288 
+00289     \textcolor{comment}{/* decompress the deflate stream, saving append information */}
+00290     lastbit = 0;
+00291     lastoff = lseek(gz.fd, 0L, SEEK\_CUR) - gz.left;
+00292     left = 0;
+00293     strm->avail\_in = gz.left;
+00294     strm->next\_in = gz.next;
+00295     crc = crc32(0L, Z\_NULL, 0);
+00296     have = full = 0;
+00297     \textcolor{keywordflow}{do} \{
+00298         \textcolor{comment}{/* if needed, get more input */}
+00299         \textcolor{keywordflow}{if} (strm->avail\_in == 0) \{
+00300             readmore(&gz);
+00301             strm->avail\_in = gz.left;
+00302             strm->next\_in = gz.next;
+00303         \}
+00304 
+00305         \textcolor{comment}{/* set up output to next available section of sliding window */}
+00306         strm->avail\_out = DSIZE - have;
+00307         strm->next\_out = window + have;
+00308 
+00309         \textcolor{comment}{/* inflate and check for errors */}
+00310         ret = inflate(strm, Z\_BLOCK);
+00311         \textcolor{keywordflow}{if} (ret == Z\_STREAM\_ERROR) bye(\textcolor{stringliteral}{"internal stream error!"}, \textcolor{stringliteral}{""});
+00312         \textcolor{keywordflow}{if} (ret == Z\_MEM\_ERROR) bye(\textcolor{stringliteral}{"out of memory"}, \textcolor{stringliteral}{""});
+00313         \textcolor{keywordflow}{if} (ret == Z\_DATA\_ERROR)
+00314             bye(\textcolor{stringliteral}{"invalid compressed data--format violated in"}, name);
+00315 
+00316         \textcolor{comment}{/* update crc and sliding window pointer */}
+00317         crc = crc32(crc, window + have, DSIZE - have - strm->avail\_out);
+00318         \textcolor{keywordflow}{if} (strm->avail\_out)
+00319             have = DSIZE - strm->avail\_out;
+00320         \textcolor{keywordflow}{else} \{
+00321             have = 0;
+00322             full = 1;
+00323         \}
+00324 
+00325         \textcolor{comment}{/* process end of block */}
+00326         \textcolor{keywordflow}{if} (strm->data\_type & 128) \{
+00327             \textcolor{keywordflow}{if} (strm->data\_type & 64)
+00328                 left = strm->data\_type & 0x1f;
+00329             \textcolor{keywordflow}{else} \{
+00330                 lastbit = strm->data\_type & 0x1f;
+00331                 lastoff = lseek(gz.fd, 0L, SEEK\_CUR) - strm->avail\_in;
+00332             \}
+00333         \}
+00334     \} \textcolor{keywordflow}{while} (ret != Z\_STREAM\_END);
+00335     inflateEnd(strm);
+00336     gz.left = strm->avail\_in;
+00337     gz.next = strm->next\_in;
+00338 
+00339     \textcolor{comment}{/* save the location of the end of the compressed data */}
+00340     end = lseek(gz.fd, 0L, SEEK\_CUR) - gz.left;
+00341 
+00342     \textcolor{comment}{/* check gzip trailer and save total for deflate */}
+00343     \textcolor{keywordflow}{if} (crc != read4(&gz))
+00344         bye(\textcolor{stringliteral}{"invalid compressed data--crc mismatch in "}, name);
+00345     tot = strm->total\_out;
+00346     \textcolor{keywordflow}{if} ((tot & 0xffffffffUL) != read4(&gz))
+00347         bye(\textcolor{stringliteral}{"invalid compressed data--length mismatch in"}, name);
+00348 
+00349     \textcolor{comment}{/* if not at end of file, warn */}
+00350     \textcolor{keywordflow}{if} (gz.left || readin(&gz))
+00351         fprintf(stderr,
+00352             \textcolor{stringliteral}{"gzappend warning: junk at end of gzip file overwritten\(\backslash\)n"});
+00353 
+00354     \textcolor{comment}{/* clear last block bit */}
+00355     lseek(gz.fd, lastoff - (lastbit != 0), SEEK\_SET);
+00356     \textcolor{keywordflow}{if} (read(gz.fd, gz.buf, 1) != 1) bye(\textcolor{stringliteral}{"reading after seek on "}, name);
+00357     *gz.buf = (\textcolor{keywordtype}{unsigned} char)(*gz.buf ^ (1 << ((8 - lastbit) & 7)));
+00358     lseek(gz.fd, -1L, SEEK\_CUR);
+00359     \textcolor{keywordflow}{if} (write(gz.fd, gz.buf, 1) != 1) bye(\textcolor{stringliteral}{"writing after seek to "}, name);
+00360 
+00361     \textcolor{comment}{/* if window wrapped, build dictionary from window by rotating */}
+00362     \textcolor{keywordflow}{if} (full) \{
+00363         rotate(window, DSIZE, have);
+00364         have = DSIZE;
+00365     \}
+00366 
+00367     \textcolor{comment}{/* set up deflate stream with window, crc, total\_in, and leftover bits */}
+00368     ret = deflateInit2(strm, level, Z\_DEFLATED, -15, 8, Z\_DEFAULT\_STRATEGY);
+00369     \textcolor{keywordflow}{if} (ret != Z\_OK) bye(\textcolor{stringliteral}{"out of memory"}, \textcolor{stringliteral}{""});
+00370     deflateSetDictionary(strm, window, have);
+00371     strm->adler = crc;
+00372     strm->total\_in = tot;
+00373     \textcolor{keywordflow}{if} (left) \{
+00374         lseek(gz.fd, --end, SEEK\_SET);
+00375         \textcolor{keywordflow}{if} (read(gz.fd, gz.buf, 1) != 1) bye(\textcolor{stringliteral}{"reading after seek on "}, name);
+00376         deflatePrime(strm, 8 - left, *gz.buf);
+00377     \}
+00378     lseek(gz.fd, end, SEEK\_SET);
+00379 
+00380     \textcolor{comment}{/* clean up and return */}
+00381     free(window);
+00382     free(gz.buf);
+00383     \textcolor{keywordflow}{return} gz.fd;
+00384 \}
+00385 
+00386 \textcolor{comment}{/* append file "name" to gzip file gd using deflate stream strm -- if last}
+00387 \textcolor{comment}{   is true, then finish off the deflate stream at the end */}
+00388 local \textcolor{keywordtype}{void} gztack(\textcolor{keywordtype}{char} *name, \textcolor{keywordtype}{int} gd, \hyperlink{structz__stream__s}{z\_stream} *strm, \textcolor{keywordtype}{int} last)
+00389 \{
+00390     \textcolor{keywordtype}{int} fd, len, ret;
+00391     \textcolor{keywordtype}{unsigned} left;
+00392     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *in, *out;
+00393 
+00394     \textcolor{comment}{/* open file to compress and append */}
+00395     fd = 0;
+00396     \textcolor{keywordflow}{if} (name != NULL) \{
+00397         fd = open(name, O\_RDONLY, 0);
+00398         \textcolor{keywordflow}{if} (fd == -1)
+00399             fprintf(stderr, \textcolor{stringliteral}{"gzappend warning: %s not found, skipping ...\(\backslash\)n"},
+00400                     name);
+00401     \}
+00402 
+00403     \textcolor{comment}{/* allocate buffers */}
+00404     in = malloc(CHUNK);
+00405     out = malloc(CHUNK);
+00406     \textcolor{keywordflow}{if} (in == NULL || out == NULL) bye(\textcolor{stringliteral}{"out of memory"}, \textcolor{stringliteral}{""});
+00407 
+00408     \textcolor{comment}{/* compress input file and append to gzip file */}
+00409     \textcolor{keywordflow}{do} \{
+00410         \textcolor{comment}{/* get more input */}
+00411         len = read(fd, in, CHUNK);
+00412         \textcolor{keywordflow}{if} (len == -1) \{
+00413             fprintf(stderr,
+00414                     \textcolor{stringliteral}{"gzappend warning: error reading %s, skipping rest ...\(\backslash\)n"},
+00415                     name);
+00416             len = 0;
+00417         \}
+00418         strm->avail\_in = (unsigned)len;
+00419         strm->next\_in = in;
+00420         \textcolor{keywordflow}{if} (len) strm->adler = crc32(strm->adler, in, (\textcolor{keywordtype}{unsigned})len);
+00421 
+00422         \textcolor{comment}{/* compress and write all available output */}
+00423         \textcolor{keywordflow}{do} \{
+00424             strm->avail\_out = CHUNK;
+00425             strm->next\_out = out;
+00426             ret = deflate(strm, last && len == 0 ? Z\_FINISH : Z\_NO\_FLUSH);
+00427             left = CHUNK - strm->avail\_out;
+00428             \textcolor{keywordflow}{while} (left) \{
+00429                 len = write(gd, out + CHUNK - strm->avail\_out - left, left);
+00430                 \textcolor{keywordflow}{if} (len == -1) bye(\textcolor{stringliteral}{"writing gzip file"}, \textcolor{stringliteral}{""});
+00431                 left -= (unsigned)len;
+00432             \}
+00433         \} \textcolor{keywordflow}{while} (strm->avail\_out == 0 && ret != Z\_STREAM\_END);
+00434     \} \textcolor{keywordflow}{while} (len != 0);
+00435 
+00436     \textcolor{comment}{/* write trailer after last entry */}
+00437     \textcolor{keywordflow}{if} (last) \{
+00438         deflateEnd(strm);
+00439         out[0] = (\textcolor{keywordtype}{unsigned} char)(strm->adler);
+00440         out[1] = (\textcolor{keywordtype}{unsigned} char)(strm->adler >> 8);
+00441         out[2] = (\textcolor{keywordtype}{unsigned} char)(strm->adler >> 16);
+00442         out[3] = (\textcolor{keywordtype}{unsigned} char)(strm->adler >> 24);
+00443         out[4] = (\textcolor{keywordtype}{unsigned} char)(strm->total\_in);
+00444         out[5] = (\textcolor{keywordtype}{unsigned} char)(strm->total\_in >> 8);
+00445         out[6] = (\textcolor{keywordtype}{unsigned} char)(strm->total\_in >> 16);
+00446         out[7] = (\textcolor{keywordtype}{unsigned} char)(strm->total\_in >> 24);
+00447         len = 8;
+00448         \textcolor{keywordflow}{do} \{
+00449             ret = write(gd, out + 8 - len, len);
+00450             \textcolor{keywordflow}{if} (ret == -1) bye(\textcolor{stringliteral}{"writing gzip file"}, \textcolor{stringliteral}{""});
+00451             len -= ret;
+00452         \} \textcolor{keywordflow}{while} (len);
+00453         close(gd);
+00454     \}
+00455 
+00456     \textcolor{comment}{/* clean up and return */}
+00457     free(out);
+00458     free(in);
+00459     \textcolor{keywordflow}{if} (fd > 0) close(fd);
+00460 \}
+00461 
+00462 \textcolor{comment}{/* process the compression level option if present, scan the gzip file, and}
+00463 \textcolor{comment}{   append the specified files, or append the data from stdin if no other file}
+00464 \textcolor{comment}{   names are provided on the command line -- the gzip file must be writable}
+00465 \textcolor{comment}{   and seekable */}
+00466 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} **argv)
+00467 \{
+00468     \textcolor{keywordtype}{int} gd, level;
+00469     \hyperlink{structz__stream__s}{z\_stream} strm;
+00470 
+00471     \textcolor{comment}{/* ignore command name */}
+00472     argc--; argv++;
+00473 
+00474     \textcolor{comment}{/* provide usage if no arguments */}
+00475     \textcolor{keywordflow}{if} (*argv == NULL) \{
+00476         printf(
+00477             \textcolor{stringliteral}{"gzappend 1.2 (11 Oct 2012) Copyright (C) 2003, 2012 Mark Adler\(\backslash\)n"}
+00478                );
+00479         printf(
+00480             \textcolor{stringliteral}{"usage: gzappend [-level] file.gz [ addthis [ andthis ... ]]\(\backslash\)n"});
+00481         \textcolor{keywordflow}{return} 0;
+00482     \}
+00483 
+00484     \textcolor{comment}{/* set compression level */}
+00485     level = Z\_DEFAULT\_COMPRESSION;
+00486     \textcolor{keywordflow}{if} (argv[0][0] == \textcolor{charliteral}{'-'}) \{
+00487         \textcolor{keywordflow}{if} (argv[0][1] < \textcolor{charliteral}{'0'} || argv[0][1] > \textcolor{charliteral}{'9'} || argv[0][2] != 0)
+00488             bye(\textcolor{stringliteral}{"invalid compression level"}, \textcolor{stringliteral}{""});
+00489         level = argv[0][1] - \textcolor{charliteral}{'0'};
+00490         \textcolor{keywordflow}{if} (*++argv == NULL) bye(\textcolor{stringliteral}{"no gzip file name after options"}, \textcolor{stringliteral}{""});
+00491     \}
+00492 
+00493     \textcolor{comment}{/* prepare to append to gzip file */}
+00494     gd = gzscan(*argv++, &strm, level);
+00495 
+00496     \textcolor{comment}{/* append files on command line, or from stdin if none */}
+00497     \textcolor{keywordflow}{if} (*argv == NULL)
+00498         gztack(NULL, gd, &strm, 1);
+00499     \textcolor{keywordflow}{else}
+00500         \textcolor{keywordflow}{do} \{
+00501             gztack(*argv, gd, &strm, argv[1] == NULL);
+00502         \} \textcolor{keywordflow}{while} (*++argv != NULL);
+00503     \textcolor{keywordflow}{return} 0;
+00504 \}
+\end{DoxyCode}

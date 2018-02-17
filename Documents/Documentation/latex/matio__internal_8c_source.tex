@@ -1,0 +1,482 @@
+\hypertarget{matio__internal_8c_source}{}\section{matio\+\_\+internal.\+c}
+\label{matio__internal_8c_source}\index{matio\+\_\+internal.\+c@{matio\+\_\+internal.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/*}
+00002 \textcolor{comment}{ * Copyright (c) 2005-2018, Christopher C. Hulbert}
+00003 \textcolor{comment}{ * All rights reserved.}
+00004 \textcolor{comment}{ *}
+00005 \textcolor{comment}{ * Redistribution and use in source and binary forms, with or without}
+00006 \textcolor{comment}{ * modification, are permitted provided that the following conditions are met:}
+00007 \textcolor{comment}{ *}
+00008 \textcolor{comment}{ * 1. Redistributions of source code must retain the above copyright notice, this}
+00009 \textcolor{comment}{ *    list of conditions and the following disclaimer.}
+00010 \textcolor{comment}{ *}
+00011 \textcolor{comment}{ * 2. Redistributions in binary form must reproduce the above copyright notice,}
+00012 \textcolor{comment}{ *    this list of conditions and the following disclaimer in the documentation}
+00013 \textcolor{comment}{ *    and/or other materials provided with the distribution.}
+00014 \textcolor{comment}{ *}
+00015 \textcolor{comment}{ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"}
+00016 \textcolor{comment}{ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE}
+00017 \textcolor{comment}{ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE}
+00018 \textcolor{comment}{ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE}
+00019 \textcolor{comment}{ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL}
+00020 \textcolor{comment}{ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR}
+00021 \textcolor{comment}{ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER}
+00022 \textcolor{comment}{ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,}
+00023 \textcolor{comment}{ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}
+00024 \textcolor{comment}{ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}
+00025 \textcolor{comment}{ */}
+00026 
+00027 \textcolor{preprocessor}{#include <stdlib.h>}
+00028 \textcolor{preprocessor}{#include <stdio.h>}
+00029 \textcolor{preprocessor}{#include <string.h>}
+00030 \textcolor{preprocessor}{#if defined(HAVE\_STRINGS\_H)}
+00031 \textcolor{preprocessor}{#include <strings.h>}
+00032 \textcolor{preprocessor}{#endif}
+00033 \textcolor{preprocessor}{#include "matio.h"}
+00034 \textcolor{preprocessor}{#include "matio\_private.h"}
+00035 
+00036 \textcolor{preprocessor}{#define fmat\_loginit\_c \(\backslash\)}
+00037 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_loginit\_c,FMAT\_LOGINIT\_C)}
+00038 \textcolor{preprocessor}{#define fmat\_create\_c \(\backslash\)}
+00039 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_create\_c,FMAT\_CREATE\_C)}
+00040 \textcolor{preprocessor}{#define fmat\_open\_c \(\backslash\)}
+00041 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_open\_c,FMAT\_OPEN\_C)}
+00042 \textcolor{preprocessor}{#define fmat\_close\_c \(\backslash\)}
+00043 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_close\_c,FMAT\_CLOSE\_C)}
+00044 \textcolor{preprocessor}{#define fmat\_varcreate\_c \(\backslash\)}
+00045 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_varcreate\_c,FMAT\_VARCREATE\_C)}
+00046 \textcolor{preprocessor}{#define fmat\_varfree\_c \(\backslash\)}
+00047 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_varfree\_c,FMAT\_VARFREE\_C)}
+00048 \textcolor{preprocessor}{#define fmat\_varprint\_c \(\backslash\)}
+00049 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_varprint\_c,FMAT\_VARPRINT\_C)}
+00050 \textcolor{preprocessor}{#define fmat\_varread\_c \(\backslash\)}
+00051 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_varread\_c,FMAT\_VARREAD\_C)}
+00052 \textcolor{preprocessor}{#define fmat\_varreaddata\_c \(\backslash\)}
+00053 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_varreaddata\_c,FMAT\_VARREADDATA\_C)}
+00054 \textcolor{preprocessor}{#define fmat\_varreadinfo\_c \(\backslash\)}
+00055 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_varreadinfo\_c,FMAT\_VARREADINFO\_C)}
+00056 \textcolor{preprocessor}{#define fmat\_varreadnextinfo\_c \(\backslash\)}
+00057 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_varreadnextinfo\_c,FMAT\_VARREADNEXTINFO\_C)}
+00058 \textcolor{preprocessor}{#define fmat\_varwriteinfo\_c \(\backslash\)}
+00059 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_varwriteinfo\_c,FMAT\_VARWRITEINFO\_C)}
+00060 \textcolor{preprocessor}{#define fmat\_varwritedata\_c \(\backslash\)}
+00061 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_varwritedata\_c,FMAT\_VARWRITEDATA\_C)}
+00062 \textcolor{preprocessor}{#define fmat\_varwrite\_c \(\backslash\)}
+00063 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_varwrite\_c,FMAT\_VARWRITE\_C)}
+00064 \textcolor{preprocessor}{#define fmat\_getinfo \(\backslash\)}
+00065 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_getinfo,FMAT\_GETINFO)}
+00066 \textcolor{preprocessor}{#define fmat\_vargetnumberoffields\_c \(\backslash\)}
+00067 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_vargetnumberoffields\_c,FMAT\_VARGETNUMBEROFFIELDS\_C)}
+00068 \textcolor{preprocessor}{#define fmat\_vargetstructfield\_byname\_c \(\backslash\)}
+00069 \textcolor{preprocessor}{            FC\_FUNC\_(fmat\_vargetstructfield\_byname\_c,FMAT\_VARGETSTRUCTFIELD\_BYNAME\_C)}
+00070 
+\Hypertarget{matio__internal_8c_source_l00071}\hyperlink{structfmat__t}{00071} \textcolor{keyword}{struct }\hyperlink{structfmat__t}{fmat\_t} \{
+00072     \textcolor{keywordtype}{char}   header[128];
+00073     \hyperlink{struct__mat__t}{mat\_t} *mat\_t\_c\_ptr;
+00074 \} \hyperlink{structfmat__t}{fmat\_t};
+00075 
+\Hypertarget{matio__internal_8c_source_l00076}\hyperlink{structfmatvar__t}{00076} \textcolor{keyword}{struct }\hyperlink{structfmatvar__t}{fmatvar\_t} \{
+00077     \textcolor{keywordtype}{int}       nbytes;
+00078     \textcolor{keywordtype}{int}       rank;
+00079     \textcolor{keywordtype}{int}       data\_type;
+00080     \textcolor{keywordtype}{int}       data\_size;
+00081     \textcolor{keywordtype}{int}       class\_type;
+00082     \textcolor{keywordtype}{int}       isComplex;
+00083     \textcolor{keywordtype}{int}       isGlobal;
+00084     \textcolor{keywordtype}{int}       isLogical;
+00085     \textcolor{keywordtype}{size\_t}    dims[7];
+00086     \textcolor{keywordtype}{char}      name[64];
+00087     \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar\_t\_c\_ptr;
+00088 \} \hyperlink{structfmatvar__t}{fmatvar\_t};
+00089 
+00090 \textcolor{keywordtype}{void}
+00091 fmat\_loginit\_c(\textcolor{keywordtype}{char} *prog\_name, \textcolor{keywordtype}{int} len)
+00092 \{
+00093     \textcolor{keywordtype}{char} *name;
+00094 
+00095     name = malloc(len+1);
+00096     strncpy(name,prog\_name,len);
+00097     name[len] = \textcolor{charliteral}{'\(\backslash\)0'};
+00098     \hyperlink{group__mat__util_ga0d30e03216ceaab7c0a4ff878b26f89f}{Mat\_LogInit}(name);
+00099     free(name);
+00100     \textcolor{keywordflow}{return};
+00101 \}
+00102 
+00103 \textcolor{keywordtype}{void} fstr2cstr(\textcolor{keywordtype}{char} *fstr,\textcolor{keywordtype}{int} len)
+00104 \{
+00105     \textcolor{keywordtype}{char} *ptr;
+00106     ptr = fstr+len-1;
+00107     \textcolor{keywordflow}{while} ( *ptr == \textcolor{charliteral}{' '} ) \{
+00108         *ptr = \textcolor{charliteral}{'\(\backslash\)0'};
+00109         ptr--;
+00110     \}
+00111 \}
+00112 
+00113 \textcolor{keywordtype}{char} *fstrdup(\textcolor{keywordtype}{char} *fstr,\textcolor{keywordtype}{int} len)
+00114 \{
+00115     \textcolor{keywordtype}{char} *cstr;
+00116     cstr = malloc(len+1);
+00117     strncpy(cstr,fstr,len);
+00118     cstr[len] = \textcolor{charliteral}{'\(\backslash\)0'};
+00119     fstr2cstr(cstr,len);
+00120     \textcolor{keywordflow}{return} cstr;
+00121 \}
+00122 
+00123 \textcolor{keywordtype}{int}
+00124 fmat\_open\_c(\textcolor{keywordtype}{char} *filename, \textcolor{keywordtype}{int} *mode, \textcolor{keyword}{struct} \hyperlink{structfmat__t}{fmat\_t} *mat, \textcolor{keywordtype}{int} len)
+00125 \{
+00126     \textcolor{keywordtype}{char} *fname;
+00127     \textcolor{keywordtype}{int} err = 0;
+00128 
+00129     fname = fstrdup(filename,len);
+00130 
+00131     \textcolor{keywordflow}{if} ( NULL == (mat->mat\_t\_c\_ptr = \hyperlink{group___m_a_t_gafbfedb5636a99f0ef867520c47f77d18}{Mat\_Open}(fname,*mode)) ) \{
+00132         \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Error opening file %s"}, fname);
+00133         err = 1;
+00134     \} \textcolor{keywordflow}{else} \{
+00135         \textcolor{keywordflow}{if} (mat->mat\_t\_c\_ptr->\hyperlink{struct__mat__t_a729c2bc0afc97485057a5af425635b1a}{version} & \hyperlink{group___m_a_t_ggad03442b8378999189d510e3745c702b7a858b4f5da65548219b1c3ad47aa478d3}{MAT\_FT\_MAT4}) \{
+00136             \textcolor{comment}{/* V-4 matlab files don't have a header */}
+00137             strcpy(mat->header, \textcolor{stringliteral}{"INVALID - V4 FORMAT"});
+00138         \} \textcolor{keywordflow}{else} \{
+00139             strncpy(mat->header,mat->mat\_t\_c\_ptr->\hyperlink{struct__mat__t_a5ed5d0e4e3c4d76b626a8a1772d579c4}{header},
+00140                     strlen(mat->mat\_t\_c\_ptr->\hyperlink{struct__mat__t_a5ed5d0e4e3c4d76b626a8a1772d579c4}{header}));
+00141         \}
+00142     \}
+00143     free(fname);
+00144 
+00145     \textcolor{keywordflow}{return} err;
+00146 \}
+00147 
+00148 \textcolor{keywordtype}{int}
+00149 fmat\_create\_c(\textcolor{keywordtype}{char} *filename,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gad03442b8378999189d510e3745c702b7}{mat\_ft} mat\_file\_ver,\textcolor{keyword}{struct} \hyperlink{structfmat__t}{fmat\_t} *mat,
+00150     \textcolor{keywordtype}{char} *header,\textcolor{keywordtype}{int} len,\textcolor{keywordtype}{int} hdrlen)
+00151 \{
+00152     \textcolor{keywordtype}{char} *fname,*hdr\_str = NULL;
+00153     \textcolor{keywordtype}{int} err = 0;
+00154 
+00155     fname = fstrdup(filename,len);
+00156 
+00157     \textcolor{keywordflow}{if} ( header != NULL )
+00158         hdr\_str = fstrdup(header,hdrlen);
+00159 
+00160     \textcolor{keywordflow}{if} (NULL == (mat->mat\_t\_c\_ptr=\hyperlink{group___m_a_t_ga22d404f203af7869c841400e7ad247cf}{Mat\_CreateVer}(fname,hdr\_str,mat\_file\_ver))) \{
+00161         \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Error opening file %s"}, fname);
+00162         err = 1;
+00163     \} \textcolor{keywordflow}{else} \{
+00164         strncpy(mat->header,mat->mat\_t\_c\_ptr->\hyperlink{struct__mat__t_a5ed5d0e4e3c4d76b626a8a1772d579c4}{header},
+00165                 strlen(mat->mat\_t\_c\_ptr->\hyperlink{struct__mat__t_a5ed5d0e4e3c4d76b626a8a1772d579c4}{header}));
+00166     \}
+00167     free(fname);
+00168 
+00169     \textcolor{keywordflow}{return} err;
+00170 \}
+00171 
+00172 \textcolor{keywordtype}{int}
+00173 fmat\_close\_c(\textcolor{keyword}{struct} \hyperlink{structfmat__t}{fmat\_t} *mat)
+00174 \{
+00175     \textcolor{keywordflow}{if} ( mat->mat\_t\_c\_ptr != NULL )
+00176         \hyperlink{group___m_a_t_ga101c92ff7bde4a2d4615661beba09262}{Mat\_Close}(mat->mat\_t\_c\_ptr);
+00177     \textcolor{keywordflow}{else}
+00178         \textcolor{keywordflow}{return} 1;
+00179     \textcolor{keywordflow}{return} 0;
+00180 \}
+00181 
+00182 \textcolor{keywordtype}{void}
+00183 fmat\_varprint\_c(\textcolor{keyword}{struct} \hyperlink{structfmatvar__t}{fmatvar\_t} *matvar)
+00184 \{
+00185     \hyperlink{group___m_a_t_ga9100c145e338b84b55d5d0795d5d390a}{Mat\_VarPrint}(matvar->matvar\_t\_c\_ptr,1);
+00186     \textcolor{keywordflow}{return};
+00187 \}
+00188 
+00189 \textcolor{keywordtype}{int}
+00190 fmat\_varreadinfo\_c(\textcolor{keyword}{struct} \hyperlink{structfmat__t}{fmat\_t} *mat,\textcolor{keywordtype}{char} *name,\textcolor{keyword}{struct} \hyperlink{structfmatvar__t}{fmatvar\_t} *matvar,\textcolor{keywordtype}{int} len)
+00191 \{
+00192     \textcolor{keywordtype}{char} *varname;
+00193     \textcolor{keywordtype}{int}   err = 0;
+00194 
+00195     varname = fstrdup(name,len);
+00196     \textcolor{keywordflow}{if} ( varname != NULL ) \{
+00197 
+00198         matvar->matvar\_t\_c\_ptr = \hyperlink{group___m_a_t_ga46da2e45ed96d3f1a6ec643757f2b086}{Mat\_VarReadInfo}(mat->mat\_t\_c\_ptr,varname);
+00199         free(varname);
+00200         \textcolor{keywordflow}{if} ( matvar->matvar\_t\_c\_ptr != NULL ) \{
+00201             matvar->nbytes     = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes};
+00202             matvar->rank       = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank};
+00203             matvar->data\_type  = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type};
+00204             matvar->data\_size  = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size};
+00205             matvar->class\_type = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type};
+00206             matvar->isComplex  = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex};
+00207             matvar->isGlobal   = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_af26c71c4c0ddb14931d15910dddac1bc}{isGlobal};
+00208             matvar->isLogical  = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a866c1539e68073a837833d74cd4a65be}{isLogical};
+00209             \textcolor{comment}{/* FIXME: Check that matvar->rank <= 7 */}
+00210             memcpy(matvar->dims,matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims},
+00211                    matvar->rank*\textcolor{keyword}{sizeof}(matvar->dims));
+00212             memset(matvar->name,0,\textcolor{keyword}{sizeof}(matvar->name));
+00213             \textcolor{comment}{/* FIXME: Check that strlen(matvar->matvar\_t\_c\_ptr->name) <= 64 */}
+00214             strncpy(matvar->name,matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name},
+00215                     strlen(matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name}));
+00216         \} \textcolor{keywordflow}{else} \{
+00217             err = 1;
+00218         \}
+00219     \} \textcolor{keywordflow}{else} \{
+00220         err = 1;
+00221     \}
+00222 
+00223     \textcolor{keywordflow}{return} err;
+00224 \}
+00225 
+00226 \textcolor{keywordtype}{int}
+00227 fmat\_varreadnextinfo\_c(\textcolor{keyword}{struct} \hyperlink{structfmat__t}{fmat\_t} *mat,\textcolor{keyword}{struct} \hyperlink{structfmatvar__t}{fmatvar\_t} *matvar)
+00228 \{
+00229     \textcolor{keywordtype}{int}   err = 0;
+00230 
+00231     matvar->matvar\_t\_c\_ptr = \hyperlink{group___m_a_t_ga72dd99330507b17177e22f9ed3bea5e6}{Mat\_VarReadNextInfo}(mat->mat\_t\_c\_ptr);
+00232     \textcolor{keywordflow}{if} ( matvar->matvar\_t\_c\_ptr != NULL ) \{
+00233         matvar->nbytes     = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes};
+00234         matvar->rank       = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank};
+00235         matvar->data\_type  = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type};
+00236         matvar->data\_size  = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size};
+00237         matvar->class\_type = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type};
+00238         matvar->isComplex  = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex};
+00239         matvar->isGlobal   = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_af26c71c4c0ddb14931d15910dddac1bc}{isGlobal};
+00240         matvar->isLogical  = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a866c1539e68073a837833d74cd4a65be}{isLogical};
+00241         \textcolor{comment}{/* FIXME: Check that matvar->rank <= 7 */}
+00242         memcpy(matvar->dims,matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims},
+00243                matvar->rank*\textcolor{keyword}{sizeof}(matvar->dims));
+00244         memset(matvar->name,0,\textcolor{keyword}{sizeof}(matvar->name));
+00245         \textcolor{comment}{/* FIXME: Check that strlen(matvar->matvar\_t\_c\_ptr->name) <= 64 */}
+00246         strncpy(matvar->name,matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name},
+00247                 strlen(matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name}));
+00248     \} \textcolor{keywordflow}{else} \{
+00249         err = 1;
+00250     \}
+00251     \textcolor{keywordflow}{return} err;
+00252 \}
+00253 
+00254 \textcolor{keywordtype}{int}
+00255 fmat\_varread\_c(\textcolor{keyword}{struct} \hyperlink{structfmat__t}{fmat\_t} *mat,\textcolor{keywordtype}{char} *name,\textcolor{keyword}{struct} \hyperlink{structfmatvar__t}{fmatvar\_t} *matvar,\textcolor{keywordtype}{int} len)
+00256 \{
+00257     \textcolor{keywordtype}{char} *varname;
+00258     \textcolor{keywordtype}{int}   err;
+00259 
+00260     varname = malloc(len+1);
+00261     \textcolor{keywordflow}{if} ( varname != NULL ) \{
+00262         strncpy(varname,name,len);
+00263         varname[len] = \textcolor{charliteral}{'\(\backslash\)0'};
+00264 
+00265         matvar->matvar\_t\_c\_ptr = \hyperlink{group___m_a_t_ga3505f63029763eaa73d5a19f1115eb42}{Mat\_VarRead}(mat->mat\_t\_c\_ptr,varname);
+00266         \textcolor{keywordflow}{if} ( matvar->matvar\_t\_c\_ptr == NULL )
+00267             err = 1;
+00268     \} \textcolor{keywordflow}{else} \{
+00269         err = 1;
+00270     \}
+00271 
+00272     \textcolor{keywordflow}{return} err;
+00273 \}
+00274 
+00275 \textcolor{keywordtype}{int}
+00276 fmat\_varreaddata\_c(\textcolor{keyword}{struct} \hyperlink{structfmat__t}{fmat\_t} *mat,\textcolor{keyword}{struct} \hyperlink{structfmatvar__t}{fmatvar\_t} *matvar,\textcolor{keywordtype}{char} *data,\textcolor{keywordtype}{int} *start,\textcolor{keywordtype}{int} *
+      stride,\textcolor{keywordtype}{int} *edge)
+00277 \{
+00278     \textcolor{keywordtype}{int} *start\_c, *stride\_c, *edge\_c, err, i;
+00279 
+00280     \textcolor{keywordflow}{if} ( (start == NULL) || (stride == NULL) || (edge == NULL) ) \{
+00281         start\_c  = malloc(matvar->rank*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}));
+00282         stride\_c = malloc(matvar->rank*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}));
+00283         edge\_c   = malloc(matvar->rank*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}));
+00284         \textcolor{keywordflow}{if} ( (start\_c == NULL) || (stride\_c == NULL) || (edge\_c == NULL) ) \{
+00285             err = 1;
+00286         \} \textcolor{keywordflow}{else} \{
+00287             \textcolor{keywordflow}{for} ( i = 0; i < matvar->rank; i++ ) \{
+00288                 start\_c[i]  = 0;
+00289                 stride\_c[i] = 1;
+00290                 edge\_c[i]   = matvar->dims[i];
+00291             \}
+00292             err = \hyperlink{group___m_a_t_ga1845000f4fc6252ec5ff11c4b9f0759f}{Mat\_VarReadData}(mat->mat\_t\_c\_ptr,matvar->matvar\_t\_c\_ptr,(data),start\_c,
+00293                                   stride\_c,edge\_c);
+00294             free(start);
+00295             free(stride);
+00296             free(edge);
+00297         \}
+00298     \} \textcolor{keywordflow}{else} \{
+00299         err = \hyperlink{group___m_a_t_ga1845000f4fc6252ec5ff11c4b9f0759f}{Mat\_VarReadData}(mat->mat\_t\_c\_ptr,matvar->matvar\_t\_c\_ptr,(data),start,stride,
+00300                               edge);
+00301     \}
+00302 
+00303     \textcolor{keywordflow}{return} err;
+00304 \}
+00305 
+00306 \textcolor{keywordtype}{int}
+00307 fmat\_varwriteinfo\_c(\textcolor{keyword}{struct} \hyperlink{structfmat__t}{fmat\_t} *mat,\textcolor{keyword}{struct} \hyperlink{structfmatvar__t}{fmatvar\_t} *matvar)
+00308 \{
+00309     \textcolor{keywordtype}{int} err = 0;
+00310     \textcolor{keywordflow}{if} ( (mat == NULL) || (matvar == NULL) )
+00311         err =  1;
+00312     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( (matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name} == NULL) ||
+00313               (matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} == NULL) )
+00314         err = 2;
+00315     \textcolor{keywordflow}{else} \{
+00316         err = \hyperlink{group___m_a_t_ga1ae164415dfd98cdf48ad07033b6e0bb}{Mat\_VarWriteInfo}(mat->mat\_t\_c\_ptr,matvar->matvar\_t\_c\_ptr);
+00317     \}
+00318 
+00319     \textcolor{keywordflow}{return} err;
+00320 \}
+00321 
+00322 \textcolor{keywordtype}{int}
+00323 fmat\_varwritedata\_c(\textcolor{keyword}{struct} \hyperlink{structfmat__t}{fmat\_t} *mat,\textcolor{keyword}{struct} \hyperlink{structfmatvar__t}{fmatvar\_t} *matvar,\textcolor{keywordtype}{void} *data,\textcolor{keywordtype}{int} *start,
+00324     \textcolor{keywordtype}{int} *stride,\textcolor{keywordtype}{int} *edge)
+00325 \{
+00326     \textcolor{keywordtype}{int} *start\_c, *stride\_c, *edge\_c, err = 0, i;
+00327 
+00328     \textcolor{keywordflow}{if} ( matvar == NULL || matvar->matvar\_t\_c\_ptr == NULL || data == NULL ) \{
+00329        err = 1;
+00330     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( (start == NULL) || (stride == NULL) || (edge == NULL) ) \{
+00331         start\_c  = malloc(matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}));
+00332         stride\_c = malloc(matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}));
+00333         edge\_c   = malloc(matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}));
+00334         \textcolor{keywordflow}{if} ( (start\_c == NULL) || (stride\_c == NULL) || (edge\_c == NULL) ) \{
+00335             err = 1;
+00336         \} \textcolor{keywordflow}{else} \{
+00337             \textcolor{keywordflow}{for} ( i = 0; i < matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; i++ ) \{
+00338                 start\_c[i]  = 0;
+00339                 stride\_c[i] = 1;
+00340                 edge\_c[i]   = matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[i];
+00341             \}
+00342             err = \hyperlink{group___m_a_t_ga43179b930fb30c025a153a55a083a98a}{Mat\_VarWriteData}(mat->mat\_t\_c\_ptr,matvar->matvar\_t\_c\_ptr,
+00343                                    data,start\_c,stride\_c,edge\_c);
+00344             free(start\_c);
+00345             free(stride\_c);
+00346             free(edge\_c);
+00347         \}
+00348     \} \textcolor{keywordflow}{else} \{
+00349         err = \hyperlink{group___m_a_t_ga43179b930fb30c025a153a55a083a98a}{Mat\_VarWriteData}(mat->mat\_t\_c\_ptr,matvar->matvar\_t\_c\_ptr,data,
+00350                                start,stride,edge);
+00351     \}
+00352 
+00353     \textcolor{keywordflow}{return} err;
+00354 \}
+00355 
+00356 \textcolor{keywordtype}{int}
+00357 fmat\_varwrite\_c(\textcolor{keyword}{struct} \hyperlink{structfmat__t}{fmat\_t} *mat,\textcolor{keyword}{struct} \hyperlink{structfmatvar__t}{fmatvar\_t} *matvar,\textcolor{keywordtype}{void} *data,
+00358     \textcolor{keywordtype}{int} *compress)
+00359 \{
+00360     \textcolor{keywordtype}{int} err = 0;
+00361     \textcolor{keywordflow}{if} ( (mat == NULL) || (matvar == NULL) || (data == NULL) ||
+00362          (compress == NULL) )
+00363         err =  1;
+00364     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( (matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name} == NULL) ||
+00365               (matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} == NULL) )
+00366         err = 2;
+00367     \textcolor{keywordflow}{else} \{
+00368         matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = data;
+00369         err = \hyperlink{group___m_a_t_ga4bd3eba12df415d8226e27c457fbbb0b}{Mat\_VarWrite}(mat->mat\_t\_c\_ptr,matvar->matvar\_t\_c\_ptr,*compress);
+00370         matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = NULL;
+00371     \}
+00372 
+00373     \textcolor{keywordflow}{return} err;
+00374 \}
+00375 
+00376 \textcolor{keywordtype}{int}
+00377 fmat\_varcreate\_c(\textcolor{keywordtype}{int} *rank,\textcolor{keywordtype}{size\_t} *dims,\textcolor{keywordtype}{char} *name,\textcolor{keywordtype}{int} *class\_type,
+00378     \textcolor{keywordtype}{int} *data\_type, \textcolor{keyword}{struct} \hyperlink{structfmatvar__t}{fmatvar\_t} *matvar,\textcolor{keywordtype}{int} len)
+00379 \{
+00380     \textcolor{keywordtype}{char} *varname;
+00381     \textcolor{keywordtype}{int} err = 0, flags = 0;
+00382 
+00383     varname = malloc(len+1);
+00384     \textcolor{keywordflow}{if} ( varname != NULL ) \{
+00385         strncpy(varname,name,len);
+00386         varname[len] = \textcolor{charliteral}{'\(\backslash\)0'};
+00387         \textcolor{keywordflow}{if} ( matvar->isComplex )
+00388             flags |= \hyperlink{group___m_a_t_ggab9d6ef9e3ddca78a317b173f01d53fbbacd7b091a11184aad7fc6078c04470780}{MAT\_F\_COMPLEX};
+00389         \textcolor{keywordflow}{if} ( matvar->isGlobal )
+00390             flags |= \hyperlink{group___m_a_t_ggab9d6ef9e3ddca78a317b173f01d53fbba49084e0c796aa7963e53f7539525d40d}{MAT\_F\_GLOBAL};
+00391         \textcolor{keywordflow}{if} ( matvar->isLogical )
+00392             flags |= \hyperlink{group___m_a_t_ggab9d6ef9e3ddca78a317b173f01d53fbba57eb5c6e200bcbc0f1b7982f29a169c2}{MAT\_F\_LOGICAL};
+00393         matvar->matvar\_t\_c\_ptr = \hyperlink{group___m_a_t_ga1c54a84bb4d810c6fccdb8869489eac4}{Mat\_VarCreate}(varname,*class\_type,*data\_type,
+00394                                                *rank,dims,NULL,flags);
+00395         free(varname);
+00396         \textcolor{keywordflow}{if} ( matvar->matvar\_t\_c\_ptr == NULL ) \{
+00397             \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Mat\_VarCreate returned NULL"});
+00398             err = 1;
+00399         \}
+00400     \}
+00401     \textcolor{keywordflow}{return} err;
+00402 \}
+00403 
+00404 \textcolor{keywordtype}{int}
+00405 fmat\_varfree\_c(\textcolor{keyword}{struct} \hyperlink{structfmatvar__t}{fmatvar\_t} *matvar)
+00406 \{
+00407     \textcolor{keywordflow}{if} ( matvar != NULL ) \{
+00408         \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar->matvar\_t\_c\_ptr);
+00409 \textcolor{preprocessor}{#if 0}
+00410         matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = NULL;
+00411         matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} = NULL;
+00412         matvar->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name} = NULL;
+00413         matvar->matvar\_t\_c\_ptr->z    = NULL;
+00414 \textcolor{preprocessor}{#endif}
+00415         \textcolor{keywordflow}{return} 0;
+00416     \} \textcolor{keywordflow}{else} \{
+00417         \textcolor{keywordflow}{return} 1;
+00418     \}
+00419 \}
+00420 
+00421 \textcolor{keywordtype}{int}
+00422 fmat\_vargetnumberoffields\_c(\textcolor{keyword}{struct} \hyperlink{structfmatvar__t}{fmatvar\_t} *matvar)
+00423 \{
+00424     \textcolor{keywordtype}{int} nfields;
+00425     \textcolor{keywordflow}{if} ( matvar == NULL || matvar->matvar\_t\_c\_ptr == NULL )
+00426         nfields = -1;
+00427     \textcolor{keywordflow}{else}
+00428         nfields = \hyperlink{group___m_a_t_ga06ba20aa758543d53dc83a1ccbdc2efc}{Mat\_VarGetNumberOfFields}(matvar->matvar\_t\_c\_ptr);
+00429     \textcolor{keywordflow}{return} nfields;
+00430 \}
+00431 
+00432 \textcolor{keywordtype}{int}
+00433 fmat\_vargetstructfield\_byname\_c(\textcolor{keyword}{struct} \hyperlink{structfmatvar__t}{fmatvar\_t} *matvar,\textcolor{keywordtype}{char} *name,\textcolor{keywordtype}{int} *index,
+00434     \textcolor{keyword}{struct} \hyperlink{structfmatvar__t}{fmatvar\_t} *field,\textcolor{keywordtype}{int} name\_len)
+00435 \{
+00436     \textcolor{keywordtype}{char} *varname;
+00437     \textcolor{keywordtype}{int}   err = 0;
+00438 
+00439     \textcolor{keywordflow}{if} ( matvar == NULL || field == NULL || name == NULL )
+00440         \textcolor{keywordflow}{return} 1;
+00441 
+00442     varname = fstrdup(name,name\_len);
+00443 
+00444     field->matvar\_t\_c\_ptr = \hyperlink{group___m_a_t_ga7018bfe6934b96ae32e8f2a1712eefab}{Mat\_VarGetStructField}(matvar->matvar\_t\_c\_ptr,
+00445         varname,\hyperlink{group___m_a_t_gga03158cf3a896ec3d4f306b5e920109b4a26c82f22528c705191141491a072db3e}{MAT\_BY\_NAME},*index);
+00446     free(varname);
+00447     \textcolor{keywordflow}{if} ( field->matvar\_t\_c\_ptr != NULL ) \{
+00448         field->nbytes     = field->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes};
+00449         field->rank       = field->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank};
+00450         field->data\_type  = field->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type};
+00451         field->data\_size  = field->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size};
+00452         field->class\_type = field->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type};
+00453         field->isComplex  = field->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex};
+00454         field->isGlobal   = field->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_af26c71c4c0ddb14931d15910dddac1bc}{isGlobal};
+00455         field->isLogical  = field->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a866c1539e68073a837833d74cd4a65be}{isLogical};
+00456         \textcolor{comment}{/* FIXME: Check that matvar->rank <= 7 */}
+00457         memcpy(field->dims,field->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims},
+00458                field->rank*\textcolor{keyword}{sizeof}(matvar->dims));
+00459         memset(matvar->name,0,\textcolor{keyword}{sizeof}(matvar->name));
+00460         \textcolor{comment}{/* FIXME: Check that strlen(matvar->matvar\_t\_c\_ptr->name) <= 64 */}
+00461         strncpy(field->name,field->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name},
+00462                 strlen(field->matvar\_t\_c\_ptr->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name}));
+00463     \} \textcolor{keywordflow}{else} \{
+00464         err = 1;
+00465     \}
+00466 
+00467     \textcolor{keywordflow}{return} err;
+00468 \}
+00469 
+00470 \textcolor{preprocessor}{#if 0}
+00471 \textcolor{keywordtype}{void} fmat\_getinfo(\hyperlink{structfmatvar__t}{fmatvar\_t} *matvar, \textcolor{keywordtype}{int} *rank, \textcolor{keywordtype}{int} *dims)
+00472 \{
+00473     *rank = matvar->rank;
+00474     memcpy(dims,matvar->dims,matvar->rank*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}));
+00475 \}
+00476 \textcolor{preprocessor}{#endif}
+\end{DoxyCode}

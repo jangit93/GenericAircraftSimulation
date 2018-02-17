@@ -1,0 +1,108 @@
+\hypertarget{eigen_2unsupported_2test_2cxx11__tensor__of__complex_8cpp_source}{}\section{eigen/unsupported/test/cxx11\+\_\+tensor\+\_\+of\+\_\+complex.cpp}
+\label{eigen_2unsupported_2test_2cxx11__tensor__of__complex_8cpp_source}\index{cxx11\+\_\+tensor\+\_\+of\+\_\+complex.\+cpp@{cxx11\+\_\+tensor\+\_\+of\+\_\+complex.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2014 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 \textcolor{preprocessor}{#include <Eigen/CXX11/Tensor>}
+00013 
+00014 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor};
+00015 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor_map}{Eigen::TensorMap};
+00016 
+00017 
+00018 
+00019 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_additions()
+00020 \{
+00021   \hyperlink{class_eigen_1_1_tensor}{Tensor<std::complex<float>}, 1> data1(3);
+00022   \hyperlink{class_eigen_1_1_tensor}{Tensor<std::complex<float>}, 1> data2(3);
+00023   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 3; ++i) \{
+00024     data1(i) = std::complex<float>(i, -i);
+00025     data2(i) = std::complex<float>(i, 7 * i);
+00026   \}
+00027 
+00028   \hyperlink{class_eigen_1_1_tensor}{Tensor<std::complex<float>}, 1> sum = data1 + data2;
+00029   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 3; ++i) \{
+00030     VERIFY\_IS\_EQUAL(sum(i),  std::complex<float>(2*i, 6*i));
+00031   \}
+00032 \}
+00033 
+00034 
+00035 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_abs()
+00036 \{
+00037   Tensor<std::complex<float>, 1> data1(3);
+00038   \hyperlink{class_eigen_1_1_tensor}{Tensor<std::complex<double>}, 1> data2(3);
+00039   data1.setRandom();
+00040   data2.setRandom();
+00041 
+00042   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1>} abs1 = data1.abs();
+00043   \hyperlink{class_eigen_1_1_tensor}{Tensor<double, 1>} abs2 = data2.abs();
+00044   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 3; ++i) \{
+00045     VERIFY\_IS\_APPROX(abs1(i), std::abs(data1(i)));
+00046     VERIFY\_IS\_APPROX(abs2(i), std::abs(data2(i)));
+00047   \}
+00048 \}
+00049 
+00050 
+00051 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_conjugate()
+00052 \{
+00053   Tensor<std::complex<float>, 1> data1(3);
+00054   \hyperlink{class_eigen_1_1_tensor}{Tensor<std::complex<double>}, 1> data2(3);
+00055   \hyperlink{class_eigen_1_1_tensor}{Tensor<int, 1>} data3(3);
+00056   data1.setRandom();
+00057   data2.setRandom();
+00058   data3.setRandom();
+00059 
+00060   Tensor<std::complex<float>, 1> conj1 = data1.conjugate();
+00061   \hyperlink{class_eigen_1_1_tensor}{Tensor<std::complex<double>}, 1> conj2 = data2.conjugate();
+00062   \hyperlink{class_eigen_1_1_tensor}{Tensor<int, 1>} conj3 = data3.conjugate();
+00063   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 3; ++i) \{
+00064     VERIFY\_IS\_APPROX(conj1(i), std::conj(data1(i)));
+00065     VERIFY\_IS\_APPROX(conj2(i), std::conj(data2(i)));
+00066     VERIFY\_IS\_APPROX(conj3(i), data3(i));
+00067   \}
+00068 \}
+00069 
+00070 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_contractions()
+00071 \{
+00072   Tensor<std::complex<float>, 4> t\_left(30, 50, 8, 31);
+00073   Tensor<std::complex<float>, 5> t\_right(8, 31, 7, 20, 10);
+00074   Tensor<std::complex<float>, 5> t\_result(30, 50, 7, 20, 10);
+00075 
+00076   t\_left.setRandom();
+00077   t\_right.setRandom();
+00078 
+00079   \textcolor{keyword}{typedef} Map<Matrix<std::complex<float>, \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}, Dynamic>> MapXcf;
+00080   MapXcf m\_left(t\_left.data(), 1500, 248);
+00081   MapXcf m\_right(t\_right.data(), 248, 1400);
+00082   Matrix<std::complex<float>, Dynamic, Dynamic> m\_result(1500, 1400);
+00083 
+00084   \textcolor{comment}{// This contraction should be equivalent to a regular matrix multiplication}
+00085   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1>::DimensionPair} DimPair;
+00086   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 2>} dims;
+00087   dims[0] = DimPair(2, 0);
+00088   dims[1] = DimPair(3, 1);
+00089   t\_result = t\_left.contract(t\_right, dims);
+00090   m\_result = m\_left * m\_right;
+00091   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < t\_result.dimensions().TotalSize(); i++) \{
+00092     VERIFY\_IS\_APPROX(t\_result.data()[i], m\_result.data()[i]);
+00093   \}
+00094 \}
+00095 
+00096 
+00097 \textcolor{keywordtype}{void} test\_cxx11\_tensor\_of\_complex()
+00098 \{
+00099   CALL\_SUBTEST(test\_additions());
+00100   CALL\_SUBTEST(test\_abs());
+00101   CALL\_SUBTEST(test\_conjugate());
+00102   CALL\_SUBTEST(test\_contractions());
+00103 \}
+\end{DoxyCode}

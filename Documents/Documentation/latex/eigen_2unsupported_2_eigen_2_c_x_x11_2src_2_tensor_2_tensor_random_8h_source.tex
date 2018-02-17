@@ -1,0 +1,285 @@
+\hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_random_8h_source}{}\section{eigen/unsupported/\+Eigen/\+C\+X\+X11/src/\+Tensor/\+Tensor\+Random.h}
+\label{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_random_8h_source}\index{Tensor\+Random.\+h@{Tensor\+Random.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2016 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_CXX11\_TENSOR\_TENSOR\_RANDOM\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_CXX11\_TENSOR\_TENSOR\_RANDOM\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00015 
+00016 \textcolor{keyword}{namespace }\{
+00017 
+00018 EIGEN\_DEVICE\_FUNC uint64\_t get\_random\_seed() \{
+00019 \textcolor{preprocessor}{#ifdef \_\_CUDA\_ARCH\_\_}
+00020   \textcolor{comment}{// We don't support 3d kernels since we currently only use 1 and}
+00021   \textcolor{comment}{// 2d kernels.}
+00022   assert(threadIdx.z == 0);
+00023   \textcolor{keywordflow}{return} clock64() +
+00024       blockIdx.x * blockDim.x + threadIdx.x +
+00025       gridDim.x * blockDim.x * (blockIdx.y * blockDim.y + threadIdx.y);
+00026 
+00027 \textcolor{preprocessor}{#elif defined \_WIN32}
+00028   \textcolor{comment}{// Use the current time as a baseline.}
+00029   SYSTEMTIME st;
+00030   GetSystemTime(&st);
+00031   \textcolor{keywordtype}{int} time = st.wSecond + 1000 * st.wMilliseconds;
+00032   \textcolor{comment}{// Mix in a random number to make sure that we get different seeds if}
+00033   \textcolor{comment}{// we try to generate seeds faster than the clock resolution.}
+00034   \textcolor{comment}{// We need 2 random values since the generator only generate 16 bits at}
+00035   \textcolor{comment}{// a time (https://msdn.microsoft.com/en-us/library/398ax69y.aspx)}
+00036   \textcolor{keywordtype}{int} rnd1 = ::rand();
+00037   \textcolor{keywordtype}{int} rnd2 = ::rand();
+00038   uint64\_t rnd = (rnd1 | rnd2 << 16) ^ time;
+00039   \textcolor{keywordflow}{return} rnd;
+00040 
+00041 \textcolor{preprocessor}{#elif defined \_\_APPLE\_\_}
+00042   \textcolor{comment}{// Same approach as for win32, except that the random number generator}
+00043   \textcolor{comment}{// is better (//
+       https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man3/random.3.html#//apple\_ref/doc/man/3/random).}
+00044   uint64\_t rnd = ::random() ^ mach\_absolute\_time();
+00045   \textcolor{keywordflow}{return} rnd;
+00046 
+00047 \textcolor{preprocessor}{#else}
+00048   \textcolor{comment}{// Augment the current time with pseudo random number generation}
+00049   \textcolor{comment}{// to ensure that we get different seeds if we try to generate seeds}
+00050   \textcolor{comment}{// faster than the clock resolution.}
+00051   timespec ts;
+00052   clock\_gettime(CLOCK\_REALTIME, &ts);
+00053   uint64\_t rnd = ::random() ^ ts.tv\_nsec;
+00054   \textcolor{keywordflow}{return} rnd;
+00055 \textcolor{preprocessor}{#endif}
+00056 \}
+00057 
+00058 \textcolor{keyword}{static} EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{unsigned} PCG\_XSH\_RS\_generator(uint64\_t* 
+      \hyperlink{structstate}{state}) \{
+00059   \textcolor{comment}{// TODO: Unify with the implementation in the non blocking thread pool.}
+00060   uint64\_t current = *state;
+00061   \textcolor{comment}{// Update the internal state}
+00062   *state = current * 6364136223846793005ULL + 0xda3e39cb94b95bdbULL;
+00063   \textcolor{comment}{// Generate the random output (using the PCG-XSH-RS scheme)}
+00064   \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{unsigned}\textcolor{keyword}{>}((current ^ (current >> 22)) >> (22 + (current >> 61)));
+00065 \}
+00066 
+00067 \textcolor{keyword}{static} EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE uint64\_t PCG\_XSH\_RS\_state(uint64\_t seed) \{
+00068   seed = seed ? seed : get\_random\_seed();
+00069   \textcolor{keywordflow}{return} seed * 6364136223846793005ULL + 0xda3e39cb94b95bdbULL;
+00070 \}
+00071 
+00072 \}  \textcolor{comment}{// namespace}
+00073 
+00074 
+00075 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00076 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} RandomToTypeUniform(uint64\_t* \hyperlink{structstate}{state}) \{
+00077   \textcolor{keywordtype}{unsigned} rnd = PCG\_XSH\_RS\_generator(state);
+00078   \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}\hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}\textcolor{keyword}{>}(rnd);
+00079 \}
+00080 
+00081 
+00082 \textcolor{keyword}{template} <> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00083 \hyperlink{struct_eigen_1_1half}{Eigen::half} RandomToTypeUniform<Eigen::half>(uint64\_t* \hyperlink{structstate}{state}) \{
+00084   \hyperlink{struct_eigen_1_1half}{Eigen::half} result;
+00085   \textcolor{comment}{// Generate 10 random bits for the mantissa}
+00086   \textcolor{keywordtype}{unsigned} rnd = PCG\_XSH\_RS\_generator(\hyperlink{structstate}{state});
+00087   result.x = \textcolor{keyword}{static\_cast<}uint16\_t\textcolor{keyword}{>}(rnd & 0x3ffu);
+00088   \textcolor{comment}{// Set the exponent}
+00089   result.x |= (\textcolor{keyword}{static\_cast<}uint16\_t\textcolor{keyword}{>}(15) << 10);
+00090   \textcolor{comment}{// Return the final result}
+00091   \textcolor{keywordflow}{return} result - \hyperlink{struct_eigen_1_1half}{Eigen::half}(1.0f);
+00092 \}
+00093 
+00094 
+00095 \textcolor{keyword}{template} <> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00096 \textcolor{keywordtype}{float} RandomToTypeUniform<float>(uint64\_t* \hyperlink{structstate}{state}) \{
+00097   \textcolor{keyword}{typedef} \textcolor{keyword}{union }\{
+00098     uint32\_t raw;
+00099     \textcolor{keywordtype}{float} fp;
+00100   \} \textcolor{keyword}{internal};
+00101   \textcolor{keyword}{internal} result;
+00102   \textcolor{comment}{// Generate 23 random bits for the mantissa mantissa}
+00103   \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} rnd = PCG\_XSH\_RS\_generator(\hyperlink{structstate}{state});
+00104   result.raw = rnd & 0x7fffffu;
+00105   \textcolor{comment}{// Set the exponent}
+00106   result.raw |= (\textcolor{keyword}{static\_cast<}uint32\_t\textcolor{keyword}{>}(127) << 23);
+00107   \textcolor{comment}{// Return the final result}
+00108   \textcolor{keywordflow}{return} result.fp - 1.0f;
+00109 \}
+00110 
+00111 \textcolor{keyword}{template} <> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00112 \textcolor{keywordtype}{double} RandomToTypeUniform<double>(uint64\_t* \hyperlink{structstate}{state}) \{
+00113   \textcolor{keyword}{typedef} \textcolor{keyword}{union }\{
+00114     uint64\_t raw;
+00115     \textcolor{keywordtype}{double} dp;
+00116   \} \textcolor{keyword}{internal};
+00117   \textcolor{keyword}{internal} result;
+00118   result.raw = 0;
+00119   \textcolor{comment}{// Generate 52 random bits for the mantissa}
+00120   \textcolor{comment}{// First generate the upper 20 bits}
+00121   \textcolor{keywordtype}{unsigned} rnd1 = PCG\_XSH\_RS\_generator(\hyperlink{structstate}{state}) & 0xfffffu;
+00122   \textcolor{comment}{// The generate the lower 32 bits}
+00123   \textcolor{keywordtype}{unsigned} rnd2 = PCG\_XSH\_RS\_generator(\hyperlink{structstate}{state});
+00124   result.raw = (\textcolor{keyword}{static\_cast<}uint64\_t\textcolor{keyword}{>}(rnd1) << 32) | rnd2;
+00125   \textcolor{comment}{// Set the exponent}
+00126   result.raw |= (\textcolor{keyword}{static\_cast<}uint64\_t\textcolor{keyword}{>}(1023) << 52);
+00127   \textcolor{comment}{// Return the final result}
+00128   \textcolor{keywordflow}{return} result.dp - 1.0;
+00129 \}
+00130 
+00131 \textcolor{keyword}{template} <> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00132 std::complex<float> RandomToTypeUniform<std::complex<float> >(uint64\_t* \hyperlink{structstate}{state}) \{
+00133   \textcolor{keywordflow}{return} std::complex<float>(RandomToTypeUniform<float>(\hyperlink{structstate}{state}),
+00134                              RandomToTypeUniform<float>(\hyperlink{structstate}{state}));
+00135 \}
+00136 \textcolor{keyword}{template} <> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00137 std::complex<double> RandomToTypeUniform<std::complex<double> >(uint64\_t* \hyperlink{structstate}{state}) \{
+00138   \textcolor{keywordflow}{return} std::complex<double>(RandomToTypeUniform<double>(\hyperlink{structstate}{state}),
+00139                               RandomToTypeUniform<double>(\hyperlink{structstate}{state}));
+00140 \}
+00141 
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_random_8h_source_l00142}\hyperlink{class_eigen_1_1internal_1_1_uniform_random_generator}{00142} \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{class }\hyperlink{class_eigen_1_1internal_1_1_uniform_random_generator}{UniformRandomGenerator} \{
+00143  \textcolor{keyword}{public}:
+00144   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} PacketAccess = \textcolor{keyword}{true};
+00145 
+00146   \textcolor{comment}{// Uses the given "seed" if non-zero, otherwise uses a random seed.}
+00147   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1internal_1_1_uniform_random_generator}{UniformRandomGenerator}(
+00148       uint64\_t seed = 0) \{
+00149     m\_state = PCG\_XSH\_RS\_state(seed);
+00150   \}
+00151   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1internal_1_1_uniform_random_generator}{UniformRandomGenerator}(
+00152       \textcolor{keyword}{const} \hyperlink{class_eigen_1_1internal_1_1_uniform_random_generator}{UniformRandomGenerator}& other) \{
+00153     m\_state = other.m\_state;
+00154   \}
+00155 
+00156   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Index> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00157   \hyperlink{group___sparse_core___module}{T} operator()(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i)\textcolor{keyword}{ const }\{
+00158     uint64\_t local\_state = m\_state + i;
+00159     \hyperlink{group___sparse_core___module}{T} result = RandomToTypeUniform<T>(&local\_state);
+00160     m\_state = local\_state;
+00161     \textcolor{keywordflow}{return} result;
+00162   \}
+00163 
+00164   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Packet, \textcolor{keyword}{typename} Index> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00165   \hyperlink{union_eigen_1_1internal_1_1_packet}{Packet} packetOp(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i)\textcolor{keyword}{ const }\{
+00166     \textcolor{keyword}{const} \textcolor{keywordtype}{int} packetSize = \hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{internal::unpacket\_traits<Packet>::size};
+00167     EIGEN\_ALIGN\_MAX \hyperlink{group___sparse_core___module}{T} values[packetSize];
+00168     uint64\_t local\_state = m\_state + i;
+00169     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < packetSize; ++j) \{
+00170       values[j] = RandomToTypeUniform<T>(&local\_state);
+00171     \}
+00172     m\_state = local\_state;
+00173     \textcolor{keywordflow}{return} internal::pload<Packet>(values);
+00174   \}
+00175 
+00176  \textcolor{keyword}{private}:
+00177   \textcolor{keyword}{mutable} uint64\_t m\_state;
+00178 \};
+00179 
+00180 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar>
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_random_8h_source_l00181}\hyperlink{struct_eigen_1_1internal_1_1functor__traits_3_01_uniform_random_generator_3_01_scalar_01_4_01_4}{00181} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1functor__traits}{functor\_traits}<\hyperlink{class_eigen_1_1internal_1_1_uniform_random_generator}{UniformRandomGenerator}<Scalar> > \{
+00182   \textcolor{keyword}{enum} \{
+00183     \textcolor{comment}{// Rough estimate for floating point, multiplied by ceil(sizeof(T) / sizeof(float)).}
+00184     Cost = 12 * \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost} *
+00185            ((\textcolor{keyword}{sizeof}(Scalar) + \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}) - 1) / \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float})),
+00186     PacketAccess = \hyperlink{class_eigen_1_1internal_1_1_uniform_random_generator}{UniformRandomGenerator<Scalar>::PacketAccess}
+00187   \};
+00188 \};
+00189 
+00190 
+00191 
+00192 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00193 \hyperlink{group___sparse_core___module}{T} RandomToTypeNormal(uint64\_t* \hyperlink{structstate}{state}) \{
+00194   \textcolor{comment}{// Use the ratio of uniform method to generate numbers following a normal}
+00195   \textcolor{comment}{// distribution. See for example Numerical Recipes chapter 7.3.9 for the}
+00196   \textcolor{comment}{// details.}
+00197   \hyperlink{group___sparse_core___module}{T} u, v, q;
+00198   \textcolor{keywordflow}{do} \{
+00199     u = RandomToTypeUniform<T>(state);
+00200     v = \hyperlink{group___sparse_core___module}{T}(1.7156) * (RandomToTypeUniform<T>(state) - \hyperlink{group___sparse_core___module}{T}(0.5));
+00201     \textcolor{keyword}{const} \hyperlink{group___sparse_core___module}{T} x = u - \hyperlink{group___sparse_core___module}{T}(0.449871);
+00202     \textcolor{keyword}{const} T y = numext::abs(v) + T(0.386595);
+00203     q = x*x + y * (T(0.196)*y - T(0.25472)*x);
+00204   \} \textcolor{keywordflow}{while} (q > \hyperlink{group___sparse_core___module}{T}(0.27597) &&
+00205            (q > \hyperlink{group___sparse_core___module}{T}(0.27846) || v*v > \hyperlink{group___sparse_core___module}{T}(-4) * numext::log(u) * u*u));
+00206 
+00207   \textcolor{keywordflow}{return} v/u;
+00208 \}
+00209 
+00210 \textcolor{keyword}{template} <> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00211 std::complex<float> RandomToTypeNormal<std::complex<float> >(uint64\_t* state) \{
+00212   \textcolor{keywordflow}{return} std::complex<float>(RandomToTypeNormal<float>(state),
+00213                              RandomToTypeNormal<float>(state));
+00214 \}
+00215 \textcolor{keyword}{template} <> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00216 std::complex<double> RandomToTypeNormal<std::complex<double> >(uint64\_t* state) \{
+00217   \textcolor{keywordflow}{return} std::complex<double>(RandomToTypeNormal<double>(state),
+00218                               RandomToTypeNormal<double>(state));
+00219 \}
+00220 
+00221 
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_random_8h_source_l00222}\hyperlink{class_eigen_1_1internal_1_1_normal_random_generator}{00222} \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{class }\hyperlink{class_eigen_1_1internal_1_1_normal_random_generator}{NormalRandomGenerator} \{
+00223  \textcolor{keyword}{public}:
+00224   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} PacketAccess = \textcolor{keyword}{true};
+00225 
+00226   \textcolor{comment}{// Uses the given "seed" if non-zero, otherwise uses a random seed.}
+00227   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1internal_1_1_normal_random_generator}{NormalRandomGenerator}(uint64\_t seed = 0) \{
+00228     m\_state = PCG\_XSH\_RS\_state(seed);
+00229   \}
+00230   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1internal_1_1_normal_random_generator}{NormalRandomGenerator}(
+00231       \textcolor{keyword}{const} \hyperlink{class_eigen_1_1internal_1_1_normal_random_generator}{NormalRandomGenerator}& other) \{
+00232     m\_state = other.m\_state;
+00233   \}
+00234 
+00235  \textcolor{keyword}{template}<\textcolor{keyword}{typename} Index> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00236   \hyperlink{group___sparse_core___module}{T} operator()(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i)\textcolor{keyword}{ const }\{
+00237     uint64\_t local\_state = m\_state + i;
+00238     \hyperlink{group___sparse_core___module}{T} result = RandomToTypeNormal<T>(&local\_state);
+00239     m\_state = local\_state;
+00240     \textcolor{keywordflow}{return} result;
+00241   \}
+00242 
+00243   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Packet, \textcolor{keyword}{typename} Index> EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE
+00244   \hyperlink{union_eigen_1_1internal_1_1_packet}{Packet} packetOp(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i)\textcolor{keyword}{ const }\{
+00245     \textcolor{keyword}{const} \textcolor{keywordtype}{int} packetSize = \hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{internal::unpacket\_traits<Packet>::size};
+00246     EIGEN\_ALIGN\_MAX \hyperlink{group___sparse_core___module}{T} values[packetSize];
+00247     uint64\_t local\_state = m\_state + i;
+00248     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < packetSize; ++j) \{
+00249       values[j] = RandomToTypeNormal<T>(&local\_state);
+00250     \}
+00251     m\_state = local\_state;
+00252     \textcolor{keywordflow}{return} internal::pload<Packet>(values);
+00253   \}
+00254 
+00255  \textcolor{keyword}{private}:
+00256   \textcolor{keyword}{mutable} uint64\_t m\_state;
+00257 \};
+00258 
+00259 
+00260 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar>
+\Hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_random_8h_source_l00261}\hyperlink{struct_eigen_1_1internal_1_1functor__traits_3_01_normal_random_generator_3_01_scalar_01_4_01_4}{00261} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1functor__traits}{functor\_traits}<\hyperlink{class_eigen_1_1internal_1_1_normal_random_generator}{NormalRandomGenerator}<Scalar> > \{
+00262   \textcolor{keyword}{enum} \{
+00263     \textcolor{comment}{// On average, we need to generate about 3 random numbers}
+00264     \textcolor{comment}{// 15 mul, 8 add, 1.5 logs}
+00265     Cost = 3 * \hyperlink{struct_eigen_1_1internal_1_1functor__traits}{functor\_traits<UniformRandomGenerator<Scalar>} >
+      ::Cost +
+00266            15 * \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost} + 8 * 
+      \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost} +
+00267            3 * \hyperlink{struct_eigen_1_1internal_1_1functor__traits}{functor\_traits<scalar\_log\_op<Scalar>} >::Cost / 2,
+00268     PacketAccess = \hyperlink{class_eigen_1_1internal_1_1_normal_random_generator}{NormalRandomGenerator<Scalar>::PacketAccess}
+00269   \};
+00270 \};
+00271 
+00272 
+00273 \} \textcolor{comment}{// end namespace internal}
+00274 \} \textcolor{comment}{// end namespace Eigen}
+00275 
+00276 \textcolor{preprocessor}{#endif // EIGEN\_CXX11\_TENSOR\_TENSOR\_RANDOM\_H}
+\end{DoxyCode}

@@ -1,0 +1,85 @@
+\hypertarget{visual__studio_2zlib_2contrib_2dotzlib_2_dot_z_lib_2_circular_buffer_8cs_source}{}\section{visual\+\_\+studio/zlib/contrib/dotzlib/\+Dot\+Z\+Lib/\+Circular\+Buffer.cs}
+\label{visual__studio_2zlib_2contrib_2dotzlib_2_dot_z_lib_2_circular_buffer_8cs_source}\index{Circular\+Buffer.\+cs@{Circular\+Buffer.\+cs}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{//}
+00002 \textcolor{comment}{// © Copyright Henrik Ravn 2004}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Use, modification and distribution are subject to the Boost Software License, Version 1.0.}
+00005 \textcolor{comment}{// (See accompanying file LICENSE\_1\_0.txt or copy at http://www.boost.org/LICENSE\_1\_0.txt)}
+00006 \textcolor{comment}{//}
+00007 
+00008 \textcolor{keyword}{using} \hyperlink{namespace_system}{System};
+00009 \textcolor{keyword}{using} \hyperlink{namespace_system}{System}.Diagnostics;
+00010 
+00011 \textcolor{keyword}{namespace }\hyperlink{namespace_dot_z_lib}{DotZLib}
+00012 \{
+00013 
+00017     \textcolor{keyword}{internal} \textcolor{keyword}{class }CircularBuffer
+00018     \{
+00019 \textcolor{preprocessor}{        #region Private data}
+00020         \textcolor{keyword}{private} \textcolor{keywordtype}{int} \_capacity;
+00021         \textcolor{keyword}{private} \textcolor{keywordtype}{int} \_head;
+00022         \textcolor{keyword}{private} \textcolor{keywordtype}{int} \_tail;
+00023         \textcolor{keyword}{private} \textcolor{keywordtype}{int} \_size;
+00024         \textcolor{keyword}{private} byte[] \_buffer;
+00025 \textcolor{preprocessor}{        #endregion}
+00026 
+00027         \textcolor{keyword}{public} CircularBuffer(\textcolor{keywordtype}{int} capacity)
+00028         \{
+00029             Debug.Assert( capacity > 0 );
+00030             \_buffer = \textcolor{keyword}{new} byte[capacity];
+00031             \_capacity = capacity;
+00032             \_head = 0;
+00033             \_tail = 0;
+00034             \_size = 0;
+00035         \}
+00036 
+00037         \textcolor{keyword}{public} \textcolor{keywordtype}{int} Size \{ \textcolor{keyword}{get} \{ \textcolor{keywordflow}{return} \_size; \} \}
+00038 
+00039         \textcolor{keyword}{public} \textcolor{keywordtype}{int} Put(byte[] source, \textcolor{keywordtype}{int} offset, \textcolor{keywordtype}{int} count)
+00040         \{
+00041             Debug.Assert( count > 0 );
+00042             \textcolor{keywordtype}{int} trueCount = Math.Min(count, \_capacity - Size);
+00043             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < trueCount; ++i)
+00044                 \_buffer[(\_tail+i) % \_capacity] = source[offset+i];
+00045             \_tail += trueCount;
+00046             \_tail %= \_capacity;
+00047             \_size += trueCount;
+00048             \textcolor{keywordflow}{return} trueCount;
+00049         \}
+00050 
+00051         \textcolor{keyword}{public} \textcolor{keywordtype}{bool} Put(byte b)
+00052         \{
+00053             \textcolor{keywordflow}{if} (Size == \_capacity) \textcolor{comment}{// no room}
+00054                 \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00055             \_buffer[\_tail++] = b;
+00056             \_tail %= \_capacity;
+00057             ++\_size;
+00058             \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00059         \}
+00060 
+00061         \textcolor{keyword}{public} \textcolor{keywordtype}{int} Get(byte[] destination, \textcolor{keywordtype}{int} offset, \textcolor{keywordtype}{int} count)
+00062         \{
+00063             \textcolor{keywordtype}{int} trueCount = Math.Min(count,Size);
+00064             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < trueCount; ++i)
+00065                 destination[offset + i] = \_buffer[(\_head+i) % \_capacity];
+00066             \_head += trueCount;
+00067             \_head %= \_capacity;
+00068             \_size -= trueCount;
+00069             \textcolor{keywordflow}{return} trueCount;
+00070         \}
+00071 
+00072         \textcolor{keyword}{public} \textcolor{keywordtype}{int} Get()
+00073         \{
+00074             \textcolor{keywordflow}{if} (Size == 0)
+00075                 \textcolor{keywordflow}{return} -1;
+00076 
+00077             \textcolor{keywordtype}{int} result = (int)\_buffer[\_head++ % \_capacity];
+00078             --\_size;
+00079             \textcolor{keywordflow}{return} result;
+00080         \}
+00081 
+00082     \}
+00083 \}
+\end{DoxyCode}

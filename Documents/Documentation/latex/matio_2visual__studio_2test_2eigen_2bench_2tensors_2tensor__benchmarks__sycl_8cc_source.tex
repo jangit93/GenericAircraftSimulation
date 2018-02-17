@@ -1,0 +1,42 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2bench_2tensors_2tensor__benchmarks__sycl_8cc_source}{}\section{matio/visual\+\_\+studio/test/eigen/bench/tensors/tensor\+\_\+benchmarks\+\_\+sycl.cc}
+\label{matio_2visual__studio_2test_2eigen_2bench_2tensors_2tensor__benchmarks__sycl_8cc_source}\index{tensor\+\_\+benchmarks\+\_\+sycl.\+cc@{tensor\+\_\+benchmarks\+\_\+sycl.\+cc}}
+
+\begin{DoxyCode}
+00001 \textcolor{preprocessor}{#define EIGEN\_USE\_SYCL}
+00002 
+00003 \textcolor{preprocessor}{#include <SYCL/sycl.hpp>}
+00004 \textcolor{preprocessor}{#include <iostream>}
+00005 
+00006 \textcolor{preprocessor}{#include "tensor\_benchmarks.h"}
+00007 
+00008 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1array}{Eigen::array};
+00009 \textcolor{keyword}{using} Eigen::SyclDevice;
+00010 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor};
+00011 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor_map}{Eigen::TensorMap};
+00012 \textcolor{comment}{// Simple functions}
+00013 \textcolor{keyword}{template} <\textcolor{keyword}{typename} device\_selector>
+00014 cl::sycl::queue sycl\_queue() \{
+00015   \textcolor{keywordflow}{return} cl::sycl::queue(device\_selector(), [=](cl::sycl::exception\_list l) \{
+00016     \textcolor{keywordflow}{for} (\textcolor{keyword}{const} \textcolor{keyword}{auto}& e : l) \{
+00017       \textcolor{keywordflow}{try} \{
+00018         std::rethrow\_exception(e);
+00019       \} \textcolor{keywordflow}{catch} (cl::sycl::exception e) \{
+00020         std::cout << e.what() << std::endl;
+00021       \}
+00022     \}
+00023   \});
+00024 \}
+00025 
+00026 \textcolor{preprocessor}{#define BM\_FuncGPU(FUNC)                                       \(\backslash\)}
+00027 \textcolor{preprocessor}{  static void BM\_##FUNC(int iters, int N) \{                    \(\backslash\)}
+00028 \textcolor{preprocessor}{    StopBenchmarkTiming();                                     \(\backslash\)}
+00029 \textcolor{preprocessor}{    cl::sycl::queue q = sycl\_queue<cl::sycl::gpu\_selector>();  \(\backslash\)}
+00030 \textcolor{preprocessor}{    Eigen::SyclDevice device(q);                               \(\backslash\)}
+00031 \textcolor{preprocessor}{    BenchmarkSuite<Eigen::SyclDevice, float> suite(device, N); \(\backslash\)}
+00032 \textcolor{preprocessor}{    suite.FUNC(iters);                                         \(\backslash\)}
+00033 \textcolor{preprocessor}{  \}                                                            \(\backslash\)}
+00034 \textcolor{preprocessor}{  BENCHMARK\_RANGE(BM\_##FUNC, 10, 5000);}
+00035 
+00036 BM\_FuncGPU(broadcasting);
+00037 BM\_FuncGPU(coeffWiseOp);
+\end{DoxyCode}

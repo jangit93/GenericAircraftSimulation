@@ -22,11 +22,13 @@ int main(int argv, char* argc[])
 		tstart = clock();              // start 
 
 
-		std::cout << "---------Aircraft Simulation----------" << std::endl;
-		Trajectory *Test = new Trajectory;
+		std::cout << "-------------Aircraft Simulation--------------" << std::endl;
+
+		SimDPreference check;
+		Trajectory *Test = new Trajectory(check);
 		Atmopshere *Atmo = new Atmopshere;
 		Transformation *Trafo = new Transformation;
-		Float64				FlightTime = 1;
+		Float64				FlightTime = 0.001;
 		AtmosphereStruct	AtmoData;
 		AerodynamicStruct	AeroData;
 		AirframeStruct		AirframeData;
@@ -58,16 +60,21 @@ int main(int argv, char* argc[])
 			AutopilotData[start].Kx_lat = std::get<0>(test.readMatFileStructure("Kx_lat", start, stride, edge, copy_field));
 			AutopilotData[start].Ke_lat = std::get<0>(test.readMatFileStructure("Ke_lat", start, stride, edge, copy_field));
 		}
-
+		NavigationStruct NavData;
+		ActuatorStruct ActuatorData;
+		IMUStruct IMUData;
 
 
 		
-		Test->initTrajectory(AeroData,
+		Test->initTrajectory(FlightTime,
+							AeroData,
 							AirframeData,
 							ThrustData,
 							AircraftData,
-							*AutopilotData,
-							GuidamceData);
+							GuidamceData,
+							NavData,
+							ActuatorData,
+							IMUData);
 
 		Atmo->initAtmosphere();
 
@@ -76,7 +83,7 @@ int main(int argv, char* argc[])
 		AirframeData.velNED(0) = AutopilotData[0].Vel;
 		AirframeData.StickPosition = AutopilotData[0].u_bar(3);
 		AirframeData.EulerAngles(1) = AutopilotData[0].x_bar(1);
-		std::cout << "--------------------------------------" << std::endl;
+		std::cout << "----------------------------------------------" << std::endl;
 		system("pause");
 
 		AirframeData.velNED			 = EulerIntegration(AirframeData.velNED, AirframeData.accTransNED, 0.01);
@@ -93,13 +100,19 @@ int main(int argv, char* argc[])
 		AirframeData.matNEDToTraj = Trafo->MatBodyToTrajectory(AirframeData.Gamma, AirframeData.Chi);
 
 		Atmo->updateAtmosphere(AirframeData.posNED(2), AtmoData);
+
 		Test->updateTrajectory(FlightTime,
 								AtmoData,
 								AeroData,
 								AirframeData,
-								ThrustData, 
-								*AutopilotData,
-								GuidamceData);
+								ThrustData,
+								GuidamceData,
+								NavData,
+								ActuatorData,
+								IMUData);
+
+		
+		
 
 	time1 += clock() - tstart;     // end
 	time1 = time1 / CLOCKS_PER_SEC;  // rescale to seconds

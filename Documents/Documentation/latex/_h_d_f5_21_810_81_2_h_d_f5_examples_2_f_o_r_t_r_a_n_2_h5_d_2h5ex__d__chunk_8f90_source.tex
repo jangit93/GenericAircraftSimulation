@@ -1,0 +1,180 @@
+\hypertarget{_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_d_2h5ex__d__chunk_8f90_source}{}\section{H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+F\+O\+R\+T\+R\+A\+N/\+H5\+D/h5ex\+\_\+d\+\_\+chunk.f90}
+\label{_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_d_2h5ex__d__chunk_8f90_source}\index{h5ex\+\_\+d\+\_\+chunk.\+f90@{h5ex\+\_\+d\+\_\+chunk.\+f90}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{! ************************************************************}
+00002 \textcolor{comment}{!}
+00003 \textcolor{comment}{!  This example shows how to create a chunked dataset.  The}
+00004 \textcolor{comment}{!  program first writes integers in a hyperslab selection to}
+00005 \textcolor{comment}{!  a chunked dataset with dataspace dimensions of DIM0xDIM1}
+00006 \textcolor{comment}{!  and chunk size of CHUNK0xCHUNK1, then closes the file.}
+00007 \textcolor{comment}{!  Next, it reopens the file, reads back the data, and}
+00008 \textcolor{comment}{!  outputs it to the screen.  Finally it reads the data again}
+00009 \textcolor{comment}{!  using a different hyperslab selection, and outputs}
+00010 \textcolor{comment}{!  the result to the screen.}
+00011 \textcolor{comment}{!}
+00012 \textcolor{comment}{!  This file is intended for use with HDF5 Library verion 1.8}
+00013 \textcolor{comment}{!}
+00014 \textcolor{comment}{! ************************************************************}
+00015 
+00016 \textcolor{keyword}{PROGRAM} main
+00017 
+00018   \textcolor{keywordtype}{USE }hdf5
+00019 
+00020   \textcolor{keywordtype}{IMPLICIT NONE}
+00021 
+00022   \textcolor{keywordtype}{CHARACTER(LEN=18)}, \textcolor{keywordtype}{PARAMETER} :: filename = \textcolor{stringliteral}{"h5ex\_d\_chunk.h5"}
+00023   \textcolor{keywordtype}{CHARACTER(LEN=3)} , \textcolor{keywordtype}{PARAMETER} :: dataset  = \textcolor{stringliteral}{"DS1"}
+00024   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: dim0     = 6
+00025   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: dim1     = 8
+00026   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: chunk0   = 4
+00027   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: chunk1   = 4
+00028 
+00029   \textcolor{keywordtype}{INTEGER} :: hdferr
+00030   \textcolor{keywordtype}{INTEGER} :: layout
+00031   \textcolor{keywordtype}{INTEGER(HID\_T)}  :: \hyperlink{structfile}{file}, space, dset, dcpl \textcolor{comment}{! Handles}
+00032   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:2)}   :: dims = (/dim0, dim1/), chunk = (/chunk0,chunk1/)
+00033   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:2)}   :: start, stride, count, block
+00034 
+00035   \textcolor{keywordtype}{INTEGER}, \textcolor{keywordtype}{DIMENSION(1:dim0, 1:dim1)} :: wdata, & \textcolor{comment}{! Write buffer}
+00036                                         rdata    \textcolor{comment}{! Read buffer}
+00037   \textcolor{keywordtype}{INTEGER} :: i, j
+00038   \textcolor{comment}{!}
+00039   \textcolor{comment}{! Initialize FORTRAN interface.}
+00040   \textcolor{comment}{!}
+00041   \textcolor{keyword}{CALL }h5open\_f(hdferr)
+00042   \textcolor{comment}{! Initialize data to "1", to make it easier to see the selections.}
+00043   \textcolor{comment}{!}
+00044   wdata = 1
+00045   \textcolor{comment}{!}
+00046   \textcolor{comment}{! Print the data to the screen.}
+00047   \textcolor{comment}{!}
+00048   \textcolor{keyword}{WRITE}(*, \textcolor{stringliteral}{'(/,"Original Data:")'})
+00049   \textcolor{keywordflow}{DO} i=1, dim0
+00050      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" [")'}, advance=\textcolor{stringliteral}{'NO'})
+00051      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(80i3)'}, advance=\textcolor{stringliteral}{'NO'}) wdata(i,:)
+00052      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" ]")'})
+00053 \textcolor{keywordflow}{  ENDDO}
+00054   \textcolor{comment}{!}
+00055   \textcolor{comment}{! Create a new file using the default properties.}
+00056   \textcolor{comment}{!}
+00057   \textcolor{keyword}{CALL }h5fcreate\_f(filename, h5f\_acc\_trunc\_f, \hyperlink{structfile}{file}, hdferr)
+00058   \textcolor{comment}{!}
+00059   \textcolor{comment}{! Create dataspace.  Setting maximum size to be the current size.}
+00060   \textcolor{comment}{!}
+00061   \textcolor{keyword}{CALL }h5screate\_simple\_f(2, dims, space, hdferr)
+00062   \textcolor{comment}{!}
+00063   \textcolor{comment}{! Create the dataset creation property list, and set the chunk}
+00064   \textcolor{comment}{! size.}
+00065   \textcolor{comment}{!}
+00066   \textcolor{keyword}{CALL }h5pcreate\_f(h5p\_dataset\_create\_f, dcpl, hdferr)
+00067   \textcolor{keyword}{CALL }h5pset\_chunk\_f(dcpl, 2, chunk, hdferr)
+00068   \textcolor{comment}{!}
+00069   \textcolor{comment}{! Create the chunked dataset.}
+00070   \textcolor{comment}{!}
+00071   \textcolor{keyword}{CALL }h5dcreate\_f(\hyperlink{structfile}{file}, dataset, h5t\_std\_i32le, space, dset, hdferr, dcpl)
+00072   \textcolor{comment}{!}
+00073   \textcolor{comment}{! Define and select the first part of the hyperslab selection.}
+00074   \textcolor{comment}{!}
+00075   start = 0
+00076   stride = 3
+00077   count(1:2) = (/2,3/)
+00078   block = 2
+00079   \textcolor{keyword}{CALL }h5sselect\_hyperslab\_f (space, h5s\_select\_set\_f, start, count, &
+00080        hdferr, stride, block)
+00081   \textcolor{comment}{!}
+00082   \textcolor{comment}{! Define and select the second part of the hyperslab selection,}
+00083   \textcolor{comment}{! which is subtracted from the first selection by the use of}
+00084   \textcolor{comment}{! H5S\_SELECT\_NOTB}
+00085   \textcolor{comment}{!}
+00086   block = 1
+00087   \textcolor{keyword}{CALL }h5sselect\_hyperslab\_f (space, h5s\_select\_notb\_f, start, count, &
+00088        hdferr, stride, block)
+00089   \textcolor{comment}{!}
+00090   \textcolor{comment}{! Write the data to the dataset.}
+00091   \textcolor{comment}{!}
+00092   \textcolor{keyword}{CALL }h5dwrite\_f(dset, h5t\_native\_integer, wdata, dims, hdferr, file\_space\_id=space)
+00093   \textcolor{comment}{!}
+00094   \textcolor{comment}{! Close and release resources.}
+00095   \textcolor{comment}{!}
+00096   \textcolor{keyword}{CALL }h5pclose\_f(dcpl , hdferr)
+00097   \textcolor{keyword}{CALL }h5dclose\_f(dset , hdferr)
+00098   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)
+00099   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file} , hdferr)
+00100   \textcolor{comment}{!}
+00101   \textcolor{comment}{! Now we begin the read section of this example.}
+00102   \textcolor{comment}{!}
+00103   \textcolor{comment}{!}
+00104   \textcolor{comment}{! Open file and dataset using the default properties.}
+00105   \textcolor{comment}{!}
+00106   \textcolor{keyword}{CALL }h5fopen\_f(filename, h5f\_acc\_rdonly\_f, \hyperlink{structfile}{file}, hdferr)
+00107   \textcolor{keyword}{CALL }h5dopen\_f (\hyperlink{structfile}{file}, dataset, dset, hdferr)
+00108   \textcolor{comment}{!}
+00109   \textcolor{comment}{! Retrieve the dataset creation property list, and print the}
+00110   \textcolor{comment}{! storage layout.}
+00111   \textcolor{comment}{!}
+00112   \textcolor{keyword}{CALL }h5dget\_create\_plist\_f(dset, dcpl, hdferr)
+00113   \textcolor{keyword}{CALL }h5pget\_layout\_f(dcpl, layout, hdferr)
+00114   \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(/,"Storage layout for ", A," is: ")'}, advance=\textcolor{stringliteral}{'NO'}) dataset
+00115   \textcolor{keywordflow}{IF}(layout.EQ.h5d\_compact\_f)\textcolor{keywordflow}{THEN}
+00116      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'("H5D\_COMPACT\_F",/)'})
+00117   \textcolor{keywordflow}{ELSE} \textcolor{keywordflow}{IF} (layout.EQ.h5d\_contiguous\_f)\textcolor{keywordflow}{THEN}
+00118      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'("H5D\_CONTIGUOUS\_F",/)'})
+00119   \textcolor{keywordflow}{ELSE} \textcolor{keywordflow}{IF} (layout.EQ.h5d\_chunked\_f)\textcolor{keywordflow}{THEN}
+00120      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'("H5D\_CHUNKED\_F",/)'})
+00121   \textcolor{keywordflow}{ELSE} \textcolor{keywordflow}{IF} (layout.EQ.h5d\_virtual\_f)\textcolor{keywordflow}{THEN}
+00122      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'("H5D\_VIRTUAL\_F",/)'})
+00123   \textcolor{keywordflow}{ELSE}
+00124      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'("Layout Error",/)'})
+00125 \textcolor{keywordflow}{  ENDIF}
+00126   \textcolor{comment}{!}
+00127   \textcolor{comment}{! Read the data using the default properties.}
+00128   \textcolor{comment}{!}
+00129   \textcolor{keyword}{CALL }h5dread\_f(dset, h5t\_native\_integer, rdata, dims, hdferr)
+00130   \textcolor{comment}{!}
+00131   \textcolor{comment}{! Output the data to the screen.}
+00132   \textcolor{comment}{!}
+00133   \textcolor{keyword}{WRITE}(*, \textcolor{stringliteral}{'("Data as written to disk by hyberslabs:")'})
+00134   \textcolor{keywordflow}{DO} i=1, dim0
+00135      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" [")'}, advance=\textcolor{stringliteral}{'NO'})
+00136      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(80i3)'}, advance=\textcolor{stringliteral}{'NO'}) rdata(i,:)
+00137      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" ]")'})
+00138 \textcolor{keywordflow}{  ENDDO}
+00139   \textcolor{comment}{!}
+00140   \textcolor{comment}{! Initialize the read array.}
+00141   \textcolor{comment}{!}
+00142   rdata = 0
+00143   \textcolor{comment}{!}
+00144   \textcolor{comment}{! Define and select the hyperslab to use for reading.}
+00145   \textcolor{comment}{!}
+00146   \textcolor{keyword}{CALL }h5dget\_space\_f(dset, space, hdferr)
+00147   start(1:2) = (/0,1/)
+00148   stride = 4
+00149   count = 2
+00150   block(1:2) = (/2,3/)
+00151 
+00152   \textcolor{keyword}{CALL }h5sselect\_hyperslab\_f (space, h5s\_select\_set\_f, start, count, &
+00153        hdferr, stride, block)
+00154   \textcolor{comment}{!}
+00155   \textcolor{comment}{! Read the data using the previously defined hyperslab.}
+00156   \textcolor{comment}{!}
+00157   \textcolor{keyword}{CALL }h5dread\_f(dset, h5t\_native\_integer, rdata, dims, hdferr, file\_space\_id=space)
+00158   \textcolor{comment}{!}
+00159   \textcolor{comment}{! Output the data to the screen.}
+00160   \textcolor{comment}{!}
+00161   \textcolor{keyword}{WRITE}(*, \textcolor{stringliteral}{'(/,"Data as read from disk by hyperslab:")'})
+00162   \textcolor{keywordflow}{DO} i=1, dim0
+00163      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" [")'}, advance=\textcolor{stringliteral}{'NO'})
+00164      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(80i3)'}, advance=\textcolor{stringliteral}{'NO'}) rdata(i,:)
+00165      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" ]")'})
+00166 \textcolor{keywordflow}{  ENDDO}
+00167   \textcolor{comment}{!}
+00168   \textcolor{comment}{! Close and release resources.}
+00169   \textcolor{comment}{!}
+00170   \textcolor{keyword}{CALL }h5pclose\_f(dcpl , hdferr)
+00171   \textcolor{keyword}{CALL }h5dclose\_f(dset , hdferr)
+00172   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)
+00173   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file} , hdferr)
+00174 
+00175 \textcolor{keyword}{END PROGRAM }main
+\end{DoxyCode}

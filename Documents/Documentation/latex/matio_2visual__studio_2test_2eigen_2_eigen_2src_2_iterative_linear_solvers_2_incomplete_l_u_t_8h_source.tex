@@ -1,0 +1,416 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_incomplete_l_u_t_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Iterative\+Linear\+Solvers/\+Incomplete\+L\+UT.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_incomplete_l_u_t_8h_source}\index{Incomplete\+L\+U\+T.\+h@{Incomplete\+L\+U\+T.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2012 Désiré Nuentsa-Wakam <desire.nuentsa\_wakam@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2014 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_INCOMPLETE\_LUT\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_INCOMPLETE\_LUT\_H}
+00013 
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00016 
+00017 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00018     
+00028 \textcolor{keyword}{template} <\textcolor{keyword}{typename} VectorV, \textcolor{keyword}{typename} VectorI>
+00029 \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} QuickSplit(VectorV &row, VectorI &\hyperlink{structind}{ind}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} ncut)
+00030 \{
+00031   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} VectorV::RealScalar RealScalar;
+00032   \textcolor{keyword}{using} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap};
+00033   \textcolor{keyword}{using} std::abs;
+00034   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} mid;
+00035   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} n = row.size(); \textcolor{comment}{/* length of the vector */}
+00036   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} first, last ;
+00037   
+00038   ncut--; \textcolor{comment}{/* to fit the zero-based indices */}
+00039   first = 0; 
+00040   last = n-1; 
+00041   \textcolor{keywordflow}{if} (ncut < first || ncut > last ) \textcolor{keywordflow}{return} 0;
+00042   
+00043   \textcolor{keywordflow}{do} \{
+00044     mid = first; 
+00045     RealScalar abskey = abs(row(mid)); 
+00046     \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j = first + 1; j <= last; j++) \{
+00047       \textcolor{keywordflow}{if} ( abs(row(j)) > abskey) \{
+00048         ++mid;
+00049         \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(row(mid), row(j));
+00050         \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(ind(mid), ind(j));
+00051       \}
+00052     \}
+00053     \textcolor{comment}{/* Interchange for the pivot element */}
+00054     \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(row(mid), row(first));
+00055     \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(ind(mid), ind(first));
+00056     
+00057     \textcolor{keywordflow}{if} (mid > ncut) last = mid - 1;
+00058     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (mid < ncut ) first = mid + 1; 
+00059   \} \textcolor{keywordflow}{while} (mid != ncut );
+00060   
+00061   \textcolor{keywordflow}{return} 0; \textcolor{comment}{/* mid is equal to ncut */} 
+00062 \}
+00063 
+00064 \}\textcolor{comment}{// end namespace internal}
+00065 
+00098 \textcolor{keyword}{template} <\textcolor{keyword}{typename} \_Scalar, \textcolor{keyword}{typename} \_StorageIndex = \textcolor{keywordtype}{int}>
+00099 \textcolor{keyword}{class }IncompleteLUT : \textcolor{keyword}{public} SparseSolverBase<IncompleteLUT<\_Scalar, \_StorageIndex> >
+00100 \{
+00101   \textcolor{keyword}{protected}:
+00102     \textcolor{keyword}{typedef} SparseSolverBase<IncompleteLUT> Base;
+00103     \textcolor{keyword}{using} Base::m\_isInitialized;
+00104   \textcolor{keyword}{public}:
+00105     \textcolor{keyword}{typedef} \_Scalar Scalar;
+00106     \textcolor{keyword}{typedef} \_StorageIndex StorageIndex;
+00107     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00108     \textcolor{keyword}{typedef} Matrix<Scalar,Dynamic,1> Vector;
+00109     \textcolor{keyword}{typedef} Matrix<StorageIndex,Dynamic,1> VectorI;
+00110     \textcolor{keyword}{typedef} SparseMatrix<Scalar,RowMajor,StorageIndex> FactorType;
+00111 
+00112     \textcolor{keyword}{enum} \{
+00113       ColsAtCompileTime = \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00114       MaxColsAtCompileTime = \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}
+00115     \};
+00116 
+00117   \textcolor{keyword}{public}:
+00118     
+00119     IncompleteLUT()
+00120       : m\_droptol(NumTraits<Scalar>::dummy\_precision()), m\_fillfactor(10),
+00121         m\_analysisIsOk(false), m\_factorizationIsOk(false)
+00122     \{\}
+00123     
+00124     \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00125     \textcolor{keyword}{explicit} IncompleteLUT(\textcolor{keyword}{const} MatrixType& mat, \textcolor{keyword}{const} RealScalar& droptol=
+      NumTraits<Scalar>::dummy\_precision(), \textcolor{keywordtype}{int} fillfactor = 10)
+00126       : m\_droptol(droptol),m\_fillfactor(fillfactor),
+00127         m\_analysisIsOk(false),m\_factorizationIsOk(false)
+00128     \{
+00129       eigen\_assert(fillfactor != 0);
+00130       compute(mat); 
+00131     \}
+00132     
+00133     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_lu.rows(); \}
+00134     
+00135     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_lu.cols(); \}
+00136 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_incomplete_l_u_t_8h_source_l00142}\hyperlink{group___iterative_linear_solvers___module_a941c7d34f15d7bc287e780636be0ee2b}{00142}     \hyperlink{group__enums_ga85fad7b87587764e5cf6b513a9e0ee5e}{ComputationInfo} \hyperlink{group___iterative_linear_solvers___module_a941c7d34f15d7bc287e780636be0ee2b}{info}()\textcolor{keyword}{ const}
+00143 \textcolor{keyword}{    }\{
+00144       eigen\_assert(m\_isInitialized && \textcolor{stringliteral}{"IncompleteLUT is not initialized."});
+00145       \textcolor{keywordflow}{return} m\_info;
+00146     \}
+00147     
+00148     \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00149     \textcolor{keywordtype}{void} analyzePattern(\textcolor{keyword}{const} MatrixType& amat);
+00150     
+00151     \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00152     \textcolor{keywordtype}{void} factorize(\textcolor{keyword}{const} MatrixType& amat);
+00153     
+00159     \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_iterative_linear_solvers_2_incomplete_l_u_t_8h_source_l00160}\hyperlink{group___iterative_linear_solvers___module_a488e37ab51d8ed37a297eeca521f1817}{00160}     \hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_incomplete_l_u_t}{IncompleteLUT}& \hyperlink{group___iterative_linear_solvers___module_a488e37ab51d8ed37a297eeca521f1817}{compute}(\textcolor{keyword}{const} MatrixType& amat)
+00161     \{
+00162       analyzePattern(amat); 
+00163       factorize(amat);
+00164       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00165     \}
+00166 
+00167     \textcolor{keywordtype}{void} setDroptol(\textcolor{keyword}{const} RealScalar& droptol); 
+00168     \textcolor{keywordtype}{void} setFillfactor(\textcolor{keywordtype}{int} fillfactor); 
+00169     
+00170     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Dest>
+00171     \textcolor{keywordtype}{void} \_solve\_impl(\textcolor{keyword}{const} Rhs& b, Dest& x)\textcolor{keyword}{ const}
+00172 \textcolor{keyword}{    }\{
+00173       x = m\_Pinv * b;
+00174       x = m\_lu.template triangularView<UnitLower>().solve(x);
+00175       x = m\_lu.template triangularView<Upper>().solve(x);
+00176       x = m\_P * x; 
+00177     \}
+00178 
+00179 \textcolor{keyword}{protected}:
+00180 
+00182     \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_incomplete_l_u_t_1_1keep__diag}{keep\_diag} \{
+00183       \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} operator() (\textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& row, \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& col, \textcolor{keyword}{const} Scalar&)\textcolor{keyword}{ const}
+00184 \textcolor{keyword}{      }\{
+00185         \textcolor{keywordflow}{return} row!=col;
+00186       \}
+00187     \};
+00188 
+00189 \textcolor{keyword}{protected}:
+00190 
+00191     FactorType m\_lu;
+00192     RealScalar m\_droptol;
+00193     \textcolor{keywordtype}{int} m\_fillfactor;
+00194     \textcolor{keywordtype}{bool} m\_analysisIsOk;
+00195     \textcolor{keywordtype}{bool} m\_factorizationIsOk;
+00196     \hyperlink{group__enums_ga85fad7b87587764e5cf6b513a9e0ee5e}{ComputationInfo} m\_info;
+00197     \hyperlink{group___core___module}{PermutationMatrix<Dynamic,Dynamic,StorageIndex>} m\_P;    
+       \textcolor{comment}{// Fill-reducing permutation}
+00198     \hyperlink{group___core___module}{PermutationMatrix<Dynamic,Dynamic,StorageIndex>} m\_Pinv; 
+       \textcolor{comment}{// Inverse permutation}
+00199 \};
+00200 
+00205 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} StorageIndex>
+00206 \textcolor{keywordtype}{void} \hyperlink{group___iterative_linear_solvers___module_a9628c5a595e9e984c72d1f8e671a6925}{IncompleteLUT<Scalar,StorageIndex>::setDroptol}(\textcolor{keyword}{const} 
+      RealScalar& droptol)
+00207 \{
+00208   this->m\_droptol = droptol;   
+00209 \}
+00210 
+00215 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} StorageIndex>
+00216 \textcolor{keywordtype}{void} \hyperlink{group___iterative_linear_solvers___module_a327767d12b55ff8a023f12a030051e17}{IncompleteLUT<Scalar,StorageIndex>::setFillfactor}(\textcolor{keywordtype}{int}
+       fillfactor)
+00217 \{
+00218   this->m\_fillfactor = fillfactor;   
+00219 \}
+00220 
+00221 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} StorageIndex>
+00222 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType>
+00223 \textcolor{keywordtype}{void} \hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_incomplete_l_u_t}{IncompleteLUT<Scalar,StorageIndex>::analyzePattern}(\textcolor{keyword}{
+      const} \_MatrixType& amat)
+00224 \{
+00225   \textcolor{comment}{// Compute the Fill-reducing permutation}
+00226   \textcolor{comment}{// Since ILUT does not perform any numerical pivoting,}
+00227   \textcolor{comment}{// it is highly preferable to keep the diagonal through symmetric permutations.}
+00228 \textcolor{preprocessor}{#ifndef EIGEN\_MPL2\_ONLY}
+00229   \textcolor{comment}{// To this end, let's symmetrize the pattern and perform AMD on it.}
+00230   \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar,ColMajor, StorageIndex>} mat1 = amat;
+00231   \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar,ColMajor, StorageIndex>} mat2 = amat.
+      transpose();
+00232   \textcolor{comment}{// FIXME for a matrix with nearly symmetric pattern, mat2+mat1 is the appropriate choice.}
+00233   \textcolor{comment}{//       on the other hand for a really non-symmetric pattern, mat2*mat1 should be prefered...}
+00234   \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar,ColMajor, StorageIndex>} AtA = mat2 + mat1;
+00235   \hyperlink{group___ordering_methods___module_class_eigen_1_1_a_m_d_ordering}{AMDOrdering<StorageIndex>} ordering;
+00236   ordering(AtA,m\_P);
+00237   m\_Pinv  = m\_P.inverse(); \textcolor{comment}{// cache the inverse permutation}
+00238 \textcolor{preprocessor}{#else}
+00239   \textcolor{comment}{// If AMD is not available, (MPL2-only), then let's use the slower COLAMD routine.}
+00240   \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar,ColMajor, StorageIndex>} mat1 = amat;
+00241   \hyperlink{group___ordering_methods___module_class_eigen_1_1_c_o_l_a_m_d_ordering}{COLAMDOrdering<StorageIndex>} ordering;
+00242   ordering(mat1,m\_Pinv);
+00243   m\_P = m\_Pinv.inverse();
+00244 \textcolor{preprocessor}{#endif}
+00245 
+00246   m\_analysisIsOk = \textcolor{keyword}{true};
+00247   m\_factorizationIsOk = \textcolor{keyword}{false};
+00248   m\_isInitialized = \textcolor{keyword}{true};
+00249 \}
+00250 
+00251 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar, \textcolor{keyword}{typename} StorageIndex>
+00252 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType>
+00253 \textcolor{keywordtype}{void} \hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_incomplete_l_u_t}{IncompleteLUT<Scalar,StorageIndex>::factorize}(\textcolor{keyword}{const} 
+      \_MatrixType& amat)
+00254 \{
+00255   \textcolor{keyword}{using} std::sqrt;
+00256   \textcolor{keyword}{using} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap};
+00257   \textcolor{keyword}{using} std::abs;
+00258   \textcolor{keyword}{using} internal::convert\_index;
+00259 
+00260   eigen\_assert((amat.rows() == amat.cols()) && \textcolor{stringliteral}{"The factorization should be done on a square matrix"});
+00261   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} n = amat.cols();  \textcolor{comment}{// Size of the matrix}
+00262   m\_lu.resize(n,n);
+00263   \textcolor{comment}{// Declare Working vectors and variables}
+00264   Vector u(n) ;     \textcolor{comment}{// real values of the row -- maximum size is n --}
+00265   VectorI ju(n);   \textcolor{comment}{// column position of the values in u -- maximum size  is n}
+00266   VectorI jr(n);   \textcolor{comment}{// Indicate the position of the nonzero elements in the vector u -- A zero location is
+       indicated by -1}
+00267 
+00268   \textcolor{comment}{// Apply the fill-reducing permutation}
+00269   eigen\_assert(m\_analysisIsOk && \textcolor{stringliteral}{"You must first call analyzePattern()"});
+00270   \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar,RowMajor, StorageIndex>} mat;
+00271   mat = amat.\hyperlink{group___sparse_core___module_a51d4898bd6a57cc3ba543a39b102423e}{twistedBy}(m\_Pinv);
+00272 
+00273   \textcolor{comment}{// Initialization}
+00274   jr.fill(-1);
+00275   ju.fill(0);
+00276   u.fill(0);
+00277 
+00278   \textcolor{comment}{// number of largest elements to keep in each row:}
+00279   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} fill\_in = (amat.nonZeros()*m\_fillfactor)/n + 1;
+00280   \textcolor{keywordflow}{if} (fill\_in > n) fill\_in = n;
+00281 
+00282   \textcolor{comment}{// number of largest nonzero elements to keep in the L and the U part of the current row:}
+00283   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} nnzL = fill\_in/2;
+00284   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} nnzU = nnzL;
+00285   m\_lu.reserve(n * (nnzL + nnzU + 1));
+00286 
+00287   \textcolor{comment}{// global loop over the rows of the sparse matrix}
+00288   \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} ii = 0; ii < n; ii++)
+00289   \{
+00290     \textcolor{comment}{// 1 - copy the lower and the upper part of the row i of mat in the working vector u}
+00291 
+00292     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} sizeu = 1; \textcolor{comment}{// number of nonzero elements in the upper part of the current row}
+00293     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} sizel = 0; \textcolor{comment}{// number of nonzero elements in the lower part of the current row}
+00294     ju(ii)    = convert\_index<StorageIndex>(ii);
+00295     u(ii)     = 0;
+00296     jr(ii)    = convert\_index<StorageIndex>(ii);
+00297     RealScalar rownorm = 0;
+00298 
+00299     \textcolor{keyword}{typename} FactorType::InnerIterator j\_it(mat, ii); \textcolor{comment}{// Iterate through the current row ii}
+00300     \textcolor{keywordflow}{for} (; j\_it; ++j\_it)
+00301     \{
+00302       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k = j\_it.index();
+00303       \textcolor{keywordflow}{if} (k < ii)
+00304       \{
+00305         \textcolor{comment}{// copy the lower part}
+00306         ju(sizel) = convert\_index<StorageIndex>(k);
+00307         u(sizel) = j\_it.value();
+00308         jr(k) = convert\_index<StorageIndex>(sizel);
+00309         ++sizel;
+00310       \}
+00311       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (k == ii)
+00312       \{
+00313         u(ii) = j\_it.value();
+00314       \}
+00315       \textcolor{keywordflow}{else}
+00316       \{
+00317         \textcolor{comment}{// copy the upper part}
+00318         \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} jpos = ii + sizeu;
+00319         ju(jpos) = convert\_index<StorageIndex>(k);
+00320         u(jpos) = j\_it.value();
+00321         jr(k) = convert\_index<StorageIndex>(jpos);
+00322         ++sizeu;
+00323       \}
+00324       rownorm += numext::abs2(j\_it.value());
+00325     \}
+00326 
+00327     \textcolor{comment}{// 2 - detect possible zero row}
+00328     \textcolor{keywordflow}{if}(rownorm==0)
+00329     \{
+00330       m\_info = \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaaf9b736d310a664e7729d163a035cc5f}{NumericalIssue};
+00331       \textcolor{keywordflow}{return};
+00332     \}
+00333     \textcolor{comment}{// Take the 2-norm of the current row as a relative tolerance}
+00334     rownorm = sqrt(rownorm);
+00335 
+00336     \textcolor{comment}{// 3 - eliminate the previous nonzero rows}
+00337     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} jj = 0;
+00338     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} len = 0;
+00339     \textcolor{keywordflow}{while} (jj < sizel)
+00340     \{
+00341       \textcolor{comment}{// In order to eliminate in the correct order,}
+00342       \textcolor{comment}{// we must select first the smallest column index among  ju(jj:sizel)}
+00343       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k;
+00344       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} minrow = ju.segment(jj,sizel-jj).minCoeff(&k); \textcolor{comment}{// k is relative to the segment}
+00345       k += jj;
+00346       \textcolor{keywordflow}{if} (minrow != ju(jj))
+00347       \{
+00348         \textcolor{comment}{// swap the two locations}
+00349         \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j = ju(jj);
+00350         \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(ju(jj), ju(k));
+00351         jr(minrow) = convert\_index<StorageIndex>(jj);
+00352         jr(j) = convert\_index<StorageIndex>(k);
+00353         \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(u(jj), u(k));
+00354       \}
+00355       \textcolor{comment}{// Reset this location}
+00356       jr(minrow) = -1;
+00357 
+00358       \textcolor{comment}{// Start elimination}
+00359       \textcolor{keyword}{typename} FactorType::InnerIterator ki\_it(m\_lu, minrow);
+00360       \textcolor{keywordflow}{while} (ki\_it && ki\_it.index() < minrow) ++ki\_it;
+00361       eigen\_internal\_assert(ki\_it && ki\_it.col()==minrow);
+00362       Scalar fact = u(jj) / ki\_it.value();
+00363 
+00364       \textcolor{comment}{// drop too small elements}
+00365       \textcolor{keywordflow}{if}(abs(fact) <= m\_droptol)
+00366       \{
+00367         jj++;
+00368         \textcolor{keywordflow}{continue};
+00369       \}
+00370 
+00371       \textcolor{comment}{// linear combination of the current row ii and the row minrow}
+00372       ++ki\_it;
+00373       \textcolor{keywordflow}{for} (; ki\_it; ++ki\_it)
+00374       \{
+00375         Scalar prod = fact * ki\_it.value();
+00376         \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j     = ki\_it.index();
+00377         \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} jpos  = jr(j);
+00378         \textcolor{keywordflow}{if} (jpos == -1) \textcolor{comment}{// fill-in element}
+00379         \{
+00380           \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} newpos;
+00381           \textcolor{keywordflow}{if} (j >= ii) \textcolor{comment}{// dealing with the upper part}
+00382           \{
+00383             newpos = ii + sizeu;
+00384             sizeu++;
+00385             eigen\_internal\_assert(sizeu<=n);
+00386           \}
+00387           \textcolor{keywordflow}{else} \textcolor{comment}{// dealing with the lower part}
+00388           \{
+00389             newpos = sizel;
+00390             sizel++;
+00391             eigen\_internal\_assert(sizel<=ii);
+00392           \}
+00393           ju(newpos) = convert\_index<StorageIndex>(j);
+00394           u(newpos) = -prod;
+00395           jr(j) = convert\_index<StorageIndex>(newpos);
+00396         \}
+00397         \textcolor{keywordflow}{else}
+00398           u(jpos) -= prod;
+00399       \}
+00400       \textcolor{comment}{// store the pivot element}
+00401       u(len)  = fact;
+00402       ju(len) = convert\_index<StorageIndex>(minrow);
+00403       ++len;
+00404 
+00405       jj++;
+00406     \} \textcolor{comment}{// end of the elimination on the row ii}
+00407 
+00408     \textcolor{comment}{// reset the upper part of the pointer jr to zero}
+00409     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k = 0; k <sizeu; k++) jr(ju(ii+k)) = -1;
+00410 
+00411     \textcolor{comment}{// 4 - partially sort and insert the elements in the m\_lu matrix}
+00412 
+00413     \textcolor{comment}{// sort the L-part of the row}
+00414     sizel = len;
+00415     len = (std::min)(sizel, nnzL);
+00416     \textcolor{keyword}{typename} Vector::SegmentReturnType ul(u.segment(0, sizel));
+00417     \textcolor{keyword}{typename} VectorI::SegmentReturnType jul(ju.segment(0, sizel));
+00418     internal::QuickSplit(ul, jul, len);
+00419 
+00420     \textcolor{comment}{// store the largest m\_fill elements of the L part}
+00421     m\_lu.startVec(ii);
+00422     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k = 0; k < len; k++)
+00423       m\_lu.insertBackByOuterInnerUnordered(ii,ju(k)) = u(k);
+00424 
+00425     \textcolor{comment}{// store the diagonal element}
+00426     \textcolor{comment}{// apply a shifting rule to avoid zero pivots (we are doing an incomplete factorization)}
+00427     \textcolor{keywordflow}{if} (u(ii) == Scalar(0))
+00428       u(ii) = sqrt(m\_droptol) * rownorm;
+00429     m\_lu.insertBackByOuterInnerUnordered(ii, ii) = u(ii);
+00430 
+00431     \textcolor{comment}{// sort the U-part of the row}
+00432     \textcolor{comment}{// apply the dropping rule first}
+00433     len = 0;
+00434     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k = 1; k < sizeu; k++)
+00435     \{
+00436       \textcolor{keywordflow}{if}(abs(u(ii+k)) > m\_droptol * rownorm )
+00437       \{
+00438         ++len;
+00439         u(ii + len)  = u(ii + k);
+00440         ju(ii + len) = ju(ii + k);
+00441       \}
+00442     \}
+00443     sizeu = len + 1; \textcolor{comment}{// +1 to take into account the diagonal element}
+00444     len = (std::min)(sizeu, nnzU);
+00445     \textcolor{keyword}{typename} Vector::SegmentReturnType uu(u.segment(ii+1, sizeu-1));
+00446     \textcolor{keyword}{typename} VectorI::SegmentReturnType juu(ju.segment(ii+1, sizeu-1));
+00447     internal::QuickSplit(uu, juu, len);
+00448 
+00449     \textcolor{comment}{// store the largest elements of the U part}
+00450     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k = ii + 1; k < ii + len; k++)
+00451       m\_lu.insertBackByOuterInnerUnordered(ii,ju(k)) = u(k);
+00452   \}
+00453   m\_lu.finalize();
+00454   m\_lu.makeCompressed();
+00455 
+00456   m\_factorizationIsOk = \textcolor{keyword}{true};
+00457   m\_info = \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success};
+00458 \}
+00459 
+00460 \} \textcolor{comment}{// end namespace Eigen}
+00461 
+00462 \textcolor{preprocessor}{#endif // EIGEN\_INCOMPLETE\_LUT\_H}
+\end{DoxyCode}

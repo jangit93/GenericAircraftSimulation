@@ -1,0 +1,120 @@
+\hypertarget{eigen_2test_2nesting__ops_8cpp_source}{}\section{eigen/test/nesting\+\_\+ops.cpp}
+\label{eigen_2test_2nesting__ops_8cpp_source}\index{nesting\+\_\+ops.\+cpp@{nesting\+\_\+ops.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2010 Hauke Heibel <hauke.heibel@gmail.com>}
+00005 \textcolor{comment}{// Copyright (C) 2015 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#define TEST\_ENABLE\_TEMPORARY\_TRACKING}
+00012 
+00013 \textcolor{preprocessor}{#include "main.h"}
+00014 
+00015 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} N, \textcolor{keyword}{typename} XprType>
+00016 \textcolor{keywordtype}{void} use\_n\_times(\textcolor{keyword}{const} XprType &xpr)
+00017 \{
+00018   \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{internal::nested\_eval<XprType,N>::type} mat(xpr);
+00019   \textcolor{keyword}{typename} XprType::PlainObject res(mat.rows(), mat.cols());
+00020   nb\_temporaries--; \textcolor{comment}{// remove res}
+00021   res.setZero();
+00022   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i=0; i<N; ++i)
+00023     res += mat;
+00024 \}
+00025 
+00026 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} N, \textcolor{keyword}{typename} ReferenceType, \textcolor{keyword}{typename} XprType>
+00027 \textcolor{keywordtype}{bool} verify\_eval\_type(\textcolor{keyword}{const} XprType &, \textcolor{keyword}{const} ReferenceType&)
+00028 \{
+00029   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{internal::nested\_eval<XprType,N>::type} EvalType;
+00030   \textcolor{keywordflow}{return} internal::is\_same<typename internal::remove\_all<EvalType>::type, \textcolor{keyword}{typename} 
+      \hyperlink{group___sparse_core___module}{internal::remove\_all<ReferenceType>::type}>::value;
+00031 \}
+00032 
+00033 \textcolor{keyword}{template} <\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} run\_nesting\_ops\_1(\textcolor{keyword}{const} MatrixType& \_m)
+00034 \{
+00035   \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{internal::nested\_eval<MatrixType,2>::type} m(\_m);
+00036 
+00037   \textcolor{comment}{// Make really sure that we are in debug mode!}
+00038   VERIFY\_RAISES\_ASSERT(eigen\_assert(\textcolor{keyword}{false}));
+00039 
+00040   \textcolor{comment}{// The only intention of these tests is to ensure that this code does}
+00041   \textcolor{comment}{// not trigger any asserts or segmentation faults... more to come.}
+00042   VERIFY\_IS\_APPROX( (m.transpose() * m).diagonal().sum(), (m.transpose() * m).diagonal().sum() );
+00043   VERIFY\_IS\_APPROX( (m.transpose() * m).diagonal().array().abs().sum(), (m.transpose() * m).diagonal().
+      array().abs().sum() );
+00044 
+00045   VERIFY\_IS\_APPROX( (m.transpose() * m).\hyperlink{class_eigen_1_1array}{array}().abs().sum(), (m.transpose() * m).
+      \hyperlink{class_eigen_1_1array}{array}().abs().sum() );
+00046 \}
+00047 
+00048 \textcolor{keyword}{template} <\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} run\_nesting\_ops\_2(\textcolor{keyword}{const} MatrixType& \_m)
+00049 \{
+00050   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00051   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows = \_m.rows();
+00052   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols = \_m.cols();
+00053   MatrixType m1 = MatrixType::Random(rows,cols);
+00054   
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,MatrixType::RowsAtCompileTime,MatrixType::ColsAtCompileTime,ColMajor>}
+       m2;
+00055 
+00056   \textcolor{keywordflow}{if}((MatrixType::SizeAtCompileTime==Dynamic))
+00057   \{
+00058     VERIFY\_EVALUATION\_COUNT( use\_n\_times<1>(m1 + m1*m1), 1 );
+00059     VERIFY\_EVALUATION\_COUNT( use\_n\_times<10>(m1 + m1*m1), 1 );
+00060 
+00061     VERIFY\_EVALUATION\_COUNT( use\_n\_times<1>(m1.template triangularView<Lower>().solve(m1.col(0))), 1 );
+00062     VERIFY\_EVALUATION\_COUNT( use\_n\_times<10>(m1.template triangularView<Lower>().solve(m1.col(0))), 1 );
+00063 
+00064     VERIFY\_EVALUATION\_COUNT( use\_n\_times<1>(Scalar(2)*m1.template triangularView<Lower>().solve(m1.col(0)))
+      , 2 ); \textcolor{comment}{// FIXME could be one by applying the scaling in-place on the solve result}
+00065     VERIFY\_EVALUATION\_COUNT( use\_n\_times<1>(m1.col(0)+m1.template triangularView<Lower>().solve(m1.col(0)))
+      , 2 ); \textcolor{comment}{// FIXME could be one by adding m1.col() inplace}
+00066     VERIFY\_EVALUATION\_COUNT( use\_n\_times<10>(m1.col(0)+m1.template triangularView<Lower>().solve(m1.col(0))
+      ), 2 );
+00067   \}
+00068 
+00069   \{
+00070     VERIFY( verify\_eval\_type<10>(m1, m1) );
+00071     \textcolor{keywordflow}{if}(!\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsComplex})
+00072     \{
+00073       VERIFY( verify\_eval\_type<3>(2*m1, 2*m1) );
+00074       VERIFY( verify\_eval\_type<4>(2*m1, m1) );
+00075     \}
+00076     \textcolor{keywordflow}{else}
+00077     \{
+00078       VERIFY( verify\_eval\_type<2>(2*m1, 2*m1) );
+00079       VERIFY( verify\_eval\_type<3>(2*m1, m1) );
+00080     \}
+00081     VERIFY( verify\_eval\_type<2>(m1+m1, m1+m1) );
+00082     VERIFY( verify\_eval\_type<3>(m1+m1, m1) );
+00083     VERIFY( verify\_eval\_type<1>(m1*m1.transpose(), m2) );
+00084     VERIFY( verify\_eval\_type<1>(m1*(m1+m1).transpose(), m2) );
+00085     VERIFY( verify\_eval\_type<2>(m1*m1.transpose(), m2) );
+00086     VERIFY( verify\_eval\_type<1>(m1+m1*m1, m1) );
+00087 
+00088     VERIFY( verify\_eval\_type<1>(m1.template triangularView<Lower>().solve(m1), m1) );
+00089     VERIFY( verify\_eval\_type<1>(m1+m1.template triangularView<Lower>().solve(m1), m1) );
+00090   \}
+00091 \}
+00092 
+00093 
+00094 \textcolor{keywordtype}{void} test\_nesting\_ops()
+00095 \{
+00096   CALL\_SUBTEST\_1(run\_nesting\_ops\_1(MatrixXf::Random(25,25)));
+00097   CALL\_SUBTEST\_2(run\_nesting\_ops\_1(MatrixXcd::Random(25,25)));
+00098   CALL\_SUBTEST\_3(run\_nesting\_ops\_1(Matrix4f::Random()));
+00099   CALL\_SUBTEST\_4(run\_nesting\_ops\_1(Matrix2d::Random()));
+00100 
+00101   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} s = internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE);
+00102   CALL\_SUBTEST\_1( run\_nesting\_ops\_2(MatrixXf(s,s)) );
+00103   CALL\_SUBTEST\_2( run\_nesting\_ops\_2(MatrixXcd(s,s)) );
+00104   CALL\_SUBTEST\_3( run\_nesting\_ops\_2(Matrix4f()) );
+00105   CALL\_SUBTEST\_4( run\_nesting\_ops\_2(Matrix2d()) );
+00106   TEST\_SET\_BUT\_UNUSED\_VARIABLE(s)
+00107 \}
+\end{DoxyCode}

@@ -1,0 +1,149 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2include_2_h5_h_gpkg_8h_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/include/\+H5\+H\+Gpkg.h}
+\label{visual__studio_2_h_d_f5_21_810_81_2include_2_h5_h_gpkg_8h_source}\index{H5\+H\+Gpkg.\+h@{H5\+H\+Gpkg.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+00002 \textcolor{comment}{ * Copyright by The HDF Group.                                               *}
+00003 \textcolor{comment}{ * Copyright by the Board of Trustees of the University of Illinois.         *}
+00004 \textcolor{comment}{ * All rights reserved.                                                      *}
+00005 \textcolor{comment}{ *                                                                           *}
+00006 \textcolor{comment}{ * This file is part of HDF5.  The full HDF5 copyright notice, including     *}
+00007 \textcolor{comment}{ * terms governing use, modification, and redistribution, is contained in    *}
+00008 \textcolor{comment}{ * the COPYING file, which can be found at the root of the source code       *}
+00009 \textcolor{comment}{ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *}
+00010 \textcolor{comment}{ * If you do not have access to either file, you may request a copy from     *}
+00011 \textcolor{comment}{ * help@hdfgroup.org.                                                        *}
+00012 \textcolor{comment}{ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00013 
+00014 \textcolor{comment}{/*}
+00015 \textcolor{comment}{ * Programmer: Quincey Koziol <koziol@ncsa.uiuc.edu>}
+00016 \textcolor{comment}{ *             Wednesday, July 9, 2003}
+00017 \textcolor{comment}{ *}
+00018 \textcolor{comment}{ * Purpose:     This file contains declarations which are visible}
+00019 \textcolor{comment}{ *              only within the H5HG package. Source files outside the}
+00020 \textcolor{comment}{ *              H5HG package should include H5HGprivate.h instead.}
+00021 \textcolor{comment}{ */}
+00022 \textcolor{preprocessor}{#if !(defined H5HG\_FRIEND || defined H5HG\_MODULE)}
+00023 \textcolor{preprocessor}{#error "Do not include this file outside the H5HG package!"}
+00024 \textcolor{preprocessor}{#endif}
+00025 
+00026 \textcolor{preprocessor}{#ifndef \_H5HGpkg\_H}
+00027 \textcolor{preprocessor}{#define \_H5HGpkg\_H}
+00028 
+00029 \textcolor{comment}{/* Get package's private header */}
+00030 \textcolor{preprocessor}{#include "H5HGprivate.h"}
+00031 
+00032 \textcolor{comment}{/* Other private headers needed by this file */}
+00033 \textcolor{preprocessor}{#include "H5ACprivate.h"}    \textcolor{comment}{/* Metadata cache           */}
+00034 \textcolor{preprocessor}{#include "H5FLprivate.h"}    \textcolor{comment}{/* Free lists                           */}
+00035 
+00036 
+00037 \textcolor{comment}{/*****************************/}
+00038 \textcolor{comment}{/* Package Private Variables */}
+00039 \textcolor{comment}{/*****************************/}
+00040 
+00041 \textcolor{comment}{/* Declare extern the free list to manage the H5HG\_t struct */}
+00042 H5FL\_EXTERN(\hyperlink{struct_h5_h_g__heap__t}{H5HG\_heap\_t});
+00043 
+00044 \textcolor{comment}{/* Declare extern the free list to manage sequences of H5HG\_obj\_t's */}
+00045 H5FL\_SEQ\_EXTERN(\hyperlink{struct_h5_h_g__obj__t}{H5HG\_obj\_t});
+00046 
+00047 \textcolor{comment}{/* Declare extern the PQ free list to manage heap chunks */}
+00048 H5FL\_BLK\_EXTERN(gheap\_chunk);
+00049 
+00050 
+00051 \textcolor{comment}{/**************************/}
+00052 \textcolor{comment}{/* Package Private Macros */}
+00053 \textcolor{comment}{/**************************/}
+00054 
+00055 \textcolor{comment}{/*}
+00056 \textcolor{comment}{ * Global heap collection version.}
+00057 \textcolor{comment}{ */}
+00058 \textcolor{preprocessor}{#define H5HG\_VERSION    1}
+00059 
+00060 \textcolor{comment}{/*}
+00061 \textcolor{comment}{ * All global heap collections are at least this big.  This allows us to read}
+00062 \textcolor{comment}{ * most collections with a single read() since we don't have to read a few}
+00063 \textcolor{comment}{ * bytes of header to figure out the size.  If the heap is larger than this}
+00064 \textcolor{comment}{ * then a second read gets the rest after we've decoded the header.}
+00065 \textcolor{comment}{ */}
+00066 \textcolor{preprocessor}{#define H5HG\_MINSIZE    4096}
+00067 
+00068 \textcolor{comment}{/*}
+00069 \textcolor{comment}{ * Pad all global heap messages to a multiple of eight bytes so we can load}
+00070 \textcolor{comment}{ * the entire collection into memory and operate on it there.  Eight should}
+00071 \textcolor{comment}{ * be sufficient for machines that have alignment constraints because our}
+00072 \textcolor{comment}{ * largest data type is eight bytes.}
+00073 \textcolor{comment}{ */}
+00074 \textcolor{preprocessor}{#define H5HG\_ALIGNMENT  8}
+00075 \textcolor{preprocessor}{#define H5HG\_ALIGN(X)   (H5HG\_ALIGNMENT*(((X)+H5HG\_ALIGNMENT-1)/H5HG\_ALIGNMENT))}
+00076 \textcolor{preprocessor}{#define H5HG\_ISALIGNED(X) ((X)==H5HG\_ALIGN(X))}
+00077 
+00078 \textcolor{comment}{/*}
+00079 \textcolor{comment}{ * The size of the collection header, always a multiple of the alignment so}
+00080 \textcolor{comment}{ * that the stuff that follows the header is aligned.}
+00081 \textcolor{comment}{ */}
+00082 \textcolor{preprocessor}{#define H5HG\_SIZEOF\_HDR(f)                            \(\backslash\)}
+00083 \textcolor{preprocessor}{    (size\_t)H5HG\_ALIGN(4 +          }\textcolor{comment}{/*magic number      */}\textcolor{preprocessor}{ \(\backslash\)}
+00084 \textcolor{preprocessor}{                       1 +          }\textcolor{comment}{/*version number    */}\textcolor{preprocessor}{ \(\backslash\)}
+00085 \textcolor{preprocessor}{                       3 +          }\textcolor{comment}{/*reserved      */}\textcolor{preprocessor}{ \(\backslash\)}
+00086 \textcolor{preprocessor}{                       H5F\_SIZEOF\_SIZE(f))  }\textcolor{comment}{/*collection size   */}\textcolor{preprocessor}{}
+00087 
+00088 \textcolor{comment}{/*}
+00089 \textcolor{comment}{ * The overhead associated with each object in the heap, always a multiple of}
+00090 \textcolor{comment}{ * the alignment so that the stuff that follows the header is aligned.}
+00091 \textcolor{comment}{ */}
+00092 \textcolor{preprocessor}{#define H5HG\_SIZEOF\_OBJHDR(f)                             \(\backslash\)}
+00093 \textcolor{preprocessor}{    (size\_t)H5HG\_ALIGN(2 +          }\textcolor{comment}{/*object id number  */}\textcolor{preprocessor}{ \(\backslash\)}
+00094 \textcolor{preprocessor}{                       2 +          }\textcolor{comment}{/*reference count   */}\textcolor{preprocessor}{ \(\backslash\)}
+00095 \textcolor{preprocessor}{                       4 +          }\textcolor{comment}{/*reserved      */}\textcolor{preprocessor}{ \(\backslash\)}
+00096 \textcolor{preprocessor}{                       H5F\_SIZEOF\_SIZE(f))  }\textcolor{comment}{/*object data size  */}\textcolor{preprocessor}{}
+00097 
+00098 \textcolor{comment}{/*}
+00099 \textcolor{comment}{ * The initial guess for the number of messages in a collection.  We assume}
+00100 \textcolor{comment}{ * that all objects in that collection are zero length, giving the maximum}
+00101 \textcolor{comment}{ * possible number of objects in the collection.  The collection itself has}
+00102 \textcolor{comment}{ * some overhead and each message has some overhead.  The `+2' accounts for}
+00103 \textcolor{comment}{ * rounding and for the free space object.}
+00104 \textcolor{comment}{ */}
+00105 \textcolor{preprocessor}{#define H5HG\_NOBJS(f,z) ((((z)-H5HG\_SIZEOF\_HDR(f))/           \(\backslash\)}
+00106 \textcolor{preprocessor}{                          H5HG\_SIZEOF\_OBJHDR(f)+2))}
+00107 
+00108 
+00109 \textcolor{comment}{/****************************/}
+00110 \textcolor{comment}{/* Package Private Typedefs */}
+00111 \textcolor{comment}{/****************************/}
+00112 
+00113 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_h_g__obj__t}{H5HG\_obj\_t} \{
+00114     \textcolor{keywordtype}{int}         nrefs;      \textcolor{comment}{/* reference count                  */}
+00115     \textcolor{keywordtype}{size\_t}      size;       \textcolor{comment}{/* total size of object             */}
+00116     uint8\_t     *begin;     \textcolor{comment}{/* ptr to object into heap->chunk   */}
+00117 \} \hyperlink{struct_h5_h_g__obj__t}{H5HG\_obj\_t};
+00118 
+00119 \textcolor{comment}{/* Forward declarations for fields */}
+00120 \textcolor{keyword}{struct }\hyperlink{struct_h5_f__file__t}{H5F\_file\_t};
+00121 
+00122 \textcolor{keyword}{struct }\hyperlink{struct_h5_h_g__heap__t}{H5HG\_heap\_t} \{
+00123     H5AC\_info\_t cache\_info; \textcolor{comment}{/* Information for H5AC cache functions, \_must\_ be */}
+00124                             \textcolor{comment}{/* first field in structure */}
+00125     haddr\_t     addr;       \textcolor{comment}{/*collection address        */}
+00126     \textcolor{keywordtype}{size\_t}      size;       \textcolor{comment}{/*total size of collection  */}
+00127     uint8\_t     *chunk;     \textcolor{comment}{/*the collection, incl. header  */}
+00128     \textcolor{keywordtype}{size\_t}      nalloc;     \textcolor{comment}{/*numb object slots allocated   */}
+00129     \textcolor{keywordtype}{size\_t}      nused;      \textcolor{comment}{/*number of slots used      */}
+00130                                         \textcolor{comment}{/* If this value is >65535 then all indices */}
+00131                                         \textcolor{comment}{/* have been used at some time and the */}
+00132                                         \textcolor{comment}{/* correct new index should be searched for */}
+00133     \textcolor{keyword}{struct }\hyperlink{struct_h5_f__file__t}{H5F\_file\_t}   *shared;        \textcolor{comment}{/* shared file */}
+00134     \hyperlink{struct_h5_h_g__obj__t}{H5HG\_obj\_t}    *obj;       \textcolor{comment}{/*array of object descriptions  */}
+00135 \};
+00136 
+00137 \textcolor{comment}{/******************************/}
+00138 \textcolor{comment}{/* Package Private Prototypes */}
+00139 \textcolor{comment}{/******************************/}
+00140 H5\_DLL herr\_t H5HG\_free(\hyperlink{struct_h5_h_g__heap__t}{H5HG\_heap\_t} *heap);
+00141 H5\_DLL \hyperlink{struct_h5_h_g__heap__t}{H5HG\_heap\_t} *H5HG\_protect(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, haddr\_t addr, \textcolor{keywordtype}{unsigned} flags);
+00142 
+00143 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* \_H5HGpkg\_H */}\textcolor{preprocessor}{}
+00144 
+\end{DoxyCode}

@@ -1,0 +1,139 @@
+\hypertarget{eigen_2bench_2btl_2generic__bench_2timers_2portable__perf__analyzer__old_8hh_source}{}\section{eigen/bench/btl/generic\+\_\+bench/timers/portable\+\_\+perf\+\_\+analyzer\+\_\+old.hh}
+\label{eigen_2bench_2btl_2generic__bench_2timers_2portable__perf__analyzer__old_8hh_source}\index{portable\+\_\+perf\+\_\+analyzer\+\_\+old.\+hh@{portable\+\_\+perf\+\_\+analyzer\+\_\+old.\+hh}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{//=====================================================}
+00002 \textcolor{comment}{// File   :  portable\_perf\_analyzer.hh}
+00003 \textcolor{comment}{// Author :  L. Plagne <laurent.plagne@edf.fr)>}
+00004 \textcolor{comment}{// Copyright (C) EDF R&D,  mar d�c 3 18:59:35 CET 2002}
+00005 \textcolor{comment}{//=====================================================}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This program is free software; you can redistribute it and/or}
+00008 \textcolor{comment}{// modify it under the terms of the GNU General Public License}
+00009 \textcolor{comment}{// as published by the Free Software Foundation; either version 2}
+00010 \textcolor{comment}{// of the License, or (at your option) any later version.}
+00011 \textcolor{comment}{//}
+00012 \textcolor{comment}{// This program is distributed in the hope that it will be useful,}
+00013 \textcolor{comment}{// but WITHOUT ANY WARRANTY; without even the implied warranty of}
+00014 \textcolor{comment}{// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the}
+00015 \textcolor{comment}{// GNU General Public License for more details.}
+00016 \textcolor{comment}{// You should have received a copy of the GNU General Public License}
+00017 \textcolor{comment}{// along with this program; if not, write to the Free Software}
+00018 \textcolor{comment}{// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.}
+00019 \textcolor{comment}{//}
+00020 \textcolor{preprocessor}{#ifndef \_PORTABLE\_PERF\_ANALYZER\_HH}
+00021 \textcolor{preprocessor}{#define \_PORTABLE\_PERF\_ANALYZER\_HH}
+00022 
+00023 \textcolor{preprocessor}{#include "utilities.h"}
+00024 \textcolor{preprocessor}{#include "timers/portable\_timer.hh"}
+00025 
+00026 \textcolor{keyword}{template} <\textcolor{keyword}{class} Action>
+00027 \textcolor{keyword}{class }\hyperlink{class_portable___perf___analyzer}{Portable\_Perf\_Analyzer}\{
+00028 \textcolor{keyword}{public}:
+00029   \hyperlink{class_portable___perf___analyzer}{Portable\_Perf\_Analyzer}( \textcolor{keywordtype}{void} ):\_nb\_calc(1),\_nb\_init(1),\_chronos()\{
+00030     MESSAGE(\textcolor{stringliteral}{"Portable\_Perf\_Analyzer Ctor"});
+00031   \};
+00032   \hyperlink{class_portable___perf___analyzer}{Portable\_Perf\_Analyzer}( \textcolor{keyword}{const} \hyperlink{class_portable___perf___analyzer}{Portable\_Perf\_Analyzer} & )\{
+00033     INFOS(\textcolor{stringliteral}{"Copy Ctor not implemented"});
+00034     exit(0);
+00035   \};
+00036   ~\hyperlink{class_portable___perf___analyzer}{Portable\_Perf\_Analyzer}( \textcolor{keywordtype}{void} )\{
+00037     MESSAGE(\textcolor{stringliteral}{"Portable\_Perf\_Analyzer Dtor"});
+00038   \};
+00039 
+00040 
+00041 
+00042   \textcolor{keyword}{inline} \textcolor{keywordtype}{double} eval\_mflops(\textcolor{keywordtype}{int} size)
+00043   \{
+00044 
+00045     Action action(size);
+00046 
+00047 \textcolor{comment}{//     double time\_baseline = time\_init(action);}
+00048 \textcolor{comment}{//     while (time\_baseline < MIN\_TIME\_INIT)}
+00049 \textcolor{comment}{//     \{}
+00050 \textcolor{comment}{//       \_nb\_init *= 2;}
+00051 \textcolor{comment}{//       time\_baseline = time\_init(action);}
+00052 \textcolor{comment}{//     \}}
+00053 \textcolor{comment}{//}
+00054 \textcolor{comment}{//     // optimize}
+00055 \textcolor{comment}{//     for (int i=1; i<NB\_TRIES; ++i)}
+00056 \textcolor{comment}{//       time\_baseline = std::min(time\_baseline, time\_init(action));}
+00057 \textcolor{comment}{//}
+00058 \textcolor{comment}{//     time\_baseline = time\_baseline/(double(\_nb\_init));}
+00059 
+00060     \textcolor{keywordtype}{double} time\_action = time\_calculate(action);
+00061     \textcolor{keywordflow}{while} (time\_action < MIN\_TIME)
+00062     \{
+00063       \_nb\_calc *= 2;
+00064       time\_action = time\_calculate(action);
+00065     \}
+00066 
+00067     \textcolor{comment}{// optimize}
+00068     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=1; i<NB\_TRIES; ++i)
+00069       time\_action = std::min(time\_action, time\_calculate(action));
+00070 
+00071 \textcolor{comment}{//     INFOS("size="<<size);}
+00072 \textcolor{comment}{//     INFOS("\_nb\_init="<<\_nb\_init);}
+00073 \textcolor{comment}{//     INFOS("\_nb\_calc="<<\_nb\_calc);}
+00074 
+00075     time\_action = time\_action / (double(\_nb\_calc));
+00076 
+00077     action.check\_result();
+00078 
+00079 
+00080     \textcolor{keywordtype}{double} time\_baseline = time\_init(action);
+00081     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=1; i<NB\_TRIES; ++i)
+00082       time\_baseline = std::min(time\_baseline, time\_init(action));
+00083     time\_baseline = time\_baseline/(double(\_nb\_init));
+00084 
+00085 
+00086 
+00087 \textcolor{comment}{//     INFOS("time\_baseline="<<time\_baseline);}
+00088 \textcolor{comment}{//     INFOS("time\_action="<<time\_action);}
+00089 
+00090     time\_action = time\_action - time\_baseline;
+00091 
+00092 \textcolor{comment}{//     INFOS("time\_corrected="<<time\_action);}
+00093 
+00094     \textcolor{keywordflow}{return} action.nb\_op\_base()/(time\_action*1000000.0);
+00095   \}
+00096 
+00097   \textcolor{keyword}{inline} \textcolor{keywordtype}{double} time\_init(Action & action)
+00098   \{
+00099     \textcolor{comment}{// time measurement}
+00100     \_chronos.start();
+00101     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} ii=0; ii<\_nb\_init; ii++)
+00102       action.initialize();
+00103     \_chronos.stop();
+00104     \textcolor{keywordflow}{return} \_chronos.user\_time();
+00105   \}
+00106 
+00107 
+00108   \textcolor{keyword}{inline} \textcolor{keywordtype}{double} time\_calculate(Action & action)
+00109   \{
+00110     \textcolor{comment}{// time measurement}
+00111     \_chronos.start();
+00112     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} ii=0;ii<\_nb\_calc;ii++)
+00113     \{
+00114       action.initialize();
+00115       action.calculate();
+00116     \}
+00117     \_chronos.stop();
+00118     \textcolor{keywordflow}{return} \_chronos.user\_time();
+00119   \}
+00120 
+00121   \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} \textcolor{keywordtype}{long} get\_nb\_calc( \textcolor{keywordtype}{void} )
+00122   \{
+00123     \textcolor{keywordflow}{return} \_nb\_calc;
+00124   \}
+00125 
+00126 
+00127 \textcolor{keyword}{private}:
+00128   \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} \textcolor{keywordtype}{long} \_nb\_calc;
+00129   \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} \textcolor{keywordtype}{long} \_nb\_init;
+00130   \hyperlink{class_portable___timer}{Portable\_Timer} \_chronos;
+00131 
+00132 \};
+00133 
+00134 \textcolor{preprocessor}{#endif //\_PORTABLE\_PERF\_ANALYZER\_HH}
+\end{DoxyCode}

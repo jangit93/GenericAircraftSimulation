@@ -1,0 +1,371 @@
+\hypertarget{eigen_2blas_2f2c_2dsbmv_8c_source}{}\section{eigen/blas/f2c/dsbmv.c}
+\label{eigen_2blas_2f2c_2dsbmv_8c_source}\index{dsbmv.\+c@{dsbmv.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* dsbmv.f -- translated by f2c (version 20100827).}
+00002 \textcolor{comment}{   You must link the resulting object file with libf2c:}
+00003 \textcolor{comment}{    on Microsoft Windows system, link with libf2c.lib;}
+00004 \textcolor{comment}{    on Linux or Unix systems, link with .../path/to/libf2c.a -lm}
+00005 \textcolor{comment}{    or, if you install libf2c.a in a standard place, with -lf2c -lm}
+00006 \textcolor{comment}{    -- in that order, at the end of the command line, as in}
+00007 \textcolor{comment}{        cc *.o -lf2c -lm}
+00008 \textcolor{comment}{    Source for libf2c is in /netlib/f2c/libf2c.zip, e.g.,}
+00009 \textcolor{comment}{}
+00010 \textcolor{comment}{        http://www.netlib.org/f2c/libf2c.zip}
+00011 \textcolor{comment}{*/}
+00012 
+00013 \textcolor{preprocessor}{#include "datatypes.h"}
+00014 
+00015 \textcolor{comment}{/* Subroutine */} \textcolor{keywordtype}{int} dsbmv\_(\textcolor{keywordtype}{char} *uplo, integer *n, integer *k, doublereal *
+00016     alpha, doublereal *a, integer *lda, doublereal *x, integer *incx, 
+00017     doublereal *beta, doublereal *y, integer *incy, ftnlen uplo\_len)
+00018 \{
+00019     \textcolor{comment}{/* System generated locals */}
+00020     integer a\_dim1, a\_offset, i\_\_1, i\_\_2, i\_\_3, i\_\_4;
+00021 
+00022     \textcolor{comment}{/* Local variables */}
+00023     integer i\_\_, j, l, ix, iy, jx, jy, kx, ky, info;
+00024     doublereal temp1, temp2;
+00025     \textcolor{keyword}{extern} logical lsame\_(\textcolor{keywordtype}{char} *, \textcolor{keywordtype}{char} *, ftnlen, ftnlen);
+00026     integer kplus1;
+00027     \textcolor{keyword}{extern} \textcolor{comment}{/* Subroutine */} \textcolor{keywordtype}{int} xerbla\_(\textcolor{keywordtype}{char} *, integer *, ftnlen);
+00028 
+00029 \textcolor{comment}{/*     .. Scalar Arguments .. */}
+00030 \textcolor{comment}{/*     .. */}
+00031 \textcolor{comment}{/*     .. Array Arguments .. */}
+00032 \textcolor{comment}{/*     .. */}
+00033 
+00034 \textcolor{comment}{/*  Purpose */}
+00035 \textcolor{comment}{/*  ======= */}
+00036 
+00037 \textcolor{comment}{/*  DSBMV  performs the matrix-vector  operation */}
+00038 
+00039 \textcolor{comment}{/*     y := alpha*A*x + beta*y, */}
+00040 
+00041 \textcolor{comment}{/*  where alpha and beta are scalars, x and y are n element vectors and */}
+00042 \textcolor{comment}{/*  A is an n by n symmetric band matrix, with k super-diagonals. */}
+00043 
+00044 \textcolor{comment}{/*  Arguments */}
+00045 \textcolor{comment}{/*  ========== */}
+00046 
+00047 \textcolor{comment}{/*  UPLO   - CHARACTER*1. */}
+00048 \textcolor{comment}{/*           On entry, UPLO specifies whether the upper or lower */}
+00049 \textcolor{comment}{/*           triangular part of the band matrix A is being supplied as */}
+00050 \textcolor{comment}{/*           follows: */}
+00051 
+00052 \textcolor{comment}{/*              UPLO = 'U' or 'u'   The upper triangular part of A is */}
+00053 \textcolor{comment}{/*                                  being supplied. */}
+00054 
+00055 \textcolor{comment}{/*              UPLO = 'L' or 'l'   The lower triangular part of A is */}
+00056 \textcolor{comment}{/*                                  being supplied. */}
+00057 
+00058 \textcolor{comment}{/*           Unchanged on exit. */}
+00059 
+00060 \textcolor{comment}{/*  N      - INTEGER. */}
+00061 \textcolor{comment}{/*           On entry, N specifies the order of the matrix A. */}
+00062 \textcolor{comment}{/*           N must be at least zero. */}
+00063 \textcolor{comment}{/*           Unchanged on exit. */}
+00064 
+00065 \textcolor{comment}{/*  K      - INTEGER. */}
+00066 \textcolor{comment}{/*           On entry, K specifies the number of super-diagonals of the */}
+00067 \textcolor{comment}{/*           matrix A. K must satisfy  0 .le. K. */}
+00068 \textcolor{comment}{/*           Unchanged on exit. */}
+00069 
+00070 \textcolor{comment}{/*  ALPHA  - DOUBLE PRECISION. */}
+00071 \textcolor{comment}{/*           On entry, ALPHA specifies the scalar alpha. */}
+00072 \textcolor{comment}{/*           Unchanged on exit. */}
+00073 
+00074 \textcolor{comment}{/*  A      - DOUBLE PRECISION array of DIMENSION ( LDA, n ). */}
+00075 \textcolor{comment}{/*           Before entry with UPLO = 'U' or 'u', the leading ( k + 1 ) */}
+00076 \textcolor{comment}{/*           by n part of the array A must contain the upper triangular */}
+00077 \textcolor{comment}{/*           band part of the symmetric matrix, supplied column by */}
+00078 \textcolor{comment}{/*           column, with the leading diagonal of the matrix in row */}
+00079 \textcolor{comment}{/*           ( k + 1 ) of the array, the first super-diagonal starting at */}
+00080 \textcolor{comment}{/*           position 2 in row k, and so on. The top left k by k triangle */}
+00081 \textcolor{comment}{/*           of the array A is not referenced. */}
+00082 \textcolor{comment}{/*           The following program segment will transfer the upper */}
+00083 \textcolor{comment}{/*           triangular part of a symmetric band matrix from conventional */}
+00084 \textcolor{comment}{/*           full matrix storage to band storage: */}
+00085 
+00086 \textcolor{comment}{/*                 DO 20, J = 1, N */}
+00087 \textcolor{comment}{/*                    M = K + 1 - J */}
+00088 \textcolor{comment}{/*                    DO 10, I = MAX( 1, J - K ), J */}
+00089 \textcolor{comment}{/*                       A( M + I, J ) = matrix( I, J ) */}
+00090 \textcolor{comment}{/*              10    CONTINUE */}
+00091 \textcolor{comment}{/*              20 CONTINUE */}
+00092 
+00093 \textcolor{comment}{/*           Before entry with UPLO = 'L' or 'l', the leading ( k + 1 ) */}
+00094 \textcolor{comment}{/*           by n part of the array A must contain the lower triangular */}
+00095 \textcolor{comment}{/*           band part of the symmetric matrix, supplied column by */}
+00096 \textcolor{comment}{/*           column, with the leading diagonal of the matrix in row 1 of */}
+00097 \textcolor{comment}{/*           the array, the first sub-diagonal starting at position 1 in */}
+00098 \textcolor{comment}{/*           row 2, and so on. The bottom right k by k triangle of the */}
+00099 \textcolor{comment}{/*           array A is not referenced. */}
+00100 \textcolor{comment}{/*           The following program segment will transfer the lower */}
+00101 \textcolor{comment}{/*           triangular part of a symmetric band matrix from conventional */}
+00102 \textcolor{comment}{/*           full matrix storage to band storage: */}
+00103 
+00104 \textcolor{comment}{/*                 DO 20, J = 1, N */}
+00105 \textcolor{comment}{/*                    M = 1 - J */}
+00106 \textcolor{comment}{/*                    DO 10, I = J, MIN( N, J + K ) */}
+00107 \textcolor{comment}{/*                       A( M + I, J ) = matrix( I, J ) */}
+00108 \textcolor{comment}{/*              10    CONTINUE */}
+00109 \textcolor{comment}{/*              20 CONTINUE */}
+00110 
+00111 \textcolor{comment}{/*           Unchanged on exit. */}
+00112 
+00113 \textcolor{comment}{/*  LDA    - INTEGER. */}
+00114 \textcolor{comment}{/*           On entry, LDA specifies the first dimension of A as declared */}
+00115 \textcolor{comment}{/*           in the calling (sub) program. LDA must be at least */}
+00116 \textcolor{comment}{/*           ( k + 1 ). */}
+00117 \textcolor{comment}{/*           Unchanged on exit. */}
+00118 
+00119 \textcolor{comment}{/*  X      - DOUBLE PRECISION array of DIMENSION at least */}
+00120 \textcolor{comment}{/*           ( 1 + ( n - 1 )*abs( INCX ) ). */}
+00121 \textcolor{comment}{/*           Before entry, the incremented array X must contain the */}
+00122 \textcolor{comment}{/*           vector x. */}
+00123 \textcolor{comment}{/*           Unchanged on exit. */}
+00124 
+00125 \textcolor{comment}{/*  INCX   - INTEGER. */}
+00126 \textcolor{comment}{/*           On entry, INCX specifies the increment for the elements of */}
+00127 \textcolor{comment}{/*           X. INCX must not be zero. */}
+00128 \textcolor{comment}{/*           Unchanged on exit. */}
+00129 
+00130 \textcolor{comment}{/*  BETA   - DOUBLE PRECISION. */}
+00131 \textcolor{comment}{/*           On entry, BETA specifies the scalar beta. */}
+00132 \textcolor{comment}{/*           Unchanged on exit. */}
+00133 
+00134 \textcolor{comment}{/*  Y      - DOUBLE PRECISION array of DIMENSION at least */}
+00135 \textcolor{comment}{/*           ( 1 + ( n - 1 )*abs( INCY ) ). */}
+00136 \textcolor{comment}{/*           Before entry, the incremented array Y must contain the */}
+00137 \textcolor{comment}{/*           vector y. On exit, Y is overwritten by the updated vector y. */}
+00138 
+00139 \textcolor{comment}{/*  INCY   - INTEGER. */}
+00140 \textcolor{comment}{/*           On entry, INCY specifies the increment for the elements of */}
+00141 \textcolor{comment}{/*           Y. INCY must not be zero. */}
+00142 \textcolor{comment}{/*           Unchanged on exit. */}
+00143 
+00144 
+00145 \textcolor{comment}{/*  Level 2 Blas routine. */}
+00146 
+00147 \textcolor{comment}{/*  -- Written on 22-October-1986. */}
+00148 \textcolor{comment}{/*     Jack Dongarra, Argonne National Lab. */}
+00149 \textcolor{comment}{/*     Jeremy Du Croz, Nag Central Office. */}
+00150 \textcolor{comment}{/*     Sven Hammarling, Nag Central Office. */}
+00151 \textcolor{comment}{/*     Richard Hanson, Sandia National Labs. */}
+00152 
+00153 \textcolor{comment}{/*  ===================================================================== */}
+00154 
+00155 \textcolor{comment}{/*     .. Parameters .. */}
+00156 \textcolor{comment}{/*     .. */}
+00157 \textcolor{comment}{/*     .. Local Scalars .. */}
+00158 \textcolor{comment}{/*     .. */}
+00159 \textcolor{comment}{/*     .. External Functions .. */}
+00160 \textcolor{comment}{/*     .. */}
+00161 \textcolor{comment}{/*     .. External Subroutines .. */}
+00162 \textcolor{comment}{/*     .. */}
+00163 \textcolor{comment}{/*     .. Intrinsic Functions .. */}
+00164 \textcolor{comment}{/*     .. */}
+00165 
+00166 \textcolor{comment}{/*     Test the input parameters. */}
+00167 
+00168     \textcolor{comment}{/* Parameter adjustments */}
+00169     a\_dim1 = *lda;
+00170     a\_offset = 1 + a\_dim1;
+00171     a -= a\_offset;
+00172     --x;
+00173     --y;
+00174 
+00175     \textcolor{comment}{/* Function Body */}
+00176     info = 0;
+00177     \textcolor{keywordflow}{if} (! lsame\_(uplo, \textcolor{stringliteral}{"U"}, (ftnlen)1, (ftnlen)1) && ! lsame\_(uplo, \textcolor{stringliteral}{"L"}, (
+00178         ftnlen)1, (ftnlen)1)) \{
+00179     info = 1;
+00180     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*n < 0) \{
+00181     info = 2;
+00182     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*k < 0) \{
+00183     info = 3;
+00184     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*lda < *k + 1) \{
+00185     info = 6;
+00186     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*incx == 0) \{
+00187     info = 8;
+00188     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*incy == 0) \{
+00189     info = 11;
+00190     \}
+00191     \textcolor{keywordflow}{if} (info != 0) \{
+00192     xerbla\_(\textcolor{stringliteral}{"DSBMV "}, &info, (ftnlen)6);
+00193     \textcolor{keywordflow}{return} 0;
+00194     \}
+00195 
+00196 \textcolor{comment}{/*     Quick return if possible. */}
+00197 
+00198     \textcolor{keywordflow}{if} (*n == 0 || (*alpha == 0. && *beta == 1.)) \{
+00199     \textcolor{keywordflow}{return} 0;
+00200     \}
+00201 
+00202 \textcolor{comment}{/*     Set up the start points in  X  and  Y. */}
+00203 
+00204     \textcolor{keywordflow}{if} (*incx > 0) \{
+00205     kx = 1;
+00206     \} \textcolor{keywordflow}{else} \{
+00207     kx = 1 - (*n - 1) * *incx;
+00208     \}
+00209     \textcolor{keywordflow}{if} (*incy > 0) \{
+00210     ky = 1;
+00211     \} \textcolor{keywordflow}{else} \{
+00212     ky = 1 - (*n - 1) * *incy;
+00213     \}
+00214 
+00215 \textcolor{comment}{/*     Start the operations. In this version the elements of the array A */}
+00216 \textcolor{comment}{/*     are accessed sequentially with one pass through A. */}
+00217 
+00218 \textcolor{comment}{/*     First form  y := beta*y. */}
+00219 
+00220     \textcolor{keywordflow}{if} (*beta != 1.) \{
+00221     \textcolor{keywordflow}{if} (*incy == 1) \{
+00222         \textcolor{keywordflow}{if} (*beta == 0.) \{
+00223         i\_\_1 = *n;
+00224         \textcolor{keywordflow}{for} (i\_\_ = 1; i\_\_ <= i\_\_1; ++i\_\_) \{
+00225             y[i\_\_] = 0.;
+00226 \textcolor{comment}{/* L10: */}
+00227         \}
+00228         \} \textcolor{keywordflow}{else} \{
+00229         i\_\_1 = *n;
+00230         \textcolor{keywordflow}{for} (i\_\_ = 1; i\_\_ <= i\_\_1; ++i\_\_) \{
+00231             y[i\_\_] = *beta * y[i\_\_];
+00232 \textcolor{comment}{/* L20: */}
+00233         \}
+00234         \}
+00235     \} \textcolor{keywordflow}{else} \{
+00236         iy = ky;
+00237         \textcolor{keywordflow}{if} (*beta == 0.) \{
+00238         i\_\_1 = *n;
+00239         \textcolor{keywordflow}{for} (i\_\_ = 1; i\_\_ <= i\_\_1; ++i\_\_) \{
+00240             y[iy] = 0.;
+00241             iy += *incy;
+00242 \textcolor{comment}{/* L30: */}
+00243         \}
+00244         \} \textcolor{keywordflow}{else} \{
+00245         i\_\_1 = *n;
+00246         \textcolor{keywordflow}{for} (i\_\_ = 1; i\_\_ <= i\_\_1; ++i\_\_) \{
+00247             y[iy] = *beta * y[iy];
+00248             iy += *incy;
+00249 \textcolor{comment}{/* L40: */}
+00250         \}
+00251         \}
+00252     \}
+00253     \}
+00254     \textcolor{keywordflow}{if} (*alpha == 0.) \{
+00255     \textcolor{keywordflow}{return} 0;
+00256     \}
+00257     \textcolor{keywordflow}{if} (lsame\_(uplo, \textcolor{stringliteral}{"U"}, (ftnlen)1, (ftnlen)1)) \{
+00258 
+00259 \textcolor{comment}{/*        Form  y  when upper triangle of A is stored. */}
+00260 
+00261     kplus1 = *k + 1;
+00262     \textcolor{keywordflow}{if} (*incx == 1 && *incy == 1) \{
+00263         i\_\_1 = *n;
+00264         \textcolor{keywordflow}{for} (j = 1; j <= i\_\_1; ++j) \{
+00265         temp1 = *alpha * x[j];
+00266         temp2 = 0.;
+00267         l = kplus1 - j;
+00268 \textcolor{comment}{/* Computing MAX */}
+00269         i\_\_2 = 1, i\_\_3 = j - *k;
+00270         i\_\_4 = j - 1;
+00271         \textcolor{keywordflow}{for} (i\_\_ = max(i\_\_2,i\_\_3); i\_\_ <= i\_\_4; ++i\_\_) \{
+00272             y[i\_\_] += temp1 * a[l + i\_\_ + j * a\_dim1];
+00273             temp2 += a[l + i\_\_ + j * a\_dim1] * x[i\_\_];
+00274 \textcolor{comment}{/* L50: */}
+00275         \}
+00276         y[j] = y[j] + temp1 * a[kplus1 + j * a\_dim1] + *alpha * temp2;
+00277 \textcolor{comment}{/* L60: */}
+00278         \}
+00279     \} \textcolor{keywordflow}{else} \{
+00280         jx = kx;
+00281         jy = ky;
+00282         i\_\_1 = *n;
+00283         \textcolor{keywordflow}{for} (j = 1; j <= i\_\_1; ++j) \{
+00284         temp1 = *alpha * x[jx];
+00285         temp2 = 0.;
+00286         ix = kx;
+00287         iy = ky;
+00288         l = kplus1 - j;
+00289 \textcolor{comment}{/* Computing MAX */}
+00290         i\_\_4 = 1, i\_\_2 = j - *k;
+00291         i\_\_3 = j - 1;
+00292         \textcolor{keywordflow}{for} (i\_\_ = max(i\_\_4,i\_\_2); i\_\_ <= i\_\_3; ++i\_\_) \{
+00293             y[iy] += temp1 * a[l + i\_\_ + j * a\_dim1];
+00294             temp2 += a[l + i\_\_ + j * a\_dim1] * x[ix];
+00295             ix += *incx;
+00296             iy += *incy;
+00297 \textcolor{comment}{/* L70: */}
+00298         \}
+00299         y[jy] = y[jy] + temp1 * a[kplus1 + j * a\_dim1] + *alpha * 
+00300             temp2;
+00301         jx += *incx;
+00302         jy += *incy;
+00303         \textcolor{keywordflow}{if} (j > *k) \{
+00304             kx += *incx;
+00305             ky += *incy;
+00306         \}
+00307 \textcolor{comment}{/* L80: */}
+00308         \}
+00309     \}
+00310     \} \textcolor{keywordflow}{else} \{
+00311 
+00312 \textcolor{comment}{/*        Form  y  when lower triangle of A is stored. */}
+00313 
+00314     \textcolor{keywordflow}{if} (*incx == 1 && *incy == 1) \{
+00315         i\_\_1 = *n;
+00316         \textcolor{keywordflow}{for} (j = 1; j <= i\_\_1; ++j) \{
+00317         temp1 = *alpha * x[j];
+00318         temp2 = 0.;
+00319         y[j] += temp1 * a[j * a\_dim1 + 1];
+00320         l = 1 - j;
+00321 \textcolor{comment}{/* Computing MIN */}
+00322         i\_\_4 = *n, i\_\_2 = j + *k;
+00323         i\_\_3 = min(i\_\_4,i\_\_2);
+00324         \textcolor{keywordflow}{for} (i\_\_ = j + 1; i\_\_ <= i\_\_3; ++i\_\_) \{
+00325             y[i\_\_] += temp1 * a[l + i\_\_ + j * a\_dim1];
+00326             temp2 += a[l + i\_\_ + j * a\_dim1] * x[i\_\_];
+00327 \textcolor{comment}{/* L90: */}
+00328         \}
+00329         y[j] += *alpha * temp2;
+00330 \textcolor{comment}{/* L100: */}
+00331         \}
+00332     \} \textcolor{keywordflow}{else} \{
+00333         jx = kx;
+00334         jy = ky;
+00335         i\_\_1 = *n;
+00336         \textcolor{keywordflow}{for} (j = 1; j <= i\_\_1; ++j) \{
+00337         temp1 = *alpha * x[jx];
+00338         temp2 = 0.;
+00339         y[jy] += temp1 * a[j * a\_dim1 + 1];
+00340         l = 1 - j;
+00341         ix = jx;
+00342         iy = jy;
+00343 \textcolor{comment}{/* Computing MIN */}
+00344         i\_\_4 = *n, i\_\_2 = j + *k;
+00345         i\_\_3 = min(i\_\_4,i\_\_2);
+00346         \textcolor{keywordflow}{for} (i\_\_ = j + 1; i\_\_ <= i\_\_3; ++i\_\_) \{
+00347             ix += *incx;
+00348             iy += *incy;
+00349             y[iy] += temp1 * a[l + i\_\_ + j * a\_dim1];
+00350             temp2 += a[l + i\_\_ + j * a\_dim1] * x[ix];
+00351 \textcolor{comment}{/* L110: */}
+00352         \}
+00353         y[jy] += *alpha * temp2;
+00354         jx += *incx;
+00355         jy += *incy;
+00356 \textcolor{comment}{/* L120: */}
+00357         \}
+00358     \}
+00359     \}
+00360 
+00361     \textcolor{keywordflow}{return} 0;
+00362 
+00363 \textcolor{comment}{/*     End of DSBMV . */}
+00364 
+00365 \} \textcolor{comment}{/* dsbmv\_ */}
+00366 
+\end{DoxyCode}

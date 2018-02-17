@@ -1,0 +1,115 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__scan_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/test/cxx11\+\_\+tensor\+\_\+scan.cpp}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__scan_8cpp_source}\index{cxx11\+\_\+tensor\+\_\+scan.\+cpp@{cxx11\+\_\+tensor\+\_\+scan.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2016 Igor Babuschkin <igor@babuschk.in>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 \textcolor{preprocessor}{#include <limits>}
+00012 \textcolor{preprocessor}{#include <numeric>}
+00013 \textcolor{preprocessor}{#include <Eigen/CXX11/Tensor>}
+00014 
+00015 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor};
+00016 
+00017 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout, \textcolor{keyword}{typename} Type=\textcolor{keywordtype}{float}, \textcolor{keywordtype}{bool} Exclusive = false>
+00018 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_1d\_scan()
+00019 \{
+00020   \textcolor{keywordtype}{int} size = 50;
+00021   \hyperlink{class_eigen_1_1_tensor}{Tensor<Type, 1, DataLayout>} tensor(size);
+00022   tensor.setRandom();
+00023   \hyperlink{class_eigen_1_1_tensor}{Tensor<Type, 1, DataLayout>} result = tensor.cumsum(0, Exclusive);
+00024 
+00025   VERIFY\_IS\_EQUAL(tensor.dimension(0), result.dimension(0));
+00026 
+00027   \textcolor{keywordtype}{float} accum = 0;
+00028   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < size; i++) \{
+00029     \textcolor{keywordflow}{if} (Exclusive) \{
+00030       VERIFY\_IS\_EQUAL(result(i), accum);
+00031       accum += tensor(i);
+00032     \} \textcolor{keywordflow}{else} \{
+00033       accum += tensor(i);
+00034       VERIFY\_IS\_EQUAL(result(i), accum);
+00035     \}
+00036   \}
+00037 
+00038   accum = 1;
+00039   result = tensor.cumprod(0, Exclusive);
+00040   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < size; i++) \{
+00041     \textcolor{keywordflow}{if} (Exclusive) \{
+00042       VERIFY\_IS\_EQUAL(result(i), accum);
+00043       accum *= tensor(i);
+00044     \} \textcolor{keywordflow}{else} \{
+00045       accum *= tensor(i);
+00046       VERIFY\_IS\_EQUAL(result(i), accum);
+00047     \}
+00048   \}
+00049 \}
+00050 
+00051 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout, \textcolor{keyword}{typename} Type=\textcolor{keywordtype}{float}>
+00052 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_4d\_scan()
+00053 \{
+00054   \textcolor{keywordtype}{int} size = 5;
+00055   \hyperlink{class_eigen_1_1_tensor}{Tensor<Type, 4, DataLayout>} tensor(size, size, size, size);
+00056   tensor.setRandom();
+00057 
+00058   \hyperlink{class_eigen_1_1_tensor}{Tensor<Type, 4, DataLayout>} result(size, size, size, size);
+00059 
+00060   result = tensor.cumsum(0);
+00061   \textcolor{keywordtype}{float} accum = 0;
+00062   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < size; i++) \{
+00063     accum += tensor(i, 1, 2, 3);
+00064     VERIFY\_IS\_EQUAL(result(i, 1, 2, 3), accum);
+00065   \}
+00066   result = tensor.cumsum(1);
+00067   accum = 0;
+00068   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < size; i++) \{
+00069     accum += tensor(1, i, 2, 3);
+00070     VERIFY\_IS\_EQUAL(result(1, i, 2, 3), accum);
+00071   \}
+00072   result = tensor.cumsum(2);
+00073   accum = 0;
+00074   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < size; i++) \{
+00075     accum += tensor(1, 2, i, 3);
+00076     VERIFY\_IS\_EQUAL(result(1, 2, i, 3), accum);
+00077   \}
+00078   result = tensor.cumsum(3);
+00079   accum = 0;
+00080   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < size; i++) \{
+00081     accum += tensor(1, 2, 3, i);
+00082     VERIFY\_IS\_EQUAL(result(1, 2, 3, i), accum);
+00083   \}
+00084 \}
+00085 
+00086 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00087 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_tensor\_maps() \{
+00088   \textcolor{keywordtype}{int} inputs[20];
+00089   TensorMap<Tensor<int, 1, DataLayout> > tensor\_map(inputs, 20);
+00090   tensor\_map.setRandom();
+00091 
+00092   \hyperlink{class_eigen_1_1_tensor}{Tensor<int, 1, DataLayout>} result = tensor\_map.cumsum(0);
+00093 
+00094   \textcolor{keywordtype}{int} accum = 0;
+00095   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 20; ++i) \{
+00096     accum += tensor\_map(i);
+00097     VERIFY\_IS\_EQUAL(result(i), accum);
+00098   \}
+00099 \}
+00100 
+00101 \textcolor{keywordtype}{void} test\_cxx11\_tensor\_scan() \{
+00102   CALL\_SUBTEST((test\_1d\_scan<ColMajor, float, true>()));
+00103   CALL\_SUBTEST((test\_1d\_scan<ColMajor, float, false>()));
+00104   CALL\_SUBTEST((test\_1d\_scan<RowMajor, float, true>()));
+00105   CALL\_SUBTEST((test\_1d\_scan<RowMajor, float, false>()));
+00106   CALL\_SUBTEST(test\_4d\_scan<ColMajor>());
+00107   CALL\_SUBTEST(test\_4d\_scan<RowMajor>());
+00108   CALL\_SUBTEST(test\_tensor\_maps<ColMajor>());
+00109   CALL\_SUBTEST(test\_tensor\_maps<RowMajor>());
+00110 \}
+\end{DoxyCode}

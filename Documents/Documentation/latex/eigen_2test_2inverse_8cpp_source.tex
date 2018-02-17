@@ -1,0 +1,127 @@
+\hypertarget{eigen_2test_2inverse_8cpp_source}{}\section{eigen/test/inverse.cpp}
+\label{eigen_2test_2inverse_8cpp_source}\index{inverse.\+cpp@{inverse.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2008 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#include "main.h"}
+00012 \textcolor{preprocessor}{#include <Eigen/LU>}
+00013 
+00014 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} inverse(\textcolor{keyword}{const} MatrixType& m)
+00015 \{
+00016   \textcolor{keyword}{using} std::abs;
+00017   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00018   \textcolor{comment}{/* this test covers the following files:}
+00019 \textcolor{comment}{     Inverse.h}
+00020 \textcolor{comment}{  */}
+00021   Index rows = m.rows();
+00022   Index cols = m.cols();
+00023 
+00024   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00025 
+00026   MatrixType m1(rows, cols),
+00027              m2(rows, cols),
+00028              identity = MatrixType::Identity(rows, rows);
+00029   \hyperlink{namespace_eigen_a0d9a7ddcee5c7c8defaba3628455efb2}{createRandomPIMatrixOfRank}(rows,rows,rows,m1);
+00030   m2 = m1.inverse();
+00031   VERIFY\_IS\_APPROX(m1, m2.inverse() );
+00032 
+00033   VERIFY\_IS\_APPROX((Scalar(2)*m2).inverse(), m2.inverse()*Scalar(0.5));
+00034 
+00035   VERIFY\_IS\_APPROX(identity, m1.inverse() * m1 );
+00036   VERIFY\_IS\_APPROX(identity, m1 * m1.inverse() );
+00037 
+00038   VERIFY\_IS\_APPROX(m1, m1.inverse().inverse() );
+00039 
+00040   \textcolor{comment}{// since for the general case we implement separately row-major and col-major, test that}
+00041   VERIFY\_IS\_APPROX(MatrixType(m1.transpose().inverse()), MatrixType(m1.inverse().transpose()));
+00042 
+00043 \textcolor{preprocessor}{#if !defined(EIGEN\_TEST\_PART\_5) && !defined(EIGEN\_TEST\_PART\_6)}
+00044   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00045   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::ColsAtCompileTime, 1>} 
+      \hyperlink{struct_vector_type}{VectorType};
+00046   
+00047   \textcolor{comment}{//computeInverseAndDetWithCheck tests}
+00048   \textcolor{comment}{//First: an invertible matrix}
+00049   \textcolor{keywordtype}{bool} invertible;
+00050   RealScalar det;
+00051 
+00052   m2.setZero();
+00053   m1.computeInverseAndDetWithCheck(m2, det, invertible);
+00054   VERIFY(invertible);
+00055   VERIFY\_IS\_APPROX(identity, m1*m2);
+00056   VERIFY\_IS\_APPROX(det, m1.determinant());
+00057 
+00058   m2.setZero();
+00059   m1.computeInverseWithCheck(m2, invertible);
+00060   VERIFY(invertible);
+00061   VERIFY\_IS\_APPROX(identity, m1*m2);
+00062 
+00063   \textcolor{comment}{//Second: a rank one matrix (not invertible, except for 1x1 matrices)}
+00064   VectorType v3 = VectorType::Random(rows);
+00065   MatrixType m3 = v3*v3.transpose(), m4(rows,cols);
+00066   m3.computeInverseAndDetWithCheck(m4, det, invertible);
+00067   VERIFY( rows==1 ? invertible : !invertible );
+00068   VERIFY\_IS\_MUCH\_SMALLER\_THAN(abs(det-m3.determinant()), RealScalar(1));
+00069   m3.computeInverseWithCheck(m4, invertible);
+00070   VERIFY( rows==1 ? invertible : !invertible );
+00071   
+00072   \textcolor{comment}{// check with submatrices}
+00073   \{
+00074     
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::RowsAtCompileTime+1, MatrixType::RowsAtCompileTime+1, MatrixType::Options>}
+       m5;
+00075     m5.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00076     m5.topLeftCorner(rows,rows) = m1;
+00077     m2 = m5.template topLeftCorner<MatrixType::RowsAtCompileTime,MatrixType::ColsAtCompileTime>().inverse()
+      ;
+00078     VERIFY\_IS\_APPROX( (m5.template 
+      topLeftCorner<MatrixType::RowsAtCompileTime,MatrixType::ColsAtCompileTime>()), m2.inverse() );
+00079   \}
+00080 \textcolor{preprocessor}{#endif}
+00081 
+00082   \textcolor{comment}{// check in-place inversion}
+00083   \textcolor{keywordflow}{if}(MatrixType::RowsAtCompileTime>=2 && MatrixType::RowsAtCompileTime<=4)
+00084   \{
+00085     \textcolor{comment}{// in-place is forbidden}
+00086     VERIFY\_RAISES\_ASSERT(m1 = m1.inverse());
+00087   \}
+00088   \textcolor{keywordflow}{else}
+00089   \{
+00090     m2 = m1.inverse();
+00091     m1 = m1.inverse();
+00092     VERIFY\_IS\_APPROX(m1,m2);
+00093   \}
+00094 \}
+00095 
+00096 \textcolor{keywordtype}{void} test\_inverse()
+00097 \{
+00098   \textcolor{keywordtype}{int} s = 0;
+00099   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00100     CALL\_SUBTEST\_1( inverse(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,1,1>}()) );
+00101     CALL\_SUBTEST\_2( inverse(Matrix2d()) );
+00102     CALL\_SUBTEST\_3( inverse(Matrix3f()) );
+00103     CALL\_SUBTEST\_4( inverse(Matrix4f()) );
+00104     CALL\_SUBTEST\_4( inverse(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,4,4,DontAlign>}()) );
+00105     
+00106     s = internal::random<int>(50,320); 
+00107     CALL\_SUBTEST\_5( inverse(MatrixXf(s,s)) );
+00108     TEST\_SET\_BUT\_UNUSED\_VARIABLE(s)
+00109     
+00110     s = internal::random<int>(25,100);
+00111     CALL\_SUBTEST\_6( inverse(MatrixXcd(s,s)) );
+00112     TEST\_SET\_BUT\_UNUSED\_VARIABLE(s)
+00113     
+00114     CALL\_SUBTEST\_7( inverse(Matrix4d()) );
+00115     CALL\_SUBTEST\_7( inverse(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,4,4,DontAlign>}()) );
+00116   \}
+00117 \}
+\end{DoxyCode}

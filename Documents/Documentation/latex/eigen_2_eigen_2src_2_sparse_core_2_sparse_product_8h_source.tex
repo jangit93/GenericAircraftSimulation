@@ -1,0 +1,199 @@
+\hypertarget{eigen_2_eigen_2src_2_sparse_core_2_sparse_product_8h_source}{}\section{eigen/\+Eigen/src/\+Sparse\+Core/\+Sparse\+Product.h}
+\label{eigen_2_eigen_2src_2_sparse_core_2_sparse_product_8h_source}\index{Sparse\+Product.\+h@{Sparse\+Product.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2015 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_SPARSEPRODUCT\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_SPARSEPRODUCT\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00014 
+00026 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00027 \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00028 \textcolor{keyword}{inline} \textcolor{keyword}{const} Product<Derived,OtherDerived,AliasFreeProduct>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_sparse_product_8h_source_l00029}\hyperlink{group___sparse_core___module_a9d4d71b3f34389e6fc01f2b86e43f7a4}{00029} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix_base}{SparseMatrixBase<Derived>::operator*}(\textcolor{keyword}{const} 
+      \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix_base}{SparseMatrixBase<OtherDerived>} &other)\textcolor{keyword}{ const}
+00030 \textcolor{keyword}{}\{
+00031   \textcolor{keywordflow}{return} \hyperlink{group___core___module_class_eigen_1_1_product}{Product<Derived,OtherDerived,AliasFreeProduct>}(
+      derived(), other.derived());
+00032 \}
+00033 
+00034 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00035 
+00036 \textcolor{comment}{// sparse * sparse}
+00037 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductType>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_sparse_product_8h_source_l00038}\hyperlink{struct_eigen_1_1internal_1_1generic__product__impl_3_01_lhs_00_01_rhs_00_01_sparse_shape_00_01_s0f15bf86456099378e4a76f37323e721}{00038} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1generic__product__impl}{generic\_product\_impl}<Lhs, Rhs, \hyperlink{struct_eigen_1_1_sparse_shape}{SparseShape}, 
+      \hyperlink{struct_eigen_1_1_sparse_shape}{SparseShape}, ProductType>
+00039 \{
+00040   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00041   \textcolor{keyword}{static} \textcolor{keywordtype}{void} evalTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs)
+00042   \{
+00043     evalTo(dst, lhs, rhs, \textcolor{keyword}{typename} evaluator\_traits<Dest>::Shape());
+00044   \}
+00045 
+00046   \textcolor{comment}{// dense += sparse * sparse}
+00047   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest,\textcolor{keyword}{typename} ActualLhs>
+00048   \textcolor{keyword}{static} \textcolor{keywordtype}{void} addTo(Dest& dst, \textcolor{keyword}{const} ActualLhs& lhs, \textcolor{keyword}{const} Rhs& rhs, \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1enable__if}{enable\_if}<\hyperlink{struct_eigen_1_1internal_1_1is__same}{is\_same}<\textcolor{keyword}{typename} evaluator\_traits<Dest>::Shape,
+      \hyperlink{struct_eigen_1_1_dense_shape}{DenseShape}>::value,\textcolor{keywordtype}{int}*>::type* = 0)
+00049   \{
+00050     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{nested\_eval<ActualLhs,Dynamic>::type} LhsNested;
+00051     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{nested\_eval<Rhs,Dynamic>::type} RhsNested;
+00052     LhsNested lhsNested(lhs);
+00053     RhsNested rhsNested(rhs);
+00054     
+      \hyperlink{struct_eigen_1_1internal_1_1sparse__sparse__to__dense__product__selector}{internal::sparse\_sparse\_to\_dense\_product\_selector<typename remove\_all<LhsNested>::type}
+      ,
+00055                                                       \textcolor{keyword}{typename} 
+      \hyperlink{group___sparse_core___module}{remove\_all<RhsNested>::type}, Dest>::run(lhsNested,rhsNested,dst);
+00056   \}
+00057 
+00058   \textcolor{comment}{// dense -= sparse * sparse}
+00059   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00060   \textcolor{keyword}{static} \textcolor{keywordtype}{void} subTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1enable__if}{enable\_if}<\hyperlink{struct_eigen_1_1internal_1_1is__same}{is\_same}<\textcolor{keyword}{typename} evaluator\_traits<Dest>::Shape,
+      \hyperlink{struct_eigen_1_1_dense_shape}{DenseShape}>::value,\textcolor{keywordtype}{int}*>::type* = 0)
+00061   \{
+00062     addTo(dst, -lhs, rhs);
+00063   \}
+00064 
+00065 \textcolor{keyword}{protected}:
+00066 
+00067   \textcolor{comment}{// sparse = sparse * sparse}
+00068   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00069   \textcolor{keyword}{static} \textcolor{keywordtype}{void} evalTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, \hyperlink{struct_eigen_1_1_sparse_shape}{SparseShape})
+00070   \{
+00071     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{nested\_eval<Lhs,Dynamic>::type} LhsNested;
+00072     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{nested\_eval<Rhs,Dynamic>::type} RhsNested;
+00073     LhsNested lhsNested(lhs);
+00074     RhsNested rhsNested(rhs);
+00075     
+      \hyperlink{struct_eigen_1_1internal_1_1conservative__sparse__sparse__product__selector}{internal::conservative\_sparse\_sparse\_product\_selector<typename remove\_all<LhsNested>::type}
+      ,
+00076                                                           \textcolor{keyword}{typename} 
+      \hyperlink{group___sparse_core___module}{remove\_all<RhsNested>::type}, Dest>::run(lhsNested,rhsNested,dst);
+00077   \}
+00078 
+00079   \textcolor{comment}{// dense = sparse * sparse}
+00080   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest>
+00081   \textcolor{keyword}{static} \textcolor{keywordtype}{void} evalTo(Dest& dst, \textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs, \hyperlink{struct_eigen_1_1_dense_shape}{DenseShape})
+00082   \{
+00083     dst.setZero();
+00084     addTo(dst, lhs, rhs);
+00085   \}
+00086 \};
+00087 
+00088 \textcolor{comment}{// sparse * sparse-triangular}
+00089 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductType>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_sparse_product_8h_source_l00090}\hyperlink{struct_eigen_1_1internal_1_1generic__product__impl_3_01_lhs_00_01_rhs_00_01_sparse_shape_00_01_s05ccb218a557b35cabc12ad35cb16218}{00090} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1generic__product__impl}{generic\_product\_impl}<Lhs, Rhs, \hyperlink{struct_eigen_1_1_sparse_shape}{SparseShape}, 
+      \hyperlink{struct_eigen_1_1internal_1_1_sparse_triangular_shape}{SparseTriangularShape}, ProductType>
+00091  : \textcolor{keyword}{public} \hyperlink{struct_eigen_1_1internal_1_1generic__product__impl}{generic\_product\_impl}<Lhs, Rhs, SparseShape, SparseShape, ProductType>
+00092 \{\};
+00093 
+00094 \textcolor{comment}{// sparse-triangular * sparse}
+00095 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} ProductType>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_sparse_product_8h_source_l00096}\hyperlink{struct_eigen_1_1internal_1_1generic__product__impl_3_01_lhs_00_01_rhs_00_01_sparse_triangular_sh3486abfb0e2b8914c411a6ff792a44dd}{00096} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1generic__product__impl}{generic\_product\_impl}<Lhs, Rhs, \hyperlink{struct_eigen_1_1internal_1_1_sparse_triangular_shape}{SparseTriangularShape}, 
+      \hyperlink{struct_eigen_1_1_sparse_shape}{SparseShape}, ProductType>
+00097  : \textcolor{keyword}{public} \hyperlink{struct_eigen_1_1internal_1_1generic__product__impl}{generic\_product\_impl}<Lhs, Rhs, SparseShape, SparseShape, ProductType>
+00098 \{\};
+00099 
+00100 \textcolor{comment}{// dense = sparse-product (can be sparse*sparse, sparse*perm, etc.)}
+00101 \textcolor{keyword}{template}< \textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_sparse_product_8h_source_l00102}\hyperlink{struct_eigen_1_1internal_1_1_assignment_3_01_dst_xpr_type_00_01_product_3_01_lhs_00_01_rhs_00_01c841c32521f12d3d43fe6d566cc4cbd8}{00102} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1_assignment}{Assignment}<DstXprType, \hyperlink{group___core___module_class_eigen_1_1_product}{Product}<Lhs,Rhs,AliasFreeProduct>, 
+      \hyperlink{namespaceinternal}{internal}::\hyperlink{struct_eigen_1_1internal_1_1assign__op}{assign\_op}<typename DstXprType::Scalar,typename Product<Lhs,Rhs,AliasFreeProduct>
+      ::Scalar>, \hyperlink{struct_eigen_1_1internal_1_1_sparse2_dense}{Sparse2Dense}>
+00103 \{
+00104   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_product}{Product<Lhs,Rhs,AliasFreeProduct>} 
+      \hyperlink{group___core___module_class_eigen_1_1_product}{SrcXprType};
+00105   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} 
+      \hyperlink{struct_eigen_1_1internal_1_1assign__op}{internal::assign\_op<typename DstXprType::Scalar,typename SrcXprType::Scalar>}
+       &)
+00106   \{
+00107     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} dstRows = src.rows();
+00108     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} dstCols = src.cols();
+00109     \textcolor{keywordflow}{if}((dst.rows()!=dstRows) || (dst.cols()!=dstCols))
+00110       dst.resize(dstRows, dstCols);
+00111     
+00112     \hyperlink{struct_eigen_1_1internal_1_1generic__product__impl}{generic\_product\_impl<Lhs, Rhs>::evalTo}(dst,src.lhs(),src.rhs());
+00113   \}
+00114 \};
+00115 
+00116 \textcolor{comment}{// dense += sparse-product (can be sparse*sparse, sparse*perm, etc.)}
+00117 \textcolor{keyword}{template}< \textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_sparse_product_8h_source_l00118}\hyperlink{struct_eigen_1_1internal_1_1_assignment_3_01_dst_xpr_type_00_01_product_3_01_lhs_00_01_rhs_00_01829d7a1a901a0be4e54bdeda694d8781}{00118} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1_assignment}{Assignment}<DstXprType, \hyperlink{group___core___module_class_eigen_1_1_product}{Product}<Lhs,Rhs,AliasFreeProduct>, 
+      \hyperlink{namespaceinternal}{internal}::\hyperlink{struct_eigen_1_1internal_1_1add__assign__op}{add\_assign\_op}<typename DstXprType::Scalar,typename Product<Lhs,Rhs,AliasFree
+      Product>::Scalar>, \hyperlink{struct_eigen_1_1internal_1_1_sparse2_dense}{Sparse2Dense}>
+00119 \{
+00120   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_product}{Product<Lhs,Rhs,AliasFreeProduct>} 
+      \hyperlink{group___core___module_class_eigen_1_1_product}{SrcXprType};
+00121   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} 
+      \hyperlink{struct_eigen_1_1internal_1_1add__assign__op}{internal::add\_assign\_op<typename DstXprType::Scalar,typename SrcXprType::Scalar>}
+       &)
+00122   \{
+00123     \hyperlink{struct_eigen_1_1internal_1_1generic__product__impl}{generic\_product\_impl<Lhs, Rhs>::addTo}(dst,src.lhs(),src.rhs());
+00124   \}
+00125 \};
+00126 
+00127 \textcolor{comment}{// dense -= sparse-product (can be sparse*sparse, sparse*perm, etc.)}
+00128 \textcolor{keyword}{template}< \textcolor{keyword}{typename} DstXprType, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_sparse_product_8h_source_l00129}\hyperlink{struct_eigen_1_1internal_1_1_assignment_3_01_dst_xpr_type_00_01_product_3_01_lhs_00_01_rhs_00_014697dd90e96dca324eed00088adc1a1c}{00129} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1_assignment}{Assignment}<DstXprType, \hyperlink{group___core___module_class_eigen_1_1_product}{Product}<Lhs,Rhs,AliasFreeProduct>, 
+      \hyperlink{namespaceinternal}{internal}::\hyperlink{struct_eigen_1_1internal_1_1sub__assign__op}{sub\_assign\_op}<typename DstXprType::Scalar,typename Product<Lhs,Rhs,AliasFree
+      Product>::Scalar>, \hyperlink{struct_eigen_1_1internal_1_1_sparse2_dense}{Sparse2Dense}>
+00130 \{
+00131   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_product}{Product<Lhs,Rhs,AliasFreeProduct>} 
+      \hyperlink{group___core___module_class_eigen_1_1_product}{SrcXprType};
+00132   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(DstXprType &dst, \textcolor{keyword}{const} SrcXprType &src, \textcolor{keyword}{const} 
+      \hyperlink{struct_eigen_1_1internal_1_1sub__assign__op}{internal::sub\_assign\_op<typename DstXprType::Scalar,typename SrcXprType::Scalar>}
+       &)
+00133   \{
+00134     \hyperlink{struct_eigen_1_1internal_1_1generic__product__impl}{generic\_product\_impl<Lhs, Rhs>::subTo}(dst,src.lhs(),src.rhs());
+00135   \}
+00136 \};
+00137 
+00138 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Options>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_sparse_product_8h_source_l00139}\hyperlink{struct_eigen_1_1internal_1_1unary__evaluator_3_01_sparse_view_3_01_product_3_01_lhs_00_01_rhs_00009027121becdbd7ae7cc0d8a4c63ed7}{00139} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1unary__evaluator}{unary\_evaluator}<\hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_view}{SparseView}<\hyperlink{group___core___module_class_eigen_1_1_product}{Product}<Lhs, Rhs, Options> >, 
+      \hyperlink{struct_eigen_1_1internal_1_1_iterator_based}{IteratorBased}>
+00140  : \textcolor{keyword}{public} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{evaluator}<typename Product<Lhs, Rhs, DefaultProduct>::PlainObject>
+00141 \{
+00142   \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_view}{SparseView<Product<Lhs, Rhs, Options>} > 
+      \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_view}{XprType};
+00143   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix}{XprType::PlainObject} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix}{PlainObject};
+00144   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{evaluator<PlainObject>} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{Base};
+00145 
+00146   \textcolor{keyword}{explicit} \hyperlink{struct_eigen_1_1internal_1_1unary__evaluator}{unary\_evaluator}(\textcolor{keyword}{const} XprType& xpr)
+00147     : m\_result(xpr.rows(), xpr.cols())
+00148   \{
+00149     \textcolor{keyword}{using} std::abs;
+00150     ::new (static\_cast<Base*>(\textcolor{keyword}{this})) Base(m\_result);
+00151     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{nested\_eval<Lhs,Dynamic>::type} LhsNested;
+00152     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{nested\_eval<Rhs,Dynamic>::type} RhsNested;
+00153     LhsNested lhsNested(xpr.\hyperlink{group___sparse_core___module_a50f53a9405017012077ae907959aca14}{nestedExpression}().lhs());
+00154     RhsNested rhsNested(xpr.\hyperlink{group___sparse_core___module_a50f53a9405017012077ae907959aca14}{nestedExpression}().rhs());
+00155 
+00156     
+      \hyperlink{struct_eigen_1_1internal_1_1sparse__sparse__product__with__pruning__selector}{internal::sparse\_sparse\_product\_with\_pruning\_selector<typename remove\_all<LhsNested>::type}
+      ,
+00157                                                           \textcolor{keyword}{typename} 
+      \hyperlink{group___sparse_core___module}{remove\_all<RhsNested>::type}, PlainObject>::run(lhsNested,rhsNested,m\_result,
+00158                                                                                                            
+             abs(xpr.reference())*xpr.epsilon());
+00159   \}
+00160 
+00161 \textcolor{keyword}{protected}:
+00162   PlainObject m\_result;
+00163 \};
+00164 
+00165 \} \textcolor{comment}{// end namespace internal}
+00166 
+00167 \} \textcolor{comment}{// end namespace Eigen}
+00168 
+00169 \textcolor{preprocessor}{#endif // EIGEN\_SPARSEPRODUCT\_H}
+\end{DoxyCode}

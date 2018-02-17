@@ -1,0 +1,147 @@
+\hypertarget{_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_t_2h5ex__t__vlstringatt_8c_source}{}\section{H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+C/\+H5\+T/h5ex\+\_\+t\+\_\+vlstringatt.c}
+\label{_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_t_2h5ex__t__vlstringatt_8c_source}\index{h5ex\+\_\+t\+\_\+vlstringatt.\+c@{h5ex\+\_\+t\+\_\+vlstringatt.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/************************************************************}
+00002 \textcolor{comment}{}
+00003 \textcolor{comment}{  This example shows how to read and write variable-length}
+00004 \textcolor{comment}{  string datatypes to an attribute.  The program first}
+00005 \textcolor{comment}{  writes variable-length strings to an attribute with a}
+00006 \textcolor{comment}{  dataspace of DIM0, then closes the file.  Next, it reopens}
+00007 \textcolor{comment}{  the file, reads back the data, and outputs it to the}
+00008 \textcolor{comment}{  screen.}
+00009 \textcolor{comment}{}
+00010 \textcolor{comment}{  This file is intended for use with HDF5 Library version 1.8}
+00011 \textcolor{comment}{}
+00012 \textcolor{comment}{ ************************************************************/}
+00013 
+00014 \textcolor{preprocessor}{#include "hdf5.h"}
+00015 \textcolor{preprocessor}{#include <stdio.h>}
+00016 \textcolor{preprocessor}{#include <stdlib.h>}
+00017 
+00018 \textcolor{preprocessor}{#define FILE            "h5ex\_t\_vlstringatt.h5"}
+00019 \textcolor{preprocessor}{#define DATASET         "DS1"}
+00020 \textcolor{preprocessor}{#define ATTRIBUTE       "A1"}
+00021 \textcolor{preprocessor}{#define DIM0            4}
+00022 
+00023 \textcolor{keywordtype}{int}
+00024 main (\textcolor{keywordtype}{void})
+00025 \{
+00026     hid\_t       \hyperlink{structfile}{file}, filetype, memtype, space, dset, attr;
+00027                                             \textcolor{comment}{/* Handles */}
+00028     herr\_t      status;
+00029     hsize\_t     dims[1] = \{DIM0\};
+00030     \textcolor{keywordtype}{char}        *wdata[DIM0] = \{\textcolor{stringliteral}{"Parting"}, \textcolor{stringliteral}{"is such"}, \textcolor{stringliteral}{"sweet"}, \textcolor{stringliteral}{"sorrow."}\},
+00031                                             \textcolor{comment}{/* Write buffer */}
+00032                 **rdata;                    \textcolor{comment}{/* Read buffer */}
+00033     \textcolor{keywordtype}{int}         ndims,
+00034                 i;
+00035 
+00036     \textcolor{comment}{/*}
+00037 \textcolor{comment}{     * Create a new file using the default properties.}
+00038 \textcolor{comment}{     */}
+00039     file = H5Fcreate (FILE, H5F\_ACC\_TRUNC, H5P\_DEFAULT, H5P\_DEFAULT);
+00040 
+00041     \textcolor{comment}{/*}
+00042 \textcolor{comment}{     * Create file and memory datatypes.  For this example we will save}
+00043 \textcolor{comment}{     * the strings as FORTRAN strings.}
+00044 \textcolor{comment}{     */}
+00045     filetype = H5Tcopy (H5T\_FORTRAN\_S1);
+00046     status = H5Tset\_size (filetype, H5T\_VARIABLE);
+00047     memtype = H5Tcopy (H5T\_C\_S1);
+00048     status = H5Tset\_size (memtype, H5T\_VARIABLE);
+00049 
+00050     \textcolor{comment}{/*}
+00051 \textcolor{comment}{     * Create dataset with a null dataspace.}
+00052 \textcolor{comment}{     */}
+00053     space = H5Screate (H5S\_NULL);
+00054     dset = H5Dcreate (file, DATASET, H5T\_STD\_I32LE, space, H5P\_DEFAULT,
+00055                 H5P\_DEFAULT, H5P\_DEFAULT);
+00056     status = H5Sclose (space);
+00057 
+00058     \textcolor{comment}{/*}
+00059 \textcolor{comment}{     * Create dataspace.  Setting maximum size to NULL sets the maximum}
+00060 \textcolor{comment}{     * size to be the current size.}
+00061 \textcolor{comment}{     */}
+00062     space = H5Screate\_simple (1, dims, NULL);
+00063 
+00064     \textcolor{comment}{/*}
+00065 \textcolor{comment}{     * Create the attribute and write the variable-length string data}
+00066 \textcolor{comment}{     * to it.}
+00067 \textcolor{comment}{     */}
+00068     attr = H5Acreate (dset, ATTRIBUTE, filetype, space, H5P\_DEFAULT,
+00069                 H5P\_DEFAULT);
+00070     status = H5Awrite (attr, memtype, wdata);
+00071 
+00072     \textcolor{comment}{/*}
+00073 \textcolor{comment}{     * Close and release resources.}
+00074 \textcolor{comment}{     */}
+00075     status = H5Aclose (attr);
+00076     status = H5Dclose (dset);
+00077     status = H5Sclose (space);
+00078     status = H5Tclose (filetype);
+00079     status = H5Tclose (memtype);
+00080     status = H5Fclose (file);
+00081 
+00082 
+00083     \textcolor{comment}{/*}
+00084 \textcolor{comment}{     * Now we begin the read section of this example.  Here we assume}
+00085 \textcolor{comment}{     * the attribute has the same name and rank, but can have any size.}
+00086 \textcolor{comment}{     * Therefore we must allocate a new array to read in data using}
+00087 \textcolor{comment}{     * malloc().}
+00088 \textcolor{comment}{     */}
+00089 
+00090     \textcolor{comment}{/*}
+00091 \textcolor{comment}{     * Open file, dataset, and attribute.}
+00092 \textcolor{comment}{     */}
+00093     file = H5Fopen (FILE, H5F\_ACC\_RDONLY, H5P\_DEFAULT);
+00094     dset = H5Dopen (file, DATASET, H5P\_DEFAULT);
+00095     attr = H5Aopen (dset, ATTRIBUTE, H5P\_DEFAULT);
+00096 
+00097     \textcolor{comment}{/*}
+00098 \textcolor{comment}{     * Get the datatype.}
+00099 \textcolor{comment}{     */}
+00100     filetype = H5Aget\_type (attr);
+00101 
+00102     \textcolor{comment}{/*}
+00103 \textcolor{comment}{     * Get dataspace and allocate memory for read buffer.}
+00104 \textcolor{comment}{     */}
+00105     space = H5Aget\_space (attr);
+00106     ndims = H5Sget\_simple\_extent\_dims (space, dims, NULL);
+00107     rdata = (\textcolor{keywordtype}{char} **) malloc (dims[0] * \textcolor{keyword}{sizeof} (\textcolor{keywordtype}{char} *));
+00108 
+00109     \textcolor{comment}{/*}
+00110 \textcolor{comment}{     * Create the memory datatype.}
+00111 \textcolor{comment}{     */}
+00112     memtype = H5Tcopy (H5T\_C\_S1);
+00113     status = H5Tset\_size (memtype, H5T\_VARIABLE);
+00114 
+00115     \textcolor{comment}{/*}
+00116 \textcolor{comment}{     * Read the data.}
+00117 \textcolor{comment}{     */}
+00118     status = H5Aread (attr, memtype, rdata);
+00119 
+00120     \textcolor{comment}{/*}
+00121 \textcolor{comment}{     * Output the data to the screen.}
+00122 \textcolor{comment}{     */}
+00123     \textcolor{keywordflow}{for} (i=0; i<dims[0]; i++)
+00124         printf (\textcolor{stringliteral}{"%s[%d]: %s\(\backslash\)n"}, ATTRIBUTE, i, rdata[i]);
+00125 
+00126     \textcolor{comment}{/*}
+00127 \textcolor{comment}{     * Close and release resources.  Note that H5Dvlen\_reclaim works}
+00128 \textcolor{comment}{     * for variable-length strings as well as variable-length arrays.}
+00129 \textcolor{comment}{     * Also note that we must still free the array of pointers stored}
+00130 \textcolor{comment}{     * in rdata, as H5Tvlen\_reclaim only frees the data these point to.}
+00131 \textcolor{comment}{     */}
+00132     status = H5Dvlen\_reclaim (memtype, space, H5P\_DEFAULT, rdata);
+00133     free (rdata);
+00134     status = H5Aclose (attr);
+00135     status = H5Dclose (dset);
+00136     status = H5Sclose (space);
+00137     status = H5Tclose (filetype);
+00138     status = H5Tclose (memtype);
+00139     status = H5Fclose (file);
+00140 
+00141     \textcolor{keywordflow}{return} 0;
+00142 \}
+\end{DoxyCode}

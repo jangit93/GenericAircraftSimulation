@@ -1,0 +1,679 @@
+\hypertarget{zlib_2contrib_2untgz_2untgz_8c_source}{}\section{zlib/contrib/untgz/untgz.c}
+\label{zlib_2contrib_2untgz_2untgz_8c_source}\index{untgz.\+c@{untgz.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/*}
+00002 \textcolor{comment}{ * untgz.c -- Display contents and extract files from a gzip'd TAR file}
+00003 \textcolor{comment}{ *}
+00004 \textcolor{comment}{ * written by Pedro A. Aranda Gutierrez <paag@tid.es>}
+00005 \textcolor{comment}{ * adaptation to Unix by Jean-loup Gailly <jloup@gzip.org>}
+00006 \textcolor{comment}{ * various fixes by Cosmin Truta <cosmint@cs.ubbcluj.ro>}
+00007 \textcolor{comment}{ */}
+00008 
+00009 \textcolor{preprocessor}{#include <stdio.h>}
+00010 \textcolor{preprocessor}{#include <stdlib.h>}
+00011 \textcolor{preprocessor}{#include <string.h>}
+00012 \textcolor{preprocessor}{#include <time.h>}
+00013 \textcolor{preprocessor}{#include <errno.h>}
+00014 
+00015 \textcolor{preprocessor}{#include "zlib.h"}
+00016 
+00017 \textcolor{preprocessor}{#ifdef unix}
+00018 \textcolor{preprocessor}{#  include <unistd.h>}
+00019 \textcolor{preprocessor}{#else}
+00020 \textcolor{preprocessor}{#  include <direct.h>}
+00021 \textcolor{preprocessor}{#  include <io.h>}
+00022 \textcolor{preprocessor}{#endif}
+00023 
+00024 \textcolor{preprocessor}{#ifdef WIN32}
+00025 \textcolor{preprocessor}{#include <windows.h>}
+00026 \textcolor{preprocessor}{#  ifndef F\_OK}
+00027 \textcolor{preprocessor}{#    define F\_OK  0}
+00028 \textcolor{preprocessor}{#  endif}
+00029 \textcolor{preprocessor}{#  define mkdir(dirname,mode)   \_mkdir(dirname)}
+00030 \textcolor{preprocessor}{#  ifdef \_MSC\_VER}
+00031 \textcolor{preprocessor}{#    define access(path,mode)   \_access(path,mode)}
+00032 \textcolor{preprocessor}{#    define chmod(path,mode)    \_chmod(path,mode)}
+00033 \textcolor{preprocessor}{#    define strdup(str)         \_strdup(str)}
+00034 \textcolor{preprocessor}{#  endif}
+00035 \textcolor{preprocessor}{#else}
+00036 \textcolor{preprocessor}{#  include <utime.h>}
+00037 \textcolor{preprocessor}{#endif}
+00038 
+00039 
+00040 \textcolor{comment}{/* values used in typeflag field */}
+00041 
+00042 \textcolor{preprocessor}{#define REGTYPE  '0'            }\textcolor{comment}{/* regular file */}\textcolor{preprocessor}{}
+00043 \textcolor{preprocessor}{#define AREGTYPE '\(\backslash\)0'           }\textcolor{comment}{/* regular file */}\textcolor{preprocessor}{}
+00044 \textcolor{preprocessor}{#define LNKTYPE  '1'            }\textcolor{comment}{/* link */}\textcolor{preprocessor}{}
+00045 \textcolor{preprocessor}{#define SYMTYPE  '2'            }\textcolor{comment}{/* reserved */}\textcolor{preprocessor}{}
+00046 \textcolor{preprocessor}{#define CHRTYPE  '3'            }\textcolor{comment}{/* character special */}\textcolor{preprocessor}{}
+00047 \textcolor{preprocessor}{#define BLKTYPE  '4'            }\textcolor{comment}{/* block special */}\textcolor{preprocessor}{}
+00048 \textcolor{preprocessor}{#define DIRTYPE  '5'            }\textcolor{comment}{/* directory */}\textcolor{preprocessor}{}
+00049 \textcolor{preprocessor}{#define FIFOTYPE '6'            }\textcolor{comment}{/* FIFO special */}\textcolor{preprocessor}{}
+00050 \textcolor{preprocessor}{#define CONTTYPE '7'            }\textcolor{comment}{/* reserved */}\textcolor{preprocessor}{}
+00051 
+00052 \textcolor{comment}{/* GNU tar extensions */}
+00053 
+00054 \textcolor{preprocessor}{#define GNUTYPE\_DUMPDIR  'D'    }\textcolor{comment}{/* file names from dumped directory */}\textcolor{preprocessor}{}
+00055 \textcolor{preprocessor}{#define GNUTYPE\_LONGLINK 'K'    }\textcolor{comment}{/* long link name */}\textcolor{preprocessor}{}
+00056 \textcolor{preprocessor}{#define GNUTYPE\_LONGNAME 'L'    }\textcolor{comment}{/* long file name */}\textcolor{preprocessor}{}
+00057 \textcolor{preprocessor}{#define GNUTYPE\_MULTIVOL 'M'    }\textcolor{comment}{/* continuation of file from another volume */}\textcolor{preprocessor}{}
+00058 \textcolor{preprocessor}{#define GNUTYPE\_NAMES    'N'    }\textcolor{comment}{/* file name that does not fit into main hdr */}\textcolor{preprocessor}{}
+00059 \textcolor{preprocessor}{#define GNUTYPE\_SPARSE   'S'    }\textcolor{comment}{/* sparse file */}\textcolor{preprocessor}{}
+00060 \textcolor{preprocessor}{#define GNUTYPE\_VOLHDR   'V'    }\textcolor{comment}{/* tape/volume header */}\textcolor{preprocessor}{}
+00061 
+00062 
+00063 \textcolor{comment}{/* tar header */}
+00064 
+00065 \textcolor{preprocessor}{#define BLOCKSIZE     512}
+00066 \textcolor{preprocessor}{#define SHORTNAMESIZE 100}
+00067 
+00068 \textcolor{keyword}{struct }\hyperlink{structtar__header}{tar\_header}
+00069 \{                               \textcolor{comment}{/* byte offset */}
+00070   \textcolor{keywordtype}{char} name[100];               \textcolor{comment}{/*   0 */}
+00071   \textcolor{keywordtype}{char} mode[8];                 \textcolor{comment}{/* 100 */}
+00072   \textcolor{keywordtype}{char} uid[8];                  \textcolor{comment}{/* 108 */}
+00073   \textcolor{keywordtype}{char} gid[8];                  \textcolor{comment}{/* 116 */}
+00074   \textcolor{keywordtype}{char} size[12];                \textcolor{comment}{/* 124 */}
+00075   \textcolor{keywordtype}{char} mtime[12];               \textcolor{comment}{/* 136 */}
+00076   \textcolor{keywordtype}{char} chksum[8];               \textcolor{comment}{/* 148 */}
+00077   \textcolor{keywordtype}{char} typeflag;                \textcolor{comment}{/* 156 */}
+00078   \textcolor{keywordtype}{char} linkname[100];           \textcolor{comment}{/* 157 */}
+00079   \textcolor{keywordtype}{char} magic[6];                \textcolor{comment}{/* 257 */}
+00080   \textcolor{keywordtype}{char} version[2];              \textcolor{comment}{/* 263 */}
+00081   \textcolor{keywordtype}{char} uname[32];               \textcolor{comment}{/* 265 */}
+00082   \textcolor{keywordtype}{char} gname[32];               \textcolor{comment}{/* 297 */}
+00083   \textcolor{keywordtype}{char} devmajor[8];             \textcolor{comment}{/* 329 */}
+00084   \textcolor{keywordtype}{char} devminor[8];             \textcolor{comment}{/* 337 */}
+00085   \textcolor{keywordtype}{char} prefix[155];             \textcolor{comment}{/* 345 */}
+00086                                 \textcolor{comment}{/* 500 */}
+00087 \};
+00088 
+00089 \textcolor{keyword}{union }\hyperlink{uniontar__buffer}{tar\_buffer}
+00090 \{
+00091   \textcolor{keywordtype}{char}               buffer[BLOCKSIZE];
+00092   \textcolor{keyword}{struct }\hyperlink{structtar__header}{tar\_header}  header;
+00093 \};
+00094 
+00095 \textcolor{keyword}{struct }\hyperlink{structattr__item}{attr\_item}
+00096 \{
+00097   \textcolor{keyword}{struct }\hyperlink{structattr__item}{attr\_item}  *next;
+00098   \textcolor{keywordtype}{char}              *fname;
+00099   \textcolor{keywordtype}{int}                mode;
+00100   time\_t             time;
+00101 \};
+00102 
+00103 \textcolor{keyword}{enum} \{ TGZ\_EXTRACT, TGZ\_LIST, TGZ\_INVALID \};
+00104 
+00105 \textcolor{keywordtype}{char} *TGZfname          OF((\textcolor{keyword}{const} \textcolor{keywordtype}{char} *));
+00106 \textcolor{keywordtype}{void} TGZnotfound        OF((\textcolor{keyword}{const} \textcolor{keywordtype}{char} *));
+00107 
+00108 \textcolor{keywordtype}{int} getoct              OF((\textcolor{keywordtype}{char} *, \textcolor{keywordtype}{int}));
+00109 \textcolor{keywordtype}{char} *strtime           OF((time\_t *));
+00110 \textcolor{keywordtype}{int} setfiletime         OF((\textcolor{keywordtype}{char} *, time\_t));
+00111 \textcolor{keywordtype}{void} push\_attr          OF((\textcolor{keyword}{struct} \hyperlink{structattr__item}{attr\_item} **, \textcolor{keywordtype}{char} *, \textcolor{keywordtype}{int}, time\_t));
+00112 \textcolor{keywordtype}{void} restore\_attr       OF((\textcolor{keyword}{struct} \hyperlink{structattr__item}{attr\_item} **));
+00113 
+00114 \textcolor{keywordtype}{int} ExprMatch           OF((\textcolor{keywordtype}{char} *, \textcolor{keywordtype}{char} *));
+00115 
+00116 \textcolor{keywordtype}{int} makedir             OF((\textcolor{keywordtype}{char} *));
+00117 \textcolor{keywordtype}{int} matchname           OF((\textcolor{keywordtype}{int}, \textcolor{keywordtype}{int}, \textcolor{keywordtype}{char} **, \textcolor{keywordtype}{char} *));
+00118 
+00119 \textcolor{keywordtype}{void} error              OF((\textcolor{keyword}{const} \textcolor{keywordtype}{char} *));
+00120 \textcolor{keywordtype}{int} tar                 OF((\hyperlink{structgz_file__s}{gzFile}, \textcolor{keywordtype}{int}, \textcolor{keywordtype}{int}, \textcolor{keywordtype}{int}, \textcolor{keywordtype}{char} **));
+00121 
+00122 \textcolor{keywordtype}{void} help               OF((\textcolor{keywordtype}{int}));
+00123 \textcolor{keywordtype}{int} main                OF((\textcolor{keywordtype}{int}, \textcolor{keywordtype}{char} **));
+00124 
+00125 \textcolor{keywordtype}{char} *prog;
+00126 
+00127 \textcolor{keyword}{const} \textcolor{keywordtype}{char} *TGZsuffix[] = \{ \textcolor{stringliteral}{"\(\backslash\)0"}, \textcolor{stringliteral}{".tar"}, \textcolor{stringliteral}{".tar.gz"}, \textcolor{stringliteral}{".taz"}, \textcolor{stringliteral}{".tgz"}, NULL \};
+00128 
+00129 \textcolor{comment}{/* return the file name of the TGZ archive */}
+00130 \textcolor{comment}{/* or NULL if it does not exist */}
+00131 
+00132 \textcolor{keywordtype}{char} *TGZfname (\textcolor{keyword}{const} \textcolor{keywordtype}{char} *arcname)
+00133 \{
+00134   \textcolor{keyword}{static} \textcolor{keywordtype}{char} buffer[1024];
+00135   \textcolor{keywordtype}{int} origlen,i;
+00136 
+00137   strcpy(buffer,arcname);
+00138   origlen = strlen(buffer);
+00139 
+00140   \textcolor{keywordflow}{for} (i=0; TGZsuffix[i]; i++)
+00141     \{
+00142        strcpy(buffer+origlen,TGZsuffix[i]);
+00143        \textcolor{keywordflow}{if} (\hyperlink{structaccess}{access}(buffer,F\_OK) == 0)
+00144          \textcolor{keywordflow}{return} buffer;
+00145     \}
+00146   \textcolor{keywordflow}{return} NULL;
+00147 \}
+00148 
+00149 
+00150 \textcolor{comment}{/* error message for the filename */}
+00151 
+00152 \textcolor{keywordtype}{void} TGZnotfound (\textcolor{keyword}{const} \textcolor{keywordtype}{char} *arcname)
+00153 \{
+00154   \textcolor{keywordtype}{int} i;
+00155 
+00156   fprintf(stderr,\textcolor{stringliteral}{"%s: Couldn't find "},prog);
+00157   \textcolor{keywordflow}{for} (i=0;TGZsuffix[i];i++)
+00158     fprintf(stderr,(TGZsuffix[i+1]) ? \textcolor{stringliteral}{"%s%s, "} : \textcolor{stringliteral}{"or %s%s\(\backslash\)n"},
+00159             arcname,
+00160             TGZsuffix[i]);
+00161   exit(1);
+00162 \}
+00163 
+00164 
+00165 \textcolor{comment}{/* convert octal digits to int */}
+00166 \textcolor{comment}{/* on error return -1 */}
+00167 
+00168 \textcolor{keywordtype}{int} getoct (\textcolor{keywordtype}{char} *p,\textcolor{keywordtype}{int} width)
+00169 \{
+00170   \textcolor{keywordtype}{int} result = 0;
+00171   \textcolor{keywordtype}{char} c;
+00172 
+00173   \textcolor{keywordflow}{while} (width--)
+00174     \{
+00175       c = *p++;
+00176       \textcolor{keywordflow}{if} (c == 0)
+00177         \textcolor{keywordflow}{break};
+00178       \textcolor{keywordflow}{if} (c == \textcolor{charliteral}{' '})
+00179         \textcolor{keywordflow}{continue};
+00180       \textcolor{keywordflow}{if} (c < '0' || c > \textcolor{charliteral}{'7'})
+00181         \textcolor{keywordflow}{return} -1;
+00182       result = result * 8 + (c - \textcolor{charliteral}{'0'});
+00183     \}
+00184   \textcolor{keywordflow}{return} result;
+00185 \}
+00186 
+00187 
+00188 \textcolor{comment}{/* convert time\_t to string */}
+00189 \textcolor{comment}{/* use the "YYYY/MM/DD hh:mm:ss" format */}
+00190 
+00191 \textcolor{keywordtype}{char} *strtime (time\_t *t)
+00192 \{
+00193   \textcolor{keyword}{struct }tm   *local;
+00194   \textcolor{keyword}{static} \textcolor{keywordtype}{char} result[32];
+00195 
+00196   local = localtime(t);
+00197   sprintf(result,\textcolor{stringliteral}{"%4d/%02d/%02d %02d:%02d:%02d"},
+00198           local->tm\_year+1900, local->tm\_mon+1, local->tm\_mday,
+00199           local->tm\_hour, local->tm\_min, local->tm\_sec);
+00200   \textcolor{keywordflow}{return} result;
+00201 \}
+00202 
+00203 
+00204 \textcolor{comment}{/* set file time */}
+00205 
+00206 \textcolor{keywordtype}{int} setfiletime (\textcolor{keywordtype}{char} *fname,time\_t ftime)
+00207 \{
+00208 \textcolor{preprocessor}{#ifdef WIN32}
+00209   \textcolor{keyword}{static} \textcolor{keywordtype}{int} isWinNT = -1;
+00210   SYSTEMTIME st;
+00211   FILETIME locft, modft;
+00212   \textcolor{keyword}{struct }tm *loctm;
+00213   HANDLE hFile;
+00214   \textcolor{keywordtype}{int} result;
+00215 
+00216   loctm = localtime(&ftime);
+00217   \textcolor{keywordflow}{if} (loctm == NULL)
+00218     \textcolor{keywordflow}{return} -1;
+00219 
+00220   st.wYear         = (WORD)loctm->tm\_year + 1900;
+00221   st.wMonth        = (WORD)loctm->tm\_mon + 1;
+00222   st.wDayOfWeek    = (WORD)loctm->tm\_wday;
+00223   st.wDay          = (WORD)loctm->tm\_mday;
+00224   st.wHour         = (WORD)loctm->tm\_hour;
+00225   st.wMinute       = (WORD)loctm->tm\_min;
+00226   st.wSecond       = (WORD)loctm->tm\_sec;
+00227   st.wMilliseconds = 0;
+00228   if (!SystemTimeToFileTime(&st, &locft) ||
+00229       !LocalFileTimeToFileTime(&locft, &modft))
+00230     \textcolor{keywordflow}{return} -1;
+00231 
+00232   \textcolor{keywordflow}{if} (isWinNT < 0)
+00233     isWinNT = (GetVersion() < 0x80000000) ? 1 : 0;
+00234   hFile = CreateFile(fname, GENERIC\_WRITE, 0, NULL, OPEN\_EXISTING,
+00235                      (isWinNT ? FILE\_FLAG\_BACKUP\_SEMANTICS : 0),
+00236                      NULL);
+00237   \textcolor{keywordflow}{if} (hFile == INVALID\_HANDLE\_VALUE)
+00238     \textcolor{keywordflow}{return} -1;
+00239   result = SetFileTime(hFile, NULL, NULL, &modft) ? 0 : -1;
+00240   CloseHandle(hFile);
+00241   \textcolor{keywordflow}{return} result;
+00242 \textcolor{preprocessor}{#else}
+00243   \textcolor{keyword}{struct }utimbuf settime;
+00244 
+00245   settime.actime = settime.modtime = ftime;
+00246   \textcolor{keywordflow}{return} utime(fname,&settime);
+00247 \textcolor{preprocessor}{#endif}
+00248 \}
+00249 
+00250 
+00251 \textcolor{comment}{/* push file attributes */}
+00252 
+00253 \textcolor{keywordtype}{void} push\_attr(\textcolor{keyword}{struct} \hyperlink{structattr__item}{attr\_item} **list,\textcolor{keywordtype}{char} *fname,\textcolor{keywordtype}{int} mode,time\_t time)
+00254 \{
+00255   \textcolor{keyword}{struct }\hyperlink{structattr__item}{attr\_item} *item;
+00256 
+00257   item = (\textcolor{keyword}{struct }\hyperlink{structattr__item}{attr\_item} *)malloc(\textcolor{keyword}{sizeof}(\textcolor{keyword}{struct} \hyperlink{structattr__item}{attr\_item}));
+00258   \textcolor{keywordflow}{if} (item == NULL)
+00259     error(\textcolor{stringliteral}{"Out of memory"});
+00260   item->fname = strdup(fname);
+00261   item->mode  = mode;
+00262   item->time  = time;
+00263   item->next  = *list;
+00264   *list       = item;
+00265 \}
+00266 
+00267 
+00268 \textcolor{comment}{/* restore file attributes */}
+00269 
+00270 \textcolor{keywordtype}{void} restore\_attr(\textcolor{keyword}{struct} \hyperlink{structattr__item}{attr\_item} **list)
+00271 \{
+00272   \textcolor{keyword}{struct }\hyperlink{structattr__item}{attr\_item} *item, *prev;
+00273 
+00274   \textcolor{keywordflow}{for} (item = *list; item != NULL; )
+00275     \{
+00276       setfiletime(item->fname,item->time);
+00277       chmod(item->fname,item->mode);
+00278       prev = item;
+00279       item = item->next;
+00280       free(prev);
+00281     \}
+00282   *list = NULL;
+00283 \}
+00284 
+00285 
+00286 \textcolor{comment}{/* match regular expression */}
+00287 
+00288 \textcolor{preprocessor}{#define ISSPECIAL(c) (((c) == '*') || ((c) == '/'))}
+00289 
+00290 \textcolor{keywordtype}{int} ExprMatch (\textcolor{keywordtype}{char} *\textcolor{keywordtype}{string},\textcolor{keywordtype}{char} *expr)
+00291 \{
+00292   \textcolor{keywordflow}{while} (1)
+00293     \{
+00294       \textcolor{keywordflow}{if} (ISSPECIAL(*expr))
+00295         \{
+00296           \textcolor{keywordflow}{if} (*expr == \textcolor{charliteral}{'/'})
+00297             \{
+00298               \textcolor{keywordflow}{if} (*\textcolor{keywordtype}{string} != \textcolor{charliteral}{'\(\backslash\)\(\backslash\)'} && *\textcolor{keywordtype}{string} != \textcolor{charliteral}{'/'})
+00299                 \textcolor{keywordflow}{return} 0;
+00300               \textcolor{keywordtype}{string} ++; expr++;
+00301             \}
+00302           \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*expr == \textcolor{charliteral}{'*'})
+00303             \{
+00304               \textcolor{keywordflow}{if} (*expr ++ == 0)
+00305                 \textcolor{keywordflow}{return} 1;
+00306               \textcolor{keywordflow}{while} (*++\textcolor{keywordtype}{string} != *expr)
+00307                 \textcolor{keywordflow}{if} (*\textcolor{keywordtype}{string} == 0)
+00308                   \textcolor{keywordflow}{return} 0;
+00309             \}
+00310         \}
+00311       \textcolor{keywordflow}{else}
+00312         \{
+00313           \textcolor{keywordflow}{if} (*\textcolor{keywordtype}{string} != *expr)
+00314             \textcolor{keywordflow}{return} 0;
+00315           \textcolor{keywordflow}{if} (*expr++ == 0)
+00316             \textcolor{keywordflow}{return} 1;
+00317           \textcolor{keywordtype}{string}++;
+00318         \}
+00319     \}
+00320 \}
+00321 
+00322 
+00323 \textcolor{comment}{/* recursive mkdir */}
+00324 \textcolor{comment}{/* abort on ENOENT; ignore other errors like "directory already exists" */}
+00325 \textcolor{comment}{/* return 1 if OK */}
+00326 \textcolor{comment}{/*        0 on error */}
+00327 
+00328 \textcolor{keywordtype}{int} makedir (\textcolor{keywordtype}{char} *newdir)
+00329 \{
+00330   \textcolor{keywordtype}{char} *buffer = strdup(newdir);
+00331   \textcolor{keywordtype}{char} *p;
+00332   \textcolor{keywordtype}{int}  len = strlen(buffer);
+00333 
+00334   \textcolor{keywordflow}{if} (len <= 0) \{
+00335     free(buffer);
+00336     \textcolor{keywordflow}{return} 0;
+00337   \}
+00338   \textcolor{keywordflow}{if} (buffer[len-1] == \textcolor{charliteral}{'/'}) \{
+00339     buffer[len-1] = \textcolor{charliteral}{'\(\backslash\)0'};
+00340   \}
+00341   \textcolor{keywordflow}{if} (mkdir(buffer, 0755) == 0)
+00342     \{
+00343       free(buffer);
+00344       \textcolor{keywordflow}{return} 1;
+00345     \}
+00346 
+00347   p = buffer+1;
+00348   \textcolor{keywordflow}{while} (1)
+00349     \{
+00350       \textcolor{keywordtype}{char} hold;
+00351 
+00352       \textcolor{keywordflow}{while}(*p && *p != \textcolor{charliteral}{'\(\backslash\)\(\backslash\)'} && *p != \textcolor{charliteral}{'/'})
+00353         p++;
+00354       hold = *p;
+00355       *p = 0;
+00356       \textcolor{keywordflow}{if} ((mkdir(buffer, 0755) == -1) && (errno == ENOENT))
+00357         \{
+00358           fprintf(stderr,\textcolor{stringliteral}{"%s: Couldn't create directory %s\(\backslash\)n"},prog,buffer);
+00359           free(buffer);
+00360           \textcolor{keywordflow}{return} 0;
+00361         \}
+00362       \textcolor{keywordflow}{if} (hold == 0)
+00363         \textcolor{keywordflow}{break};
+00364       *p++ = hold;
+00365     \}
+00366   free(buffer);
+00367   \textcolor{keywordflow}{return} 1;
+00368 \}
+00369 
+00370 
+00371 \textcolor{keywordtype}{int} matchname (\textcolor{keywordtype}{int} arg,\textcolor{keywordtype}{int} argc,\textcolor{keywordtype}{char} **argv,\textcolor{keywordtype}{char} *fname)
+00372 \{
+00373   \textcolor{keywordflow}{if} (arg == argc)      \textcolor{comment}{/* no arguments given (untgz tgzarchive) */}
+00374     \textcolor{keywordflow}{return} 1;
+00375 
+00376   \textcolor{keywordflow}{while} (arg < argc)
+00377     \textcolor{keywordflow}{if} (ExprMatch(fname,argv[arg++]))
+00378       \textcolor{keywordflow}{return} 1;
+00379 
+00380   \textcolor{keywordflow}{return} 0; \textcolor{comment}{/* ignore this for the moment being */}
+00381 \}
+00382 
+00383 
+00384 \textcolor{comment}{/* tar file list or extract */}
+00385 
+00386 \textcolor{keywordtype}{int} tar (\hyperlink{structgz_file__s}{gzFile} in,\textcolor{keywordtype}{int} action,\textcolor{keywordtype}{int} arg,\textcolor{keywordtype}{int} argc,\textcolor{keywordtype}{char} **argv)
+00387 \{
+00388   \textcolor{keyword}{union  }\hyperlink{uniontar__buffer}{tar\_buffer} buffer;
+00389   \textcolor{keywordtype}{int}    len;
+00390   \textcolor{keywordtype}{int}    err;
+00391   \textcolor{keywordtype}{int}    getheader = 1;
+00392   \textcolor{keywordtype}{int}    remaining = 0;
+00393   FILE   *outfile = NULL;
+00394   \textcolor{keywordtype}{char}   fname[BLOCKSIZE];
+00395   \textcolor{keywordtype}{int}    tarmode;
+00396   time\_t tartime;
+00397   \textcolor{keyword}{struct }\hyperlink{structattr__item}{attr\_item} *attributes = NULL;
+00398 
+00399   \textcolor{keywordflow}{if} (action == TGZ\_LIST)
+00400     printf(\textcolor{stringliteral}{"    date      time     size                       file\(\backslash\)n"}
+00401            \textcolor{stringliteral}{" ---------- -------- --------- -------------------------------------\(\backslash\)n"});
+00402   \textcolor{keywordflow}{while} (1)
+00403     \{
+00404       len = gzread(in, &buffer, BLOCKSIZE);
+00405       \textcolor{keywordflow}{if} (len < 0)
+00406         error(gzerror(in, &err));
+00407       \textcolor{comment}{/*}
+00408 \textcolor{comment}{       * Always expect complete blocks to process}
+00409 \textcolor{comment}{       * the tar information.}
+00410 \textcolor{comment}{       */}
+00411       \textcolor{keywordflow}{if} (len != BLOCKSIZE)
+00412         \{
+00413           action = TGZ\_INVALID; \textcolor{comment}{/* force error exit */}
+00414           remaining = 0;        \textcolor{comment}{/* force I/O cleanup */}
+00415         \}
+00416 
+00417       \textcolor{comment}{/*}
+00418 \textcolor{comment}{       * If we have to get a tar header}
+00419 \textcolor{comment}{       */}
+00420       \textcolor{keywordflow}{if} (getheader >= 1)
+00421         \{
+00422           \textcolor{comment}{/*}
+00423 \textcolor{comment}{           * if we met the end of the tar}
+00424 \textcolor{comment}{           * or the end-of-tar block,}
+00425 \textcolor{comment}{           * we are done}
+00426 \textcolor{comment}{           */}
+00427           \textcolor{keywordflow}{if} (len == 0 || buffer.header.name[0] == 0)
+00428             \textcolor{keywordflow}{break};
+00429 
+00430           tarmode = getoct(buffer.header.mode,8);
+00431           tartime = (time\_t)getoct(buffer.header.mtime,12);
+00432           \textcolor{keywordflow}{if} (tarmode == -1 || tartime == (time\_t)-1)
+00433             \{
+00434               buffer.header.name[0] = 0;
+00435               action = TGZ\_INVALID;
+00436             \}
+00437 
+00438           \textcolor{keywordflow}{if} (getheader == 1)
+00439             \{
+00440               strncpy(fname,buffer.header.name,SHORTNAMESIZE);
+00441               \textcolor{keywordflow}{if} (fname[SHORTNAMESIZE-1] != 0)
+00442                   fname[SHORTNAMESIZE] = 0;
+00443             \}
+00444           \textcolor{keywordflow}{else}
+00445             \{
+00446               \textcolor{comment}{/*}
+00447 \textcolor{comment}{               * The file name is longer than SHORTNAMESIZE}
+00448 \textcolor{comment}{               */}
+00449               \textcolor{keywordflow}{if} (strncmp(fname,buffer.header.name,SHORTNAMESIZE-1) != 0)
+00450                   error(\textcolor{stringliteral}{"bad long name"});
+00451               getheader = 1;
+00452             \}
+00453 
+00454           \textcolor{comment}{/*}
+00455 \textcolor{comment}{           * Act according to the type flag}
+00456 \textcolor{comment}{           */}
+00457           \textcolor{keywordflow}{switch} (buffer.header.typeflag)
+00458             \{
+00459             \textcolor{keywordflow}{case} DIRTYPE:
+00460               \textcolor{keywordflow}{if} (action == TGZ\_LIST)
+00461                 printf(\textcolor{stringliteral}{" %s     <dir> %s\(\backslash\)n"},strtime(&tartime),fname);
+00462               \textcolor{keywordflow}{if} (action == TGZ\_EXTRACT)
+00463                 \{
+00464                   makedir(fname);
+00465                   push\_attr(&attributes,fname,tarmode,tartime);
+00466                 \}
+00467               \textcolor{keywordflow}{break};
+00468             \textcolor{keywordflow}{case} REGTYPE:
+00469             \textcolor{keywordflow}{case} AREGTYPE:
+00470               remaining = getoct(buffer.header.size,12);
+00471               \textcolor{keywordflow}{if} (remaining == -1)
+00472                 \{
+00473                   action = TGZ\_INVALID;
+00474                   \textcolor{keywordflow}{break};
+00475                 \}
+00476               \textcolor{keywordflow}{if} (action == TGZ\_LIST)
+00477                 printf(\textcolor{stringliteral}{" %s %9d %s\(\backslash\)n"},strtime(&tartime),remaining,fname);
+00478               \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (action == TGZ\_EXTRACT)
+00479                 \{
+00480                   \textcolor{keywordflow}{if} (matchname(arg,argc,argv,fname))
+00481                     \{
+00482                       outfile = fopen(fname,\textcolor{stringliteral}{"wb"});
+00483                       \textcolor{keywordflow}{if} (outfile == NULL) \{
+00484                         \textcolor{comment}{/* try creating directory */}
+00485                         \textcolor{keywordtype}{char} *p = strrchr(fname, \textcolor{charliteral}{'/'});
+00486                         \textcolor{keywordflow}{if} (p != NULL) \{
+00487                           *p = \textcolor{charliteral}{'\(\backslash\)0'};
+00488                           makedir(fname);
+00489                           *p = \textcolor{charliteral}{'/'};
+00490                           outfile = fopen(fname,\textcolor{stringliteral}{"wb"});
+00491                         \}
+00492                       \}
+00493                       \textcolor{keywordflow}{if} (outfile != NULL)
+00494                         printf(\textcolor{stringliteral}{"Extracting %s\(\backslash\)n"},fname);
+00495                       \textcolor{keywordflow}{else}
+00496                         fprintf(stderr, \textcolor{stringliteral}{"%s: Couldn't create %s"},prog,fname);
+00497                     \}
+00498                   \textcolor{keywordflow}{else}
+00499                     outfile = NULL;
+00500                 \}
+00501               getheader = 0;
+00502               \textcolor{keywordflow}{break};
+00503             \textcolor{keywordflow}{case} GNUTYPE\_LONGLINK:
+00504             \textcolor{keywordflow}{case} GNUTYPE\_LONGNAME:
+00505               remaining = getoct(buffer.header.size,12);
+00506               \textcolor{keywordflow}{if} (remaining < 0 || remaining >= BLOCKSIZE)
+00507                 \{
+00508                   action = TGZ\_INVALID;
+00509                   \textcolor{keywordflow}{break};
+00510                 \}
+00511               len = gzread(in, fname, BLOCKSIZE);
+00512               \textcolor{keywordflow}{if} (len < 0)
+00513                 error(gzerror(in, &err));
+00514               \textcolor{keywordflow}{if} (fname[BLOCKSIZE-1] != 0 || (\textcolor{keywordtype}{int})strlen(fname) > remaining)
+00515                 \{
+00516                   action = TGZ\_INVALID;
+00517                   \textcolor{keywordflow}{break};
+00518                 \}
+00519               getheader = 2;
+00520               \textcolor{keywordflow}{break};
+00521             \textcolor{keywordflow}{default}:
+00522               \textcolor{keywordflow}{if} (action == TGZ\_LIST)
+00523                 printf(\textcolor{stringliteral}{" %s     <---> %s\(\backslash\)n"},strtime(&tartime),fname);
+00524               \textcolor{keywordflow}{break};
+00525             \}
+00526         \}
+00527       \textcolor{keywordflow}{else}
+00528         \{
+00529           \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} bytes = (remaining > BLOCKSIZE) ? BLOCKSIZE : remaining;
+00530 
+00531           \textcolor{keywordflow}{if} (outfile != NULL)
+00532             \{
+00533               \textcolor{keywordflow}{if} (fwrite(&buffer,\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{char}),bytes,outfile) != bytes)
+00534                 \{
+00535                   fprintf(stderr,
+00536                     \textcolor{stringliteral}{"%s: Error writing %s -- skipping\(\backslash\)n"},prog,fname);
+00537                   fclose(outfile);
+00538                   outfile = NULL;
+00539                   \textcolor{keyword}{remove}(fname);
+00540                 \}
+00541             \}
+00542           remaining -= bytes;
+00543         \}
+00544 
+00545       \textcolor{keywordflow}{if} (remaining == 0)
+00546         \{
+00547           getheader = 1;
+00548           \textcolor{keywordflow}{if} (outfile != NULL)
+00549             \{
+00550               fclose(outfile);
+00551               outfile = NULL;
+00552               \textcolor{keywordflow}{if} (action != TGZ\_INVALID)
+00553                 push\_attr(&attributes,fname,tarmode,tartime);
+00554             \}
+00555         \}
+00556 
+00557       \textcolor{comment}{/*}
+00558 \textcolor{comment}{       * Abandon if errors are found}
+00559 \textcolor{comment}{       */}
+00560       \textcolor{keywordflow}{if} (action == TGZ\_INVALID)
+00561         \{
+00562           error(\textcolor{stringliteral}{"broken archive"});
+00563           \textcolor{keywordflow}{break};
+00564         \}
+00565     \}
+00566 
+00567   \textcolor{comment}{/*}
+00568 \textcolor{comment}{   * Restore file modes and time stamps}
+00569 \textcolor{comment}{   */}
+00570   restore\_attr(&attributes);
+00571 
+00572   \textcolor{keywordflow}{if} (gzclose(in) != Z\_OK)
+00573     error(\textcolor{stringliteral}{"failed gzclose"});
+00574 
+00575   \textcolor{keywordflow}{return} 0;
+00576 \}
+00577 
+00578 
+00579 \textcolor{comment}{/* ============================================================ */}
+00580 
+00581 \textcolor{keywordtype}{void} help(\textcolor{keywordtype}{int} exitval)
+00582 \{
+00583   printf(\textcolor{stringliteral}{"untgz version 0.2.1\(\backslash\)n"}
+00584          \textcolor{stringliteral}{"  using zlib version %s\(\backslash\)n\(\backslash\)n"},
+00585          zlibVersion());
+00586   printf(\textcolor{stringliteral}{"Usage: untgz file.tgz            extract all files\(\backslash\)n"}
+00587          \textcolor{stringliteral}{"       untgz file.tgz fname ...  extract selected files\(\backslash\)n"}
+00588          \textcolor{stringliteral}{"       untgz -l file.tgz         list archive contents\(\backslash\)n"}
+00589          \textcolor{stringliteral}{"       untgz -h                  display this help\(\backslash\)n"});
+00590   exit(exitval);
+00591 \}
+00592 
+00593 \textcolor{keywordtype}{void} error(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *msg)
+00594 \{
+00595   fprintf(stderr, \textcolor{stringliteral}{"%s: %s\(\backslash\)n"}, prog, msg);
+00596   exit(1);
+00597 \}
+00598 
+00599 
+00600 \textcolor{comment}{/* ============================================================ */}
+00601 
+00602 \textcolor{preprocessor}{#if defined(WIN32) && defined(\_\_GNUC\_\_)}
+00603 \textcolor{keywordtype}{int} \_CRT\_glob = 0;      \textcolor{comment}{/* disable argument globbing in MinGW */}
+00604 \textcolor{preprocessor}{#endif}
+00605 
+00606 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc,\textcolor{keywordtype}{char} **argv)
+00607 \{
+00608     \textcolor{keywordtype}{int}         action = TGZ\_EXTRACT;
+00609     \textcolor{keywordtype}{int}         arg = 1;
+00610     \textcolor{keywordtype}{char}        *TGZfile;
+00611     \hyperlink{structgz_file__s}{gzFile}      *f;
+00612 
+00613     prog = strrchr(argv[0],\textcolor{charliteral}{'\(\backslash\)\(\backslash\)'});
+00614     \textcolor{keywordflow}{if} (prog == NULL)
+00615       \{
+00616         prog = strrchr(argv[0],\textcolor{charliteral}{'/'});
+00617         \textcolor{keywordflow}{if} (prog == NULL)
+00618           \{
+00619             prog = strrchr(argv[0],\textcolor{charliteral}{':'});
+00620             \textcolor{keywordflow}{if} (prog == NULL)
+00621               prog = argv[0];
+00622             \textcolor{keywordflow}{else}
+00623               prog++;
+00624           \}
+00625         \textcolor{keywordflow}{else}
+00626           prog++;
+00627       \}
+00628     \textcolor{keywordflow}{else}
+00629       prog++;
+00630 
+00631     \textcolor{keywordflow}{if} (argc == 1)
+00632       help(0);
+00633 
+00634     \textcolor{keywordflow}{if} (strcmp(argv[arg],\textcolor{stringliteral}{"-l"}) == 0)
+00635       \{
+00636         action = TGZ\_LIST;
+00637         \textcolor{keywordflow}{if} (argc == ++arg)
+00638           help(0);
+00639       \}
+00640     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (strcmp(argv[arg],\textcolor{stringliteral}{"-h"}) == 0)
+00641       \{
+00642         help(0);
+00643       \}
+00644 
+00645     \textcolor{keywordflow}{if} ((TGZfile = TGZfname(argv[arg])) == NULL)
+00646       TGZnotfound(argv[arg]);
+00647 
+00648     ++arg;
+00649     \textcolor{keywordflow}{if} ((action == TGZ\_LIST) && (arg != argc))
+00650       help(1);
+00651 
+00652 \textcolor{comment}{/*}
+00653 \textcolor{comment}{ *  Process the TGZ file}
+00654 \textcolor{comment}{ */}
+00655     \textcolor{keywordflow}{switch}(action)
+00656       \{
+00657       \textcolor{keywordflow}{case} TGZ\_LIST:
+00658       \textcolor{keywordflow}{case} TGZ\_EXTRACT:
+00659         f = gzopen(TGZfile,\textcolor{stringliteral}{"rb"});
+00660         \textcolor{keywordflow}{if} (f == NULL)
+00661           \{
+00662             fprintf(stderr,\textcolor{stringliteral}{"%s: Couldn't gzopen %s\(\backslash\)n"},prog,TGZfile);
+00663             \textcolor{keywordflow}{return} 1;
+00664           \}
+00665         exit(tar(f, action, arg, argc, argv));
+00666       \textcolor{keywordflow}{break};
+00667 
+00668       \textcolor{keywordflow}{default}:
+00669         error(\textcolor{stringliteral}{"Unknown option"});
+00670         exit(1);
+00671       \}
+00672 
+00673     \textcolor{keywordflow}{return} 0;
+00674 \}
+\end{DoxyCode}

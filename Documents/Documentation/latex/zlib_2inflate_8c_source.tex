@@ -1,0 +1,1566 @@
+\hypertarget{zlib_2inflate_8c_source}{}\section{zlib/inflate.c}
+\label{zlib_2inflate_8c_source}\index{inflate.\+c@{inflate.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* inflate.c -- zlib decompression}
+00002 \textcolor{comment}{ * Copyright (C) 1995-2016 Mark Adler}
+00003 \textcolor{comment}{ * For conditions of distribution and use, see copyright notice in zlib.h}
+00004 \textcolor{comment}{ */}
+00005 
+00006 \textcolor{comment}{/*}
+00007 \textcolor{comment}{ * Change history:}
+00008 \textcolor{comment}{ *}
+00009 \textcolor{comment}{ * 1.2.beta0    24 Nov 2002}
+00010 \textcolor{comment}{ * - First version -- complete rewrite of inflate to simplify code, avoid}
+00011 \textcolor{comment}{ *   creation of window when not needed, minimize use of window when it is}
+00012 \textcolor{comment}{ *   needed, make inffast.c even faster, implement gzip decoding, and to}
+00013 \textcolor{comment}{ *   improve code readability and style over the previous zlib inflate code}
+00014 \textcolor{comment}{ *}
+00015 \textcolor{comment}{ * 1.2.beta1    25 Nov 2002}
+00016 \textcolor{comment}{ * - Use pointers for available input and output checking in inffast.c}
+00017 \textcolor{comment}{ * - Remove input and output counters in inffast.c}
+00018 \textcolor{comment}{ * - Change inffast.c entry and loop from avail\_in >= 7 to >= 6}
+00019 \textcolor{comment}{ * - Remove unnecessary second byte pull from length extra in inffast.c}
+00020 \textcolor{comment}{ * - Unroll direct copy to three copies per loop in inffast.c}
+00021 \textcolor{comment}{ *}
+00022 \textcolor{comment}{ * 1.2.beta2    4 Dec 2002}
+00023 \textcolor{comment}{ * - Change external routine names to reduce potential conflicts}
+00024 \textcolor{comment}{ * - Correct filename to inffixed.h for fixed tables in inflate.c}
+00025 \textcolor{comment}{ * - Make hbuf[] unsigned char to match parameter type in inflate.c}
+00026 \textcolor{comment}{ * - Change strm->next\_out[-state->offset] to *(strm->next\_out - state->offset)}
+00027 \textcolor{comment}{ *   to avoid negation problem on Alphas (64 bit) in inflate.c}
+00028 \textcolor{comment}{ *}
+00029 \textcolor{comment}{ * 1.2.beta3    22 Dec 2002}
+00030 \textcolor{comment}{ * - Add comments on state->bits assertion in inffast.c}
+00031 \textcolor{comment}{ * - Add comments on op field in inftrees.h}
+00032 \textcolor{comment}{ * - Fix bug in reuse of allocated window after inflateReset()}
+00033 \textcolor{comment}{ * - Remove bit fields--back to byte structure for speed}
+00034 \textcolor{comment}{ * - Remove distance extra == 0 check in inflate\_fast()--only helps for lengths}
+00035 \textcolor{comment}{ * - Change post-increments to pre-increments in inflate\_fast(), PPC biased?}
+00036 \textcolor{comment}{ * - Add compile time option, POSTINC, to use post-increments instead (Intel?)}
+00037 \textcolor{comment}{ * - Make MATCH copy in inflate() much faster for when inflate\_fast() not used}
+00038 \textcolor{comment}{ * - Use local copies of stream next and avail values, as well as local bit}
+00039 \textcolor{comment}{ *   buffer and bit count in inflate()--for speed when inflate\_fast() not used}
+00040 \textcolor{comment}{ *}
+00041 \textcolor{comment}{ * 1.2.beta4    1 Jan 2003}
+00042 \textcolor{comment}{ * - Split ptr - 257 statements in inflate\_table() to avoid compiler warnings}
+00043 \textcolor{comment}{ * - Move a comment on output buffer sizes from inffast.c to inflate.c}
+00044 \textcolor{comment}{ * - Add comments in inffast.c to introduce the inflate\_fast() routine}
+00045 \textcolor{comment}{ * - Rearrange window copies in inflate\_fast() for speed and simplification}
+00046 \textcolor{comment}{ * - Unroll last copy for window match in inflate\_fast()}
+00047 \textcolor{comment}{ * - Use local copies of window variables in inflate\_fast() for speed}
+00048 \textcolor{comment}{ * - Pull out common wnext == 0 case for speed in inflate\_fast()}
+00049 \textcolor{comment}{ * - Make op and len in inflate\_fast() unsigned for consistency}
+00050 \textcolor{comment}{ * - Add FAR to lcode and dcode declarations in inflate\_fast()}
+00051 \textcolor{comment}{ * - Simplified bad distance check in inflate\_fast()}
+00052 \textcolor{comment}{ * - Added inflateBackInit(), inflateBack(), and inflateBackEnd() in new}
+00053 \textcolor{comment}{ *   source file infback.c to provide a call-back interface to inflate for}
+00054 \textcolor{comment}{ *   programs like gzip and unzip -- uses window as output buffer to avoid}
+00055 \textcolor{comment}{ *   window copying}
+00056 \textcolor{comment}{ *}
+00057 \textcolor{comment}{ * 1.2.beta5    1 Jan 2003}
+00058 \textcolor{comment}{ * - Improved inflateBack() interface to allow the caller to provide initial}
+00059 \textcolor{comment}{ *   input in strm.}
+00060 \textcolor{comment}{ * - Fixed stored blocks bug in inflateBack()}
+00061 \textcolor{comment}{ *}
+00062 \textcolor{comment}{ * 1.2.beta6    4 Jan 2003}
+00063 \textcolor{comment}{ * - Added comments in inffast.c on effectiveness of POSTINC}
+00064 \textcolor{comment}{ * - Typecasting all around to reduce compiler warnings}
+00065 \textcolor{comment}{ * - Changed loops from while (1) or do \{\} while (1) to for (;;), again to}
+00066 \textcolor{comment}{ *   make compilers happy}
+00067 \textcolor{comment}{ * - Changed type of window in inflateBackInit() to unsigned char *}
+00068 \textcolor{comment}{ *}
+00069 \textcolor{comment}{ * 1.2.beta7    27 Jan 2003}
+00070 \textcolor{comment}{ * - Changed many types to unsigned or unsigned short to avoid warnings}
+00071 \textcolor{comment}{ * - Added inflateCopy() function}
+00072 \textcolor{comment}{ *}
+00073 \textcolor{comment}{ * 1.2.0        9 Mar 2003}
+00074 \textcolor{comment}{ * - Changed inflateBack() interface to provide separate opaque descriptors}
+00075 \textcolor{comment}{ *   for the in() and out() functions}
+00076 \textcolor{comment}{ * - Changed inflateBack() argument and in\_func typedef to swap the length}
+00077 \textcolor{comment}{ *   and buffer address return values for the input function}
+00078 \textcolor{comment}{ * - Check next\_in and next\_out for Z\_NULL on entry to inflate()}
+00079 \textcolor{comment}{ *}
+00080 \textcolor{comment}{ * The history for versions after 1.2.0 are in ChangeLog in zlib distribution.}
+00081 \textcolor{comment}{ */}
+00082 
+00083 \textcolor{preprocessor}{#include "zutil.h"}
+00084 \textcolor{preprocessor}{#include "inftrees.h"}
+00085 \textcolor{preprocessor}{#include "inflate.h"}
+00086 \textcolor{preprocessor}{#include "inffast.h"}
+00087 
+00088 \textcolor{preprocessor}{#ifdef MAKEFIXED}
+00089 \textcolor{preprocessor}{#  ifndef BUILDFIXED}
+00090 \textcolor{preprocessor}{#    define BUILDFIXED}
+00091 \textcolor{preprocessor}{#  endif}
+00092 \textcolor{preprocessor}{#endif}
+00093 
+00094 \textcolor{comment}{/* function prototypes */}
+00095 local \textcolor{keywordtype}{int} inflateStateCheck OF((z\_streamp strm));
+00096 local \textcolor{keywordtype}{void} fixedtables OF((\textcolor{keyword}{struct} \hyperlink{structinflate__state}{inflate\_state} FAR *\hyperlink{structstate}{state}));
+00097 local \textcolor{keywordtype}{int} updatewindow OF((z\_streamp strm, \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *end,
+00098                            \textcolor{keywordtype}{unsigned} copy));
+00099 \textcolor{preprocessor}{#ifdef BUILDFIXED}
+00100    \textcolor{keywordtype}{void} makefixed OF((\textcolor{keywordtype}{void}));
+00101 \textcolor{preprocessor}{#endif}
+00102 local \textcolor{keywordtype}{unsigned} syncsearch OF((\textcolor{keywordtype}{unsigned} FAR *have, \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *buf,
+00103                               \textcolor{keywordtype}{unsigned} len));
+00104 
+00105 local \textcolor{keywordtype}{int} inflateStateCheck(strm)
+00106 z\_streamp strm;
+00107 \{
+00108     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *\hyperlink{structstate}{state};
+00109     \textcolor{keywordflow}{if} (strm == Z\_NULL ||
+00110         strm->zalloc == (alloc\_func)0 || strm->zfree == (free\_func)0)
+00111         \textcolor{keywordflow}{return} 1;
+00112     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+00113     if (state == Z\_NULL || state->strm != strm ||
+00114         state->mode < HEAD || state->mode > SYNC)
+00115         \textcolor{keywordflow}{return} 1;
+00116     \textcolor{keywordflow}{return} 0;
+00117 \}
+00118 
+00119 \textcolor{keywordtype}{int} ZEXPORT inflateResetKeep(strm)
+00120 z\_streamp strm;
+00121 \{
+00122     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+00123 
+00124     \textcolor{keywordflow}{if} (inflateStateCheck(strm)) \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00125     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+00126     strm->total\_in = strm->total\_out = state->total = 0;
+00127     strm->msg = Z\_NULL;
+00128     if (state->wrap)        \textcolor{comment}{/* to support ill-conceived Java test suite */}
+00129         strm->adler = state->wrap & 1;
+00130     state->mode = HEAD;
+00131     state->last = 0;
+00132     state->havedict = 0;
+00133     state->dmax = 32768U;
+00134     state->head = Z\_NULL;
+00135     state->hold = 0;
+00136     state->bits = 0;
+00137     state->lencode = state->distcode = state->next = state->codes;
+00138     state->sane = 1;
+00139     state->back = -1;
+00140     Tracev((stderr, \textcolor{stringliteral}{"inflate: reset\(\backslash\)n"}));
+00141     \textcolor{keywordflow}{return} Z\_OK;
+00142 \}
+00143 
+00144 \textcolor{keywordtype}{int} ZEXPORT inflateReset(strm)
+00145 z\_streamp strm;
+00146 \{
+00147     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+00148 
+00149     \textcolor{keywordflow}{if} (inflateStateCheck(strm)) \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00150     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+00151     state->wsize = 0;
+00152     state->whave = 0;
+00153     state->wnext = 0;
+00154     \textcolor{keywordflow}{return} inflateResetKeep(strm);
+00155 \}
+00156 
+00157 \textcolor{keywordtype}{int} ZEXPORT inflateReset2(strm, windowBits)
+00158 z\_streamp strm;
+00159 \textcolor{keywordtype}{int} windowBits;
+00160 \{
+00161     \textcolor{keywordtype}{int} wrap;
+00162     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+00163 
+00164     \textcolor{comment}{/* get the state */}
+00165     \textcolor{keywordflow}{if} (inflateStateCheck(strm)) \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00166     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+00167 
+00168     \textcolor{comment}{/* extract wrap request from windowBits parameter */}
+00169     if (windowBits < 0) \{
+00170         wrap = 0;
+00171         windowBits = -windowBits;
+00172     \}
+00173     \textcolor{keywordflow}{else} \{
+00174         wrap = (windowBits >> 4) + 5;
+00175 \textcolor{preprocessor}{#ifdef GUNZIP}
+00176         \textcolor{keywordflow}{if} (windowBits < 48)
+00177             windowBits &= 15;
+00178 \textcolor{preprocessor}{#endif}
+00179     \}
+00180 
+00181     \textcolor{comment}{/* set number of window bits, free window if different */}
+00182     \textcolor{keywordflow}{if} (windowBits && (windowBits < 8 || windowBits > 15))
+00183         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00184     \textcolor{keywordflow}{if} (state->window != Z\_NULL && state->wbits != (\textcolor{keywordtype}{unsigned})windowBits) \{
+00185         ZFREE(strm, state->window);
+00186         state->window = Z\_NULL;
+00187     \}
+00188 
+00189     \textcolor{comment}{/* update state and reset the rest of it */}
+00190     state->wrap = wrap;
+00191     state->wbits = (unsigned)windowBits;
+00192     \textcolor{keywordflow}{return} inflateReset(strm);
+00193 \}
+00194 
+00195 \textcolor{keywordtype}{int} ZEXPORT inflateInit2\_(strm, windowBits, version, stream\_size)
+00196 z\_streamp strm;
+00197 \textcolor{keywordtype}{int} windowBits;
+00198 \textcolor{keyword}{const} \textcolor{keywordtype}{char} *version;
+00199 \textcolor{keywordtype}{int} stream\_size;
+00200 \{
+00201     \textcolor{keywordtype}{int} ret;
+00202     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+00203 
+00204     \textcolor{keywordflow}{if} (version == Z\_NULL || version[0] != ZLIB\_VERSION[0] ||
+00205         stream\_size != (\textcolor{keywordtype}{int})(\textcolor{keyword}{sizeof}(\hyperlink{structz__stream__s}{z\_stream})))
+00206         \textcolor{keywordflow}{return} Z\_VERSION\_ERROR;
+00207     \textcolor{keywordflow}{if} (strm == Z\_NULL) \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00208     strm->msg = Z\_NULL;                 \textcolor{comment}{/* in case we return an error */}
+00209     \textcolor{keywordflow}{if} (strm->zalloc == (alloc\_func)0) \{
+00210 \textcolor{preprocessor}{#ifdef Z\_SOLO}
+00211         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00212 \textcolor{preprocessor}{#else}
+00213         strm->zalloc = zcalloc;
+00214         strm->opaque = (voidpf)0;
+00215 \textcolor{preprocessor}{#endif}
+00216     \}
+00217     \textcolor{keywordflow}{if} (strm->zfree == (free\_func)0)
+00218 #ifdef Z\_SOLO
+00219         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00220 \textcolor{preprocessor}{#else}
+00221         strm->zfree = zcfree;
+00222 \textcolor{preprocessor}{#endif}
+00223     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)
+00224             ZALLOC(strm, 1, \textcolor{keyword}{sizeof}(\textcolor{keyword}{struct} \hyperlink{structinflate__state}{inflate\_state}));
+00225     \textcolor{keywordflow}{if} (state == Z\_NULL) \textcolor{keywordflow}{return} Z\_MEM\_ERROR;
+00226     Tracev((stderr, \textcolor{stringliteral}{"inflate: allocated\(\backslash\)n"}));
+00227     strm->state = (\textcolor{keyword}{struct }\hyperlink{structinternal__state}{internal\_state} FAR *)state;
+00228     state->strm = strm;
+00229     state->window = Z\_NULL;
+00230     state->mode = HEAD;     \textcolor{comment}{/* to pass state test in inflateReset2() */}
+00231     ret = inflateReset2(strm, windowBits);
+00232     \textcolor{keywordflow}{if} (ret != Z\_OK) \{
+00233         ZFREE(strm, state);
+00234         strm->state = Z\_NULL;
+00235     \}
+00236     \textcolor{keywordflow}{return} ret;
+00237 \}
+00238 
+00239 \textcolor{keywordtype}{int} ZEXPORT inflateInit\_(strm, version, stream\_size)
+00240 z\_streamp strm;
+00241 \textcolor{keyword}{const} \textcolor{keywordtype}{char} *version;
+00242 \textcolor{keywordtype}{int} stream\_size;
+00243 \{
+00244     \textcolor{keywordflow}{return} inflateInit2\_(strm, DEF\_WBITS, version, stream\_size);
+00245 \}
+00246 
+00247 \textcolor{keywordtype}{int} ZEXPORT inflatePrime(strm, bits, value)
+00248 z\_streamp strm;
+00249 \textcolor{keywordtype}{int} bits;
+00250 \textcolor{keywordtype}{int} value;
+00251 \{
+00252     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+00253 
+00254     \textcolor{keywordflow}{if} (inflateStateCheck(strm)) \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00255     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+00256     if (bits < 0) \{
+00257         state->hold = 0;
+00258         state->bits = 0;
+00259         \textcolor{keywordflow}{return} Z\_OK;
+00260     \}
+00261     \textcolor{keywordflow}{if} (bits > 16 || state->bits + (uInt)bits > 32) \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00262     value &= (1L << bits) - 1;
+00263     state->hold += (unsigned)value << state->bits;
+00264     state->bits += (uInt)bits;
+00265     \textcolor{keywordflow}{return} Z\_OK;
+00266 \}
+00267 
+00268 \textcolor{comment}{/*}
+00269 \textcolor{comment}{   Return state with length and distance decoding tables and index sizes set to}
+00270 \textcolor{comment}{   fixed code decoding.  Normally this returns fixed tables from inffixed.h.}
+00271 \textcolor{comment}{   If BUILDFIXED is defined, then instead this routine builds the tables the}
+00272 \textcolor{comment}{   first time it's called, and returns those tables the first time and}
+00273 \textcolor{comment}{   thereafter.  This reduces the size of the code by about 2K bytes, in}
+00274 \textcolor{comment}{   exchange for a little execution time.  However, BUILDFIXED should not be}
+00275 \textcolor{comment}{   used for threaded applications, since the rewriting of the tables and virgin}
+00276 \textcolor{comment}{   may not be thread-safe.}
+00277 \textcolor{comment}{ */}
+00278 local \textcolor{keywordtype}{void} fixedtables(state)
+00279 \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+00280 \{
+00281 \textcolor{preprocessor}{#ifdef BUILDFIXED}
+00282     \textcolor{keyword}{static} \textcolor{keywordtype}{int} virgin = 1;
+00283     \textcolor{keyword}{static} \hyperlink{structcode}{code} *lenfix, *distfix;
+00284     \textcolor{keyword}{static} \hyperlink{structcode}{code} fixed[544];
+00285 
+00286     \textcolor{comment}{/* build fixed huffman tables if first call (may not be thread safe) */}
+00287     \textcolor{keywordflow}{if} (virgin) \{
+00288         \textcolor{keywordtype}{unsigned} sym, bits;
+00289         \textcolor{keyword}{static} \hyperlink{structcode}{code} *next;
+00290 
+00291         \textcolor{comment}{/* literal/length table */}
+00292         sym = 0;
+00293         \textcolor{keywordflow}{while} (sym < 144) state->lens[sym++] = 8;
+00294         \textcolor{keywordflow}{while} (sym < 256) state->lens[sym++] = 9;
+00295         \textcolor{keywordflow}{while} (sym < 280) state->lens[sym++] = 7;
+00296         \textcolor{keywordflow}{while} (sym < 288) state->lens[sym++] = 8;
+00297         next = fixed;
+00298         lenfix = next;
+00299         bits = 9;
+00300         inflate\_table(LENS, state->lens, 288, &(next), &(bits), state->work);
+00301 
+00302         \textcolor{comment}{/* distance table */}
+00303         sym = 0;
+00304         \textcolor{keywordflow}{while} (sym < 32) state->lens[sym++] = 5;
+00305         distfix = next;
+00306         bits = 5;
+00307         inflate\_table(DISTS, state->lens, 32, &(next), &(bits), state->work);
+00308 
+00309         \textcolor{comment}{/* do this just once */}
+00310         virgin = 0;
+00311     \}
+00312 \textcolor{preprocessor}{#else }\textcolor{comment}{/* !BUILDFIXED */}\textcolor{preprocessor}{}
+00313 \textcolor{preprocessor}{#   include "inffixed.h"}
+00314 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* BUILDFIXED */}\textcolor{preprocessor}{}
+00315     state->lencode = lenfix;
+00316     state->lenbits = 9;
+00317     state->distcode = distfix;
+00318     state->distbits = 5;
+00319 \}
+00320 
+00321 \textcolor{preprocessor}{#ifdef MAKEFIXED}
+00322 \textcolor{preprocessor}{#include <stdio.h>}
+00323 
+00324 \textcolor{comment}{/*}
+00325 \textcolor{comment}{   Write out the inffixed.h that is #include'd above.  Defining MAKEFIXED also}
+00326 \textcolor{comment}{   defines BUILDFIXED, so the tables are built on the fly.  makefixed() writes}
+00327 \textcolor{comment}{   those tables to stdout, which would be piped to inffixed.h.  A small program}
+00328 \textcolor{comment}{   can simply call makefixed to do this:}
+00329 \textcolor{comment}{}
+00330 \textcolor{comment}{    void makefixed(void);}
+00331 \textcolor{comment}{}
+00332 \textcolor{comment}{    int main(void)}
+00333 \textcolor{comment}{    \{}
+00334 \textcolor{comment}{        makefixed();}
+00335 \textcolor{comment}{        return 0;}
+00336 \textcolor{comment}{    \}}
+00337 \textcolor{comment}{}
+00338 \textcolor{comment}{   Then that can be linked with zlib built with MAKEFIXED defined and run:}
+00339 \textcolor{comment}{}
+00340 \textcolor{comment}{    a.out > inffixed.h}
+00341 \textcolor{comment}{ */}
+00342 \textcolor{keywordtype}{void} makefixed()
+00343 \{
+00344     \textcolor{keywordtype}{unsigned} low, size;
+00345     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} state;
+00346 
+00347     fixedtables(&state);
+00348     puts(\textcolor{stringliteral}{"    /* inffixed.h -- table for decoding fixed codes"});
+00349     puts(\textcolor{stringliteral}{"     * Generated automatically by makefixed()."});
+00350     puts(\textcolor{stringliteral}{"     */"});
+00351     puts(\textcolor{stringliteral}{""});
+00352     puts(\textcolor{stringliteral}{"    /* WARNING: this file should *not* be used by applications."});
+00353     puts(\textcolor{stringliteral}{"       It is part of the implementation of this library and is"});
+00354     puts(\textcolor{stringliteral}{"       subject to change. Applications should only use zlib.h."});
+00355     puts(\textcolor{stringliteral}{"     */"});
+00356     puts(\textcolor{stringliteral}{""});
+00357     size = 1U << 9;
+00358     printf(\textcolor{stringliteral}{"    static const code lenfix[%u] = \{"}, size);
+00359     low = 0;
+00360     \textcolor{keywordflow}{for} (;;) \{
+00361         \textcolor{keywordflow}{if} ((low % 7) == 0) printf(\textcolor{stringliteral}{"\(\backslash\)n        "});
+00362         printf(\textcolor{stringliteral}{"\{%u,%u,%d\}"}, (low & 127) == 99 ? 64 : state.lencode[low].op,
+00363                state.lencode[low].bits, state.lencode[low].val);
+00364         \textcolor{keywordflow}{if} (++low == size) \textcolor{keywordflow}{break};
+00365         putchar(\textcolor{charliteral}{','});
+00366     \}
+00367     puts(\textcolor{stringliteral}{"\(\backslash\)n    \};"});
+00368     size = 1U << 5;
+00369     printf(\textcolor{stringliteral}{"\(\backslash\)n    static const code distfix[%u] = \{"}, size);
+00370     low = 0;
+00371     \textcolor{keywordflow}{for} (;;) \{
+00372         \textcolor{keywordflow}{if} ((low % 6) == 0) printf(\textcolor{stringliteral}{"\(\backslash\)n        "});
+00373         printf(\textcolor{stringliteral}{"\{%u,%u,%d\}"}, state.distcode[low].op, state.distcode[low].bits,
+00374                state.distcode[low].val);
+00375         \textcolor{keywordflow}{if} (++low == size) \textcolor{keywordflow}{break};
+00376         putchar(\textcolor{charliteral}{','});
+00377     \}
+00378     puts(\textcolor{stringliteral}{"\(\backslash\)n    \};"});
+00379 \}
+00380 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* MAKEFIXED */}\textcolor{preprocessor}{}
+00381 
+00382 \textcolor{comment}{/*}
+00383 \textcolor{comment}{   Update the window with the last wsize (normally 32K) bytes written before}
+00384 \textcolor{comment}{   returning.  If window does not exist yet, create it.  This is only called}
+00385 \textcolor{comment}{   when a window is already in use, or when output has been written during this}
+00386 \textcolor{comment}{   inflate call, but the end of the deflate stream has not been reached yet.}
+00387 \textcolor{comment}{   It is also called to create a window for dictionary data when a dictionary}
+00388 \textcolor{comment}{   is loaded.}
+00389 \textcolor{comment}{}
+00390 \textcolor{comment}{   Providing output buffers larger than 32K to inflate() should provide a speed}
+00391 \textcolor{comment}{   advantage, since only the last 32K of output is copied to the sliding window}
+00392 \textcolor{comment}{   upon return from inflate(), and since all distances after the first 32K of}
+00393 \textcolor{comment}{   output will fall in the output data, making match copies simpler and faster.}
+00394 \textcolor{comment}{   The advantage may be dependent on the size of the processor's data caches.}
+00395 \textcolor{comment}{ */}
+00396 local \textcolor{keywordtype}{int} updatewindow(strm, end, copy)
+00397 z\_streamp strm;
+00398 \textcolor{keyword}{const} Bytef *end;
+00399 \textcolor{keywordtype}{unsigned} copy;
+00400 \{
+00401     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+00402     \textcolor{keywordtype}{unsigned} dist;
+00403 
+00404     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+00405 
+00406     \textcolor{comment}{/* if it hasn't been done already, allocate space for the window */}
+00407     if (state->window == Z\_NULL) \{
+00408         state->window = (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *)
+00409                         ZALLOC(strm, 1U << state->wbits,
+00410                                \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}));
+00411         \textcolor{keywordflow}{if} (state->window == Z\_NULL) \textcolor{keywordflow}{return} 1;
+00412     \}
+00413 
+00414     \textcolor{comment}{/* if window not in use yet, initialize */}
+00415     \textcolor{keywordflow}{if} (state->wsize == 0) \{
+00416         state->wsize = 1U << state->wbits;
+00417         state->wnext = 0;
+00418         state->whave = 0;
+00419     \}
+00420 
+00421     \textcolor{comment}{/* copy state->wsize or less output bytes into the circular window */}
+00422     \textcolor{keywordflow}{if} (copy >= state->wsize) \{
+00423         zmemcpy(state->window, end - state->wsize, state->wsize);
+00424         state->wnext = 0;
+00425         state->whave = state->wsize;
+00426     \}
+00427     \textcolor{keywordflow}{else} \{
+00428         dist = state->wsize - state->wnext;
+00429         \textcolor{keywordflow}{if} (dist > copy) dist = copy;
+00430         zmemcpy(state->window + state->wnext, end - copy, dist);
+00431         copy -= dist;
+00432         \textcolor{keywordflow}{if} (copy) \{
+00433             zmemcpy(state->window, end - copy, copy);
+00434             state->wnext = copy;
+00435             state->whave = state->wsize;
+00436         \}
+00437         \textcolor{keywordflow}{else} \{
+00438             state->wnext += dist;
+00439             \textcolor{keywordflow}{if} (state->wnext == state->wsize) state->wnext = 0;
+00440             \textcolor{keywordflow}{if} (state->whave < state->wsize) state->whave += dist;
+00441         \}
+00442     \}
+00443     \textcolor{keywordflow}{return} 0;
+00444 \}
+00445 
+00446 \textcolor{comment}{/* Macros for inflate(): */}
+00447 
+00448 \textcolor{comment}{/* check function to use adler32() for zlib or crc32() for gzip */}
+00449 \textcolor{preprocessor}{#ifdef GUNZIP}
+00450 \textcolor{preprocessor}{#  define UPDATE(check, buf, len) \(\backslash\)}
+00451 \textcolor{preprocessor}{    (state->flags ? crc32(check, buf, len) : adler32(check, buf, len))}
+00452 \textcolor{preprocessor}{#else}
+00453 \textcolor{preprocessor}{#  define UPDATE(check, buf, len) adler32(check, buf, len)}
+00454 \textcolor{preprocessor}{#endif}
+00455 
+00456 \textcolor{comment}{/* check macros for header crc */}
+00457 \textcolor{preprocessor}{#ifdef GUNZIP}
+00458 \textcolor{preprocessor}{#  define CRC2(check, word) \(\backslash\)}
+00459 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00460 \textcolor{preprocessor}{        hbuf[0] = (unsigned char)(word); \(\backslash\)}
+00461 \textcolor{preprocessor}{        hbuf[1] = (unsigned char)((word) >> 8); \(\backslash\)}
+00462 \textcolor{preprocessor}{        check = crc32(check, hbuf, 2); \(\backslash\)}
+00463 \textcolor{preprocessor}{    \} while (0)}
+00464 
+00465 \textcolor{preprocessor}{#  define CRC4(check, word) \(\backslash\)}
+00466 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00467 \textcolor{preprocessor}{        hbuf[0] = (unsigned char)(word); \(\backslash\)}
+00468 \textcolor{preprocessor}{        hbuf[1] = (unsigned char)((word) >> 8); \(\backslash\)}
+00469 \textcolor{preprocessor}{        hbuf[2] = (unsigned char)((word) >> 16); \(\backslash\)}
+00470 \textcolor{preprocessor}{        hbuf[3] = (unsigned char)((word) >> 24); \(\backslash\)}
+00471 \textcolor{preprocessor}{        check = crc32(check, hbuf, 4); \(\backslash\)}
+00472 \textcolor{preprocessor}{    \} while (0)}
+00473 \textcolor{preprocessor}{#endif}
+00474 
+00475 \textcolor{comment}{/* Load registers with state in inflate() for speed */}
+00476 \textcolor{preprocessor}{#define LOAD() \(\backslash\)}
+00477 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00478 \textcolor{preprocessor}{        put = strm->next\_out; \(\backslash\)}
+00479 \textcolor{preprocessor}{        left = strm->avail\_out; \(\backslash\)}
+00480 \textcolor{preprocessor}{        next = strm->next\_in; \(\backslash\)}
+00481 \textcolor{preprocessor}{        have = strm->avail\_in; \(\backslash\)}
+00482 \textcolor{preprocessor}{        hold = state->hold; \(\backslash\)}
+00483 \textcolor{preprocessor}{        bits = state->bits; \(\backslash\)}
+00484 \textcolor{preprocessor}{    \} while (0)}
+00485 
+00486 \textcolor{comment}{/* Restore state from registers in inflate() */}
+00487 \textcolor{preprocessor}{#define RESTORE() \(\backslash\)}
+00488 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00489 \textcolor{preprocessor}{        strm->next\_out = put; \(\backslash\)}
+00490 \textcolor{preprocessor}{        strm->avail\_out = left; \(\backslash\)}
+00491 \textcolor{preprocessor}{        strm->next\_in = next; \(\backslash\)}
+00492 \textcolor{preprocessor}{        strm->avail\_in = have; \(\backslash\)}
+00493 \textcolor{preprocessor}{        state->hold = hold; \(\backslash\)}
+00494 \textcolor{preprocessor}{        state->bits = bits; \(\backslash\)}
+00495 \textcolor{preprocessor}{    \} while (0)}
+00496 
+00497 \textcolor{comment}{/* Clear the input bit accumulator */}
+00498 \textcolor{preprocessor}{#define INITBITS() \(\backslash\)}
+00499 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00500 \textcolor{preprocessor}{        hold = 0; \(\backslash\)}
+00501 \textcolor{preprocessor}{        bits = 0; \(\backslash\)}
+00502 \textcolor{preprocessor}{    \} while (0)}
+00503 
+00504 \textcolor{comment}{/* Get a byte of input into the bit accumulator, or return from inflate()}
+00505 \textcolor{comment}{   if there is no input available. */}
+00506 \textcolor{preprocessor}{#define PULLBYTE() \(\backslash\)}
+00507 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00508 \textcolor{preprocessor}{        if (have == 0) goto inf\_leave; \(\backslash\)}
+00509 \textcolor{preprocessor}{        have--; \(\backslash\)}
+00510 \textcolor{preprocessor}{        hold += (unsigned long)(*next++) << bits; \(\backslash\)}
+00511 \textcolor{preprocessor}{        bits += 8; \(\backslash\)}
+00512 \textcolor{preprocessor}{    \} while (0)}
+00513 
+00514 \textcolor{comment}{/* Assure that there are at least n bits in the bit accumulator.  If there is}
+00515 \textcolor{comment}{   not enough available input to do that, then return from inflate(). */}
+00516 \textcolor{preprocessor}{#define NEEDBITS(n) \(\backslash\)}
+00517 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00518 \textcolor{preprocessor}{        while (bits < (unsigned)(n)) \(\backslash\)}
+00519 \textcolor{preprocessor}{            PULLBYTE(); \(\backslash\)}
+00520 \textcolor{preprocessor}{    \} while (0)}
+00521 
+00522 \textcolor{comment}{/* Return the low n bits of the bit accumulator (n < 16) */}
+00523 \textcolor{preprocessor}{#define BITS(n) \(\backslash\)}
+00524 \textcolor{preprocessor}{    ((unsigned)hold & ((1U << (n)) - 1))}
+00525 
+00526 \textcolor{comment}{/* Remove n bits from the bit accumulator */}
+00527 \textcolor{preprocessor}{#define DROPBITS(n) \(\backslash\)}
+00528 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00529 \textcolor{preprocessor}{        hold >>= (n); \(\backslash\)}
+00530 \textcolor{preprocessor}{        bits -= (unsigned)(n); \(\backslash\)}
+00531 \textcolor{preprocessor}{    \} while (0)}
+00532 
+00533 \textcolor{comment}{/* Remove zero to seven bits as needed to go to a byte boundary */}
+00534 \textcolor{preprocessor}{#define BYTEBITS() \(\backslash\)}
+00535 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00536 \textcolor{preprocessor}{        hold >>= bits & 7; \(\backslash\)}
+00537 \textcolor{preprocessor}{        bits -= bits & 7; \(\backslash\)}
+00538 \textcolor{preprocessor}{    \} while (0)}
+00539 
+00540 \textcolor{comment}{/*}
+00541 \textcolor{comment}{   inflate() uses a state machine to process as much input data and generate as}
+00542 \textcolor{comment}{   much output data as possible before returning.  The state machine is}
+00543 \textcolor{comment}{   structured roughly as follows:}
+00544 \textcolor{comment}{}
+00545 \textcolor{comment}{    for (;;) switch (state) \{}
+00546 \textcolor{comment}{    ...}
+00547 \textcolor{comment}{    case STATEn:}
+00548 \textcolor{comment}{        if (not enough input data or output space to make progress)}
+00549 \textcolor{comment}{            return;}
+00550 \textcolor{comment}{        ... make progress ...}
+00551 \textcolor{comment}{        state = STATEm;}
+00552 \textcolor{comment}{        break;}
+00553 \textcolor{comment}{    ...}
+00554 \textcolor{comment}{    \}}
+00555 \textcolor{comment}{}
+00556 \textcolor{comment}{   so when inflate() is called again, the same case is attempted again, and}
+00557 \textcolor{comment}{   if the appropriate resources are provided, the machine proceeds to the}
+00558 \textcolor{comment}{   next state.  The NEEDBITS() macro is usually the way the state evaluates}
+00559 \textcolor{comment}{   whether it can proceed or should return.  NEEDBITS() does the return if}
+00560 \textcolor{comment}{   the requested bits are not available.  The typical use of the BITS macros}
+00561 \textcolor{comment}{   is:}
+00562 \textcolor{comment}{}
+00563 \textcolor{comment}{        NEEDBITS(n);}
+00564 \textcolor{comment}{        ... do something with BITS(n) ...}
+00565 \textcolor{comment}{        DROPBITS(n);}
+00566 \textcolor{comment}{}
+00567 \textcolor{comment}{   where NEEDBITS(n) either returns from inflate() if there isn't enough}
+00568 \textcolor{comment}{   input left to load n bits into the accumulator, or it continues.  BITS(n)}
+00569 \textcolor{comment}{   gives the low n bits in the accumulator.  When done, DROPBITS(n) drops}
+00570 \textcolor{comment}{   the low n bits off the accumulator.  INITBITS() clears the accumulator}
+00571 \textcolor{comment}{   and sets the number of available bits to zero.  BYTEBITS() discards just}
+00572 \textcolor{comment}{   enough bits to put the accumulator on a byte boundary.  After BYTEBITS()}
+00573 \textcolor{comment}{   and a NEEDBITS(8), then BITS(8) would return the next byte in the stream.}
+00574 \textcolor{comment}{}
+00575 \textcolor{comment}{   NEEDBITS(n) uses PULLBYTE() to get an available byte of input, or to return}
+00576 \textcolor{comment}{   if there is no input available.  The decoding of variable length codes uses}
+00577 \textcolor{comment}{   PULLBYTE() directly in order to pull just enough bytes to decode the next}
+00578 \textcolor{comment}{   code, and no more.}
+00579 \textcolor{comment}{}
+00580 \textcolor{comment}{   Some states loop until they get enough input, making sure that enough}
+00581 \textcolor{comment}{   state information is maintained to continue the loop where it left off}
+00582 \textcolor{comment}{   if NEEDBITS() returns in the loop.  For example, want, need, and keep}
+00583 \textcolor{comment}{   would all have to actually be part of the saved state in case NEEDBITS()}
+00584 \textcolor{comment}{   returns:}
+00585 \textcolor{comment}{}
+00586 \textcolor{comment}{    case STATEw:}
+00587 \textcolor{comment}{        while (want < need) \{}
+00588 \textcolor{comment}{            NEEDBITS(n);}
+00589 \textcolor{comment}{            keep[want++] = BITS(n);}
+00590 \textcolor{comment}{            DROPBITS(n);}
+00591 \textcolor{comment}{        \}}
+00592 \textcolor{comment}{        state = STATEx;}
+00593 \textcolor{comment}{    case STATEx:}
+00594 \textcolor{comment}{}
+00595 \textcolor{comment}{   As shown above, if the next state is also the next case, then the break}
+00596 \textcolor{comment}{   is omitted.}
+00597 \textcolor{comment}{}
+00598 \textcolor{comment}{   A state may also return if there is not enough output space available to}
+00599 \textcolor{comment}{   complete that state.  Those states are copying stored data, writing a}
+00600 \textcolor{comment}{   literal byte, and copying a matching string.}
+00601 \textcolor{comment}{}
+00602 \textcolor{comment}{   When returning, a "goto inf\_leave" is used to update the total counters,}
+00603 \textcolor{comment}{   update the check value, and determine whether any progress has been made}
+00604 \textcolor{comment}{   during that inflate() call in order to return the proper return code.}
+00605 \textcolor{comment}{   Progress is defined as a change in either strm->avail\_in or strm->avail\_out.}
+00606 \textcolor{comment}{   When there is a window, goto inf\_leave will update the window with the last}
+00607 \textcolor{comment}{   output written.  If a goto inf\_leave occurs in the middle of decompression}
+00608 \textcolor{comment}{   and there is no window currently, goto inf\_leave will create one and copy}
+00609 \textcolor{comment}{   output to the window for the next call of inflate().}
+00610 \textcolor{comment}{}
+00611 \textcolor{comment}{   In this implementation, the flush parameter of inflate() only affects the}
+00612 \textcolor{comment}{   return code (per zlib.h).  inflate() always writes as much as possible to}
+00613 \textcolor{comment}{   strm->next\_out, given the space available and the provided input--the effect}
+00614 \textcolor{comment}{   documented in zlib.h of Z\_SYNC\_FLUSH.  Furthermore, inflate() always defers}
+00615 \textcolor{comment}{   the allocation of and copying into a sliding window until necessary, which}
+00616 \textcolor{comment}{   provides the effect documented in zlib.h for Z\_FINISH when the entire input}
+00617 \textcolor{comment}{   stream available.  So the only thing the flush parameter actually does is:}
+00618 \textcolor{comment}{   when flush is set to Z\_FINISH, inflate() cannot return Z\_OK.  Instead it}
+00619 \textcolor{comment}{   will return Z\_BUF\_ERROR if it has not reached the end of the stream.}
+00620 \textcolor{comment}{ */}
+00621 
+00622 \textcolor{keywordtype}{int} ZEXPORT inflate(strm, flush)
+00623 z\_streamp strm;
+00624 \textcolor{keywordtype}{int} flush;
+00625 \{
+00626     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+00627     z\_const \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *next;    \textcolor{comment}{/* next input */}
+00628     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *put;     \textcolor{comment}{/* next output */}
+00629     \textcolor{keywordtype}{unsigned} have, left;        \textcolor{comment}{/* available input and output */}
+00630     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} hold;         \textcolor{comment}{/* bit buffer */}
+00631     \textcolor{keywordtype}{unsigned} bits;              \textcolor{comment}{/* bits in bit buffer */}
+00632     \textcolor{keywordtype}{unsigned} in, out;           \textcolor{comment}{/* save starting available input and output */}
+00633     \textcolor{keywordtype}{unsigned} copy;              \textcolor{comment}{/* number of stored or match bytes to copy */}
+00634     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *from;    \textcolor{comment}{/* where to copy match bytes from */}
+00635     \hyperlink{structcode}{code} here;                  \textcolor{comment}{/* current decoding table entry */}
+00636     \hyperlink{structcode}{code} last;                  \textcolor{comment}{/* parent table entry */}
+00637     \textcolor{keywordtype}{unsigned} len;               \textcolor{comment}{/* length to copy for repeats, bits to drop */}
+00638     \textcolor{keywordtype}{int} ret;                    \textcolor{comment}{/* return code */}
+00639 \textcolor{preprocessor}{#ifdef GUNZIP}
+00640     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} hbuf[4];      \textcolor{comment}{/* buffer for gzip header crc calculation */}
+00641 \textcolor{preprocessor}{#endif}
+00642     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{short} order[19] = \textcolor{comment}{/* permutation of code lengths */}
+00643         \{16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15\};
+00644 
+00645     \textcolor{keywordflow}{if} (inflateStateCheck(strm) || strm->next\_out == Z\_NULL ||
+00646         (strm->next\_in == Z\_NULL && strm->avail\_in != 0))
+00647         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00648 
+00649     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+00650     if (state->mode == TYPE) state->mode = TYPEDO;      \textcolor{comment}{/* skip check */}
+00651     LOAD();
+00652     in = have;
+00653     out = left;
+00654     ret = Z\_OK;
+00655     \textcolor{keywordflow}{for} (;;)
+00656         \textcolor{keywordflow}{switch} (state->mode) \{
+00657         \textcolor{keywordflow}{case} HEAD:
+00658             \textcolor{keywordflow}{if} (state->wrap == 0) \{
+00659                 state->mode = TYPEDO;
+00660                 \textcolor{keywordflow}{break};
+00661             \}
+00662             NEEDBITS(16);
+00663 \textcolor{preprocessor}{#ifdef GUNZIP}
+00664             \textcolor{keywordflow}{if} ((state->wrap & 2) && hold == 0x8b1f) \{  \textcolor{comment}{/* gzip header */}
+00665                 \textcolor{keywordflow}{if} (state->wbits == 0)
+00666                     state->wbits = 15;
+00667                 state->check = crc32(0L, Z\_NULL, 0);
+00668                 CRC2(state->check, hold);
+00669                 INITBITS();
+00670                 state->mode = FLAGS;
+00671                 \textcolor{keywordflow}{break};
+00672             \}
+00673             state->flags = 0;           \textcolor{comment}{/* expect zlib header */}
+00674             \textcolor{keywordflow}{if} (state->head != Z\_NULL)
+00675                 state->head->done = -1;
+00676             \textcolor{keywordflow}{if} (!(state->wrap & 1) ||   \textcolor{comment}{/* check if zlib header allowed */}
+00677 #\textcolor{keywordflow}{else}
+00678             if (
+00679 #endif
+00680                 ((BITS(8) << 8) + (hold >> 8)) % 31) \{
+00681                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"incorrect header check"};
+00682                 state->mode = BAD;
+00683                 \textcolor{keywordflow}{break};
+00684             \}
+00685             \textcolor{keywordflow}{if} (BITS(4) != Z\_DEFLATED) \{
+00686                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"unknown compression method"};
+00687                 state->mode = BAD;
+00688                 \textcolor{keywordflow}{break};
+00689             \}
+00690             DROPBITS(4);
+00691             len = BITS(4) + 8;
+00692             \textcolor{keywordflow}{if} (state->wbits == 0)
+00693                 state->wbits = len;
+00694             \textcolor{keywordflow}{if} (len > 15 || len > state->wbits) \{
+00695                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid window size"};
+00696                 state->mode = BAD;
+00697                 \textcolor{keywordflow}{break};
+00698             \}
+00699             state->dmax = 1U << len;
+00700             Tracev((stderr, \textcolor{stringliteral}{"inflate:   zlib header ok\(\backslash\)n"}));
+00701             strm->adler = state->check = adler32(0L, Z\_NULL, 0);
+00702             state->mode = hold & 0x200 ? DICTID : TYPE;
+00703             INITBITS();
+00704             \textcolor{keywordflow}{break};
+00705 \textcolor{preprocessor}{#ifdef GUNZIP}
+00706         \textcolor{keywordflow}{case} FLAGS:
+00707             NEEDBITS(16);
+00708             state->flags = (int)(hold);
+00709             \textcolor{keywordflow}{if} ((state->flags & 0xff) != Z\_DEFLATED) \{
+00710                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"unknown compression method"};
+00711                 state->mode = BAD;
+00712                 \textcolor{keywordflow}{break};
+00713             \}
+00714             \textcolor{keywordflow}{if} (state->flags & 0xe000) \{
+00715                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"unknown header flags set"};
+00716                 state->mode = BAD;
+00717                 \textcolor{keywordflow}{break};
+00718             \}
+00719             \textcolor{keywordflow}{if} (state->head != Z\_NULL)
+00720                 state->head->text = (int)((hold >> 8) & 1);
+00721             \textcolor{keywordflow}{if} ((state->flags & 0x0200) && (state->wrap & 4))
+00722                 CRC2(state->check, hold);
+00723             INITBITS();
+00724             state->mode = TIME;
+00725         \textcolor{keywordflow}{case} TIME:
+00726             NEEDBITS(32);
+00727             \textcolor{keywordflow}{if} (state->head != Z\_NULL)
+00728                 state->head->time = hold;
+00729             \textcolor{keywordflow}{if} ((state->flags & 0x0200) && (state->wrap & 4))
+00730                 CRC4(state->check, hold);
+00731             INITBITS();
+00732             state->mode = OS;
+00733         \textcolor{keywordflow}{case} OS:
+00734             NEEDBITS(16);
+00735             \textcolor{keywordflow}{if} (state->head != Z\_NULL) \{
+00736                 state->head->xflags = (int)(hold & 0xff);
+00737                 state->head->os = (int)(hold >> 8);
+00738             \}
+00739             \textcolor{keywordflow}{if} ((state->flags & 0x0200) && (state->wrap & 4))
+00740                 CRC2(state->check, hold);
+00741             INITBITS();
+00742             state->mode = EXLEN;
+00743         \textcolor{keywordflow}{case} EXLEN:
+00744             \textcolor{keywordflow}{if} (state->flags & 0x0400) \{
+00745                 NEEDBITS(16);
+00746                 state->length = (unsigned)(hold);
+00747                 \textcolor{keywordflow}{if} (state->head != Z\_NULL)
+00748                     state->head->extra\_len = (unsigned)hold;
+00749                 \textcolor{keywordflow}{if} ((state->flags & 0x0200) && (state->wrap & 4))
+00750                     CRC2(state->check, hold);
+00751                 INITBITS();
+00752             \}
+00753             \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (state->head != Z\_NULL)
+00754                 state->head->extra = Z\_NULL;
+00755             state->mode = EXTRA;
+00756         \textcolor{keywordflow}{case} EXTRA:
+00757             \textcolor{keywordflow}{if} (state->flags & 0x0400) \{
+00758                 copy = state->length;
+00759                 \textcolor{keywordflow}{if} (copy > have) copy = have;
+00760                 \textcolor{keywordflow}{if} (copy) \{
+00761                     \textcolor{keywordflow}{if} (state->head != Z\_NULL &&
+00762                         state->head->extra != Z\_NULL) \{
+00763                         len = state->head->extra\_len - state->length;
+00764                         zmemcpy(state->head->extra + len, next,
+00765                                 len + copy > state->head->extra\_max ?
+00766                                 state->head->extra\_max - len : copy);
+00767                     \}
+00768                     \textcolor{keywordflow}{if} ((state->flags & 0x0200) && (state->wrap & 4))
+00769                         state->check = crc32(state->check, next, copy);
+00770                     have -= copy;
+00771                     next += copy;
+00772                     state->length -= copy;
+00773                 \}
+00774                 \textcolor{keywordflow}{if} (state->length) \textcolor{keywordflow}{goto} inf\_leave;
+00775             \}
+00776             state->length = 0;
+00777             state->mode = NAME;
+00778         \textcolor{keywordflow}{case} NAME:
+00779             \textcolor{keywordflow}{if} (state->flags & 0x0800) \{
+00780                 \textcolor{keywordflow}{if} (have == 0) \textcolor{keywordflow}{goto} inf\_leave;
+00781                 copy = 0;
+00782                 \textcolor{keywordflow}{do} \{
+00783                     len = (unsigned)(next[copy++]);
+00784                     \textcolor{keywordflow}{if} (state->head != Z\_NULL &&
+00785                             state->head->name != Z\_NULL &&
+00786                             state->length < state->head->name\_max)
+00787                         state->head->name[state->length++] = (Bytef)len;
+00788                 \} \textcolor{keywordflow}{while} (len && copy < have);
+00789                 \textcolor{keywordflow}{if} ((state->flags & 0x0200) && (state->wrap & 4))
+00790                     state->check = crc32(state->check, next, copy);
+00791                 have -= copy;
+00792                 next += copy;
+00793                 \textcolor{keywordflow}{if} (len) \textcolor{keywordflow}{goto} inf\_leave;
+00794             \}
+00795             \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (state->head != Z\_NULL)
+00796                 state->head->name = Z\_NULL;
+00797             state->length = 0;
+00798             state->mode = COMMENT;
+00799         \textcolor{keywordflow}{case} COMMENT:
+00800             \textcolor{keywordflow}{if} (state->flags & 0x1000) \{
+00801                 \textcolor{keywordflow}{if} (have == 0) \textcolor{keywordflow}{goto} inf\_leave;
+00802                 copy = 0;
+00803                 \textcolor{keywordflow}{do} \{
+00804                     len = (unsigned)(next[copy++]);
+00805                     \textcolor{keywordflow}{if} (state->head != Z\_NULL &&
+00806                             state->head->comment != Z\_NULL &&
+00807                             state->length < state->head->comm\_max)
+00808                         state->head->comment[state->length++] = (Bytef)len;
+00809                 \} \textcolor{keywordflow}{while} (len && copy < have);
+00810                 \textcolor{keywordflow}{if} ((state->flags & 0x0200) && (state->wrap & 4))
+00811                     state->check = crc32(state->check, next, copy);
+00812                 have -= copy;
+00813                 next += copy;
+00814                 \textcolor{keywordflow}{if} (len) \textcolor{keywordflow}{goto} inf\_leave;
+00815             \}
+00816             \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (state->head != Z\_NULL)
+00817                 state->head->comment = Z\_NULL;
+00818             state->mode = HCRC;
+00819         \textcolor{keywordflow}{case} HCRC:
+00820             \textcolor{keywordflow}{if} (state->flags & 0x0200) \{
+00821                 NEEDBITS(16);
+00822                 \textcolor{keywordflow}{if} ((state->wrap & 4) && hold != (state->check & 0xffff)) \{
+00823                     strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"header crc mismatch"};
+00824                     state->mode = BAD;
+00825                     \textcolor{keywordflow}{break};
+00826                 \}
+00827                 INITBITS();
+00828             \}
+00829             \textcolor{keywordflow}{if} (state->head != Z\_NULL) \{
+00830                 state->head->hcrc = (int)((state->flags >> 9) & 1);
+00831                 state->head->done = 1;
+00832             \}
+00833             strm->adler = state->check = crc32(0L, Z\_NULL, 0);
+00834             state->mode = TYPE;
+00835             \textcolor{keywordflow}{break};
+00836 \textcolor{preprocessor}{#endif}
+00837         \textcolor{keywordflow}{case} DICTID:
+00838             NEEDBITS(32);
+00839             strm->adler = state->check = ZSWAP32(hold);
+00840             INITBITS();
+00841             state->mode = DICT;
+00842         \textcolor{keywordflow}{case} DICT:
+00843             \textcolor{keywordflow}{if} (state->havedict == 0) \{
+00844                 RESTORE();
+00845                 \textcolor{keywordflow}{return} Z\_NEED\_DICT;
+00846             \}
+00847             strm->adler = state->check = adler32(0L, Z\_NULL, 0);
+00848             state->mode = TYPE;
+00849         \textcolor{keywordflow}{case} TYPE:
+00850             \textcolor{keywordflow}{if} (flush == Z\_BLOCK || flush == Z\_TREES) \textcolor{keywordflow}{goto} inf\_leave;
+00851         \textcolor{keywordflow}{case} TYPEDO:
+00852             \textcolor{keywordflow}{if} (state->last) \{
+00853                 BYTEBITS();
+00854                 state->mode = CHECK;
+00855                 \textcolor{keywordflow}{break};
+00856             \}
+00857             NEEDBITS(3);
+00858             state->last = BITS(1);
+00859             DROPBITS(1);
+00860             \textcolor{keywordflow}{switch} (BITS(2)) \{
+00861             \textcolor{keywordflow}{case} 0:                             \textcolor{comment}{/* stored block */}
+00862                 Tracev((stderr, \textcolor{stringliteral}{"inflate:     stored block%s\(\backslash\)n"},
+00863                         state->last ? \textcolor{stringliteral}{" (last)"} : \textcolor{stringliteral}{""}));
+00864                 state->mode = STORED;
+00865                 \textcolor{keywordflow}{break};
+00866             \textcolor{keywordflow}{case} 1:                             \textcolor{comment}{/* fixed block */}
+00867                 fixedtables(state);
+00868                 Tracev((stderr, \textcolor{stringliteral}{"inflate:     fixed codes block%s\(\backslash\)n"},
+00869                         state->last ? \textcolor{stringliteral}{" (last)"} : \textcolor{stringliteral}{""}));
+00870                 state->mode = LEN\_;             \textcolor{comment}{/* decode codes */}
+00871                 \textcolor{keywordflow}{if} (flush == Z\_TREES) \{
+00872                     DROPBITS(2);
+00873                     \textcolor{keywordflow}{goto} inf\_leave;
+00874                 \}
+00875                 \textcolor{keywordflow}{break};
+00876             \textcolor{keywordflow}{case} 2:                             \textcolor{comment}{/* dynamic block */}
+00877                 Tracev((stderr, \textcolor{stringliteral}{"inflate:     dynamic codes block%s\(\backslash\)n"},
+00878                         state->last ? \textcolor{stringliteral}{" (last)"} : \textcolor{stringliteral}{""}));
+00879                 state->mode = TABLE;
+00880                 \textcolor{keywordflow}{break};
+00881             \textcolor{keywordflow}{case} 3:
+00882                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid block type"};
+00883                 state->mode = BAD;
+00884             \}
+00885             DROPBITS(2);
+00886             \textcolor{keywordflow}{break};
+00887         \textcolor{keywordflow}{case} STORED:
+00888             BYTEBITS();                         \textcolor{comment}{/* go to byte boundary */}
+00889             NEEDBITS(32);
+00890             \textcolor{keywordflow}{if} ((hold & 0xffff) != ((hold >> 16) ^ 0xffff)) \{
+00891                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid stored block lengths"};
+00892                 state->mode = BAD;
+00893                 \textcolor{keywordflow}{break};
+00894             \}
+00895             state->length = (unsigned)hold & 0xffff;
+00896             Tracev((stderr, \textcolor{stringliteral}{"inflate:       stored length %u\(\backslash\)n"},
+00897                     state->length));
+00898             INITBITS();
+00899             state->mode = COPY\_;
+00900             \textcolor{keywordflow}{if} (flush == Z\_TREES) \textcolor{keywordflow}{goto} inf\_leave;
+00901         \textcolor{keywordflow}{case} COPY\_:
+00902             state->mode = COPY;
+00903         \textcolor{keywordflow}{case} COPY:
+00904             copy = state->length;
+00905             \textcolor{keywordflow}{if} (copy) \{
+00906                 \textcolor{keywordflow}{if} (copy > have) copy = have;
+00907                 \textcolor{keywordflow}{if} (copy > left) copy = left;
+00908                 \textcolor{keywordflow}{if} (copy == 0) \textcolor{keywordflow}{goto} inf\_leave;
+00909                 zmemcpy(put, next, copy);
+00910                 have -= copy;
+00911                 next += copy;
+00912                 left -= copy;
+00913                 put += copy;
+00914                 state->length -= copy;
+00915                 \textcolor{keywordflow}{break};
+00916             \}
+00917             Tracev((stderr, \textcolor{stringliteral}{"inflate:       stored end\(\backslash\)n"}));
+00918             state->mode = TYPE;
+00919             \textcolor{keywordflow}{break};
+00920         \textcolor{keywordflow}{case} TABLE:
+00921             NEEDBITS(14);
+00922             state->nlen = BITS(5) + 257;
+00923             DROPBITS(5);
+00924             state->ndist = BITS(5) + 1;
+00925             DROPBITS(5);
+00926             state->ncode = BITS(4) + 4;
+00927             DROPBITS(4);
+00928 \textcolor{preprocessor}{#ifndef PKZIP\_BUG\_WORKAROUND}
+00929             \textcolor{keywordflow}{if} (state->nlen > 286 || state->ndist > 30) \{
+00930                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"too many length or distance symbols"};
+00931                 state->mode = BAD;
+00932                 \textcolor{keywordflow}{break};
+00933             \}
+00934 \textcolor{preprocessor}{#endif}
+00935             Tracev((stderr, \textcolor{stringliteral}{"inflate:       table sizes ok\(\backslash\)n"}));
+00936             state->have = 0;
+00937             state->mode = LENLENS;
+00938         \textcolor{keywordflow}{case} LENLENS:
+00939             \textcolor{keywordflow}{while} (state->have < state->ncode) \{
+00940                 NEEDBITS(3);
+00941                 state->lens[order[state->have++]] = (\textcolor{keywordtype}{unsigned} short)BITS(3);
+00942                 DROPBITS(3);
+00943             \}
+00944             \textcolor{keywordflow}{while} (state->have < 19)
+00945                 state->lens[order[state->have++]] = 0;
+00946             state->next = state->codes;
+00947             state->lencode = (\textcolor{keyword}{const} \hyperlink{structcode}{code} FAR *)(state->next);
+00948             state->lenbits = 7;
+00949             ret = inflate\_table(CODES, state->lens, 19, &(state->next),
+00950                                 &(state->lenbits), state->work);
+00951             \textcolor{keywordflow}{if} (ret) \{
+00952                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid code lengths set"};
+00953                 state->mode = BAD;
+00954                 \textcolor{keywordflow}{break};
+00955             \}
+00956             Tracev((stderr, \textcolor{stringliteral}{"inflate:       code lengths ok\(\backslash\)n"}));
+00957             state->have = 0;
+00958             state->mode = CODELENS;
+00959         \textcolor{keywordflow}{case} CODELENS:
+00960             \textcolor{keywordflow}{while} (state->have < state->nlen + state->ndist) \{
+00961                 \textcolor{keywordflow}{for} (;;) \{
+00962                     here = state->lencode[BITS(state->lenbits)];
+00963                     \textcolor{keywordflow}{if} ((\textcolor{keywordtype}{unsigned})(here.bits) <= bits) \textcolor{keywordflow}{break};
+00964                     PULLBYTE();
+00965                 \}
+00966                 \textcolor{keywordflow}{if} (here.val < 16) \{
+00967                     DROPBITS(here.bits);
+00968                     state->lens[state->have++] = here.val;
+00969                 \}
+00970                 \textcolor{keywordflow}{else} \{
+00971                     \textcolor{keywordflow}{if} (here.val == 16) \{
+00972                         NEEDBITS(here.bits + 2);
+00973                         DROPBITS(here.bits);
+00974                         \textcolor{keywordflow}{if} (state->have == 0) \{
+00975                             strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid bit length repeat"};
+00976                             state->mode = BAD;
+00977                             \textcolor{keywordflow}{break};
+00978                         \}
+00979                         len = state->lens[state->have - 1];
+00980                         copy = 3 + BITS(2);
+00981                         DROPBITS(2);
+00982                     \}
+00983                     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (here.val == 17) \{
+00984                         NEEDBITS(here.bits + 3);
+00985                         DROPBITS(here.bits);
+00986                         len = 0;
+00987                         copy = 3 + BITS(3);
+00988                         DROPBITS(3);
+00989                     \}
+00990                     \textcolor{keywordflow}{else} \{
+00991                         NEEDBITS(here.bits + 7);
+00992                         DROPBITS(here.bits);
+00993                         len = 0;
+00994                         copy = 11 + BITS(7);
+00995                         DROPBITS(7);
+00996                     \}
+00997                     \textcolor{keywordflow}{if} (state->have + copy > state->nlen + state->ndist) \{
+00998                         strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid bit length repeat"};
+00999                         state->mode = BAD;
+01000                         \textcolor{keywordflow}{break};
+01001                     \}
+01002                     \textcolor{keywordflow}{while} (copy--)
+01003                         state->lens[state->have++] = (\textcolor{keywordtype}{unsigned} short)len;
+01004                 \}
+01005             \}
+01006 
+01007             \textcolor{comment}{/* handle error breaks in while */}
+01008             \textcolor{keywordflow}{if} (state->mode == BAD) \textcolor{keywordflow}{break};
+01009 
+01010             \textcolor{comment}{/* check for end-of-block code (better have one) */}
+01011             \textcolor{keywordflow}{if} (state->lens[256] == 0) \{
+01012                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid code -- missing end-of-block"};
+01013                 state->mode = BAD;
+01014                 \textcolor{keywordflow}{break};
+01015             \}
+01016 
+01017             \textcolor{comment}{/* build code tables -- note: do not change the lenbits or distbits}
+01018 \textcolor{comment}{               values here (9 and 6) without reading the comments in inftrees.h}
+01019 \textcolor{comment}{               concerning the ENOUGH constants, which depend on those values */}
+01020             state->next = state->codes;
+01021             state->lencode = (\textcolor{keyword}{const} \hyperlink{structcode}{code} FAR *)(state->next);
+01022             state->lenbits = 9;
+01023             ret = inflate\_table(LENS, state->lens, state->nlen, &(state->next),
+01024                                 &(state->lenbits), state->work);
+01025             \textcolor{keywordflow}{if} (ret) \{
+01026                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid literal/lengths set"};
+01027                 state->mode = BAD;
+01028                 \textcolor{keywordflow}{break};
+01029             \}
+01030             state->distcode = (\textcolor{keyword}{const} \hyperlink{structcode}{code} FAR *)(state->next);
+01031             state->distbits = 6;
+01032             ret = inflate\_table(DISTS, state->lens + state->nlen, state->ndist,
+01033                             &(state->next), &(state->distbits), state->work);
+01034             \textcolor{keywordflow}{if} (ret) \{
+01035                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid distances set"};
+01036                 state->mode = BAD;
+01037                 \textcolor{keywordflow}{break};
+01038             \}
+01039             Tracev((stderr, \textcolor{stringliteral}{"inflate:       codes ok\(\backslash\)n"}));
+01040             state->mode = LEN\_;
+01041             \textcolor{keywordflow}{if} (flush == Z\_TREES) \textcolor{keywordflow}{goto} inf\_leave;
+01042         \textcolor{keywordflow}{case} LEN\_:
+01043             state->mode = LEN;
+01044         \textcolor{keywordflow}{case} LEN:
+01045             \textcolor{keywordflow}{if} (have >= 6 && left >= 258) \{
+01046                 RESTORE();
+01047                 inflate\_fast(strm, out);
+01048                 LOAD();
+01049                 \textcolor{keywordflow}{if} (state->mode == TYPE)
+01050                     state->back = -1;
+01051                 \textcolor{keywordflow}{break};
+01052             \}
+01053             state->back = 0;
+01054             \textcolor{keywordflow}{for} (;;) \{
+01055                 here = state->lencode[BITS(state->lenbits)];
+01056                 \textcolor{keywordflow}{if} ((\textcolor{keywordtype}{unsigned})(here.bits) <= bits) \textcolor{keywordflow}{break};
+01057                 PULLBYTE();
+01058             \}
+01059             \textcolor{keywordflow}{if} (here.op && (here.op & 0xf0) == 0) \{
+01060                 last = here;
+01061                 \textcolor{keywordflow}{for} (;;) \{
+01062                     here = state->lencode[last.val +
+01063                             (BITS(last.bits + last.op) >> last.bits)];
+01064                     \textcolor{keywordflow}{if} ((\textcolor{keywordtype}{unsigned})(last.bits + here.bits) <= bits) \textcolor{keywordflow}{break};
+01065                     PULLBYTE();
+01066                 \}
+01067                 DROPBITS(last.bits);
+01068                 state->back += last.bits;
+01069             \}
+01070             DROPBITS(here.bits);
+01071             state->back += here.bits;
+01072             state->length = (unsigned)here.val;
+01073             if ((\textcolor{keywordtype}{int})(here.op) == 0) \{
+01074                 Tracevv((stderr, here.val >= 0x20 && here.val < 0x7f ?
+01075                         \textcolor{stringliteral}{"inflate:         literal '%c'\(\backslash\)n"} :
+01076                         \textcolor{stringliteral}{"inflate:         literal 0x%02x\(\backslash\)n"}, here.val));
+01077                 state->mode = LIT;
+01078                 \textcolor{keywordflow}{break};
+01079             \}
+01080             \textcolor{keywordflow}{if} (here.op & 32) \{
+01081                 Tracevv((stderr, \textcolor{stringliteral}{"inflate:         end of block\(\backslash\)n"}));
+01082                 state->back = -1;
+01083                 state->mode = TYPE;
+01084                 \textcolor{keywordflow}{break};
+01085             \}
+01086             \textcolor{keywordflow}{if} (here.op & 64) \{
+01087                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid literal/length code"};
+01088                 state->mode = BAD;
+01089                 \textcolor{keywordflow}{break};
+01090             \}
+01091             state->extra = (unsigned)(here.op) & 15;
+01092             state->mode = LENEXT;
+01093         \textcolor{keywordflow}{case} LENEXT:
+01094             \textcolor{keywordflow}{if} (state->extra) \{
+01095                 NEEDBITS(state->extra);
+01096                 state->length += BITS(state->extra);
+01097                 DROPBITS(state->extra);
+01098                 state->back += state->extra;
+01099             \}
+01100             Tracevv((stderr, \textcolor{stringliteral}{"inflate:         length %u\(\backslash\)n"}, state->length));
+01101             state->was = state->length;
+01102             state->mode = DIST;
+01103         \textcolor{keywordflow}{case} DIST:
+01104             \textcolor{keywordflow}{for} (;;) \{
+01105                 here = state->distcode[BITS(state->distbits)];
+01106                 \textcolor{keywordflow}{if} ((\textcolor{keywordtype}{unsigned})(here.bits) <= bits) \textcolor{keywordflow}{break};
+01107                 PULLBYTE();
+01108             \}
+01109             \textcolor{keywordflow}{if} ((here.op & 0xf0) == 0) \{
+01110                 last = here;
+01111                 \textcolor{keywordflow}{for} (;;) \{
+01112                     here = state->distcode[last.val +
+01113                             (BITS(last.bits + last.op) >> last.bits)];
+01114                     \textcolor{keywordflow}{if} ((\textcolor{keywordtype}{unsigned})(last.bits + here.bits) <= bits) \textcolor{keywordflow}{break};
+01115                     PULLBYTE();
+01116                 \}
+01117                 DROPBITS(last.bits);
+01118                 state->back += last.bits;
+01119             \}
+01120             DROPBITS(here.bits);
+01121             state->back += here.bits;
+01122             \textcolor{keywordflow}{if} (here.op & 64) \{
+01123                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid distance code"};
+01124                 state->mode = BAD;
+01125                 \textcolor{keywordflow}{break};
+01126             \}
+01127             state->offset = (unsigned)here.val;
+01128             state->extra = (\textcolor{keywordtype}{unsigned})(here.op) & 15;
+01129             state->mode = DISTEXT;
+01130         \textcolor{keywordflow}{case} DISTEXT:
+01131             \textcolor{keywordflow}{if} (state->extra) \{
+01132                 NEEDBITS(state->extra);
+01133                 state->offset += BITS(state->extra);
+01134                 DROPBITS(state->extra);
+01135                 state->back += state->extra;
+01136             \}
+01137 \textcolor{preprocessor}{#ifdef INFLATE\_STRICT}
+01138             \textcolor{keywordflow}{if} (state->offset > state->dmax) \{
+01139                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid distance too far back"};
+01140                 state->mode = BAD;
+01141                 \textcolor{keywordflow}{break};
+01142             \}
+01143 \textcolor{preprocessor}{#endif}
+01144             Tracevv((stderr, \textcolor{stringliteral}{"inflate:         distance %u\(\backslash\)n"}, state->offset));
+01145             state->mode = MATCH;
+01146         \textcolor{keywordflow}{case} MATCH:
+01147             \textcolor{keywordflow}{if} (left == 0) \textcolor{keywordflow}{goto} inf\_leave;
+01148             copy = out - left;
+01149             \textcolor{keywordflow}{if} (state->offset > copy) \{         \textcolor{comment}{/* copy from window */}
+01150                 copy = state->offset - copy;
+01151                 \textcolor{keywordflow}{if} (copy > state->whave) \{
+01152                     \textcolor{keywordflow}{if} (state->sane) \{
+01153                         strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid distance too far back"};
+01154                         state->mode = BAD;
+01155                         \textcolor{keywordflow}{break};
+01156                     \}
+01157 \textcolor{preprocessor}{#ifdef INFLATE\_ALLOW\_INVALID\_DISTANCE\_TOOFAR\_ARRR}
+01158                     Trace((stderr, \textcolor{stringliteral}{"inflate.c too far\(\backslash\)n"}));
+01159                     copy -= state->whave;
+01160                     \textcolor{keywordflow}{if} (copy > state->length) copy = state->length;
+01161                     \textcolor{keywordflow}{if} (copy > left) copy = left;
+01162                     left -= copy;
+01163                     state->length -= copy;
+01164                     \textcolor{keywordflow}{do} \{
+01165                         *put++ = 0;
+01166                     \} \textcolor{keywordflow}{while} (--copy);
+01167                     \textcolor{keywordflow}{if} (state->length == 0) state->mode = LEN;
+01168                     \textcolor{keywordflow}{break};
+01169 \textcolor{preprocessor}{#endif}
+01170                 \}
+01171                 \textcolor{keywordflow}{if} (copy > state->wnext) \{
+01172                     copy -= state->wnext;
+01173                     from = state->window + (state->wsize - copy);
+01174                 \}
+01175                 \textcolor{keywordflow}{else}
+01176                     from = state->window + (state->wnext - copy);
+01177                 \textcolor{keywordflow}{if} (copy > state->length) copy = state->length;
+01178             \}
+01179             \textcolor{keywordflow}{else} \{                              \textcolor{comment}{/* copy from output */}
+01180                 from = put - state->offset;
+01181                 copy = state->length;
+01182             \}
+01183             \textcolor{keywordflow}{if} (copy > left) copy = left;
+01184             left -= copy;
+01185             state->length -= copy;
+01186             \textcolor{keywordflow}{do} \{
+01187                 *put++ = *from++;
+01188             \} \textcolor{keywordflow}{while} (--copy);
+01189             \textcolor{keywordflow}{if} (state->length == 0) state->mode = LEN;
+01190             \textcolor{keywordflow}{break};
+01191         \textcolor{keywordflow}{case} LIT:
+01192             \textcolor{keywordflow}{if} (left == 0) \textcolor{keywordflow}{goto} inf\_leave;
+01193             *put++ = (\textcolor{keywordtype}{unsigned} char)(state->length);
+01194             left--;
+01195             state->mode = LEN;
+01196             \textcolor{keywordflow}{break};
+01197         \textcolor{keywordflow}{case} CHECK:
+01198             \textcolor{keywordflow}{if} (state->wrap) \{
+01199                 NEEDBITS(32);
+01200                 out -= left;
+01201                 strm->total\_out += out;
+01202                 state->total += out;
+01203                 \textcolor{keywordflow}{if} ((state->wrap & 4) && out)
+01204                     strm->adler = state->check =
+01205                         UPDATE(state->check, put - out, out);
+01206                 out = left;
+01207                 \textcolor{keywordflow}{if} ((state->wrap & 4) && (
+01208 #ifdef GUNZIP
+01209                      state->flags ? hold :
+01210 #endif
+01211                      ZSWAP32(hold)) != state->check) \{
+01212                     strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"incorrect data check"};
+01213                     state->mode = BAD;
+01214                     \textcolor{keywordflow}{break};
+01215                 \}
+01216                 INITBITS();
+01217                 Tracev((stderr, \textcolor{stringliteral}{"inflate:   check matches trailer\(\backslash\)n"}));
+01218             \}
+01219 \textcolor{preprocessor}{#ifdef GUNZIP}
+01220             state->mode = LENGTH;
+01221         \textcolor{keywordflow}{case} LENGTH:
+01222             \textcolor{keywordflow}{if} (state->wrap && state->flags) \{
+01223                 NEEDBITS(32);
+01224                 \textcolor{keywordflow}{if} (hold != (state->total & 0xffffffffUL)) \{
+01225                     strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"incorrect length check"};
+01226                     state->mode = BAD;
+01227                     \textcolor{keywordflow}{break};
+01228                 \}
+01229                 INITBITS();
+01230                 Tracev((stderr, \textcolor{stringliteral}{"inflate:   length matches trailer\(\backslash\)n"}));
+01231             \}
+01232 \textcolor{preprocessor}{#endif}
+01233             state->mode = DONE;
+01234         \textcolor{keywordflow}{case} DONE:
+01235             ret = Z\_STREAM\_END;
+01236             \textcolor{keywordflow}{goto} inf\_leave;
+01237         \textcolor{keywordflow}{case} BAD:
+01238             ret = Z\_DATA\_ERROR;
+01239             \textcolor{keywordflow}{goto} inf\_leave;
+01240         \textcolor{keywordflow}{case} MEM:
+01241             \textcolor{keywordflow}{return} Z\_MEM\_ERROR;
+01242         \textcolor{keywordflow}{case} SYNC:
+01243         \textcolor{keywordflow}{default}:
+01244             \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+01245         \}
+01246 
+01247     \textcolor{comment}{/*}
+01248 \textcolor{comment}{       Return from inflate(), updating the total counts and the check value.}
+01249 \textcolor{comment}{       If there was no progress during the inflate() call, return a buffer}
+01250 \textcolor{comment}{       error.  Call updatewindow() to create and/or update the window state.}
+01251 \textcolor{comment}{       Note: a memory error from inflate() is non-recoverable.}
+01252 \textcolor{comment}{     */}
+01253   inf\_leave:
+01254     RESTORE();
+01255     \textcolor{keywordflow}{if} (state->wsize || (out != strm->avail\_out && state->mode < BAD &&
+01256             (state->mode < CHECK || flush != Z\_FINISH)))
+01257         \textcolor{keywordflow}{if} (updatewindow(strm, strm->next\_out, out - strm->avail\_out)) \{
+01258             state->mode = MEM;
+01259             \textcolor{keywordflow}{return} Z\_MEM\_ERROR;
+01260         \}
+01261     in -= strm->avail\_in;
+01262     out -= strm->avail\_out;
+01263     strm->total\_in += in;
+01264     strm->total\_out += out;
+01265     state->total += out;
+01266     \textcolor{keywordflow}{if} ((state->wrap & 4) && out)
+01267         strm->adler = state->check =
+01268             UPDATE(state->check, strm->next\_out - out, out);
+01269     strm->data\_type = (int)state->bits + (state->last ? 64 : 0) +
+01270                       (state->mode == TYPE ? 128 : 0) +
+01271                       (state->mode == LEN\_ || state->mode == COPY\_ ? 256 : 0);
+01272     \textcolor{keywordflow}{if} (((in == 0 && out == 0) || flush == Z\_FINISH) && ret == Z\_OK)
+01273         ret = Z\_BUF\_ERROR;
+01274     \textcolor{keywordflow}{return} ret;
+01275 \}
+01276 
+01277 \textcolor{keywordtype}{int} ZEXPORT inflateEnd(strm)
+01278 z\_streamp strm;
+01279 \{
+01280     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+01281     \textcolor{keywordflow}{if} (inflateStateCheck(strm))
+01282         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+01283     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+01284     if (state->window != Z\_NULL) ZFREE(strm, state->window);
+01285     ZFREE(strm, strm->state);
+01286     strm->state = Z\_NULL;
+01287     Tracev((stderr, \textcolor{stringliteral}{"inflate: end\(\backslash\)n"}));
+01288     \textcolor{keywordflow}{return} Z\_OK;
+01289 \}
+01290 
+01291 \textcolor{keywordtype}{int} ZEXPORT inflateGetDictionary(strm, dictionary, dictLength)
+01292 z\_streamp strm;
+01293 Bytef *dictionary;
+01294 uInt *dictLength;
+01295 \{
+01296     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+01297 
+01298     \textcolor{comment}{/* check state */}
+01299     \textcolor{keywordflow}{if} (inflateStateCheck(strm)) \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+01300     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+01301 
+01302     \textcolor{comment}{/* copy dictionary */}
+01303     if (state->whave && dictionary != Z\_NULL) \{
+01304         zmemcpy(dictionary, state->window + state->wnext,
+01305                 state->whave - state->wnext);
+01306         zmemcpy(dictionary + state->whave - state->wnext,
+01307                 state->window, state->wnext);
+01308     \}
+01309     \textcolor{keywordflow}{if} (dictLength != Z\_NULL)
+01310         *dictLength = state->whave;
+01311     \textcolor{keywordflow}{return} Z\_OK;
+01312 \}
+01313 
+01314 \textcolor{keywordtype}{int} ZEXPORT inflateSetDictionary(strm, dictionary, dictLength)
+01315 z\_streamp strm;
+01316 \textcolor{keyword}{const} Bytef *dictionary;
+01317 uInt dictLength;
+01318 \{
+01319     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+01320     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} dictid;
+01321     \textcolor{keywordtype}{int} ret;
+01322 
+01323     \textcolor{comment}{/* check state */}
+01324     \textcolor{keywordflow}{if} (inflateStateCheck(strm)) \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+01325     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+01326     if (state->wrap != 0 && state->mode != DICT)
+01327         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+01328 
+01329     \textcolor{comment}{/* check for correct dictionary identifier */}
+01330     \textcolor{keywordflow}{if} (state->mode == DICT) \{
+01331         dictid = adler32(0L, Z\_NULL, 0);
+01332         dictid = adler32(dictid, dictionary, dictLength);
+01333         \textcolor{keywordflow}{if} (dictid != state->check)
+01334             \textcolor{keywordflow}{return} Z\_DATA\_ERROR;
+01335     \}
+01336 
+01337     \textcolor{comment}{/* copy dictionary to window using updatewindow(), which will amend the}
+01338 \textcolor{comment}{       existing dictionary if appropriate */}
+01339     ret = updatewindow(strm, dictionary + dictLength, dictLength);
+01340     \textcolor{keywordflow}{if} (ret) \{
+01341         state->mode = MEM;
+01342         \textcolor{keywordflow}{return} Z\_MEM\_ERROR;
+01343     \}
+01344     state->havedict = 1;
+01345     Tracev((stderr, \textcolor{stringliteral}{"inflate:   dictionary set\(\backslash\)n"}));
+01346     \textcolor{keywordflow}{return} Z\_OK;
+01347 \}
+01348 
+01349 \textcolor{keywordtype}{int} ZEXPORT inflateGetHeader(strm, head)
+01350 z\_streamp strm;
+01351 gz\_headerp head;
+01352 \{
+01353     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+01354 
+01355     \textcolor{comment}{/* check state */}
+01356     \textcolor{keywordflow}{if} (inflateStateCheck(strm)) \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+01357     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+01358     if ((state->wrap & 2) == 0) \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+01359 
+01360     \textcolor{comment}{/* save header structure */}
+01361     state->head = head;
+01362     head->done = 0;
+01363     \textcolor{keywordflow}{return} Z\_OK;
+01364 \}
+01365 
+01366 \textcolor{comment}{/*}
+01367 \textcolor{comment}{   Search buf[0..len-1] for the pattern: 0, 0, 0xff, 0xff.  Return when found}
+01368 \textcolor{comment}{   or when out of input.  When called, *have is the number of pattern bytes}
+01369 \textcolor{comment}{   found in order so far, in 0..3.  On return *have is updated to the new}
+01370 \textcolor{comment}{   state.  If on return *have equals four, then the pattern was found and the}
+01371 \textcolor{comment}{   return value is how many bytes were read including the last byte of the}
+01372 \textcolor{comment}{   pattern.  If *have is less than four, then the pattern has not been found}
+01373 \textcolor{comment}{   yet and the return value is len.  In the latter case, syncsearch() can be}
+01374 \textcolor{comment}{   called again with more data and the *have state.  *have is initialized to}
+01375 \textcolor{comment}{   zero for the first call.}
+01376 \textcolor{comment}{ */}
+01377 local \textcolor{keywordtype}{unsigned} syncsearch(have, buf, len)
+01378 \textcolor{keywordtype}{unsigned} FAR *have;
+01379 \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *buf;
+01380 \textcolor{keywordtype}{unsigned} len;
+01381 \{
+01382     \textcolor{keywordtype}{unsigned} got;
+01383     \textcolor{keywordtype}{unsigned} next;
+01384 
+01385     got = *have;
+01386     next = 0;
+01387     \textcolor{keywordflow}{while} (next < len && got < 4) \{
+01388         \textcolor{keywordflow}{if} ((\textcolor{keywordtype}{int})(buf[next]) == (got < 2 ? 0 : 0xff))
+01389             got++;
+01390         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (buf[next])
+01391             got = 0;
+01392         \textcolor{keywordflow}{else}
+01393             got = 4 - got;
+01394         next++;
+01395     \}
+01396     *have = got;
+01397     \textcolor{keywordflow}{return} next;
+01398 \}
+01399 
+01400 \textcolor{keywordtype}{int} ZEXPORT inflateSync(strm)
+01401 z\_streamp strm;
+01402 \{
+01403     \textcolor{keywordtype}{unsigned} len;               \textcolor{comment}{/* number of bytes to look at or looked at */}
+01404     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} in, out;      \textcolor{comment}{/* temporary to save total\_in and total\_out */}
+01405     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} buf[4];       \textcolor{comment}{/* to restore bit buffer to byte string */}
+01406     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+01407 
+01408     \textcolor{comment}{/* check parameters */}
+01409     \textcolor{keywordflow}{if} (inflateStateCheck(strm)) \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+01410     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+01411     if (strm->avail\_in == 0 && state->bits < 8) \textcolor{keywordflow}{return} Z\_BUF\_ERROR;
+01412 
+01413     \textcolor{comment}{/* if first time, start search in bit buffer */}
+01414     \textcolor{keywordflow}{if} (state->mode != SYNC) \{
+01415         state->mode = SYNC;
+01416         state->hold <<= state->bits & 7;
+01417         state->bits -= state->bits & 7;
+01418         len = 0;
+01419         \textcolor{keywordflow}{while} (state->bits >= 8) \{
+01420             buf[len++] = (\textcolor{keywordtype}{unsigned} char)(state->hold);
+01421             state->hold >>= 8;
+01422             state->bits -= 8;
+01423         \}
+01424         state->have = 0;
+01425         syncsearch(&(state->have), buf, len);
+01426     \}
+01427 
+01428     \textcolor{comment}{/* search available input */}
+01429     len = syncsearch(&(state->have), strm->next\_in, strm->avail\_in);
+01430     strm->avail\_in -= len;
+01431     strm->next\_in += len;
+01432     strm->total\_in += len;
+01433 
+01434     \textcolor{comment}{/* return no joy or set up to restart inflate() on a new block */}
+01435     \textcolor{keywordflow}{if} (state->have != 4) \textcolor{keywordflow}{return} Z\_DATA\_ERROR;
+01436     in = strm->total\_in;  out = strm->total\_out;
+01437     inflateReset(strm);
+01438     strm->total\_in = in;  strm->total\_out = out;
+01439     state->mode = TYPE;
+01440     \textcolor{keywordflow}{return} Z\_OK;
+01441 \}
+01442 
+01443 \textcolor{comment}{/*}
+01444 \textcolor{comment}{   Returns true if inflate is currently at the end of a block generated by}
+01445 \textcolor{comment}{   Z\_SYNC\_FLUSH or Z\_FULL\_FLUSH. This function is used by one PPP}
+01446 \textcolor{comment}{   implementation to provide an additional safety check. PPP uses}
+01447 \textcolor{comment}{   Z\_SYNC\_FLUSH but removes the length bytes of the resulting empty stored}
+01448 \textcolor{comment}{   block. When decompressing, PPP checks that at the end of input packet,}
+01449 \textcolor{comment}{   inflate is waiting for these length bytes.}
+01450 \textcolor{comment}{ */}
+01451 \textcolor{keywordtype}{int} ZEXPORT inflateSyncPoint(strm)
+01452 z\_streamp strm;
+01453 \{
+01454     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+01455 
+01456     \textcolor{keywordflow}{if} (inflateStateCheck(strm)) \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+01457     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+01458     \textcolor{keywordflow}{return} state->mode == STORED && state->bits == 0;
+01459 \}
+01460 
+01461 \textcolor{keywordtype}{int} ZEXPORT inflateCopy(dest, source)
+01462 z\_streamp dest;
+01463 z\_streamp source;
+01464 \{
+01465     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+01466     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *copy;
+01467     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *window;
+01468     \textcolor{keywordtype}{unsigned} wsize;
+01469 
+01470     \textcolor{comment}{/* check input */}
+01471     \textcolor{keywordflow}{if} (inflateStateCheck(source) || dest == Z\_NULL)
+01472         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+01473     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)source->state;
+01474 
+01475     \textcolor{comment}{/* allocate space */}
+01476     copy = (\textcolor{keyword}{struct} \hyperlink{structinflate__state}{inflate\_state} FAR *)
+01477            ZALLOC(source, 1, \textcolor{keyword}{sizeof}(\textcolor{keyword}{struct} \hyperlink{structinflate__state}{inflate\_state}));
+01478     \textcolor{keywordflow}{if} (copy == Z\_NULL) \textcolor{keywordflow}{return} Z\_MEM\_ERROR;
+01479     window = Z\_NULL;
+01480     \textcolor{keywordflow}{if} (state->window != Z\_NULL) \{
+01481         window = (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *)
+01482                  ZALLOC(source, 1U << state->wbits, \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}));
+01483         \textcolor{keywordflow}{if} (window == Z\_NULL) \{
+01484             ZFREE(source, copy);
+01485             \textcolor{keywordflow}{return} Z\_MEM\_ERROR;
+01486         \}
+01487     \}
+01488 
+01489     \textcolor{comment}{/* copy state */}
+01490     zmemcpy((voidpf)dest, (voidpf)source, \textcolor{keyword}{sizeof}(\hyperlink{structz__stream__s}{z\_stream}));
+01491     zmemcpy((voidpf)copy, (voidpf)state, \textcolor{keyword}{sizeof}(\textcolor{keyword}{struct} \hyperlink{structinflate__state}{inflate\_state}));
+01492     copy->strm = dest;
+01493     \textcolor{keywordflow}{if} (state->lencode >= state->codes &&
+01494         state->lencode <= state->codes + ENOUGH - 1) \{
+01495         copy->lencode = copy->codes + (state->lencode - state->codes);
+01496         copy->distcode = copy->codes + (state->distcode - state->codes);
+01497     \}
+01498     copy->next = copy->codes + (state->next - state->codes);
+01499     \textcolor{keywordflow}{if} (window != Z\_NULL) \{
+01500         wsize = 1U << state->wbits;
+01501         zmemcpy(window, state->window, wsize);
+01502     \}
+01503     copy->window = window;
+01504     dest->state = (\textcolor{keyword}{struct }\hyperlink{structinternal__state}{internal\_state} FAR *)copy;
+01505     \textcolor{keywordflow}{return} Z\_OK;
+01506 \}
+01507 
+01508 \textcolor{keywordtype}{int} ZEXPORT inflateUndermine(strm, subvert)
+01509 z\_streamp strm;
+01510 \textcolor{keywordtype}{int} subvert;
+01511 \{
+01512     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+01513 
+01514     \textcolor{keywordflow}{if} (inflateStateCheck(strm)) \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+01515     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+01516 #ifdef INFLATE\_ALLOW\_INVALID\_DISTANCE\_TOOFAR\_ARRR
+01517     state->sane = !subvert;
+01518     \textcolor{keywordflow}{return} Z\_OK;
+01519 #else
+01520     (\textcolor{keywordtype}{void})subvert;
+01521     state->sane = 1;
+01522     \textcolor{keywordflow}{return} Z\_DATA\_ERROR;
+01523 \textcolor{preprocessor}{#endif}
+01524 \}
+01525 
+01526 \textcolor{keywordtype}{int} ZEXPORT inflateValidate(strm, check)
+01527 z\_streamp strm;
+01528 \textcolor{keywordtype}{int} check;
+01529 \{
+01530     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+01531 
+01532     \textcolor{keywordflow}{if} (inflateStateCheck(strm)) \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+01533     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+01534     if (check)
+01535         state->wrap |= 4;
+01536     \textcolor{keywordflow}{else}
+01537         state->wrap &= ~4;
+01538     \textcolor{keywordflow}{return} Z\_OK;
+01539 \}
+01540 
+01541 \textcolor{keywordtype}{long} ZEXPORT inflateMark(strm)
+01542 z\_streamp strm;
+01543 \{
+01544     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+01545 
+01546     \textcolor{keywordflow}{if} (inflateStateCheck(strm))
+01547         \textcolor{keywordflow}{return} -(1L << 16);
+01548     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+01549     return (\textcolor{keywordtype}{long})(((\textcolor{keywordtype}{unsigned} long)((\textcolor{keywordtype}{long})state->back)) << 16) +
+01550         (state->mode == COPY ? state->length :
+01551             (state->mode == MATCH ? state->was - state->length : 0));
+01552 \}
+01553 
+01554 \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} ZEXPORT inflateCodesUsed(strm)
+01555 z\_streamp strm;
+01556 \{
+01557     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *state;
+01558     \textcolor{keywordflow}{if} (inflateStateCheck(strm)) \textcolor{keywordflow}{return} (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long})-1;
+01559     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+01560     return (\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long})(state->next - state->codes);
+01561 \}
+\end{DoxyCode}

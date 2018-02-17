@@ -1,0 +1,328 @@
+\hypertarget{zlib_2inffast_8c_source}{}\section{zlib/inffast.c}
+\label{zlib_2inffast_8c_source}\index{inffast.\+c@{inffast.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* inffast.c -- fast decoding}
+00002 \textcolor{comment}{ * Copyright (C) 1995-2017 Mark Adler}
+00003 \textcolor{comment}{ * For conditions of distribution and use, see copyright notice in zlib.h}
+00004 \textcolor{comment}{ */}
+00005 
+00006 \textcolor{preprocessor}{#include "zutil.h"}
+00007 \textcolor{preprocessor}{#include "inftrees.h"}
+00008 \textcolor{preprocessor}{#include "inflate.h"}
+00009 \textcolor{preprocessor}{#include "inffast.h"}
+00010 
+00011 \textcolor{preprocessor}{#ifdef ASMINF}
+00012 \textcolor{preprocessor}{#  pragma message("Assembler code may have bugs -- use at your own risk")}
+00013 \textcolor{preprocessor}{#else}
+00014 
+00015 \textcolor{comment}{/*}
+00016 \textcolor{comment}{   Decode literal, length, and distance codes and write out the resulting}
+00017 \textcolor{comment}{   literal and match bytes until either not enough input or output is}
+00018 \textcolor{comment}{   available, an end-of-block is encountered, or a data error is encountered.}
+00019 \textcolor{comment}{   When large enough input and output buffers are supplied to inflate(), for}
+00020 \textcolor{comment}{   example, a 16K input buffer and a 64K output buffer, more than 95% of the}
+00021 \textcolor{comment}{   inflate execution time is spent in this routine.}
+00022 \textcolor{comment}{}
+00023 \textcolor{comment}{   Entry assumptions:}
+00024 \textcolor{comment}{}
+00025 \textcolor{comment}{        state->mode == LEN}
+00026 \textcolor{comment}{        strm->avail\_in >= 6}
+00027 \textcolor{comment}{        strm->avail\_out >= 258}
+00028 \textcolor{comment}{        start >= strm->avail\_out}
+00029 \textcolor{comment}{        state->bits < 8}
+00030 \textcolor{comment}{}
+00031 \textcolor{comment}{   On return, state->mode is one of:}
+00032 \textcolor{comment}{}
+00033 \textcolor{comment}{        LEN -- ran out of enough output space or enough available input}
+00034 \textcolor{comment}{        TYPE -- reached end of block code, inflate() to interpret next block}
+00035 \textcolor{comment}{        BAD -- error in block data}
+00036 \textcolor{comment}{}
+00037 \textcolor{comment}{   Notes:}
+00038 \textcolor{comment}{}
+00039 \textcolor{comment}{    - The maximum input bits used by a length/distance pair is 15 bits for the}
+00040 \textcolor{comment}{      length code, 5 bits for the length extra, 15 bits for the distance code,}
+00041 \textcolor{comment}{      and 13 bits for the distance extra.  This totals 48 bits, or six bytes.}
+00042 \textcolor{comment}{      Therefore if strm->avail\_in >= 6, then there is enough input to avoid}
+00043 \textcolor{comment}{      checking for available input while decoding.}
+00044 \textcolor{comment}{}
+00045 \textcolor{comment}{    - The maximum bytes that a single length/distance pair can output is 258}
+00046 \textcolor{comment}{      bytes, which is the maximum length that can be coded.  inflate\_fast()}
+00047 \textcolor{comment}{      requires strm->avail\_out >= 258 for each loop to avoid checking for}
+00048 \textcolor{comment}{      output space.}
+00049 \textcolor{comment}{ */}
+00050 \textcolor{keywordtype}{void} ZLIB\_INTERNAL inflate\_fast(strm, start)
+00051 z\_streamp strm;
+00052 \textcolor{keywordtype}{unsigned} start;         \textcolor{comment}{/* inflate()'s starting value for strm->avail\_out */}
+00053 \{
+00054     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *\hyperlink{structstate}{state};
+00055     z\_const \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *in;      \textcolor{comment}{/* local strm->next\_in */}
+00056     z\_const \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *last;    \textcolor{comment}{/* have enough input while in < last */}
+00057     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *out;     \textcolor{comment}{/* local strm->next\_out */}
+00058     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *beg;     \textcolor{comment}{/* inflate()'s initial strm->next\_out */}
+00059     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *end;     \textcolor{comment}{/* while out < end, enough space available */}
+00060 \textcolor{preprocessor}{#ifdef INFLATE\_STRICT}
+00061     \textcolor{keywordtype}{unsigned} dmax;              \textcolor{comment}{/* maximum distance from zlib header */}
+00062 \textcolor{preprocessor}{#endif}
+00063     \textcolor{keywordtype}{unsigned} wsize;             \textcolor{comment}{/* window size or zero if not using window */}
+00064     \textcolor{keywordtype}{unsigned} whave;             \textcolor{comment}{/* valid bytes in the window */}
+00065     \textcolor{keywordtype}{unsigned} wnext;             \textcolor{comment}{/* window write index */}
+00066     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *window;  \textcolor{comment}{/* allocated sliding window, if wsize != 0 */}
+00067     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} hold;         \textcolor{comment}{/* local strm->hold */}
+00068     \textcolor{keywordtype}{unsigned} bits;              \textcolor{comment}{/* local strm->bits */}
+00069     \hyperlink{structcode}{code} \textcolor{keyword}{const} FAR *lcode;      \textcolor{comment}{/* local strm->lencode */}
+00070     \hyperlink{structcode}{code} \textcolor{keyword}{const} FAR *dcode;      \textcolor{comment}{/* local strm->distcode */}
+00071     \textcolor{keywordtype}{unsigned} lmask;             \textcolor{comment}{/* mask for first level of length codes */}
+00072     \textcolor{keywordtype}{unsigned} dmask;             \textcolor{comment}{/* mask for first level of distance codes */}
+00073     \hyperlink{structcode}{code} here;                  \textcolor{comment}{/* retrieved table entry */}
+00074     \textcolor{keywordtype}{unsigned} op;                \textcolor{comment}{/* code bits, operation, extra bits, or */}
+00075                                 \textcolor{comment}{/*  window position, window bytes to copy */}
+00076     \textcolor{keywordtype}{unsigned} len;               \textcolor{comment}{/* match length, unused bytes */}
+00077     \textcolor{keywordtype}{unsigned} dist;              \textcolor{comment}{/* match distance */}
+00078     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *from;    \textcolor{comment}{/* where to copy match from */}
+00079 
+00080     \textcolor{comment}{/* copy state to local variables */}
+00081     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+00082     in = strm->next\_in;
+00083     last = in + (strm->avail\_in - 5);
+00084     out = strm->next\_out;
+00085     beg = out - (start - strm->avail\_out);
+00086     end = out + (strm->avail\_out - 257);
+00087 \textcolor{preprocessor}{#ifdef INFLATE\_STRICT}
+00088     dmax = state->dmax;
+00089 \textcolor{preprocessor}{#endif}
+00090     wsize = state->wsize;
+00091     whave = state->whave;
+00092     wnext = state->wnext;
+00093     window = state->window;
+00094     hold = state->hold;
+00095     bits = state->bits;
+00096     lcode = state->lencode;
+00097     dcode = state->distcode;
+00098     lmask = (1U << state->lenbits) - 1;
+00099     dmask = (1U << state->distbits) - 1;
+00100 
+00101     \textcolor{comment}{/* decode literals and length/distances until end-of-block or not enough}
+00102 \textcolor{comment}{       input data or output space */}
+00103     \textcolor{keywordflow}{do} \{
+00104         \textcolor{keywordflow}{if} (bits < 15) \{
+00105             hold += (\textcolor{keywordtype}{unsigned} long)(*in++) << bits;
+00106             bits += 8;
+00107             hold += (\textcolor{keywordtype}{unsigned} long)(*in++) << bits;
+00108             bits += 8;
+00109         \}
+00110         here = lcode[hold & lmask];
+00111       dolen:
+00112         op = (unsigned)(here.bits);
+00113         hold >>= op;
+00114         bits -= op;
+00115         op = (unsigned)(here.op);
+00116         \textcolor{keywordflow}{if} (op == 0) \{                          \textcolor{comment}{/* literal */}
+00117             Tracevv((stderr, here.val >= 0x20 && here.val < 0x7f ?
+00118                     \textcolor{stringliteral}{"inflate:         literal '%c'\(\backslash\)n"} :
+00119                     \textcolor{stringliteral}{"inflate:         literal 0x%02x\(\backslash\)n"}, here.val));
+00120             *out++ = (\textcolor{keywordtype}{unsigned} char)(here.val);
+00121         \}
+00122         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (op & 16) \{                     \textcolor{comment}{/* length base */}
+00123             len = (unsigned)(here.val);
+00124             op &= 15;                           \textcolor{comment}{/* number of extra bits */}
+00125             \textcolor{keywordflow}{if} (op) \{
+00126                 \textcolor{keywordflow}{if} (bits < op) \{
+00127                     hold += (\textcolor{keywordtype}{unsigned} long)(*in++) << bits;
+00128                     bits += 8;
+00129                 \}
+00130                 len += (unsigned)hold & ((1U << op) - 1);
+00131                 hold >>= op;
+00132                 bits -= op;
+00133             \}
+00134             Tracevv((stderr, \textcolor{stringliteral}{"inflate:         length %u\(\backslash\)n"}, len));
+00135             \textcolor{keywordflow}{if} (bits < 15) \{
+00136                 hold += (\textcolor{keywordtype}{unsigned} long)(*in++) << bits;
+00137                 bits += 8;
+00138                 hold += (\textcolor{keywordtype}{unsigned} long)(*in++) << bits;
+00139                 bits += 8;
+00140             \}
+00141             here = dcode[hold & dmask];
+00142           dodist:
+00143             op = (unsigned)(here.bits);
+00144             hold >>= op;
+00145             bits -= op;
+00146             op = (unsigned)(here.op);
+00147             \textcolor{keywordflow}{if} (op & 16) \{                      \textcolor{comment}{/* distance base */}
+00148                 dist = (unsigned)(here.val);
+00149                 op &= 15;                       \textcolor{comment}{/* number of extra bits */}
+00150                 \textcolor{keywordflow}{if} (bits < op) \{
+00151                     hold += (\textcolor{keywordtype}{unsigned} long)(*in++) << bits;
+00152                     bits += 8;
+00153                     \textcolor{keywordflow}{if} (bits < op) \{
+00154                         hold += (\textcolor{keywordtype}{unsigned} long)(*in++) << bits;
+00155                         bits += 8;
+00156                     \}
+00157                 \}
+00158                 dist += (unsigned)hold & ((1U << op) - 1);
+00159 \textcolor{preprocessor}{#ifdef INFLATE\_STRICT}
+00160                 \textcolor{keywordflow}{if} (dist > dmax) \{
+00161                     strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid distance too far back"};
+00162                     state->mode = BAD;
+00163                     \textcolor{keywordflow}{break};
+00164                 \}
+00165 \textcolor{preprocessor}{#endif}
+00166                 hold >>= op;
+00167                 bits -= op;
+00168                 Tracevv((stderr, \textcolor{stringliteral}{"inflate:         distance %u\(\backslash\)n"}, dist));
+00169                 op = (unsigned)(out - beg);     \textcolor{comment}{/* max distance in output */}
+00170                 \textcolor{keywordflow}{if} (dist > op) \{                \textcolor{comment}{/* see if copy from window */}
+00171                     op = dist - op;             \textcolor{comment}{/* distance back in window */}
+00172                     \textcolor{keywordflow}{if} (op > whave) \{
+00173                         \textcolor{keywordflow}{if} (state->sane) \{
+00174                             strm->msg =
+00175                                 (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid distance too far back"};
+00176                             state->mode = BAD;
+00177                             \textcolor{keywordflow}{break};
+00178                         \}
+00179 \textcolor{preprocessor}{#ifdef INFLATE\_ALLOW\_INVALID\_DISTANCE\_TOOFAR\_ARRR}
+00180                         \textcolor{keywordflow}{if} (len <= op - whave) \{
+00181                             \textcolor{keywordflow}{do} \{
+00182                                 *out++ = 0;
+00183                             \} \textcolor{keywordflow}{while} (--len);
+00184                             \textcolor{keywordflow}{continue};
+00185                         \}
+00186                         len -= op - whave;
+00187                         \textcolor{keywordflow}{do} \{
+00188                             *out++ = 0;
+00189                         \} \textcolor{keywordflow}{while} (--op > whave);
+00190                         \textcolor{keywordflow}{if} (op == 0) \{
+00191                             from = out - dist;
+00192                             \textcolor{keywordflow}{do} \{
+00193                                 *out++ = *from++;
+00194                             \} \textcolor{keywordflow}{while} (--len);
+00195                             \textcolor{keywordflow}{continue};
+00196                         \}
+00197 \textcolor{preprocessor}{#endif}
+00198                     \}
+00199                     from = window;
+00200                     \textcolor{keywordflow}{if} (wnext == 0) \{           \textcolor{comment}{/* very common case */}
+00201                         from += wsize - op;
+00202                         \textcolor{keywordflow}{if} (op < len) \{         \textcolor{comment}{/* some from window */}
+00203                             len -= op;
+00204                             \textcolor{keywordflow}{do} \{
+00205                                 *out++ = *from++;
+00206                             \} \textcolor{keywordflow}{while} (--op);
+00207                             from = out - dist;  \textcolor{comment}{/* rest from output */}
+00208                         \}
+00209                     \}
+00210                     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (wnext < op) \{      \textcolor{comment}{/* wrap around window */}
+00211                         from += wsize + wnext - op;
+00212                         op -= wnext;
+00213                         \textcolor{keywordflow}{if} (op < len) \{         \textcolor{comment}{/* some from end of window */}
+00214                             len -= op;
+00215                             \textcolor{keywordflow}{do} \{
+00216                                 *out++ = *from++;
+00217                             \} \textcolor{keywordflow}{while} (--op);
+00218                             from = window;
+00219                             \textcolor{keywordflow}{if} (wnext < len) \{  \textcolor{comment}{/* some from start of window */}
+00220                                 op = wnext;
+00221                                 len -= op;
+00222                                 \textcolor{keywordflow}{do} \{
+00223                                     *out++ = *from++;
+00224                                 \} \textcolor{keywordflow}{while} (--op);
+00225                                 from = out - dist;      \textcolor{comment}{/* rest from output */}
+00226                             \}
+00227                         \}
+00228                     \}
+00229                     \textcolor{keywordflow}{else} \{                      \textcolor{comment}{/* contiguous in window */}
+00230                         from += wnext - op;
+00231                         \textcolor{keywordflow}{if} (op < len) \{         \textcolor{comment}{/* some from window */}
+00232                             len -= op;
+00233                             \textcolor{keywordflow}{do} \{
+00234                                 *out++ = *from++;
+00235                             \} \textcolor{keywordflow}{while} (--op);
+00236                             from = out - dist;  \textcolor{comment}{/* rest from output */}
+00237                         \}
+00238                     \}
+00239                     \textcolor{keywordflow}{while} (len > 2) \{
+00240                         *out++ = *from++;
+00241                         *out++ = *from++;
+00242                         *out++ = *from++;
+00243                         len -= 3;
+00244                     \}
+00245                     \textcolor{keywordflow}{if} (len) \{
+00246                         *out++ = *from++;
+00247                         \textcolor{keywordflow}{if} (len > 1)
+00248                             *out++ = *from++;
+00249                     \}
+00250                 \}
+00251                 \textcolor{keywordflow}{else} \{
+00252                     from = out - dist;          \textcolor{comment}{/* copy direct from output */}
+00253                     \textcolor{keywordflow}{do} \{                        \textcolor{comment}{/* minimum length is three */}
+00254                         *out++ = *from++;
+00255                         *out++ = *from++;
+00256                         *out++ = *from++;
+00257                         len -= 3;
+00258                     \} \textcolor{keywordflow}{while} (len > 2);
+00259                     \textcolor{keywordflow}{if} (len) \{
+00260                         *out++ = *from++;
+00261                         \textcolor{keywordflow}{if} (len > 1)
+00262                             *out++ = *from++;
+00263                     \}
+00264                 \}
+00265             \}
+00266             \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ((op & 64) == 0) \{          \textcolor{comment}{/* 2nd level distance code */}
+00267                 here = dcode[here.val + (hold & ((1U << op) - 1))];
+00268                 \textcolor{keywordflow}{goto} dodist;
+00269             \}
+00270             \textcolor{keywordflow}{else} \{
+00271                 strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid distance code"};
+00272                 state->mode = BAD;
+00273                 \textcolor{keywordflow}{break};
+00274             \}
+00275         \}
+00276         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ((op & 64) == 0) \{              \textcolor{comment}{/* 2nd level length code */}
+00277             here = lcode[here.val + (hold & ((1U << op) - 1))];
+00278             \textcolor{keywordflow}{goto} dolen;
+00279         \}
+00280         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (op & 32) \{                     \textcolor{comment}{/* end-of-block */}
+00281             Tracevv((stderr, \textcolor{stringliteral}{"inflate:         end of block\(\backslash\)n"}));
+00282             state->mode = TYPE;
+00283             \textcolor{keywordflow}{break};
+00284         \}
+00285         \textcolor{keywordflow}{else} \{
+00286             strm->msg = (\textcolor{keywordtype}{char} *)\textcolor{stringliteral}{"invalid literal/length code"};
+00287             state->mode = BAD;
+00288             \textcolor{keywordflow}{break};
+00289         \}
+00290     \} \textcolor{keywordflow}{while} (in < last && out < end);
+00291 
+00292     \textcolor{comment}{/* return unused bytes (on entry, bits < 8, so in won't go too far back) */}
+00293     len = bits >> 3;
+00294     in -= len;
+00295     bits -= len << 3;
+00296     hold &= (1U << bits) - 1;
+00297 
+00298     \textcolor{comment}{/* update state and return */}
+00299     strm->next\_in = in;
+00300     strm->next\_out = out;
+00301     strm->avail\_in = (unsigned)(in < last ? 5 + (last - in) : 5 - (in - last));
+00302     strm->avail\_out = (unsigned)(out < end ?
+00303                                  257 + (end - out) : 257 - (out - end));
+00304     state->hold = hold;
+00305     state->bits = bits;
+00306     \textcolor{keywordflow}{return};
+00307 \}
+00308 
+00309 \textcolor{comment}{/*}
+00310 \textcolor{comment}{   inflate\_fast() speedups that turned out slower (on a PowerPC G3 750CXe):}
+00311 \textcolor{comment}{   - Using bit fields for code structure}
+00312 \textcolor{comment}{   - Different op definition to avoid & for extra bits (do & for table bits)}
+00313 \textcolor{comment}{   - Three separate decoding do-loops for direct, window, and wnext == 0}
+00314 \textcolor{comment}{   - Special case for distance > 1 copies to do overlapped load and store copy}
+00315 \textcolor{comment}{   - Explicit branch predictions (based on measured branch probabilities)}
+00316 \textcolor{comment}{   - Deferring match copy and interspersed it with decoding subsequent codes}
+00317 \textcolor{comment}{   - Swapping literal/length else}
+00318 \textcolor{comment}{   - Swapping window/direct else}
+00319 \textcolor{comment}{   - Larger unrolled copy loops (three is about right)}
+00320 \textcolor{comment}{   - Moving len -= 3 statement into middle of loop}
+00321 \textcolor{comment}{ */}
+00322 
+00323 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* !ASMINF */}\textcolor{preprocessor}{}
+\end{DoxyCode}

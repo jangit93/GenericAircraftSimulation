@@ -1,0 +1,666 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_f_f_t_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/\+C\+X\+X11/src/\+Tensor/\+Tensor\+F\+FT.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_f_f_t_8h_source}\index{Tensor\+F\+F\+T.\+h@{Tensor\+F\+F\+T.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2015 Jianwei Cui <thucjw@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_CXX11\_TENSOR\_TENSOR\_FFT\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_CXX11\_TENSOR\_TENSOR\_FFT\_H}
+00012 
+00013 \textcolor{comment}{// This code requires the ability to initialize arrays of constant}
+00014 \textcolor{comment}{// values directly inside a class.}
+00015 \textcolor{preprocessor}{#if \_\_cplusplus >= 201103L || EIGEN\_COMP\_MSVC >= 1900}
+00016 
+00017 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00018 
+00030 \textcolor{keyword}{template} <\textcolor{keywordtype}{bool} NeedUprade> \textcolor{keyword}{struct }MakeComplex \{
+00031   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00032   EIGEN\_DEVICE\_FUNC
+00033   \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} operator() (\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& val)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} val; \}
+00034 \};
+00035 
+00036 \textcolor{keyword}{template} <> \textcolor{keyword}{struct }MakeComplex<true> \{
+00037   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00038   EIGEN\_DEVICE\_FUNC
+00039   std::complex<T> operator() (\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& val)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} std::complex<T>(val, 0); \}
+00040 \};
+00041 
+00042 \textcolor{keyword}{template} <> \textcolor{keyword}{struct }MakeComplex<false> \{
+00043   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00044   EIGEN\_DEVICE\_FUNC
+00045   std::complex<T> operator() (\textcolor{keyword}{const} std::complex<T>& val)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} val; \}
+00046 \};
+00047 
+00048 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} ResultType> \textcolor{keyword}{struct }PartOf \{
+00049   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} operator() (\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}& val)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} val; \}
+00050 \};
+00051 
+00052 \textcolor{keyword}{template} <> \textcolor{keyword}{struct }PartOf<RealPart> \{
+00053   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} operator() (\textcolor{keyword}{const} std::complex<T>& val)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} val.real(); \}
+00054 \};
+00055 
+00056 \textcolor{keyword}{template} <> \textcolor{keyword}{struct }PartOf<ImagPart> \{
+00057   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} operator() (\textcolor{keyword}{const} std::complex<T>& val)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} val.imag(); \}
+00058 \};
+00059 
+00060 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00061 \textcolor{keyword}{template} <\textcolor{keyword}{typename} FFT, \textcolor{keyword}{typename} XprType, \textcolor{keywordtype}{int} FFTResultType, \textcolor{keywordtype}{int} FFTDir>
+00062 \textcolor{keyword}{struct }traits<TensorFFTOp<FFT, XprType, FFTResultType, FFTDir> > : \textcolor{keyword}{public} traits<XprType> \{
+00063   \textcolor{keyword}{typedef} traits<XprType> XprTraits;
+00064   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<typename XprTraits::Scalar>::Real RealScalar;
+00065   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} std::complex<RealScalar> ComplexScalar;
+00066   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprTraits::Scalar InputScalar;
+00067   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} conditional<FFTResultType == RealPart || FFTResultType == ImagPart, RealScalar,
+       ComplexScalar>::type OutputScalar;
+00068   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprTraits::StorageKind StorageKind;
+00069   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprTraits::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00070   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Nested Nested;
+00071   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_reference<Nested>::type \_Nested;
+00072   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} NumDimensions = XprTraits::NumDimensions;
+00073   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} Layout = XprTraits::Layout;
+00074 \};
+00075 
+00076 \textcolor{keyword}{template} <\textcolor{keyword}{typename} FFT, \textcolor{keyword}{typename} XprType, \textcolor{keywordtype}{int} FFTResultType, \textcolor{keywordtype}{int} FFTDirection>
+00077 \textcolor{keyword}{struct }eval<TensorFFTOp<FFT, XprType, FFTResultType, FFTDirection>, \hyperlink{namespace_eigen}{Eigen}::Dense> \{
+00078   \textcolor{keyword}{typedef} \textcolor{keyword}{const} TensorFFTOp<FFT, XprType, FFTResultType, FFTDirection>& type;
+00079 \};
+00080 
+00081 \textcolor{keyword}{template} <\textcolor{keyword}{typename} FFT, \textcolor{keyword}{typename} XprType, \textcolor{keywordtype}{int} FFTResultType, \textcolor{keywordtype}{int} FFTDirection>
+00082 \textcolor{keyword}{struct }nested<TensorFFTOp<FFT, XprType, FFTResultType, FFTDirection>, 1, typename eval<TensorFFTOp<FFT, 
+      XprType, FFTResultType, FFTDirection> >::type> \{
+00083   \textcolor{keyword}{typedef} TensorFFTOp<FFT, XprType, FFTResultType, FFTDirection> type;
+00084 \};
+00085 
+00086 \}  \textcolor{comment}{// end namespace internal}
+00087 
+00088 \textcolor{keyword}{template} <\textcolor{keyword}{typename} FFT, \textcolor{keyword}{typename} XprType, \textcolor{keywordtype}{int} FFTResultType, \textcolor{keywordtype}{int} FFTDir>
+00089 \textcolor{keyword}{class }TensorFFTOp : \textcolor{keyword}{public} TensorBase<TensorFFTOp<FFT, XprType, FFTResultType, FFTDir>, ReadOnlyAccessors>
+       \{
+00090  \textcolor{keyword}{public}:
+00091   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{Eigen::internal::traits<TensorFFTOp>::Scalar}
+       Scalar;
+00092   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{Eigen::NumTraits<Scalar>::Real} RealScalar;
+00093   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} std::complex<RealScalar> ComplexScalar;
+00094   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::conditional<FFTResultType == RealPart || FFTResultType == ImagPart,
+       RealScalar, ComplexScalar>::type OutputScalar;
+00095   \textcolor{keyword}{typedef} OutputScalar CoeffReturnType;
+00096   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{Eigen::internal::nested<TensorFFTOp>::type} 
+      Nested;
+00097   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{Eigen::internal::traits<TensorFFTOp>::StorageKind}
+       StorageKind;
+00098   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{Eigen::internal::traits<TensorFFTOp>::Index} 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00099 
+00100   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE TensorFFTOp(\textcolor{keyword}{const} XprType& expr, \textcolor{keyword}{const} FFT& fft)
+00101       : m\_xpr(expr), m\_fft(fft) \{\}
+00102 
+00103   EIGEN\_DEVICE\_FUNC
+00104   \textcolor{keyword}{const} FFT& fft()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_fft; \}
+00105 
+00106   EIGEN\_DEVICE\_FUNC
+00107   \textcolor{keyword}{const} \textcolor{keyword}{typename} internal::remove\_all<typename XprType::Nested>::type& expression()\textcolor{keyword}{ const }\{
+00108     \textcolor{keywordflow}{return} m\_xpr;
+00109   \}
+00110 
+00111  \textcolor{keyword}{protected}:
+00112   \textcolor{keyword}{typename} XprType::Nested m\_xpr;
+00113   \textcolor{keyword}{const} FFT m\_fft;
+00114 \};
+00115 
+00116 \textcolor{comment}{// Eval as rvalue}
+00117 \textcolor{keyword}{template} <\textcolor{keyword}{typename} FFT, \textcolor{keyword}{typename} ArgType, \textcolor{keyword}{typename} Device, \textcolor{keywordtype}{int} FFTResultType, \textcolor{keywordtype}{int} FFTDir>
+00118 \textcolor{keyword}{struct }TensorEvaluator<const TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir>, Device> \{
+00119   \textcolor{keyword}{typedef} TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir> XprType;
+00120   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00121   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} NumDims = internal::array\_size<typename TensorEvaluator<ArgType, Device>::Dimensions>
+      ::value;
+00122   \textcolor{keyword}{typedef} DSizes<Index, NumDims> Dimensions;
+00123   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Scalar Scalar;
+00124   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{Eigen::NumTraits<Scalar>::Real} RealScalar;
+00125   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} std::complex<RealScalar> ComplexScalar;
+00126   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} TensorEvaluator<ArgType, Device>::Dimensions InputDimensions;
+00127   \textcolor{keyword}{typedef} internal::traits<XprType> XprTraits;
+00128   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprTraits::Scalar InputScalar;
+00129   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::conditional<FFTResultType == RealPart || FFTResultType == ImagPart,
+       RealScalar, ComplexScalar>::type OutputScalar;
+00130   \textcolor{keyword}{typedef} OutputScalar CoeffReturnType;
+00131   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} PacketType<OutputScalar, Device>::type PacketReturnType;
+00132   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} PacketSize = internal::unpacket\_traits<PacketReturnType>::size;
+00133 
+00134   \textcolor{keyword}{enum} \{
+00135     IsAligned = \textcolor{keyword}{false},
+00136     PacketAccess = \textcolor{keyword}{true},
+00137     BlockAccess = \textcolor{keyword}{false},
+00138     Layout = TensorEvaluator<ArgType, Device>::Layout,
+00139     CoordAccess = \textcolor{keyword}{false},
+00140     RawAccess = \textcolor{keyword}{false}
+00141   \};
+00142 
+00143   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE TensorEvaluator(\textcolor{keyword}{const} XprType& op, \textcolor{keyword}{const} Device& device) : m\_fft(op
+      .fft()), m\_impl(op.expression(), device), m\_data(NULL), m\_device(device) \{
+00144     \textcolor{keyword}{const} \textcolor{keyword}{typename} TensorEvaluator<ArgType, Device>::Dimensions& input\_dims = m\_impl.dimensions();
+00145     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < NumDims; ++i) \{
+00146       eigen\_assert(input\_dims[i] > 0);
+00147       m\_dimensions[i] = input\_dims[i];
+00148     \}
+00149 
+00150     \textcolor{keywordflow}{if} (static\_cast<int>(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})) \{
+00151       m\_strides[0] = 1;
+00152       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 1; i < NumDims; ++i) \{
+00153         m\_strides[i] = m\_strides[i - 1] * m\_dimensions[i - 1];
+00154       \}
+00155     \} \textcolor{keywordflow}{else} \{
+00156       m\_strides[NumDims - 1] = 1;
+00157       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = NumDims - 2; i >= 0; --i) \{
+00158         m\_strides[i] = m\_strides[i + 1] * m\_dimensions[i + 1];
+00159       \}
+00160     \}
+00161     m\_size = m\_dimensions.TotalSize();
+00162   \}
+00163 
+00164   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{const} Dimensions& dimensions()\textcolor{keyword}{ const }\{
+00165     \textcolor{keywordflow}{return} m\_dimensions;
+00166   \}
+00167 
+00168   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{bool} evalSubExprsIfNeeded(OutputScalar* data) \{
+00169     m\_impl.evalSubExprsIfNeeded(NULL);
+00170     \textcolor{keywordflow}{if} (data) \{
+00171       evalToBuf(data);
+00172       \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00173     \} \textcolor{keywordflow}{else} \{
+00174       m\_data = (CoeffReturnType*)m\_device.allocate(\textcolor{keyword}{sizeof}(CoeffReturnType) * m\_size);
+00175       evalToBuf(m\_data);
+00176       \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00177     \}
+00178   \}
+00179 
+00180   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} cleanup() \{
+00181     \textcolor{keywordflow}{if} (m\_data) \{
+00182       m\_device.deallocate(m\_data);
+00183       m\_data = NULL;
+00184     \}
+00185     m\_impl.cleanup();
+00186   \}
+00187 
+00188   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE CoeffReturnType coeff(Index index)\textcolor{keyword}{ const }\{
+00189     \textcolor{keywordflow}{return} m\_data[index];
+00190   \}
+00191 
+00192   \textcolor{keyword}{template} <\textcolor{keywordtype}{int} LoadMode>
+00193   EIGEN\_DEVICE\_FUNC EIGEN\_ALWAYS\_INLINE PacketReturnType
+00194   packet(Index index)\textcolor{keyword}{ const }\{
+00195     \textcolor{keywordflow}{return} internal::ploadt<PacketReturnType, LoadMode>(m\_data + index);
+00196   \}
+00197 
+00198   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE TensorOpCost
+00199   costPerCoeff(\textcolor{keywordtype}{bool} vectorized)\textcolor{keyword}{ const }\{
+00200     \textcolor{keywordflow}{return} TensorOpCost(\textcolor{keyword}{sizeof}(CoeffReturnType), 0, 0, vectorized, PacketSize);
+00201   \}
+00202 
+00203   EIGEN\_DEVICE\_FUNC Scalar* data()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_data; \}
+00204 
+00205 
+00206  \textcolor{keyword}{private}:
+00207   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} evalToBuf(OutputScalar* data) \{
+00208     \textcolor{keyword}{const} \textcolor{keywordtype}{bool} write\_to\_out = internal::is\_same<OutputScalar, ComplexScalar>::value;
+00209     ComplexScalar* buf = write\_to\_out ? (ComplexScalar*)data : (ComplexScalar*)m\_device.allocate(\textcolor{keyword}{sizeof}(
+      ComplexScalar) * m\_size);
+00210 
+00211     \textcolor{keywordflow}{for} (Index i = 0; i < m\_size; ++i) \{
+00212       buf[i] = MakeComplex<internal::is\_same<InputScalar, RealScalar>::value>()(m\_impl.coeff(i));
+00213     \}
+00214 
+00215     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < m\_fft.size(); ++i) \{
+00216       Index dim = m\_fft[i];
+00217       eigen\_assert(dim >= 0 && dim < NumDims);
+00218       Index line\_len = m\_dimensions[dim];
+00219       eigen\_assert(line\_len >= 1);
+00220       ComplexScalar* line\_buf = (ComplexScalar*)m\_device.allocate(\textcolor{keyword}{sizeof}(ComplexScalar) * line\_len);
+00221       \textcolor{keyword}{const} \textcolor{keywordtype}{bool} is\_power\_of\_two = isPowerOfTwo(line\_len);
+00222       \textcolor{keyword}{const} Index good\_composite = is\_power\_of\_two ? 0 : findGoodComposite(line\_len);
+00223       \textcolor{keyword}{const} Index log\_len = is\_power\_of\_two ? getLog2(line\_len) : getLog2(good\_composite);
+00224 
+00225       ComplexScalar* a = is\_power\_of\_two ? NULL : (ComplexScalar*)m\_device.allocate(\textcolor{keyword}{sizeof}(ComplexScalar) *
+       good\_composite);
+00226       ComplexScalar* b = is\_power\_of\_two ? NULL : (ComplexScalar*)m\_device.allocate(\textcolor{keyword}{sizeof}(ComplexScalar) *
+       good\_composite);
+00227       ComplexScalar* pos\_j\_base\_powered = is\_power\_of\_two ? NULL : (ComplexScalar*)m\_device.allocate(\textcolor{keyword}{sizeof}
+      (ComplexScalar) * (line\_len + 1));
+00228       \textcolor{keywordflow}{if} (!is\_power\_of\_two) \{
+00229         \textcolor{comment}{// Compute twiddle factors}
+00230         \textcolor{comment}{//   t\_n = exp(sqrt(-1) * pi * n^2 / line\_len)}
+00231         \textcolor{comment}{// for n = 0, 1,..., line\_len-1.}
+00232         \textcolor{comment}{// For n > 2 we use the recurrence t\_n = t\_\{n-1\}^2 / t\_\{n-2\} * t\_1^2}
+00233         pos\_j\_base\_powered[0] = ComplexScalar(1, 0);
+00234         \textcolor{keywordflow}{if} (line\_len > 1) \{
+00235           \textcolor{keyword}{const} RealScalar pi\_over\_len(EIGEN\_PI / line\_len);
+00236           \textcolor{keyword}{const} ComplexScalar pos\_j\_base = ComplexScalar(
+00237            std::cos(pi\_over\_len), std::sin(pi\_over\_len));
+00238           pos\_j\_base\_powered[1] = pos\_j\_base;
+00239           \textcolor{keywordflow}{if} (line\_len > 2) \{
+00240             \textcolor{keyword}{const} ComplexScalar pos\_j\_base\_sq = pos\_j\_base * pos\_j\_base;
+00241             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 2; j < line\_len + 1; ++j) \{
+00242               pos\_j\_base\_powered[j] = pos\_j\_base\_powered[j - 1] *
+00243                                       pos\_j\_base\_powered[j - 1] /
+00244                                       pos\_j\_base\_powered[j - 2] * pos\_j\_base\_sq;
+00245             \}
+00246           \}
+00247         \}
+00248       \}
+00249 
+00250       \textcolor{keywordflow}{for} (Index partial\_index = 0; partial\_index < m\_size / line\_len; ++partial\_index) \{
+00251         \textcolor{keyword}{const} Index base\_offset = getBaseOffsetFromIndex(partial\_index, dim);
+00252 
+00253         \textcolor{comment}{// get data into line\_buf}
+00254         \textcolor{keyword}{const} Index stride = m\_strides[dim];
+00255         \textcolor{keywordflow}{if} (stride == 1) \{
+00256           memcpy(line\_buf, &buf[base\_offset], line\_len*\textcolor{keyword}{sizeof}(ComplexScalar));
+00257         \} \textcolor{keywordflow}{else} \{
+00258           Index offset = base\_offset;
+00259           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < line\_len; ++j, offset += stride) \{
+00260             line\_buf[j] = buf[offset];
+00261           \}
+00262         \}
+00263 
+00264         \textcolor{comment}{// processs the line}
+00265         \textcolor{keywordflow}{if} (is\_power\_of\_two) \{
+00266           processDataLineCooleyTukey(line\_buf, line\_len, log\_len);
+00267         \}
+00268         \textcolor{keywordflow}{else} \{
+00269           processDataLineBluestein(line\_buf, line\_len, good\_composite, log\_len, a, b, pos\_j\_base\_powered);
+00270         \}
+00271 
+00272         \textcolor{comment}{// write back}
+00273         \textcolor{keywordflow}{if} (FFTDir == FFT\_FORWARD && stride == 1) \{
+00274           memcpy(&buf[base\_offset], line\_buf, line\_len*\textcolor{keyword}{sizeof}(ComplexScalar));
+00275         \} \textcolor{keywordflow}{else} \{
+00276           Index offset = base\_offset;
+00277           \textcolor{keyword}{const} ComplexScalar div\_factor =  ComplexScalar(1.0 / line\_len, 0);
+00278           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < line\_len; ++j, offset += stride) \{
+00279              buf[offset] = (FFTDir == FFT\_FORWARD) ? line\_buf[j] : line\_buf[j] * div\_factor;
+00280           \}
+00281         \}
+00282       \}
+00283       m\_device.deallocate(line\_buf);
+00284       \textcolor{keywordflow}{if} (!is\_power\_of\_two) \{
+00285         m\_device.deallocate(a);
+00286         m\_device.deallocate(b);
+00287         m\_device.deallocate(pos\_j\_base\_powered);
+00288       \}
+00289     \}
+00290 
+00291     \textcolor{keywordflow}{if}(!write\_to\_out) \{
+00292       \textcolor{keywordflow}{for} (Index i = 0; i < m\_size; ++i) \{
+00293         data[i] = PartOf<FFTResultType>()(buf[i]);
+00294       \}
+00295       m\_device.deallocate(buf);
+00296     \}
+00297   \}
+00298 
+00299   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{static} \textcolor{keywordtype}{bool} isPowerOfTwo(Index x) \{
+00300     eigen\_assert(x > 0);
+00301     \textcolor{keywordflow}{return} !(x & (x - 1));
+00302   \}
+00303 
+00304   \textcolor{comment}{// The composite number for padding, used in Bluestein's FFT algorithm}
+00305   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{static} Index findGoodComposite(Index n) \{
+00306     Index i = 2;
+00307     \textcolor{keywordflow}{while} (i < 2 * n - 1) i *= 2;
+00308     \textcolor{keywordflow}{return} i;
+00309   \}
+00310 
+00311   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{static} Index getLog2(Index m) \{
+00312     Index log2m = 0;
+00313     \textcolor{keywordflow}{while} (m >>= 1) log2m++;
+00314     \textcolor{keywordflow}{return} log2m;
+00315   \}
+00316 
+00317   \textcolor{comment}{// Call Cooley Tukey algorithm directly, data length must be power of 2}
+00318   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} processDataLineCooleyTukey(ComplexScalar* line\_buf, Index 
+      line\_len, Index log\_len) \{
+00319     eigen\_assert(isPowerOfTwo(line\_len));
+00320     scramble\_FFT(line\_buf, line\_len);
+00321     compute\_1D\_Butterfly<FFTDir>(line\_buf, line\_len, log\_len);
+00322   \}
+00323 
+00324   \textcolor{comment}{// Call Bluestein's FFT algorithm, m is a good composite number greater than (2 * n - 1), used as the
+       padding length}
+00325   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} processDataLineBluestein(ComplexScalar* line\_buf, Index 
+      line\_len, Index good\_composite, Index log\_len, ComplexScalar* a, ComplexScalar* b, \textcolor{keyword}{const} ComplexScalar* 
+      pos\_j\_base\_powered) \{
+00326     Index n = line\_len;
+00327     Index m = good\_composite;
+00328     ComplexScalar* data = line\_buf;
+00329 
+00330     \textcolor{keywordflow}{for} (Index i = 0; i < n; ++i) \{
+00331       \textcolor{keywordflow}{if}(FFTDir == FFT\_FORWARD) \{
+00332         a[i] = data[i] * numext::conj(pos\_j\_base\_powered[i]);
+00333       \}
+00334       \textcolor{keywordflow}{else} \{
+00335         a[i] = data[i] * pos\_j\_base\_powered[i];
+00336       \}
+00337     \}
+00338     \textcolor{keywordflow}{for} (Index i = n; i < m; ++i) \{
+00339       a[i] = ComplexScalar(0, 0);
+00340     \}
+00341 
+00342     \textcolor{keywordflow}{for} (Index i = 0; i < n; ++i) \{
+00343       \textcolor{keywordflow}{if}(FFTDir == FFT\_FORWARD) \{
+00344         b[i] = pos\_j\_base\_powered[i];
+00345       \}
+00346       \textcolor{keywordflow}{else} \{
+00347         b[i] = numext::conj(pos\_j\_base\_powered[i]);
+00348       \}
+00349     \}
+00350     \textcolor{keywordflow}{for} (Index i = n; i < m - n; ++i) \{
+00351       b[i] = ComplexScalar(0, 0);
+00352     \}
+00353     \textcolor{keywordflow}{for} (Index i = m - n; i < m; ++i) \{
+00354       \textcolor{keywordflow}{if}(FFTDir == FFT\_FORWARD) \{
+00355         b[i] = pos\_j\_base\_powered[m-i];
+00356       \}
+00357       \textcolor{keywordflow}{else} \{
+00358         b[i] = numext::conj(pos\_j\_base\_powered[m-i]);
+00359       \}
+00360     \}
+00361 
+00362     scramble\_FFT(a, m);
+00363     compute\_1D\_Butterfly<FFT\_FORWARD>(a, m, log\_len);
+00364 
+00365     scramble\_FFT(b, m);
+00366     compute\_1D\_Butterfly<FFT\_FORWARD>(b, m, log\_len);
+00367 
+00368     \textcolor{keywordflow}{for} (Index i = 0; i < m; ++i) \{
+00369       a[i] *= b[i];
+00370     \}
+00371 
+00372     scramble\_FFT(a, m);
+00373     compute\_1D\_Butterfly<FFT\_REVERSE>(a, m, log\_len);
+00374 
+00375     \textcolor{comment}{//Do the scaling after ifft}
+00376     \textcolor{keywordflow}{for} (Index i = 0; i < m; ++i) \{
+00377       a[i] /= m;
+00378     \}
+00379 
+00380     \textcolor{keywordflow}{for} (Index i = 0; i < n; ++i) \{
+00381       \textcolor{keywordflow}{if}(FFTDir == FFT\_FORWARD) \{
+00382         data[i] = a[i] * numext::conj(pos\_j\_base\_powered[i]);
+00383       \}
+00384       \textcolor{keywordflow}{else} \{
+00385         data[i] = a[i] * pos\_j\_base\_powered[i];
+00386       \}
+00387     \}
+00388   \}
+00389 
+00390   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{static} \textcolor{keywordtype}{void} scramble\_FFT(ComplexScalar* data, Index n) \{
+00391     eigen\_assert(isPowerOfTwo(n));
+00392     Index j = 1;
+00393     \textcolor{keywordflow}{for} (Index i = 1; i < n; ++i)\{
+00394       \textcolor{keywordflow}{if} (j > i) \{
+00395         \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(data[j-1], data[i-1]);
+00396       \}
+00397       Index m = n >> 1;
+00398       \textcolor{keywordflow}{while} (m >= 2 && j > m) \{
+00399         j -= m;
+00400         m >>= 1;
+00401       \}
+00402       j += m;
+00403     \}
+00404   \}
+00405 
+00406   \textcolor{keyword}{template} <\textcolor{keywordtype}{int} Dir>
+00407   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} butterfly\_2(ComplexScalar* data) \{
+00408     ComplexScalar tmp = data[1];
+00409     data[1] = data[0] - data[1];
+00410     data[0] += tmp;
+00411   \}
+00412 
+00413   \textcolor{keyword}{template} <\textcolor{keywordtype}{int} Dir>
+00414   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} butterfly\_4(ComplexScalar* data) \{
+00415     ComplexScalar tmp[4];
+00416     tmp[0] = data[0] + data[1];
+00417     tmp[1] = data[0] - data[1];
+00418     tmp[2] = data[2] + data[3];
+00419     \textcolor{keywordflow}{if} (Dir == FFT\_FORWARD) \{
+00420       tmp[3] = ComplexScalar(0.0, -1.0) * (data[2] - data[3]);
+00421     \} \textcolor{keywordflow}{else} \{
+00422       tmp[3] = ComplexScalar(0.0, 1.0) * (data[2] - data[3]);
+00423     \}
+00424     data[0] = tmp[0] + tmp[2];
+00425     data[1] = tmp[1] + tmp[3];
+00426     data[2] = tmp[0] - tmp[2];
+00427     data[3] = tmp[1] - tmp[3];
+00428   \}
+00429 
+00430   \textcolor{keyword}{template} <\textcolor{keywordtype}{int} Dir>
+00431   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} butterfly\_8(ComplexScalar* data) \{
+00432     ComplexScalar tmp\_1[8];
+00433     ComplexScalar tmp\_2[8];
+00434 
+00435     tmp\_1[0] = data[0] + data[1];
+00436     tmp\_1[1] = data[0] - data[1];
+00437     tmp\_1[2] = data[2] + data[3];
+00438     \textcolor{keywordflow}{if} (Dir == FFT\_FORWARD) \{
+00439       tmp\_1[3] = (data[2] - data[3]) * ComplexScalar(0, -1);
+00440     \} \textcolor{keywordflow}{else} \{
+00441       tmp\_1[3] = (data[2] - data[3]) * ComplexScalar(0, 1);
+00442     \}
+00443     tmp\_1[4] = data[4] + data[5];
+00444     tmp\_1[5] = data[4] - data[5];
+00445     tmp\_1[6] = data[6] + data[7];
+00446     \textcolor{keywordflow}{if} (Dir == FFT\_FORWARD) \{
+00447       tmp\_1[7] = (data[6] - data[7]) * ComplexScalar(0, -1);
+00448     \} \textcolor{keywordflow}{else} \{
+00449       tmp\_1[7] = (data[6] - data[7]) * ComplexScalar(0, 1);
+00450     \}
+00451     tmp\_2[0] = tmp\_1[0] + tmp\_1[2];
+00452     tmp\_2[1] = tmp\_1[1] + tmp\_1[3];
+00453     tmp\_2[2] = tmp\_1[0] - tmp\_1[2];
+00454     tmp\_2[3] = tmp\_1[1] - tmp\_1[3];
+00455     tmp\_2[4] = tmp\_1[4] + tmp\_1[6];
+00456 \textcolor{comment}{// SQRT2DIV2 = sqrt(2)/2}
+00457 \textcolor{preprocessor}{#define SQRT2DIV2 0.7071067811865476}
+00458     \textcolor{keywordflow}{if} (Dir == FFT\_FORWARD) \{
+00459       tmp\_2[5] = (tmp\_1[5] + tmp\_1[7]) * ComplexScalar(SQRT2DIV2, -SQRT2DIV2);
+00460       tmp\_2[6] = (tmp\_1[4] - tmp\_1[6]) * ComplexScalar(0, -1);
+00461       tmp\_2[7] = (tmp\_1[5] - tmp\_1[7]) * ComplexScalar(-SQRT2DIV2, -SQRT2DIV2);
+00462     \} \textcolor{keywordflow}{else} \{
+00463       tmp\_2[5] = (tmp\_1[5] + tmp\_1[7]) * ComplexScalar(SQRT2DIV2, SQRT2DIV2);
+00464       tmp\_2[6] = (tmp\_1[4] - tmp\_1[6]) * ComplexScalar(0, 1);
+00465       tmp\_2[7] = (tmp\_1[5] - tmp\_1[7]) * ComplexScalar(-SQRT2DIV2, SQRT2DIV2);
+00466     \}
+00467     data[0] = tmp\_2[0] + tmp\_2[4];
+00468     data[1] = tmp\_2[1] + tmp\_2[5];
+00469     data[2] = tmp\_2[2] + tmp\_2[6];
+00470     data[3] = tmp\_2[3] + tmp\_2[7];
+00471     data[4] = tmp\_2[0] - tmp\_2[4];
+00472     data[5] = tmp\_2[1] - tmp\_2[5];
+00473     data[6] = tmp\_2[2] - tmp\_2[6];
+00474     data[7] = tmp\_2[3] - tmp\_2[7];
+00475   \}
+00476 
+00477   \textcolor{keyword}{template} <\textcolor{keywordtype}{int} Dir>
+00478   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} butterfly\_1D\_merge(
+00479       ComplexScalar* data, Index n, Index n\_power\_of\_2) \{
+00480     \textcolor{comment}{// Original code:}
+00481     \textcolor{comment}{// RealScalar wtemp = std::sin(M\_PI/n);}
+00482     \textcolor{comment}{// RealScalar wpi =  -std::sin(2 * M\_PI/n);}
+00483     \textcolor{keyword}{const} RealScalar wtemp = m\_sin\_PI\_div\_n\_LUT[n\_power\_of\_2];
+00484     \textcolor{keyword}{const} RealScalar wpi = (Dir == FFT\_FORWARD)
+00485                                ? m\_minus\_sin\_2\_PI\_div\_n\_LUT[n\_power\_of\_2]
+00486                                : -m\_minus\_sin\_2\_PI\_div\_n\_LUT[n\_power\_of\_2];
+00487 
+00488     \textcolor{keyword}{const} ComplexScalar wp(wtemp, wpi);
+00489     \textcolor{keyword}{const} ComplexScalar wp\_one = wp + ComplexScalar(1, 0);
+00490     \textcolor{keyword}{const} ComplexScalar wp\_one\_2 = wp\_one * wp\_one;
+00491     \textcolor{keyword}{const} ComplexScalar wp\_one\_3 = wp\_one\_2 * wp\_one;
+00492     \textcolor{keyword}{const} ComplexScalar wp\_one\_4 = wp\_one\_3 * wp\_one;
+00493     \textcolor{keyword}{const} Index n2 = n / 2;
+00494     ComplexScalar w(1.0, 0.0);
+00495     \textcolor{keywordflow}{for} (Index i = 0; i < n2; i += 4) \{
+00496        ComplexScalar temp0(data[i + n2] * w);
+00497        ComplexScalar temp1(data[i + 1 + n2] * w * wp\_one);
+00498        ComplexScalar temp2(data[i + 2 + n2] * w * wp\_one\_2);
+00499        ComplexScalar temp3(data[i + 3 + n2] * w * wp\_one\_3);
+00500        w = w * wp\_one\_4;
+00501 
+00502        data[i + n2] = data[i] - temp0;
+00503        data[i] += temp0;
+00504 
+00505        data[i + 1 + n2] = data[i + 1] - temp1;
+00506        data[i + 1] += temp1;
+00507 
+00508        data[i + 2 + n2] = data[i + 2] - temp2;
+00509        data[i + 2] += temp2;
+00510 
+00511        data[i + 3 + n2] = data[i + 3] - temp3;
+00512        data[i + 3] += temp3;
+00513     \}
+00514   \}
+00515 
+00516  \textcolor{keyword}{template} <\textcolor{keywordtype}{int} Dir>
+00517   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} compute\_1D\_Butterfly(
+00518       ComplexScalar* data, Index n, Index n\_power\_of\_2) \{
+00519     eigen\_assert(isPowerOfTwo(n));
+00520     \textcolor{keywordflow}{if} (n > 8) \{
+00521       compute\_1D\_Butterfly<Dir>(data, n / 2, n\_power\_of\_2 - 1);
+00522       compute\_1D\_Butterfly<Dir>(data + n / 2, n / 2, n\_power\_of\_2 - 1);
+00523       butterfly\_1D\_merge<Dir>(data, n, n\_power\_of\_2);
+00524     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (n == 8) \{
+00525       butterfly\_8<Dir>(data);
+00526     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (n == 4) \{
+00527       butterfly\_4<Dir>(data);
+00528     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (n == 2) \{
+00529       butterfly\_2<Dir>(data);
+00530     \}
+00531   \}
+00532 
+00533   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE Index getBaseOffsetFromIndex(Index index, Index omitted\_dim)\textcolor{keyword}{ const }
+      \{
+00534     Index result = 0;
+00535 
+00536     \textcolor{keywordflow}{if} (static\_cast<int>(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor})) \{
+00537       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = NumDims - 1; i > omitted\_dim; --i) \{
+00538         \textcolor{keyword}{const} Index partial\_m\_stride = m\_strides[i] / m\_dimensions[omitted\_dim];
+00539         \textcolor{keyword}{const} Index idx = index / partial\_m\_stride;
+00540         index -= idx * partial\_m\_stride;
+00541         result += idx * m\_strides[i];
+00542       \}
+00543       result += index;
+00544     \}
+00545     \textcolor{keywordflow}{else} \{
+00546       \textcolor{keywordflow}{for} (Index i = 0; i < omitted\_dim; ++i) \{
+00547         \textcolor{keyword}{const} Index partial\_m\_stride = m\_strides[i] / m\_dimensions[omitted\_dim];
+00548         \textcolor{keyword}{const} Index idx = index / partial\_m\_stride;
+00549         index -= idx * partial\_m\_stride;
+00550         result += idx * m\_strides[i];
+00551       \}
+00552       result += index;
+00553     \}
+00554     \textcolor{comment}{// Value of index\_coords[omitted\_dim] is not determined to this step}
+00555     \textcolor{keywordflow}{return} result;
+00556   \}
+00557 
+00558   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE Index getIndexFromOffset(Index base, Index omitted\_dim, Index 
+      offset)\textcolor{keyword}{ const }\{
+00559     Index result = base + offset * m\_strides[omitted\_dim] ;
+00560     \textcolor{keywordflow}{return} result;
+00561   \}
+00562 
+00563  \textcolor{keyword}{protected}:
+00564   Index m\_size;
+00565   \textcolor{keyword}{const} FFT& m\_fft;
+00566   Dimensions m\_dimensions;
+00567   array<Index, NumDims> m\_strides;
+00568   TensorEvaluator<ArgType, Device> m\_impl;
+00569   CoeffReturnType* m\_data;
+00570   \textcolor{keyword}{const} Device& m\_device;
+00571 
+00572   \textcolor{comment}{// This will support a maximum FFT size of 2^32 for each dimension}
+00573   \textcolor{comment}{// m\_sin\_PI\_div\_n\_LUT[i] = (-2) * std::sin(M\_PI / std::pow(2,i)) ^ 2;}
+00574   \textcolor{keyword}{const} RealScalar m\_sin\_PI\_div\_n\_LUT[32] = \{
+00575     RealScalar(0.0),
+00576     RealScalar(-2),
+00577     RealScalar(-0.999999999999999),
+00578     RealScalar(-0.292893218813453),
+00579     RealScalar(-0.0761204674887130),
+00580     RealScalar(-0.0192147195967696),
+00581     RealScalar(-0.00481527332780311),
+00582     RealScalar(-0.00120454379482761),
+00583     RealScalar(-3.01181303795779e-04),
+00584     RealScalar(-7.52981608554592e-05),
+00585     RealScalar(-1.88247173988574e-05),
+00586     RealScalar(-4.70619042382852e-06),
+00587     RealScalar(-1.17654829809007e-06),
+00588     RealScalar(-2.94137117780840e-07),
+00589     RealScalar(-7.35342821488550e-08),
+00590     RealScalar(-1.83835707061916e-08),
+00591     RealScalar(-4.59589268710903e-09),
+00592     RealScalar(-1.14897317243732e-09),
+00593     RealScalar(-2.87243293150586e-10),
+00594     RealScalar( -7.18108232902250e-11),
+00595     RealScalar(-1.79527058227174e-11),
+00596     RealScalar(-4.48817645568941e-12),
+00597     RealScalar(-1.12204411392298e-12),
+00598     RealScalar(-2.80511028480785e-13),
+00599     RealScalar(-7.01277571201985e-14),
+00600     RealScalar(-1.75319392800498e-14),
+00601     RealScalar(-4.38298482001247e-15),
+00602     RealScalar(-1.09574620500312e-15),
+00603     RealScalar(-2.73936551250781e-16),
+00604     RealScalar(-6.84841378126949e-17),
+00605     RealScalar(-1.71210344531737e-17),
+00606     RealScalar(-4.28025861329343e-18)
+00607   \};
+00608 
+00609   \textcolor{comment}{// m\_minus\_sin\_2\_PI\_div\_n\_LUT[i] = -std::sin(2 * M\_PI / std::pow(2,i));}
+00610   \textcolor{keyword}{const} RealScalar m\_minus\_sin\_2\_PI\_div\_n\_LUT[32] = \{
+00611     RealScalar(0.0),
+00612     RealScalar(0.0),
+00613     RealScalar(-1.00000000000000e+00),
+00614     RealScalar(-7.07106781186547e-01),
+00615     RealScalar(-3.82683432365090e-01),
+00616     RealScalar(-1.95090322016128e-01),
+00617     RealScalar(-9.80171403295606e-02),
+00618     RealScalar(-4.90676743274180e-02),
+00619     RealScalar(-2.45412285229123e-02),
+00620     RealScalar(-1.22715382857199e-02),
+00621     RealScalar(-6.13588464915448e-03),
+00622     RealScalar(-3.06795676296598e-03),
+00623     RealScalar(-1.53398018628477e-03),
+00624     RealScalar(-7.66990318742704e-04),
+00625     RealScalar(-3.83495187571396e-04),
+00626     RealScalar(-1.91747597310703e-04),
+00627     RealScalar(-9.58737990959773e-05),
+00628     RealScalar(-4.79368996030669e-05),
+00629     RealScalar(-2.39684498084182e-05),
+00630     RealScalar(-1.19842249050697e-05),
+00631     RealScalar(-5.99211245264243e-06),
+00632     RealScalar(-2.99605622633466e-06),
+00633     RealScalar(-1.49802811316901e-06),
+00634     RealScalar(-7.49014056584716e-07),
+00635     RealScalar(-3.74507028292384e-07),
+00636     RealScalar(-1.87253514146195e-07),
+00637     RealScalar(-9.36267570730981e-08),
+00638     RealScalar(-4.68133785365491e-08),
+00639     RealScalar(-2.34066892682746e-08),
+00640     RealScalar(-1.17033446341373e-08),
+00641     RealScalar(-5.85167231706864e-09),
+00642     RealScalar(-2.92583615853432e-09)
+00643   \};
+00644 \};
+00645 
+00646 \}  \textcolor{comment}{// end namespace Eigen}
+00647 
+00648 \textcolor{preprocessor}{#endif  // EIGEN\_HAS\_CONSTEXPR}
+00649 
+00650 
+00651 \textcolor{preprocessor}{#endif  // EIGEN\_CXX11\_TENSOR\_TENSOR\_FFT\_H}
+\end{DoxyCode}

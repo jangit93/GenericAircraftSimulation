@@ -1,0 +1,201 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__broadcasting_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/test/cxx11\+\_\+tensor\+\_\+broadcasting.cpp}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__broadcasting_8cpp_source}\index{cxx11\+\_\+tensor\+\_\+broadcasting.\+cpp@{cxx11\+\_\+tensor\+\_\+broadcasting.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2014 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 \textcolor{preprocessor}{#include <Eigen/CXX11/Tensor>}
+00013 
+00014 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor};
+00015 
+00016 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00017 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_simple\_broadcasting()
+00018 \{
+00019   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} tensor(2,3,5,7);
+00020   tensor.setRandom();
+00021   array<ptrdiff\_t, 4> broadcasts;
+00022   broadcasts[0] = 1;
+00023   broadcasts[1] = 1;
+00024   broadcasts[2] = 1;
+00025   broadcasts[3] = 1;
+00026 
+00027   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} no\_broadcast;
+00028   no\_broadcast = tensor.broadcast(broadcasts);
+00029 
+00030   VERIFY\_IS\_EQUAL(no\_broadcast.dimension(0), 2);
+00031   VERIFY\_IS\_EQUAL(no\_broadcast.dimension(1), 3);
+00032   VERIFY\_IS\_EQUAL(no\_broadcast.dimension(2), 5);
+00033   VERIFY\_IS\_EQUAL(no\_broadcast.dimension(3), 7);
+00034 
+00035   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00036     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 3; ++j) \{
+00037       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 5; ++k) \{
+00038         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 7; ++l) \{
+00039           VERIFY\_IS\_EQUAL(tensor(i,j,k,l), no\_broadcast(i,j,k,l));
+00040         \}
+00041       \}
+00042     \}
+00043   \}
+00044 
+00045   broadcasts[0] = 2;
+00046   broadcasts[1] = 3;
+00047   broadcasts[2] = 1;
+00048   broadcasts[3] = 4;
+00049   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} broadcast;
+00050   broadcast = tensor.broadcast(broadcasts);
+00051 
+00052   VERIFY\_IS\_EQUAL(broadcast.dimension(0), 4);
+00053   VERIFY\_IS\_EQUAL(broadcast.dimension(1), 9);
+00054   VERIFY\_IS\_EQUAL(broadcast.dimension(2), 5);
+00055   VERIFY\_IS\_EQUAL(broadcast.dimension(3), 28);
+00056 
+00057   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 4; ++i) \{
+00058     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 9; ++j) \{
+00059       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 5; ++k) \{
+00060         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 28; ++l) \{
+00061           VERIFY\_IS\_EQUAL(tensor(i%2,j%3,k%5,l%7), broadcast(i,j,k,l));
+00062         \}
+00063       \}
+00064     \}
+00065   \}
+00066 \}
+00067 
+00068 
+00069 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00070 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_vectorized\_broadcasting()
+00071 \{
+00072   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3, DataLayout>} tensor(8,3,5);
+00073   tensor.setRandom();
+00074   array<ptrdiff\_t, 3> broadcasts;
+00075   broadcasts[0] = 2;
+00076   broadcasts[1] = 3;
+00077   broadcasts[2] = 4;
+00078 
+00079   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3, DataLayout>} broadcast;
+00080   broadcast = tensor.broadcast(broadcasts);
+00081 
+00082   VERIFY\_IS\_EQUAL(broadcast.dimension(0), 16);
+00083   VERIFY\_IS\_EQUAL(broadcast.dimension(1), 9);
+00084   VERIFY\_IS\_EQUAL(broadcast.dimension(2), 20);
+00085 
+00086   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 16; ++i) \{
+00087     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 9; ++j) \{
+00088       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 20; ++k) \{
+00089         VERIFY\_IS\_EQUAL(tensor(i%8,j%3,k%5), broadcast(i,j,k));
+00090       \}
+00091     \}
+00092   \}
+00093 
+00094   tensor.resize(11,3,5);
+00095   tensor.setRandom();
+00096   broadcast = tensor.broadcast(broadcasts);
+00097 
+00098   VERIFY\_IS\_EQUAL(broadcast.dimension(0), 22);
+00099   VERIFY\_IS\_EQUAL(broadcast.dimension(1), 9);
+00100   VERIFY\_IS\_EQUAL(broadcast.dimension(2), 20);
+00101 
+00102   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 22; ++i) \{
+00103     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 9; ++j) \{
+00104       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 20; ++k) \{
+00105         VERIFY\_IS\_EQUAL(tensor(i%11,j%3,k%5), broadcast(i,j,k));
+00106       \}
+00107     \}
+00108   \}
+00109 \}
+00110 
+00111 
+00112 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00113 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_static\_broadcasting()
+00114 \{
+00115   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3, DataLayout>} tensor(8,3,5);
+00116   tensor.setRandom();
+00117 
+00118 \textcolor{preprocessor}{#if EIGEN\_HAS\_CONSTEXPR}
+00119   Eigen::IndexList<Eigen::type2index<2>, Eigen::type2index<3>, Eigen::type2index<4>> broadcasts;
+00120 \textcolor{preprocessor}{#else}
+00121   \hyperlink{class_eigen_1_1array}{Eigen::array<int, 3>} broadcasts;
+00122   broadcasts[0] = 2;
+00123   broadcasts[1] = 3;
+00124   broadcasts[2] = 4;
+00125 \textcolor{preprocessor}{#endif}
+00126 
+00127   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3, DataLayout>} broadcast;
+00128   broadcast = tensor.broadcast(broadcasts);
+00129 
+00130   VERIFY\_IS\_EQUAL(broadcast.dimension(0), 16);
+00131   VERIFY\_IS\_EQUAL(broadcast.dimension(1), 9);
+00132   VERIFY\_IS\_EQUAL(broadcast.dimension(2), 20);
+00133 
+00134   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 16; ++i) \{
+00135     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 9; ++j) \{
+00136       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 20; ++k) \{
+00137         VERIFY\_IS\_EQUAL(tensor(i%8,j%3,k%5), broadcast(i,j,k));
+00138       \}
+00139     \}
+00140   \}
+00141 
+00142   tensor.resize(11,3,5);
+00143   tensor.setRandom();
+00144   broadcast = tensor.broadcast(broadcasts);
+00145 
+00146   VERIFY\_IS\_EQUAL(broadcast.dimension(0), 22);
+00147   VERIFY\_IS\_EQUAL(broadcast.dimension(1), 9);
+00148   VERIFY\_IS\_EQUAL(broadcast.dimension(2), 20);
+00149 
+00150   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 22; ++i) \{
+00151     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 9; ++j) \{
+00152       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 20; ++k) \{
+00153         VERIFY\_IS\_EQUAL(tensor(i%11,j%3,k%5), broadcast(i,j,k));
+00154       \}
+00155     \}
+00156   \}
+00157 \}
+00158 
+00159 
+00160 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} DataLayout>
+00161 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_fixed\_size\_broadcasting()
+00162 \{
+00163   \textcolor{comment}{// Need to add a [] operator to the Size class for this to work}
+00164 \textcolor{preprocessor}{#if 0}
+00165   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, DataLayout>} t1(10);
+00166   t1.setRandom();
+00167   TensorFixedSize<float, Sizes<1>, DataLayout> t2;
+00168   t2 = t2.constant(20.0f);
+00169 
+00170   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, DataLayout>} t3 = t1 + t2.broadcast(
+      \hyperlink{class_eigen_1_1array}{Eigen::array<int, 1>}\{\{10\}\});
+00171   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 10; ++i) \{
+00172     VERIFY\_IS\_APPROX(t3(i), t1(i) + t2(0));
+00173   \}
+00174 
+00175   TensorMap<TensorFixedSize<float, Sizes<1>, DataLayout> > t4(t2.data(), \{\{1\}\});
+00176   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, DataLayout>} t5 = t1 + t4.broadcast(
+      \hyperlink{class_eigen_1_1array}{Eigen::array<int, 1>}\{\{10\}\});
+00177   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 10; ++i) \{
+00178     VERIFY\_IS\_APPROX(t5(i), t1(i) + t2(0));
+00179   \}
+00180 \textcolor{preprocessor}{#endif}
+00181 \}
+00182 
+00183 
+00184 \textcolor{keywordtype}{void} test\_cxx11\_tensor\_broadcasting()
+00185 \{
+00186   CALL\_SUBTEST(test\_simple\_broadcasting<ColMajor>());
+00187   CALL\_SUBTEST(test\_simple\_broadcasting<RowMajor>());
+00188   CALL\_SUBTEST(test\_vectorized\_broadcasting<ColMajor>());
+00189   CALL\_SUBTEST(test\_vectorized\_broadcasting<RowMajor>());
+00190   CALL\_SUBTEST(test\_static\_broadcasting<ColMajor>());
+00191   CALL\_SUBTEST(test\_static\_broadcasting<RowMajor>());
+00192   CALL\_SUBTEST(test\_fixed\_size\_broadcasting<ColMajor>());
+00193   CALL\_SUBTEST(test\_fixed\_size\_broadcasting<RowMajor>());
+00194 \}
+\end{DoxyCode}

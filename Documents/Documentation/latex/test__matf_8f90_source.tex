@@ -1,0 +1,585 @@
+\hypertarget{test__matf_8f90_source}{}\section{test\+\_\+matf.\+f90}
+\label{test__matf_8f90_source}\index{test\+\_\+matf.\+f90@{test\+\_\+matf.\+f90}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{!}
+00002 \textcolor{comment}{! Copyright (c) 2005-2018, Christopher C. Hulbert}
+00003 \textcolor{comment}{! All rights reserved.}
+00004 \textcolor{comment}{!}
+00005 \textcolor{comment}{! Redistribution and use in source and binary forms, with or without}
+00006 \textcolor{comment}{! modification, are permitted provided that the following conditions are met:}
+00007 \textcolor{comment}{!}
+00008 \textcolor{comment}{! 1. Redistributions of source code must retain the above copyright notice, this}
+00009 \textcolor{comment}{!    list of conditions and the following disclaimer.}
+00010 \textcolor{comment}{!}
+00011 \textcolor{comment}{! 2. Redistributions in binary form must reproduce the above copyright notice,}
+00012 \textcolor{comment}{!    this list of conditions and the following disclaimer in the documentation}
+00013 \textcolor{comment}{!    and/or other materials provided with the distribution.}
+00014 \textcolor{comment}{!}
+00015 \textcolor{comment}{! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"}
+00016 \textcolor{comment}{! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE}
+00017 \textcolor{comment}{! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE}
+00018 \textcolor{comment}{! DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE}
+00019 \textcolor{comment}{! FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL}
+00020 \textcolor{comment}{! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR}
+00021 \textcolor{comment}{! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER}
+00022 \textcolor{comment}{! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,}
+00023 \textcolor{comment}{! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}
+00024 \textcolor{comment}{! OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}
+00025 \textcolor{comment}{!}
+00026 \textcolor{keyword}{PROGRAM} test
+00027 \textcolor{keywordtype}{USE }matio
+00028 \textcolor{keywordtype}{IMPLICIT NONE}
+00029     \textcolor{keywordtype}{CHARACTER(len=4)}                :: prog\_name
+00030     \textcolor{keywordtype}{INTEGER}                         :: opt
+00031     \textcolor{keywordtype}{INTEGER(KIND=4)}                 :: mode, err, i,rank, class\_type,data\_type
+00032     \textcolor{keywordtype}{TYPE}(\hyperlink{group___m_a_t_gab0fc888f5a5d79943b16284b1f91c2e8}{mat\_t})                     :: mat
+00033     \textcolor{keywordtype}{TYPE}(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t})                  :: matvar,field
+00034 
+00035     prog\_name = \textcolor{stringliteral}{'test'}
+00036     \textcolor{keyword}{CALL }fmat\_loginit(prog\_name)
+00037 
+00038     \textcolor{keywordflow}{DO}
+00039         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'   Version 5 MAT File tests'}
+00040         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'========================================================='}
+00041         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{' 1.  copy           - Copies one matlab file to another'}
+00042         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{' 2.  write          - Writes a matlab file'}
+00043         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{' 3.  readvar        - Reads a specific variable from a file'}
+00044         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{' 4.  writestruct    - Writes a structure'}
+00045         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{' 5.  writecell      - Writes a Cell Array'}
+00046         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{' 6.  getstructfield - Uses Mat\_VarGetStructField to get fields from a structure'}
+00047         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{' 7.  readvarinfo    - Reads a variables header information only'}
+00048         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{' 8.  readslab       - Tests reading a part of a dataset'}
+00049         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{' 9.  writeslab      - Tests writing a part of a dataset'}
+00050         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{' 10. writesparse    - Tests writing a sparse matrix'}
+00051         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{' 11. writecompressed - Tests writing a compressed file'}
+00052         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{''}
+00053         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{''}
+00054         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'   Version 4 MAT File tests'}
+00055         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'========================================================='}
+00056         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{''}
+00057         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{''}
+00058         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'   Other Tests'}
+00059         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'========================================================='}
+00060         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'101. ind2sub - Calculates a set of subscripts from a linear index'}
+00061         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'102. sub2ind - Calculates the linear index from subscript values'}
+00062         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'999.  Exit'}
+00063         \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{''}
+00064         \textcolor{keyword}{WRITE} (*,\textcolor{stringliteral}{'(a)'},advance=\textcolor{stringliteral}{'NO'}) \textcolor{stringliteral}{'Select a test: '}
+00065         \textcolor{keyword}{READ} (*,\textcolor{stringliteral}{'(i3)'}) opt
+00066 
+00067         \textcolor{keywordflow}{SELECT CASE} (opt)
+00068             \textcolor{keywordflow}{CASE} (999)
+00069                 \textcolor{keywordflow}{EXIT}
+00070             \textcolor{keywordflow}{CASE} (1)
+00071                 \textcolor{keyword}{CALL }test\_copy
+00072             \textcolor{keywordflow}{CASE} (2)
+00073                 \textcolor{keyword}{CALL }test\_write
+00074             \textcolor{keywordflow}{CASE} (3)
+00075                 \textcolor{keyword}{CALL }test\_readvar
+00076             \textcolor{keywordflow}{CASE} (4)
+00077                 \textcolor{keyword}{CALL }test\_writestruct
+00078             \textcolor{keywordflow}{CASE} (5)
+00079                 \textcolor{keyword}{CALL }test\_writecell
+00080             \textcolor{keywordflow}{CASE} (6)
+00081                 \textcolor{keyword}{CALL }test\_getstructfield
+00082             \textcolor{keywordflow}{CASE} (7)
+00083                 \textcolor{keyword}{CALL }test\_readvarinfo
+00084             \textcolor{keywordflow}{CASE} (8)
+00085                 \textcolor{keyword}{CALL }test\_readslab
+00086             \textcolor{keywordflow}{CASE} (9)
+00087                 \textcolor{keyword}{CALL }test\_writeslab
+00088             \textcolor{keywordflow}{CASE} (10)
+00089                 \textcolor{keyword}{CALL }test\_writesparse
+00090             \textcolor{keywordflow}{CASE} (11)
+00091                 \textcolor{keyword}{CALL }test\_write\_compressed
+00092 \textcolor{keywordflow}{            CASE DEFAULT}
+00093                 \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{''}
+00094                 \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'Invalid option!'}
+00095                 \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{''}
+00096 \textcolor{keywordflow}{        END SELECT}
+00097 \textcolor{keywordflow}{    END DO}
+00098 
+00099 \textcolor{keyword}{CONTAINS}
+00100 \textcolor{keyword}{    SUBROUTINE }test\_copy
+00101     \textcolor{keywordtype}{USE }matio
+00102     \textcolor{keywordtype}{IMPLICIT NONE}
+00103         \textcolor{keywordtype}{DOUBLE PRECISION},\textcolor{keywordtype}{ALLOCATABLE} :: double\_data(:)
+00104         \textcolor{keywordtype}{REAL(4)},\textcolor{keywordtype}{ALLOCATABLE}          :: single\_data(:)
+00105         \textcolor{keywordtype}{INTEGER(4)},\textcolor{keywordtype}{ALLOCATABLE}       :: int32\_data(:)
+00106         \textcolor{keywordtype}{INTEGER(2)},\textcolor{keywordtype}{ALLOCATABLE}       :: int16\_data(:)
+00107         \textcolor{keywordtype}{INTEGER(1)},\textcolor{keywordtype}{ALLOCATABLE}       :: int8\_data(:)
+00108         \textcolor{keywordtype}{INTEGER}            :: err,n
+00109         \textcolor{keywordtype}{TYPE}(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t})     :: matvar
+00110         \textcolor{keywordtype}{TYPE}(\hyperlink{group___m_a_t_gab0fc888f5a5d79943b16284b1f91c2e8}{mat\_t})        :: mat,mat2
+00111         \textcolor{keywordtype}{CHARACTER(LEN=128)} :: inputfile
+00112         \textcolor{keywordtype}{CHARACTER(LEN=17)}  :: outfilename
+00113 
+00114         outfilename = \textcolor{stringliteral}{'test\_mat\_copy.mat'}
+00115         \textcolor{keyword}{WRITE} (*,\textcolor{stringliteral}{'(a)'},advance=\textcolor{stringliteral}{'NO'}) \textcolor{stringliteral}{'Enter the input filename: '}
+00116         \textcolor{keyword}{READ} (*,\textcolor{stringliteral}{'(a128)'}) inputfile
+00117 
+00118         err = fmat\_open(inputfile,mat\_acc\_rdwr,mat)
+00119         err = fmat\_create(outfilename,mat\_ft\_mat5,mat2)
+00120         \textcolor{keywordflow}{IF} ( err .NE. 0 ) \textcolor{keywordflow}{THEN}
+00121             \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'Error opening file '},inputfile
+00122             \textcolor{keywordflow}{RETURN}
+00123         \textcolor{keywordflow}{ELSE}
+00124             err = fmat\_varreadnextinfo(mat,matvar)
+00125             \textcolor{keywordflow}{DO} \textcolor{keywordflow}{WHILE} ( err .EQ. 0 )
+00126                 n = product(matvar%dims(1:matvar%rank))
+00127                 \textcolor{keywordflow}{IF} ( matvar%isComplex .GT. 0 ) n=n*2
+00128                 \textcolor{keywordflow}{SELECT CASE} (matvar%class\_type)
+00129                     \textcolor{keywordflow}{CASE} (mat\_c\_double)
+00130                         \textcolor{keyword}{ALLOCATE}(double\_data(n))
+00131                         err = \hyperlink{interfacematio_1_1fmat__varreaddata}{fmat\_varreaddata}(mat,matvar,double\_data)
+00132                         err = \hyperlink{interfacematio_1_1fmat__varwrite}{fmat\_varwrite}(mat2,matvar,double\_data)
+00133                         \textcolor{keyword}{DEALLOCATE}(double\_data)
+00134                     \textcolor{keywordflow}{CASE} (mat\_c\_single)
+00135                         \textcolor{keyword}{ALLOCATE}(single\_data(n))
+00136                         err = \hyperlink{interfacematio_1_1fmat__varreaddata}{fmat\_varreaddata}(mat,matvar,single\_data)
+00137                         err = \hyperlink{interfacematio_1_1fmat__varwrite}{fmat\_varwrite}(mat2,matvar,single\_data)
+00138                         \textcolor{keyword}{DEALLOCATE}(single\_data)
+00139                     \textcolor{keywordflow}{CASE} (mat\_c\_int32,mat\_c\_uint32)
+00140                         \textcolor{keyword}{ALLOCATE}(int32\_data(n))
+00141                         err = \hyperlink{interfacematio_1_1fmat__varreaddata}{fmat\_varreaddata}(mat,matvar,int32\_data)
+00142                         err = \hyperlink{interfacematio_1_1fmat__varwrite}{fmat\_varwrite}(mat2,matvar,int32\_data)
+00143                         \textcolor{keyword}{DEALLOCATE}(int32\_data)
+00144                     \textcolor{keywordflow}{CASE} (mat\_c\_int16,mat\_c\_uint16)
+00145                         \textcolor{keyword}{ALLOCATE}(int16\_data(n))
+00146                         err = \hyperlink{interfacematio_1_1fmat__varreaddata}{fmat\_varreaddata}(mat,matvar,int16\_data)
+00147                         err = \hyperlink{interfacematio_1_1fmat__varwrite}{fmat\_varwrite}(mat2,matvar,int16\_data)
+00148                         \textcolor{keyword}{DEALLOCATE}(int16\_data)
+00149                     \textcolor{keywordflow}{CASE} (mat\_c\_int8,mat\_c\_uint8)
+00150                         \textcolor{keyword}{ALLOCATE}(int8\_data(n))
+00151                         err = \hyperlink{interfacematio_1_1fmat__varreaddata}{fmat\_varreaddata}(mat,matvar,int8\_data)
+00152                         err = \hyperlink{interfacematio_1_1fmat__varwrite}{fmat\_varwrite}(mat2,matvar,int8\_data)
+00153                         \textcolor{keyword}{DEALLOCATE}(int8\_data)
+00154 \textcolor{keywordflow}{                END SELECT}
+00155                 err = fmat\_varreadnextinfo(mat,matvar)
+00156 \textcolor{keywordflow}{            END DO}
+00157             err = fmat\_close(mat)
+00158             err = fmat\_close(mat2)
+00159 \textcolor{keywordflow}{        END IF}
+00160 \textcolor{keyword}{    END SUBROUTINE }test\_copy
+00161 
+00162 \textcolor{keyword}{    SUBROUTINE }test\_write
+00163     \textcolor{keywordtype}{USE }matio
+00164     \textcolor{keywordtype}{IMPLICIT NONE}
+00165         \textcolor{keywordtype}{CHARACTER(LEN=18)}  :: filename = \textcolor{stringliteral}{'test\_mat\_write.mat'}
+00166         \textcolor{keywordtype}{INTEGER}            :: err,k,l,n = 1
+00167         \textcolor{keywordtype}{TYPE}(\hyperlink{group___m_a_t_gab0fc888f5a5d79943b16284b1f91c2e8}{mat\_t})        :: mat
+00168         \textcolor{keywordtype}{TYPE}(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t})     :: matvar
+00169         \textcolor{comment}{! Data}
+00170         \textcolor{keywordtype}{CHARACTER(LEN=3)}           :: cdouble\_name = \textcolor{stringliteral}{'d\_j'}
+00171         \textcolor{keywordtype}{CHARACTER(LEN=1)}           :: double\_name = \textcolor{stringliteral}{'d'}
+00172         \textcolor{keywordtype}{CHARACTER(LEN=1)}           :: single\_name = \textcolor{stringliteral}{'s'}
+00173         \textcolor{keywordtype}{CHARACTER(LEN=3)}           :: int32\_name  = \textcolor{stringliteral}{'i32'}
+00174         \textcolor{keywordtype}{CHARACTER(LEN=3)}           :: int16\_name  = \textcolor{stringliteral}{'i16'}
+00175         \textcolor{keywordtype}{CHARACTER(LEN=2)}           :: int8\_name   = \textcolor{stringliteral}{'i8'}
+00176         \textcolor{keywordtype}{CHARACTER(LEN=1)}           :: char\_name   = \textcolor{stringliteral}{'c'}
+00177         \textcolor{keywordtype}{REAL(8)},\textcolor{keywordtype}{DIMENSION(5,10)}    :: double\_data
+00178         \textcolor{keywordtype}{COMPLEX(8)},\textcolor{keywordtype}{DIMENSION(5,10)} :: cdouble\_data
+00179         \textcolor{keywordtype}{REAL(4)},\textcolor{keywordtype}{DIMENSION(5,10)}    :: single\_data
+00180         \textcolor{keywordtype}{COMPLEX(4)},\textcolor{keywordtype}{DIMENSION(5,10)} :: csingle\_data
+00181         \textcolor{keywordtype}{INTEGER(4)},\textcolor{keywordtype}{DIMENSION(5,10)} :: int32\_data
+00182         \textcolor{keywordtype}{INTEGER(2)},\textcolor{keywordtype}{DIMENSION(5,10)} :: int16\_data
+00183         \textcolor{keywordtype}{INTEGER(1)},\textcolor{keywordtype}{DIMENSION(5,10)} :: int8\_data
+00184         \textcolor{keywordtype}{CHARACTER(1)},\textcolor{keywordtype}{DIMENSION(5,10)} :: char\_data
+00185 
+00186         double\_data  = reshape((/(n,n=1,50)/),(/5,10/))
+00187         cdouble\_data = cmplx(reshape((/(n,n=1,50)/),(/5,10/)),  &
+00188                              reshape((/(n,n=1,50)/),(/5,10/)))
+00189         single\_data  = reshape((/(n,n=1,50)/),(/5,10/))
+00190         int32\_data   = reshape((/(n,n=1,50)/),(/5,10/))
+00191         int16\_data   = reshape((/(n,n=1,50)/),(/5,10/))
+00192         int8\_data    = reshape((/(n,n=1,50)/),(/5,10/))
+00193 
+00194         char\_data(1,1)  = \textcolor{stringliteral}{'a'}
+00195         char\_data(2,1)  = \textcolor{stringliteral}{'b'}
+00196         char\_data(3,1)  = \textcolor{stringliteral}{'c'}
+00197         char\_data(4,1)  = \textcolor{stringliteral}{'d'}
+00198         char\_data(5,1)  = \textcolor{stringliteral}{'e'}
+00199         char\_data(1,2)  = \textcolor{stringliteral}{'f'}
+00200         char\_data(2,2)  = \textcolor{stringliteral}{'g'}
+00201         char\_data(3,2)  = \textcolor{stringliteral}{'h'}
+00202         char\_data(4,2)  = \textcolor{stringliteral}{'i'}
+00203         char\_data(5,2) = \textcolor{stringliteral}{'j'}
+00204         char\_data(1,3) = \textcolor{stringliteral}{'k'}
+00205         char\_data(2,3) = \textcolor{stringliteral}{'l'}
+00206         char\_data(3,3) = \textcolor{stringliteral}{'m'}
+00207         char\_data(4,3) = \textcolor{stringliteral}{'n'}
+00208         char\_data(5,3) = \textcolor{stringliteral}{'o'}
+00209         char\_data(1,4) = \textcolor{stringliteral}{'p'}
+00210         char\_data(2,4) = \textcolor{stringliteral}{'q'}
+00211         char\_data(3,4) = \textcolor{stringliteral}{'r'}
+00212         char\_data(4,4) = \textcolor{stringliteral}{'s'}
+00213         char\_data(5,4) = \textcolor{stringliteral}{'t'}
+00214         char\_data(1,5) = \textcolor{stringliteral}{'u'}
+00215         char\_data(2,5) = \textcolor{stringliteral}{'v'}
+00216         char\_data(3,5) = \textcolor{stringliteral}{'w'}
+00217         char\_data(4,5) = \textcolor{stringliteral}{'x'}
+00218         char\_data(5,5) = \textcolor{stringliteral}{'y'}
+00219         char\_data(1,6) = \textcolor{stringliteral}{'z'}
+00220         char\_data(2,6) = \textcolor{stringliteral}{'0'}
+00221         char\_data(3,6) = \textcolor{stringliteral}{'1'}
+00222         char\_data(4,6) = \textcolor{stringliteral}{'2'}
+00223         char\_data(5,6) = \textcolor{stringliteral}{'3'}
+00224         char\_data(1,7) = \textcolor{stringliteral}{'4'}
+00225         char\_data(2,7) = \textcolor{stringliteral}{'5'}
+00226         char\_data(3,7) = \textcolor{stringliteral}{'6'}
+00227         char\_data(4,7) = \textcolor{stringliteral}{'7'}
+00228         char\_data(5,7) = \textcolor{stringliteral}{'8'}
+00229         char\_data(1,8) = \textcolor{stringliteral}{'9'}
+00230         char\_data(2,8) = \textcolor{stringliteral}{'!'}
+00231         char\_data(3,8) = \textcolor{stringliteral}{'@'}
+00232         char\_data(4,8) = \textcolor{stringliteral}{'#'}
+00233         char\_data(5,8) = \textcolor{stringliteral}{'$'}
+00234         char\_data(1,9) = \textcolor{stringliteral}{'%'}
+00235         char\_data(2,9) = \textcolor{stringliteral}{'^'}
+00236         char\_data(3,9) = \textcolor{stringliteral}{'&'}
+00237         char\_data(4,9) = \textcolor{stringliteral}{'*'}
+00238         char\_data(5,9) = \textcolor{stringliteral}{'('}
+00239         char\_data(1,10) = \textcolor{stringliteral}{')'}
+00240         char\_data(2,10) = \textcolor{stringliteral}{'-'}
+00241         char\_data(3,10) = \textcolor{stringliteral}{'+'}
+00242         char\_data(4,10) = \textcolor{stringliteral}{'='}
+00243         char\_data(5,10) = \textcolor{stringliteral}{'~'}
+00244 
+00245         err = fmat\_open(filename,mat\_acc\_rdwr,mat)
+00246         \textcolor{keywordflow}{IF} ( err .NE. 0 ) \textcolor{keywordflow}{THEN}
+00247             \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'Error opening file '},filename
+00248             \textcolor{keywordflow}{RETURN}
+00249         \textcolor{keywordflow}{ELSE}
+00250             err = \hyperlink{interfacematio_1_1fmat__varcreate}{fmat\_varcreate}(double\_name,double\_data,matvar)
+00251             \textcolor{keywordflow}{IF} (err .EQ. 0) \textcolor{keywordflow}{THEN}
+00252                 err = fmat\_varwriteinfo(mat,matvar)
+00253                 err = \hyperlink{interfacematio_1_1fmat__varwritedata}{fmat\_varwritedata}(mat,matvar,double\_data)
+00254                 err = fmat\_varfree(matvar)
+00255 \textcolor{keywordflow}{            END IF}
+00256             err = \hyperlink{interfacematio_1_1fmat__varcreate}{fmat\_varcreate}(cdouble\_name,cdouble\_data,matvar)
+00257             \textcolor{keywordflow}{IF} (err .EQ. 0) \textcolor{keywordflow}{THEN}
+00258                 err = \hyperlink{interfacematio_1_1fmat__varwrite}{fmat\_varwrite}(mat,matvar,cdouble\_data)
+00259                 err = fmat\_varfree(matvar)
+00260 \textcolor{keywordflow}{            END IF}
+00261             err = \hyperlink{interfacematio_1_1fmat__varcreate}{fmat\_varcreate}(single\_name,single\_data,matvar)
+00262             \textcolor{keywordflow}{IF} (err .EQ. 0) \textcolor{keywordflow}{THEN}
+00263                 err = fmat\_varwriteinfo(mat,matvar)
+00264                 err = \hyperlink{interfacematio_1_1fmat__varwritedata}{fmat\_varwritedata}(mat,matvar,single\_data)
+00265                 err = fmat\_varfree(matvar)
+00266 \textcolor{keywordflow}{            END IF}
+00267             err = \hyperlink{interfacematio_1_1fmat__varcreate}{fmat\_varcreate}(int32\_name,int32\_data,matvar)
+00268             \textcolor{keywordflow}{IF} (err .EQ. 0) \textcolor{keywordflow}{THEN}
+00269                 err = fmat\_varwriteinfo(mat,matvar)
+00270                 err = \hyperlink{interfacematio_1_1fmat__varwritedata}{fmat\_varwritedata}(mat,matvar,int32\_data)
+00271                 err = fmat\_varfree(matvar)
+00272 \textcolor{keywordflow}{            END IF}
+00273             err = \hyperlink{interfacematio_1_1fmat__varcreate}{fmat\_varcreate}(int16\_name,int16\_data,matvar)
+00274             \textcolor{keywordflow}{IF} (err .EQ. 0) \textcolor{keywordflow}{THEN}
+00275                 err = fmat\_varwriteinfo(mat,matvar)
+00276                 err = \hyperlink{interfacematio_1_1fmat__varwritedata}{fmat\_varwritedata}(mat,matvar,int16\_data)
+00277                 err = fmat\_varfree(matvar)
+00278 \textcolor{keywordflow}{            END IF}
+00279             err = \hyperlink{interfacematio_1_1fmat__varcreate}{fmat\_varcreate}(int8\_name,int8\_data,matvar)
+00280             \textcolor{keywordflow}{IF} (err .EQ. 0) \textcolor{keywordflow}{THEN}
+00281                 err = fmat\_varwriteinfo(mat,matvar)
+00282                 err = \hyperlink{interfacematio_1_1fmat__varwritedata}{fmat\_varwritedata}(mat,matvar,int8\_data)
+00283                 err = fmat\_varfree(matvar)
+00284 \textcolor{keywordflow}{            END IF}
+00285             err = \hyperlink{interfacematio_1_1fmat__varcreate}{fmat\_varcreate}(char\_name,char\_data,matvar)
+00286             \textcolor{keywordflow}{IF} (err .EQ. 0) \textcolor{keywordflow}{THEN}
+00287                 err = fmat\_varwriteinfo(mat,matvar)
+00288                 err = \hyperlink{interfacematio_1_1fmat__varwritedata}{fmat\_varwritedata}(mat,matvar,char\_data)
+00289                 err = fmat\_varfree(matvar)
+00290 \textcolor{keywordflow}{            END IF}
+00291             err = fmat\_close(mat)
+00292 \textcolor{keywordflow}{        END IF}
+00293 \textcolor{keyword}{    END SUBROUTINE }test\_write
+00294 
+00295 \textcolor{keyword}{    SUBROUTINE }test\_write\_compressed
+00296     \textcolor{keywordtype}{USE }matio
+00297     \textcolor{keywordtype}{IMPLICIT NONE}
+00298         \textcolor{keywordtype}{CHARACTER(LEN=64)}  :: filename = \textcolor{stringliteral}{'test\_mat\_write\_compressed.mat'}
+00299         \textcolor{keywordtype}{INTEGER}            :: err,k,l,n = 1
+00300         \textcolor{keywordtype}{TYPE}(\hyperlink{group___m_a_t_gab0fc888f5a5d79943b16284b1f91c2e8}{mat\_t})        :: mat
+00301         \textcolor{keywordtype}{TYPE}(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t})     :: matvar
+00302         \textcolor{comment}{! Data}
+00303         \textcolor{keywordtype}{CHARACTER(LEN=1)}           :: double\_name = \textcolor{stringliteral}{'d'}
+00304         \textcolor{keywordtype}{CHARACTER(LEN=1)}           :: single\_name = \textcolor{stringliteral}{'s'}
+00305         \textcolor{keywordtype}{CHARACTER(LEN=3)}           :: int32\_name  = \textcolor{stringliteral}{'i32'}
+00306         \textcolor{keywordtype}{CHARACTER(LEN=3)}           :: int16\_name  = \textcolor{stringliteral}{'i16'}
+00307         \textcolor{keywordtype}{CHARACTER(LEN=2)}           :: int8\_name   = \textcolor{stringliteral}{'i8'}
+00308         \textcolor{keywordtype}{REAL(8)},\textcolor{keywordtype}{DIMENSION(5,10)}    :: double\_data
+00309         \textcolor{keywordtype}{REAL(4)},\textcolor{keywordtype}{DIMENSION(5,10)}    :: single\_data
+00310         \textcolor{keywordtype}{INTEGER(4)},\textcolor{keywordtype}{DIMENSION(5,10)} :: int32\_data
+00311         \textcolor{keywordtype}{INTEGER(2)},\textcolor{keywordtype}{DIMENSION(5,10)} :: int16\_data
+00312         \textcolor{keywordtype}{INTEGER(1)},\textcolor{keywordtype}{DIMENSION(5,10)} :: int8\_data
+00313 
+00314         double\_data = reshape((/(n,n=1,50)/),(/5,10/))
+00315         single\_data = reshape((/(n,n=1,50)/),(/5,10/))
+00316         int32\_data  = reshape((/(n,n=1,50)/),(/5,10/))
+00317         int16\_data  = reshape((/(n,n=1,50)/),(/5,10/))
+00318         int8\_data   = reshape((/(n,n=1,50)/),(/5,10/))
+00319 
+00320         err = fmat\_open(filename,mat\_acc\_rdwr,mat)
+00321         \textcolor{keywordflow}{IF} ( err .NE. 0 ) \textcolor{keywordflow}{THEN}
+00322             \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'Error opening file '},filename
+00323             \textcolor{keywordflow}{RETURN}
+00324         \textcolor{keywordflow}{ELSE}
+00325             err = \hyperlink{interfacematio_1_1fmat__varcreate}{fmat\_varcreate}(double\_name,double\_data,matvar)
+00326             \textcolor{keywordflow}{IF} (err .EQ. 0) \textcolor{keywordflow}{THEN}
+00327                 err = \hyperlink{interfacematio_1_1fmat__varwrite}{fmat\_varwrite}(mat,matvar,double\_data,compression\_zlib)
+00328                 err = fmat\_varfree(matvar)
+00329 \textcolor{keywordflow}{            END IF}
+00330             err = \hyperlink{interfacematio_1_1fmat__varcreate}{fmat\_varcreate}(single\_name,single\_data,matvar)
+00331             \textcolor{keywordflow}{IF} (err .EQ. 0) \textcolor{keywordflow}{THEN}
+00332                 err = \hyperlink{interfacematio_1_1fmat__varwrite}{fmat\_varwrite}(mat,matvar,single\_data,compression\_zlib)
+00333                 err = fmat\_varfree(matvar)
+00334 \textcolor{keywordflow}{            END IF}
+00335             err = \hyperlink{interfacematio_1_1fmat__varcreate}{fmat\_varcreate}(int32\_name,int32\_data,matvar)
+00336             \textcolor{keywordflow}{IF} (err .EQ. 0) \textcolor{keywordflow}{THEN}
+00337                 err = \hyperlink{interfacematio_1_1fmat__varwrite}{fmat\_varwrite}(mat,matvar,int32\_data,compression\_zlib)
+00338                 err = fmat\_varfree(matvar)
+00339 \textcolor{keywordflow}{            END IF}
+00340             err = \hyperlink{interfacematio_1_1fmat__varcreate}{fmat\_varcreate}(int16\_name,int16\_data,matvar)
+00341             \textcolor{keywordflow}{IF} (err .EQ. 0) \textcolor{keywordflow}{THEN}
+00342                 err = \hyperlink{interfacematio_1_1fmat__varwrite}{fmat\_varwrite}(mat,matvar,int16\_data,compression\_zlib)
+00343                 err = fmat\_varfree(matvar)
+00344 \textcolor{keywordflow}{            END IF}
+00345             err = \hyperlink{interfacematio_1_1fmat__varcreate}{fmat\_varcreate}(int8\_name,int8\_data,matvar)
+00346             \textcolor{keywordflow}{IF} (err .EQ. 0) \textcolor{keywordflow}{THEN}
+00347                 err = \hyperlink{interfacematio_1_1fmat__varwrite}{fmat\_varwrite}(mat,matvar,int8\_data,compression\_zlib)
+00348                 err = fmat\_varfree(matvar)
+00349 \textcolor{keywordflow}{            END IF}
+00350             err = fmat\_close(mat)
+00351 \textcolor{keywordflow}{        END IF}
+00352 \textcolor{keyword}{    END SUBROUTINE }test\_write\_compressed
+00353 
+00354 \textcolor{keyword}{    SUBROUTINE }test\_readvar
+00355     \textcolor{keywordtype}{USE }matio
+00356     \textcolor{keywordtype}{IMPLICIT NONE}
+00357         \textcolor{keywordtype}{CHARACTER(LEN=128)} :: inputfile
+00358         \textcolor{keywordtype}{CHARACTER(LEN=32)}  :: varname
+00359         \textcolor{keywordtype}{TYPE}(\hyperlink{group___m_a_t_gab0fc888f5a5d79943b16284b1f91c2e8}{mat\_t})        :: mat
+00360         \textcolor{keywordtype}{TYPE}(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t})     :: matvar
+00361         \textcolor{keywordtype}{INTEGER}            :: err,n
+00362         \textcolor{comment}{! Data matrices}
+00363         \textcolor{keywordtype}{REAL(8)},\textcolor{keywordtype}{DIMENSION(:)},\textcolor{keywordtype}{ALLOCATABLE}      :: double\_data
+00364         \textcolor{keywordtype}{REAL(4)},\textcolor{keywordtype}{DIMENSION(:)},\textcolor{keywordtype}{ALLOCATABLE}      :: single\_data
+00365         \textcolor{keywordtype}{INTEGER(4)},\textcolor{keywordtype}{DIMENSION(:)},\textcolor{keywordtype}{ALLOCATABLE}   :: int32\_data
+00366         \textcolor{keywordtype}{INTEGER(2)},\textcolor{keywordtype}{DIMENSION(:)},\textcolor{keywordtype}{ALLOCATABLE}   :: int16\_data
+00367         \textcolor{keywordtype}{INTEGER(1)},\textcolor{keywordtype}{DIMENSION(:)},\textcolor{keywordtype}{ALLOCATABLE}   :: int8\_data
+00368         \textcolor{keywordtype}{CHARACTER(1)},\textcolor{keywordtype}{DIMENSION(:)},\textcolor{keywordtype}{ALLOCATABLE} :: char\_data
+00369 
+00370         \textcolor{keyword}{WRITE} (*,\textcolor{stringliteral}{'(a)'},advance=\textcolor{stringliteral}{'NO'}) \textcolor{stringliteral}{'Enter the input filename: '}
+00371         \textcolor{keyword}{READ} (*,\textcolor{stringliteral}{'(a128)'}) inputfile
+00372         \textcolor{keyword}{WRITE} (*,\textcolor{stringliteral}{'(a)'},advance=\textcolor{stringliteral}{'NO'}) \textcolor{stringliteral}{'Enter the variable name: '}
+00373         \textcolor{keyword}{READ} (*,\textcolor{stringliteral}{'(a32)'}) varname
+00374 
+00375         err = fmat\_open(inputfile,mat\_acc\_rdonly,mat)
+00376         \textcolor{keywordflow}{IF} ( err .NE. 0 ) \textcolor{keywordflow}{THEN}
+00377             \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'Error opening file '},inputfile
+00378             \textcolor{keywordflow}{RETURN}
+00379         \textcolor{keywordflow}{ELSE}
+00380             err = fmat\_varreadinfo(mat,varname,matvar)
+00381             \textcolor{keywordflow}{IF} ( err .NE. 0 ) \textcolor{keywordflow}{THEN}
+00382                 \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'err='},err
+00383                 \textcolor{keywordflow}{RETURN}
+00384 \textcolor{keywordflow}{            END IF}
+00385             n = product(matvar%dims(1:matvar%rank))
+00386             \textcolor{keywordflow}{SELECT CASE} (matvar%class\_type)
+00387                 \textcolor{keywordflow}{CASE} (mat\_c\_double)
+00388                     \textcolor{keyword}{ALLOCATE}(double\_data(n))
+00389                     err = \hyperlink{interfacematio_1_1fmat__varreaddata}{fmat\_varreaddata}(mat,matvar,double\_data)
+00390                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'      Name: '},matvar%name
+00391                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'      Rank: '},matvar%rank
+00392                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'     Class: '},matvar%class\_type
+00393                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'Dimensions: '},matvar%dims(1:matvar%rank)
+00394                     \textcolor{keyword}{WRITE}(*,*) double\_data
+00395                     \textcolor{keyword}{DEALLOCATE}(double\_data)
+00396                 \textcolor{keywordflow}{CASE} (mat\_c\_single)
+00397                     \textcolor{keyword}{ALLOCATE}(single\_data(n))
+00398                     err = \hyperlink{interfacematio_1_1fmat__varreaddata}{fmat\_varreaddata}(mat,matvar,single\_data)
+00399                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'      Name: '},matvar%name
+00400                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'      Rank: '},matvar%rank
+00401                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'     Class: '},matvar%class\_type
+00402                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'Dimensions: '},matvar%dims(1:matvar%rank)
+00403                     \textcolor{keyword}{WRITE}(*,*) single\_data
+00404                     \textcolor{keyword}{DEALLOCATE}(single\_data)
+00405                 \textcolor{keywordflow}{CASE} (mat\_c\_int32,mat\_c\_uint32)
+00406                     \textcolor{keyword}{ALLOCATE}(int32\_data(n))
+00407                     err = \hyperlink{interfacematio_1_1fmat__varreaddata}{fmat\_varreaddata}(mat,matvar,int32\_data)
+00408                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'      Name: '},matvar%name
+00409                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'      Rank: '},matvar%rank
+00410                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'     Class: '},matvar%class\_type
+00411                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'Dimensions: '},matvar%dims(1:matvar%rank)
+00412                     \textcolor{keyword}{WRITE}(*,*) int32\_data
+00413                     \textcolor{keyword}{DEALLOCATE}(int32\_data)
+00414                 \textcolor{keywordflow}{CASE} (mat\_c\_int16,mat\_c\_uint16)
+00415                     \textcolor{keyword}{ALLOCATE}(int16\_data(n))
+00416                     err = \hyperlink{interfacematio_1_1fmat__varreaddata}{fmat\_varreaddata}(mat,matvar,int16\_data)
+00417                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'      Name: '},matvar%name
+00418                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'      Rank: '},matvar%rank
+00419                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'     Class: '},matvar%class\_type
+00420                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'Dimensions: '},matvar%dims(1:matvar%rank)
+00421                     \textcolor{keyword}{WRITE}(*,*) int16\_data
+00422                     \textcolor{keyword}{DEALLOCATE}(int16\_data)
+00423                 \textcolor{keywordflow}{CASE} (mat\_c\_int8,mat\_c\_uint8)
+00424                     \textcolor{keyword}{ALLOCATE}(int8\_data(n))
+00425                     err = \hyperlink{interfacematio_1_1fmat__varreaddata}{fmat\_varreaddata}(mat,matvar,int8\_data)
+00426                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'      Name: '},matvar%name
+00427                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'      Rank: '},matvar%rank
+00428                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'     Class: '},matvar%class\_type
+00429                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'Dimensions: '},matvar%dims(1:matvar%rank)
+00430                     \textcolor{keyword}{WRITE}(*,*) int8\_data
+00431                     \textcolor{keyword}{DEALLOCATE}(int8\_data)
+00432                 \textcolor{keywordflow}{CASE} (mat\_c\_char)
+00433                     \textcolor{keyword}{ALLOCATE}(char\_data(n))
+00434                     err = \hyperlink{interfacematio_1_1fmat__varreaddata}{fmat\_varreaddata}(mat,matvar,char\_data)
+00435                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'      Name: '},matvar%name
+00436                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'      Rank: '},matvar%rank
+00437                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'     Class: '},matvar%class\_type
+00438                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'Dimensions: '},matvar%dims(1:matvar%rank)
+00439                     \textcolor{keyword}{WRITE}(*,*) char\_data
+00440                     \textcolor{keyword}{DEALLOCATE}(char\_data)
+00441                 \textcolor{keywordflow}{CASE} (mat\_c\_struct)
+00442                     err = fmat\_vargetnumberoffields(matvar)
+00443                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'      Name: '},matvar%name
+00444                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'      Rank: '},matvar%rank
+00445                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'     Class: '},matvar%class\_type
+00446                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'Dimensions: '},matvar%dims(1:matvar%rank)
+00447                     \textcolor{keyword}{WRITE}(*,*) \textcolor{stringliteral}{'Number of Fields: '},err
+00448 \textcolor{keywordflow}{            END SELECT}
+00449             err = fmat\_varfree(matvar)
+00450             err = fmat\_close(mat)
+00451 \textcolor{keywordflow}{        END IF}
+00452 \textcolor{keyword}{    END SUBROUTINE }test\_readvar
+00453 
+00454 \textcolor{keyword}{    SUBROUTINE }test\_writestruct
+00455 \textcolor{keyword}{    END SUBROUTINE }test\_writestruct
+00456 \textcolor{keyword}{    SUBROUTINE }test\_writecell
+00457 \textcolor{keyword}{    END SUBROUTINE }test\_writecell
+00458 \textcolor{keyword}{    SUBROUTINE }test\_getstructfield
+00459 \textcolor{keyword}{    END SUBROUTINE }test\_getstructfield
+00460 \textcolor{keyword}{    SUBROUTINE }test\_readvarinfo
+00461 \textcolor{keyword}{    END SUBROUTINE }test\_readvarinfo
+00462 
+00463 \textcolor{keyword}{    SUBROUTINE }test\_writeslab
+00464     \textcolor{keywordtype}{USE }matio
+00465     \textcolor{keywordtype}{IMPLICIT NONE}
+00466         \textcolor{keywordtype}{CHARACTER(LEN=64)}  :: filename = \textcolor{stringliteral}{'test\_mat\_writeslab.mat'}
+00467         \textcolor{keywordtype}{INTEGER}            :: err,k,l,n = 1
+00468         \textcolor{keywordtype}{INTEGER},\textcolor{keywordtype}{DIMENSION(2)} :: start  = (/0,0/)
+00469         \textcolor{keywordtype}{INTEGER},\textcolor{keywordtype}{DIMENSION(2)} :: stride = (/2,2/)
+00470         \textcolor{keywordtype}{INTEGER},\textcolor{keywordtype}{DIMENSION(2)} :: edge   = (/3,5/)
+00471         \textcolor{keywordtype}{TYPE}(\hyperlink{group___m_a_t_gab0fc888f5a5d79943b16284b1f91c2e8}{mat\_t})        :: mat
+00472         \textcolor{keywordtype}{TYPE}(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t})     :: matvar
+00473         \textcolor{comment}{! Data}
+00474         \textcolor{keywordtype}{CHARACTER(LEN=1)}           :: double\_name = \textcolor{stringliteral}{'d'}
+00475         \textcolor{keywordtype}{CHARACTER(LEN=1)}           :: single\_name = \textcolor{stringliteral}{'s'}
+00476         \textcolor{keywordtype}{CHARACTER(LEN=3)}           :: int32\_name  = \textcolor{stringliteral}{'i32'}
+00477         \textcolor{keywordtype}{REAL(8)},\textcolor{keywordtype}{DIMENSION(6,10)}    :: double\_data
+00478         \textcolor{keywordtype}{REAL(4)},\textcolor{keywordtype}{DIMENSION(6,10)}    :: single\_data
+00479         \textcolor{keywordtype}{INTEGER(4)},\textcolor{keywordtype}{DIMENSION(6,10)} :: int32\_data
+00480 
+00481         double\_data = reshape((/(n,n=1,60)/),(/6,10/))
+00482         single\_data = reshape((/(n,n=1,60)/),(/6,10/))
+00483         int32\_data  = reshape((/(n,n=1,60)/),(/6,10/))
+00484 
+00485         err = fmat\_open(filename,mat\_acc\_rdwr,mat)
+00486         \textcolor{keywordflow}{IF} ( err .NE. 0 ) \textcolor{keywordflow}{THEN}
+00487             \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'Error opening file '},filename
+00488             \textcolor{keywordflow}{RETURN}
+00489         \textcolor{keywordflow}{ELSE}
+00490             err = \hyperlink{interfacematio_1_1fmat__varcreate}{fmat\_varcreate}(double\_name,double\_data,matvar)
+00491             \textcolor{keywordflow}{IF} (err .EQ. 0) \textcolor{keywordflow}{THEN}
+00492                 err = fmat\_varwriteinfo(mat,matvar)
+00493                 err = \hyperlink{interfacematio_1_1fmat__varwritedata}{fmat\_varwritedata}(mat,matvar,double\_data,start,stride,edge)
+00494                 err = fmat\_varfree(matvar)
+00495 \textcolor{keywordflow}{            END IF}
+00496             err = \hyperlink{interfacematio_1_1fmat__varcreate}{fmat\_varcreate}(single\_name,single\_data,matvar)
+00497             \textcolor{keywordflow}{IF} (err .EQ. 0) \textcolor{keywordflow}{THEN}
+00498                 err = fmat\_varwriteinfo(mat,matvar)
+00499                 err = \hyperlink{interfacematio_1_1fmat__varwritedata}{fmat\_varwritedata}(mat,matvar,single\_data,start,stride,edge)
+00500                 err = fmat\_varfree(matvar)
+00501 \textcolor{keywordflow}{            END IF}
+00502             err = \hyperlink{interfacematio_1_1fmat__varcreate}{fmat\_varcreate}(int32\_name,int32\_data,matvar)
+00503             \textcolor{keywordflow}{IF} (err .EQ. 0) \textcolor{keywordflow}{THEN}
+00504                 err = fmat\_varwriteinfo(mat,matvar)
+00505                 err = \hyperlink{interfacematio_1_1fmat__varwritedata}{fmat\_varwritedata}(mat,matvar,int32\_data,start,stride,edge)
+00506                 err = fmat\_varfree(matvar)
+00507 \textcolor{keywordflow}{            END IF}
+00508             err = fmat\_close(mat)
+00509 \textcolor{keywordflow}{        END IF}
+00510 \textcolor{keyword}{    END SUBROUTINE }test\_writeslab
+00511 
+00512 \textcolor{keyword}{    SUBROUTINE }test\_readslab
+00513     \textcolor{keywordtype}{USE }matio
+00514     \textcolor{keywordtype}{IMPLICIT NONE}
+00515         \textcolor{keywordtype}{CHARACTER(LEN=128)} :: inputfile
+00516         \textcolor{keywordtype}{CHARACTER(LEN=32)}  :: varname
+00517         \textcolor{keywordtype}{TYPE}(\hyperlink{group___m_a_t_gab0fc888f5a5d79943b16284b1f91c2e8}{mat\_t})        :: mat
+00518         \textcolor{keywordtype}{TYPE}(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t})     :: matvar
+00519         \textcolor{keywordtype}{INTEGER}            :: err,n
+00520         \textcolor{keywordtype}{INTEGER},\textcolor{keywordtype}{DIMENSION(2)} :: start  = (/0,0/)
+00521         \textcolor{keywordtype}{INTEGER},\textcolor{keywordtype}{DIMENSION(2)} :: stride = (/1,1/)
+00522         \textcolor{keywordtype}{INTEGER},\textcolor{keywordtype}{DIMENSION(2)} :: edge   = (/2,2/)
+00523         \textcolor{comment}{! Data matrices}
+00524         \textcolor{keywordtype}{REAL(8)},\textcolor{keywordtype}{DIMENSION(4)}      :: double\_data
+00525         \textcolor{keywordtype}{REAL(4)},\textcolor{keywordtype}{DIMENSION(4)}      :: single\_data
+00526         \textcolor{keywordtype}{INTEGER(4)},\textcolor{keywordtype}{DIMENSION(4)}   :: int32\_data
+00527         \textcolor{keywordtype}{INTEGER(2)},\textcolor{keywordtype}{DIMENSION(4)}   :: int16\_data
+00528         \textcolor{keywordtype}{INTEGER(1)},\textcolor{keywordtype}{DIMENSION(4)}   :: int8\_data
+00529 
+00530         \textcolor{keyword}{WRITE} (*,\textcolor{stringliteral}{'(a)'},advance=\textcolor{stringliteral}{'NO'}) \textcolor{stringliteral}{'Enter the input filename: '}
+00531         \textcolor{keyword}{READ} (*,\textcolor{stringliteral}{'(a128)'}) inputfile
+00532         \textcolor{keyword}{WRITE} (*,\textcolor{stringliteral}{'(a)'},advance=\textcolor{stringliteral}{'NO'}) \textcolor{stringliteral}{'Enter the variable name: '}
+00533         \textcolor{keyword}{READ} (*,\textcolor{stringliteral}{'(a32)'}) varname
+00534 
+00535         err = fmat\_open(inputfile,mat\_acc\_rdonly,mat)
+00536         \textcolor{keywordflow}{IF} ( err .NE. 0 ) \textcolor{keywordflow}{THEN}
+00537             \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'Error opening file '},inputfile
+00538             \textcolor{keywordflow}{RETURN}
+00539         \textcolor{keywordflow}{ELSE}
+00540             err = fmat\_varreadinfo(mat,varname,matvar)
+00541             \textcolor{keywordflow}{IF} ( err .NE. 0 ) \textcolor{keywordflow}{THEN}
+00542                 \textcolor{keyword}{WRITE} (*,*) \textcolor{stringliteral}{'err='},err
+00543                 \textcolor{keywordflow}{RETURN}
+00544 \textcolor{keywordflow}{            END IF}
+00545             \textcolor{keywordflow}{SELECT CASE} (matvar%class\_type)
+00546                 \textcolor{keywordflow}{CASE} (mat\_c\_double)
+00547                     stride(1) = matvar%dims(1)-1
+00548                     stride(2) = matvar%dims(2)-1
+00549                     err = \hyperlink{interfacematio_1_1fmat__varreaddata}{fmat\_varreaddata}(mat,matvar,double\_data,start,stride,edge)
+00550                     \textcolor{keyword}{WRITE}(*,*) double\_data
+00551                 \textcolor{keywordflow}{CASE} (mat\_c\_single)
+00552                     stride(1) = matvar%dims(1)-1
+00553                     stride(2) = matvar%dims(2)-1
+00554                     err = \hyperlink{interfacematio_1_1fmat__varreaddata}{fmat\_varreaddata}(mat,matvar,single\_data,start,stride,edge)
+00555                     \textcolor{keyword}{WRITE}(*,*) single\_data
+00556                 \textcolor{keywordflow}{CASE} (mat\_c\_int32,mat\_c\_uint32)
+00557                     stride(1) = matvar%dims(1)-1
+00558                     stride(2) = matvar%dims(2)-1
+00559                     err = \hyperlink{interfacematio_1_1fmat__varreaddata}{fmat\_varreaddata}(mat,matvar,int32\_data,start,stride,edge)
+00560                     \textcolor{keyword}{WRITE}(*,*) int32\_data
+00561                 \textcolor{keywordflow}{CASE} (mat\_c\_int16,mat\_c\_uint16)
+00562                     stride(1) = matvar%dims(1)-1
+00563                     stride(2) = matvar%dims(2)-1
+00564                     err = \hyperlink{interfacematio_1_1fmat__varreaddata}{fmat\_varreaddata}(mat,matvar,int16\_data,start,stride,edge)
+00565                     \textcolor{keyword}{WRITE}(*,*) int16\_data
+00566                 \textcolor{keywordflow}{CASE} (mat\_c\_int8,mat\_c\_uint8)
+00567                     stride(1) = matvar%dims(1)-1
+00568                     stride(2) = matvar%dims(2)-1
+00569                     err = \hyperlink{interfacematio_1_1fmat__varreaddata}{fmat\_varreaddata}(mat,matvar,int8\_data,start,stride,edge)
+00570                     \textcolor{keyword}{WRITE}(*,*) int8\_data
+00571 \textcolor{keywordflow}{            END SELECT}
+00572             err = fmat\_varfree(matvar)
+00573             err = fmat\_close(mat)
+00574 \textcolor{keywordflow}{        END IF}
+00575 \textcolor{keyword}{    END SUBROUTINE }test\_readslab
+00576 
+00577 \textcolor{keyword}{    SUBROUTINE }test\_writesparse
+00578 \textcolor{keyword}{    END SUBROUTINE }test\_writesparse
+00579 
+00580 \textcolor{keyword}{END PROGRAM }test
+\end{DoxyCode}

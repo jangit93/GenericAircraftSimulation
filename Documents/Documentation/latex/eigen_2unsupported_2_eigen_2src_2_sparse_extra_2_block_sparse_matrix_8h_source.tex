@@ -1,0 +1,986 @@
+\hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source}{}\section{eigen/unsupported/\+Eigen/src/\+Sparse\+Extra/\+Block\+Sparse\+Matrix.h}
+\label{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source}\index{Block\+Sparse\+Matrix.\+h@{Block\+Sparse\+Matrix.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2013 Desire Nuentsa <desire.nuentsa\_wakam@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2013 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_SPARSEBLOCKMATRIX\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_SPARSEBLOCKMATRIX\_H}
+00013 
+00014 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00054}\hyperlink{group___sparse_core___module}{00054} \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} \_BlockAtCompileTime=Dynamic, \textcolor{keywordtype}{int} \_Options=ColMajor, \textcolor{keyword}{typename} \_StorageIndex=\textcolor{keywordtype}{
+      int}> \textcolor{keyword}{class }\hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix};
+00055 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00056}\hyperlink{class_eigen_1_1_block_sparse_matrix_view}{00056} \textcolor{keyword}{template}<\textcolor{keyword}{typename} BlockSparseMatrixT> \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_block_sparse_matrix_view}{BlockSparseMatrixView};
+00057 
+00058 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00059 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} \_BlockAtCompileTime, \textcolor{keywordtype}{int} \_Options, \textcolor{keyword}{typename} \_Index>
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00060}\hyperlink{struct_eigen_1_1internal_1_1traits_3_01_block_sparse_matrix_3_01___scalar_00_01___block_at_compibd5ca3edcdbc62bf01222bcf3326c5bd}{00060} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1traits}{traits}<\hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix}<\_Scalar,\_BlockAtCompileTime,\_Options, \_Index> >
+00061 \{
+00062   \textcolor{keyword}{typedef} \_Scalar Scalar;
+00063   \textcolor{keyword}{typedef} \_Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00064   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1_sparse}{Sparse} \hyperlink{struct_eigen_1_1_sparse}{StorageKind}; \textcolor{comment}{// FIXME Where is it used ??}
+00065   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1_matrix_xpr}{MatrixXpr} \hyperlink{struct_eigen_1_1_matrix_xpr}{XprKind};
+00066   \textcolor{keyword}{enum} \{
+00067     RowsAtCompileTime = \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00068     ColsAtCompileTime = \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00069     MaxRowsAtCompileTime = \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00070     MaxColsAtCompileTime = \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00071     BlockSize = \_BlockAtCompileTime,
+00072     Flags = \_Options | NestByRefBit | \hyperlink{group__flags_gae2c323957f20dfdc6cb8f44428eaec1a}{LvalueBit},
+00073     CoeffReadCost = \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::ReadCost},
+00074     SupportedAccessPatterns = InnerRandomAccessPattern
+00075   \};
+00076 \};
+00077 \textcolor{keyword}{template}<\textcolor{keyword}{typename} BlockSparseMatrixT>
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00078}\hyperlink{struct_eigen_1_1internal_1_1traits_3_01_block_sparse_matrix_view_3_01_block_sparse_matrix_t_01_4_01_4}{00078} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1traits}{traits}<\hyperlink{class_eigen_1_1_block_sparse_matrix_view}{BlockSparseMatrixView}<BlockSparseMatrixT> >
+00079 \{
+00080   \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_ref}{Ref<Matrix<typename BlockSparseMatrixT::Scalar, BlockSparseMatrixT::BlockSize,
+       BlockSparseMatrixT::BlockSize>}
+       > \hyperlink{group___core___module_class_eigen_1_1_ref}{Scalar};
+00081   \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_ref}{Ref<Matrix<typename BlockSparseMatrixT::RealScalar, BlockSparseMatrixT::BlockSize,
+       BlockSparseMatrixT::BlockSize>}
+       > \hyperlink{group___core___module_class_eigen_1_1_ref}{RealScalar};
+00082 
+00083 \};
+00084 
+00085 \textcolor{comment}{// Function object to sort a triplet list}
+00086 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Iterator, \textcolor{keywordtype}{bool} IsColMajor>
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00087}\hyperlink{struct_eigen_1_1internal_1_1_triplet_comp}{00087} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1_triplet_comp}{TripletComp}
+00088 \{
+00089   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Iterator::value\_type Triplet;
+00090   \textcolor{keywordtype}{bool} operator()(\textcolor{keyword}{const} Triplet& a, \textcolor{keyword}{const} Triplet& b)
+00091   \{ \textcolor{keywordflow}{if}(IsColMajor)
+00092       \textcolor{keywordflow}{return} ((a.col() == b.col() && a.row() < b.row()) || (a.col() < b.col()));
+00093     \textcolor{keywordflow}{else}
+00094       \textcolor{keywordflow}{return} ((a.row() == b.row() && a.col() < b.col()) || (a.row() < b.row()));
+00095   \}
+00096 \};
+00097 \} \textcolor{comment}{// end namespace internal}
+00098 
+00099 
+00100 \textcolor{comment}{/* Proxy to view the block sparse matrix as a regular sparse matrix */}
+00101 \textcolor{keyword}{template}<\textcolor{keyword}{typename} BlockSparseMatrixT>
+00102 \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_block_sparse_matrix_view}{BlockSparseMatrixView} : \textcolor{keyword}{public} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix_base}{SparseMatrixBase}<BlockSparseMatri
+      xT>
+00103 \{
+00104   \textcolor{keyword}{public}:
+00105     \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_ref}{Ref<typename BlockSparseMatrixT::BlockScalar>} 
+      Scalar;
+00106     \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_ref}{Ref<typename BlockSparseMatrixT::BlockRealScalar>}
+       RealScalar;
+00107     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} BlockSparseMatrixT::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00108     \textcolor{keyword}{typedef}  BlockSparseMatrixT Nested;
+00109     \textcolor{keyword}{enum} \{
+00110       Flags = BlockSparseMatrixT::Options,
+00111       Options = BlockSparseMatrixT::Options,
+00112       RowsAtCompileTime = BlockSparseMatrixT::RowsAtCompileTime,
+00113       ColsAtCompileTime = BlockSparseMatrixT::ColsAtCompileTime,
+00114       MaxColsAtCompileTime = BlockSparseMatrixT::MaxColsAtCompileTime,
+00115       MaxRowsAtCompileTime = BlockSparseMatrixT::MaxRowsAtCompileTime
+00116     \};
+00117   \textcolor{keyword}{public}:
+00118     \hyperlink{class_eigen_1_1_block_sparse_matrix_view}{BlockSparseMatrixView}(\textcolor{keyword}{const} BlockSparseMatrixT& spblockmat)
+00119      : m\_spblockmat(spblockmat)
+00120     \{\}
+00121 
+00122     Index outerSize()\textcolor{keyword}{ const}
+00123 \textcolor{keyword}{    }\{
+00124       \textcolor{keywordflow}{return} (Flags&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}) == 1 ? this->rows() : this->cols();
+00125     \}
+00126     Index cols()\textcolor{keyword}{ const}
+00127 \textcolor{keyword}{    }\{
+00128       \textcolor{keywordflow}{return} m\_spblockmat.blockCols();
+00129     \}
+00130     Index rows()\textcolor{keyword}{ const}
+00131 \textcolor{keyword}{    }\{
+00132       \textcolor{keywordflow}{return} m\_spblockmat.blockRows();
+00133     \}
+00134     Scalar coeff(Index row, Index col)
+00135     \{
+00136       \textcolor{keywordflow}{return} m\_spblockmat.coeff(row, col);
+00137     \}
+00138     Scalar coeffRef(Index row, Index col)
+00139     \{
+00140       \textcolor{keywordflow}{return} m\_spblockmat.coeffRef(row, col);
+00141     \}
+00142     \textcolor{comment}{// Wrapper to iterate over all blocks}
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00143}\hyperlink{class_eigen_1_1_block_sparse_matrix_view_1_1_inner_iterator}{00143}     \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_block_sparse_matrix_view_1_1_inner_iterator}{InnerIterator} : \textcolor{keyword}{public} BlockSparseMatrixT::BlockInnerIterator
+00144     \{
+00145       \textcolor{keyword}{public}:
+00146       \hyperlink{class_eigen_1_1_block_sparse_matrix_view_1_1_inner_iterator}{InnerIterator}(\textcolor{keyword}{const} \hyperlink{class_eigen_1_1_block_sparse_matrix_view}{BlockSparseMatrixView}& mat, Index outer)
+00147           : BlockSparseMatrixT::BlockInnerIterator(mat.m\_spblockmat, outer)
+00148       \{\}
+00149 
+00150     \};
+00151 
+00152   \textcolor{keyword}{protected}:
+00153     \textcolor{keyword}{const} BlockSparseMatrixT& m\_spblockmat;
+00154 \};
+00155 
+00156 \textcolor{comment}{// Proxy to view a regular vector as a block vector}
+00157 \textcolor{keyword}{template}<\textcolor{keyword}{typename} BlockSparseMatrixT, \textcolor{keyword}{typename} VectorType>
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00158}\hyperlink{class_eigen_1_1_block_vector_view}{00158} \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_block_vector_view}{BlockVectorView}
+00159 \{
+00160   \textcolor{keyword}{public}:
+00161     \textcolor{keyword}{enum} \{
+00162       BlockSize = BlockSparseMatrixT::BlockSize,
+00163       ColsAtCompileTime = VectorType::ColsAtCompileTime,
+00164       RowsAtCompileTime = VectorType::RowsAtCompileTime,
+00165       Flags = VectorType::Flags
+00166     \};
+00167     \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_ref}{Ref<const Matrix<typename BlockSparseMatrixT::Scalar, (RowsAtCompileTime==1)? 1 : BlockSize,
+       (ColsAtCompileTime==1)? 1 : BlockSize>}
+       >\hyperlink{group___core___module_class_eigen_1_1_ref}{Scalar};
+00168     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} BlockSparseMatrixT::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00169   \textcolor{keyword}{public}:
+00170     \hyperlink{class_eigen_1_1_block_vector_view}{BlockVectorView}(\textcolor{keyword}{const} BlockSparseMatrixT& spblockmat, \textcolor{keyword}{const} 
+      \hyperlink{struct_vector_type}{VectorType}& vec)
+00171     : m\_spblockmat(spblockmat),m\_vec(vec)
+00172     \{ \}
+00173     \textcolor{keyword}{inline} Index cols()\textcolor{keyword}{ const}
+00174 \textcolor{keyword}{    }\{
+00175       \textcolor{keywordflow}{return} m\_vec.cols();
+00176     \}
+00177     \textcolor{keyword}{inline} Index size()\textcolor{keyword}{ const}
+00178 \textcolor{keyword}{    }\{
+00179       \textcolor{keywordflow}{return} m\_spblockmat.blockRows();
+00180     \}
+00181     \textcolor{keyword}{inline} Scalar coeff(Index bi)\textcolor{keyword}{ const}
+00182 \textcolor{keyword}{    }\{
+00183       Index startRow = m\_spblockmat.blockRowsIndex(bi);
+00184       Index rowSize = m\_spblockmat.blockRowsIndex(bi+1) - startRow;
+00185       \textcolor{keywordflow}{return} m\_vec.middleRows(startRow, rowSize);
+00186     \}
+00187     \textcolor{keyword}{inline} Scalar coeff(Index bi, Index j)\textcolor{keyword}{ const}
+00188 \textcolor{keyword}{    }\{
+00189       Index startRow = m\_spblockmat.blockRowsIndex(bi);
+00190       Index rowSize = m\_spblockmat.blockRowsIndex(bi+1) - startRow;
+00191       \textcolor{keywordflow}{return} m\_vec.block(startRow, j, rowSize, 1);
+00192     \}
+00193   \textcolor{keyword}{protected}:
+00194     \textcolor{keyword}{const} BlockSparseMatrixT& m\_spblockmat;
+00195     \textcolor{keyword}{const} \hyperlink{struct_vector_type}{VectorType}& m\_vec;
+00196 \};
+00197 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00198}\hyperlink{class_eigen_1_1_block_vector_return}{00198} \textcolor{keyword}{template}<\textcolor{keyword}{typename} VectorType, \textcolor{keyword}{typename} Index> \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_block_vector_return}{BlockVectorReturn};
+00199 
+00200 
+00201 \textcolor{comment}{// Proxy to view a regular vector as a block vector}
+00202 \textcolor{keyword}{template}<\textcolor{keyword}{typename} BlockSparseMatrixT, \textcolor{keyword}{typename} VectorType>
+00203 \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_block_vector_return}{BlockVectorReturn}
+00204 \{
+00205   \textcolor{keyword}{public}:
+00206     \textcolor{keyword}{enum} \{
+00207       ColsAtCompileTime = VectorType::ColsAtCompileTime,
+00208       RowsAtCompileTime = VectorType::RowsAtCompileTime,
+00209       Flags = VectorType::Flags
+00210     \};
+00211     \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_ref}{Ref<Matrix<typename VectorType::Scalar, RowsAtCompileTime, ColsAtCompileTime>}
+       > \hyperlink{group___core___module_class_eigen_1_1_ref}{Scalar};
+00212     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} BlockSparseMatrixT::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00213   \textcolor{keyword}{public}:
+00214     \hyperlink{class_eigen_1_1_block_vector_return}{BlockVectorReturn}(\textcolor{keyword}{const} BlockSparseMatrixT& spblockmat, 
+      \hyperlink{struct_vector_type}{VectorType}& vec)
+00215     : m\_spblockmat(spblockmat),m\_vec(vec)
+00216     \{ \}
+00217     \textcolor{keyword}{inline} Index size()\textcolor{keyword}{ const}
+00218 \textcolor{keyword}{    }\{
+00219       \textcolor{keywordflow}{return} m\_spblockmat.blockRows();
+00220     \}
+00221     \textcolor{keyword}{inline} Scalar coeffRef(Index bi)
+00222     \{
+00223       Index startRow = m\_spblockmat.blockRowsIndex(bi);
+00224       Index rowSize = m\_spblockmat.blockRowsIndex(bi+1) - startRow;
+00225       \textcolor{keywordflow}{return} m\_vec.middleRows(startRow, rowSize);
+00226     \}
+00227     \textcolor{keyword}{inline} Scalar coeffRef(Index bi, Index j)
+00228     \{
+00229       Index startRow = m\_spblockmat.blockRowsIndex(bi);
+00230       Index rowSize = m\_spblockmat.blockRowsIndex(bi+1) - startRow;
+00231       \textcolor{keywordflow}{return} m\_vec.block(startRow, j, rowSize, 1);
+00232     \}
+00233 
+00234   \textcolor{keyword}{protected}:
+00235     \textcolor{keyword}{const} BlockSparseMatrixT& m\_spblockmat;
+00236     \hyperlink{struct_vector_type}{VectorType}& m\_vec;
+00237 \};
+00238 
+00239 \textcolor{comment}{// Block version of the sparse dense product}
+00240 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs>
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00241}\hyperlink{class_eigen_1_1_block_sparse_time_dense_product}{00241} \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_block_sparse_time_dense_product}{BlockSparseTimeDenseProduct};
+00242 
+00243 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00244 
+00245 \textcolor{keyword}{template}<\textcolor{keyword}{typename} BlockSparseMatrixT, \textcolor{keyword}{typename} VecType>
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00246}\hyperlink{struct_eigen_1_1internal_1_1traits_3_01_block_sparse_time_dense_product_3_01_block_sparse_matrix_t_00_01_vec_type_01_4_01_4}{00246} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1traits}{traits}<\hyperlink{class_eigen_1_1_block_sparse_time_dense_product}{BlockSparseTimeDenseProduct}<BlockSparseMatrixT, VecType> >
+00247 \{
+00248   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1_dense}{Dense} \hyperlink{struct_eigen_1_1_dense}{StorageKind};
+00249   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1_matrix_xpr}{MatrixXpr} \hyperlink{struct_eigen_1_1_matrix_xpr}{XprKind};
+00250   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} BlockSparseMatrixT::Scalar Scalar;
+00251   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} BlockSparseMatrixT::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00252   \textcolor{keyword}{enum} \{
+00253     RowsAtCompileTime = \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00254     ColsAtCompileTime = \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00255     MaxRowsAtCompileTime = \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00256     MaxColsAtCompileTime = \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00257     Flags = 0,
+00258     CoeffReadCost = \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<BlockSparseMatrixT>::CoeffReadCost}
+00259   \};
+00260 \};
+00261 \} \textcolor{comment}{// end namespace internal}
+00262 
+00263 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs>
+00264 \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_block_sparse_time_dense_product}{BlockSparseTimeDenseProduct}
+00265   : \textcolor{keyword}{public} ProductBase<BlockSparseTimeDenseProduct<Lhs,Rhs>, Lhs, Rhs>
+00266 \{
+00267   \textcolor{keyword}{public}:
+00268     EIGEN\_PRODUCT\_PUBLIC\_INTERFACE(\hyperlink{class_eigen_1_1_block_sparse_time_dense_product}{BlockSparseTimeDenseProduct})
+00269 
+00270     \hyperlink{class_eigen_1_1_block_sparse_time_dense_product}{BlockSparseTimeDenseProduct}(\textcolor{keyword}{const} Lhs& lhs, \textcolor{keyword}{const} Rhs& rhs) : Base(lhs,rhs)
+00271     \{\}
+00272 
+00273     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Dest> \textcolor{keywordtype}{void} scaleAndAddTo(Dest& dest, \textcolor{keyword}{const} \textcolor{keyword}{typename} Rhs::Scalar& alpha)\textcolor{keyword}{ const}
+00274 \textcolor{keyword}{    }\{
+00275       \hyperlink{class_eigen_1_1_block_vector_return}{BlockVectorReturn<Lhs,Dest>} tmpDest(m\_lhs, dest);
+00276       internal::sparse\_time\_dense\_product( \hyperlink{class_eigen_1_1_block_sparse_matrix_view}{BlockSparseMatrixView<Lhs>}(m\_lhs),  
+      \hyperlink{class_eigen_1_1_block_vector_view}{BlockVectorView<Lhs, Rhs>}(m\_lhs, m\_rhs), tmpDest, alpha);
+00277     \}
+00278 
+00279   \textcolor{keyword}{private}:
+00280     \hyperlink{class_eigen_1_1_block_sparse_time_dense_product}{BlockSparseTimeDenseProduct}& operator=(\textcolor{keyword}{const} 
+      \hyperlink{class_eigen_1_1_block_sparse_time_dense_product}{BlockSparseTimeDenseProduct}&);
+00281 \};
+00282 
+00283 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} \_BlockAtCompileTime, \textcolor{keywordtype}{int} \_Options, \textcolor{keyword}{typename} \_StorageIndex>
+00284 \textcolor{keyword}{class }\hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix} : \textcolor{keyword}{public} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix_base}{SparseMatrixBase}<BlockSparseMatrix<\_Scala
+      r,\_BlockAtCompileTime, \_Options,\_StorageIndex> >
+00285 \{
+00286   \textcolor{keyword}{public}:
+00287     \textcolor{keyword}{typedef} \_Scalar Scalar;
+00288     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00289     \textcolor{keyword}{typedef} \_StorageIndex StorageIndex;
+00290     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1ref__selector}{internal::ref\_selector<BlockSparseMatrix<\_Scalar, \_BlockAtCompileTime, \_Options, \_StorageIndex>}
+       >::type Nested;
+00291 
+00292     \textcolor{keyword}{enum} \{
+00293       Options = \_Options,
+00294       Flags = Options,
+00295       BlockSize=\_BlockAtCompileTime,
+00296       RowsAtCompileTime = \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00297       ColsAtCompileTime = \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00298       MaxRowsAtCompileTime = \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00299       MaxColsAtCompileTime = \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},
+00300       IsVectorAtCompileTime = 0,
+00301       IsColMajor = Flags&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit} ? 0 : 1
+00302     \};
+00303     \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, \_BlockAtCompileTime, \_BlockAtCompileTime,IsColMajor ? ColMajor : RowMajor>}
+       BlockScalar;
+00304     \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<RealScalar, \_BlockAtCompileTime, \_BlockAtCompileTime,IsColMajor ? ColMajor : RowMajor>}
+       BlockRealScalar;
+00305     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} 
+      \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{internal::conditional<\_BlockAtCompileTime==Dynamic, Scalar, BlockScalar>::type}
+       BlockScalarReturnType;
+00306     \textcolor{keyword}{typedef} 
+      \hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix<Scalar, BlockSize, IsColMajor ? ColMajor : RowMajor, StorageIndex>}
+       PlainObject;
+00307   \textcolor{keyword}{public}:
+00308     \textcolor{comment}{// Default constructor}
+00309     \hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix}()
+00310     : m\_innerBSize(0),m\_outerBSize(0),m\_innerOffset(0),m\_outerOffset(0),
+00311       m\_nonzerosblocks(0),m\_values(0),m\_blockPtr(0),m\_indices(0),
+00312       m\_outerIndex(0),m\_blockSize(BlockSize)
+00313     \{ \}
+00314 
+00315 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00320}\hyperlink{group___sparse_core___module_a319d4ed434693fc09cdb7d71e090bbd8}{00320}     \hyperlink{group___sparse_core___module_a319d4ed434693fc09cdb7d71e090bbd8}{BlockSparseMatrix}(Index brow, Index bcol)
+00321       : m\_innerBSize(IsColMajor ? brow : bcol),
+00322         m\_outerBSize(IsColMajor ? bcol : brow),
+00323         m\_innerOffset(0),m\_outerOffset(0),m\_nonzerosblocks(0),
+00324         m\_values(0),m\_blockPtr(0),m\_indices(0),
+00325         m\_outerIndex(0),m\_blockSize(BlockSize)
+00326     \{ \}
+00327 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00331}\hyperlink{group___sparse_core___module_a5d0b6ea10540a0968410daf3b1ff99e8}{00331}     \hyperlink{group___sparse_core___module_a5d0b6ea10540a0968410daf3b1ff99e8}{BlockSparseMatrix}(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix}& other)
+00332       : m\_innerBSize(other.m\_innerBSize),m\_outerBSize(other.m\_outerBSize),
+00333         m\_nonzerosblocks(other.m\_nonzerosblocks),m\_nonzeros(other.m\_nonzeros),
+00334         m\_blockPtr(0),m\_blockSize(other.m\_blockSize)
+00335     \{
+00336       \textcolor{comment}{// should we allow copying between variable-size blocks and fixed-size blocks ??}
+00337       eigen\_assert(m\_blockSize == BlockSize && \textcolor{stringliteral}{" CAN NOT COPY BETWEEN FIXED-SIZE AND VARIABLE-SIZE BLOCKS"})
+      ;
+00338 
+00339       std::copy(other.m\_innerOffset, other.m\_innerOffset+m\_innerBSize+1, m\_innerOffset);
+00340       std::copy(other.m\_outerOffset, other.m\_outerOffset+m\_outerBSize+1, m\_outerOffset);
+00341       std::copy(other.m\_values, other.m\_values+m\_nonzeros, m\_values);
+00342 
+00343       \textcolor{keywordflow}{if}(m\_blockSize != \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})
+00344         std::copy(other.m\_blockPtr, other.m\_blockPtr+m\_nonzerosblocks, m\_blockPtr);
+00345 
+00346       std::copy(other.m\_indices, other.m\_indices+m\_nonzerosblocks, m\_indices);
+00347       std::copy(other.m\_outerIndex, other.m\_outerIndex+m\_outerBSize, m\_outerIndex);
+00348     \}
+00349 
+00350     \textcolor{keyword}{friend} \textcolor{keywordtype}{void} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(\hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix}& first, 
+      \hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix}& second)
+00351     \{
+00352       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(first.m\_innerBSize, second.m\_innerBSize);
+00353       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(first.m\_outerBSize, second.m\_outerBSize);
+00354       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(first.m\_innerOffset, second.m\_innerOffset);
+00355       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(first.m\_outerOffset, second.m\_outerOffset);
+00356       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(first.m\_nonzerosblocks, second.m\_nonzerosblocks);
+00357       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(first.m\_nonzeros, second.m\_nonzeros);
+00358       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(first.m\_values, second.m\_values);
+00359       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(first.m\_blockPtr, second.m\_blockPtr);
+00360       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(first.m\_indices, second.m\_indices);
+00361       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(first.m\_outerIndex, second.m\_outerIndex);
+00362       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap}(first.m\_BlockSize, second.m\_blockSize);
+00363     \}
+00364 
+00365     \hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix}& operator=(\hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix} other)
+00366     \{
+00367       \textcolor{comment}{//Copy-and-swap paradigm ... avoid leaked data if thrown}
+00368       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(*\textcolor{keyword}{this}, other);
+00369       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00370     \}
+00371 
+00372     \textcolor{comment}{// Destructor}
+00373     ~\hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix}()
+00374     \{
+00375       \textcolor{keyword}{delete}[] m\_outerIndex;
+00376       \textcolor{keyword}{delete}[] m\_innerOffset;
+00377       \textcolor{keyword}{delete}[] m\_outerOffset;
+00378       \textcolor{keyword}{delete}[] m\_indices;
+00379       \textcolor{keyword}{delete}[] m\_blockPtr;
+00380       \textcolor{keyword}{delete}[] m\_values;
+00381     \}
+00382 
+00383 
+00388     \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00389}\hyperlink{group___sparse_core___module_a1d5e6091b3a85a872f10a02265c3c8c6}{00389}     \textcolor{keyword}{inline} \hyperlink{group___sparse_core___module_a1d5e6091b3a85a872f10a02265c3c8c6}{BlockSparseMatrix}(\textcolor{keyword}{const} MatrixType& spmat) : m\_blockSize(BlockSize)
+00390     \{
+00391       EIGEN\_STATIC\_ASSERT((m\_blockSize != \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}), THIS\_METHOD\_IS\_ONLY\_FOR\_FIXED\_SIZE);
+00392 
+00393       *\textcolor{keyword}{this} = spmat;
+00394     \}
+00395 
+00404     \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00405}\hyperlink{group___sparse_core___module_a5c5479fd38867538383e092a1d90db5a}{00405}     \textcolor{keyword}{inline} \hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix}& \hyperlink{group___sparse_core___module_a5c5479fd38867538383e092a1d90db5a}{operator=}(\textcolor{keyword}{const} MatrixType& spmat)
+00406     \{
+00407       eigen\_assert((m\_innerBSize != 0 && m\_outerBSize != 0)
+00408                    && \textcolor{stringliteral}{"Trying to assign to a zero-size matrix, call resize() first"});
+00409       eigen\_assert(((MatrixType::Options&\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}) != IsColMajor) && \textcolor{stringliteral}{"Wrong storage order"});
+00410       \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix}{SparseMatrix<bool,MatrixType::Options,typename MatrixType::Index>}
+       MatrixPatternType;
+00411       MatrixPatternType  blockPattern(blockRows(), blockCols());
+00412       m\_nonzeros = 0;
+00413 
+00414       \textcolor{comment}{// First, compute the number of nonzero blocks and their locations}
+00415       \textcolor{keywordflow}{for}(StorageIndex bj = 0; bj < m\_outerBSize; ++bj)
+00416       \{
+00417         \textcolor{comment}{// Browse each outer block and compute the structure}
+00418         std::vector<bool> nzblocksFlag(m\_innerBSize,\textcolor{keyword}{false});  \textcolor{comment}{// Record the existing blocks}
+00419         blockPattern.startVec(bj);
+00420         \textcolor{keywordflow}{for}(StorageIndex j = blockOuterIndex(bj); j < blockOuterIndex(bj+1); ++j)
+00421         \{
+00422           \textcolor{keyword}{typename} MatrixType::InnerIterator it\_spmat(spmat, j);
+00423           \textcolor{keywordflow}{for}(; it\_spmat; ++it\_spmat)
+00424           \{
+00425             StorageIndex bi = innerToBlock(it\_spmat.index()); \textcolor{comment}{// Index of the current nonzero block}
+00426             \textcolor{keywordflow}{if}(!nzblocksFlag[bi])
+00427             \{
+00428               \textcolor{comment}{// Save the index of this nonzero block}
+00429               nzblocksFlag[bi] = \textcolor{keyword}{true};
+00430               blockPattern.insertBackByOuterInnerUnordered(bj, bi) = \textcolor{keyword}{true};
+00431               \textcolor{comment}{// Compute the total number of nonzeros (including explicit zeros in blocks)}
+00432               m\_nonzeros += blockOuterSize(bj) * blockInnerSize(bi);
+00433             \}
+00434           \}
+00435         \} \textcolor{comment}{// end current outer block}
+00436       \}
+00437       blockPattern.finalize();
+00438 
+00439       \textcolor{comment}{// Allocate the internal arrays}
+00440       setBlockStructure(blockPattern);
+00441 
+00442       \textcolor{keywordflow}{for}(StorageIndex nz = 0; nz < m\_nonzeros; ++nz) m\_values[nz] = Scalar(0);
+00443       \textcolor{keywordflow}{for}(StorageIndex bj = 0; bj < m\_outerBSize; ++bj)
+00444       \{
+00445         \textcolor{comment}{// Now copy the values}
+00446         \textcolor{keywordflow}{for}(StorageIndex j = blockOuterIndex(bj); j < blockOuterIndex(bj+1); ++j)
+00447         \{
+00448           \textcolor{comment}{// Browse the outer block column by column (for column-major matrices)}
+00449           \textcolor{keyword}{typename} MatrixType::InnerIterator it\_spmat(spmat, j);
+00450           \textcolor{keywordflow}{for}(; it\_spmat; ++it\_spmat)
+00451           \{
+00452             StorageIndex idx = 0; \textcolor{comment}{// Position of this block in the column block}
+00453             StorageIndex bi = innerToBlock(it\_spmat.index()); \textcolor{comment}{// Index of the current nonzero block}
+00454             \textcolor{comment}{// Go to the inner block where this element belongs to}
+00455             \textcolor{keywordflow}{while}(bi > m\_indices[m\_outerIndex[bj]+idx]) ++idx; \textcolor{comment}{// Not expensive for ordered blocks}
+00456             StorageIndex idxVal;\textcolor{comment}{// Get the right position in the array of values for this element}
+00457             \textcolor{keywordflow}{if}(m\_blockSize == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})
+00458             \{
+00459               \textcolor{comment}{// Offset from all blocks before ...}
+00460               idxVal =  m\_blockPtr[m\_outerIndex[bj]+idx];
+00461               \textcolor{comment}{// ... and offset inside the block}
+00462               idxVal += (j - blockOuterIndex(bj)) * blockOuterSize(bj) + it\_spmat.index() - m\_innerOffset[
+      bi];
+00463             \}
+00464             \textcolor{keywordflow}{else}
+00465             \{
+00466               \textcolor{comment}{// All blocks before}
+00467               idxVal = (m\_outerIndex[bj] + idx) * m\_blockSize * m\_blockSize;
+00468               \textcolor{comment}{// inside the block}
+00469               idxVal += (j - blockOuterIndex(bj)) * m\_blockSize + (it\_spmat.index()%m\_blockSize);
+00470             \}
+00471             \textcolor{comment}{// Insert the value}
+00472             m\_values[idxVal] = it\_spmat.value();
+00473           \} \textcolor{comment}{// end of this column}
+00474         \} \textcolor{comment}{// end of this block}
+00475       \} \textcolor{comment}{// end of this outer block}
+00476 
+00477       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00478     \}
+00479 
+00497     \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00498}\hyperlink{group___sparse_core___module_a40891e477661e68bc870319d1379c7aa}{00498}     \textcolor{keywordtype}{void} \hyperlink{group___sparse_core___module_a40891e477661e68bc870319d1379c7aa}{setBlockStructure}(\textcolor{keyword}{const} MatrixType& blockPattern)
+00499     \{
+00500       resize(blockPattern.rows(), blockPattern.cols());
+00501       reserve(blockPattern.nonZeros());
+00502 
+00503       \textcolor{comment}{// Browse the block pattern and set up the various pointers}
+00504       m\_outerIndex[0] = 0;
+00505       \textcolor{keywordflow}{if}(m\_blockSize == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) m\_blockPtr[0] = 0;
+00506       \textcolor{keywordflow}{for}(StorageIndex nz = 0; nz < m\_nonzeros; ++nz) m\_values[nz] = Scalar(0);
+00507       \textcolor{keywordflow}{for}(StorageIndex bj = 0; bj < m\_outerBSize; ++bj)
+00508       \{
+00509         \textcolor{comment}{//Browse each outer block}
+00510 
+00511         \textcolor{comment}{//First, copy and save the indices of nonzero blocks}
+00512         \textcolor{comment}{//FIXME : find a way to avoid this ...}
+00513         std::vector<int> nzBlockIdx;
+00514         \textcolor{keyword}{typename} MatrixType::InnerIterator it(blockPattern, bj);
+00515         \textcolor{keywordflow}{for}(; it; ++it)
+00516         \{
+00517           nzBlockIdx.push\_back(it.index());
+00518         \}
+00519         std::sort(nzBlockIdx.begin(), nzBlockIdx.end());
+00520 
+00521         \textcolor{comment}{// Now, fill block indices and (eventually) pointers to blocks}
+00522         \textcolor{keywordflow}{for}(StorageIndex idx = 0; idx < nzBlockIdx.size(); ++idx)
+00523         \{
+00524           StorageIndex offset = m\_outerIndex[bj]+idx; \textcolor{comment}{// offset in m\_indices}
+00525           m\_indices[offset] = nzBlockIdx[idx];
+00526           \textcolor{keywordflow}{if}(m\_blockSize == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})
+00527             m\_blockPtr[offset] = m\_blockPtr[offset-1] + blockInnerSize(nzBlockIdx[idx]) * blockOuterSize(bj
+      );
+00528           \textcolor{comment}{// There is no blockPtr for fixed-size blocks... not needed !???}
+00529         \}
+00530         \textcolor{comment}{// Save the pointer to the next outer block}
+00531         m\_outerIndex[bj+1] = m\_outerIndex[bj] + nzBlockIdx.size();
+00532       \}
+00533     \}
+00534 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00538}\hyperlink{group___sparse_core___module_ae0b2c5f1f4aa7a2a54dea00bbcef8e0b}{00538}     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} \hyperlink{group___sparse_core___module_ae0b2c5f1f4aa7a2a54dea00bbcef8e0b}{resize}(Index brow, Index bcol)
+00539     \{
+00540       m\_innerBSize = IsColMajor ? brow : bcol;
+00541       m\_outerBSize = IsColMajor ? bcol : brow;
+00542     \}
+00543 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00549}\hyperlink{group___sparse_core___module_a1984d81fa41dc2f4e8f1208f602e7e45}{00549}     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} \hyperlink{group___sparse_core___module_a1984d81fa41dc2f4e8f1208f602e7e45}{setBlockSize}(Index blockSize)
+00550     \{
+00551       m\_blockSize = blockSize;
+00552     \}
+00553 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00563}\hyperlink{group___sparse_core___module_acad69e4bb5e747db973cacc75c2f4a4d}{00563}     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} \hyperlink{group___sparse_core___module_acad69e4bb5e747db973cacc75c2f4a4d}{setBlockLayout}(\textcolor{keyword}{const} VectorXi& rowBlocks, \textcolor{keyword}{const} VectorXi& colBlocks)
+00564     \{
+00565       \textcolor{keyword}{const} VectorXi& innerBlocks = IsColMajor ? rowBlocks : colBlocks;
+00566       \textcolor{keyword}{const} VectorXi& outerBlocks = IsColMajor ? colBlocks : rowBlocks;
+00567       eigen\_assert(m\_innerBSize == innerBlocks.size() && \textcolor{stringliteral}{"CHECK THE NUMBER OF ROW OR COLUMN BLOCKS"});
+00568       eigen\_assert(m\_outerBSize == outerBlocks.size() && \textcolor{stringliteral}{"CHECK THE NUMBER OF ROW OR COLUMN BLOCKS"});
+00569       m\_outerBSize = outerBlocks.size();
+00570       \textcolor{comment}{//  starting index of blocks... cumulative sums}
+00571       m\_innerOffset = \textcolor{keyword}{new} StorageIndex[m\_innerBSize+1];
+00572       m\_outerOffset = \textcolor{keyword}{new} StorageIndex[m\_outerBSize+1];
+00573       m\_innerOffset[0] = 0;
+00574       m\_outerOffset[0] = 0;
+00575       std::partial\_sum(&innerBlocks[0], &innerBlocks[m\_innerBSize-1]+1, &m\_innerOffset[1]);
+00576       std::partial\_sum(&outerBlocks[0], &outerBlocks[m\_outerBSize-1]+1, &m\_outerOffset[1]);
+00577 
+00578       \textcolor{comment}{// Compute the total number of nonzeros}
+00579       m\_nonzeros = 0;
+00580       \textcolor{keywordflow}{for}(StorageIndex bj = 0; bj < m\_outerBSize; ++bj)
+00581         \textcolor{keywordflow}{for}(StorageIndex bi = 0; bi < m\_innerBSize; ++bi)
+00582           m\_nonzeros += outerBlocks[bj] * innerBlocks[bi];
+00583 
+00584     \}
+00585 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00596}\hyperlink{group___sparse_core___module_a2e1814d2fb4d66320ce3ec97303d0648}{00596}     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} \hyperlink{group___sparse_core___module_a2e1814d2fb4d66320ce3ec97303d0648}{reserve}(\textcolor{keyword}{const} Index nonzerosblocks)
+00597     \{
+00598       eigen\_assert((m\_innerBSize != 0 && m\_outerBSize != 0) &&
+00599           \textcolor{stringliteral}{"TRYING TO RESERVE ZERO-SIZE MATRICES, CALL resize() first"});
+00600 
+00601       \textcolor{comment}{//FIXME Should free if already allocated}
+00602       m\_outerIndex = \textcolor{keyword}{new} StorageIndex[m\_outerBSize+1];
+00603 
+00604       m\_nonzerosblocks = nonzerosblocks;
+00605       \textcolor{keywordflow}{if}(m\_blockSize != \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})
+00606       \{
+00607         m\_nonzeros = nonzerosblocks * (m\_blockSize * m\_blockSize);
+00608         m\_blockPtr = 0;
+00609       \}
+00610       \textcolor{keywordflow}{else}
+00611       \{
+00612         \textcolor{comment}{// m\_nonzeros  is already computed in setBlockLayout()}
+00613         m\_blockPtr = \textcolor{keyword}{new} StorageIndex[m\_nonzerosblocks+1];
+00614       \}
+00615       m\_indices = \textcolor{keyword}{new} StorageIndex[m\_nonzerosblocks+1];
+00616       m\_values = \textcolor{keyword}{new} Scalar[m\_nonzeros];
+00617     \}
+00618 
+00619 
+00630     \textcolor{keyword}{template}<\textcolor{keyword}{typename} InputIterator>
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00631}\hyperlink{group___sparse_core___module_aa148b63f89555f4eed312638abe597eb}{00631}     \textcolor{keywordtype}{void} \hyperlink{group___sparse_core___module_aa148b63f89555f4eed312638abe597eb}{setFromTriplets}(\textcolor{keyword}{const} InputIterator& begin, \textcolor{keyword}{const} InputIterator& end)
+00632     \{
+00633       eigen\_assert((m\_innerBSize!=0 && m\_outerBSize !=0) && \textcolor{stringliteral}{"ZERO BLOCKS, PLEASE CALL resize() before"});
+00634 
+00635       \textcolor{comment}{/* First, sort the triplet list}
+00636 \textcolor{comment}{        * FIXME This can be unnecessarily expensive since only the inner indices have to be sorted}
+00637 \textcolor{comment}{        * The best approach is like in SparseMatrix::setFromTriplets()}
+00638 \textcolor{comment}{        */}
+00639       \hyperlink{struct_eigen_1_1internal_1_1_triplet_comp}{internal::TripletComp<InputIterator, IsColMajor>} 
+      tripletcomp;
+00640       std::sort(begin, end, tripletcomp);
+00641 
+00642       \textcolor{comment}{/* Count the number of rows and column blocks,}
+00643 \textcolor{comment}{       * and the number of nonzero blocks per outer dimension}
+00644 \textcolor{comment}{       */}
+00645       VectorXi rowBlocks(m\_innerBSize); \textcolor{comment}{// Size of each block row}
+00646       VectorXi colBlocks(m\_outerBSize); \textcolor{comment}{// Size of each block column}
+00647       rowBlocks.setZero(); colBlocks.setZero();
+00648       VectorXi nzblock\_outer(m\_outerBSize); \textcolor{comment}{// Number of nz blocks per outer vector}
+00649       VectorXi nz\_outer(m\_outerBSize); \textcolor{comment}{// Number of nz per outer vector...for variable-size blocks}
+00650       nzblock\_outer.setZero();
+00651       nz\_outer.setZero();
+00652       \textcolor{keywordflow}{for}(InputIterator it(begin); it !=end; ++it)
+00653       \{
+00654         eigen\_assert(it->row() >= 0 && it->row() < this->blockRows() && it->col() >= 0 && it->col() < 
+      this->blockCols());
+00655         eigen\_assert((it->value().rows() == it->value().cols() && (it->value().rows() == m\_blockSize))
+00656                      || (m\_blockSize == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}));
+00657 
+00658         \textcolor{keywordflow}{if}(m\_blockSize == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})
+00659         \{
+00660           eigen\_assert((rowBlocks[it->row()] == 0 || rowBlocks[it->row()] == it->value().rows()) &&
+00661               \textcolor{stringliteral}{"NON CORRESPONDING SIZES FOR ROW BLOCKS"});
+00662           eigen\_assert((colBlocks[it->col()] == 0 || colBlocks[it->col()] == it->value().cols()) &&
+00663               \textcolor{stringliteral}{"NON CORRESPONDING SIZES FOR COLUMN BLOCKS"});
+00664           rowBlocks[it->row()] =it->value().rows();
+00665           colBlocks[it->col()] = it->value().cols();
+00666         \}
+00667         nz\_outer(IsColMajor ? it->col() : it->row()) += it->value().rows() * it->value().cols();
+00668         nzblock\_outer(IsColMajor ? it->col() : it->row())++;
+00669       \}
+00670       \textcolor{comment}{// Allocate member arrays}
+00671       \textcolor{keywordflow}{if}(m\_blockSize == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) setBlockLayout(rowBlocks, colBlocks);
+00672       StorageIndex nzblocks = nzblock\_outer.sum();
+00673       reserve(nzblocks);
+00674 
+00675        \textcolor{comment}{// Temporary markers}
+00676       VectorXi block\_id(m\_outerBSize); \textcolor{comment}{// To be used as a block marker during insertion}
+00677 
+00678       \textcolor{comment}{// Setup outer index pointers and markers}
+00679       m\_outerIndex[0] = 0;
+00680       \textcolor{keywordflow}{if} (m\_blockSize == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})  m\_blockPtr[0] =  0;
+00681       \textcolor{keywordflow}{for}(StorageIndex bj = 0; bj < m\_outerBSize; ++bj)
+00682       \{
+00683         m\_outerIndex[bj+1] = m\_outerIndex[bj] + nzblock\_outer(bj);
+00684         block\_id(bj) = m\_outerIndex[bj];
+00685         \textcolor{keywordflow}{if}(m\_blockSize==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})
+00686         \{
+00687           m\_blockPtr[m\_outerIndex[bj+1]] = m\_blockPtr[m\_outerIndex[bj]] + nz\_outer(bj);
+00688         \}
+00689       \}
+00690 
+00691       \textcolor{comment}{// Fill the matrix}
+00692       \textcolor{keywordflow}{for}(InputIterator it(begin); it!=end; ++it)
+00693       \{
+00694         StorageIndex outer = IsColMajor ? it->col() : it->row();
+00695         StorageIndex inner = IsColMajor ? it->row() : it->col();
+00696         m\_indices[block\_id(outer)] = inner;
+00697         StorageIndex block\_size = it->value().rows()*it->value().cols();
+00698         StorageIndex nz\_marker = blockPtr(block\_id[outer]);
+00699         memcpy(&(m\_values[nz\_marker]), it->value().data(), block\_size * \textcolor{keyword}{sizeof}(Scalar));
+00700         \textcolor{keywordflow}{if}(m\_blockSize == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})
+00701         \{
+00702           m\_blockPtr[block\_id(outer)+1] = m\_blockPtr[block\_id(outer)] + block\_size;
+00703         \}
+00704         block\_id(outer)++;
+00705       \}
+00706 
+00707       \textcolor{comment}{// An alternative when the outer indices are sorted...no need to use an array of markers}
+00708 \textcolor{comment}{//      for(Index bcol = 0; bcol < m\_outerBSize; ++bcol)}
+00709 \textcolor{comment}{//      \{}
+00710 \textcolor{comment}{//      Index id = 0, id\_nz = 0, id\_nzblock = 0;}
+00711 \textcolor{comment}{//      for(InputIterator it(begin); it!=end; ++it)}
+00712 \textcolor{comment}{//      \{}
+00713 \textcolor{comment}{//        while (id<bcol) // one pass should do the job unless there are empty columns}
+00714 \textcolor{comment}{//        \{}
+00715 \textcolor{comment}{//          id++;}
+00716 \textcolor{comment}{//          m\_outerIndex[id+1]=m\_outerIndex[id];}
+00717 \textcolor{comment}{//        \}}
+00718 \textcolor{comment}{//        m\_outerIndex[id+1] += 1;}
+00719 \textcolor{comment}{//        m\_indices[id\_nzblock]=brow;}
+00720 \textcolor{comment}{//        Index block\_size = it->value().rows()*it->value().cols();}
+00721 \textcolor{comment}{//        m\_blockPtr[id\_nzblock+1] = m\_blockPtr[id\_nzblock] + block\_size;}
+00722 \textcolor{comment}{//        id\_nzblock++;}
+00723 \textcolor{comment}{//        memcpy(&(m\_values[id\_nz]),it->value().data(), block\_size*sizeof(Scalar));}
+00724 \textcolor{comment}{//        id\_nz += block\_size;}
+00725 \textcolor{comment}{//      \}}
+00726 \textcolor{comment}{//      while(id < m\_outerBSize-1) // Empty columns at the end}
+00727 \textcolor{comment}{//      \{}
+00728 \textcolor{comment}{//        id++;}
+00729 \textcolor{comment}{//        m\_outerIndex[id+1]=m\_outerIndex[id];}
+00730 \textcolor{comment}{//      \}}
+00731 \textcolor{comment}{//      \}}
+00732     \}
+00733 
+00734 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00738}\hyperlink{group___sparse_core___module_a89c2e0b48b6425c4828a794f4c654796}{00738}     \textcolor{keyword}{inline} Index \hyperlink{group___sparse_core___module_a89c2e0b48b6425c4828a794f4c654796}{rows}()\textcolor{keyword}{ const}
+00739 \textcolor{keyword}{    }\{
+00740 \textcolor{comment}{//      return blockRows();}
+00741       \textcolor{keywordflow}{return} (IsColMajor ? innerSize() : outerSize());
+00742     \}
+00743 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00747}\hyperlink{group___sparse_core___module_aa689bd28af9a8176d1c793c075aa0a42}{00747}     \textcolor{keyword}{inline} Index \hyperlink{group___sparse_core___module_aa689bd28af9a8176d1c793c075aa0a42}{cols}()\textcolor{keyword}{ const}
+00748 \textcolor{keyword}{    }\{
+00749 \textcolor{comment}{//      return blockCols();}
+00750       \textcolor{keywordflow}{return} (IsColMajor ? outerSize() : innerSize());
+00751     \}
+00752 
+00753     \textcolor{keyword}{inline} Index innerSize()\textcolor{keyword}{ const}
+00754 \textcolor{keyword}{    }\{
+00755       \textcolor{keywordflow}{if}(m\_blockSize == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) \textcolor{keywordflow}{return} m\_innerOffset[m\_innerBSize];
+00756       \textcolor{keywordflow}{else} \textcolor{keywordflow}{return}  (m\_innerBSize * m\_blockSize) ;
+00757     \}
+00758 
+00759     \textcolor{keyword}{inline} Index outerSize()\textcolor{keyword}{ const}
+00760 \textcolor{keyword}{    }\{
+00761       \textcolor{keywordflow}{if}(m\_blockSize == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) \textcolor{keywordflow}{return} m\_outerOffset[m\_outerBSize];
+00762       \textcolor{keywordflow}{else} \textcolor{keywordflow}{return}  (m\_outerBSize * m\_blockSize) ;
+00763     \}
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00765}\hyperlink{group___sparse_core___module_a5f4768ab4e48f7f81cd8a3697d3016e8}{00765}     \textcolor{keyword}{inline} Index \hyperlink{group___sparse_core___module_a5f4768ab4e48f7f81cd8a3697d3016e8}{blockRows}()\textcolor{keyword}{ const}
+00766 \textcolor{keyword}{    }\{
+00767       \textcolor{keywordflow}{return} (IsColMajor ? m\_innerBSize : m\_outerBSize);
+00768     \}
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00770}\hyperlink{group___sparse_core___module_a645eb7f708ca89383e0f3fabb30d9e92}{00770}     \textcolor{keyword}{inline} Index \hyperlink{group___sparse_core___module_a645eb7f708ca89383e0f3fabb30d9e92}{blockCols}()\textcolor{keyword}{ const}
+00771 \textcolor{keyword}{    }\{
+00772       \textcolor{keywordflow}{return} (IsColMajor ? m\_outerBSize : m\_innerBSize);
+00773     \}
+00774 
+00775     \textcolor{keyword}{inline} Index outerBlocks()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_outerBSize; \}
+00776     \textcolor{keyword}{inline} Index innerBlocks()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_innerBSize; \}
+00777 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00779}\hyperlink{group___sparse_core___module_a9f83554f7b1309ac7ad88d19ef8d6339}{00779}     \textcolor{keyword}{inline} Index \hyperlink{group___sparse_core___module_a9f83554f7b1309ac7ad88d19ef8d6339}{outerToBlock}(Index outer)\textcolor{keyword}{ const}
+00780 \textcolor{keyword}{    }\{
+00781       eigen\_assert(outer < outerSize() && \textcolor{stringliteral}{"OUTER INDEX OUT OF BOUNDS"});
+00782 
+00783       \textcolor{keywordflow}{if}(m\_blockSize != \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})
+00784         \textcolor{keywordflow}{return} (outer / m\_blockSize); \textcolor{comment}{// Integer division}
+00785 
+00786       StorageIndex b\_outer = 0;
+00787       \textcolor{keywordflow}{while}(m\_outerOffset[b\_outer] <= outer) ++b\_outer;
+00788       \textcolor{keywordflow}{return} b\_outer - 1;
+00789     \}
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00791}\hyperlink{group___sparse_core___module_a53fd11658531b86986cd2a5fb2ea3d3d}{00791}     \textcolor{keyword}{inline} Index \hyperlink{group___sparse_core___module_a53fd11658531b86986cd2a5fb2ea3d3d}{innerToBlock}(Index inner)\textcolor{keyword}{ const}
+00792 \textcolor{keyword}{    }\{
+00793       eigen\_assert(inner < innerSize() && \textcolor{stringliteral}{"OUTER INDEX OUT OF BOUNDS"});
+00794 
+00795       \textcolor{keywordflow}{if}(m\_blockSize != \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})
+00796         \textcolor{keywordflow}{return} (inner / m\_blockSize); \textcolor{comment}{// Integer division}
+00797 
+00798       StorageIndex b\_inner = 0;
+00799       \textcolor{keywordflow}{while}(m\_innerOffset[b\_inner] <= inner) ++b\_inner;
+00800       \textcolor{keywordflow}{return} b\_inner - 1;
+00801     \}
+00802 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00806}\hyperlink{group___sparse_core___module_af7d43390424f705f281c41a2c07db92f}{00806}     \hyperlink{group___core___module_class_eigen_1_1_ref}{Ref<BlockScalar>} \hyperlink{group___sparse_core___module_af7d43390424f705f281c41a2c07db92f}{coeffRef}(Index brow, Index bcol)
+00807     \{
+00808       eigen\_assert(brow < blockRows() && \textcolor{stringliteral}{"BLOCK ROW INDEX OUT OF BOUNDS"});
+00809       eigen\_assert(bcol < blockCols() && \textcolor{stringliteral}{"BLOCK nzblocksFlagCOLUMN OUT OF BOUNDS"});
+00810 
+00811       StorageIndex rsize = IsColMajor ? blockInnerSize(brow): blockOuterSize(bcol);
+00812       StorageIndex csize = IsColMajor ? blockOuterSize(bcol) : blockInnerSize(brow);
+00813       StorageIndex inner = IsColMajor ? brow : bcol;
+00814       StorageIndex outer = IsColMajor ? bcol : brow;
+00815       StorageIndex offset = m\_outerIndex[outer];
+00816       \textcolor{keywordflow}{while}(offset < m\_outerIndex[outer+1] && m\_indices[offset] != inner)
+00817         offset++;
+00818       \textcolor{keywordflow}{if}(m\_indices[offset] == inner)
+00819       \{
+00820         \textcolor{keywordflow}{return} \hyperlink{group___core___module_class_eigen_1_1_map}{Map<BlockScalar>}(&(m\_values[blockPtr(offset)]), rsize, csize);
+00821       \}
+00822       \textcolor{keywordflow}{else}
+00823       \{
+00824         \textcolor{comment}{//FIXME the block does not exist, Insert it !!!!!!!!!}
+00825         eigen\_assert(\textcolor{stringliteral}{"DYNAMIC INSERTION IS NOT YET SUPPORTED"});
+00826       \}
+00827     \}
+00828 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00832}\hyperlink{group___sparse_core___module_aa6f4ffb07a0ef2863e7a933676a46abf}{00832}     \hyperlink{group___core___module_class_eigen_1_1_map}{Map<const BlockScalar>} \hyperlink{group___sparse_core___module_aa6f4ffb07a0ef2863e7a933676a46abf}{coeff}(Index brow, Index bcol)\textcolor{keyword}{ const}
+00833 \textcolor{keyword}{    }\{
+00834       eigen\_assert(brow < blockRows() && \textcolor{stringliteral}{"BLOCK ROW INDEX OUT OF BOUNDS"});
+00835       eigen\_assert(bcol < blockCols() && \textcolor{stringliteral}{"BLOCK COLUMN OUT OF BOUNDS"});
+00836 
+00837       StorageIndex rsize = IsColMajor ? blockInnerSize(brow): blockOuterSize(bcol);
+00838       StorageIndex csize = IsColMajor ? blockOuterSize(bcol) : blockInnerSize(brow);
+00839       StorageIndex inner = IsColMajor ? brow : bcol;
+00840       StorageIndex outer = IsColMajor ? bcol : brow;
+00841       StorageIndex offset = m\_outerIndex[outer];
+00842       \textcolor{keywordflow}{while}(offset < m\_outerIndex[outer+1] && m\_indices[offset] != inner) offset++;
+00843       \textcolor{keywordflow}{if}(m\_indices[offset] == inner)
+00844       \{
+00845         \textcolor{keywordflow}{return} \hyperlink{group___core___module_class_eigen_1_1_map}{Map<const BlockScalar>} (&(m\_values[blockPtr(offset)]), rsize, csize);
+00846       \}
+00847       \textcolor{keywordflow}{else}
+00848 \textcolor{comment}{//        return BlockScalar::Zero(rsize, csize);}
+00849         eigen\_assert(\textcolor{stringliteral}{"NOT YET SUPPORTED"});
+00850     \}
+00851 
+00852     \textcolor{comment}{// Block Matrix times vector product}
+00853     \textcolor{keyword}{template}<\textcolor{keyword}{typename} VecType>
+00854     \hyperlink{class_eigen_1_1_block_sparse_time_dense_product}{BlockSparseTimeDenseProduct<BlockSparseMatrix, VecType>}
+       operator*(\textcolor{keyword}{const} VecType& lhs)\textcolor{keyword}{ const}
+00855 \textcolor{keyword}{    }\{
+00856       \textcolor{keywordflow}{return} \hyperlink{class_eigen_1_1_block_sparse_time_dense_product}{BlockSparseTimeDenseProduct<BlockSparseMatrix, VecType>}
+      (*\textcolor{keyword}{this}, lhs);
+00857     \}
+00858 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00860}\hyperlink{group___sparse_core___module_a83d5af142c851196a2178bf9ec532d8c}{00860}     \textcolor{keyword}{inline} Index \hyperlink{group___sparse_core___module_a83d5af142c851196a2178bf9ec532d8c}{nonZerosBlocks}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_nonzerosblocks; \}
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00862}\hyperlink{group___sparse_core___module_a2c0d76392df6669fa66b592ef6b5618a}{00862}     \textcolor{keyword}{inline} Index \hyperlink{group___sparse_core___module_a2c0d76392df6669fa66b592ef6b5618a}{nonZeros}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_nonzeros; \}
+00863 
+00864     \textcolor{keyword}{inline} BlockScalarReturnType *valuePtr() \{\textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}BlockScalarReturnType *\textcolor{keyword}{>}(m\_values);\}
+00865 \textcolor{comment}{//    inline Scalar *valuePtr()\{ return m\_values; \}}
+00866     \textcolor{keyword}{inline} StorageIndex *innerIndexPtr() \{\textcolor{keywordflow}{return} m\_indices; \}
+00867     \textcolor{keyword}{inline} \textcolor{keyword}{const} StorageIndex *innerIndexPtr()\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} m\_indices; \}
+00868     \textcolor{keyword}{inline} StorageIndex *outerIndexPtr() \{\textcolor{keywordflow}{return} m\_outerIndex; \}
+00869     \textcolor{keyword}{inline} \textcolor{keyword}{const} StorageIndex* outerIndexPtr()\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} m\_outerIndex; \}
+00870 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00872}\hyperlink{group___sparse_core___module_a3acfdd3edc02e4347402a8d343131b9e}{00872}     \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} \hyperlink{group___sparse_core___module_a3acfdd3edc02e4347402a8d343131b9e}{isCompressed}()\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} \textcolor{keyword}{true};\}
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00876}\hyperlink{group___sparse_core___module_ad43927292bc7b1e53cc98d4559838c96}{00876}     \textcolor{keyword}{inline} Index \hyperlink{group___sparse_core___module_ad43927292bc7b1e53cc98d4559838c96}{blockRowsIndex}(Index bi)\textcolor{keyword}{ const}
+00877 \textcolor{keyword}{    }\{
+00878       \textcolor{keywordflow}{return} IsColMajor ? blockInnerIndex(bi) : blockOuterIndex(bi);
+00879     \}
+00880 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00884}\hyperlink{group___sparse_core___module_a6310ee4a4aa6f3689eaed0395d0db35e}{00884}     \textcolor{keyword}{inline} Index \hyperlink{group___sparse_core___module_a6310ee4a4aa6f3689eaed0395d0db35e}{blockColsIndex}(Index bj)\textcolor{keyword}{ const}
+00885 \textcolor{keyword}{    }\{
+00886       \textcolor{keywordflow}{return} IsColMajor ? blockOuterIndex(bj) : blockInnerIndex(bj);
+00887     \}
+00888 
+00889     \textcolor{keyword}{inline} Index blockOuterIndex(Index bj)\textcolor{keyword}{ const}
+00890 \textcolor{keyword}{    }\{
+00891       \textcolor{keywordflow}{return} (m\_blockSize == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) ? m\_outerOffset[bj] : (bj * m\_blockSize);
+00892     \}
+00893     \textcolor{keyword}{inline} Index blockInnerIndex(Index bi)\textcolor{keyword}{ const}
+00894 \textcolor{keyword}{    }\{
+00895       \textcolor{keywordflow}{return} (m\_blockSize == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) ? m\_innerOffset[bi] : (bi * m\_blockSize);
+00896     \}
+00897 
+00898     \textcolor{comment}{// Not needed ???}
+00899     \textcolor{keyword}{inline} Index blockInnerSize(Index bi)\textcolor{keyword}{ const}
+00900 \textcolor{keyword}{    }\{
+00901       \textcolor{keywordflow}{return} (m\_blockSize == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) ? (m\_innerOffset[bi+1] - m\_innerOffset[bi]) : m\_blockSize;
+00902     \}
+00903     \textcolor{keyword}{inline} Index blockOuterSize(Index bj)\textcolor{keyword}{ const}
+00904 \textcolor{keyword}{    }\{
+00905       \textcolor{keywordflow}{return} (m\_blockSize == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) ? (m\_outerOffset[bj+1]- m\_outerOffset[bj]) : m\_blockSize;
+00906     \}
+00907 
+00911     \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_inner_iterator}{InnerIterator}; \textcolor{comment}{// Browse column by column}
+00912 
+00916     \textcolor{keyword}{class }BlockInnerIterator; \textcolor{comment}{// Browse block by block}
+00917 
+00918     \textcolor{keyword}{friend} std::ostream & operator << (std::ostream & s, \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix}& m)
+00919     \{
+00920       \textcolor{keywordflow}{for} (StorageIndex j = 0; j < m.outerBlocks(); ++j)
+00921       \{
+00922         BlockInnerIterator itb(m, j);
+00923         \textcolor{keywordflow}{for}(; itb; ++itb)
+00924         \{
+00925           s << \textcolor{stringliteral}{"("}<<itb.row() << \textcolor{stringliteral}{", "} << itb.col() << \textcolor{stringliteral}{")\(\backslash\)n"};
+00926           s << itb.value() <<\textcolor{stringliteral}{"\(\backslash\)n"};
+00927         \}
+00928       \}
+00929       s << std::endl;
+00930       \textcolor{keywordflow}{return} s;
+00931     \}
+00932 
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00936}\hyperlink{group___sparse_core___module_a16b8ee2d4e92d774bf286e6575fd8369}{00936}     Index \hyperlink{group___sparse_core___module_a16b8ee2d4e92d774bf286e6575fd8369}{blockPtr}(Index \textcolor{keywordtype}{id})\textcolor{keyword}{ const}
+00937 \textcolor{keyword}{    }\{
+00938       \textcolor{keywordflow}{if}(m\_blockSize == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) \textcolor{keywordflow}{return} m\_blockPtr[id];
+00939       \textcolor{keywordflow}{else} \textcolor{keywordflow}{return} \textcolor{keywordtype}{id} * m\_blockSize * m\_blockSize;
+00940       \textcolor{comment}{//return blockDynIdx(id, typename internal::conditional<(BlockSize==Dynamic), internal::true\_type,
+       internal::false\_type>::type());}
+00941     \}
+00942 
+00943 
+00944   \textcolor{keyword}{protected}:
+00945 \textcolor{comment}{//    inline Index blockDynIdx(Index id, internal::true\_type) const}
+00946 \textcolor{comment}{//    \{}
+00947 \textcolor{comment}{//      return m\_blockPtr[id];}
+00948 \textcolor{comment}{//    \}}
+00949 \textcolor{comment}{//    inline Index blockDynIdx(Index id, internal::false\_type) const}
+00950 \textcolor{comment}{//    \{}
+00951 \textcolor{comment}{//      return id * BlockSize * BlockSize;}
+00952 \textcolor{comment}{//    \}}
+00953 
+00954     \textcolor{comment}{// To be implemented}
+00955     \textcolor{comment}{// Insert a block at a particular location... need to make a room for that}
+00956     \hyperlink{group___core___module_class_eigen_1_1_map}{Map<BlockScalar>} insert(Index brow, Index bcol);
+00957 
+00958     Index m\_innerBSize; \textcolor{comment}{// Number of block rows}
+00959     Index m\_outerBSize; \textcolor{comment}{// Number of block columns}
+00960     StorageIndex *m\_innerOffset; \textcolor{comment}{// Starting index of each inner block (size m\_innerBSize+1)}
+00961     StorageIndex *m\_outerOffset; \textcolor{comment}{// Starting index of each outer block (size m\_outerBSize+1)}
+00962     Index m\_nonzerosblocks; \textcolor{comment}{// Total nonzeros blocks (lower than  m\_innerBSize x m\_outerBSize)}
+00963     Index m\_nonzeros; \textcolor{comment}{// Total nonzeros elements}
+00964     Scalar *m\_values; \textcolor{comment}{//Values stored block column after block column (size m\_nonzeros)}
+00965     StorageIndex *m\_blockPtr; \textcolor{comment}{// Pointer to the beginning of each block in m\_values, size m\_nonzeroblocks
+       ... null for fixed-size blocks}
+00966     StorageIndex *m\_indices; \textcolor{comment}{//Inner block indices, size m\_nonzerosblocks ... OK}
+00967     StorageIndex *m\_outerIndex; \textcolor{comment}{// Starting pointer of each block column in m\_indices (size
+       m\_outerBSize)... OK}
+00968     Index m\_blockSize; \textcolor{comment}{// Size of a block for fixed-size blocks, otherwise -1}
+00969 \};
+00970 
+00971 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} \_BlockAtCompileTime, \textcolor{keywordtype}{int} \_Options, \textcolor{keyword}{typename} \_StorageIndex>
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l00972}\hyperlink{class_eigen_1_1_block_sparse_matrix_1_1_block_inner_iterator}{00972} \textcolor{keyword}{class }\hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix}<\_Scalar, \_BlockAtCompileTime, \_Options, \_StorageIndex>::
+      \hyperlink{class_eigen_1_1_block_sparse_matrix_1_1_block_inner_iterator}{BlockInnerIterator}
+00973 \{
+00974   \textcolor{keyword}{public}:
+00975 
+00976     \textcolor{keyword}{enum}\{
+00977       Flags = \_Options
+00978     \};
+00979 
+00980     \hyperlink{class_eigen_1_1_block_sparse_matrix_1_1_block_inner_iterator}{BlockInnerIterator}(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix}& mat, \textcolor{keyword}{const} Index outer)
+00981     : m\_mat(mat),m\_outer(outer),
+00982       m\_id(mat.m\_outerIndex[outer]),
+00983       m\_end(mat.m\_outerIndex[outer+1])
+00984     \{
+00985     \}
+00986 
+00987     \textcolor{keyword}{inline} \hyperlink{class_eigen_1_1_block_sparse_matrix_1_1_block_inner_iterator}{BlockInnerIterator}& operator++() \{m\_id++; \textcolor{keywordflow}{return} *\textcolor{keyword}{this}; \}
+00988 
+00989     \textcolor{keyword}{inline} \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_map}{Map<const BlockScalar>} value()\textcolor{keyword}{ const}
+00990 \textcolor{keyword}{    }\{
+00991       \textcolor{keywordflow}{return} \hyperlink{group___core___module_class_eigen_1_1_map}{Map<const BlockScalar>}(&(m\_mat.m\_values[m\_mat.blockPtr(m\_id)]),
+00992           rows(),cols());
+00993     \}
+00994     \textcolor{keyword}{inline} \hyperlink{group___core___module_class_eigen_1_1_map}{Map<BlockScalar>} valueRef()
+00995     \{
+00996       \textcolor{keywordflow}{return} \hyperlink{group___core___module_class_eigen_1_1_map}{Map<BlockScalar>}(&(m\_mat.m\_values[m\_mat.blockPtr(m\_id)]),
+00997           rows(),cols());
+00998     \}
+00999     \textcolor{comment}{// Block inner index}
+01000     \textcolor{keyword}{inline} Index index()\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} m\_mat.m\_indices[m\_id]; \}
+01001     \textcolor{keyword}{inline} Index outer()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_outer; \}
+01002     \textcolor{comment}{// block row index}
+01003     \textcolor{keyword}{inline} Index row()\textcolor{keyword}{ const  }\{\textcolor{keywordflow}{return} index(); \}
+01004     \textcolor{comment}{// block column index}
+01005     \textcolor{keyword}{inline} Index col()\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} outer(); \}
+01006     \textcolor{comment}{// FIXME Number of rows in the current block}
+01007     \textcolor{keyword}{inline} Index rows()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} (m\_mat.m\_blockSize==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) ? (m\_mat.m\_innerOffset[index()+1
+      ] - m\_mat.m\_innerOffset[index()]) : m\_mat.m\_blockSize; \}
+01008     \textcolor{comment}{// Number of columns in the current block ...}
+01009     \textcolor{keyword}{inline} Index cols()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} (m\_mat.m\_blockSize==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) ? (m\_mat.m\_outerOffset[m\_outer+1
+      ]-m\_mat.m\_outerOffset[m\_outer]) : m\_mat.m\_blockSize;\}
+01010     \textcolor{keyword}{inline} \textcolor{keyword}{operator} bool()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} (m\_id < m\_end); \}
+01011 
+01012   \textcolor{keyword}{protected}:
+01013     \textcolor{keyword}{const} 
+      \hyperlink{group___sparse_core___module}{BlockSparseMatrix<\_Scalar, \_BlockAtCompileTime, \_Options, StorageIndex>}
+      & m\_mat;
+01014     \textcolor{keyword}{const} Index m\_outer;
+01015     Index m\_id;
+01016     Index m\_end;
+01017 \};
+01018 
+01019 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} \_BlockAtCompileTime, \textcolor{keywordtype}{int} \_Options, \textcolor{keyword}{typename} \_StorageIndex>
+\Hypertarget{eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_block_sparse_matrix_8h_source_l01020}\hyperlink{class_eigen_1_1_block_sparse_matrix_1_1_inner_iterator}{01020} \textcolor{keyword}{class }\hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix}<\_Scalar, \_BlockAtCompileTime, \_Options, \_StorageIndex>::
+      \hyperlink{class_eigen_1_1_block_sparse_matrix_1_1_inner_iterator}{InnerIterator}
+01021 \{
+01022   \textcolor{keyword}{public}:
+01023     \hyperlink{class_eigen_1_1_block_sparse_matrix_1_1_inner_iterator}{InnerIterator}(\textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix}& mat, Index outer)
+01024     : m\_mat(mat),m\_outerB(mat.\hyperlink{group___sparse_core___module_a9f83554f7b1309ac7ad88d19ef8d6339}{outerToBlock}(outer)),m\_outer(outer),
+01025       itb(mat, mat.\hyperlink{group___sparse_core___module_a9f83554f7b1309ac7ad88d19ef8d6339}{outerToBlock}(outer)),
+01026       m\_offset(outer - mat.blockOuterIndex(m\_outerB))
+01027      \{
+01028         \textcolor{keywordflow}{if} (itb)
+01029         \{
+01030           m\_id = m\_mat.blockInnerIndex(itb.index());
+01031           m\_start = m\_id;
+01032           m\_end = m\_mat.blockInnerIndex(itb.index()+1);
+01033         \}
+01034      \}
+01035     \textcolor{keyword}{inline} \hyperlink{class_eigen_1_1_block_sparse_matrix_1_1_inner_iterator}{InnerIterator}& operator++()
+01036     \{
+01037       m\_id++;
+01038       \textcolor{keywordflow}{if} (m\_id >= m\_end)
+01039       \{
+01040         ++itb;
+01041         \textcolor{keywordflow}{if} (itb)
+01042         \{
+01043           m\_id = m\_mat.blockInnerIndex(itb.index());
+01044           m\_start = m\_id;
+01045           m\_end = m\_mat.blockInnerIndex(itb.index()+1);
+01046         \}
+01047       \}
+01048       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+01049     \}
+01050     \textcolor{keyword}{inline} \textcolor{keyword}{const} Scalar& value()\textcolor{keyword}{ const}
+01051 \textcolor{keyword}{    }\{
+01052       \textcolor{keywordflow}{return} itb.value().coeff(m\_id - m\_start, m\_offset);
+01053     \}
+01054     \textcolor{keyword}{inline} Scalar& valueRef()
+01055     \{
+01056       \textcolor{keywordflow}{return} itb.valueRef().coeff(m\_id - m\_start, m\_offset);
+01057     \}
+01058     \textcolor{keyword}{inline} Index index()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_id; \}
+01059     \textcolor{keyword}{inline} Index outer()\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} m\_outer; \}
+01060     \textcolor{keyword}{inline} Index col()\textcolor{keyword}{ const }\{\textcolor{keywordflow}{return} outer(); \}
+01061     \textcolor{keyword}{inline} Index row()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} index();\}
+01062     \textcolor{keyword}{inline} \textcolor{keyword}{operator} bool()\textcolor{keyword}{ const}
+01063 \textcolor{keyword}{    }\{
+01064       \textcolor{keywordflow}{return} itb;
+01065     \}
+01066   \textcolor{keyword}{protected}:
+01067     \textcolor{keyword}{const} \hyperlink{group___sparse_core___module_class_eigen_1_1_block_sparse_matrix}{BlockSparseMatrix}& m\_mat;
+01068     \textcolor{keyword}{const} Index m\_outer;
+01069     \textcolor{keyword}{const} Index m\_outerB;
+01070     \hyperlink{class_eigen_1_1_block_sparse_matrix_1_1_block_inner_iterator}{BlockInnerIterator} itb; \textcolor{comment}{// Iterator through the blocks}
+01071     \textcolor{keyword}{const} Index m\_offset; \textcolor{comment}{// Position of this column in the block}
+01072     Index m\_start; \textcolor{comment}{// starting inner index of this block}
+01073     Index m\_id; \textcolor{comment}{// current inner index in the block}
+01074     Index m\_end; \textcolor{comment}{// starting inner index of the next block}
+01075 
+01076 \};
+01077 \} \textcolor{comment}{// end namespace Eigen}
+01078 
+01079 \textcolor{preprocessor}{#endif // EIGEN\_SPARSEBLOCKMATRIX\_H}
+\end{DoxyCode}

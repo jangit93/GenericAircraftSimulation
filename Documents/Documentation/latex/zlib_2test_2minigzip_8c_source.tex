@@ -1,0 +1,656 @@
+\hypertarget{zlib_2test_2minigzip_8c_source}{}\section{zlib/test/minigzip.c}
+\label{zlib_2test_2minigzip_8c_source}\index{minigzip.\+c@{minigzip.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* minigzip.c -- simulate gzip using the zlib compression library}
+00002 \textcolor{comment}{ * Copyright (C) 1995-2006, 2010, 2011, 2016 Jean-loup Gailly}
+00003 \textcolor{comment}{ * For conditions of distribution and use, see copyright notice in zlib.h}
+00004 \textcolor{comment}{ */}
+00005 
+00006 \textcolor{comment}{/*}
+00007 \textcolor{comment}{ * minigzip is a minimal implementation of the gzip utility. This is}
+00008 \textcolor{comment}{ * only an example of using zlib and isn't meant to replace the}
+00009 \textcolor{comment}{ * full-featured gzip. No attempt is made to deal with file systems}
+00010 \textcolor{comment}{ * limiting names to 14 or 8+3 characters, etc... Error checking is}
+00011 \textcolor{comment}{ * very limited. So use minigzip only for testing; use gzip for the}
+00012 \textcolor{comment}{ * real thing. On MSDOS, use only on file names without extension}
+00013 \textcolor{comment}{ * or in pipe mode.}
+00014 \textcolor{comment}{ */}
+00015 
+00016 \textcolor{comment}{/* @(#) $Id$ */}
+00017 
+00018 \textcolor{preprocessor}{#include "zlib.h"}
+00019 \textcolor{preprocessor}{#include <stdio.h>}
+00020 
+00021 \textcolor{preprocessor}{#ifdef STDC}
+00022 \textcolor{preprocessor}{#  include <string.h>}
+00023 \textcolor{preprocessor}{#  include <stdlib.h>}
+00024 \textcolor{preprocessor}{#endif}
+00025 
+00026 \textcolor{preprocessor}{#ifdef USE\_MMAP}
+00027 \textcolor{preprocessor}{#  include <sys/types.h>}
+00028 \textcolor{preprocessor}{#  include <sys/mman.h>}
+00029 \textcolor{preprocessor}{#  include <sys/stat.h>}
+00030 \textcolor{preprocessor}{#endif}
+00031 
+00032 \textcolor{preprocessor}{#if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(\_\_CYGWIN\_\_)}
+00033 \textcolor{preprocessor}{#  include <fcntl.h>}
+00034 \textcolor{preprocessor}{#  include <io.h>}
+00035 \textcolor{preprocessor}{#  ifdef UNDER\_CE}
+00036 \textcolor{preprocessor}{#    include <stdlib.h>}
+00037 \textcolor{preprocessor}{#  endif}
+00038 \textcolor{preprocessor}{#  define SET\_BINARY\_MODE(file) setmode(fileno(file), O\_BINARY)}
+00039 \textcolor{preprocessor}{#else}
+00040 \textcolor{preprocessor}{#  define SET\_BINARY\_MODE(file)}
+00041 \textcolor{preprocessor}{#endif}
+00042 
+00043 \textcolor{preprocessor}{#if defined(\_MSC\_VER) && \_MSC\_VER < 1900}
+00044 \textcolor{preprocessor}{#  define snprintf \_snprintf}
+00045 \textcolor{preprocessor}{#endif}
+00046 
+00047 \textcolor{preprocessor}{#ifdef VMS}
+00048 \textcolor{preprocessor}{#  define unlink delete}
+00049 \textcolor{preprocessor}{#  define GZ\_SUFFIX "-gz"}
+00050 \textcolor{preprocessor}{#endif}
+00051 \textcolor{preprocessor}{#ifdef RISCOS}
+00052 \textcolor{preprocessor}{#  define unlink remove}
+00053 \textcolor{preprocessor}{#  define GZ\_SUFFIX "-gz"}
+00054 \textcolor{preprocessor}{#  define fileno(file) file->\_\_file}
+00055 \textcolor{preprocessor}{#endif}
+00056 \textcolor{preprocessor}{#if defined(\_\_MWERKS\_\_) && \_\_dest\_os != \_\_be\_os && \_\_dest\_os != \_\_win32\_os}
+00057 \textcolor{preprocessor}{#  include <unix.h>} \textcolor{comment}{/* for fileno */}
+00058 \textcolor{preprocessor}{#endif}
+00059 
+00060 \textcolor{preprocessor}{#if !defined(Z\_HAVE\_UNISTD\_H) && !defined(\_LARGEFILE64\_SOURCE)}
+00061 \textcolor{preprocessor}{#ifndef WIN32 }\textcolor{comment}{/* unlink already in stdio.h for WIN32 */}\textcolor{preprocessor}{}
+00062   \textcolor{keyword}{extern} \textcolor{keywordtype}{int} unlink OF((\textcolor{keyword}{const} \textcolor{keywordtype}{char} *));
+00063 \textcolor{preprocessor}{#endif}
+00064 \textcolor{preprocessor}{#endif}
+00065 
+00066 \textcolor{preprocessor}{#if defined(UNDER\_CE)}
+00067 \textcolor{preprocessor}{#  include <windows.h>}
+00068 \textcolor{preprocessor}{#  define perror(s) pwinerror(s)}
+00069 
+00070 \textcolor{comment}{/* Map the Windows error number in ERROR to a locale-dependent error}
+00071 \textcolor{comment}{   message string and return a pointer to it.  Typically, the values}
+00072 \textcolor{comment}{   for ERROR come from GetLastError.}
+00073 \textcolor{comment}{}
+00074 \textcolor{comment}{   The string pointed to shall not be modified by the application,}
+00075 \textcolor{comment}{   but may be overwritten by a subsequent call to strwinerror}
+00076 \textcolor{comment}{}
+00077 \textcolor{comment}{   The strwinerror function does not change the current setting}
+00078 \textcolor{comment}{   of GetLastError.  */}
+00079 
+00080 \textcolor{keyword}{static} \textcolor{keywordtype}{char} *strwinerror (error)
+00081      DWORD error;
+00082 \{
+00083     \textcolor{keyword}{static} \textcolor{keywordtype}{char} buf[1024];
+00084 
+00085     \textcolor{keywordtype}{wchar\_t} *msgbuf;
+00086     DWORD lasterr = GetLastError();
+00087     DWORD chars = FormatMessage(FORMAT\_MESSAGE\_FROM\_SYSTEM
+00088         | FORMAT\_MESSAGE\_ALLOCATE\_BUFFER,
+00089         NULL,
+00090         error,
+00091         0, \textcolor{comment}{/* Default language */}
+00092         (LPVOID)&msgbuf,
+00093         0,
+00094         NULL);
+00095     \textcolor{keywordflow}{if} (chars != 0) \{
+00096         \textcolor{comment}{/* If there is an \(\backslash\)r\(\backslash\)n appended, zap it.  */}
+00097         \textcolor{keywordflow}{if} (chars >= 2
+00098             && msgbuf[chars - 2] == \textcolor{charliteral}{'\(\backslash\)r'} && msgbuf[chars - 1] == \textcolor{charliteral}{'\(\backslash\)n'}) \{
+00099             chars -= 2;
+00100             msgbuf[chars] = 0;
+00101         \}
+00102 
+00103         \textcolor{keywordflow}{if} (chars > \textcolor{keyword}{sizeof} (buf) - 1) \{
+00104             chars = \textcolor{keyword}{sizeof} (buf) - 1;
+00105             msgbuf[chars] = 0;
+00106         \}
+00107 
+00108         wcstombs(buf, msgbuf, chars + 1);
+00109         LocalFree(msgbuf);
+00110     \}
+00111     \textcolor{keywordflow}{else} \{
+00112         sprintf(buf, \textcolor{stringliteral}{"unknown win32 error (%ld)"}, error);
+00113     \}
+00114 
+00115     SetLastError(lasterr);
+00116     \textcolor{keywordflow}{return} buf;
+00117 \}
+00118 
+00119 \textcolor{keyword}{static} \textcolor{keywordtype}{void} pwinerror (s)
+00120     \textcolor{keyword}{const} \textcolor{keywordtype}{char} *s;
+00121 \{
+00122     \textcolor{keywordflow}{if} (s && *s)
+00123         fprintf(stderr, \textcolor{stringliteral}{"%s: %s\(\backslash\)n"}, s, strwinerror(GetLastError ()));
+00124     \textcolor{keywordflow}{else}
+00125         fprintf(stderr, \textcolor{stringliteral}{"%s\(\backslash\)n"}, strwinerror(GetLastError ()));
+00126 \}
+00127 
+00128 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* UNDER\_CE */}\textcolor{preprocessor}{}
+00129 
+00130 \textcolor{preprocessor}{#ifndef GZ\_SUFFIX}
+00131 \textcolor{preprocessor}{#  define GZ\_SUFFIX ".gz"}
+00132 \textcolor{preprocessor}{#endif}
+00133 \textcolor{preprocessor}{#define SUFFIX\_LEN (sizeof(GZ\_SUFFIX)-1)}
+00134 
+00135 \textcolor{preprocessor}{#define BUFLEN      16384}
+00136 \textcolor{preprocessor}{#define MAX\_NAME\_LEN 1024}
+00137 
+00138 \textcolor{preprocessor}{#ifdef MAXSEG\_64K}
+00139 \textcolor{preprocessor}{#  define local static}
+00140    \textcolor{comment}{/* Needed for systems with limitation on stack size. */}
+00141 \textcolor{preprocessor}{#else}
+00142 \textcolor{preprocessor}{#  define local}
+00143 \textcolor{preprocessor}{#endif}
+00144 
+00145 \textcolor{preprocessor}{#ifdef Z\_SOLO}
+00146 \textcolor{comment}{/* for Z\_SOLO, create simplified gz* functions using deflate and inflate */}
+00147 
+00148 \textcolor{preprocessor}{#if defined(Z\_HAVE\_UNISTD\_H) || defined(Z\_LARGE)}
+00149 \textcolor{preprocessor}{#  include <unistd.h>}       \textcolor{comment}{/* for unlink() */}
+00150 \textcolor{preprocessor}{#endif}
+00151 
+00152 \textcolor{keywordtype}{void} *myalloc OF((\textcolor{keywordtype}{void} *, \textcolor{keywordtype}{unsigned}, \textcolor{keywordtype}{unsigned}));
+00153 \textcolor{keywordtype}{void} myfree OF((\textcolor{keywordtype}{void} *, \textcolor{keywordtype}{void} *));
+00154 
+00155 \textcolor{keywordtype}{void} *myalloc(q, n, m)
+00156     \textcolor{keywordtype}{void} *q;
+00157     \textcolor{keywordtype}{unsigned} n, m;
+00158 \{
+00159     (void)q;
+00160     \textcolor{keywordflow}{return} calloc(n, m);
+00161 \}
+00162 
+00163 \textcolor{keywordtype}{void} myfree(q, p)
+00164     \textcolor{keywordtype}{void} *q, *p;
+00165 \{
+00166     (void)q;
+00167     free(p);
+00168 \}
+00169 
+00170 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structgz_file__s}{gzFile\_s} \{
+00171     FILE *\hyperlink{structfile}{file};
+00172     \textcolor{keywordtype}{int} write;
+00173     \textcolor{keywordtype}{int} err;
+00174     \textcolor{keywordtype}{char} *msg;
+00175     \hyperlink{structz__stream__s}{z\_stream} strm;
+00176 \} *\hyperlink{structgz_file__s}{gzFile};
+00177 
+00178 \hyperlink{structgz_file__s}{gzFile} gzopen OF((\textcolor{keyword}{const} \textcolor{keywordtype}{char} *, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *));
+00179 \hyperlink{structgz_file__s}{gzFile} gzdopen OF((\textcolor{keywordtype}{int}, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *));
+00180 \hyperlink{structgz_file__s}{gzFile} gz\_open OF((\textcolor{keyword}{const} \textcolor{keywordtype}{char} *, \textcolor{keywordtype}{int}, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *));
+00181 
+00182 \hyperlink{structgz_file__s}{gzFile} gzopen(path, mode)
+00183 \textcolor{keyword}{const} \textcolor{keywordtype}{char} *path;
+00184 \textcolor{keyword}{const} \textcolor{keywordtype}{char} *mode;
+00185 \{
+00186     \textcolor{keywordflow}{return} gz\_open(path, -1, mode);
+00187 \}
+00188 
+00189 \hyperlink{structgz_file__s}{gzFile} gzdopen(fd, mode)
+00190 \textcolor{keywordtype}{int} fd;
+00191 \textcolor{keyword}{const} \textcolor{keywordtype}{char} *mode;
+00192 \{
+00193     \textcolor{keywordflow}{return} gz\_open(NULL, fd, mode);
+00194 \}
+00195 
+00196 \hyperlink{structgz_file__s}{gzFile} gz\_open(path, fd, mode)
+00197     \textcolor{keyword}{const} \textcolor{keywordtype}{char} *path;
+00198     \textcolor{keywordtype}{int} fd;
+00199     \textcolor{keyword}{const} \textcolor{keywordtype}{char} *mode;
+00200 \{
+00201     \hyperlink{structgz_file__s}{gzFile} gz;
+00202     \textcolor{keywordtype}{int} ret;
+00203 
+00204     gz = malloc(\textcolor{keyword}{sizeof}(\textcolor{keyword}{struct} \hyperlink{structgz_file__s}{gzFile\_s}));
+00205     \textcolor{keywordflow}{if} (gz == NULL)
+00206         \textcolor{keywordflow}{return} NULL;
+00207     gz->write = strchr(mode, \textcolor{charliteral}{'w'}) != NULL;
+00208     gz->strm.zalloc = myalloc;
+00209     gz->strm.zfree = myfree;
+00210     gz->strm.opaque = Z\_NULL;
+00211     \textcolor{keywordflow}{if} (gz->write)
+00212         ret = deflateInit2(&(gz->strm), -1, 8, 15 + 16, 8, 0);
+00213     \textcolor{keywordflow}{else} \{
+00214         gz->strm.next\_in = 0;
+00215         gz->strm.avail\_in = Z\_NULL;
+00216         ret = inflateInit2(&(gz->strm), 15 + 16);
+00217     \}
+00218     \textcolor{keywordflow}{if} (ret != Z\_OK) \{
+00219         free(gz);
+00220         \textcolor{keywordflow}{return} NULL;
+00221     \}
+00222     gz->file = path == NULL ? fdopen(fd, gz->write ? \textcolor{stringliteral}{"wb"} : \textcolor{stringliteral}{"rb"}) :
+00223                               fopen(path, gz->write ? \textcolor{stringliteral}{"wb"} : \textcolor{stringliteral}{"rb"});
+00224     \textcolor{keywordflow}{if} (gz->file == NULL) \{
+00225         gz->write ? deflateEnd(&(gz->strm)) : inflateEnd(&(gz->strm));
+00226         free(gz);
+00227         \textcolor{keywordflow}{return} NULL;
+00228     \}
+00229     gz->err = 0;
+00230     gz->msg = \textcolor{stringliteral}{""};
+00231     \textcolor{keywordflow}{return} gz;
+00232 \}
+00233 
+00234 \textcolor{keywordtype}{int} gzwrite OF((\hyperlink{structgz_file__s}{gzFile}, \textcolor{keyword}{const} \textcolor{keywordtype}{void} *, \textcolor{keywordtype}{unsigned}));
+00235 
+00236 \textcolor{keywordtype}{int} gzwrite(gz, buf, len)
+00237     \hyperlink{structgz_file__s}{gzFile} gz;
+00238     \textcolor{keyword}{const} \textcolor{keywordtype}{void} *buf;
+00239     \textcolor{keywordtype}{unsigned} len;
+00240 \{
+00241     \hyperlink{structz__stream__s}{z\_stream} *strm;
+00242     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} out[BUFLEN];
+00243 
+00244     \textcolor{keywordflow}{if} (gz == NULL || !gz->write)
+00245         \textcolor{keywordflow}{return} 0;
+00246     strm = &(gz->strm);
+00247     strm->next\_in = (\textcolor{keywordtype}{void} *)buf;
+00248     strm->avail\_in = len;
+00249     \textcolor{keywordflow}{do} \{
+00250         strm->next\_out = out;
+00251         strm->avail\_out = BUFLEN;
+00252         (void)deflate(strm, Z\_NO\_FLUSH);
+00253         fwrite(out, 1, BUFLEN - strm->avail\_out, gz->file);
+00254     \} \textcolor{keywordflow}{while} (strm->avail\_out == 0);
+00255     \textcolor{keywordflow}{return} len;
+00256 \}
+00257 
+00258 \textcolor{keywordtype}{int} gzread OF((\hyperlink{structgz_file__s}{gzFile}, \textcolor{keywordtype}{void} *, \textcolor{keywordtype}{unsigned}));
+00259 
+00260 \textcolor{keywordtype}{int} gzread(gz, buf, len)
+00261     \hyperlink{structgz_file__s}{gzFile} gz;
+00262     \textcolor{keywordtype}{void} *buf;
+00263     \textcolor{keywordtype}{unsigned} len;
+00264 \{
+00265     \textcolor{keywordtype}{int} ret;
+00266     \textcolor{keywordtype}{unsigned} got;
+00267     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} in[1];
+00268     \hyperlink{structz__stream__s}{z\_stream} *strm;
+00269 
+00270     \textcolor{keywordflow}{if} (gz == NULL || gz->write)
+00271         \textcolor{keywordflow}{return} 0;
+00272     \textcolor{keywordflow}{if} (gz->err)
+00273         \textcolor{keywordflow}{return} 0;
+00274     strm = &(gz->strm);
+00275     strm->next\_out = (\textcolor{keywordtype}{void} *)buf;
+00276     strm->avail\_out = len;
+00277     \textcolor{keywordflow}{do} \{
+00278         got = fread(in, 1, 1, gz->file);
+00279         \textcolor{keywordflow}{if} (got == 0)
+00280             \textcolor{keywordflow}{break};
+00281         strm->next\_in = in;
+00282         strm->avail\_in = 1;
+00283         ret = inflate(strm, Z\_NO\_FLUSH);
+00284         \textcolor{keywordflow}{if} (ret == Z\_DATA\_ERROR) \{
+00285             gz->err = Z\_DATA\_ERROR;
+00286             gz->msg = strm->msg;
+00287             \textcolor{keywordflow}{return} 0;
+00288         \}
+00289         \textcolor{keywordflow}{if} (ret == Z\_STREAM\_END)
+00290             inflateReset(strm);
+00291     \} \textcolor{keywordflow}{while} (strm->avail\_out);
+00292     \textcolor{keywordflow}{return} len - strm->avail\_out;
+00293 \}
+00294 
+00295 \textcolor{keywordtype}{int} gzclose OF((\hyperlink{structgz_file__s}{gzFile}));
+00296 
+00297 \textcolor{keywordtype}{int} gzclose(gz)
+00298     \hyperlink{structgz_file__s}{gzFile} gz;
+00299 \{
+00300     \hyperlink{structz__stream__s}{z\_stream} *strm;
+00301     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} out[BUFLEN];
+00302 
+00303     \textcolor{keywordflow}{if} (gz == NULL)
+00304         \textcolor{keywordflow}{return} Z\_STREAM\_ERROR;
+00305     strm = &(gz->strm);
+00306     \textcolor{keywordflow}{if} (gz->write) \{
+00307         strm->next\_in = Z\_NULL;
+00308         strm->avail\_in = 0;
+00309         \textcolor{keywordflow}{do} \{
+00310             strm->next\_out = out;
+00311             strm->avail\_out = BUFLEN;
+00312             (void)deflate(strm, Z\_FINISH);
+00313             fwrite(out, 1, BUFLEN - strm->avail\_out, gz->file);
+00314         \} \textcolor{keywordflow}{while} (strm->avail\_out == 0);
+00315         deflateEnd(strm);
+00316     \}
+00317     \textcolor{keywordflow}{else}
+00318         inflateEnd(strm);
+00319     fclose(gz->file);
+00320     free(gz);
+00321     \textcolor{keywordflow}{return} Z\_OK;
+00322 \}
+00323 
+00324 \textcolor{keyword}{const} \textcolor{keywordtype}{char} *gzerror OF((\hyperlink{structgz_file__s}{gzFile}, \textcolor{keywordtype}{int} *));
+00325 
+00326 \textcolor{keyword}{const} \textcolor{keywordtype}{char} *gzerror(gz, err)
+00327     \hyperlink{structgz_file__s}{gzFile} gz;
+00328     \textcolor{keywordtype}{int} *err;
+00329 \{
+00330     *err = gz->err;
+00331     \textcolor{keywordflow}{return} gz->msg;
+00332 \}
+00333 
+00334 \textcolor{preprocessor}{#endif}
+00335 
+00336 \textcolor{keyword}{static} \textcolor{keywordtype}{char} *prog;
+00337 
+00338 \textcolor{keywordtype}{void} error            OF((\textcolor{keyword}{const} \textcolor{keywordtype}{char} *msg));
+00339 \textcolor{keywordtype}{void} gz\_compress      OF((FILE   *in, \hyperlink{structgz_file__s}{gzFile} out));
+00340 \textcolor{preprocessor}{#ifdef USE\_MMAP}
+00341 \textcolor{keywordtype}{int}  gz\_compress\_mmap OF((FILE   *in, \hyperlink{structgz_file__s}{gzFile} out));
+00342 \textcolor{preprocessor}{#endif}
+00343 \textcolor{keywordtype}{void} gz\_uncompress    OF((\hyperlink{structgz_file__s}{gzFile} in, FILE   *out));
+00344 \textcolor{keywordtype}{void} file\_compress    OF((\textcolor{keywordtype}{char}  *\hyperlink{structfile}{file}, \textcolor{keywordtype}{char} *mode));
+00345 \textcolor{keywordtype}{void} file\_uncompress  OF((\textcolor{keywordtype}{char}  *\hyperlink{structfile}{file}));
+00346 \textcolor{keywordtype}{int}  main             OF((\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[]));
+00347 
+00348 \textcolor{comment}{/* ===========================================================================}
+00349 \textcolor{comment}{ * Display error message and exit}
+00350 \textcolor{comment}{ */}
+00351 \textcolor{keywordtype}{void} error(msg)
+00352     \textcolor{keyword}{const} \textcolor{keywordtype}{char} *msg;
+00353 \{
+00354     fprintf(stderr, \textcolor{stringliteral}{"%s: %s\(\backslash\)n"}, prog, msg);
+00355     exit(1);
+00356 \}
+00357 
+00358 \textcolor{comment}{/* ===========================================================================}
+00359 \textcolor{comment}{ * Compress input to output then close both files.}
+00360 \textcolor{comment}{ */}
+00361 
+00362 \textcolor{keywordtype}{void} gz\_compress(in, out)
+00363     FILE   *in;
+00364     \hyperlink{structgz_file__s}{gzFile} out;
+00365 \{
+00366     local \textcolor{keywordtype}{char} buf[BUFLEN];
+00367     \textcolor{keywordtype}{int} len;
+00368     \textcolor{keywordtype}{int} err;
+00369 
+00370 \textcolor{preprocessor}{#ifdef USE\_MMAP}
+00371     \textcolor{comment}{/* Try first compressing with mmap. If mmap fails (minigzip used in a}
+00372 \textcolor{comment}{     * pipe), use the normal fread loop.}
+00373 \textcolor{comment}{     */}
+00374     \textcolor{keywordflow}{if} (gz\_compress\_mmap(in, out) == Z\_OK) \textcolor{keywordflow}{return};
+00375 \textcolor{preprocessor}{#endif}
+00376     \textcolor{keywordflow}{for} (;;) \{
+00377         len = (int)fread(buf, 1, \textcolor{keyword}{sizeof}(buf), in);
+00378         \textcolor{keywordflow}{if} (ferror(in)) \{
+00379             perror(\textcolor{stringliteral}{"fread"});
+00380             exit(1);
+00381         \}
+00382         \textcolor{keywordflow}{if} (len == 0) \textcolor{keywordflow}{break};
+00383 
+00384         \textcolor{keywordflow}{if} (gzwrite(out, buf, (\textcolor{keywordtype}{unsigned})len) != len) error(gzerror(out, &err));
+00385     \}
+00386     fclose(in);
+00387     \textcolor{keywordflow}{if} (gzclose(out) != Z\_OK) error(\textcolor{stringliteral}{"failed gzclose"});
+00388 \}
+00389 
+00390 \textcolor{preprocessor}{#ifdef USE\_MMAP }\textcolor{comment}{/* MMAP version, Miguel Albrecht <malbrech@eso.org> */}\textcolor{preprocessor}{}
+00391 
+00392 \textcolor{comment}{/* Try compressing the input file at once using mmap. Return Z\_OK if}
+00393 \textcolor{comment}{ * if success, Z\_ERRNO otherwise.}
+00394 \textcolor{comment}{ */}
+00395 \textcolor{keywordtype}{int} gz\_compress\_mmap(in, out)
+00396     FILE   *in;
+00397     \hyperlink{structgz_file__s}{gzFile} out;
+00398 \{
+00399     \textcolor{keywordtype}{int} len;
+00400     \textcolor{keywordtype}{int} err;
+00401     \textcolor{keywordtype}{int} ifd = fileno(in);
+00402     caddr\_t buf;    \textcolor{comment}{/* mmap'ed buffer for the entire input file */}
+00403     off\_t buf\_len;  \textcolor{comment}{/* length of the input file */}
+00404     \textcolor{keyword}{struct }stat sb;
+00405 
+00406     \textcolor{comment}{/* Determine the size of the file, needed for mmap: */}
+00407     \textcolor{keywordflow}{if} (fstat(ifd, &sb) < 0) \textcolor{keywordflow}{return} Z\_ERRNO;
+00408     buf\_len = sb.st\_size;
+00409     \textcolor{keywordflow}{if} (buf\_len <= 0) \textcolor{keywordflow}{return} Z\_ERRNO;
+00410 
+00411     \textcolor{comment}{/* Now do the actual mmap: */}
+00412     buf = mmap((caddr\_t) 0, buf\_len, PROT\_READ, MAP\_SHARED, ifd, (off\_t)0);
+00413     \textcolor{keywordflow}{if} (buf == (caddr\_t)(-1)) \textcolor{keywordflow}{return} Z\_ERRNO;
+00414 
+00415     \textcolor{comment}{/* Compress the whole file at once: */}
+00416     len = gzwrite(out, (\textcolor{keywordtype}{char} *)buf, (\textcolor{keywordtype}{unsigned})buf\_len);
+00417 
+00418     \textcolor{keywordflow}{if} (len != (\textcolor{keywordtype}{int})buf\_len) error(gzerror(out, &err));
+00419 
+00420     munmap(buf, buf\_len);
+00421     fclose(in);
+00422     \textcolor{keywordflow}{if} (gzclose(out) != Z\_OK) error(\textcolor{stringliteral}{"failed gzclose"});
+00423     \textcolor{keywordflow}{return} Z\_OK;
+00424 \}
+00425 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* USE\_MMAP */}\textcolor{preprocessor}{}
+00426 
+00427 \textcolor{comment}{/* ===========================================================================}
+00428 \textcolor{comment}{ * Uncompress input to output then close both files.}
+00429 \textcolor{comment}{ */}
+00430 \textcolor{keywordtype}{void} gz\_uncompress(in, out)
+00431     \hyperlink{structgz_file__s}{gzFile} in;
+00432     FILE   *out;
+00433 \{
+00434     local \textcolor{keywordtype}{char} buf[BUFLEN];
+00435     \textcolor{keywordtype}{int} len;
+00436     \textcolor{keywordtype}{int} err;
+00437 
+00438     \textcolor{keywordflow}{for} (;;) \{
+00439         len = gzread(in, buf, \textcolor{keyword}{sizeof}(buf));
+00440         \textcolor{keywordflow}{if} (len < 0) error (gzerror(in, &err));
+00441         \textcolor{keywordflow}{if} (len == 0) \textcolor{keywordflow}{break};
+00442 
+00443         \textcolor{keywordflow}{if} ((\textcolor{keywordtype}{int})fwrite(buf, 1, (\textcolor{keywordtype}{unsigned})len, out) != len) \{
+00444             error(\textcolor{stringliteral}{"failed fwrite"});
+00445         \}
+00446     \}
+00447     \textcolor{keywordflow}{if} (fclose(out)) error(\textcolor{stringliteral}{"failed fclose"});
+00448 
+00449     \textcolor{keywordflow}{if} (gzclose(in) != Z\_OK) error(\textcolor{stringliteral}{"failed gzclose"});
+00450 \}
+00451 
+00452 
+00453 \textcolor{comment}{/* ===========================================================================}
+00454 \textcolor{comment}{ * Compress the given file: create a corresponding .gz file and remove the}
+00455 \textcolor{comment}{ * original.}
+00456 \textcolor{comment}{ */}
+00457 \textcolor{keywordtype}{void} file\_compress(\hyperlink{structfile}{file}, mode)
+00458     \textcolor{keywordtype}{char}  *\hyperlink{structfile}{file};
+00459     \textcolor{keywordtype}{char}  *mode;
+00460 \{
+00461     local \textcolor{keywordtype}{char} outfile[MAX\_NAME\_LEN];
+00462     FILE  *in;
+00463     \hyperlink{structgz_file__s}{gzFile} out;
+00464 
+00465     \textcolor{keywordflow}{if} (strlen(file) + strlen(GZ\_SUFFIX) >= \textcolor{keyword}{sizeof}(outfile)) \{
+00466         fprintf(stderr, \textcolor{stringliteral}{"%s: filename too long\(\backslash\)n"}, prog);
+00467         exit(1);
+00468     \}
+00469 
+00470 \textcolor{preprocessor}{#if !defined(NO\_snprintf) && !defined(NO\_vsnprintf)}
+00471     snprintf(outfile, \textcolor{keyword}{sizeof}(outfile), \textcolor{stringliteral}{"%s%s"}, file, GZ\_SUFFIX);
+00472 \textcolor{preprocessor}{#else}
+00473     strcpy(outfile, file);
+00474     strcat(outfile, GZ\_SUFFIX);
+00475 \textcolor{preprocessor}{#endif}
+00476 
+00477     in = fopen(file, \textcolor{stringliteral}{"rb"});
+00478     \textcolor{keywordflow}{if} (in == NULL) \{
+00479         perror(file);
+00480         exit(1);
+00481     \}
+00482     out = gzopen(outfile, mode);
+00483     \textcolor{keywordflow}{if} (out == NULL) \{
+00484         fprintf(stderr, \textcolor{stringliteral}{"%s: can't gzopen %s\(\backslash\)n"}, prog, outfile);
+00485         exit(1);
+00486     \}
+00487     gz\_compress(in, out);
+00488 
+00489     unlink(file);
+00490 \}
+00491 
+00492 
+00493 \textcolor{comment}{/* ===========================================================================}
+00494 \textcolor{comment}{ * Uncompress the given file and remove the original.}
+00495 \textcolor{comment}{ */}
+00496 \textcolor{keywordtype}{void} file\_uncompress(file)
+00497     \textcolor{keywordtype}{char}  *file;
+00498 \{
+00499     local \textcolor{keywordtype}{char} buf[MAX\_NAME\_LEN];
+00500     \textcolor{keywordtype}{char} *infile, *outfile;
+00501     FILE  *out;
+00502     \hyperlink{structgz_file__s}{gzFile} in;
+00503     \textcolor{keywordtype}{unsigned} len = strlen(file);
+00504 
+00505     \textcolor{keywordflow}{if} (len + strlen(GZ\_SUFFIX) >= \textcolor{keyword}{sizeof}(buf)) \{
+00506         fprintf(stderr, \textcolor{stringliteral}{"%s: filename too long\(\backslash\)n"}, prog);
+00507         exit(1);
+00508     \}
+00509 
+00510 \textcolor{preprocessor}{#if !defined(NO\_snprintf) && !defined(NO\_vsnprintf)}
+00511     snprintf(buf, \textcolor{keyword}{sizeof}(buf), \textcolor{stringliteral}{"%s"}, file);
+00512 \textcolor{preprocessor}{#else}
+00513     strcpy(buf, file);
+00514 \textcolor{preprocessor}{#endif}
+00515 
+00516     \textcolor{keywordflow}{if} (len > SUFFIX\_LEN && strcmp(file+len-SUFFIX\_LEN, GZ\_SUFFIX) == 0) \{
+00517         infile = file;
+00518         outfile = buf;
+00519         outfile[len-3] = \textcolor{charliteral}{'\(\backslash\)0'};
+00520     \} \textcolor{keywordflow}{else} \{
+00521         outfile = file;
+00522         infile = buf;
+00523 \textcolor{preprocessor}{#if !defined(NO\_snprintf) && !defined(NO\_vsnprintf)}
+00524         snprintf(buf + len, \textcolor{keyword}{sizeof}(buf) - len, \textcolor{stringliteral}{"%s"}, GZ\_SUFFIX);
+00525 \textcolor{preprocessor}{#else}
+00526         strcat(infile, GZ\_SUFFIX);
+00527 \textcolor{preprocessor}{#endif}
+00528     \}
+00529     in = gzopen(infile, \textcolor{stringliteral}{"rb"});
+00530     \textcolor{keywordflow}{if} (in == NULL) \{
+00531         fprintf(stderr, \textcolor{stringliteral}{"%s: can't gzopen %s\(\backslash\)n"}, prog, infile);
+00532         exit(1);
+00533     \}
+00534     out = fopen(outfile, \textcolor{stringliteral}{"wb"});
+00535     \textcolor{keywordflow}{if} (out == NULL) \{
+00536         perror(file);
+00537         exit(1);
+00538     \}
+00539 
+00540     gz\_uncompress(in, out);
+00541 
+00542     unlink(infile);
+00543 \}
+00544 
+00545 
+00546 \textcolor{comment}{/* ===========================================================================}
+00547 \textcolor{comment}{ * Usage:  minigzip [-c] [-d] [-f] [-h] [-r] [-1 to -9] [files...]}
+00548 \textcolor{comment}{ *   -c : write to standard output}
+00549 \textcolor{comment}{ *   -d : decompress}
+00550 \textcolor{comment}{ *   -f : compress with Z\_FILTERED}
+00551 \textcolor{comment}{ *   -h : compress with Z\_HUFFMAN\_ONLY}
+00552 \textcolor{comment}{ *   -r : compress with Z\_RLE}
+00553 \textcolor{comment}{ *   -1 to -9 : compression level}
+00554 \textcolor{comment}{ */}
+00555 
+00556 \textcolor{keywordtype}{int} main(argc, argv)
+00557     \textcolor{keywordtype}{int} argc;
+00558     \textcolor{keywordtype}{char} *argv[];
+00559 \{
+00560     \textcolor{keywordtype}{int} copyout = 0;
+00561     \textcolor{keywordtype}{int} uncompr = 0;
+00562     \hyperlink{structgz_file__s}{gzFile} file;
+00563     \textcolor{keywordtype}{char} *bname, outmode[20];
+00564 
+00565 \textcolor{preprocessor}{#if !defined(NO\_snprintf) && !defined(NO\_vsnprintf)}
+00566     snprintf(outmode, \textcolor{keyword}{sizeof}(outmode), \textcolor{stringliteral}{"%s"}, \textcolor{stringliteral}{"wb6 "});
+00567 \textcolor{preprocessor}{#else}
+00568     strcpy(outmode, \textcolor{stringliteral}{"wb6 "});
+00569 \textcolor{preprocessor}{#endif}
+00570 
+00571     prog = argv[0];
+00572     bname = strrchr(argv[0], \textcolor{charliteral}{'/'});
+00573     \textcolor{keywordflow}{if} (bname)
+00574       bname++;
+00575     \textcolor{keywordflow}{else}
+00576       bname = argv[0];
+00577     argc--, argv++;
+00578 
+00579     \textcolor{keywordflow}{if} (!strcmp(bname, \textcolor{stringliteral}{"gunzip"}))
+00580       uncompr = 1;
+00581     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (!strcmp(bname, \textcolor{stringliteral}{"zcat"}))
+00582       copyout = uncompr = 1;
+00583 
+00584     \textcolor{keywordflow}{while} (argc > 0) \{
+00585       \textcolor{keywordflow}{if} (strcmp(*argv, \textcolor{stringliteral}{"-c"}) == 0)
+00586         copyout = 1;
+00587       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (strcmp(*argv, \textcolor{stringliteral}{"-d"}) == 0)
+00588         uncompr = 1;
+00589       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (strcmp(*argv, \textcolor{stringliteral}{"-f"}) == 0)
+00590         outmode[3] = \textcolor{charliteral}{'f'};
+00591       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (strcmp(*argv, \textcolor{stringliteral}{"-h"}) == 0)
+00592         outmode[3] = \textcolor{charliteral}{'h'};
+00593       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (strcmp(*argv, \textcolor{stringliteral}{"-r"}) == 0)
+00594         outmode[3] = \textcolor{charliteral}{'R'};
+00595       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ((*argv)[0] == \textcolor{charliteral}{'-'} && (*argv)[1] >= \textcolor{charliteral}{'1'} && (*argv)[1] <= \textcolor{charliteral}{'9'} &&
+00596                (*argv)[2] == 0)
+00597         outmode[2] = (*argv)[1];
+00598       \textcolor{keywordflow}{else}
+00599         \textcolor{keywordflow}{break};
+00600       argc--, argv++;
+00601     \}
+00602     \textcolor{keywordflow}{if} (outmode[3] == \textcolor{charliteral}{' '})
+00603         outmode[3] = 0;
+00604     \textcolor{keywordflow}{if} (argc == 0) \{
+00605         SET\_BINARY\_MODE(stdin);
+00606         SET\_BINARY\_MODE(stdout);
+00607         \textcolor{keywordflow}{if} (uncompr) \{
+00608             file = gzdopen(fileno(stdin), \textcolor{stringliteral}{"rb"});
+00609             \textcolor{keywordflow}{if} (file == NULL) error(\textcolor{stringliteral}{"can't gzdopen stdin"});
+00610             gz\_uncompress(file, stdout);
+00611         \} \textcolor{keywordflow}{else} \{
+00612             file = gzdopen(fileno(stdout), outmode);
+00613             \textcolor{keywordflow}{if} (file == NULL) error(\textcolor{stringliteral}{"can't gzdopen stdout"});
+00614             gz\_compress(stdin, file);
+00615         \}
+00616     \} \textcolor{keywordflow}{else} \{
+00617         \textcolor{keywordflow}{if} (copyout) \{
+00618             SET\_BINARY\_MODE(stdout);
+00619         \}
+00620         \textcolor{keywordflow}{do} \{
+00621             \textcolor{keywordflow}{if} (uncompr) \{
+00622                 \textcolor{keywordflow}{if} (copyout) \{
+00623                     file = gzopen(*argv, \textcolor{stringliteral}{"rb"});
+00624                     \textcolor{keywordflow}{if} (file == NULL)
+00625                         fprintf(stderr, \textcolor{stringliteral}{"%s: can't gzopen %s\(\backslash\)n"}, prog, *argv);
+00626                     \textcolor{keywordflow}{else}
+00627                         gz\_uncompress(file, stdout);
+00628                 \} \textcolor{keywordflow}{else} \{
+00629                     file\_uncompress(*argv);
+00630                 \}
+00631             \} \textcolor{keywordflow}{else} \{
+00632                 \textcolor{keywordflow}{if} (copyout) \{
+00633                     FILE * in = fopen(*argv, \textcolor{stringliteral}{"rb"});
+00634 
+00635                     \textcolor{keywordflow}{if} (in == NULL) \{
+00636                         perror(*argv);
+00637                     \} \textcolor{keywordflow}{else} \{
+00638                         file = gzdopen(fileno(stdout), outmode);
+00639                         \textcolor{keywordflow}{if} (file == NULL) error(\textcolor{stringliteral}{"can't gzdopen stdout"});
+00640 
+00641                         gz\_compress(in, file);
+00642                     \}
+00643 
+00644                 \} \textcolor{keywordflow}{else} \{
+00645                     file\_compress(*argv, outmode);
+00646                 \}
+00647             \}
+00648         \} \textcolor{keywordflow}{while} (argv++, --argc);
+00649     \}
+00650     \textcolor{keywordflow}{return} 0;
+00651 \}
+\end{DoxyCode}

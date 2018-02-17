@@ -1,0 +1,135 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2include_2_h5_object_8h_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/include/\+H5\+Object.h}
+\label{visual__studio_2_h_d_f5_21_810_81_2include_2_h5_object_8h_source}\index{H5\+Object.\+h@{H5\+Object.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// C++ informative line for the emacs editor: -*- C++ -*-}
+00002 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+00003 \textcolor{comment}{ * Copyright by The HDF Group.                                               *}
+00004 \textcolor{comment}{ * Copyright by the Board of Trustees of the University of Illinois.         *}
+00005 \textcolor{comment}{ * All rights reserved.                                                      *}
+00006 \textcolor{comment}{ *                                                                           *}
+00007 \textcolor{comment}{ * This file is part of HDF5.  The full HDF5 copyright notice, including     *}
+00008 \textcolor{comment}{ * terms governing use, modification, and redistribution, is contained in    *}
+00009 \textcolor{comment}{ * the COPYING file, which can be found at the root of the source code       *}
+00010 \textcolor{comment}{ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *}
+00011 \textcolor{comment}{ * If you do not have access to either file, you may request a copy from     *}
+00012 \textcolor{comment}{ * help@hdfgroup.org.                                                        *}
+00013 \textcolor{comment}{ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00014 
+00015 \textcolor{preprocessor}{#ifndef \_\_H5Object\_H}
+00016 \textcolor{preprocessor}{#define \_\_H5Object\_H}
+00017 
+00018 \textcolor{keyword}{namespace }\hyperlink{namespace_h5}{H5} \{
+00019 
+00024 \textcolor{comment}{/*}
+00025 \textcolor{comment}{    Modification:}
+00026 \textcolor{comment}{        Sept 18, 2012: Added class H5Location in between IdComponent and}
+00027 \textcolor{comment}{                H5Object.  An H5File now inherits from H5Location.  All HDF5}
+00028 \textcolor{comment}{                wrappers in H5Object are moved up to H5Location.  H5Object}
+00029 \textcolor{comment}{                is left mostly empty for future wrappers that are only for}
+00030 \textcolor{comment}{                group, dataset, and named datatype.  Note that the reason for}
+00031 \textcolor{comment}{                adding H5Location instead of simply moving H5File to be under}
+00032 \textcolor{comment}{                H5Object is H5File is not an HDF5 object, and renaming H5Object}
+00033 \textcolor{comment}{                to H5Location will risk breaking user applications.}
+00034 \textcolor{comment}{                -BMR}
+00035 \textcolor{comment}{        Apr 2, 2014: Added wrapper getObjName for H5Iget\_name }
+00036 \textcolor{comment}{        Sep 21, 2016: Rearranging classes (HDFFV-9920) moved H5A wrappers back}
+00037 \textcolor{comment}{                into H5Object.  This way, C functions that takes attribute id}
+00038 \textcolor{comment}{                can be in H5Location and those that cannot take attribute id}
+00039 \textcolor{comment}{                can be in H5Object.}
+00040 \textcolor{comment}{*/}
+00041 \textcolor{comment}{// Class forwarding}
+00042 \textcolor{keyword}{class }H5Object;
+00043 \textcolor{keyword}{class }Attribute;
+00044 
+00045 \textcolor{comment}{// Define the operator function pointer for H5Aiterate().}
+00046 \textcolor{keyword}{typedef} void (*attr\_operator\_t)(H5Object& loc\textcolor{comment}{/*in*/},
+00047                                  \textcolor{keyword}{const} H5std\_string attr\_name\textcolor{comment}{/*in*/},
+00048                                  \textcolor{keywordtype}{void} *operator\_data\textcolor{comment}{/*in,out*/});
+00049 
+00050 \textcolor{comment}{// User data for attribute iteration}
+00051 \textcolor{keyword}{class }UserData4Aiterate \{
+00052     \textcolor{keyword}{public}:
+00053         attr\_operator\_t op;
+00054         \textcolor{keywordtype}{void}* opData;
+00055         H5Object* location;
+00056 \};
+00057 
+00058 \textcolor{comment}{//  Inheritance: H5Location -> IdComponent}
+00059 \textcolor{keyword}{class }H5\_DLLCPP H5Object : \textcolor{keyword}{public} H5Location \{
+00060    \textcolor{keyword}{public}:
+00061         \textcolor{comment}{// Creates an attribute for the specified object}
+00062         \textcolor{comment}{// PropList is currently not used, so always be default.}
+00063         Attribute createAttribute(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* name, \textcolor{keyword}{const} DataType& type, \textcolor{keyword}{const} DataSpace& space, \textcolor{keyword}{const} 
+      PropList& create\_plist = \hyperlink{class_h5_1_1_prop_list_ae52af66ce82af0ea7e6dc57148c56241}{PropList::DEFAULT}) \textcolor{keyword}{const};
+00064         Attribute createAttribute(\textcolor{keyword}{const} H5std\_string& name, \textcolor{keyword}{const} DataType& type, \textcolor{keyword}{const} DataSpace& space, \textcolor{keyword}{
+      const} PropList& create\_plist = \hyperlink{class_h5_1_1_prop_list_ae52af66ce82af0ea7e6dc57148c56241}{PropList::DEFAULT}) \textcolor{keyword}{const};
+00065 
+00066         \textcolor{comment}{// Given its name, opens the attribute that belongs to an object at}
+00067         \textcolor{comment}{// this location.}
+00068         Attribute openAttribute(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* name) \textcolor{keyword}{const};
+00069         Attribute openAttribute(\textcolor{keyword}{const} H5std\_string& name) \textcolor{keyword}{const};
+00070 
+00071         \textcolor{comment}{// Given its index, opens the attribute that belongs to an object at}
+00072         \textcolor{comment}{// this location.}
+00073         Attribute openAttribute(\textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} idx) \textcolor{keyword}{const};
+00074 
+00075         \textcolor{comment}{// Iterate user's function over the attributes of this object.}
+00076         \textcolor{keywordtype}{int} iterateAttrs(attr\_operator\_t user\_op, \textcolor{keywordtype}{unsigned}* idx = NULL, \textcolor{keywordtype}{void}* op\_data = NULL);
+00077 
+00078         \textcolor{comment}{// Returns the object header version of an object}
+00079         \textcolor{keywordtype}{unsigned} objVersion() \textcolor{keyword}{const};
+00080 
+00081         \textcolor{comment}{// Checks whether the named attribute exists for this object.}
+00082         \textcolor{keywordtype}{bool} attrExists(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* name) \textcolor{keyword}{const};
+00083         \textcolor{keywordtype}{bool} attrExists(\textcolor{keyword}{const} H5std\_string& name) \textcolor{keyword}{const};
+00084 
+00085         \textcolor{comment}{// Renames the named attribute to a new name.}
+00086         \textcolor{keywordtype}{void} renameAttr(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* oldname, \textcolor{keyword}{const} \textcolor{keywordtype}{char}* newname) \textcolor{keyword}{const};
+00087         \textcolor{keywordtype}{void} renameAttr(\textcolor{keyword}{const} H5std\_string& oldname, \textcolor{keyword}{const} H5std\_string& newname) \textcolor{keyword}{const};
+00088 
+00089         \textcolor{comment}{// Removes the named attribute from this object.}
+00090         \textcolor{keywordtype}{void} removeAttr(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* name) \textcolor{keyword}{const};
+00091         \textcolor{keywordtype}{void} removeAttr(\textcolor{keyword}{const} H5std\_string& name) \textcolor{keyword}{const};
+00092 
+00093         \textcolor{comment}{// Returns an identifier.}
+00094         \textcolor{keyword}{virtual} hid\_t getId() \textcolor{keyword}{const} = 0;
+00095 
+00096 \textcolor{preprocessor}{#ifndef DOXYGEN\_SHOULD\_SKIP\_THIS}
+00097         \textcolor{comment}{// Gets the name of this HDF5 object, i.e., Group, DataSet, or}
+00098         \textcolor{comment}{// DataType.  These should have const but are retiring anyway.}
+00099         ssize\_t getObjName(\textcolor{keywordtype}{char} *obj\_name, \textcolor{keywordtype}{size\_t} buf\_size = 0) \textcolor{keyword}{const};
+00100         ssize\_t getObjName(H5std\_string& obj\_name, \textcolor{keywordtype}{size\_t} len = 0) \textcolor{keyword}{const};
+00101         H5std\_string getObjName() \textcolor{keyword}{const};
+00102 
+00103    \textcolor{keyword}{protected}:
+00104         \textcolor{comment}{// Default constructor}
+00105         H5Object();
+00106 
+00107         \textcolor{comment}{// *** Deprecation warning ***}
+00108         \textcolor{comment}{// The following two constructors are no longer appropriate after the}
+00109         \textcolor{comment}{// data member "id" had been moved to the sub-classes.}
+00110         \textcolor{comment}{// The copy constructor is a noop and is removed in 1.8.15 and the}
+00111         \textcolor{comment}{// other will be removed from 1.10 release, and then from 1.8 if its}
+00112         \textcolor{comment}{// removal does not raise any problems in two 1.10 releases.}
+00113 
+00114         \textcolor{comment}{// Creates a copy of an existing object giving the object id}
+00115         H5Object(\textcolor{keyword}{const} hid\_t object\_id);
+00116 
+00117         \textcolor{comment}{// Copy constructor: makes copy of an H5Object object.}
+00118         \textcolor{comment}{// H5Object(const H5Object& original);}
+00119 
+00120         \textcolor{comment}{// Sets the identifier of this object to a new value. - this one}
+00121         \textcolor{comment}{// doesn't increment reference count}
+00122         \textcolor{keyword}{virtual} \textcolor{keywordtype}{void} p\_setId(\textcolor{keyword}{const} hid\_t new\_id) = 0;
+00123 
+00124         \textcolor{comment}{// Noop destructor.}
+00125         \textcolor{keyword}{virtual} ~H5Object();
+00126 
+00127 \textcolor{preprocessor}{#endif // DOXYGEN\_SHOULD\_SKIP\_THIS}
+00128 
+00129 \}; \textcolor{comment}{// end of H5Object}
+00130 \} \textcolor{comment}{// namespace H5}
+00131 
+00132 \textcolor{preprocessor}{#endif // \_\_H5Object\_H}
+\end{DoxyCode}

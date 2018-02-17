@@ -1,0 +1,150 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_t_2h5ex__t__enum___f03_8f90_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+F\+O\+R\+T\+R\+A\+N/\+H5\+T/h5ex\+\_\+t\+\_\+enum\+\_\+\+F03.f90}
+\label{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_t_2h5ex__t__enum___f03_8f90_source}\index{h5ex\+\_\+t\+\_\+enum\+\_\+\+F03.\+f90@{h5ex\+\_\+t\+\_\+enum\+\_\+\+F03.\+f90}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{!************************************************************}
+00002 \textcolor{comment}{!}
+00003 \textcolor{comment}{!  This example shows how to read and write enumerated}
+00004 \textcolor{comment}{!  datatypes to a dataset.  The program first writes}
+00005 \textcolor{comment}{!  enumerated values to a dataset with a dataspace of}
+00006 \textcolor{comment}{!  DIM0xDIM1, then closes the file.  Next, it reopens the}
+00007 \textcolor{comment}{!  file, reads back the data, and outputs it to the screen.}
+00008 \textcolor{comment}{!}
+00009 \textcolor{comment}{!  This file is intended for use with HDF5 Library version 1.8}
+00010 \textcolor{comment}{!  with --enable-fortran2003}
+00011 \textcolor{comment}{!}
+00012 \textcolor{comment}{!************************************************************}
+00013 \textcolor{keyword}{PROGRAM} main
+00014 
+00015   \textcolor{keywordtype}{USE }hdf5
+00016   \textcolor{keywordtype}{USE }iso\_c\_binding
+00017 
+00018   \textcolor{keywordtype}{IMPLICIT NONE}
+00019   \textcolor{keywordtype}{CHARACTER(LEN=19)}, \textcolor{keywordtype}{PARAMETER} :: filename  = \textcolor{stringliteral}{"h5ex\_t\_enum\_F03.h5"}
+00020   \textcolor{keywordtype}{CHARACTER(LEN=3)} , \textcolor{keywordtype}{PARAMETER} :: dataset   = \textcolor{stringliteral}{"DS1"}
+00021   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: dim0      = 4
+00022   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: dim1      = 7
+00023   \textcolor{keywordtype}{INTEGER(HID\_T)}               :: f\_baset  \textcolor{comment}{! File base type}
+00024   \textcolor{keywordtype}{INTEGER(HID\_T)}               :: m\_baset  \textcolor{comment}{! Memory base type}
+00025   \textcolor{keywordtype}{INTEGER(SIZE\_T)}  , \textcolor{keywordtype}{PARAMETER} :: name\_buf\_size = 16
+00026 
+00027 \textcolor{comment}{! Enumerated type}
+00028   enum, bind(c)
+00029      enumerator :: solid = 0, liquid, gas, plasma
+00030 \textcolor{keyword}{  END }enum
+00031 
+00032   \textcolor{keywordtype}{INTEGER(HID\_T)} :: \hyperlink{structfile}{file}, filetype, memtype, space, dset \textcolor{comment}{! Handles}
+00033   \textcolor{keywordtype}{INTEGER} :: hdferr
+00034 
+00035   \textcolor{keywordtype}{INTEGER(hsize\_t)},   \textcolor{keywordtype}{DIMENSION(1:2)} :: dims = (/dim0, dim1/)
+00036   \textcolor{keywordtype}{INTEGER(kind(SOLID))}, \textcolor{keywordtype}{DIMENSION(1:dim0, 1:dim1)}, \textcolor{keywordtype}{TARGET} :: wdata \textcolor{comment}{! Write buffer}
+00037   \textcolor{keywordtype}{INTEGER(kind(SOLID))}, \textcolor{keywordtype}{DIMENSION(:,:)}, \textcolor{keywordtype}{ALLOCATABLE}, \textcolor{keywordtype}{TARGET} :: rdata \textcolor{comment}{! Read buffer}
+00038   \textcolor{keywordtype}{INTEGER(kind(SOLID))}, \textcolor{keywordtype}{TARGET} :: val
+00039 
+00040   \textcolor{keywordtype}{CHARACTER(LEN=6)}, \textcolor{keywordtype}{DIMENSION(1:4)} :: &
+00041        names = (/\textcolor{stringliteral}{"SOLID "}, \textcolor{stringliteral}{"LIQUID"}, \textcolor{stringliteral}{"GAS   "}, \textcolor{stringliteral}{"PLASMA"}/)
+00042   \textcolor{keywordtype}{CHARACTER(LEN=NAME\_BUF\_SIZE)} :: name
+00043   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:2)} :: maxdims
+00044   \textcolor{keywordtype}{INTEGER(kind(SOLID))} :: i, j
+00045   \textcolor{keywordtype}{TYPE}(c\_ptr) :: f\_ptr
+00046   \textcolor{comment}{!}
+00047   \textcolor{comment}{! Initialize FORTRAN interface.}
+00048   \textcolor{comment}{!}
+00049   \textcolor{keyword}{CALL }h5open\_f(hdferr)
+00050   \textcolor{comment}{!}
+00051   \textcolor{comment}{! Initialize DATA.}
+00052   \textcolor{comment}{!}
+00053   f\_baset   = h5t\_std\_i16be      \textcolor{comment}{! File base type}
+00054   m\_baset   = h5kind\_to\_type(kind(solid), h5\_integer\_kind) \textcolor{comment}{! Memory base type}
+00055   \textcolor{keywordflow}{DO} i = 1, dim0
+00056      \textcolor{keywordflow}{DO} j = 1, dim1 
+00057         wdata(i,j) = mod( (j-1)*(i-1), plasma+1)
+00058 \textcolor{keywordflow}{     ENDDO}
+00059 \textcolor{keywordflow}{  ENDDO}
+00060   \textcolor{comment}{!}
+00061   \textcolor{comment}{! Create a new file using the default properties.}
+00062   \textcolor{comment}{!}
+00063   \textcolor{keyword}{CALL }h5fcreate\_f(filename, h5f\_acc\_trunc\_f, \hyperlink{structfile}{file}, hdferr)
+00064   \textcolor{comment}{!}
+00065   \textcolor{comment}{! Create the enumerated datatypes for file and memory.  This}
+00066   \textcolor{comment}{! process is simplified IF native types are used for the file,}
+00067   \textcolor{comment}{! as only one type must be defined.}
+00068   \textcolor{comment}{!}
+00069   \textcolor{keyword}{CALL }h5tenum\_create\_f (f\_baset, filetype, hdferr)
+00070   \textcolor{keyword}{CALL }h5tenum\_create\_f (m\_baset, memtype, hdferr)
+00071 
+00072   \textcolor{keywordflow}{DO} i = solid, plasma
+00073      \textcolor{comment}{!}
+00074      \textcolor{comment}{! Insert enumerated value for memtype.}
+00075      \textcolor{comment}{!}
+00076      val = i
+00077      \textcolor{keyword}{CALL }h5tenum\_insert\_f(memtype, trim(names(i+1)), val, hdferr)
+00078      \textcolor{comment}{!}
+00079      \textcolor{comment}{! Insert enumerated value for filetype.  We must first convert}
+00080      \textcolor{comment}{! the numerical value val to the base type of the destination.}
+00081      \textcolor{comment}{!}
+00082      f\_ptr = c\_loc(val)
+00083      \textcolor{keyword}{CALL }h5tconvert\_f (m\_baset, f\_baset, int(1,size\_t), f\_ptr, hdferr)
+00084      \textcolor{keyword}{CALL }h5tenum\_insert\_f(filetype, trim(names(i+1)), val, hdferr)
+00085 \textcolor{keywordflow}{  ENDDO}
+00086   \textcolor{comment}{!}
+00087   \textcolor{comment}{! Create dataspace.  Setting maximum size to be the current size.}
+00088   \textcolor{comment}{!}
+00089   \textcolor{keyword}{CALL }h5screate\_simple\_f(2, dims, space, hdferr)
+00090   \textcolor{comment}{!}
+00091   \textcolor{comment}{! Create the dataset and write the enumerated data to it.}
+00092   \textcolor{comment}{! }
+00093   \textcolor{keyword}{CALL }h5dcreate\_f(\hyperlink{structfile}{file}, dataset, filetype, space, dset, hdferr)
+00094   f\_ptr = c\_loc(wdata(1,1))
+00095   \textcolor{keyword}{CALL }h5dwrite\_f(dset, memtype, f\_ptr, hdferr)
+00096   \textcolor{comment}{!}
+00097   \textcolor{comment}{! Close and release resources.}
+00098   \textcolor{comment}{!}
+00099   \textcolor{keyword}{CALL }h5dclose\_f(dset , hdferr)
+00100   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)
+00101   \textcolor{keyword}{CALL }h5tclose\_f(filetype, hdferr)
+00102   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file} , hdferr)
+00103 
+00104   \textcolor{comment}{!}
+00105   \textcolor{comment}{! Now we begin the read section of this example.}
+00106   \textcolor{comment}{!}
+00107   \textcolor{comment}{! Open file and dataset.}
+00108   \textcolor{comment}{!}
+00109   \textcolor{keyword}{CALL }h5fopen\_f(filename, h5f\_acc\_rdonly\_f, \hyperlink{structfile}{file}, hdferr)
+00110   \textcolor{keyword}{CALL }h5dopen\_f (\hyperlink{structfile}{file}, dataset, dset, hdferr)
+00111   \textcolor{comment}{!}
+00112   \textcolor{comment}{! Get dataspace and allocate memory for read buffer.}
+00113   \textcolor{comment}{!}
+00114   \textcolor{keyword}{CALL }h5dget\_space\_f(dset,space, hdferr)
+00115   \textcolor{keyword}{CALL }h5sget\_simple\_extent\_dims\_f (space, dims, maxdims, hdferr)
+00116   \textcolor{keyword}{ALLOCATE}(rdata(1:dims(1),1:dims(2)))
+00117   \textcolor{comment}{!}
+00118   \textcolor{comment}{! Read the data.}
+00119   \textcolor{comment}{!}
+00120   f\_ptr = c\_loc(rdata(1,1))
+00121   \textcolor{keyword}{CALL }h5dread\_f(dset, memtype, f\_ptr, hdferr)
+00122   \textcolor{comment}{!}
+00123   \textcolor{comment}{! Output the data to the screen.}
+00124   \textcolor{comment}{!}
+00125   \textcolor{keyword}{WRITE}(*, \textcolor{stringliteral}{'(A,":")'}) dataset
+00126   \textcolor{keywordflow}{DO} i=1, dims(1)
+00127      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" [")'}, advance=\textcolor{stringliteral}{'NO'})
+00128      \textcolor{keywordflow}{DO} j = 1, dims(2)
+00129         \textcolor{comment}{!}
+00130         \textcolor{comment}{! Get the name of the enumeration member.}
+00131         \textcolor{comment}{!}
+00132         \textcolor{keyword}{CALL }h5tenum\_nameof\_f( memtype, rdata(i,j), name\_buf\_size, name, hdferr) 
+00133         \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" ", A6," ")'}, advance=\textcolor{stringliteral}{'NO'}) trim(name)
+00134 \textcolor{keywordflow}{     ENDDO}
+00135      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'("]")'})
+00136 \textcolor{keywordflow}{  ENDDO}
+00137   \textcolor{comment}{!}
+00138   \textcolor{comment}{! Close and release resources.}
+00139   \textcolor{comment}{!}
+00140   \textcolor{keyword}{DEALLOCATE}(rdata)
+00141   \textcolor{keyword}{CALL }h5dclose\_f(dset , hdferr)
+00142   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)
+00143   \textcolor{keyword}{CALL }h5tclose\_f(memtype, hdferr)
+00144   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file} , hdferr)
+00145 \textcolor{keyword}{END PROGRAM }main
+\end{DoxyCode}

@@ -1,0 +1,109 @@
+\hypertarget{eigen_2_eigen_2src_2_householder_2_block_householder_8h_source}{}\section{eigen/\+Eigen/src/\+Householder/\+Block\+Householder.h}
+\label{eigen_2_eigen_2src_2_householder_2_block_householder_8h_source}\index{Block\+Householder.\+h@{Block\+Householder.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2010 Vincent Lejeune}
+00005 \textcolor{comment}{// Copyright (C) 2010 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_BLOCK\_HOUSEHOLDER\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_BLOCK\_HOUSEHOLDER\_H}
+00013 
+00014 \textcolor{comment}{// This file contains some helper function to deal with block householder reflectors}
+00015 
+00016 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00017 
+00018 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00019   
+00021 \textcolor{comment}{// template<typename TriangularFactorType,typename VectorsType,typename CoeffsType>}
+00022 \textcolor{comment}{// void make\_block\_householder\_triangular\_factor(TriangularFactorType& triFactor, const VectorsType&
+       vectors, const CoeffsType& hCoeffs)}
+00023 \textcolor{comment}{// \{}
+00024 \textcolor{comment}{//   typedef typename VectorsType::Scalar Scalar;}
+00025 \textcolor{comment}{//   const Index nbVecs = vectors.cols();}
+00026 \textcolor{comment}{//   eigen\_assert(triFactor.rows() == nbVecs && triFactor.cols() == nbVecs && vectors.rows()>=nbVecs);}
+00027 \textcolor{comment}{// }
+00028 \textcolor{comment}{//   for(Index i = 0; i < nbVecs; i++)}
+00029 \textcolor{comment}{//   \{}
+00030 \textcolor{comment}{//     Index rs = vectors.rows() - i;}
+00031 \textcolor{comment}{//     // Warning, note that hCoeffs may alias with vectors.}
+00032 \textcolor{comment}{//     // It is then necessary to copy it before modifying vectors(i,i). }
+00033 \textcolor{comment}{//     typename CoeffsType::Scalar h = hCoeffs(i);}
+00034 \textcolor{comment}{//     // This hack permits to pass trough nested Block<> and Transpose<> expressions.}
+00035 \textcolor{comment}{//     Scalar *Vii\_ptr = const\_cast<Scalar*>(vectors.data() + vectors.outerStride()*i +
+       vectors.innerStride()*i);}
+00036 \textcolor{comment}{//     Scalar Vii = *Vii\_ptr;}
+00037 \textcolor{comment}{//     *Vii\_ptr = Scalar(1);}
+00038 \textcolor{comment}{//     triFactor.col(i).head(i).noalias() = -h * vectors.block(i, 0, rs, i).adjoint()}
+00039 \textcolor{comment}{//                                        * vectors.col(i).tail(rs);}
+00040 \textcolor{comment}{//     *Vii\_ptr = Vii;}
+00041 \textcolor{comment}{//     // FIXME add .noalias() once the triangular product can work inplace}
+00042 \textcolor{comment}{//     triFactor.col(i).head(i) = triFactor.block(0,0,i,i).template triangularView<Upper>()}
+00043 \textcolor{comment}{//                              * triFactor.col(i).head(i);}
+00044 \textcolor{comment}{//     triFactor(i,i) = hCoeffs(i);}
+00045 \textcolor{comment}{//   \}}
+00046 \textcolor{comment}{// \}}
+00047 
+00049 \textcolor{comment}{// This variant avoid modifications in vectors}
+00050 \textcolor{keyword}{template}<\textcolor{keyword}{typename} TriangularFactorType,\textcolor{keyword}{typename} VectorsType,\textcolor{keyword}{typename} CoeffsType>
+00051 \textcolor{keywordtype}{void} make\_block\_householder\_triangular\_factor(TriangularFactorType& triFactor, \textcolor{keyword}{const} VectorsType& vectors, \textcolor{keyword}{
+      const} CoeffsType& hCoeffs)
+00052 \{
+00053   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} nbVecs = vectors.cols();
+00054   eigen\_assert(triFactor.rows() == nbVecs && triFactor.cols() == nbVecs && vectors.rows()>=nbVecs);
+00055 
+00056   \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i = nbVecs-1; i >=0 ; --i)
+00057   \{
+00058     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rs = vectors.rows() - i - 1;
+00059     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rt = nbVecs-i-1;
+00060 
+00061     \textcolor{keywordflow}{if}(rt>0)
+00062     \{
+00063       triFactor.row(i).tail(rt).noalias() = -hCoeffs(i) * vectors.col(i).tail(rs).adjoint()
+00064                                                         * vectors.bottomRightCorner(rs, rt).template 
+      triangularView<UnitLower>();
+00065             
+00066       \textcolor{comment}{// FIXME add .noalias() once the triangular product can work inplace}
+00067       triFactor.row(i).tail(rt) = triFactor.row(i).tail(rt) * triFactor.bottomRightCorner(rt,rt).template 
+      triangularView<Upper>();
+00068       
+00069     \}
+00070     triFactor(i,i) = hCoeffs(i);
+00071   \}
+00072 \}
+00073 
+00078 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType,\textcolor{keyword}{typename} VectorsType,\textcolor{keyword}{typename} CoeffsType>
+00079 \textcolor{keywordtype}{void} apply\_block\_householder\_on\_the\_left(MatrixType& mat, \textcolor{keyword}{const} VectorsType& vectors, \textcolor{keyword}{const} CoeffsType& 
+      hCoeffs, \textcolor{keywordtype}{bool} forward)
+00080 \{
+00081   \textcolor{keyword}{enum} \{ TFactorSize = MatrixType::ColsAtCompileTime \};
+00082   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} nbVecs = vectors.cols();
+00083   Matrix<typename MatrixType::Scalar, TFactorSize, TFactorSize, RowMajor> \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}(nbVecs,nbVecs);
+00084   
+00085   \textcolor{keywordflow}{if}(forward) make\_block\_householder\_triangular\_factor(\hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}, vectors, hCoeffs);
+00086   \textcolor{keywordflow}{else}        make\_block\_householder\_triangular\_factor(\hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}, vectors, hCoeffs.conjugate());  
+00087   \textcolor{keyword}{const} TriangularView<const VectorsType, UnitLower> V(vectors);
+00088 
+00089   \textcolor{comment}{// A -= V T V^* A}
+00090   Matrix<\textcolor{keyword}{typename} MatrixType::Scalar,VectorsType::ColsAtCompileTime,MatrixType::ColsAtCompileTime,
+00091          (VectorsType::MaxColsAtCompileTime==1 && MatrixType::MaxColsAtCompileTime!=1)?
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}:\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor},
+00092          VectorsType::MaxColsAtCompileTime,MatrixType::MaxColsAtCompileTime> tmp = V.adjoint() * mat;
+00093   \textcolor{comment}{// FIXME add .noalias() once the triangular product can work inplace}
+00094   \textcolor{keywordflow}{if}(forward) tmp = \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}.template triangularView<Upper>()           * tmp;
+00095   \textcolor{keywordflow}{else}        tmp = \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T}.template triangularView<Upper>().adjoint() * tmp;
+00096   mat.noalias() -= V * tmp;
+00097 \}
+00098 
+00099 \} \textcolor{comment}{// end namespace internal}
+00100 
+00101 \} \textcolor{comment}{// end namespace Eigen}
+00102 
+00103 \textcolor{preprocessor}{#endif // EIGEN\_BLOCK\_HOUSEHOLDER\_H}
+\end{DoxyCode}

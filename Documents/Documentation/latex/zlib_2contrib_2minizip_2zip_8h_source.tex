@@ -1,0 +1,368 @@
+\hypertarget{zlib_2contrib_2minizip_2zip_8h_source}{}\section{zlib/contrib/minizip/zip.h}
+\label{zlib_2contrib_2minizip_2zip_8h_source}\index{zip.\+h@{zip.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* zip.h -- IO on .zip files using zlib}
+00002 \textcolor{comment}{   Version 1.1, February 14h, 2010}
+00003 \textcolor{comment}{   part of the MiniZip project - ( http://www.winimage.com/zLibDll/minizip.html )}
+00004 \textcolor{comment}{}
+00005 \textcolor{comment}{         Copyright (C) 1998-2010 Gilles Vollant (minizip) ( http://www.winimage.com/zLibDll/minizip.html )}
+00006 \textcolor{comment}{}
+00007 \textcolor{comment}{         Modifications for Zip64 support}
+00008 \textcolor{comment}{         Copyright (C) 2009-2010 Mathias Svensson ( http://result42.com )}
+00009 \textcolor{comment}{}
+00010 \textcolor{comment}{         For more info read MiniZip\_info.txt}
+00011 \textcolor{comment}{}
+00012 \textcolor{comment}{         ---------------------------------------------------------------------------}
+00013 \textcolor{comment}{}
+00014 \textcolor{comment}{   Condition of use and distribution are the same than zlib :}
+00015 \textcolor{comment}{}
+00016 \textcolor{comment}{  This software is provided 'as-is', without any express or implied}
+00017 \textcolor{comment}{  warranty.  In no event will the authors be held liable for any damages}
+00018 \textcolor{comment}{  arising from the use of this software.}
+00019 \textcolor{comment}{}
+00020 \textcolor{comment}{  Permission is granted to anyone to use this software for any purpose,}
+00021 \textcolor{comment}{  including commercial applications, and to alter it and redistribute it}
+00022 \textcolor{comment}{  freely, subject to the following restrictions:}
+00023 \textcolor{comment}{}
+00024 \textcolor{comment}{  1. The origin of this software must not be misrepresented; you must not}
+00025 \textcolor{comment}{     claim that you wrote the original software. If you use this software}
+00026 \textcolor{comment}{     in a product, an acknowledgment in the product documentation would be}
+00027 \textcolor{comment}{     appreciated but is not required.}
+00028 \textcolor{comment}{  2. Altered source versions must be plainly marked as such, and must not be}
+00029 \textcolor{comment}{     misrepresented as being the original software.}
+00030 \textcolor{comment}{  3. This notice may not be removed or altered from any source distribution.}
+00031 \textcolor{comment}{}
+00032 \textcolor{comment}{        ---------------------------------------------------------------------------}
+00033 \textcolor{comment}{}
+00034 \textcolor{comment}{        Changes}
+00035 \textcolor{comment}{}
+00036 \textcolor{comment}{        See header of zip.h}
+00037 \textcolor{comment}{}
+00038 \textcolor{comment}{*/}
+00039 
+00040 \textcolor{preprocessor}{#ifndef \_zip12\_H}
+00041 \textcolor{preprocessor}{#define \_zip12\_H}
+00042 
+00043 \textcolor{preprocessor}{#ifdef \_\_cplusplus}
+00044 \textcolor{keyword}{extern} \textcolor{stringliteral}{"C"} \{
+00045 \textcolor{preprocessor}{#endif}
+00046 
+00047 \textcolor{comment}{//#define HAVE\_BZIP2}
+00048 
+00049 \textcolor{preprocessor}{#ifndef \_ZLIB\_H}
+00050 \textcolor{preprocessor}{#include "zlib.h"}
+00051 \textcolor{preprocessor}{#endif}
+00052 
+00053 \textcolor{preprocessor}{#ifndef \_ZLIBIOAPI\_H}
+00054 \textcolor{preprocessor}{#include "ioapi.h"}
+00055 \textcolor{preprocessor}{#endif}
+00056 
+00057 \textcolor{preprocessor}{#ifdef HAVE\_BZIP2}
+00058 \textcolor{preprocessor}{#include "bzlib.h"}
+00059 \textcolor{preprocessor}{#endif}
+00060 
+00061 \textcolor{preprocessor}{#define Z\_BZIP2ED 12}
+00062 
+00063 \textcolor{preprocessor}{#if defined(STRICTZIP) || defined(STRICTZIPUNZIP)}
+00064 \textcolor{comment}{/* like the STRICT of WIN32, we define a pointer that cannot be converted}
+00065 \textcolor{comment}{    from (void*) without cast */}
+00066 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }TagzipFile\_\_ \{ \textcolor{keywordtype}{int} unused; \} zipFile\_\_;
+00067 \textcolor{keyword}{typedef} zipFile\_\_ *zipFile;
+00068 \textcolor{preprocessor}{#else}
+00069 \textcolor{keyword}{typedef} voidp zipFile;
+00070 \textcolor{preprocessor}{#endif}
+00071 
+00072 \textcolor{preprocessor}{#define ZIP\_OK                          (0)}
+00073 \textcolor{preprocessor}{#define ZIP\_EOF                         (0)}
+00074 \textcolor{preprocessor}{#define ZIP\_ERRNO                       (Z\_ERRNO)}
+00075 \textcolor{preprocessor}{#define ZIP\_PARAMERROR                  (-102)}
+00076 \textcolor{preprocessor}{#define ZIP\_BADZIPFILE                  (-103)}
+00077 \textcolor{preprocessor}{#define ZIP\_INTERNALERROR               (-104)}
+00078 
+00079 \textcolor{preprocessor}{#ifndef DEF\_MEM\_LEVEL}
+00080 \textcolor{preprocessor}{#  if MAX\_MEM\_LEVEL >= 8}
+00081 \textcolor{preprocessor}{#    define DEF\_MEM\_LEVEL 8}
+00082 \textcolor{preprocessor}{#  else}
+00083 \textcolor{preprocessor}{#    define DEF\_MEM\_LEVEL  MAX\_MEM\_LEVEL}
+00084 \textcolor{preprocessor}{#  endif}
+00085 \textcolor{preprocessor}{#endif}
+00086 \textcolor{comment}{/* default memLevel */}
+00087 
+00088 \textcolor{comment}{/* tm\_zip contain date/time info */}
+00089 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{structtm__zip__s}{tm\_zip\_s}
+00090 \{
+00091     uInt tm\_sec;            \textcolor{comment}{/* seconds after the minute - [0,59] */}
+00092     uInt tm\_min;            \textcolor{comment}{/* minutes after the hour - [0,59] */}
+00093     uInt tm\_hour;           \textcolor{comment}{/* hours since midnight - [0,23] */}
+00094     uInt tm\_mday;           \textcolor{comment}{/* day of the month - [1,31] */}
+00095     uInt tm\_mon;            \textcolor{comment}{/* months since January - [0,11] */}
+00096     uInt tm\_year;           \textcolor{comment}{/* years - [1980..2044] */}
+00097 \} \hyperlink{structtm__zip__s}{tm\_zip};
+00098 
+00099 \textcolor{keyword}{typedef} \textcolor{keyword}{struct}
+00100 \{
+00101     \hyperlink{structtm__zip__s}{tm\_zip}      tmz\_date;       \textcolor{comment}{/* date in understandable format           */}
+00102     uLong       dosDate;       \textcolor{comment}{/* if dos\_date == 0, tmu\_date is used      */}
+00103 \textcolor{comment}{/*    uLong       flag;        */}   \textcolor{comment}{/* general purpose bit flag        2 bytes */}
+00104 
+00105     uLong       internal\_fa;    \textcolor{comment}{/* internal file attributes        2 bytes */}
+00106     uLong       external\_fa;    \textcolor{comment}{/* external file attributes        4 bytes */}
+00107 \} \hyperlink{structzip__fileinfo}{zip\_fileinfo};
+00108 
+00109 \textcolor{keyword}{typedef} \textcolor{keyword}{const} \textcolor{keywordtype}{char}* zipcharpc;
+00110 
+00111 
+00112 \textcolor{preprocessor}{#define APPEND\_STATUS\_CREATE        (0)}
+00113 \textcolor{preprocessor}{#define APPEND\_STATUS\_CREATEAFTER   (1)}
+00114 \textcolor{preprocessor}{#define APPEND\_STATUS\_ADDINZIP      (2)}
+00115 
+00116 \textcolor{keyword}{extern} zipFile ZEXPORT zipOpen OF((\textcolor{keyword}{const} \textcolor{keywordtype}{char} *pathname, \textcolor{keywordtype}{int} append));
+00117 \textcolor{keyword}{extern} zipFile ZEXPORT zipOpen64 OF((\textcolor{keyword}{const} \textcolor{keywordtype}{void} *pathname, \textcolor{keywordtype}{int} append));
+00118 \textcolor{comment}{/*}
+00119 \textcolor{comment}{  Create a zipfile.}
+00120 \textcolor{comment}{     pathname contain on Windows XP a filename like "c:\(\backslash\)\(\backslash\)zlib\(\backslash\)\(\backslash\)zlib113.zip" or on}
+00121 \textcolor{comment}{       an Unix computer "zlib/zlib113.zip".}
+00122 \textcolor{comment}{     if the file pathname exist and append==APPEND\_STATUS\_CREATEAFTER, the zip}
+00123 \textcolor{comment}{       will be created at the end of the file.}
+00124 \textcolor{comment}{         (useful if the file contain a self extractor code)}
+00125 \textcolor{comment}{     if the file pathname exist and append==APPEND\_STATUS\_ADDINZIP, we will}
+00126 \textcolor{comment}{       add files in existing zip (be sure you don't add file that doesn't exist)}
+00127 \textcolor{comment}{     If the zipfile cannot be opened, the return value is NULL.}
+00128 \textcolor{comment}{     Else, the return value is a zipFile Handle, usable with other function}
+00129 \textcolor{comment}{       of this zip package.}
+00130 \textcolor{comment}{*/}
+00131 
+00132 \textcolor{comment}{/* Note : there is no delete function into a zipfile.}
+00133 \textcolor{comment}{   If you want delete file into a zipfile, you must open a zipfile, and create another}
+00134 \textcolor{comment}{   Of couse, you can use RAW reading and writing to copy the file you did not want delte}
+00135 \textcolor{comment}{*/}
+00136 
+00137 \textcolor{keyword}{extern} zipFile ZEXPORT zipOpen2 OF((\textcolor{keyword}{const} \textcolor{keywordtype}{char} *pathname,
+00138                                    \textcolor{keywordtype}{int} append,
+00139                                    zipcharpc* globalcomment,
+00140                                    \hyperlink{structzlib__filefunc__def__s}{zlib\_filefunc\_def}* pzlib\_filefunc\_def));
+00141 
+00142 \textcolor{keyword}{extern} zipFile ZEXPORT zipOpen2\_64 OF((\textcolor{keyword}{const} \textcolor{keywordtype}{void} *pathname,
+00143                                    \textcolor{keywordtype}{int} append,
+00144                                    zipcharpc* globalcomment,
+00145                                    \hyperlink{structzlib__filefunc64__def__s}{zlib\_filefunc64\_def}* pzlib\_filefunc\_def));
+00146 
+00147 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT zipOpenNewFileInZip OF((zipFile \hyperlink{structfile}{file},
+00148                        \textcolor{keyword}{const} \textcolor{keywordtype}{char}* filename,
+00149                        \textcolor{keyword}{const} \hyperlink{structzip__fileinfo}{zip\_fileinfo}* zipfi,
+00150                        \textcolor{keyword}{const} \textcolor{keywordtype}{void}* extrafield\_local,
+00151                        uInt size\_extrafield\_local,
+00152                        \textcolor{keyword}{const} \textcolor{keywordtype}{void}* extrafield\_global,
+00153                        uInt size\_extrafield\_global,
+00154                        \textcolor{keyword}{const} \textcolor{keywordtype}{char}* comment,
+00155                        \textcolor{keywordtype}{int} method,
+00156                        \textcolor{keywordtype}{int} level));
+00157 
+00158 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT zipOpenNewFileInZip64 OF((zipFile \hyperlink{structfile}{file},
+00159                        \textcolor{keyword}{const} \textcolor{keywordtype}{char}* filename,
+00160                        \textcolor{keyword}{const} \hyperlink{structzip__fileinfo}{zip\_fileinfo}* zipfi,
+00161                        \textcolor{keyword}{const} \textcolor{keywordtype}{void}* extrafield\_local,
+00162                        uInt size\_extrafield\_local,
+00163                        \textcolor{keyword}{const} \textcolor{keywordtype}{void}* extrafield\_global,
+00164                        uInt size\_extrafield\_global,
+00165                        \textcolor{keyword}{const} \textcolor{keywordtype}{char}* comment,
+00166                        \textcolor{keywordtype}{int} method,
+00167                        \textcolor{keywordtype}{int} level,
+00168                        \textcolor{keywordtype}{int} zip64));
+00169 
+00170 \textcolor{comment}{/*}
+00171 \textcolor{comment}{  Open a file in the ZIP for writing.}
+00172 \textcolor{comment}{  filename : the filename in zip (if NULL, '-' without quote will be used}
+00173 \textcolor{comment}{  *zipfi contain supplemental information}
+00174 \textcolor{comment}{  if extrafield\_local!=NULL and size\_extrafield\_local>0, extrafield\_local}
+00175 \textcolor{comment}{    contains the extrafield data the the local header}
+00176 \textcolor{comment}{  if extrafield\_global!=NULL and size\_extrafield\_global>0, extrafield\_global}
+00177 \textcolor{comment}{    contains the extrafield data the the local header}
+00178 \textcolor{comment}{  if comment != NULL, comment contain the comment string}
+00179 \textcolor{comment}{  method contain the compression method (0 for store, Z\_DEFLATED for deflate)}
+00180 \textcolor{comment}{  level contain the level of compression (can be Z\_DEFAULT\_COMPRESSION)}
+00181 \textcolor{comment}{  zip64 is set to 1 if a zip64 extended information block should be added to the local file header.}
+00182 \textcolor{comment}{                    this MUST be '1' if the uncompressed size is >= 0xffffffff.}
+00183 \textcolor{comment}{}
+00184 \textcolor{comment}{*/}
+00185 
+00186 
+00187 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT zipOpenNewFileInZip2 OF((zipFile \hyperlink{structfile}{file},
+00188                                             \textcolor{keyword}{const} \textcolor{keywordtype}{char}* filename,
+00189                                             \textcolor{keyword}{const} \hyperlink{structzip__fileinfo}{zip\_fileinfo}* zipfi,
+00190                                             \textcolor{keyword}{const} \textcolor{keywordtype}{void}* extrafield\_local,
+00191                                             uInt size\_extrafield\_local,
+00192                                             \textcolor{keyword}{const} \textcolor{keywordtype}{void}* extrafield\_global,
+00193                                             uInt size\_extrafield\_global,
+00194                                             \textcolor{keyword}{const} \textcolor{keywordtype}{char}* comment,
+00195                                             \textcolor{keywordtype}{int} method,
+00196                                             \textcolor{keywordtype}{int} level,
+00197                                             \textcolor{keywordtype}{int} raw));
+00198 
+00199 
+00200 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT zipOpenNewFileInZip2\_64 OF((zipFile \hyperlink{structfile}{file},
+00201                                             \textcolor{keyword}{const} \textcolor{keywordtype}{char}* filename,
+00202                                             \textcolor{keyword}{const} \hyperlink{structzip__fileinfo}{zip\_fileinfo}* zipfi,
+00203                                             \textcolor{keyword}{const} \textcolor{keywordtype}{void}* extrafield\_local,
+00204                                             uInt size\_extrafield\_local,
+00205                                             \textcolor{keyword}{const} \textcolor{keywordtype}{void}* extrafield\_global,
+00206                                             uInt size\_extrafield\_global,
+00207                                             \textcolor{keyword}{const} \textcolor{keywordtype}{char}* comment,
+00208                                             \textcolor{keywordtype}{int} method,
+00209                                             \textcolor{keywordtype}{int} level,
+00210                                             \textcolor{keywordtype}{int} raw,
+00211                                             \textcolor{keywordtype}{int} zip64));
+00212 \textcolor{comment}{/*}
+00213 \textcolor{comment}{  Same than zipOpenNewFileInZip, except if raw=1, we write raw file}
+00214 \textcolor{comment}{ */}
+00215 
+00216 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT zipOpenNewFileInZip3 OF((zipFile \hyperlink{structfile}{file},
+00217                                             \textcolor{keyword}{const} \textcolor{keywordtype}{char}* filename,
+00218                                             \textcolor{keyword}{const} \hyperlink{structzip__fileinfo}{zip\_fileinfo}* zipfi,
+00219                                             \textcolor{keyword}{const} \textcolor{keywordtype}{void}* extrafield\_local,
+00220                                             uInt size\_extrafield\_local,
+00221                                             \textcolor{keyword}{const} \textcolor{keywordtype}{void}* extrafield\_global,
+00222                                             uInt size\_extrafield\_global,
+00223                                             \textcolor{keyword}{const} \textcolor{keywordtype}{char}* comment,
+00224                                             \textcolor{keywordtype}{int} method,
+00225                                             \textcolor{keywordtype}{int} level,
+00226                                             \textcolor{keywordtype}{int} raw,
+00227                                             \textcolor{keywordtype}{int} windowBits,
+00228                                             \textcolor{keywordtype}{int} memLevel,
+00229                                             \textcolor{keywordtype}{int} strategy,
+00230                                             \textcolor{keyword}{const} \textcolor{keywordtype}{char}* password,
+00231                                             uLong crcForCrypting));
+00232 
+00233 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT zipOpenNewFileInZip3\_64 OF((zipFile \hyperlink{structfile}{file},
+00234                                             \textcolor{keyword}{const} \textcolor{keywordtype}{char}* filename,
+00235                                             \textcolor{keyword}{const} \hyperlink{structzip__fileinfo}{zip\_fileinfo}* zipfi,
+00236                                             \textcolor{keyword}{const} \textcolor{keywordtype}{void}* extrafield\_local,
+00237                                             uInt size\_extrafield\_local,
+00238                                             \textcolor{keyword}{const} \textcolor{keywordtype}{void}* extrafield\_global,
+00239                                             uInt size\_extrafield\_global,
+00240                                             \textcolor{keyword}{const} \textcolor{keywordtype}{char}* comment,
+00241                                             \textcolor{keywordtype}{int} method,
+00242                                             \textcolor{keywordtype}{int} level,
+00243                                             \textcolor{keywordtype}{int} raw,
+00244                                             \textcolor{keywordtype}{int} windowBits,
+00245                                             \textcolor{keywordtype}{int} memLevel,
+00246                                             \textcolor{keywordtype}{int} strategy,
+00247                                             \textcolor{keyword}{const} \textcolor{keywordtype}{char}* password,
+00248                                             uLong crcForCrypting,
+00249                                             \textcolor{keywordtype}{int} zip64
+00250                                             ));
+00251 
+00252 \textcolor{comment}{/*}
+00253 \textcolor{comment}{  Same than zipOpenNewFileInZip2, except}
+00254 \textcolor{comment}{    windowBits,memLevel,,strategy : see parameter strategy in deflateInit2}
+00255 \textcolor{comment}{    password : crypting password (NULL for no crypting)}
+00256 \textcolor{comment}{    crcForCrypting : crc of file to compress (needed for crypting)}
+00257 \textcolor{comment}{ */}
+00258 
+00259 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT zipOpenNewFileInZip4 OF((zipFile \hyperlink{structfile}{file},
+00260                                             \textcolor{keyword}{const} \textcolor{keywordtype}{char}* filename,
+00261                                             \textcolor{keyword}{const} \hyperlink{structzip__fileinfo}{zip\_fileinfo}* zipfi,
+00262                                             \textcolor{keyword}{const} \textcolor{keywordtype}{void}* extrafield\_local,
+00263                                             uInt size\_extrafield\_local,
+00264                                             \textcolor{keyword}{const} \textcolor{keywordtype}{void}* extrafield\_global,
+00265                                             uInt size\_extrafield\_global,
+00266                                             \textcolor{keyword}{const} \textcolor{keywordtype}{char}* comment,
+00267                                             \textcolor{keywordtype}{int} method,
+00268                                             \textcolor{keywordtype}{int} level,
+00269                                             \textcolor{keywordtype}{int} raw,
+00270                                             \textcolor{keywordtype}{int} windowBits,
+00271                                             \textcolor{keywordtype}{int} memLevel,
+00272                                             \textcolor{keywordtype}{int} strategy,
+00273                                             \textcolor{keyword}{const} \textcolor{keywordtype}{char}* password,
+00274                                             uLong crcForCrypting,
+00275                                             uLong versionMadeBy,
+00276                                             uLong flagBase
+00277                                             ));
+00278 
+00279 
+00280 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT zipOpenNewFileInZip4\_64 OF((zipFile \hyperlink{structfile}{file},
+00281                                             \textcolor{keyword}{const} \textcolor{keywordtype}{char}* filename,
+00282                                             \textcolor{keyword}{const} \hyperlink{structzip__fileinfo}{zip\_fileinfo}* zipfi,
+00283                                             \textcolor{keyword}{const} \textcolor{keywordtype}{void}* extrafield\_local,
+00284                                             uInt size\_extrafield\_local,
+00285                                             \textcolor{keyword}{const} \textcolor{keywordtype}{void}* extrafield\_global,
+00286                                             uInt size\_extrafield\_global,
+00287                                             \textcolor{keyword}{const} \textcolor{keywordtype}{char}* comment,
+00288                                             \textcolor{keywordtype}{int} method,
+00289                                             \textcolor{keywordtype}{int} level,
+00290                                             \textcolor{keywordtype}{int} raw,
+00291                                             \textcolor{keywordtype}{int} windowBits,
+00292                                             \textcolor{keywordtype}{int} memLevel,
+00293                                             \textcolor{keywordtype}{int} strategy,
+00294                                             \textcolor{keyword}{const} \textcolor{keywordtype}{char}* password,
+00295                                             uLong crcForCrypting,
+00296                                             uLong versionMadeBy,
+00297                                             uLong flagBase,
+00298                                             \textcolor{keywordtype}{int} zip64
+00299                                             ));
+00300 \textcolor{comment}{/*}
+00301 \textcolor{comment}{  Same than zipOpenNewFileInZip4, except}
+00302 \textcolor{comment}{    versionMadeBy : value for Version made by field}
+00303 \textcolor{comment}{    flag : value for flag field (compression level info will be added)}
+00304 \textcolor{comment}{ */}
+00305 
+00306 
+00307 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT zipWriteInFileInZip OF((zipFile \hyperlink{structfile}{file},
+00308                        \textcolor{keyword}{const} \textcolor{keywordtype}{void}* buf,
+00309                        \textcolor{keywordtype}{unsigned} len));
+00310 \textcolor{comment}{/*}
+00311 \textcolor{comment}{  Write data in the zipfile}
+00312 \textcolor{comment}{*/}
+00313 
+00314 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT zipCloseFileInZip OF((zipFile \hyperlink{structfile}{file}));
+00315 \textcolor{comment}{/*}
+00316 \textcolor{comment}{  Close the current file in the zipfile}
+00317 \textcolor{comment}{*/}
+00318 
+00319 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT zipCloseFileInZipRaw OF((zipFile \hyperlink{structfile}{file},
+00320                                             uLong uncompressed\_size,
+00321                                             uLong crc32));
+00322 
+00323 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT zipCloseFileInZipRaw64 OF((zipFile \hyperlink{structfile}{file},
+00324                                             ZPOS64\_T uncompressed\_size,
+00325                                             uLong crc32));
+00326 
+00327 \textcolor{comment}{/*}
+00328 \textcolor{comment}{  Close the current file in the zipfile, for file opened with}
+00329 \textcolor{comment}{    parameter raw=1 in zipOpenNewFileInZip2}
+00330 \textcolor{comment}{  uncompressed\_size and crc32 are value for the uncompressed size}
+00331 \textcolor{comment}{*/}
+00332 
+00333 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT zipClose OF((zipFile \hyperlink{structfile}{file},
+00334                 \textcolor{keyword}{const} \textcolor{keywordtype}{char}* global\_comment));
+00335 \textcolor{comment}{/*}
+00336 \textcolor{comment}{  Close the zipfile}
+00337 \textcolor{comment}{*/}
+00338 
+00339 
+00340 \textcolor{keyword}{extern} \textcolor{keywordtype}{int} ZEXPORT zipRemoveExtraInfoBlock OF((\textcolor{keywordtype}{char}* pData, \textcolor{keywordtype}{int}* dataLen, \textcolor{keywordtype}{short} sHeader));
+00341 \textcolor{comment}{/*}
+00342 \textcolor{comment}{  zipRemoveExtraInfoBlock -  Added by Mathias Svensson}
+00343 \textcolor{comment}{}
+00344 \textcolor{comment}{  Remove extra information block from a extra information data for the local file header or central
+       directory header}
+00345 \textcolor{comment}{}
+00346 \textcolor{comment}{  It is needed to remove ZIP64 extra information blocks when before data is written if using RAW mode.}
+00347 \textcolor{comment}{}
+00348 \textcolor{comment}{  0x0001 is the signature header for the ZIP64 extra information blocks}
+00349 \textcolor{comment}{}
+00350 \textcolor{comment}{  usage.}
+00351 \textcolor{comment}{                        Remove ZIP64 Extra information from a central director extra field data}
+00352 \textcolor{comment}{              zipRemoveExtraInfoBlock(pCenDirExtraFieldData, &nCenDirExtraFieldDataLen, 0x0001);}
+00353 \textcolor{comment}{}
+00354 \textcolor{comment}{                        Remove ZIP64 Extra information from a Local File Header extra field data}
+00355 \textcolor{comment}{        zipRemoveExtraInfoBlock(pLocalHeaderExtraFieldData, &nLocalHeaderExtraFieldDataLen, 0x0001);}
+00356 \textcolor{comment}{*/}
+00357 
+00358 \textcolor{preprocessor}{#ifdef \_\_cplusplus}
+00359 \}
+00360 \textcolor{preprocessor}{#endif}
+00361 
+00362 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* \_zip64\_H */}\textcolor{preprocessor}{}
+\end{DoxyCode}

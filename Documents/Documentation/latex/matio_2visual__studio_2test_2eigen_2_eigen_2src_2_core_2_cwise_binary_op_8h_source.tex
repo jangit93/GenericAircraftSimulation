@@ -1,0 +1,170 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_cwise_binary_op_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Core/\+Cwise\+Binary\+Op.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_cwise_binary_op_8h_source}\index{Cwise\+Binary\+Op.\+h@{Cwise\+Binary\+Op.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2014 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2006-2008 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_CWISE\_BINARY\_OP\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_CWISE\_BINARY\_OP\_H}
+00013 
+00014 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00015 
+00016 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00017 \textcolor{keyword}{template}<\textcolor{keyword}{typename} BinaryOp, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs>
+00018 \textcolor{keyword}{struct }traits<CwiseBinaryOp<BinaryOp, Lhs, Rhs> >
+00019 \{
+00020   \textcolor{comment}{// we must not inherit from traits<Lhs> since it has}
+00021   \textcolor{comment}{// the potential to cause problems with MSVC}
+00022   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_all<Lhs>::type Ancestor;
+00023   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} traits<Ancestor>::XprKind XprKind;
+00024   \textcolor{keyword}{enum} \{
+00025     RowsAtCompileTime = traits<Ancestor>::RowsAtCompileTime,
+00026     ColsAtCompileTime = traits<Ancestor>::ColsAtCompileTime,
+00027     MaxRowsAtCompileTime = traits<Ancestor>::MaxRowsAtCompileTime,
+00028     MaxColsAtCompileTime = traits<Ancestor>::MaxColsAtCompileTime
+00029   \};
+00030 
+00031   \textcolor{comment}{// even though we require Lhs and Rhs to have the same scalar type (see CwiseBinaryOp constructor),}
+00032   \textcolor{comment}{// we still want to handle the case when the result type is different.}
+00033   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} result\_of<
+00034                      BinaryOp(
+00035                        \textcolor{keyword}{const} \textcolor{keyword}{typename} Lhs::Scalar&,
+00036                        \textcolor{keyword}{const} \textcolor{keyword}{typename} Rhs::Scalar&
+00037                      )
+00038                    >::type Scalar;
+00039   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} cwise\_promote\_storage\_type<typename traits<Lhs>::StorageKind,
+00040                                               \textcolor{keyword}{typename} traits<Rhs>::StorageKind,
+00041                                               BinaryOp>::ret StorageKind;
+00042   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} promote\_index\_type<typename traits<Lhs>::StorageIndex,
+00043                                       \textcolor{keyword}{typename} traits<Rhs>::StorageIndex>::type StorageIndex;
+00044   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Lhs::Nested LhsNested;
+00045   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Rhs::Nested RhsNested;
+00046   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_reference<LhsNested>::type \_LhsNested;
+00047   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} remove\_reference<RhsNested>::type \_RhsNested;
+00048   \textcolor{keyword}{enum} \{
+00049     Flags = cwise\_promote\_storage\_order<typename traits<Lhs>::StorageKind,\textcolor{keyword}{typename} traits<Rhs>::StorageKind
+      ,\_LhsNested::Flags & \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit},\_RhsNested::Flags & RowMajorBit>::value
+00050   \};
+00051 \};
+00052 \} \textcolor{comment}{// end namespace internal}
+00053 
+00054 \textcolor{keyword}{template}<\textcolor{keyword}{typename} BinaryOp, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} StorageKind>
+00055 \textcolor{keyword}{class }CwiseBinaryOpImpl;
+00056 
+00076 \textcolor{keyword}{template}<\textcolor{keyword}{typename} BinaryOp, \textcolor{keyword}{typename} LhsType, \textcolor{keyword}{typename} RhsType>
+00077 \textcolor{keyword}{class }CwiseBinaryOp : 
+00078   \textcolor{keyword}{public} CwiseBinaryOpImpl<
+00079           BinaryOp, LhsType, RhsType,
+00080           typename internal::cwise\_promote\_storage\_type<typename internal::traits<LhsType>::StorageKind,
+00081                                                         typename internal::traits<RhsType>::StorageKind,
+00082                                                         BinaryOp>::ret>,
+00083   internal::no\_assignment\_operator
+00084 \{
+00085   \textcolor{keyword}{public}:
+00086     
+00087     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_all<BinaryOp>::type \hyperlink{struct_functor}{Functor};
+00088     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_all<LhsType>::type Lhs;
+00089     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_all<RhsType>::type Rhs;
+00090 
+00091     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} CwiseBinaryOpImpl<
+00092         BinaryOp, LhsType, RhsType,
+00093         \textcolor{keyword}{typename} internal::cwise\_promote\_storage\_type<typename internal::traits<LhsType>::StorageKind,
+00094                                                       \textcolor{keyword}{typename} internal::traits<Rhs>::StorageKind,
+00095                                                       BinaryOp>::ret>::Base Base;
+00096     EIGEN\_GENERIC\_PUBLIC\_INTERFACE(CwiseBinaryOp)
+00097 
+00098     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::ref\_selector<LhsType>::type LhsNested;
+00099     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::ref\_selector<RhsType>::type RhsNested;
+00100     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_reference<LhsNested>::type \_LhsNested;
+00101     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_reference<RhsNested>::type \_RhsNested;
+00102 
+00103     EIGEN\_DEVICE\_FUNC
+00104     EIGEN\_STRONG\_INLINE CwiseBinaryOp(\textcolor{keyword}{const} Lhs& aLhs, \textcolor{keyword}{const} Rhs& aRhs, \textcolor{keyword}{const} BinaryOp& 
+      \hyperlink{structfunc}{func} = BinaryOp())
+00105       : m\_lhs(aLhs), m\_rhs(aRhs), m\_functor(\hyperlink{structfunc}{func})
+00106     \{
+00107       EIGEN\_CHECK\_BINARY\_COMPATIBILIY(BinaryOp,\textcolor{keyword}{typename} Lhs::Scalar,\textcolor{keyword}{typename} Rhs::Scalar);
+00108       \textcolor{comment}{// require the sizes to match}
+00109       EIGEN\_STATIC\_ASSERT\_SAME\_MATRIX\_SIZE(Lhs, Rhs)
+00110       eigen\_assert(aLhs.rows() == aRhs.rows() && aLhs.cols() == aRhs.cols());
+00111     \}
+00112 
+00113     EIGEN\_DEVICE\_FUNC
+00114     EIGEN\_STRONG\_INLINE \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows()\textcolor{keyword}{ const }\{
+00115       \textcolor{comment}{// return the fixed size type if available to enable compile time optimizations}
+00116       \textcolor{keywordflow}{if} (internal::traits<\textcolor{keyword}{typename} internal::remove\_all<LhsNested>::type>::RowsAtCompileTime==
+      \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})
+00117         \textcolor{keywordflow}{return} m\_rhs.rows();
+00118       \textcolor{keywordflow}{else}
+00119         \textcolor{keywordflow}{return} m\_lhs.rows();
+00120     \}
+00121     EIGEN\_DEVICE\_FUNC
+00122     EIGEN\_STRONG\_INLINE \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols()\textcolor{keyword}{ const }\{
+00123       \textcolor{comment}{// return the fixed size type if available to enable compile time optimizations}
+00124       \textcolor{keywordflow}{if} (internal::traits<\textcolor{keyword}{typename} internal::remove\_all<LhsNested>::type>::ColsAtCompileTime==
+      \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})
+00125         \textcolor{keywordflow}{return} m\_rhs.cols();
+00126       \textcolor{keywordflow}{else}
+00127         \textcolor{keywordflow}{return} m\_lhs.cols();
+00128     \}
+00129 
+00131     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_cwise_binary_op_8h_source_l00132}\hyperlink{group___core___module_a0f73e7585dfb54d41c1983e1e6a4b269}{00132}     \textcolor{keyword}{const} \_LhsNested& \hyperlink{group___core___module_a0f73e7585dfb54d41c1983e1e6a4b269}{lhs}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_lhs; \}
+00134     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_cwise_binary_op_8h_source_l00135}\hyperlink{group___core___module_a3a61cbdf6d1adaa62f012045b04b6d09}{00135}     \textcolor{keyword}{const} \_RhsNested& \hyperlink{group___core___module_a3a61cbdf6d1adaa62f012045b04b6d09}{rhs}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_rhs; \}
+00137     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_cwise_binary_op_8h_source_l00138}\hyperlink{group___core___module_acc4efe306adbdc0c95cc1c73a8cf81e4}{00138}     \textcolor{keyword}{const} BinaryOp& \hyperlink{group___core___module_acc4efe306adbdc0c95cc1c73a8cf81e4}{functor}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_functor; \}
+00139 
+00140   \textcolor{keyword}{protected}:
+00141     LhsNested m\_lhs;
+00142     RhsNested m\_rhs;
+00143     \textcolor{keyword}{const} BinaryOp m\_functor;
+00144 \};
+00145 
+00146 \textcolor{comment}{// Generic API dispatcher}
+00147 \textcolor{keyword}{template}<\textcolor{keyword}{typename} BinaryOp, \textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} StorageKind>
+00148 \textcolor{keyword}{class }\hyperlink{class_eigen_1_1_cwise_binary_op_impl}{CwiseBinaryOpImpl}
+00149   : \textcolor{keyword}{public} \hyperlink{struct_eigen_1_1internal_1_1generic__xpr__base}{internal::generic\_xpr\_base}<CwiseBinaryOp<BinaryOp, Lhs, Rhs> >::type
+00150 \{
+00151 \textcolor{keyword}{public}:
+00152   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1generic__xpr__base}{internal::generic\_xpr\_base<CwiseBinaryOp<BinaryOp, Lhs, Rhs>}
+       >::type Base;
+00153 \};
+00154 
+00159 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00160 \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00161 EIGEN\_STRONG\_INLINE Derived &
+00162 \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Derived>::operator-=}(\textcolor{keyword}{const} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<OtherDerived>} &other)
+00163 \{
+00164   call\_assignment(derived(), other.derived(), 
+      \hyperlink{struct_eigen_1_1internal_1_1sub__assign__op}{internal::sub\_assign\_op<Scalar,typename OtherDerived::Scalar>}
+      ());
+00165   \textcolor{keywordflow}{return} derived();
+00166 \}
+00167 
+00172 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00173 \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00174 EIGEN\_STRONG\_INLINE Derived &
+00175 \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Derived>::operator+=}(\textcolor{keyword}{const} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<OtherDerived>}& other)
+00176 \{
+00177   call\_assignment(derived(), other.derived(), 
+      \hyperlink{struct_eigen_1_1internal_1_1add__assign__op}{internal::add\_assign\_op<Scalar,typename OtherDerived::Scalar>}
+      ());
+00178   \textcolor{keywordflow}{return} derived();
+00179 \}
+00180 
+00181 \} \textcolor{comment}{// end namespace Eigen}
+00182 
+00183 \textcolor{preprocessor}{#endif // EIGEN\_CWISE\_BINARY\_OP\_H}
+00184 
+\end{DoxyCode}

@@ -1,0 +1,221 @@
+\hypertarget{eigen_2test_2adjoint_8cpp_source}{}\section{eigen/test/adjoint.cpp}
+\label{eigen_2test_2adjoint_8cpp_source}\index{adjoint.\+cpp@{adjoint.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2006-2008 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#define EIGEN\_NO\_STATIC\_ASSERT}
+00011 
+00012 \textcolor{preprocessor}{#include "main.h"}
+00013 
+\Hypertarget{eigen_2test_2adjoint_8cpp_source_l00014}\hyperlink{structadjoint__specific}{00014} \textcolor{keyword}{template}<\textcolor{keywordtype}{bool} IsInteger> \textcolor{keyword}{struct }\hyperlink{structadjoint__specific}{adjoint\_specific};
+00015 
+\Hypertarget{eigen_2test_2adjoint_8cpp_source_l00016}\hyperlink{structadjoint__specific_3_01true_01_4}{00016} \textcolor{keyword}{template}<> \textcolor{keyword}{struct }\hyperlink{structadjoint__specific}{adjoint\_specific}<true> \{
+00017   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Vec, \textcolor{keyword}{typename} Mat, \textcolor{keyword}{typename} Scalar>
+00018   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Vec}& v1, \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Vec}& v2, \hyperlink{group___core___module_class_eigen_1_1_matrix}{Vec}& v3, \textcolor{keyword}{const} \hyperlink{group___core___module}{Mat}& square, Scalar s1, Scalar 
+      s2) \{
+00019     VERIFY(test\_isApproxWithRef((s1 * v1 + s2 * v2).dot(v3),     numext::conj(s1) * v1.dot(v3) + 
+      numext::conj(s2) * v2.dot(v3), 0));
+00020     VERIFY(test\_isApproxWithRef(v3.dot(s1 * v1 + s2 * v2),       s1*v3.dot(v1)+s2*v3.dot(v2), 0));
+00021     
+00022     \textcolor{comment}{// check compatibility of dot and adjoint}
+00023     VERIFY(test\_isApproxWithRef(v1.dot(square * v2), (square.adjoint() * v1).dot(v2), 0));
+00024   \}
+00025 \};
+00026 
+\Hypertarget{eigen_2test_2adjoint_8cpp_source_l00027}\hyperlink{structadjoint__specific_3_01false_01_4}{00027} \textcolor{keyword}{template}<> \textcolor{keyword}{struct }\hyperlink{structadjoint__specific}{adjoint\_specific}<false> \{
+00028   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Vec, \textcolor{keyword}{typename} Mat, \textcolor{keyword}{typename} Scalar>
+00029   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Vec}& v1, \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Vec}& v2, \hyperlink{group___core___module_class_eigen_1_1_matrix}{Vec}& v3, \textcolor{keyword}{const} \hyperlink{group___core___module}{Mat}& square, Scalar s1, Scalar 
+      s2) \{
+00030     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00031     \textcolor{keyword}{using} std::abs;
+00032     
+00033     RealScalar ref = \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsInteger} ? RealScalar(0) : (std::max)(
+      (s1 * v1 + s2 * v2).norm(),v3.norm());
+00034     VERIFY(test\_isApproxWithRef((s1 * v1 + s2 * v2).dot(v3),     numext::conj(s1) * v1.dot(v3) + 
+      numext::conj(s2) * v2.dot(v3), ref));
+00035     VERIFY(test\_isApproxWithRef(v3.dot(s1 * v1 + s2 * v2),       s1*v3.dot(v1)+s2*v3.dot(v2), ref));
+00036   
+00037     VERIFY\_IS\_APPROX(v1.squaredNorm(),                v1.norm() * v1.norm());
+00038     \textcolor{comment}{// check normalized() and normalize()}
+00039     VERIFY\_IS\_APPROX(v1, v1.norm() * v1.normalized());
+00040     v3 = v1;
+00041     v3.normalize();
+00042     VERIFY\_IS\_APPROX(v1, v1.norm() * v3);
+00043     VERIFY\_IS\_APPROX(v3, v1.normalized());
+00044     VERIFY\_IS\_APPROX(v3.norm(), RealScalar(1));
+00045 
+00046     \textcolor{comment}{// check null inputs}
+00047     VERIFY\_IS\_APPROX((v1*0).normalized(), (v1*0));
+00048 \textcolor{preprocessor}{#if (!EIGEN\_ARCH\_i386) || defined(EIGEN\_VECTORIZE)}
+00049     RealScalar very\_small = (std::numeric\_limits<RealScalar>::min)();
+00050     VERIFY( (v1*very\_small).norm() == 0 );
+00051     VERIFY\_IS\_APPROX((v1*very\_small).normalized(), (v1*very\_small));
+00052     v3 = v1*very\_small;
+00053     v3.normalize();
+00054     VERIFY\_IS\_APPROX(v3, (v1*very\_small));
+00055 \textcolor{preprocessor}{#endif}
+00056     
+00057     \textcolor{comment}{// check compatibility of dot and adjoint}
+00058     ref = \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsInteger} ? 0 : (std::max)((std::max)(v1.norm(),v2
+      .norm()),(std::max)((square * v2).norm(),(square.adjoint() * v1).norm()));
+00059     VERIFY(internal::isMuchSmallerThan(abs(v1.dot(square * v2) - (square.adjoint() * v1).dot(v2)), ref, 
+      test\_precision<Scalar>()));
+00060     
+00061     \textcolor{comment}{// check that Random().normalized() works: tricky as the random xpr must be evaluated by}
+00062     \textcolor{comment}{// normalized() in order to produce a consistent result.}
+00063     VERIFY\_IS\_APPROX(Vec::Random(v1.size()).normalized().norm(), RealScalar(1));
+00064   \}
+00065 \};
+00066 
+00067 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} adjoint(\textcolor{keyword}{const} MatrixType& m)
+00068 \{
+00069   \textcolor{comment}{/* this test covers the following files:}
+00070 \textcolor{comment}{     Transpose.h Conjugate.h Dot.h}
+00071 \textcolor{comment}{  */}
+00072   \textcolor{keyword}{using} std::abs;
+00073   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00074   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00075   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00076   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::RowsAtCompileTime, 1>} 
+      \hyperlink{struct_vector_type}{VectorType};
+00077   \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::RowsAtCompileTime, MatrixType::RowsAtCompileTime>}
+       SquareMatrixType;
+00078   \textcolor{keyword}{const} Index PacketSize = internal::packet\_traits<Scalar>::size;
+00079   
+00080   Index rows = m.rows();
+00081   Index cols = m.cols();
+00082 
+00083   MatrixType m1 = MatrixType::Random(rows, cols),
+00084              m2 = MatrixType::Random(rows, cols),
+00085              m3(rows, cols),
+00086              square = SquareMatrixType::Random(rows, rows);
+00087   VectorType v1 = VectorType::Random(rows),
+00088              v2 = VectorType::Random(rows),
+00089              v3 = VectorType::Random(rows),
+00090              vzero = VectorType::Zero(rows);
+00091 
+00092   Scalar s1 = internal::random<Scalar>(),
+00093          s2 = internal::random<Scalar>();
+00094 
+00095   \textcolor{comment}{// check basic compatibility of adjoint, transpose, conjugate}
+00096   VERIFY\_IS\_APPROX(m1.transpose().conjugate().adjoint(),    m1);
+00097   VERIFY\_IS\_APPROX(m1.adjoint().conjugate().transpose(),    m1);
+00098 
+00099   \textcolor{comment}{// check multiplicative behavior}
+00100   VERIFY\_IS\_APPROX((m1.adjoint() * m2).adjoint(),           m2.adjoint() * m1);
+00101   VERIFY\_IS\_APPROX((s1 * m1).adjoint(),                     numext::conj(s1) * m1.adjoint());
+00102 
+00103   \textcolor{comment}{// check basic properties of dot, squaredNorm}
+00104   VERIFY\_IS\_APPROX(numext::conj(v1.dot(v2)),               v2.dot(v1));
+00105   VERIFY\_IS\_APPROX(numext::real(v1.dot(v1)),               v1.squaredNorm());
+00106   
+00107   \hyperlink{structadjoint__specific}{adjoint\_specific<NumTraits<Scalar>::IsInteger}>::run(v1, v2, 
+      v3, square, s1, s2);
+00108   
+00109   VERIFY\_IS\_MUCH\_SMALLER\_THAN(abs(vzero.dot(v1)),  static\_cast<RealScalar>(1));
+00110   
+00111   \textcolor{comment}{// like in testBasicStuff, test operator() to check const-qualification}
+00112   Index r = internal::random<Index>(0, rows-1),
+00113       c = internal::random<Index>(0, cols-1);
+00114   VERIFY\_IS\_APPROX(m1.conjugate()(r,c), numext::conj(m1(r,c)));
+00115   VERIFY\_IS\_APPROX(m1.adjoint()(c,r), numext::conj(m1(r,c)));
+00116 
+00117   \textcolor{comment}{// check inplace transpose}
+00118   m3 = m1;
+00119   m3.transposeInPlace();
+00120   VERIFY\_IS\_APPROX(m3,m1.transpose());
+00121   m3.transposeInPlace();
+00122   VERIFY\_IS\_APPROX(m3,m1);
+00123   
+00124   \textcolor{keywordflow}{if}(PacketSize<m3.rows() && PacketSize<m3.cols())
+00125   \{
+00126     m3 = m1;
+00127     Index i = internal::random<Index>(0,m3.rows()-PacketSize);
+00128     Index j = internal::random<Index>(0,m3.cols()-PacketSize);
+00129     m3.template block<PacketSize,PacketSize>(i,j).transposeInPlace();
+00130     VERIFY\_IS\_APPROX( (m3.template block<PacketSize,PacketSize>(i,j)), (m1.template 
+      block<PacketSize,PacketSize>(i,j).transpose()) );
+00131     m3.template block<PacketSize,PacketSize>(i,j).transposeInPlace();
+00132     VERIFY\_IS\_APPROX(m3,m1);
+00133   \}
+00134 
+00135   \textcolor{comment}{// check inplace adjoint}
+00136   m3 = m1;
+00137   m3.adjointInPlace();
+00138   VERIFY\_IS\_APPROX(m3,m1.adjoint());
+00139   m3.transposeInPlace();
+00140   VERIFY\_IS\_APPROX(m3,m1.conjugate());
+00141 
+00142   \textcolor{comment}{// check mixed dot product}
+00143   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<RealScalar, MatrixType::RowsAtCompileTime, 1>}
+       RealVectorType;
+00144   RealVectorType rv1 = RealVectorType::Random(rows);
+00145   VERIFY\_IS\_APPROX(v1.dot(rv1.template cast<Scalar>()), v1.dot(rv1));
+00146   VERIFY\_IS\_APPROX(rv1.template cast<Scalar>().dot(v1), rv1.dot(v1));
+00147 \}
+00148 
+00149 \textcolor{keywordtype}{void} test\_adjoint()
+00150 \{
+00151   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00152     CALL\_SUBTEST\_1( adjoint(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 1, 1>}()) );
+00153     CALL\_SUBTEST\_2( adjoint(Matrix3d()) );
+00154     CALL\_SUBTEST\_3( adjoint(Matrix4f()) );
+00155     
+00156     CALL\_SUBTEST\_4( adjoint(MatrixXcf(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE/2), internal::random<int>
+      (1,EIGEN\_TEST\_MAX\_SIZE/2))) );
+00157     CALL\_SUBTEST\_5( adjoint(MatrixXi(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE), internal::random<int>(1,
+      EIGEN\_TEST\_MAX\_SIZE))) );
+00158     CALL\_SUBTEST\_6( adjoint(MatrixXf(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE), internal::random<int>(1,
+      EIGEN\_TEST\_MAX\_SIZE))) );
+00159     
+00160     \textcolor{comment}{// Complement for 128 bits vectorization:}
+00161     CALL\_SUBTEST\_8( adjoint(Matrix2d()) );
+00162     CALL\_SUBTEST\_9( adjoint(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<int,4,4>}()) );
+00163     
+00164     \textcolor{comment}{// 256 bits vectorization:}
+00165     CALL\_SUBTEST\_10( adjoint(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,8,8>}()) );
+00166     CALL\_SUBTEST\_11( adjoint(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,4,4>}()) );
+00167     CALL\_SUBTEST\_12( adjoint(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<int,8,8>}()) );
+00168   \}
+00169   \textcolor{comment}{// test a large static matrix only once}
+00170   CALL\_SUBTEST\_7( adjoint(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 100, 100>}()) );
+00171 
+00172 \textcolor{preprocessor}{#ifdef EIGEN\_TEST\_PART\_13}
+00173   \{
+00174     MatrixXcf a(10,10), b(10,10);
+00175     VERIFY\_RAISES\_ASSERT(a = a.transpose());
+00176     VERIFY\_RAISES\_ASSERT(a = a.transpose() + b);
+00177     VERIFY\_RAISES\_ASSERT(a = b + a.transpose());
+00178     VERIFY\_RAISES\_ASSERT(a = a.conjugate().transpose());
+00179     VERIFY\_RAISES\_ASSERT(a = a.adjoint());
+00180     VERIFY\_RAISES\_ASSERT(a = a.adjoint() + b);
+00181     VERIFY\_RAISES\_ASSERT(a = b + a.adjoint());
+00182 
+00183     \textcolor{comment}{// no assertion should be triggered for these cases:}
+00184     a.transpose() = a.transpose();
+00185     a.transpose() += a.transpose();
+00186     a.transpose() += a.transpose() + b;
+00187     a.transpose() = a.adjoint();
+00188     a.transpose() += a.adjoint();
+00189     a.transpose() += a.adjoint() + b;
+00190 
+00191     \textcolor{comment}{// regression tests for check\_for\_aliasing}
+00192     MatrixXd c(10,10);
+00193     c = 1.0 * MatrixXd::Ones(10,10) + c;
+00194     c = MatrixXd::Ones(10,10) * 1.0 + c;
+00195     c = c + MatrixXd::Ones(10,10) .cwiseProduct( MatrixXd::Zero(10,10) );
+00196     c = MatrixXd::Ones(10,10) * MatrixXd::Zero(10,10);
+00197   \}
+00198 \textcolor{preprocessor}{#endif}
+00199 \}
+00200 
+\end{DoxyCode}

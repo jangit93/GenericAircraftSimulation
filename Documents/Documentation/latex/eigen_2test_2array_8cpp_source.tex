@@ -1,0 +1,518 @@
+\hypertarget{eigen_2test_2array_8cpp_source}{}\section{eigen/test/array.cpp}
+\label{eigen_2test_2array_8cpp_source}\index{array.\+cpp@{array.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ArrayType> \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1array}{array}(\textcolor{keyword}{const} ArrayType& m)
+00013 \{
+00014   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ArrayType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00015   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ArrayType::Scalar Scalar;
+00016   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ArrayType::RealScalar RealScalar;
+00017   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_array}{Array<Scalar, ArrayType::RowsAtCompileTime, 1>} 
+      ColVectorType;
+00018   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_array}{Array<Scalar, 1, ArrayType::ColsAtCompileTime>} 
+      RowVectorType;
+00019 
+00020   Index rows = m.rows();
+00021   Index cols = m.cols(); 
+00022 
+00023   ArrayType m1 = ArrayType::Random(rows, cols),
+00024              m2 = ArrayType::Random(rows, cols),
+00025              m3(rows, cols);
+00026   ArrayType m4 = m1; \textcolor{comment}{// copy constructor}
+00027   VERIFY\_IS\_APPROX(m1, m4);
+00028 
+00029   ColVectorType cv1 = ColVectorType::Random(rows);
+00030   RowVectorType rv1 = RowVectorType::Random(cols);
+00031 
+00032   Scalar  s1 = internal::random<Scalar>(),
+00033           s2 = internal::random<Scalar>();
+00034 
+00035   \textcolor{comment}{// scalar addition}
+00036   VERIFY\_IS\_APPROX(m1 + s1, s1 + m1);
+00037   VERIFY\_IS\_APPROX(m1 + s1, ArrayType::Constant(rows,cols,s1) + m1);
+00038   VERIFY\_IS\_APPROX(s1 - m1, (-m1)+s1 );
+00039   VERIFY\_IS\_APPROX(m1 - s1, m1 - ArrayType::Constant(rows,cols,s1));
+00040   VERIFY\_IS\_APPROX(s1 - m1, ArrayType::Constant(rows,cols,s1) - m1);
+00041   VERIFY\_IS\_APPROX((m1*Scalar(2)) - s2, (m1+m1) - ArrayType::Constant(rows,cols,s2) );
+00042   m3 = m1;
+00043   m3 += s2;
+00044   VERIFY\_IS\_APPROX(m3, m1 + s2);
+00045   m3 = m1;
+00046   m3 -= s1;
+00047   VERIFY\_IS\_APPROX(m3, m1 - s1);  
+00048   
+00049   \textcolor{comment}{// scalar operators via Maps}
+00050   m3 = m1;
+00051   ArrayType::Map(m1.data(), m1.rows(), m1.cols()) -= ArrayType::Map(m2.data(), m2.rows(), m2.cols());
+00052   VERIFY\_IS\_APPROX(m1, m3 - m2);
+00053   
+00054   m3 = m1;
+00055   ArrayType::Map(m1.data(), m1.rows(), m1.cols()) += ArrayType::Map(m2.data(), m2.rows(), m2.cols());
+00056   VERIFY\_IS\_APPROX(m1, m3 + m2);
+00057   
+00058   m3 = m1;
+00059   ArrayType::Map(m1.data(), m1.rows(), m1.cols()) *= ArrayType::Map(m2.data(), m2.rows(), m2.cols());
+00060   VERIFY\_IS\_APPROX(m1, m3 * m2);
+00061   
+00062   m3 = m1;
+00063   m2 = ArrayType::Random(rows,cols);
+00064   m2 = (m2==0).select(1,m2);
+00065   ArrayType::Map(m1.data(), m1.rows(), m1.cols()) /= ArrayType::Map(m2.data(), m2.rows(), m2.cols());  
+00066   VERIFY\_IS\_APPROX(m1, m3 / m2);
+00067 
+00068   \textcolor{comment}{// reductions}
+00069   VERIFY\_IS\_APPROX(m1.abs().colwise().sum().sum(), m1.abs().sum());
+00070   VERIFY\_IS\_APPROX(m1.abs().rowwise().sum().sum(), m1.abs().sum());
+00071   \textcolor{keyword}{using} std::abs;
+00072   VERIFY\_IS\_MUCH\_SMALLER\_THAN(abs(m1.colwise().sum().sum() - m1.sum()), m1.abs().sum());
+00073   VERIFY\_IS\_MUCH\_SMALLER\_THAN(abs(m1.rowwise().sum().sum() - m1.sum()), m1.abs().sum());
+00074   \textcolor{keywordflow}{if} (!internal::isMuchSmallerThan(abs(m1.sum() - (m1+m2).sum()), m1.abs().sum(), test\_precision<Scalar>())
+      )
+00075       VERIFY\_IS\_NOT\_APPROX(((m1+m2).rowwise().sum()).sum(), m1.sum());
+00076   VERIFY\_IS\_APPROX(m1.colwise().sum(), m1.colwise().redux(internal::scalar\_sum\_op<Scalar,Scalar>()));
+00077 
+00078   \textcolor{comment}{// vector-wise ops}
+00079   m3 = m1;
+00080   VERIFY\_IS\_APPROX(m3.colwise() += cv1, m1.colwise() + cv1);
+00081   m3 = m1;
+00082   VERIFY\_IS\_APPROX(m3.colwise() -= cv1, m1.colwise() - cv1);
+00083   m3 = m1;
+00084   VERIFY\_IS\_APPROX(m3.rowwise() += rv1, m1.rowwise() + rv1);
+00085   m3 = m1;
+00086   VERIFY\_IS\_APPROX(m3.rowwise() -= rv1, m1.rowwise() - rv1);
+00087   
+00088   \textcolor{comment}{// Conversion from scalar}
+00089   VERIFY\_IS\_APPROX((m3 = s1), ArrayType::Constant(rows,cols,s1));
+00090   VERIFY\_IS\_APPROX((m3 = 1),  ArrayType::Constant(rows,cols,1));
+00091   VERIFY\_IS\_APPROX((m3.topLeftCorner(rows,cols) = 1),  ArrayType::Constant(rows,cols,1));
+00092   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_array}{Array}<Scalar,
+00093                 ArrayType::RowsAtCompileTime==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}?2:ArrayType::RowsAtCompileTime,
+00094                 ArrayType::ColsAtCompileTime==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}?2:ArrayType::ColsAtCompileTime,
+00095                 ArrayType::Options> FixedArrayType;
+00096   FixedArrayType f1(s1);
+00097   VERIFY\_IS\_APPROX(f1, FixedArrayType::Constant(s1));
+00098   FixedArrayType f2(numext::real(s1));
+00099   VERIFY\_IS\_APPROX(f2, FixedArrayType::Constant(numext::real(s1)));
+00100   FixedArrayType f3((\textcolor{keywordtype}{int})100*numext::real(s1));
+00101   VERIFY\_IS\_APPROX(f3, FixedArrayType::Constant((\textcolor{keywordtype}{int})100*numext::real(s1)));
+00102   f1.setRandom();
+00103   FixedArrayType f4(f1.data());
+00104   VERIFY\_IS\_APPROX(f4, f1);
+00105   
+00106   \textcolor{comment}{// pow}
+00107   VERIFY\_IS\_APPROX(m1.pow(2), m1.square());
+00108   VERIFY\_IS\_APPROX(\hyperlink{group___core___module_ab6dc101d82e8228a19a8840e3a29c1c9}{pow}(m1,2), m1.square());
+00109   VERIFY\_IS\_APPROX(m1.pow(3), m1.cube());
+00110   VERIFY\_IS\_APPROX(\hyperlink{group___core___module_ab6dc101d82e8228a19a8840e3a29c1c9}{pow}(m1,3), m1.cube());
+00111   VERIFY\_IS\_APPROX((-m1).\hyperlink{group___core___module_ab6dc101d82e8228a19a8840e3a29c1c9}{pow}(3), -m1.cube());
+00112   VERIFY\_IS\_APPROX(\hyperlink{group___core___module_ab6dc101d82e8228a19a8840e3a29c1c9}{pow}(2*m1,3), 8*m1.cube());
+00113   ArrayType exponents = ArrayType::Constant(rows, cols, RealScalar(2));
+00114   VERIFY\_IS\_APPROX(Eigen::pow(m1,exponents), m1.square());
+00115   VERIFY\_IS\_APPROX(m1.pow(exponents), m1.square());
+00116   VERIFY\_IS\_APPROX(Eigen::pow(2*m1,exponents), 4*m1.square());
+00117   VERIFY\_IS\_APPROX((2*m1).\hyperlink{group___core___module_ab6dc101d82e8228a19a8840e3a29c1c9}{pow}(exponents), 4*m1.square());
+00118   VERIFY\_IS\_APPROX(Eigen::pow(m1,2*exponents), m1.square().square());
+00119   VERIFY\_IS\_APPROX(m1.pow(2*exponents), m1.square().square());
+00120   VERIFY\_IS\_APPROX(Eigen::pow(m1(0,0), exponents), ArrayType::Constant(rows,cols,m1(0,0)*m1(0,0)));
+00121 
+00122   \textcolor{comment}{// Check possible conflicts with 1D ctor}
+00123   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_array}{Array<Scalar, Dynamic, 1>} OneDArrayType;
+00124   OneDArrayType o1(rows);
+00125   VERIFY(o1.size()==rows);
+00126   OneDArrayType o4((\textcolor{keywordtype}{int})rows);
+00127   VERIFY(o4.size()==rows);
+00128 \}
+00129 
+00130 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ArrayType> \textcolor{keywordtype}{void} comparisons(\textcolor{keyword}{const} ArrayType& m)
+00131 \{
+00132   \textcolor{keyword}{using} std::abs;
+00133   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ArrayType::Index Index;
+00134   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ArrayType::Scalar Scalar;
+00135   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00136 
+00137   Index rows = m.rows();
+00138   Index cols = m.cols();
+00139 
+00140   Index r = internal::random<Index>(0, rows-1),
+00141         c = internal::random<Index>(0, cols-1);
+00142 
+00143   ArrayType m1 = ArrayType::Random(rows, cols),
+00144             m2 = ArrayType::Random(rows, cols),
+00145             m3(rows, cols),
+00146             m4 = m1;
+00147   
+00148   m4 = (m4.abs()==Scalar(0)).select(1,m4);
+00149 
+00150   VERIFY(((m1 + Scalar(1)) > m1).all());
+00151   VERIFY(((m1 - Scalar(1)) < m1).all());
+00152   \textcolor{keywordflow}{if} (rows*cols>1)
+00153   \{
+00154     m3 = m1;
+00155     m3(r,c) += 1;
+00156     VERIFY(! (m1 < m3).all() );
+00157     VERIFY(! (m1 > m3).all() );
+00158   \}
+00159   VERIFY(!(m1 > m2 && m1 < m2).any());
+00160   VERIFY((m1 <= m2 || m1 >= m2).all());
+00161 
+00162   \textcolor{comment}{// comparisons array to scalar}
+00163   VERIFY( (m1 != (m1(r,c)+1) ).any() );
+00164   VERIFY( (m1 >  (m1(r,c)-1) ).any() );
+00165   VERIFY( (m1 <  (m1(r,c)+1) ).any() );
+00166   VERIFY( (m1 ==  m1(r,c)    ).any() );
+00167 
+00168   \textcolor{comment}{// comparisons scalar to array}
+00169   VERIFY( ( (m1(r,c)+1) != m1).any() );
+00170   VERIFY( ( (m1(r,c)-1) <  m1).any() );
+00171   VERIFY( ( (m1(r,c)+1) >  m1).any() );
+00172   VERIFY( (  m1(r,c)    == m1).any() );
+00173 
+00174   \textcolor{comment}{// test Select}
+00175   VERIFY\_IS\_APPROX( (m1<m2).select(m1,m2), m1.cwiseMin(m2) );
+00176   VERIFY\_IS\_APPROX( (m1>m2).select(m1,m2), m1.cwiseMax(m2) );
+00177   Scalar mid = (m1.cwiseAbs().minCoeff() + m1.cwiseAbs().maxCoeff())/Scalar(2);
+00178   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<cols; ++j)
+00179   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<rows; ++i)
+00180     m3(i,j) = abs(m1(i,j))<mid ? 0 : m1(i,j);
+00181   VERIFY\_IS\_APPROX( (m1.abs()<ArrayType::Constant(rows,cols,mid))
+00182                         .select(ArrayType::Zero(rows,cols),m1), m3);
+00183   \textcolor{comment}{// shorter versions:}
+00184   VERIFY\_IS\_APPROX( (m1.abs()<ArrayType::Constant(rows,cols,mid))
+00185                         .select(0,m1), m3);
+00186   VERIFY\_IS\_APPROX( (m1.abs()>=ArrayType::Constant(rows,cols,mid))
+00187                         .select(m1,0), m3);
+00188   \textcolor{comment}{// even shorter version:}
+00189   VERIFY\_IS\_APPROX( (m1.abs()<mid).select(0,m1), m3);
+00190 
+00191   \textcolor{comment}{// count}
+00192   VERIFY(((m1.abs()+1)>RealScalar(0.1)).count() == rows*cols);
+00193 
+00194   \textcolor{comment}{// and/or}
+00195   VERIFY( (m1<RealScalar(0) && m1>RealScalar(0)).count() == 0);
+00196   VERIFY( (m1<RealScalar(0) || m1>=RealScalar(0)).count() == rows*cols);
+00197   RealScalar a = m1.abs().mean();
+00198   VERIFY( (m1<-a || m1>a).count() == (m1.abs()>a).count());
+00199 
+00200   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_array}{Array<typename ArrayType::Index, Dynamic, 1>} 
+      ArrayOfIndices;
+00201 
+00202   \textcolor{comment}{// TODO allows colwise/rowwise for array}
+00203   VERIFY\_IS\_APPROX(((m1.abs()+1)>RealScalar(0.1)).colwise().count(), ArrayOfIndices::Constant(cols,rows).
+      transpose());
+00204   VERIFY\_IS\_APPROX(((m1.abs()+1)>RealScalar(0.1)).rowwise().count(), ArrayOfIndices::Constant(rows, cols));
+00205 \}
+00206 
+00207 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ArrayType> \textcolor{keywordtype}{void} array\_real(\textcolor{keyword}{const} ArrayType& m)
+00208 \{
+00209   \textcolor{keyword}{using} std::abs;
+00210   \textcolor{keyword}{using} std::sqrt;
+00211   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ArrayType::Index Index;
+00212   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ArrayType::Scalar Scalar;
+00213   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00214 
+00215   Index rows = m.rows();
+00216   Index cols = m.cols();
+00217 
+00218   ArrayType m1 = ArrayType::Random(rows, cols),
+00219             m2 = ArrayType::Random(rows, cols),
+00220             m3(rows, cols),
+00221             m4 = m1;
+00222 
+00223   m4 = (m4.abs()==Scalar(0)).select(1,m4);
+00224 
+00225   Scalar  s1 = internal::random<Scalar>();
+00226 
+00227   \textcolor{comment}{// these tests are mostly to check possible compilation issues with free-functions.}
+00228   VERIFY\_IS\_APPROX(m1.sin(), sin(m1));
+00229   VERIFY\_IS\_APPROX(m1.cos(), cos(m1));
+00230   VERIFY\_IS\_APPROX(m1.tan(), tan(m1));
+00231   VERIFY\_IS\_APPROX(m1.asin(), asin(m1));
+00232   VERIFY\_IS\_APPROX(m1.acos(), acos(m1));
+00233   VERIFY\_IS\_APPROX(m1.atan(), atan(m1));
+00234   VERIFY\_IS\_APPROX(m1.sinh(), sinh(m1));
+00235   VERIFY\_IS\_APPROX(m1.cosh(), cosh(m1));
+00236   VERIFY\_IS\_APPROX(m1.tanh(), tanh(m1));
+00237 
+00238   VERIFY\_IS\_APPROX(m1.arg(), arg(m1));
+00239   VERIFY\_IS\_APPROX(m1.round(), round(m1));
+00240   VERIFY\_IS\_APPROX(m1.floor(), floor(m1));
+00241   VERIFY\_IS\_APPROX(m1.ceil(), ceil(m1));
+00242   VERIFY((m1.isNaN() == (Eigen::isnan)(m1)).all());
+00243   VERIFY((m1.isInf() == (Eigen::isinf)(m1)).all());
+00244   VERIFY((m1.isFinite() == (Eigen::isfinite)(m1)).all());
+00245   VERIFY\_IS\_APPROX(m1.inverse(), inverse(m1));
+00246   VERIFY\_IS\_APPROX(m1.abs(), abs(m1));
+00247   VERIFY\_IS\_APPROX(m1.abs2(), abs2(m1));
+00248   VERIFY\_IS\_APPROX(m1.square(), square(m1));
+00249   VERIFY\_IS\_APPROX(m1.cube(), cube(m1));
+00250   VERIFY\_IS\_APPROX(cos(m1+RealScalar(3)*m2), cos((m1+RealScalar(3)*m2).eval()));
+00251   VERIFY\_IS\_APPROX(m1.sign(), sign(m1));
+00252 
+00253 
+00254   \textcolor{comment}{// avoid NaNs with abs() so verification doesn't fail}
+00255   m3 = m1.abs();
+00256   VERIFY\_IS\_APPROX(m3.sqrt(), sqrt(abs(m1)));
+00257   VERIFY\_IS\_APPROX(m3.rsqrt(), Scalar(1)/sqrt(abs(m1)));
+00258   VERIFY\_IS\_APPROX(rsqrt(m3), Scalar(1)/sqrt(abs(m1)));
+00259   VERIFY\_IS\_APPROX(m3.log(), \hyperlink{structlog}{log}(m3));
+00260   VERIFY\_IS\_APPROX(m3.log1p(), log1p(m3));
+00261   VERIFY\_IS\_APPROX(m3.log10(), log10(m3));
+00262 
+00263 
+00264   VERIFY((!(m1>m2) == (m1<=m2)).all());
+00265 
+00266   VERIFY\_IS\_APPROX(sin(m1.asin()), m1);
+00267   VERIFY\_IS\_APPROX(cos(m1.acos()), m1);
+00268   VERIFY\_IS\_APPROX(tan(m1.atan()), m1);
+00269   VERIFY\_IS\_APPROX(sinh(m1), 0.5*(exp(m1)-exp(-m1)));
+00270   VERIFY\_IS\_APPROX(cosh(m1), 0.5*(exp(m1)+exp(-m1)));
+00271   VERIFY\_IS\_APPROX(tanh(m1), (0.5*(exp(m1)-exp(-m1)))/(0.5*(exp(m1)+exp(-m1))));
+00272   VERIFY\_IS\_APPROX(arg(m1), ((m1<0).\textcolor{keyword}{template} cast<Scalar>())*std::acos(-1.0));
+00273   VERIFY((round(m1) <= ceil(m1) && round(m1) >= floor(m1)).all());
+00274   VERIFY((Eigen::isnan)((m1*0.0)/0.0).all());
+00275   VERIFY((Eigen::isinf)(m4/0.0).all());
+00276   VERIFY(((Eigen::isfinite)(m1) && (!(Eigen::isfinite)(m1*0.0/0.0)) && (!(Eigen::isfinite)(m4/0.0))).all())
+      ;
+00277   VERIFY\_IS\_APPROX(inverse(inverse(m1)),m1);
+00278   VERIFY((abs(m1) == m1 || abs(m1) == -m1).all());
+00279   VERIFY\_IS\_APPROX(m3, sqrt(abs2(m1)));
+00280   VERIFY\_IS\_APPROX( m1.sign(), -(-m1).sign() );
+00281   VERIFY\_IS\_APPROX( m1*m1.sign(),m1.abs());
+00282   VERIFY\_IS\_APPROX(m1.sign() * m1.abs(), m1);
+00283 
+00284   VERIFY\_IS\_APPROX(numext::abs2(numext::real(m1)) + numext::abs2(numext::imag(m1)), numext::abs2(m1));
+00285   VERIFY\_IS\_APPROX(numext::abs2(real(m1)) + numext::abs2(imag(m1)), numext::abs2(m1));
+00286   \textcolor{keywordflow}{if}(!\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsComplex})
+00287     VERIFY\_IS\_APPROX(numext::real(m1), m1);
+00288 
+00289   \textcolor{comment}{// shift argument of logarithm so that it is not zero}
+00290   Scalar smallNumber = \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::dummy\_precision}();
+00291   VERIFY\_IS\_APPROX((m3 + smallNumber).\hyperlink{structlog}{log}() , \hyperlink{structlog}{log}(abs(m1) + smallNumber));
+00292   VERIFY\_IS\_APPROX((m3 + smallNumber + 1).\hyperlink{structlog}{log}() , log1p(abs(m1) + smallNumber));
+00293 
+00294   VERIFY\_IS\_APPROX(m1.exp() * m2.exp(), exp(m1+m2));
+00295   VERIFY\_IS\_APPROX(m1.exp(), exp(m1));
+00296   VERIFY\_IS\_APPROX(m1.exp() / m2.exp(),(m1-m2).exp());
+00297 
+00298   VERIFY\_IS\_APPROX(m3.pow(RealScalar(0.5)), m3.sqrt());
+00299   VERIFY\_IS\_APPROX(\hyperlink{group___core___module_ab6dc101d82e8228a19a8840e3a29c1c9}{pow}(m3,RealScalar(0.5)), m3.sqrt());
+00300 
+00301   VERIFY\_IS\_APPROX(m3.pow(RealScalar(-0.5)), m3.rsqrt());
+00302   VERIFY\_IS\_APPROX(\hyperlink{group___core___module_ab6dc101d82e8228a19a8840e3a29c1c9}{pow}(m3,RealScalar(-0.5)), m3.rsqrt());
+00303 
+00304   VERIFY\_IS\_APPROX(log10(m3), \hyperlink{structlog}{log}(m3)/\hyperlink{structlog}{log}(10));
+00305 
+00306   \textcolor{comment}{// scalar by array division}
+00307   \textcolor{keyword}{const} RealScalar tiny = sqrt(std::numeric\_limits<RealScalar>::epsilon());
+00308   s1 += Scalar(tiny);
+00309   m1 += ArrayType::Constant(rows,cols,Scalar(tiny));
+00310   VERIFY\_IS\_APPROX(s1/m1, s1 * m1.inverse());
+00311 
+00312   \textcolor{comment}{// check inplace transpose}
+00313   m3 = m1;
+00314   m3.transposeInPlace();
+00315   VERIFY\_IS\_APPROX(m3, m1.transpose());
+00316   m3.transposeInPlace();
+00317   VERIFY\_IS\_APPROX(m3, m1);
+00318 \}
+00319 
+00320 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ArrayType> \textcolor{keywordtype}{void} array\_complex(\textcolor{keyword}{const} ArrayType& m)
+00321 \{
+00322   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ArrayType::Index Index;
+00323   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ArrayType::Scalar Scalar;
+00324   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00325 
+00326   Index rows = m.rows();
+00327   Index cols = m.cols();
+00328 
+00329   ArrayType m1 = ArrayType::Random(rows, cols),
+00330             m2(rows, cols),
+00331             m4 = m1;
+00332   
+00333   m4.real() = (m4.real().abs()==RealScalar(0)).select(RealScalar(1),m4.real());
+00334   m4.imag() = (m4.imag().abs()==RealScalar(0)).select(RealScalar(1),m4.imag());
+00335 
+00336   \hyperlink{group___core___module_class_eigen_1_1_array}{Array}<RealScalar, -1, -1> m3(rows, cols);
+00337 
+00338   \textcolor{keywordflow}{for} (Index i = 0; i < m.rows(); ++i)
+00339     \textcolor{keywordflow}{for} (Index j = 0; j < m.cols(); ++j)
+00340       m2(i,j) = sqrt(m1(i,j));
+00341 
+00342   \textcolor{comment}{// these tests are mostly to check possible compilation issues with free-functions.}
+00343   VERIFY\_IS\_APPROX(m1.sin(), sin(m1));
+00344   VERIFY\_IS\_APPROX(m1.cos(), cos(m1));
+00345   VERIFY\_IS\_APPROX(m1.tan(), tan(m1));
+00346   VERIFY\_IS\_APPROX(m1.sinh(), sinh(m1));
+00347   VERIFY\_IS\_APPROX(m1.cosh(), cosh(m1));
+00348   VERIFY\_IS\_APPROX(m1.tanh(), tanh(m1));
+00349   VERIFY\_IS\_APPROX(m1.arg(), arg(m1));
+00350   VERIFY((m1.isNaN() == (Eigen::isnan)(m1)).all());
+00351   VERIFY((m1.isInf() == (Eigen::isinf)(m1)).all());
+00352   VERIFY((m1.isFinite() == (Eigen::isfinite)(m1)).all());
+00353   VERIFY\_IS\_APPROX(m1.inverse(), inverse(m1));
+00354   VERIFY\_IS\_APPROX(m1.log(), \hyperlink{structlog}{log}(m1));
+00355   VERIFY\_IS\_APPROX(m1.log10(), log10(m1));
+00356   VERIFY\_IS\_APPROX(m1.abs(), abs(m1));
+00357   VERIFY\_IS\_APPROX(m1.abs2(), abs2(m1));
+00358   VERIFY\_IS\_APPROX(m1.sqrt(), sqrt(m1));
+00359   VERIFY\_IS\_APPROX(m1.square(), square(m1));
+00360   VERIFY\_IS\_APPROX(m1.cube(), cube(m1));
+00361   VERIFY\_IS\_APPROX(cos(m1+RealScalar(3)*m2), cos((m1+RealScalar(3)*m2).eval()));
+00362   VERIFY\_IS\_APPROX(m1.sign(), sign(m1));
+00363 
+00364 
+00365   VERIFY\_IS\_APPROX(m1.exp() * m2.exp(), exp(m1+m2));
+00366   VERIFY\_IS\_APPROX(m1.exp(), exp(m1));
+00367   VERIFY\_IS\_APPROX(m1.exp() / m2.exp(),(m1-m2).exp());
+00368 
+00369   VERIFY\_IS\_APPROX(sinh(m1), 0.5*(exp(m1)-exp(-m1)));
+00370   VERIFY\_IS\_APPROX(cosh(m1), 0.5*(exp(m1)+exp(-m1)));
+00371   VERIFY\_IS\_APPROX(tanh(m1), (0.5*(exp(m1)-exp(-m1)))/(0.5*(exp(m1)+exp(-m1))));
+00372 
+00373   \textcolor{keywordflow}{for} (Index i = 0; i < m.rows(); ++i)
+00374     \textcolor{keywordflow}{for} (Index j = 0; j < m.cols(); ++j)
+00375       m3(i,j) = std::atan2(imag(m1(i,j)), real(m1(i,j)));
+00376   VERIFY\_IS\_APPROX(arg(m1), m3);
+00377 
+00378   std::complex<RealScalar> zero(0.0,0.0);
+00379   VERIFY((Eigen::isnan)(m1*zero/zero).all());
+00380 \textcolor{preprocessor}{#if EIGEN\_COMP\_MSVC}
+00381   \textcolor{comment}{// msvc complex division is not robust}
+00382   VERIFY((Eigen::isinf)(m4/RealScalar(0)).all());
+00383 \textcolor{preprocessor}{#else}
+00384 \textcolor{preprocessor}{#if EIGEN\_COMP\_CLANG}
+00385   \textcolor{comment}{// clang's complex division is notoriously broken too}
+00386   \textcolor{keywordflow}{if}((numext::isinf)(m4(0,0)/RealScalar(0))) \{
+00387 \textcolor{preprocessor}{#endif}
+00388     VERIFY((Eigen::isinf)(m4/zero).all());
+00389 \textcolor{preprocessor}{#if EIGEN\_COMP\_CLANG}
+00390   \}
+00391   \textcolor{keywordflow}{else}
+00392   \{
+00393     VERIFY((Eigen::isinf)(m4.real()/zero.real()).all());
+00394   \}
+00395 \textcolor{preprocessor}{#endif}
+00396 \textcolor{preprocessor}{#endif // MSVC}
+00397 
+00398   VERIFY(((Eigen::isfinite)(m1) && (!(Eigen::isfinite)(m1*zero/zero)) && (!(Eigen::isfinite)(m1/zero))).all
+      ());
+00399 
+00400   VERIFY\_IS\_APPROX(inverse(inverse(m1)),m1);
+00401   VERIFY\_IS\_APPROX(conj(m1.conjugate()), m1);
+00402   VERIFY\_IS\_APPROX(abs(m1), sqrt(square(real(m1))+square(imag(m1))));
+00403   VERIFY\_IS\_APPROX(abs(m1), sqrt(abs2(m1)));
+00404   VERIFY\_IS\_APPROX(log10(m1), \hyperlink{structlog}{log}(m1)/\hyperlink{structlog}{log}(10));
+00405 
+00406   VERIFY\_IS\_APPROX( m1.sign(), -(-m1).sign() );
+00407   VERIFY\_IS\_APPROX( m1.sign() * m1.abs(), m1);
+00408 
+00409   \textcolor{comment}{// scalar by array division}
+00410   Scalar  s1 = internal::random<Scalar>();
+00411   \textcolor{keyword}{const} RealScalar tiny = std::sqrt(std::numeric\_limits<RealScalar>::epsilon());
+00412   s1 += Scalar(tiny);
+00413   m1 += ArrayType::Constant(rows,cols,Scalar(tiny));
+00414   VERIFY\_IS\_APPROX(s1/m1, s1 * m1.inverse());
+00415 
+00416   \textcolor{comment}{// check inplace transpose}
+00417   m2 = m1;
+00418   m2.transposeInPlace();
+00419   VERIFY\_IS\_APPROX(m2, m1.transpose());
+00420   m2.transposeInPlace();
+00421   VERIFY\_IS\_APPROX(m2, m1);
+00422 
+00423 \}
+00424 
+00425 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ArrayType> \textcolor{keywordtype}{void} min\_max(\textcolor{keyword}{const} ArrayType& m)
+00426 \{
+00427   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ArrayType::Index Index;
+00428   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ArrayType::Scalar Scalar;
+00429 
+00430   Index rows = m.rows();
+00431   Index cols = m.cols();
+00432 
+00433   ArrayType m1 = ArrayType::Random(rows, cols);
+00434 
+00435   \textcolor{comment}{// min/max with array}
+00436   Scalar maxM1 = m1.maxCoeff();
+00437   Scalar minM1 = m1.minCoeff();
+00438 
+00439   VERIFY\_IS\_APPROX(ArrayType::Constant(rows,cols, minM1), (m1.min)(ArrayType::Constant(rows,cols, minM1)));
+00440   VERIFY\_IS\_APPROX(m1, (m1.min)(ArrayType::Constant(rows,cols, maxM1)));
+00441 
+00442   VERIFY\_IS\_APPROX(ArrayType::Constant(rows,cols, maxM1), (m1.max)(ArrayType::Constant(rows,cols, maxM1)));
+00443   VERIFY\_IS\_APPROX(m1, (m1.max)(ArrayType::Constant(rows,cols, minM1)));
+00444 
+00445   \textcolor{comment}{// min/max with scalar input}
+00446   VERIFY\_IS\_APPROX(ArrayType::Constant(rows,cols, minM1), (m1.min)( minM1));
+00447   VERIFY\_IS\_APPROX(m1, (m1.min)( maxM1));
+00448 
+00449   VERIFY\_IS\_APPROX(ArrayType::Constant(rows,cols, maxM1), (m1.max)( maxM1));
+00450   VERIFY\_IS\_APPROX(m1, (m1.max)( minM1));
+00451 
+00452 \}
+00453 
+00454 \textcolor{keywordtype}{void} test\_array()
+00455 \{
+00456   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00457     CALL\_SUBTEST\_1( \hyperlink{class_eigen_1_1array}{array}(\hyperlink{group___core___module_class_eigen_1_1_array}{Array<float, 1, 1>}()) );
+00458     CALL\_SUBTEST\_2( \hyperlink{class_eigen_1_1array}{array}(Array22f()) );
+00459     CALL\_SUBTEST\_3( \hyperlink{class_eigen_1_1array}{array}(Array44d()) );
+00460     CALL\_SUBTEST\_4( \hyperlink{class_eigen_1_1array}{array}(ArrayXXcf(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE), 
+      internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE))) );
+00461     CALL\_SUBTEST\_5( \hyperlink{class_eigen_1_1array}{array}(ArrayXXf(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE), internal::random<int>
+      (1,EIGEN\_TEST\_MAX\_SIZE))) );
+00462     CALL\_SUBTEST\_6( \hyperlink{class_eigen_1_1array}{array}(ArrayXXi(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE), internal::random<int>
+      (1,EIGEN\_TEST\_MAX\_SIZE))) );
+00463   \}
+00464   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00465     CALL\_SUBTEST\_1( comparisons(\hyperlink{group___core___module_class_eigen_1_1_array}{Array<float, 1, 1>}()) );
+00466     CALL\_SUBTEST\_2( comparisons(Array22f()) );
+00467     CALL\_SUBTEST\_3( comparisons(Array44d()) );
+00468     CALL\_SUBTEST\_5( comparisons(ArrayXXf(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE), 
+      internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE))) );
+00469     CALL\_SUBTEST\_6( comparisons(ArrayXXi(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE), 
+      internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE))) );
+00470   \}
+00471   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00472     CALL\_SUBTEST\_1( min\_max(\hyperlink{group___core___module_class_eigen_1_1_array}{Array<float, 1, 1>}()) );
+00473     CALL\_SUBTEST\_2( min\_max(Array22f()) );
+00474     CALL\_SUBTEST\_3( min\_max(Array44d()) );
+00475     CALL\_SUBTEST\_5( min\_max(ArrayXXf(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE), internal::random<int>(1,
+      EIGEN\_TEST\_MAX\_SIZE))) );
+00476     CALL\_SUBTEST\_6( min\_max(ArrayXXi(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE), internal::random<int>(1,
+      EIGEN\_TEST\_MAX\_SIZE))) );
+00477   \}
+00478   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00479     CALL\_SUBTEST\_1( array\_real(\hyperlink{group___core___module_class_eigen_1_1_array}{Array<float, 1, 1>}()) );
+00480     CALL\_SUBTEST\_2( array\_real(Array22f()) );
+00481     CALL\_SUBTEST\_3( array\_real(Array44d()) );
+00482     CALL\_SUBTEST\_5( array\_real(ArrayXXf(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE), internal::random<int>
+      (1,EIGEN\_TEST\_MAX\_SIZE))) );
+00483   \}
+00484   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00485     CALL\_SUBTEST\_4( array\_complex(ArrayXXcf(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE), 
+      internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE))) );
+00486   \}
+00487 
+00488   VERIFY((internal::is\_same< internal::global\_math\_functions\_filtering\_base<int>::type, \textcolor{keywordtype}{int} >::value));
+00489   VERIFY((internal::is\_same< internal::global\_math\_functions\_filtering\_base<float>::type, \textcolor{keywordtype}{float} >::value));
+00490   VERIFY((internal::is\_same< internal::global\_math\_functions\_filtering\_base<Array2i>::type, 
+      \hyperlink{group___core___module_class_eigen_1_1_array_base}{ArrayBase<Array2i>} >::value));
+00491   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_cwise_unary_op}{CwiseUnaryOp<internal::scalar\_abs\_op<double>}, ArrayXd
+       > Xpr;
+00492   VERIFY((internal::is\_same< internal::global\_math\_functions\_filtering\_base<Xpr>::type,
+00493                            \hyperlink{group___core___module_class_eigen_1_1_array_base}{ArrayBase<Xpr>}
+00494                          >::value));
+00495 \}
+\end{DoxyCode}

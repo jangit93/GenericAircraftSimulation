@@ -1,0 +1,153 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_sparse_core_2_sparse_cwise_unary_op_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Sparse\+Core/\+Sparse\+Cwise\+Unary\+Op.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_sparse_core_2_sparse_cwise_unary_op_8h_source}\index{Sparse\+Cwise\+Unary\+Op.\+h@{Sparse\+Cwise\+Unary\+Op.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2015 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_SPARSE\_CWISE\_UNARY\_OP\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_SPARSE\_CWISE\_UNARY\_OP\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016   
+00017 \textcolor{keyword}{template}<\textcolor{keyword}{typename} UnaryOp, \textcolor{keyword}{typename} ArgType>
+00018 \textcolor{keyword}{struct }unary\_evaluator<CwiseUnaryOp<UnaryOp,ArgType>, IteratorBased>
+00019   : \textcolor{keyword}{public} evaluator\_base<CwiseUnaryOp<UnaryOp,ArgType> >
+00020 \{
+00021   \textcolor{keyword}{public}:
+00022     \textcolor{keyword}{typedef} CwiseUnaryOp<UnaryOp, ArgType> XprType;
+00023 
+00024     \textcolor{keyword}{class }InnerIterator;
+00025     
+00026     \textcolor{keyword}{enum} \{
+00027       CoeffReadCost = evaluator<ArgType>::CoeffReadCost + functor\_traits<UnaryOp>::Cost,
+00028       Flags = XprType::Flags
+00029     \};
+00030     
+00031     \textcolor{keyword}{explicit} unary\_evaluator(\textcolor{keyword}{const} XprType& op) : m\_functor(op.functor()), m\_argImpl(op.nestedExpression())
+00032     \{
+00033       EIGEN\_INTERNAL\_CHECK\_COST\_VALUE(functor\_traits<UnaryOp>::Cost);
+00034       EIGEN\_INTERNAL\_CHECK\_COST\_VALUE(CoeffReadCost);
+00035     \}
+00036     
+00037     \textcolor{keyword}{inline} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} nonZerosEstimate()\textcolor{keyword}{ const }\{
+00038       \textcolor{keywordflow}{return} m\_argImpl.nonZerosEstimate();
+00039     \}
+00040 
+00041   \textcolor{keyword}{protected}:
+00042     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} evaluator<ArgType>::InnerIterator        EvalIterator;
+00043     
+00044     \textcolor{keyword}{const} UnaryOp m\_functor;
+00045     evaluator<ArgType> m\_argImpl;
+00046 \};
+00047 
+00048 \textcolor{keyword}{template}<\textcolor{keyword}{typename} UnaryOp, \textcolor{keyword}{typename} ArgType>
+00049 \textcolor{keyword}{class }unary\_evaluator<CwiseUnaryOp<UnaryOp,ArgType>, IteratorBased>::InnerIterator
+00050     : \textcolor{keyword}{public} unary\_evaluator<CwiseUnaryOp<UnaryOp,ArgType>, IteratorBased>::EvalIterator
+00051 \{
+00052     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Scalar Scalar;
+00053     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} unary\_evaluator<CwiseUnaryOp<UnaryOp,ArgType>, IteratorBased>::EvalIterator Base;
+00054   \textcolor{keyword}{public}:
+00055 
+00056     EIGEN\_STRONG\_INLINE InnerIterator(\textcolor{keyword}{const} unary\_evaluator& unaryOp, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} outer)
+00057       : Base(unaryOp.m\_argImpl,outer), m\_functor(unaryOp.m\_functor)
+00058     \{\}
+00059 
+00060     EIGEN\_STRONG\_INLINE InnerIterator& operator++()
+00061     \{ Base::operator++(); \textcolor{keywordflow}{return} *\textcolor{keyword}{this}; \}
+00062 
+00063     EIGEN\_STRONG\_INLINE Scalar value()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_functor(Base::value()); \}
+00064 
+00065   \textcolor{keyword}{protected}:
+00066     \textcolor{keyword}{const} UnaryOp m\_functor;
+00067   \textcolor{keyword}{private}:
+00068     Scalar& valueRef();
+00069 \};
+00070 
+00071 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ViewOp, \textcolor{keyword}{typename} ArgType>
+00072 \textcolor{keyword}{struct }unary\_evaluator<CwiseUnaryView<ViewOp,ArgType>, IteratorBased>
+00073   : \textcolor{keyword}{public} evaluator\_base<CwiseUnaryView<ViewOp,ArgType> >
+00074 \{
+00075   \textcolor{keyword}{public}:
+00076     \textcolor{keyword}{typedef} CwiseUnaryView<ViewOp, ArgType> XprType;
+00077 
+00078     \textcolor{keyword}{class }InnerIterator;
+00079     
+00080     \textcolor{keyword}{enum} \{
+00081       CoeffReadCost = evaluator<ArgType>::CoeffReadCost + functor\_traits<ViewOp>::Cost,
+00082       Flags = XprType::Flags
+00083     \};
+00084     
+00085     \textcolor{keyword}{explicit} unary\_evaluator(\textcolor{keyword}{const} XprType& op) : m\_functor(op.functor()), m\_argImpl(op.nestedExpression())
+00086     \{
+00087       EIGEN\_INTERNAL\_CHECK\_COST\_VALUE(functor\_traits<ViewOp>::Cost);
+00088       EIGEN\_INTERNAL\_CHECK\_COST\_VALUE(CoeffReadCost);
+00089     \}
+00090 
+00091   \textcolor{keyword}{protected}:
+00092     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} evaluator<ArgType>::InnerIterator        EvalIterator;
+00093     
+00094     \textcolor{keyword}{const} ViewOp m\_functor;
+00095     evaluator<ArgType> m\_argImpl;
+00096 \};
+00097 
+00098 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ViewOp, \textcolor{keyword}{typename} ArgType>
+00099 \textcolor{keyword}{class }unary\_evaluator<CwiseUnaryView<ViewOp,ArgType>, IteratorBased>::InnerIterator
+00100     : \textcolor{keyword}{public} unary\_evaluator<CwiseUnaryView<ViewOp,ArgType>, IteratorBased>::EvalIterator
+00101 \{
+00102     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Scalar Scalar;
+00103     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} unary\_evaluator<CwiseUnaryView<ViewOp,ArgType>, IteratorBased>::EvalIterator Base;
+00104   \textcolor{keyword}{public}:
+00105 
+00106     EIGEN\_STRONG\_INLINE InnerIterator(\textcolor{keyword}{const} unary\_evaluator& unaryOp, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} outer)
+00107       : Base(unaryOp.m\_argImpl,outer), m\_functor(unaryOp.m\_functor)
+00108     \{\}
+00109 
+00110     EIGEN\_STRONG\_INLINE InnerIterator& operator++()
+00111     \{ Base::operator++(); \textcolor{keywordflow}{return} *\textcolor{keyword}{this}; \}
+00112 
+00113     EIGEN\_STRONG\_INLINE Scalar value()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_functor(Base::value()); \}
+00114     EIGEN\_STRONG\_INLINE Scalar& valueRef() \{ \textcolor{keywordflow}{return} m\_functor(Base::valueRef()); \}
+00115 
+00116   \textcolor{keyword}{protected}:
+00117     \textcolor{keyword}{const} ViewOp m\_functor;
+00118 \};
+00119 
+00120 \} \textcolor{comment}{// end namespace internal}
+00121 
+00122 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00123 EIGEN\_STRONG\_INLINE Derived&
+00124 SparseMatrixBase<Derived>::operator*=(\textcolor{keyword}{const} Scalar& other)
+00125 \{
+00126   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::evaluator<Derived>::InnerIterator EvalIterator;
+00127   internal::evaluator<Derived> thisEval(derived());
+00128   \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j=0; j<outerSize(); ++j)
+00129     \textcolor{keywordflow}{for} (EvalIterator i(thisEval,j); i; ++i)
+00130       i.valueRef() *= other;
+00131   \textcolor{keywordflow}{return} derived();
+00132 \}
+00133 
+00134 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00135 EIGEN\_STRONG\_INLINE Derived&
+00136 SparseMatrixBase<Derived>::operator/=(\textcolor{keyword}{const} Scalar& other)
+00137 \{
+00138   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::evaluator<Derived>::InnerIterator EvalIterator;
+00139   internal::evaluator<Derived> thisEval(derived());
+00140   \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j=0; j<outerSize(); ++j)
+00141     \textcolor{keywordflow}{for} (EvalIterator i(thisEval,j); i; ++i)
+00142       i.valueRef() /= other;
+00143   \textcolor{keywordflow}{return} derived();
+00144 \}
+00145 
+00146 \} \textcolor{comment}{// end namespace Eigen}
+00147 
+00148 \textcolor{preprocessor}{#endif // EIGEN\_SPARSE\_CWISE\_UNARY\_OP\_H}
+\end{DoxyCode}

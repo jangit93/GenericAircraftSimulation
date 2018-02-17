@@ -1,0 +1,527 @@
+\hypertarget{zlib_2contrib_2minizip_2minizip_8c_source}{}\section{zlib/contrib/minizip/minizip.c}
+\label{zlib_2contrib_2minizip_2minizip_8c_source}\index{minizip.\+c@{minizip.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/*}
+00002 \textcolor{comment}{   minizip.c}
+00003 \textcolor{comment}{   Version 1.1, February 14h, 2010}
+00004 \textcolor{comment}{   sample part of the MiniZip project - ( http://www.winimage.com/zLibDll/minizip.html )}
+00005 \textcolor{comment}{}
+00006 \textcolor{comment}{         Copyright (C) 1998-2010 Gilles Vollant (minizip) ( http://www.winimage.com/zLibDll/minizip.html )}
+00007 \textcolor{comment}{}
+00008 \textcolor{comment}{         Modifications of Unzip for Zip64}
+00009 \textcolor{comment}{         Copyright (C) 2007-2008 Even Rouault}
+00010 \textcolor{comment}{}
+00011 \textcolor{comment}{         Modifications for Zip64 support on both zip and unzip}
+00012 \textcolor{comment}{         Copyright (C) 2009-2010 Mathias Svensson ( http://result42.com )}
+00013 \textcolor{comment}{*/}
+00014 
+00015 
+00016 \textcolor{preprocessor}{#if (!defined(\_WIN32)) && (!defined(WIN32)) && (!defined(\_\_APPLE\_\_))}
+00017 \textcolor{preprocessor}{        #ifndef \_\_USE\_FILE\_OFFSET64}
+00018 \textcolor{preprocessor}{                #define \_\_USE\_FILE\_OFFSET64}
+00019 \textcolor{preprocessor}{        #endif}
+00020 \textcolor{preprocessor}{        #ifndef \_\_USE\_LARGEFILE64}
+00021 \textcolor{preprocessor}{                #define \_\_USE\_LARGEFILE64}
+00022 \textcolor{preprocessor}{        #endif}
+00023 \textcolor{preprocessor}{        #ifndef \_LARGEFILE64\_SOURCE}
+00024 \textcolor{preprocessor}{                #define \_LARGEFILE64\_SOURCE}
+00025 \textcolor{preprocessor}{        #endif}
+00026 \textcolor{preprocessor}{        #ifndef \_FILE\_OFFSET\_BIT}
+00027 \textcolor{preprocessor}{                #define \_FILE\_OFFSET\_BIT 64}
+00028 \textcolor{preprocessor}{        #endif}
+00029 \textcolor{preprocessor}{#endif}
+00030 
+00031 \textcolor{preprocessor}{#ifdef \_\_APPLE\_\_}
+00032 \textcolor{comment}{// In darwin and perhaps other BSD variants off\_t is a 64 bit value, hence no need for specific 64 bit
+       functions}
+00033 \textcolor{preprocessor}{#define FOPEN\_FUNC(filename, mode) fopen(filename, mode)}
+00034 \textcolor{preprocessor}{#define FTELLO\_FUNC(stream) ftello(stream)}
+00035 \textcolor{preprocessor}{#define FSEEKO\_FUNC(stream, offset, origin) fseeko(stream, offset, origin)}
+00036 \textcolor{preprocessor}{#else}
+00037 \textcolor{preprocessor}{#define FOPEN\_FUNC(filename, mode) fopen64(filename, mode)}
+00038 \textcolor{preprocessor}{#define FTELLO\_FUNC(stream) ftello64(stream)}
+00039 \textcolor{preprocessor}{#define FSEEKO\_FUNC(stream, offset, origin) fseeko64(stream, offset, origin)}
+00040 \textcolor{preprocessor}{#endif}
+00041 
+00042 
+00043 
+00044 \textcolor{preprocessor}{#include <stdio.h>}
+00045 \textcolor{preprocessor}{#include <stdlib.h>}
+00046 \textcolor{preprocessor}{#include <string.h>}
+00047 \textcolor{preprocessor}{#include <time.h>}
+00048 \textcolor{preprocessor}{#include <errno.h>}
+00049 \textcolor{preprocessor}{#include <fcntl.h>}
+00050 
+00051 \textcolor{preprocessor}{#ifdef \_WIN32}
+00052 \textcolor{preprocessor}{# include <direct.h>}
+00053 \textcolor{preprocessor}{# include <io.h>}
+00054 \textcolor{preprocessor}{#else}
+00055 \textcolor{preprocessor}{# include <unistd.h>}
+00056 \textcolor{preprocessor}{# include <utime.h>}
+00057 \textcolor{preprocessor}{# include <sys/types.h>}
+00058 \textcolor{preprocessor}{# include <sys/stat.h>}
+00059 \textcolor{preprocessor}{#endif}
+00060 
+00061 \textcolor{preprocessor}{#include "zip.h"}
+00062 
+00063 \textcolor{preprocessor}{#ifdef \_WIN32}
+00064 \textcolor{preprocessor}{        #define USEWIN32IOAPI}
+00065 \textcolor{preprocessor}{        #include "iowin32.h"}
+00066 \textcolor{preprocessor}{#endif}
+00067 
+00068 
+00069 
+00070 \textcolor{preprocessor}{#define WRITEBUFFERSIZE (16384)}
+00071 \textcolor{preprocessor}{#define MAXFILENAME (256)}
+00072 
+00073 \textcolor{preprocessor}{#ifdef \_WIN32}
+00074 uLong filetime(f, tmzip, dt)
+00075     \textcolor{keywordtype}{char} *f;                \textcolor{comment}{/* name of file to get info on */}
+00076     \hyperlink{structtm__zip__s}{tm\_zip} *tmzip;             \textcolor{comment}{/* return value: access, modific. and creation times */}
+00077     uLong *dt;             \textcolor{comment}{/* dostime */}
+00078 \{
+00079   \textcolor{keywordtype}{int} ret = 0;
+00080   \{
+00081       FILETIME ftLocal;
+00082       HANDLE hFind;
+00083       WIN32\_FIND\_DATAA ff32;
+00084 
+00085       hFind = FindFirstFileA(f,&ff32);
+00086       \textcolor{keywordflow}{if} (hFind != INVALID\_HANDLE\_VALUE)
+00087       \{
+00088         FileTimeToLocalFileTime(&(ff32.ftLastWriteTime),&ftLocal);
+00089         FileTimeToDosDateTime(&ftLocal,((LPWORD)dt)+1,((LPWORD)dt)+0);
+00090         FindClose(hFind);
+00091         ret = 1;
+00092       \}
+00093   \}
+00094   \textcolor{keywordflow}{return} ret;
+00095 \}
+00096 \textcolor{preprocessor}{#else}
+00097 \textcolor{preprocessor}{#ifdef unix || \_\_APPLE\_\_}
+00098 uLong filetime(f, tmzip, dt)
+00099     \textcolor{keywordtype}{char} *f;               \textcolor{comment}{/* name of file to get info on */}
+00100     \hyperlink{structtm__zip__s}{tm\_zip} *tmzip;         \textcolor{comment}{/* return value: access, modific. and creation times */}
+00101     uLong *dt;             \textcolor{comment}{/* dostime */}
+00102 \{
+00103   \textcolor{keywordtype}{int} ret=0;
+00104   \textcolor{keyword}{struct }stat s;        \textcolor{comment}{/* results of stat() */}
+00105   \textcolor{keyword}{struct }tm* filedate;
+00106   time\_t tm\_t=0;
+00107 
+00108   \textcolor{keywordflow}{if} (strcmp(f,\textcolor{stringliteral}{"-"})!=0)
+00109   \{
+00110     \textcolor{keywordtype}{char} name[MAXFILENAME+1];
+00111     \textcolor{keywordtype}{int} len = strlen(f);
+00112     \textcolor{keywordflow}{if} (len > MAXFILENAME)
+00113       len = MAXFILENAME;
+00114 
+00115     strncpy(name, f,MAXFILENAME-1);
+00116     \textcolor{comment}{/* strncpy doesnt append the trailing NULL, of the string is too long. */}
+00117     name[ MAXFILENAME ] = \textcolor{charliteral}{'\(\backslash\)0'};
+00118 
+00119     \textcolor{keywordflow}{if} (name[len - 1] == \textcolor{charliteral}{'/'})
+00120       name[len - 1] = \textcolor{charliteral}{'\(\backslash\)0'};
+00121     \textcolor{comment}{/* not all systems allow stat'ing a file with / appended */}
+00122     \textcolor{keywordflow}{if} (stat(name,&s)==0)
+00123     \{
+00124       tm\_t = s.st\_mtime;
+00125       ret = 1;
+00126     \}
+00127   \}
+00128   filedate = localtime(&tm\_t);
+00129 
+00130   tmzip->tm\_sec  = filedate->tm\_sec;
+00131   tmzip->tm\_min  = filedate->tm\_min;
+00132   tmzip->tm\_hour = filedate->tm\_hour;
+00133   tmzip->tm\_mday = filedate->tm\_mday;
+00134   tmzip->tm\_mon  = filedate->tm\_mon ;
+00135   tmzip->tm\_year = filedate->tm\_year;
+00136 
+00137   \textcolor{keywordflow}{return} ret;
+00138 \}
+00139 \textcolor{preprocessor}{#else}
+00140 uLong filetime(f, tmzip, dt)
+00141     \textcolor{keywordtype}{char} *f;                \textcolor{comment}{/* name of file to get info on */}
+00142     \hyperlink{structtm__zip__s}{tm\_zip} *tmzip;             \textcolor{comment}{/* return value: access, modific. and creation times */}
+00143     uLong *dt;             \textcolor{comment}{/* dostime */}
+00144 \{
+00145     \textcolor{keywordflow}{return} 0;
+00146 \}
+00147 \textcolor{preprocessor}{#endif}
+00148 \textcolor{preprocessor}{#endif}
+00149 
+00150 
+00151 
+00152 
+00153 \textcolor{keywordtype}{int} check\_exist\_file(filename)
+00154     \textcolor{keyword}{const} \textcolor{keywordtype}{char}* filename;
+00155 \{
+00156     FILE* ftestexist;
+00157     \textcolor{keywordtype}{int} ret = 1;
+00158     ftestexist = FOPEN\_FUNC(filename,\textcolor{stringliteral}{"rb"});
+00159     \textcolor{keywordflow}{if} (ftestexist==NULL)
+00160         ret = 0;
+00161     \textcolor{keywordflow}{else}
+00162         fclose(ftestexist);
+00163     \textcolor{keywordflow}{return} ret;
+00164 \}
+00165 
+00166 \textcolor{keywordtype}{void} do\_banner()
+00167 \{
+00168     printf(\textcolor{stringliteral}{"MiniZip 1.1, demo of zLib + MiniZip64 package, written by Gilles Vollant\(\backslash\)n"});
+00169     printf(\textcolor{stringliteral}{"more info on MiniZip at http://www.winimage.com/zLibDll/minizip.html\(\backslash\)n\(\backslash\)n"});
+00170 \}
+00171 
+00172 \textcolor{keywordtype}{void} do\_help()
+00173 \{
+00174     printf(\textcolor{stringliteral}{"Usage : minizip [-o] [-a] [-0 to -9] [-p password] [-j] file.zip [files\_to\_add]\(\backslash\)n\(\backslash\)n"} \(\backslash\)
+00175            \textcolor{stringliteral}{"  -o  Overwrite existing file.zip\(\backslash\)n"} \(\backslash\)
+00176            \textcolor{stringliteral}{"  -a  Append to existing file.zip\(\backslash\)n"} \(\backslash\)
+00177            \textcolor{stringliteral}{"  -0  Store only\(\backslash\)n"} \(\backslash\)
+00178            \textcolor{stringliteral}{"  -1  Compress faster\(\backslash\)n"} \(\backslash\)
+00179            \textcolor{stringliteral}{"  -9  Compress better\(\backslash\)n\(\backslash\)n"} \(\backslash\)
+00180            \textcolor{stringliteral}{"  -j  exclude path. store only the file name.\(\backslash\)n\(\backslash\)n"});
+00181 \}
+00182 
+00183 \textcolor{comment}{/* calculate the CRC32 of a file,}
+00184 \textcolor{comment}{   because to encrypt a file, we need known the CRC32 of the file before */}
+00185 \textcolor{keywordtype}{int} getFileCrc(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* filenameinzip,\textcolor{keywordtype}{void}*buf,\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} size\_buf,\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long}* result\_crc)
+00186 \{
+00187    \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} calculate\_crc=0;
+00188    \textcolor{keywordtype}{int} err=ZIP\_OK;
+00189    FILE * fin = FOPEN\_FUNC(filenameinzip,\textcolor{stringliteral}{"rb"});
+00190 
+00191    \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} size\_read = 0;
+00192    \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} total\_read = 0;
+00193    \textcolor{keywordflow}{if} (fin==NULL)
+00194    \{
+00195        err = ZIP\_ERRNO;
+00196    \}
+00197 
+00198     \textcolor{keywordflow}{if} (err == ZIP\_OK)
+00199         \textcolor{keywordflow}{do}
+00200         \{
+00201             err = ZIP\_OK;
+00202             size\_read = (int)fread(buf,1,size\_buf,fin);
+00203             \textcolor{keywordflow}{if} (size\_read < size\_buf)
+00204                 \textcolor{keywordflow}{if} (feof(fin)==0)
+00205             \{
+00206                 printf(\textcolor{stringliteral}{"error in reading %s\(\backslash\)n"},filenameinzip);
+00207                 err = ZIP\_ERRNO;
+00208             \}
+00209 
+00210             \textcolor{keywordflow}{if} (size\_read>0)
+00211                 calculate\_crc = crc32(calculate\_crc,buf,size\_read);
+00212             total\_read += size\_read;
+00213 
+00214         \} \textcolor{keywordflow}{while} ((err == ZIP\_OK) && (size\_read>0));
+00215 
+00216     \textcolor{keywordflow}{if} (fin)
+00217         fclose(fin);
+00218 
+00219     *result\_crc=calculate\_crc;
+00220     printf(\textcolor{stringliteral}{"file %s crc %lx\(\backslash\)n"}, filenameinzip, calculate\_crc);
+00221     \textcolor{keywordflow}{return} err;
+00222 \}
+00223 
+00224 \textcolor{keywordtype}{int} isLargeFile(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* filename)
+00225 \{
+00226   \textcolor{keywordtype}{int} largeFile = 0;
+00227   ZPOS64\_T pos = 0;
+00228   FILE* pFile = FOPEN\_FUNC(filename, \textcolor{stringliteral}{"rb"});
+00229 
+00230   \textcolor{keywordflow}{if}(pFile != NULL)
+00231   \{
+00232     \textcolor{keywordtype}{int} n = FSEEKO\_FUNC(pFile, 0, SEEK\_END);
+00233     pos = FTELLO\_FUNC(pFile);
+00234 
+00235                 printf(\textcolor{stringliteral}{"File : %s is %lld bytes\(\backslash\)n"}, filename, pos);
+00236 
+00237     \textcolor{keywordflow}{if}(pos >= 0xffffffff)
+00238      largeFile = 1;
+00239 
+00240                 fclose(pFile);
+00241   \}
+00242 
+00243  \textcolor{keywordflow}{return} largeFile;
+00244 \}
+00245 
+00246 \textcolor{keywordtype}{int} main(argc,argv)
+00247     \textcolor{keywordtype}{int} argc;
+00248     \textcolor{keywordtype}{char} *argv[];
+00249 \{
+00250     \textcolor{keywordtype}{int} i;
+00251     \textcolor{keywordtype}{int} opt\_overwrite=0;
+00252     \textcolor{keywordtype}{int} opt\_compress\_level=Z\_DEFAULT\_COMPRESSION;
+00253     \textcolor{keywordtype}{int} opt\_exclude\_path=0;
+00254     \textcolor{keywordtype}{int} zipfilenamearg = 0;
+00255     \textcolor{keywordtype}{char} filename\_try[MAXFILENAME+16];
+00256     \textcolor{keywordtype}{int} zipok;
+00257     \textcolor{keywordtype}{int} err=0;
+00258     \textcolor{keywordtype}{int} size\_buf=0;
+00259     \textcolor{keywordtype}{void}* buf=NULL;
+00260     \textcolor{keyword}{const} \textcolor{keywordtype}{char}* password=NULL;
+00261 
+00262 
+00263     do\_banner();
+00264     \textcolor{keywordflow}{if} (argc==1)
+00265     \{
+00266         do\_help();
+00267         \textcolor{keywordflow}{return} 0;
+00268     \}
+00269     \textcolor{keywordflow}{else}
+00270     \{
+00271         \textcolor{keywordflow}{for} (i=1;i<argc;i++)
+00272         \{
+00273             \textcolor{keywordflow}{if} ((*argv[i])==\textcolor{charliteral}{'-'})
+00274             \{
+00275                 \textcolor{keyword}{const} \textcolor{keywordtype}{char} *p=argv[i]+1;
+00276 
+00277                 \textcolor{keywordflow}{while} ((*p)!=\textcolor{charliteral}{'\(\backslash\)0'})
+00278                 \{
+00279                     \textcolor{keywordtype}{char} c=*(p++);;
+00280                     \textcolor{keywordflow}{if} ((c==\textcolor{charliteral}{'o'}) || (c==\textcolor{charliteral}{'O'}))
+00281                         opt\_overwrite = 1;
+00282                     \textcolor{keywordflow}{if} ((c==\textcolor{charliteral}{'a'}) || (c==\textcolor{charliteral}{'A'}))
+00283                         opt\_overwrite = 2;
+00284                     \textcolor{keywordflow}{if} ((c>=\textcolor{charliteral}{'0'}) && (c<=\textcolor{charliteral}{'9'}))
+00285                         opt\_compress\_level = c-\textcolor{charliteral}{'0'};
+00286                     \textcolor{keywordflow}{if} ((c==\textcolor{charliteral}{'j'}) || (c==\textcolor{charliteral}{'J'}))
+00287                         opt\_exclude\_path = 1;
+00288 
+00289                     \textcolor{keywordflow}{if} (((c==\textcolor{charliteral}{'p'}) || (c==\textcolor{charliteral}{'P'})) && (i+1<argc))
+00290                     \{
+00291                         password=argv[i+1];
+00292                         i++;
+00293                     \}
+00294                 \}
+00295             \}
+00296             \textcolor{keywordflow}{else}
+00297             \{
+00298                 \textcolor{keywordflow}{if} (zipfilenamearg == 0)
+00299                 \{
+00300                     zipfilenamearg = i ;
+00301                 \}
+00302             \}
+00303         \}
+00304     \}
+00305 
+00306     size\_buf = WRITEBUFFERSIZE;
+00307     buf = (\textcolor{keywordtype}{void}*)malloc(size\_buf);
+00308     \textcolor{keywordflow}{if} (buf==NULL)
+00309     \{
+00310         printf(\textcolor{stringliteral}{"Error allocating memory\(\backslash\)n"});
+00311         \textcolor{keywordflow}{return} ZIP\_INTERNALERROR;
+00312     \}
+00313 
+00314     \textcolor{keywordflow}{if} (zipfilenamearg==0)
+00315     \{
+00316         zipok=0;
+00317     \}
+00318     \textcolor{keywordflow}{else}
+00319     \{
+00320         \textcolor{keywordtype}{int} i,len;
+00321         \textcolor{keywordtype}{int} dot\_found=0;
+00322 
+00323         zipok = 1 ;
+00324         strncpy(filename\_try, argv[zipfilenamearg],MAXFILENAME-1);
+00325         \textcolor{comment}{/* strncpy doesnt append the trailing NULL, of the string is too long. */}
+00326         filename\_try[ MAXFILENAME ] = \textcolor{charliteral}{'\(\backslash\)0'};
+00327 
+00328         len=(int)strlen(filename\_try);
+00329         \textcolor{keywordflow}{for} (i=0;i<len;i++)
+00330             \textcolor{keywordflow}{if} (filename\_try[i]==\textcolor{charliteral}{'.'})
+00331                 dot\_found=1;
+00332 
+00333         \textcolor{keywordflow}{if} (dot\_found==0)
+00334             strcat(filename\_try,\textcolor{stringliteral}{".zip"});
+00335 
+00336         \textcolor{keywordflow}{if} (opt\_overwrite==2)
+00337         \{
+00338             \textcolor{comment}{/* if the file don't exist, we not append file */}
+00339             \textcolor{keywordflow}{if} (check\_exist\_file(filename\_try)==0)
+00340                 opt\_overwrite=1;
+00341         \}
+00342         \textcolor{keywordflow}{else}
+00343         \textcolor{keywordflow}{if} (opt\_overwrite==0)
+00344             \textcolor{keywordflow}{if} (check\_exist\_file(filename\_try)!=0)
+00345             \{
+00346                 \textcolor{keywordtype}{char} rep=0;
+00347                 \textcolor{keywordflow}{do}
+00348                 \{
+00349                     \textcolor{keywordtype}{char} answer[128];
+00350                     \textcolor{keywordtype}{int} ret;
+00351                     printf(\textcolor{stringliteral}{"The file %s exists. Overwrite ? [y]es, [n]o, [a]ppend : "},filename\_try);
+00352                     ret = scanf(\textcolor{stringliteral}{"%1s"},answer);
+00353                     \textcolor{keywordflow}{if} (ret != 1)
+00354                     \{
+00355                        exit(EXIT\_FAILURE);
+00356                     \}
+00357                     rep = answer[0] ;
+00358                     \textcolor{keywordflow}{if} ((rep>=\textcolor{charliteral}{'a'}) && (rep<=\textcolor{charliteral}{'z'}))
+00359                         rep -= 0x20;
+00360                 \}
+00361                 \textcolor{keywordflow}{while} ((rep!=\textcolor{charliteral}{'Y'}) && (rep!=\textcolor{charliteral}{'N'}) && (rep!=\textcolor{charliteral}{'A'}));
+00362                 \textcolor{keywordflow}{if} (rep==\textcolor{charliteral}{'N'})
+00363                     zipok = 0;
+00364                 \textcolor{keywordflow}{if} (rep==\textcolor{charliteral}{'A'})
+00365                     opt\_overwrite = 2;
+00366             \}
+00367     \}
+00368 
+00369     \textcolor{keywordflow}{if} (zipok==1)
+00370     \{
+00371         zipFile zf;
+00372         \textcolor{keywordtype}{int} errclose;
+00373 \textcolor{preprocessor}{#        ifdef USEWIN32IOAPI}
+00374         \hyperlink{structzlib__filefunc64__def__s}{zlib\_filefunc64\_def} ffunc;
+00375         fill\_win32\_filefunc64A(&ffunc);
+00376         zf = zipOpen2\_64(filename\_try,(opt\_overwrite==2) ? 2 : 0,NULL,&ffunc);
+00377 \textcolor{preprocessor}{#        else}
+00378         zf = zipOpen64(filename\_try,(opt\_overwrite==2) ? 2 : 0);
+00379 \textcolor{preprocessor}{#        endif}
+00380 
+00381         \textcolor{keywordflow}{if} (zf == NULL)
+00382         \{
+00383             printf(\textcolor{stringliteral}{"error opening %s\(\backslash\)n"},filename\_try);
+00384             err= ZIP\_ERRNO;
+00385         \}
+00386         \textcolor{keywordflow}{else}
+00387             printf(\textcolor{stringliteral}{"creating %s\(\backslash\)n"},filename\_try);
+00388 
+00389         \textcolor{keywordflow}{for} (i=zipfilenamearg+1;(i<argc) && (err==ZIP\_OK);i++)
+00390         \{
+00391             \textcolor{keywordflow}{if} (!((((*(argv[i]))==\textcolor{charliteral}{'-'}) || ((*(argv[i]))==\textcolor{charliteral}{'/'})) &&
+00392                   ((argv[i][1]==\textcolor{charliteral}{'o'}) || (argv[i][1]==\textcolor{charliteral}{'O'}) ||
+00393                    (argv[i][1]==\textcolor{charliteral}{'a'}) || (argv[i][1]==\textcolor{charliteral}{'A'}) ||
+00394                    (argv[i][1]==\textcolor{charliteral}{'p'}) || (argv[i][1]==\textcolor{charliteral}{'P'}) ||
+00395                    ((argv[i][1]>=\textcolor{charliteral}{'0'}) || (argv[i][1]<=\textcolor{charliteral}{'9'}))) &&
+00396                   (strlen(argv[i]) == 2)))
+00397             \{
+00398                 FILE * fin;
+00399                 \textcolor{keywordtype}{int} size\_read;
+00400                 \textcolor{keyword}{const} \textcolor{keywordtype}{char}* filenameinzip = argv[i];
+00401                 \textcolor{keyword}{const} \textcolor{keywordtype}{char} *savefilenameinzip;
+00402                 \hyperlink{structzip__fileinfo}{zip\_fileinfo} zi;
+00403                 \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} crcFile=0;
+00404                 \textcolor{keywordtype}{int} zip64 = 0;
+00405 
+00406                 zi.tmz\_date.tm\_sec = zi.tmz\_date.tm\_min = zi.tmz\_date.tm\_hour =
+00407                 zi.tmz\_date.tm\_mday = zi.tmz\_date.tm\_mon = zi.tmz\_date.tm\_year = 0;
+00408                 zi.dosDate = 0;
+00409                 zi.internal\_fa = 0;
+00410                 zi.external\_fa = 0;
+00411                 filetime(filenameinzip,&zi.tmz\_date,&zi.dosDate);
+00412 
+00413 \textcolor{comment}{/*}
+00414 \textcolor{comment}{                err = zipOpenNewFileInZip(zf,filenameinzip,&zi,}
+00415 \textcolor{comment}{                                 NULL,0,NULL,0,NULL / * comment * /,}
+00416 \textcolor{comment}{                                 (opt\_compress\_level != 0) ? Z\_DEFLATED : 0,}
+00417 \textcolor{comment}{                                 opt\_compress\_level);}
+00418 \textcolor{comment}{*/}
+00419                 \textcolor{keywordflow}{if} ((password != NULL) && (err==ZIP\_OK))
+00420                     err = getFileCrc(filenameinzip,buf,size\_buf,&crcFile);
+00421 
+00422                 zip64 = isLargeFile(filenameinzip);
+00423 
+00424                                                          \textcolor{comment}{/* The path name saved, should not include a
+       leading slash. */}
+00425                \textcolor{comment}{/*if it did, windows/xp and dynazip couldn't read the zip file. */}
+00426                  savefilenameinzip = filenameinzip;
+00427                  \textcolor{keywordflow}{while}( savefilenameinzip[0] == \textcolor{charliteral}{'\(\backslash\)\(\backslash\)'} || savefilenameinzip[0] == \textcolor{charliteral}{'/'} )
+00428                  \{
+00429                      savefilenameinzip++;
+00430                  \}
+00431 
+00432                  \textcolor{comment}{/*should the zip file contain any path at all?*/}
+00433                  \textcolor{keywordflow}{if}( opt\_exclude\_path )
+00434                  \{
+00435                      \textcolor{keyword}{const} \textcolor{keywordtype}{char} *tmpptr;
+00436                      \textcolor{keyword}{const} \textcolor{keywordtype}{char} *lastslash = 0;
+00437                      \textcolor{keywordflow}{for}( tmpptr = savefilenameinzip; *tmpptr; tmpptr++)
+00438                      \{
+00439                          \textcolor{keywordflow}{if}( *tmpptr == \textcolor{charliteral}{'\(\backslash\)\(\backslash\)'} || *tmpptr == \textcolor{charliteral}{'/'})
+00440                          \{
+00441                              lastslash = tmpptr;
+00442                          \}
+00443                      \}
+00444                      \textcolor{keywordflow}{if}( lastslash != NULL )
+00445                      \{
+00446                          savefilenameinzip = lastslash+1; \textcolor{comment}{// base filename follows last slash.}
+00447                      \}
+00448                  \}
+00449 
+00450                  
+00451                 err = zipOpenNewFileInZip3\_64(zf,savefilenameinzip,&zi,
+00452                                  NULL,0,NULL,0,NULL \textcolor{comment}{/* comment*/},
+00453                                  (opt\_compress\_level != 0) ? Z\_DEFLATED : 0,
+00454                                  opt\_compress\_level,0,
+00455                                  \textcolor{comment}{/* -MAX\_WBITS, DEF\_MEM\_LEVEL, Z\_DEFAULT\_STRATEGY, */}
+00456                                  -MAX\_WBITS, DEF\_MEM\_LEVEL, Z\_DEFAULT\_STRATEGY,
+00457                                  password,crcFile, zip64);
+00458 
+00459                 \textcolor{keywordflow}{if} (err != ZIP\_OK)
+00460                     printf(\textcolor{stringliteral}{"error in opening %s in zipfile\(\backslash\)n"},filenameinzip);
+00461                 \textcolor{keywordflow}{else}
+00462                 \{
+00463                     fin = FOPEN\_FUNC(filenameinzip,\textcolor{stringliteral}{"rb"});
+00464                     \textcolor{keywordflow}{if} (fin==NULL)
+00465                     \{
+00466                         err=ZIP\_ERRNO;
+00467                         printf(\textcolor{stringliteral}{"error in opening %s for reading\(\backslash\)n"},filenameinzip);
+00468                     \}
+00469                 \}
+00470 
+00471                 \textcolor{keywordflow}{if} (err == ZIP\_OK)
+00472                     \textcolor{keywordflow}{do}
+00473                     \{
+00474                         err = ZIP\_OK;
+00475                         size\_read = (int)fread(buf,1,size\_buf,fin);
+00476                         \textcolor{keywordflow}{if} (size\_read < size\_buf)
+00477                             \textcolor{keywordflow}{if} (feof(fin)==0)
+00478                         \{
+00479                             printf(\textcolor{stringliteral}{"error in reading %s\(\backslash\)n"},filenameinzip);
+00480                             err = ZIP\_ERRNO;
+00481                         \}
+00482 
+00483                         \textcolor{keywordflow}{if} (size\_read>0)
+00484                         \{
+00485                             err = zipWriteInFileInZip (zf,buf,size\_read);
+00486                             \textcolor{keywordflow}{if} (err<0)
+00487                             \{
+00488                                 printf(\textcolor{stringliteral}{"error in writing %s in the zipfile\(\backslash\)n"},
+00489                                                  filenameinzip);
+00490                             \}
+00491 
+00492                         \}
+00493                     \} \textcolor{keywordflow}{while} ((err == ZIP\_OK) && (size\_read>0));
+00494 
+00495                 \textcolor{keywordflow}{if} (fin)
+00496                     fclose(fin);
+00497 
+00498                 \textcolor{keywordflow}{if} (err<0)
+00499                     err=ZIP\_ERRNO;
+00500                 \textcolor{keywordflow}{else}
+00501                 \{
+00502                     err = zipCloseFileInZip(zf);
+00503                     \textcolor{keywordflow}{if} (err!=ZIP\_OK)
+00504                         printf(\textcolor{stringliteral}{"error in closing %s in the zipfile\(\backslash\)n"},
+00505                                     filenameinzip);
+00506                 \}
+00507             \}
+00508         \}
+00509         errclose = zipClose(zf,NULL);
+00510         \textcolor{keywordflow}{if} (errclose != ZIP\_OK)
+00511             printf(\textcolor{stringliteral}{"error in closing %s\(\backslash\)n"},filename\_try);
+00512     \}
+00513     \textcolor{keywordflow}{else}
+00514     \{
+00515        do\_help();
+00516     \}
+00517 
+00518     free(buf);
+00519     \textcolor{keywordflow}{return} 0;
+00520 \}
+\end{DoxyCode}

@@ -1,0 +1,113 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2product__trsolve_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/product\+\_\+trsolve.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2product__trsolve_8cpp_source}\index{product\+\_\+trsolve.\+cpp@{product\+\_\+trsolve.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 \textcolor{preprocessor}{#define VERIFY\_TRSM(TRI,XB) \{ \(\backslash\)}
+00013 \textcolor{preprocessor}{    (XB).setRandom(); ref = (XB); \(\backslash\)}
+00014 \textcolor{preprocessor}{    (TRI).solveInPlace(XB); \(\backslash\)}
+00015 \textcolor{preprocessor}{    VERIFY\_IS\_APPROX((TRI).toDenseMatrix() * (XB), ref); \(\backslash\)}
+00016 \textcolor{preprocessor}{    (XB).setRandom(); ref = (XB); \(\backslash\)}
+00017 \textcolor{preprocessor}{    (XB) = (TRI).solve(XB); \(\backslash\)}
+00018 \textcolor{preprocessor}{    VERIFY\_IS\_APPROX((TRI).toDenseMatrix() * (XB), ref); \(\backslash\)}
+00019 \textcolor{preprocessor}{  \}}
+00020 
+00021 \textcolor{preprocessor}{#define VERIFY\_TRSM\_ONTHERIGHT(TRI,XB) \{ \(\backslash\)}
+00022 \textcolor{preprocessor}{    (XB).setRandom(); ref = (XB); \(\backslash\)}
+00023 \textcolor{preprocessor}{    (TRI).transpose().template solveInPlace<OnTheRight>(XB.transpose()); \(\backslash\)}
+00024 \textcolor{preprocessor}{    VERIFY\_IS\_APPROX((XB).transpose() * (TRI).transpose().toDenseMatrix(), ref.transpose()); \(\backslash\)}
+00025 \textcolor{preprocessor}{    (XB).setRandom(); ref = (XB); \(\backslash\)}
+00026 \textcolor{preprocessor}{    (XB).transpose() = (TRI).transpose().template solve<OnTheRight>(XB.transpose()); \(\backslash\)}
+00027 \textcolor{preprocessor}{    VERIFY\_IS\_APPROX((XB).transpose() * (TRI).transpose().toDenseMatrix(), ref.transpose()); \(\backslash\)}
+00028 \textcolor{preprocessor}{  \}}
+00029 
+00030 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar,\textcolor{keywordtype}{int} Size, \textcolor{keywordtype}{int} Cols> \textcolor{keywordtype}{void} trsolve(\textcolor{keywordtype}{int} size=Size,\textcolor{keywordtype}{int} cols=Cols)
+00031 \{
+00032   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00033 
+00034   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Size,Size,ColMajor>} cmLhs(size,size);
+00035   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Size,Size,RowMajor>} rmLhs(size,size);
+00036 
+00037   \textcolor{keyword}{enum} \{  colmajor = Size==1 ? \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor} : \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor},
+00038           rowmajor = Cols==1 ? \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor} : \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor} \};
+00039   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Size,Cols,colmajor>} cmRhs(size,cols);
+00040   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Size,Cols,rowmajor>} rmRhs(size,cols);
+00041   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,Dynamic,Dynamic,colmajor>} ref(size,cols);
+00042 
+00043   cmLhs.setRandom(); cmLhs *= \textcolor{keyword}{static\_cast<}RealScalar\textcolor{keyword}{>}(0.1); cmLhs.diagonal().array() += \textcolor{keyword}{static\_cast<}
+      RealScalar\textcolor{keyword}{>}(1);
+00044   rmLhs.setRandom(); rmLhs *= \textcolor{keyword}{static\_cast<}RealScalar\textcolor{keyword}{>}(0.1); rmLhs.diagonal().array() += \textcolor{keyword}{static\_cast<}
+      RealScalar\textcolor{keyword}{>}(1);
+00045 
+00046   VERIFY\_TRSM(cmLhs.conjugate().template triangularView<Lower>(), cmRhs);
+00047   VERIFY\_TRSM(cmLhs.adjoint()  .template triangularView<Lower>(), cmRhs);
+00048   VERIFY\_TRSM(cmLhs            .\textcolor{keyword}{template} triangularView<Upper>(), cmRhs);
+00049   VERIFY\_TRSM(cmLhs            .\textcolor{keyword}{template} triangularView<Lower>(), rmRhs);
+00050   VERIFY\_TRSM(cmLhs.conjugate().template triangularView<Upper>(), rmRhs);
+00051   VERIFY\_TRSM(cmLhs.adjoint()  .template triangularView<Upper>(), rmRhs);
+00052 
+00053   VERIFY\_TRSM(cmLhs.conjugate().template triangularView<UnitLower>(), cmRhs);
+00054   VERIFY\_TRSM(cmLhs            .\textcolor{keyword}{template} triangularView<UnitUpper>(), rmRhs);
+00055 
+00056   VERIFY\_TRSM(rmLhs            .\textcolor{keyword}{template} triangularView<Lower>(), cmRhs);
+00057   VERIFY\_TRSM(rmLhs.conjugate().template triangularView<UnitUpper>(), rmRhs);
+00058 
+00059 
+00060   VERIFY\_TRSM\_ONTHERIGHT(cmLhs.conjugate().template triangularView<Lower>(), cmRhs);
+00061   VERIFY\_TRSM\_ONTHERIGHT(cmLhs            .\textcolor{keyword}{template} triangularView<Upper>(), cmRhs);
+00062   VERIFY\_TRSM\_ONTHERIGHT(cmLhs            .\textcolor{keyword}{template} triangularView<Lower>(), rmRhs);
+00063   VERIFY\_TRSM\_ONTHERIGHT(cmLhs.conjugate().template triangularView<Upper>(), rmRhs);
+00064 
+00065   VERIFY\_TRSM\_ONTHERIGHT(cmLhs.conjugate().template triangularView<UnitLower>(), cmRhs);
+00066   VERIFY\_TRSM\_ONTHERIGHT(cmLhs            .\textcolor{keyword}{template} triangularView<UnitUpper>(), rmRhs);
+00067 
+00068   VERIFY\_TRSM\_ONTHERIGHT(rmLhs            .\textcolor{keyword}{template} triangularView<Lower>(), cmRhs);
+00069   VERIFY\_TRSM\_ONTHERIGHT(rmLhs.conjugate().template triangularView<UnitUpper>(), rmRhs);
+00070 
+00071   \textcolor{keywordtype}{int} c = internal::random<int>(0,cols-1);
+00072   VERIFY\_TRSM(rmLhs.template triangularView<Lower>(), rmRhs.col(c));
+00073   VERIFY\_TRSM(cmLhs.template triangularView<Lower>(), rmRhs.col(c));
+00074 \}
+00075 
+00076 \textcolor{keywordtype}{void} test\_product\_trsolve()
+00077 \{
+00078   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat ; i++)
+00079   \{
+00080     \textcolor{comment}{// matrices}
+00081     CALL\_SUBTEST\_1((trsolve<float,Dynamic,Dynamic>(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE),
+      internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE))));
+00082     CALL\_SUBTEST\_2((trsolve<double,Dynamic,Dynamic>(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE),
+      internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE))));
+00083     CALL\_SUBTEST\_3((trsolve<std::complex<float>,Dynamic,Dynamic>(internal::random<int>(1,
+      EIGEN\_TEST\_MAX\_SIZE/2),internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE/2))));
+00084     CALL\_SUBTEST\_4((trsolve<std::complex<double>,Dynamic,Dynamic>(internal::random<int>(1,
+      EIGEN\_TEST\_MAX\_SIZE/2),internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE/2))));
+00085 
+00086     \textcolor{comment}{// vectors}
+00087     CALL\_SUBTEST\_5((trsolve<float,Dynamic,1>(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE))));
+00088     CALL\_SUBTEST\_6((trsolve<double,Dynamic,1>(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE))));
+00089     CALL\_SUBTEST\_7((trsolve<std::complex<float>,Dynamic,1>(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE))));
+00090     CALL\_SUBTEST\_8((trsolve<std::complex<double>,Dynamic,1>(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE))))
+      ;
+00091     
+00092     \textcolor{comment}{// meta-unrollers}
+00093     CALL\_SUBTEST\_9((trsolve<float,4,1>()));
+00094     CALL\_SUBTEST\_10((trsolve<double,4,1>()));
+00095     CALL\_SUBTEST\_11((trsolve<std::complex<float>,4,1>()));
+00096     CALL\_SUBTEST\_12((trsolve<float,1,1>()));
+00097     CALL\_SUBTEST\_13((trsolve<float,1,2>()));
+00098     CALL\_SUBTEST\_14((trsolve<float,3,1>()));
+00099     
+00100   \}
+00101 \}
+\end{DoxyCode}

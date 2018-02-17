@@ -1,0 +1,177 @@
+\hypertarget{eigen_2bench_2btl_2libs_2eigen2_2eigen2__interface_8hh_source}{}\section{eigen/bench/btl/libs/eigen2/eigen2\+\_\+interface.hh}
+\label{eigen_2bench_2btl_2libs_2eigen2_2eigen2__interface_8hh_source}\index{eigen2\+\_\+interface.\+hh@{eigen2\+\_\+interface.\+hh}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{//=====================================================}
+00002 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <g.gael@free.fr>}
+00003 \textcolor{comment}{//=====================================================}
+00004 \textcolor{comment}{//}
+00005 \textcolor{comment}{// This program is free software; you can redistribute it and/or}
+00006 \textcolor{comment}{// modify it under the terms of the GNU General Public License}
+00007 \textcolor{comment}{// as published by the Free Software Foundation; either version 2}
+00008 \textcolor{comment}{// of the License, or (at your option) any later version.}
+00009 \textcolor{comment}{//}
+00010 \textcolor{comment}{// This program is distributed in the hope that it will be useful,}
+00011 \textcolor{comment}{// but WITHOUT ANY WARRANTY; without even the implied warranty of}
+00012 \textcolor{comment}{// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the}
+00013 \textcolor{comment}{// GNU General Public License for more details.}
+00014 \textcolor{comment}{// You should have received a copy of the GNU General Public License}
+00015 \textcolor{comment}{// along with this program; if not, write to the Free Software}
+00016 \textcolor{comment}{// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.}
+00017 \textcolor{comment}{//}
+00018 \textcolor{preprocessor}{#ifndef EIGEN2\_INTERFACE\_HH}
+00019 \textcolor{preprocessor}{#define EIGEN2\_INTERFACE\_HH}
+00020 \textcolor{comment}{// #include <cblas.h>}
+00021 \textcolor{preprocessor}{#include <Eigen/Core>}
+00022 \textcolor{preprocessor}{#include <Eigen/Cholesky>}
+00023 \textcolor{preprocessor}{#include <Eigen/LU>}
+00024 \textcolor{preprocessor}{#include <Eigen/QR>}
+00025 \textcolor{preprocessor}{#include <vector>}
+00026 \textcolor{preprocessor}{#include "btl.hh"}
+00027 
+00028 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00029 
+00030 \textcolor{keyword}{template}<\textcolor{keyword}{class} real, \textcolor{keywordtype}{int} SIZE=Dynamic>
+\Hypertarget{eigen_2bench_2btl_2libs_2eigen2_2eigen2__interface_8hh_source_l00031}\hyperlink{classeigen2__interface}{00031} \textcolor{keyword}{class }\hyperlink{classeigen2__interface}{eigen2\_interface}
+00032 \{
+00033 
+00034 public :
+00035 
+00036   \textcolor{keyword}{enum} \{IsFixedSize = (SIZE!=\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})\};
+00037 
+00038   \textcolor{keyword}{typedef} real real\_type;
+00039 
+00040   \textcolor{keyword}{typedef} std::vector<real> stl\_vector;
+00041   \textcolor{keyword}{typedef} std::vector<stl\_vector> stl\_matrix;
+00042 
+00043   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Eigen::Matrix<real,SIZE,SIZE>} \hyperlink{group___core___module_class_eigen_1_1_matrix}{gene\_matrix};
+00044   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Eigen::Matrix<real,SIZE,1>} \hyperlink{group___core___module_class_eigen_1_1_matrix}{gene\_vector};
+00045 
+00046   \textcolor{keyword}{static} \textcolor{keyword}{inline} std::string name( \textcolor{keywordtype}{void} )
+00047   \{
+00048 \textcolor{preprocessor}{    #if defined(EIGEN\_VECTORIZE\_SSE)}
+00049     \textcolor{keywordflow}{if} (SIZE==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"eigen2"}; \textcolor{keywordflow}{else} \textcolor{keywordflow}{return} \textcolor{stringliteral}{"tiny\_eigen2"};
+00050 \textcolor{preprocessor}{    #elif defined(EIGEN\_VECTORIZE\_ALTIVEC) || defined(EIGEN\_VECTORIZE\_VSX)}
+00051     \textcolor{keywordflow}{if} (SIZE==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"eigen2"}; \textcolor{keywordflow}{else} \textcolor{keywordflow}{return} \textcolor{stringliteral}{"tiny\_eigen2"};
+00052 \textcolor{preprocessor}{    #else}
+00053     \textcolor{keywordflow}{if} (SIZE==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"eigen2\_novec"}; \textcolor{keywordflow}{else} \textcolor{keywordflow}{return} \textcolor{stringliteral}{"tiny\_eigen2\_novec"};
+00054 \textcolor{preprocessor}{    #endif}
+00055   \}
+00056 
+00057   \textcolor{keyword}{static} \textcolor{keywordtype}{void} free\_matrix(gene\_matrix & \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}, \textcolor{keywordtype}{int} N) \{\}
+00058 
+00059   \textcolor{keyword}{static} \textcolor{keywordtype}{void} free\_vector(gene\_vector & \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}) \{\}
+00060 
+00061   \textcolor{keyword}{static} BTL\_DONT\_INLINE \textcolor{keywordtype}{void} matrix\_from\_stl(gene\_matrix & A, stl\_matrix & A\_stl)\{
+00062     A.\hyperlink{class_eigen_1_1_plain_object_base_a99d9054ee2d5a40c6e00ded0265e9cea}{resize}(A\_stl[0].size(), A\_stl.size());
+00063 
+00064     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0; j<A\_stl.size() ; j++)\{
+00065       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<A\_stl[j].size() ; i++)\{
+00066         A.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(i,j) = A\_stl[j][i];
+00067       \}
+00068     \}
+00069   \}
+00070 
+00071   \textcolor{keyword}{static} BTL\_DONT\_INLINE  \textcolor{keywordtype}{void} vector\_from\_stl(gene\_vector & B, stl\_vector & B\_stl)\{
+00072     B.\hyperlink{class_eigen_1_1_plain_object_base_a99d9054ee2d5a40c6e00ded0265e9cea}{resize}(B\_stl.size(),1);
+00073 
+00074     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<B\_stl.size() ; i++)\{
+00075       B.\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(i) = B\_stl[i];
+00076     \}
+00077   \}
+00078 
+00079   \textcolor{keyword}{static} BTL\_DONT\_INLINE  \textcolor{keywordtype}{void} vector\_to\_stl(gene\_vector & B, stl\_vector & B\_stl)\{
+00080     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0; i<B\_stl.size() ; i++)\{
+00081       B\_stl[i] = B.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i);
+00082     \}
+00083   \}
+00084 
+00085   \textcolor{keyword}{static} BTL\_DONT\_INLINE  \textcolor{keywordtype}{void} matrix\_to\_stl(gene\_matrix & A, stl\_matrix & A\_stl)\{
+00086     \textcolor{keywordtype}{int} N=A\_stl.size();
+00087 
+00088     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0;j<N;j++)\{
+00089       A\_stl[j].resize(N);
+00090       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=0;i<N;i++)\{
+00091         A\_stl[j][i] = A.\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(i,j);
+00092       \}
+00093     \}
+00094   \}
+00095 
+00096   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} matrix\_matrix\_product(\textcolor{keyword}{const} gene\_matrix & A, \textcolor{keyword}{const} gene\_matrix & B, gene\_matrix & X, \textcolor{keywordtype}{
+      int} N)\{
+00097     X = (A*B).lazy();
+00098   \}
+00099 
+00100   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} transposed\_matrix\_matrix\_product(\textcolor{keyword}{const} gene\_matrix & A, \textcolor{keyword}{const} gene\_matrix & B, 
+      gene\_matrix & X, \textcolor{keywordtype}{int} N)\{
+00101     X = (A.transpose()*B.transpose()).lazy();
+00102   \}
+00103 
+00104   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} ata\_product(\textcolor{keyword}{const} gene\_matrix & A, gene\_matrix & X, \textcolor{keywordtype}{int} N)\{
+00105     X = (A.transpose()*A).lazy();
+00106   \}
+00107 
+00108   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} aat\_product(\textcolor{keyword}{const} gene\_matrix & A, gene\_matrix & X, \textcolor{keywordtype}{int} N)\{
+00109     X = (A*A.transpose()).lazy();
+00110   \}
+00111 
+00112   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} matrix\_vector\_product(\textcolor{keyword}{const} gene\_matrix & A, \textcolor{keyword}{const} gene\_vector & B, gene\_vector & X, \textcolor{keywordtype}{
+      int} N)\{
+00113     X = (A*B)\textcolor{comment}{/*.lazy()*/};
+00114   \}
+00115 
+00116   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} atv\_product(gene\_matrix & A, gene\_vector & B, gene\_vector & X, \textcolor{keywordtype}{int} N)\{
+00117     X = (A.transpose()*B)\textcolor{comment}{/*.lazy()*/};
+00118   \}
+00119 
+00120   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} axpy(real coef, \textcolor{keyword}{const} gene\_vector & X, gene\_vector & Y, \textcolor{keywordtype}{int} N)\{
+00121     Y += coef * X;
+00122   \}
+00123 
+00124   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} axpby(real a, \textcolor{keyword}{const} gene\_vector & X, real b, gene\_vector & Y, \textcolor{keywordtype}{int} N)\{
+00125     Y = a*X + b*Y;
+00126   \}
+00127 
+00128   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} copy\_matrix(\textcolor{keyword}{const} gene\_matrix & source, gene\_matrix & cible, \textcolor{keywordtype}{int} N)\{
+00129     cible = source;
+00130   \}
+00131 
+00132   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} copy\_vector(\textcolor{keyword}{const} gene\_vector & source, gene\_vector & cible, \textcolor{keywordtype}{int} N)\{
+00133     cible = source;
+00134   \}
+00135 
+00136   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} trisolve\_lower(\textcolor{keyword}{const} gene\_matrix & L, \textcolor{keyword}{const} gene\_vector& B, gene\_vector& X, \textcolor{keywordtype}{int} N)\{
+00137     X = L.template marked<LowerTriangular>().solveTriangular(B);
+00138   \}
+00139 
+00140   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} trisolve\_lower\_matrix(\textcolor{keyword}{const} gene\_matrix & L, \textcolor{keyword}{const} gene\_matrix& B, gene\_matrix& X, \textcolor{keywordtype}{int}
+       N)\{
+00141     X = L.template marked<LowerTriangular>().solveTriangular(B);
+00142   \}
+00143 
+00144   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} cholesky(\textcolor{keyword}{const} gene\_matrix & X, gene\_matrix & \hyperlink{group___core___module}{C}, \textcolor{keywordtype}{int} N)\{
+00145     C = X.llt().matrixL();
+00146 \textcolor{comment}{//     C = X;}
+00147 \textcolor{comment}{//     Cholesky<gene\_matrix>::computeInPlace(C);}
+00148 \textcolor{comment}{//     Cholesky<gene\_matrix>::computeInPlaceBlock(C);}
+00149   \}
+00150 
+00151   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} lu\_decomp(\textcolor{keyword}{const} gene\_matrix & X, gene\_matrix & C, \textcolor{keywordtype}{int} N)\{
+00152     C = X.lu().matrixLU();
+00153 \textcolor{comment}{//     C = X.inverse();}
+00154   \}
+00155 
+00156   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} tridiagonalization(\textcolor{keyword}{const} gene\_matrix & X, gene\_matrix & C, \textcolor{keywordtype}{int} N)\{
+00157     C = \hyperlink{group___eigenvalues___module_class_eigen_1_1_tridiagonalization}{Tridiagonalization<gene\_matrix>}(X).packedMatrix();
+00158   \}
+00159 
+00160   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} hessenberg(\textcolor{keyword}{const} gene\_matrix & X, gene\_matrix & C, \textcolor{keywordtype}{int} N)\{
+00161     C = \hyperlink{group___eigenvalues___module_class_eigen_1_1_hessenberg_decomposition}{HessenbergDecomposition<gene\_matrix>}(X).packedMatrix();
+00162   \}
+00163 
+00164 
+00165 
+00166 \};
+00167 
+00168 \textcolor{preprocessor}{#endif}
+\end{DoxyCode}

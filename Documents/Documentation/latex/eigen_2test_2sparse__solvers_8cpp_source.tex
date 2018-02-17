@@ -1,0 +1,124 @@
+\hypertarget{eigen_2test_2sparse__solvers_8cpp_source}{}\section{eigen/test/sparse\+\_\+solvers.cpp}
+\label{eigen_2test_2sparse__solvers_8cpp_source}\index{sparse\+\_\+solvers.\+cpp@{sparse\+\_\+solvers.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2010 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "sparse.h"}
+00011 
+00012 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keywordtype}{void}
+00013 initSPD(\textcolor{keywordtype}{double} density,
+00014         \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,Dynamic>}& refMat,
+00015         \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar>}& sparseMat)
+00016 \{
+00017   \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,Dynamic>} aux(refMat.rows(),refMat.cols());
+00018   initSparse(density,refMat,sparseMat);
+00019   refMat = refMat * refMat.adjoint();
+00020   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k=0; k<2; ++k)
+00021   \{
+00022     initSparse(density,aux,sparseMat,ForceNonZeroDiag);
+00023     refMat += aux * aux.adjoint();
+00024   \}
+00025   sparseMat.\hyperlink{group___sparse_core___module_ad3c7416090f913e8685523cb3ab7c2f7}{setZero}();
+00026   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j=0 ; j<sparseMat.\hyperlink{group___sparse_core___module_aa391750e3c530227e4a5c3c52e959975}{cols}(); ++j)
+00027     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i=j ; i<sparseMat.\hyperlink{group___sparse_core___module_a62e61bb861eee306d5b069ce652b5aa5}{rows}(); ++i)
+00028       \textcolor{keywordflow}{if} (refMat(i,j)!=Scalar(0))
+00029         sparseMat.\hyperlink{group___sparse_core___module_aae45e3b5fec7f6a0cdd10eec7c6d3666}{insert}(i,j) = refMat(i,j);
+00030   sparseMat.finalize();
+00031 \}
+00032 
+00033 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keywordtype}{void} sparse\_solvers(\textcolor{keywordtype}{int} rows, \textcolor{keywordtype}{int} cols)
+00034 \{
+00035   \textcolor{keywordtype}{double} density = (std::max)(8./(rows*cols), 0.01);
+00036   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,Dynamic>} 
+      \hyperlink{group___core___module}{DenseMatrix};
+00037   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,1>} \hyperlink{group___core___module}{DenseVector};
+00038   \textcolor{comment}{// Scalar eps = 1e-6;}
+00039 
+00040   DenseVector vec1 = DenseVector::Random(rows);
+00041 
+00042   std::vector<Vector2i> zeroCoords;
+00043   std::vector<Vector2i> nonzeroCoords;
+00044 
+00045   \textcolor{comment}{// test triangular solver}
+00046   \{
+00047     DenseVector vec2 = vec1, vec3 = vec1;
+00048     \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar>} m2(rows, cols);
+00049     DenseMatrix refMat2 = DenseMatrix::Zero(rows, cols);
+00050 
+00051     \textcolor{comment}{// lower - dense}
+00052     initSparse<Scalar>(density, refMat2, m2, ForceNonZeroDiag|MakeLowerTriangular, &zeroCoords, &
+      nonzeroCoords);
+00053     VERIFY\_IS\_APPROX(refMat2.template triangularView<Lower>().solve(vec2),
+00054                      m2.template triangularView<Lower>().solve(vec3));
+00055 
+00056     \textcolor{comment}{// upper - dense}
+00057     initSparse<Scalar>(density, refMat2, m2, ForceNonZeroDiag|MakeUpperTriangular, &zeroCoords, &
+      nonzeroCoords);
+00058     VERIFY\_IS\_APPROX(refMat2.template triangularView<Upper>().solve(vec2),
+00059                      m2.template triangularView<Upper>().solve(vec3));
+00060     VERIFY\_IS\_APPROX(refMat2.conjugate().template triangularView<Upper>().solve(vec2),
+00061                      m2.conjugate().template triangularView<Upper>().solve(vec3));
+00062     \{
+00063       \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar>} cm2(m2);
+00064       \textcolor{comment}{//Index rows, Index cols, Index nnz, Index* outerIndexPtr, Index* innerIndexPtr, Scalar* valuePtr}
+00065       \hyperlink{class_eigen_1_1_mapped_sparse_matrix}{MappedSparseMatrix<Scalar>} mm2(rows, cols, cm2.nonZeros(), cm2.
+      outerIndexPtr(), cm2.innerIndexPtr(), cm2.valuePtr());
+00066       VERIFY\_IS\_APPROX(refMat2.conjugate().template triangularView<Upper>().solve(vec2),
+00067                        mm2.conjugate().template triangularView<Upper>().solve(vec3));
+00068     \}
+00069 
+00070     \textcolor{comment}{// lower - transpose}
+00071     initSparse<Scalar>(density, refMat2, m2, ForceNonZeroDiag|MakeLowerTriangular, &zeroCoords, &
+      nonzeroCoords);
+00072     VERIFY\_IS\_APPROX(refMat2.transpose().template triangularView<Upper>().solve(vec2),
+00073                      m2.transpose().template triangularView<Upper>().solve(vec3));
+00074 
+00075     \textcolor{comment}{// upper - transpose}
+00076     initSparse<Scalar>(density, refMat2, m2, ForceNonZeroDiag|MakeUpperTriangular, &zeroCoords, &
+      nonzeroCoords);
+00077     VERIFY\_IS\_APPROX(refMat2.transpose().template triangularView<Lower>().solve(vec2),
+00078                      m2.transpose().template triangularView<Lower>().solve(vec3));
+00079 
+00080     \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar>} matB(rows, rows);
+00081     DenseMatrix refMatB = DenseMatrix::Zero(rows, rows);
+00082 
+00083     \textcolor{comment}{// lower - sparse}
+00084     initSparse<Scalar>(density, refMat2, m2, ForceNonZeroDiag|MakeLowerTriangular);
+00085     initSparse<Scalar>(density, refMatB, matB);
+00086     refMat2.template triangularView<Lower>().solveInPlace(refMatB);
+00087     m2.template triangularView<Lower>().solveInPlace(matB);
+00088     VERIFY\_IS\_APPROX(matB.toDense(), refMatB);
+00089 
+00090     \textcolor{comment}{// upper - sparse}
+00091     initSparse<Scalar>(density, refMat2, m2, ForceNonZeroDiag|MakeUpperTriangular);
+00092     initSparse<Scalar>(density, refMatB, matB);
+00093     refMat2.template triangularView<Upper>().solveInPlace(refMatB);
+00094     m2.template triangularView<Upper>().solveInPlace(matB);
+00095     VERIFY\_IS\_APPROX(matB, refMatB);
+00096 
+00097     \textcolor{comment}{// test deprecated API}
+00098     initSparse<Scalar>(density, refMat2, m2, ForceNonZeroDiag|MakeLowerTriangular, &zeroCoords, &
+      nonzeroCoords);
+00099     VERIFY\_IS\_APPROX(refMat2.template triangularView<Lower>().solve(vec2),
+00100                      m2.template triangularView<Lower>().solve(vec3));
+00101   \}
+00102 \}
+00103 
+00104 \textcolor{keywordtype}{void} test\_sparse\_solvers()
+00105 \{
+00106   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00107     CALL\_SUBTEST\_1(sparse\_solvers<double>(8, 8) );
+00108     \textcolor{keywordtype}{int} s = internal::random<int>(1,300);
+00109     CALL\_SUBTEST\_2(sparse\_solvers<std::complex<double> >(s,s) );
+00110     CALL\_SUBTEST\_1(sparse\_solvers<double>(s,s) );
+00111   \}
+00112 \}
+\end{DoxyCode}

@@ -1,0 +1,1070 @@
+\hypertarget{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_contraction_thread_pool_8h_source}{}\section{eigen/unsupported/\+Eigen/\+C\+X\+X11/src/\+Tensor/\+Tensor\+Contraction\+Thread\+Pool.h}
+\label{eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_contraction_thread_pool_8h_source}\index{Tensor\+Contraction\+Thread\+Pool.\+h@{Tensor\+Contraction\+Thread\+Pool.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2014 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_CXX11\_TENSOR\_TENSOR\_CONTRACTION\_THREAD\_POOL\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_CXX11\_TENSOR\_TENSOR\_CONTRACTION\_THREAD\_POOL\_H}
+00012 
+00013 \textcolor{comment}{// evaluator for thread pool device}
+00014 \textcolor{preprocessor}{#ifdef EIGEN\_USE\_THREADS}
+00015 
+00016 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00017 
+00018 \textcolor{preprocessor}{#ifdef EIGEN\_USE\_SIMPLE\_THREAD\_POOL}
+00019 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00020 
+00021 \textcolor{keyword}{template}<\textcolor{keyword}{typename} LhsScalar, \textcolor{keyword}{typename} LhsMapper, \textcolor{keyword}{typename} Index>
+00022 \textcolor{keyword}{struct }packLhsArg \{
+00023   LhsScalar* blockA;
+00024   \textcolor{keyword}{const} LhsMapper& lhs;
+00025   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_start;
+00026   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k\_start;
+00027   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} mc;
+00028   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} kc;
+00029 \};
+00030 
+00031 \textcolor{keyword}{template}<\textcolor{keyword}{typename} LhsScalar, \textcolor{keyword}{typename} RhsScalar, \textcolor{keyword}{typename} RhsMapper, \textcolor{keyword}{typename} OutputMapper, \textcolor{keyword}{typename} Index>
+00032 \textcolor{keyword}{struct }packRhsAndKernelArg \{
+00033   \textcolor{keyword}{const} MaxSizeVector<LhsScalar*>* blockAs;
+00034   RhsScalar* blockB;
+00035   \textcolor{keyword}{const} RhsMapper& rhs;
+00036   OutputMapper& output;
+00037   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m;
+00038   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k;
+00039   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} n;
+00040   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} mc;
+00041   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} kc;
+00042   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} nc;
+00043   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} num\_threads;
+00044   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} num\_blockAs;
+00045   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} max\_m;
+00046   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k\_block\_idx;
+00047   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_block\_idx;
+00048   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} n\_block\_idx;
+00049   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_blocks;
+00050   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} n\_blocks;
+00051   MaxSizeVector<Notification*>* kernel\_notifications;
+00052   \textcolor{keyword}{const} MaxSizeVector<Notification*>* lhs\_notifications;
+00053   \textcolor{keyword}{const} \textcolor{keywordtype}{bool} need\_to\_pack;
+00054 \};
+00055 
+00056 \}  \textcolor{comment}{// end namespace internal}
+00057 \textcolor{preprocessor}{#endif  // EIGEN\_USE\_SIMPLE\_THREAD\_POOL}
+00058 
+00059 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Indices, \textcolor{keyword}{typename} LeftArgType, \textcolor{keyword}{typename} RightArgType>
+00060 \textcolor{keyword}{struct }TensorEvaluator<const TensorContractionOp<Indices, LeftArgType, RightArgType>, ThreadPoolDevice> :
+00061     \textcolor{keyword}{public} TensorContractionEvaluatorBase<TensorEvaluator<const TensorContractionOp<Indices, LeftArgType, R
+      ightArgType>, ThreadPoolDevice> > \{
+00062 
+00063   \textcolor{keyword}{typedef} ThreadPoolDevice Device;
+00064 
+00065   \textcolor{keyword}{typedef} TensorEvaluator<const TensorContractionOp<Indices, LeftArgType, RightArgType>, Device> Self;
+00066   \textcolor{keyword}{typedef} TensorContractionEvaluatorBase<Self> Base;
+00067 
+00068   \textcolor{keyword}{typedef} TensorContractionOp<Indices, LeftArgType, RightArgType> XprType;
+00069   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_const<typename XprType::Scalar>::type Scalar;
+00070   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00071   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} XprType::CoeffReturnType CoeffReturnType;
+00072   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} PacketType<CoeffReturnType, Device>::type PacketReturnType;
+00073 
+00074   \textcolor{keyword}{enum} \{
+00075     Layout = TensorEvaluator<LeftArgType, Device>::Layout,
+00076   \};
+00077 
+00078   \textcolor{comment}{// Most of the code is assuming that both input tensors are ColMajor. If the}
+00079   \textcolor{comment}{// inputs are RowMajor, we will "cheat" by swapping the LHS and RHS:}
+00080   \textcolor{comment}{// If we want to compute A * B = C, where A is LHS and B is RHS, the code}
+00081   \textcolor{comment}{// will pretend B is LHS and A is RHS.}
+00082   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::conditional<
+00083     \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}), LeftArgType, RightArgType>::type 
+      EvalLeftArgType;
+00084   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::conditional<
+00085     \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout) == static\_cast<int>(\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}), RightArgType, LeftArgType>::type 
+      EvalRightArgType;
+00086 
+00087   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} LDims =
+00088       internal::array\_size<typename TensorEvaluator<EvalLeftArgType, Device>::Dimensions>::value;
+00089   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} RDims =
+00090       internal::array\_size<typename TensorEvaluator<EvalRightArgType, Device>::Dimensions>::value;
+00091   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} ContractDims = internal::array\_size<Indices>::value;
+00092 
+00093   \textcolor{keyword}{typedef} array<Index, LDims> left\_dim\_mapper\_t;
+00094   \textcolor{keyword}{typedef} array<Index, RDims> right\_dim\_mapper\_t;
+00095 
+00096   \textcolor{keyword}{typedef} array<Index, ContractDims> contract\_t;
+00097   \textcolor{keyword}{typedef} array<\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, LDims - ContractDims> left\_nocontract\_t;
+00098   \textcolor{keyword}{typedef} array<\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, RDims - ContractDims> right\_nocontract\_t;
+00099 
+00100   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} NumDims = LDims + RDims - 2 * ContractDims;
+00101 
+00102   \textcolor{keyword}{typedef} DSizes<Index, NumDims> Dimensions;
+00103 
+00104   \textcolor{comment}{// typedefs needed in evalTo}
+00105   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_const<typename EvalLeftArgType::Scalar>::type LhsScalar;
+00106   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::remove\_const<typename EvalRightArgType::Scalar>::type RhsScalar;
+00107   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::gebp\_traits<LhsScalar, RhsScalar> Traits;
+00108 
+00109   \textcolor{keyword}{typedef} TensorEvaluator<EvalLeftArgType, Device> LeftEvaluator;
+00110   \textcolor{keyword}{typedef} TensorEvaluator<EvalRightArgType, Device> RightEvaluator;
+00111 
+00112   TensorEvaluator(\textcolor{keyword}{const} XprType& op, \textcolor{keyword}{const} Device& device) :
+00113       Base(op, device) \{\}
+00114 
+00115 \textcolor{preprocessor}{#ifndef EIGEN\_USE\_SIMPLE\_THREAD\_POOL}
+00116   \textcolor{keyword}{template} <\textcolor{keywordtype}{bool} lhs\_inner\_dim\_contiguous, \textcolor{keywordtype}{bool} rhs\_inner\_dim\_contiguous,
+00117             \textcolor{keywordtype}{bool} rhs\_inner\_dim\_reordered, \textcolor{keywordtype}{int} Alignment>
+00118   \textcolor{keywordtype}{void} evalProduct(Scalar* buffer)\textcolor{keyword}{ const }\{
+00119     \textcolor{keyword}{typedef}
+00120         \textcolor{keyword}{typename} internal::remove\_const<typename EvalLeftArgType::Scalar>::type
+00121             LhsScalar;
+00122     \textcolor{keyword}{typedef}
+00123         \textcolor{keyword}{typename} internal::remove\_const<typename EvalRightArgType::Scalar>::type
+00124             RhsScalar;
+00125     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::gebp\_traits<LhsScalar, RhsScalar> Traits;
+00126     \textcolor{keyword}{typedef} TensorEvaluator<EvalLeftArgType, Device> LeftEvaluator;
+00127     \textcolor{keyword}{typedef} TensorEvaluator<EvalRightArgType, Device> RightEvaluator;
+00128     \textcolor{keyword}{typedef} internal::TensorContractionInputMapper<
+00129         LhsScalar, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, internal::Lhs, LeftEvaluator, left\_nocontract\_t,
+00130         contract\_t, internal::packet\_traits<LhsScalar>::size,
+00131         lhs\_inner\_dim\_contiguous, \textcolor{keyword}{false}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ac935220b4c844108e183ebe30a4d5204}{Unaligned}>
+00132         LhsMapper;
+00133     \textcolor{keyword}{typedef} internal::TensorContractionInputMapper<
+00134         RhsScalar, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, internal::Rhs, RightEvaluator, right\_nocontract\_t,
+00135         contract\_t, internal::packet\_traits<RhsScalar>::size,
+00136         rhs\_inner\_dim\_contiguous, rhs\_inner\_dim\_reordered, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ac935220b4c844108e183ebe30a4d5204}{Unaligned}>
+00137         RhsMapper;
+00138     \textcolor{keyword}{typedef} internal::blas\_data\_mapper<Scalar, Index, ColMajor> OutputMapper;
+00139     \textcolor{keyword}{typedef} internal::gemm\_pack\_lhs<LhsScalar, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},
+00140                                     \textcolor{keyword}{typename} LhsMapper::SubMapper, Traits::mr,
+00141                                     Traits::LhsProgress, \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}>
+00142         LhsPacker;
+00143     \textcolor{keyword}{typedef} internal::gemm\_pack\_rhs<
+00144         RhsScalar, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \textcolor{keyword}{typename} RhsMapper::SubMapper, Traits::nr, 
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}>
+00145         RhsPacker;
+00146     \textcolor{keyword}{typedef} internal::gebp\_kernel<LhsScalar, RhsScalar, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, OutputMapper,
+00147                                   Traits::mr, Traits::nr, \textcolor{keyword}{false}, \textcolor{keyword}{false}>
+00148         GebpKernel;
+00149 
+00150     \textcolor{keyword}{const} Index m = this->m\_i\_size;
+00151     \textcolor{keyword}{const} Index n = this->m\_j\_size;
+00152     \textcolor{keyword}{const} Index k = this->m\_k\_size;
+00153     \textcolor{keywordflow}{if} (m == 0 || n == 0 || k == 0) \textcolor{keywordflow}{return};
+00154 
+00155     \textcolor{comment}{// Compute a set of algorithm parameters:}
+00156     \textcolor{comment}{// - kernel block sizes (bm, bn, bk)}
+00157     \textcolor{comment}{// - task grain sizes (number of kernels executed per task: gm, gn)}
+00158     \textcolor{comment}{// - number of threads}
+00159     \textcolor{comment}{// - sharding by row/column}
+00160     \textcolor{comment}{// - parallel packing or first lhs then rhs}
+00161     \textcolor{comment}{// and some derived parameters:}
+00162     \textcolor{comment}{// - number of tasks (nm, nn, nk)}
+00163     \textcolor{comment}{// - number of kernels (nm0, nn0)}
+00164     \textcolor{comment}{// Unfortunately, all these parameters are tightly interdependent.}
+00165     \textcolor{comment}{// So in some cases we first compute approximate values, then compute other}
+00166     \textcolor{comment}{// values based on these approximations and then refine the approximations.}
+00167 
+00168     \textcolor{comment}{// There are lots of heuristics here. There is some reasoning behind them,}
+00169     \textcolor{comment}{// but ultimately they are just tuned on contraction benchmarks for}
+00170     \textcolor{comment}{// different input configurations, thread counts and instruction sets.}
+00171     \textcolor{comment}{// So feel free to question any of them.}
+00172 
+00173     \textcolor{comment}{// Compute whether we want to shard by row or by column.}
+00174     \textcolor{comment}{// This is a first approximation, it will be refined later. Since we don't}
+00175     \textcolor{comment}{// know number of threads yet we use 2, because what's we are most}
+00176     \textcolor{comment}{// interested in at this point is whether it makes sense to use}
+00177     \textcolor{comment}{// parallelization at all or not.}
+00178     \textcolor{keywordtype}{bool} shard\_by\_col = shardByCol(m, n, 2);
+00179 
+00180     \textcolor{comment}{// First approximation of kernel blocking sizes.}
+00181     \textcolor{comment}{// Again, we don't know number of threads yet, so we use 2.}
+00182     Index bm, bn, bk;
+00183     \textcolor{keywordflow}{if} (shard\_by\_col) \{
+00184       internal::TensorContractionBlocking<LhsMapper, RhsMapper, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},
+00185                                           internal::ShardByCol>
+00186           blocking(k, m, n, 2);
+00187       bm = blocking.mc();
+00188       bn = blocking.nc();
+00189       bk = blocking.kc();
+00190     \} \textcolor{keywordflow}{else} \{
+00191       internal::TensorContractionBlocking<LhsMapper, RhsMapper, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},
+00192                                           internal::ShardByRow>
+00193           blocking(k, m, n, 2);
+00194       bm = blocking.mc();
+00195       bn = blocking.nc();
+00196       bk = blocking.kc();
+00197     \}
+00198 
+00199     \textcolor{comment}{// Compute optimal number of threads.}
+00200     \textcolor{comment}{// Note: we use bk instead of k here because we are interested in amount of}
+00201     \textcolor{comment}{// \_parallelizable\_ computations, and computations are not parallelizable}
+00202     \textcolor{comment}{// across k dimension.}
+00203     \textcolor{keyword}{const} TensorOpCost cost =
+00204         contractionCost(m, n, bm, bn, bk, shard\_by\_col, \textcolor{keyword}{false});
+00205     \textcolor{keywordtype}{int} num\_threads = TensorCostModel<ThreadPoolDevice>::numThreads(
+00206         static\_cast<double>(n) * m, cost, this->m\_device.numThreads());
+00207 
+00208     \textcolor{comment}{// TODO(dvyukov): this is a stop-gap to prevent regressions while the cost}
+00209     \textcolor{comment}{// model is not tuned. Remove this when the cost model is tuned.}
+00210     \textcolor{keywordflow}{if} (n == 1) num\_threads = 1;
+00211 
+00212     \textcolor{keywordflow}{if} (num\_threads == 1) \{
+00213       \textcolor{comment}{// The single-threaded algorithm should be faster in this case.}
+00214       \textcolor{keywordflow}{if} (n == 1)
+00215         this->\textcolor{keyword}{template} evalGemv<lhs\_inner\_dim\_contiguous,
+00216                                 rhs\_inner\_dim\_contiguous,
+00217                                 rhs\_inner\_dim\_reordered, Alignment>(buffer);
+00218       \textcolor{keywordflow}{else}
+00219         this->\textcolor{keyword}{template} evalGemm<lhs\_inner\_dim\_contiguous,
+00220                                 rhs\_inner\_dim\_contiguous,
+00221                                 rhs\_inner\_dim\_reordered, Alignment>(buffer);
+00222       \textcolor{keywordflow}{return};
+00223     \}
+00224 
+00225     \textcolor{comment}{// Now that we know number of threads, recalculate sharding and blocking.}
+00226     shard\_by\_col = shardByCol(m, n, num\_threads);
+00227     \textcolor{keywordflow}{if} (shard\_by\_col) \{
+00228       internal::TensorContractionBlocking<LhsMapper, RhsMapper, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},
+00229                                           internal::ShardByCol>
+00230           blocking(k, m, n, num\_threads);
+00231       bm = blocking.mc();
+00232       bn = blocking.nc();
+00233       bk = blocking.kc();
+00234     \} \textcolor{keywordflow}{else} \{
+00235       internal::TensorContractionBlocking<LhsMapper, RhsMapper, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index},
+00236                                           internal::ShardByRow>
+00237           blocking(k, m, n, num\_threads);
+00238       bm = blocking.mc();
+00239       bn = blocking.nc();
+00240       bk = blocking.kc();
+00241     \}
+00242 
+00243     \textcolor{comment}{// Number of kernels for each dimension.}
+00244     Index nm0 = divup(m, bm);
+00245     Index nn0 = divup(n, bn);
+00246     Index nk = divup(k, bk);
+00247 
+00248     \textcolor{comment}{// Calculate task grain size (number of kernels executed per task).}
+00249     \textcolor{comment}{// This task size coarsening serves two purposes:}
+00250     \textcolor{comment}{// 1. It reduces per-task overheads including synchronization overheads.}
+00251     \textcolor{comment}{// 2. It allows to use caches better (reuse the same packed rhs in several}
+00252     \textcolor{comment}{// consecutive kernels).}
+00253     Index gm = 1;
+00254     Index gn = 1;
+00255     \textcolor{comment}{// If we are sharding by column, then we prefer to reduce rows first.}
+00256     \textcolor{keywordflow}{if} (shard\_by\_col) \{
+00257       gm = coarsenM(m, n, bm, bn, bk, gn, num\_threads, shard\_by\_col);
+00258       gn = coarsenN(m, n, bm, bn, bk, gm, num\_threads, shard\_by\_col);
+00259     \} \textcolor{keywordflow}{else} \{
+00260       gn = coarsenN(m, n, bm, bn, bk, gm, num\_threads, shard\_by\_col);
+00261       gm = coarsenM(m, n, bm, bn, bk, gn, num\_threads, shard\_by\_col);
+00262     \}
+00263     \textcolor{comment}{// Number of tasks in each dimension.}
+00264     Index nm = divup(nm0, gm);
+00265     Index nn = divup(nn0, gn);
+00266 
+00267     \textcolor{comment}{// Last by not least, decide whether we want to issue both lhs and rhs}
+00268     \textcolor{comment}{// packing in parallel; or issue lhs packing first, and then issue rhs}
+00269     \textcolor{comment}{// packing when lhs packing completes (for !shard\_by\_col lhs and rhs are}
+00270     \textcolor{comment}{// swapped). Parallel packing allows more parallelism (for both packing and}
+00271     \textcolor{comment}{// kernels), while sequential packing provides better locality (once}
+00272     \textcolor{comment}{// a thread finishes rhs packing it proceed to kernels with that rhs).}
+00273     \textcolor{comment}{// First, we are interested in parallel packing if there are few tasks.}
+00274     \textcolor{keywordtype}{bool} parallel\_pack = num\_threads >= nm * nn;
+00275     \textcolor{comment}{// Also do parallel packing if all data fits into L2$.}
+00276     \textcolor{keywordflow}{if} (m * bk * \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(\textcolor{keyword}{sizeof}(LhsScalar)) + n * bk * \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(\textcolor{keyword}{sizeof}(RhsScalar)) <=
+00277         \hyperlink{namespace_eigen_a2cfc0330ba567d63a496be1cac8427ae}{l2CacheSize}() * num\_threads)
+00278       parallel\_pack = \textcolor{keyword}{true};
+00279     \textcolor{comment}{// But don't do it if we will use each rhs only once. Locality seems to be}
+00280     \textcolor{comment}{// more important in this case.}
+00281     \textcolor{keywordflow}{if} ((shard\_by\_col ? nm : nn) == 1) parallel\_pack = \textcolor{keyword}{false};
+00282 
+00283     LhsMapper lhs(this->m\_leftImpl, this->m\_left\_nocontract\_strides,
+00284                   this->m\_i\_strides, this->m\_left\_contracting\_strides,
+00285                   this->m\_k\_strides);
+00286 
+00287     RhsMapper rhs(this->m\_rightImpl, this->m\_right\_nocontract\_strides,
+00288                   this->m\_j\_strides, this->m\_right\_contracting\_strides,
+00289                   this->m\_k\_strides);
+00290 
+00291     Context<LhsPacker, RhsPacker, GebpKernel, LhsMapper, RhsMapper,
+00292             OutputMapper>(this->m\_device, num\_threads, lhs, rhs, buffer, m, n,
+00293                           k, bm, bn, bk, nm, nn, nk, gm, gn, nm0, nn0,
+00294                           shard\_by\_col, parallel\_pack)
+00295         .run();
+00296   \}
+00297 
+00298   \textcolor{comment}{// Context coordinates a single parallel gemm operation.}
+00299   \textcolor{keyword}{template} <\textcolor{keyword}{typename} LhsPacker, \textcolor{keyword}{typename} RhsPacker, \textcolor{keyword}{typename} GebpKernel,
+00300             \textcolor{keyword}{typename} LhsMapper, \textcolor{keyword}{typename} RhsMapper, \textcolor{keyword}{typename} OutputMapper>
+00301   \textcolor{keyword}{class }Context \{
+00302    \textcolor{keyword}{public}:
+00303     Context(\textcolor{keyword}{const} Device& device, \textcolor{keywordtype}{int} num\_threads, LhsMapper& lhs,
+00304             RhsMapper& rhs, Scalar* buffer, Index tm, Index tn, Index tk, Index bm,
+00305             Index bn, Index bk, Index nm, Index nn, Index nk, Index gm,
+00306             Index gn, Index nm0, Index nn0, \textcolor{keywordtype}{bool} shard\_by\_col,
+00307             \textcolor{keywordtype}{bool} parallel\_pack)
+00308         : device\_(device),
+00309           lhs\_(lhs),
+00310           rhs\_(rhs),
+00311           buffer\_(buffer),
+00312           output\_(buffer, tm),
+00313           num\_threads\_(num\_threads),
+00314           shard\_by\_col\_(shard\_by\_col),
+00315           parallel\_pack\_(parallel\_pack),
+00316           m\_(tm),
+00317           n\_(tn),
+00318           k\_(tk),
+00319           bm\_(bm),
+00320           bn\_(bn),
+00321           bk\_(bk),
+00322           nm\_(nm),
+00323           nn\_(nn),
+00324           nk\_(nk),
+00325           gm\_(gm),
+00326           gn\_(gn),
+00327           nm0\_(nm0),
+00328           nn0\_(nn0)
+00329   \{
+00330       \textcolor{keywordflow}{for} (Index x = 0; x < P; x++) \{
+00331         \textcolor{comment}{// Normal number of notifications for k slice switch is}
+00332         \textcolor{comment}{// nm\_ + nn\_ + nm\_ * nn\_. However, first P - 1 slices will receive only}
+00333         \textcolor{comment}{// nm\_ + nn\_ notifications, because they will not receive notifications}
+00334         \textcolor{comment}{// from preceeding kernels.}
+00335         state\_switch\_[x] =
+00336             x == 0
+00337                 ? 1
+00338                 : (parallel\_pack\_ ? nn\_ + nm\_ : (shard\_by\_col\_ ? nn\_ : nm\_)) +
+00339                       (x == P - 1 ? nm\_ * nn\_ : 0);
+00340         state\_packing\_ready\_[x] =
+00341             parallel\_pack\_ ? 0 : (shard\_by\_col\_ ? nm\_ : nn\_);
+00342         state\_kernel\_[x] = \textcolor{keyword}{new} std::atomic<uint8\_t>*[nm\_];
+00343         \textcolor{keywordflow}{for} (Index m = 0; m < nm\_; m++) \{
+00344           state\_kernel\_[x][m] = \textcolor{keyword}{new} std::atomic<uint8\_t>[nn\_];
+00345           \textcolor{comment}{// Kernels generally receive 3 notifications (previous kernel + 2}
+00346           \textcolor{comment}{// packing), but the first slice won't get notifications from previous}
+00347           \textcolor{comment}{// kernels.}
+00348           \textcolor{keywordflow}{for} (Index n = 0; n < nn\_; n++)
+00349             state\_kernel\_[x][m][n].store(
+00350                 (x == 0 ? 0 : 1) + (parallel\_pack\_ ? 2 : 1),
+00351                 std::memory\_order\_relaxed);
+00352         \}
+00353       \}
+00354 
+00355       \textcolor{comment}{// Allocate memory for packed rhs/lhs matrices.}
+00356       \textcolor{keywordtype}{size\_t} align = numext::maxi(EIGEN\_MAX\_ALIGN\_BYTES, 1);
+00357       \textcolor{keywordtype}{size\_t} lhs\_size =
+00358           divup<size\_t>(bm\_ * bk\_ * \textcolor{keyword}{sizeof}(LhsScalar), align) * align;
+00359       \textcolor{keywordtype}{size\_t} rhs\_size =
+00360           divup<size\_t>(bn\_ * bk\_ * \textcolor{keyword}{sizeof}(RhsScalar), align) * align;
+00361       packed\_mem\_ = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{char}*\textcolor{keyword}{>}(internal::aligned\_malloc(
+00362           (nm0\_ * lhs\_size + nn0\_ * rhs\_size) * std::min<size\_t>(nk\_, P - 1)));
+00363       \textcolor{keywordtype}{char}* mem = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{char}*\textcolor{keyword}{>}(packed\_mem\_);
+00364       \textcolor{keywordflow}{for} (Index x = 0; x < numext::mini<Index>(nk\_, P - 1); x++) \{
+00365         packed\_lhs\_[x].resize(nm0\_);
+00366         \textcolor{keywordflow}{for} (Index m = 0; m < nm0\_; m++) \{
+00367           packed\_lhs\_[x][m] = \textcolor{keyword}{reinterpret\_cast<}LhsScalar*\textcolor{keyword}{>}(mem);
+00368           mem += lhs\_size;
+00369         \}
+00370         packed\_rhs\_[x].resize(nn0\_);
+00371         \textcolor{keywordflow}{for} (Index n = 0; n < nn0\_; n++) \{
+00372           packed\_rhs\_[x][n] = \textcolor{keyword}{reinterpret\_cast<}RhsScalar*\textcolor{keyword}{>}(mem);
+00373           mem += rhs\_size;
+00374         \}
+00375       \}
+00376     \}
+00377 
+00378     ~Context() \{
+00379       \textcolor{keywordflow}{for} (Index x = 0; x < P; x++) \{
+00380         \textcolor{keywordflow}{for} (Index m = 0; m < nm\_; m++) \textcolor{keyword}{delete}[] state\_kernel\_[x][m];
+00381         \textcolor{keyword}{delete}[] state\_kernel\_[x];
+00382       \}
+00383       internal::aligned\_free(packed\_mem\_);
+00384     \}
+00385 
+00386     \textcolor{keywordtype}{void} run() \{
+00387       \textcolor{comment}{// Kick off packing of the first slice.}
+00388       signal\_switch(0, 1);
+00389       \textcolor{comment}{// Wait for overall completion.}
+00390       \textcolor{comment}{// TODO(dvyukov): this wait can lead to deadlock.}
+00391       \textcolor{comment}{// If nthreads contractions are concurrently submitted from worker}
+00392       \textcolor{comment}{// threads, this wait will block all worker threads and the system will}
+00393       \textcolor{comment}{// deadlock.}
+00394       done\_.Wait();
+00395     \}
+00396 
+00397    \textcolor{keyword}{private}:
+00398     Notification done\_;
+00399     \textcolor{keyword}{const} Device& device\_;
+00400     LhsMapper& lhs\_;
+00401     RhsMapper& rhs\_;
+00402     Scalar* \textcolor{keyword}{const} buffer\_;
+00403     OutputMapper output\_;
+00404     \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_threads\_;
+00405     \textcolor{keyword}{const} \textcolor{keywordtype}{bool} shard\_by\_col\_;
+00406     \textcolor{keyword}{const} \textcolor{keywordtype}{bool} parallel\_pack\_;
+00407     \textcolor{comment}{// Matrix sizes.}
+00408     \textcolor{keyword}{const} Index m\_;
+00409     \textcolor{keyword}{const} Index n\_;
+00410     \textcolor{keyword}{const} Index k\_;
+00411     \textcolor{comment}{// Block sizes.}
+00412     \textcolor{keyword}{const} Index bm\_;
+00413     \textcolor{keyword}{const} Index bn\_;
+00414     \textcolor{keyword}{const} Index bk\_;
+00415     \textcolor{comment}{// Number of tasks.}
+00416     \textcolor{keyword}{const} Index nm\_;
+00417     \textcolor{keyword}{const} Index nn\_;
+00418     \textcolor{keyword}{const} Index nk\_;
+00419     \textcolor{comment}{// Task grain sizes (number of kernels executed per task).}
+00420     \textcolor{keyword}{const} Index gm\_;
+00421     \textcolor{keyword}{const} Index gn\_;
+00422     \textcolor{comment}{// Number of blocks (this is different from ni\_/nn\_ because of task size}
+00423     \textcolor{comment}{// coarsening).}
+00424     \textcolor{keyword}{const} Index nm0\_;
+00425     \textcolor{keyword}{const} Index nn0\_;
+00426 
+00427     \textcolor{comment}{// Parallelization strategy.}
+00428     \textcolor{comment}{//}
+00429     \textcolor{comment}{// Blocks related to the same k block can run in parallel because they write}
+00430     \textcolor{comment}{// to different output blocks. So we parallelize within k slices, this}
+00431     \textcolor{comment}{// gives us parallelism level of m x n. Before we can start any kernels}
+00432     \textcolor{comment}{// related to k-th slice, we need to issue m lhs packing tasks and n rhs}
+00433     \textcolor{comment}{// packing tasks.}
+00434     \textcolor{comment}{//}
+00435     \textcolor{comment}{// However, there is a bottleneck when we are finishing kernels for k-th}
+00436     \textcolor{comment}{// slice (at the very end there is only 1 runnable kernel). To mitigate this}
+00437     \textcolor{comment}{// bottleneck we allow kernels from k-th and k+1-th slices to run in}
+00438     \textcolor{comment}{// parallel. Note that (m, n, k) and (m, n, k+1) kernels write to the same}
+00439     \textcolor{comment}{// output block, so they must not run in parallel.}
+00440     \textcolor{comment}{//}
+00441     \textcolor{comment}{// This gives us the following dependency graph.}
+00442     \textcolor{comment}{// On each k slice we have m x n kernel tasks, m lhs paking tasks and n rhs}
+00443     \textcolor{comment}{// packing tasks.}
+00444     \textcolor{comment}{// Kernel (m, n, k) can start when:}
+00445     \textcolor{comment}{//  - kernel (m, n, k-1) has finished}
+00446     \textcolor{comment}{//  - lhs packing (m, k) has finished}
+00447     \textcolor{comment}{//  - rhs packing (n, k) has finished}
+00448     \textcolor{comment}{// Lhs/rhs packing can start when:}
+00449     \textcolor{comment}{//  - all k-1 packing has finished (artificially imposed to limit amount of}
+00450     \textcolor{comment}{//  parallel packing)}
+00451     \textcolor{comment}{//}
+00452     \textcolor{comment}{// On top of that we limit runnable tasks to two consecutive k slices.}
+00453     \textcolor{comment}{// This is done to limit amount of memory we need for packed lhs/rhs}
+00454     \textcolor{comment}{// (for each k slice we need m*bk + n*bk memory in packed\_lhs\_/packed\_rhs\_).}
+00455     \textcolor{comment}{//}
+00456     \textcolor{comment}{// state\_switch\_ tracks when we are ready to switch to the next k slice.}
+00457     \textcolor{comment}{// state\_kernel\_[m][n] tracks when we are ready to kick off kernel (m, n).}
+00458     \textcolor{comment}{// These variable are rolling over 3 consecutive k slices: first two we are}
+00459     \textcolor{comment}{// actively executing + one to track completion of kernels in the second}
+00460     \textcolor{comment}{// slice.}
+00461     \textcolor{keyword}{static} \textcolor{keyword}{const} Index P = 3;
+00462     \textcolor{keywordtype}{void}* packed\_mem\_;
+00463     std::vector<LhsScalar*> packed\_lhs\_[P - 1];
+00464     std::vector<RhsScalar*> packed\_rhs\_[P - 1];
+00465     std::atomic<uint8\_t>** state\_kernel\_[P];
+00466     \textcolor{comment}{// state\_switch\_ is frequently modified by worker threads, while other}
+00467     \textcolor{comment}{// fields are read-only after constructor. Let's move it to a separate cache}
+00468     \textcolor{comment}{// line to reduce cache-coherency traffic.}
+00469     \textcolor{keywordtype}{char} pad\_[128];
+00470     std::atomic<Index> state\_packing\_ready\_[P];
+00471     std::atomic<Index> state\_switch\_[P];
+00472 
+00473     \textcolor{keywordtype}{void} pack\_lhs(Index m, Index k) \{
+00474       \textcolor{keyword}{const} Index mend = m * gm\_ + gm(m);
+00475       \textcolor{keywordflow}{for} (Index m1 = m * gm\_; m1 < mend; m1++)
+00476         LhsPacker()(packed\_lhs\_[k % (P - 1)][m1],
+00477                     lhs\_.getSubMapper(m1 * bm\_, k * bk\_), bk(k), bm(m1));
+00478 
+00479       \textcolor{keywordflow}{if} (!parallel\_pack\_ && shard\_by\_col\_) \{
+00480         signal\_packing(k);
+00481       \} \textcolor{keywordflow}{else} \{
+00482         signal\_switch(k + 1);
+00483         \textcolor{keywordflow}{for} (Index n = nn\_ - 1; n >= 0; n--) signal\_kernel(m, n, k, n == 0);
+00484       \}
+00485     \}
+00486 
+00487     \textcolor{keywordtype}{void} pack\_rhs(Index n, Index k) \{
+00488       \textcolor{keyword}{const} Index nend = n * gn\_ + gn(n);
+00489       \textcolor{keywordflow}{for} (Index n1 = n * gn\_; n1 < nend; n1++) \{
+00490         \textcolor{keywordflow}{if} (k == 0) \{
+00491           \textcolor{comment}{// Zero the output memory in parallel.}
+00492           \textcolor{comment}{// On 10000x2x10000 mm zeroing can easily take half of time.}
+00493           \textcolor{comment}{// Zero (bn x m) row. Safe to do here because all kernels that will}
+00494           \textcolor{comment}{// write to this memory depend on completion of this task.}
+00495           \textcolor{comment}{// Note: don't call device\_.memset() here. device\_.memset() blocks on}
+00496           \textcolor{comment}{// thread pool worker thread, which can lead to underutilization and}
+00497           \textcolor{comment}{// deadlocks.}
+00498           memset(buffer\_ + n1 * bn\_ * m\_, 0, bn(n1) * m\_ * \textcolor{keyword}{sizeof}(Scalar));
+00499         \}
+00500         RhsPacker()(packed\_rhs\_[k % (P - 1)][n1],
+00501                     rhs\_.getSubMapper(k * bk\_, n1 * bn\_), bk(k), bn(n1));
+00502       \}
+00503 
+00504       \textcolor{keywordflow}{if} (parallel\_pack\_ || shard\_by\_col\_) \{
+00505         signal\_switch(k + 1);
+00506         \textcolor{keywordflow}{for} (Index m = nm\_ - 1; m >= 0; m--) signal\_kernel(m, n, k, m == 0);
+00507       \} \textcolor{keywordflow}{else} \{
+00508         signal\_packing(k);
+00509       \}
+00510     \}
+00511 
+00512     \textcolor{keywordtype}{void} kernel(Index m, Index n, Index k) \{
+00513       \textcolor{comment}{// Note: order of iteration matters here. Iteration over m is innermost}
+00514       \textcolor{comment}{// because we want to reuse the same packed rhs in consequetive tasks}
+00515       \textcolor{comment}{// (rhs fits into L2$ while lhs only into L3$).}
+00516       \textcolor{keyword}{const} Index nend = n * gn\_ + gn(n);
+00517       \textcolor{keyword}{const} Index mend = m * gm\_ + gm(m);
+00518       \textcolor{keywordflow}{if} (shard\_by\_col\_) \{
+00519         \textcolor{keywordflow}{for} (Index n1 = n * gn\_; n1 < nend; n1++) \{
+00520           \textcolor{keywordflow}{for} (Index m1 = m * gm\_; m1 < mend; m1++)
+00521             GebpKernel()(output\_.getSubMapper(m1 * bm\_, n1 * bn\_),
+00522                          packed\_lhs\_[k % (P - 1)][m1],
+00523                          packed\_rhs\_[k % (P - 1)][n1], bm(m1), bk(k), bn(n1),
+00524                          Scalar(1), -1, -1, 0, 0);
+00525         \}
+00526       \} \textcolor{keywordflow}{else} \{
+00527         \textcolor{keywordflow}{for} (Index m1 = m * gm\_; m1 < mend; m1++)
+00528           \textcolor{keywordflow}{for} (Index n1 = n * gn\_; n1 < nend; n1++) \{
+00529             GebpKernel()(output\_.getSubMapper(m1 * bm\_, n1 * bn\_),
+00530                          packed\_lhs\_[k % (P - 1)][m1],
+00531                          packed\_rhs\_[k % (P - 1)][n1], bm(m1), bk(k), bn(n1),
+00532                          Scalar(1), -1, -1, 0, 0);
+00533           \}
+00534       \}
+00535       signal\_kernel(m, n, k + 1, \textcolor{keyword}{false});
+00536       signal\_switch(k + 2);
+00537     \}
+00538 
+00539     \textcolor{keywordtype}{void} signal\_packing(Index k) \{
+00540       eigen\_assert(!parallel\_pack\_);
+00541       Index s = state\_packing\_ready\_[k % P].fetch\_sub(1);
+00542       eigen\_assert(s > 0);
+00543       \textcolor{keywordflow}{if} (s != 1) \textcolor{keywordflow}{return};
+00544       state\_packing\_ready\_[k % P] = shard\_by\_col\_ ? nm\_ : nn\_;
+00545       enqueue\_packing(k, shard\_by\_col\_);
+00546     \}
+00547 
+00548     \textcolor{keywordtype}{void} signal\_kernel(Index m, Index n, Index k, \textcolor{keywordtype}{bool} sync) \{
+00549       std::atomic<uint8\_t>* \hyperlink{structstate}{state} = &state\_kernel\_[k % P][m][n];
+00550       Index s = state->load();
+00551       eigen\_assert(s > 0);
+00552       \textcolor{keywordflow}{if} (s != 1 && state->fetch\_sub(1) != 1) \textcolor{keywordflow}{return};
+00553       state->store(parallel\_pack\_ ? 3 : 2, std::memory\_order\_relaxed);
+00554       \textcolor{keywordflow}{if} (sync)
+00555         kernel(m, n, k);
+00556       \textcolor{keywordflow}{else}
+00557         device\_.enqueueNoNotification([=]() \{ kernel(m, n, k); \});
+00558     \}
+00559 
+00560     \textcolor{keywordtype}{void} signal\_switch(Index k, Index v = 1) \{
+00561       Index s = state\_switch\_[k % P].fetch\_sub(v);
+00562       eigen\_assert(s >= v);
+00563       \textcolor{keywordflow}{if} (s != v) \textcolor{keywordflow}{return};
+00564 
+00565       \textcolor{comment}{// Ready to switch to the next k slice.}
+00566       \textcolor{comment}{// Reset counter for the next iteration.}
+00567       state\_switch\_[k % P] =
+00568           (parallel\_pack\_ ? nm\_ + nn\_ : (shard\_by\_col\_ ? nn\_ : nm\_)) +
+00569           nm\_ * nn\_;
+00570       \textcolor{keywordflow}{if} (k < nk\_) \{
+00571         \textcolor{comment}{// Issue lhs/rhs packing. Their completion will in turn kick off}
+00572         \textcolor{comment}{// kernels.}
+00573         \textcolor{keywordflow}{if} (parallel\_pack\_) \{
+00574           enqueue\_packing(k, !shard\_by\_col\_);
+00575           enqueue\_packing(k, shard\_by\_col\_);
+00576         \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (shard\_by\_col\_) \{
+00577           enqueue\_packing(k, \textcolor{keyword}{false});
+00578         \} \textcolor{keywordflow}{else} \{
+00579           enqueue\_packing(k, \textcolor{keyword}{true});
+00580         \}
+00581 
+00582         \textcolor{comment}{// Termination handling.}
+00583         \textcolor{comment}{// Because kernel completion signals k + 2 switch, we need to finish nk}
+00584         \textcolor{comment}{// + 2 slices without issuing any tasks on nk + 1 slice. So here we}
+00585         \textcolor{comment}{// pretend that all nk + 1 packing tasks just finish instantly; so that}
+00586         \textcolor{comment}{// nk + 2 switch only waits for completion of nk kernels.}
+00587       \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (k == nk\_) \{
+00588         signal\_switch(k + 1,
+00589                       parallel\_pack\_ ? nm\_ + nn\_ : (shard\_by\_col\_ ? nn\_ : nm\_));
+00590       \} \textcolor{keywordflow}{else} \{
+00591         done\_.Notify();
+00592       \}
+00593     \}
+00594 
+00595     \textcolor{comment}{// Enqueue all rhs/lhs packing for k-th slice.}
+00596     \textcolor{keywordtype}{void} enqueue\_packing(Index k, \textcolor{keywordtype}{bool} rhs) \{
+00597       enqueue\_packing\_helper(0, rhs ? nn\_ : nm\_, k, rhs);
+00598     \}
+00599 
+00600     \textcolor{keywordtype}{void} enqueue\_packing\_helper(Index start, Index end, Index k, \textcolor{keywordtype}{bool} rhs) \{
+00601       \textcolor{keywordflow}{if} (end - start == 1) \{
+00602         \textcolor{keywordflow}{if} (rhs)
+00603           pack\_rhs(start, k);
+00604         \textcolor{keywordflow}{else}
+00605           pack\_lhs(start, k);
+00606       \} \textcolor{keywordflow}{else} \{
+00607         Index mid = (start + end) / 2;
+00608         device\_.enqueueNoNotification(
+00609             [=]() \{ enqueue\_packing\_helper(mid, end, k, rhs); \});
+00610         device\_.enqueueNoNotification(
+00611             [=]() \{ enqueue\_packing\_helper(start, mid, k, rhs); \});
+00612       \}
+00613     \}
+00614 
+00615     \textcolor{comment}{// Block sizes with accounting for potentially incomplete last block.}
+00616     Index bm(Index m)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m + 1 < nm0\_ ? bm\_ : m\_ + bm\_ - bm\_ * nm0\_; \}
+00617     Index bn(Index n)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} n + 1 < nn0\_ ? bn\_ : n\_ + bn\_ - bn\_ * nn0\_; \}
+00618     Index bk(Index k)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} k + 1 < nk\_ ? bk\_ : k\_ + bk\_ - bk\_ * nk\_; \}
+00619     \textcolor{comment}{// Task grain sizes accounting for potentially incomplete last task.}
+00620     Index gm(Index m)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m + 1 < nm\_ ? gm\_ : nm0\_ + gm\_ - gm\_ * nm\_; \}
+00621     Index gn(Index n)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} n + 1 < nn\_ ? gn\_ : nn0\_ + gn\_ - gn\_ * nn\_; \}
+00622 
+00623     Context(\textcolor{keyword}{const} Context&) = \textcolor{keyword}{delete};
+00624     \textcolor{keywordtype}{void} operator=(\textcolor{keyword}{const} Context&) = \textcolor{keyword}{delete};
+00625   \};
+00626 
+00627   \textcolor{comment}{// Decide whether we want to shard m x n contraction by columns or by rows.}
+00628   \textcolor{keyword}{static} \textcolor{keywordtype}{bool} shardByCol(Index m, Index n, Index num\_threads) \{
+00629     \textcolor{comment}{// Note: we are comparing both n and m against Traits::nr, it is not}
+00630     \textcolor{comment}{// a mistake. We are trying to figure out how both n and m will fit into}
+00631     \textcolor{comment}{// the main sharding dimension.}
+00632 
+00633     \textcolor{comment}{// Sharding by column is the default}
+00634     \textcolor{comment}{// ... unless there is enough data for vectorization over rows}
+00635     \textcolor{keywordflow}{if} (m / num\_threads >= Traits::nr &&
+00636         \textcolor{comment}{// and not enough data for vectorization over columns}
+00637         (n / num\_threads < Traits::nr ||
+00638          \textcolor{comment}{// ... or barely enough data for vectorization over columns,}
+00639          \textcolor{comment}{// but it is not evenly dividable across threads}
+00640          (n / num\_threads < 4 * Traits::nr &&
+00641           (n % (num\_threads * Traits::nr)) != 0 &&
+00642           \textcolor{comment}{// ... and it is evenly dividable across threads for rows}
+00643           ((m % (num\_threads * Traits::nr)) == 0 ||
+00644            \textcolor{comment}{// .. or it is not evenly dividable for both dimensions but}
+00645            \textcolor{comment}{// there is much more data over rows so that corner effects are}
+00646            \textcolor{comment}{// mitigated.}
+00647            (m / n >= 6)))))
+00648       \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00649     \textcolor{comment}{// Wait, or if matrices are just substantially prolonged over the other}
+00650     \textcolor{comment}{// dimension.}
+00651     \textcolor{keywordflow}{if} (n / num\_threads < 16 * Traits::nr && m > n * 32) \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00652     \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00653   \}
+00654 
+00655   Index coarsenM(Index m, Index n, Index bm, Index bn, Index bk, Index gn,
+00656                  \textcolor{keywordtype}{int} num\_threads, \textcolor{keywordtype}{bool} shard\_by\_col)\textcolor{keyword}{ const }\{
+00657     Index gm = 1;
+00658     Index gm1 = 1;
+00659     Index nm0 = divup(m, bm);
+00660     Index nm1 = nm0;
+00661     \textcolor{keywordflow}{for} (;;) \{
+00662       \textcolor{comment}{// Find the next candidate for m grain size. It needs to result in}
+00663       \textcolor{comment}{// different number of blocks. E.g. if we have 10 kernels, we want to try}
+00664       \textcolor{comment}{// 5 and 10, but not 6, 7, 8 and 9.}
+00665       \textcolor{keywordflow}{while} (gm1 <= nm0 && nm1 == divup(nm0, gm1)) gm1++;
+00666       \textcolor{keywordflow}{if} (gm1 > nm0) \textcolor{keywordflow}{break};
+00667       \textcolor{comment}{// Check the candidate.}
+00668       \textcolor{keywordtype}{int} res = checkGrain(m, n, bm, bn, bk, gm1, gn, gm, gn, num\_threads,
+00669                            shard\_by\_col);
+00670       \textcolor{keywordflow}{if} (res < 0) \textcolor{keywordflow}{break};
+00671       nm1 = divup(nm0, gm1);
+00672       \textcolor{keywordflow}{if} (res == 0) \textcolor{keywordflow}{continue};
+00673       \textcolor{comment}{// Commit new grain size.}
+00674       gm = gm1;
+00675     \}
+00676     \textcolor{keywordflow}{return} gm;
+00677   \}
+00678 
+00679   Index coarsenN(Index m, Index n, Index bm, Index bn, Index bk, Index gm,
+00680                  \textcolor{keywordtype}{int} num\_threads, \textcolor{keywordtype}{bool} shard\_by\_col)\textcolor{keyword}{ const }\{
+00681     Index gn = 1;
+00682     Index gn1 = 1;
+00683     Index nn0 = divup(n, bn);
+00684     Index nn1 = nn0;
+00685     \textcolor{keywordflow}{for} (;;) \{
+00686       \textcolor{keywordflow}{while} (gn1 <= nn0 && nn1 == divup(nn0, gn1)) gn1++;
+00687       \textcolor{keywordflow}{if} (gn1 > nn0) \textcolor{keywordflow}{break};
+00688       \textcolor{keywordtype}{int} res = checkGrain(m, n, bm, bn, bk, gm, gn1, gm, gn, num\_threads,
+00689                            shard\_by\_col);
+00690       \textcolor{keywordflow}{if} (res < 0) \textcolor{keywordflow}{break};
+00691       nn1 = divup(nn0, gn1);
+00692       \textcolor{keywordflow}{if} (res == 0) \textcolor{keywordflow}{continue};
+00693       gn = gn1;
+00694     \}
+00695     \textcolor{keywordflow}{return} gn;
+00696   \}
+00697 
+00698   \textcolor{comment}{// checkGrain checks whether grain (gm, gn) is suitable and is better than}
+00699   \textcolor{comment}{// (oldgm, oldgn).}
+00700   \textcolor{keywordtype}{int} checkGrain(Index m, Index n, Index bm, Index bn, Index bk, Index gm,
+00701                  Index gn, Index oldgm, Index oldgn, \textcolor{keywordtype}{int} num\_threads,
+00702                  \textcolor{keywordtype}{bool} shard\_by\_col)\textcolor{keyword}{ const }\{
+00703     \textcolor{keyword}{const} TensorOpCost cost =
+00704         contractionCost(bm * gm, bn * gn, bm, bn, bk, shard\_by\_col, \textcolor{keyword}{true});
+00705     \textcolor{keywordtype}{double} taskSize = TensorCostModel<ThreadPoolDevice>::taskSize(
+00706         static\_cast<double>(bm) * gm * bn * gn, cost);
+00707     \textcolor{comment}{// If the task is too small, then we agree on it regardless of anything}
+00708     \textcolor{comment}{// else. Otherwise synchronization overheads will dominate.}
+00709     \textcolor{keywordflow}{if} (taskSize < 1) \textcolor{keywordflow}{return} 1;
+00710     \textcolor{comment}{// If it is too large, then we reject it and all larger tasks.}
+00711     \textcolor{keywordflow}{if} (taskSize > 2) \textcolor{keywordflow}{return} -1;
+00712     \textcolor{comment}{// Now we are in presumably good task size range.}
+00713     \textcolor{comment}{// The main deciding factor here is parallelism. Consider that we have 12}
+00714     \textcolor{comment}{// kernels and 4 threads. Grains of 2, 3 and 4 all yield good task sizes.}
+00715     \textcolor{comment}{// But 2/4 yield 6/3 tasks, which gives us parallelism of 0.75 (at most 3/4}
+00716     \textcolor{comment}{// of cores will be busy). While grain size 3 gives us 4 tasks, which gives}
+00717     \textcolor{comment}{// us parallelism of 1 (we can load all cores).}
+00718     Index nm0 = divup(m, bm);
+00719     Index nn0 = divup(n, bn);
+00720     Index new\_tasks = divup(nm0, gm) * divup(nn0, gn);
+00721     \textcolor{keywordtype}{double} new\_parallelism = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(new\_tasks) /
+00722                              (divup<int>(new\_tasks, num\_threads) * num\_threads);
+00723     Index old\_tasks = divup(nm0, oldgm) * divup(nn0, oldgn);
+00724     \textcolor{keywordtype}{double} old\_parallelism = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(old\_tasks) /
+00725                              (divup<int>(old\_tasks, num\_threads) * num\_threads);
+00726     \textcolor{keywordflow}{if} (new\_parallelism > old\_parallelism || new\_parallelism == 1) \textcolor{keywordflow}{return} 1;
+00727     \textcolor{keywordflow}{return} 0;
+00728   \}
+00729 
+00730 \textcolor{preprocessor}{#else  // EIGEN\_USE\_SIMPLE\_THREAD\_POOL}
+00731 
+00732   \textcolor{keyword}{template} <\textcolor{keywordtype}{bool} lhs\_inner\_dim\_contiguous, \textcolor{keywordtype}{bool} rhs\_inner\_dim\_contiguous, \textcolor{keywordtype}{bool} rhs\_inner\_dim\_reordered, \textcolor{keywordtype}{int}
+       Alignment>
+00733   \textcolor{keywordtype}{void} evalProduct(Scalar* buffer)\textcolor{keyword}{ const }\{
+00734     \textcolor{keywordflow}{if} (this->m\_j\_size == 1) \{
+00735       this->\textcolor{keyword}{template} evalGemv<lhs\_inner\_dim\_contiguous, rhs\_inner\_dim\_contiguous, rhs\_inner\_dim\_reordered,
+       Alignment>(buffer);
+00736       \textcolor{keywordflow}{return};
+00737     \}
+00738 
+00739     evalGemm<lhs\_inner\_dim\_contiguous, rhs\_inner\_dim\_contiguous, rhs\_inner\_dim\_reordered, Alignment>(buffer
+      );
+00740   \}
+00741 
+00742   \textcolor{keyword}{template} <\textcolor{keywordtype}{bool} lhs\_inner\_dim\_contiguous, \textcolor{keywordtype}{bool} rhs\_inner\_dim\_contiguous, \textcolor{keywordtype}{bool} rhs\_inner\_dim\_reordered, \textcolor{keywordtype}{int}
+       Alignment>
+00743   \textcolor{keywordtype}{void} evalGemm(Scalar* buffer)\textcolor{keyword}{ const }\{
+00744     \textcolor{comment}{// columns in left side, rows in right side}
+00745     \textcolor{keyword}{const} Index k = this->m\_k\_size;
+00746 
+00747     \textcolor{comment}{// rows in left side}
+00748     \textcolor{keyword}{const} Index m = this->m\_i\_size;
+00749 
+00750     \textcolor{comment}{// columns in right side}
+00751     \textcolor{keyword}{const} Index n = this->m\_j\_size;
+00752 
+00753     \textcolor{comment}{// zero out the result buffer (which must be of size at least m * n * sizeof(Scalar)}
+00754     this->m\_device.memset(buffer, 0, m * n * \textcolor{keyword}{sizeof}(Scalar));
+00755 
+00756 
+00757     \textcolor{keyword}{const} \textcolor{keywordtype}{int} lhs\_packet\_size = internal::unpacket\_traits<typename LeftEvaluator::PacketReturnType>::size;
+00758     \textcolor{keyword}{const} \textcolor{keywordtype}{int} rhs\_packet\_size = internal::unpacket\_traits<typename RightEvaluator::PacketReturnType>::size;
+00759 
+00760     \textcolor{keyword}{typedef} internal::TensorContractionInputMapper<LhsScalar, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, internal::Lhs,
+00761                                                    LeftEvaluator, left\_nocontract\_t,
+00762                                                    contract\_t, lhs\_packet\_size,
+00763                                                    lhs\_inner\_dim\_contiguous,
+00764                                                    \textcolor{keyword}{false}, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ac935220b4c844108e183ebe30a4d5204}{Unaligned}> LhsMapper;
+00765 
+00766     \textcolor{keyword}{typedef} internal::TensorContractionInputMapper<RhsScalar, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, internal::Rhs,
+00767                                                    RightEvaluator, right\_nocontract\_t,
+00768                                                    contract\_t, rhs\_packet\_size,
+00769                                                    rhs\_inner\_dim\_contiguous,
+00770                                                    rhs\_inner\_dim\_reordered, 
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ac935220b4c844108e183ebe30a4d5204}{Unaligned}> RhsMapper;
+00771 
+00772     \textcolor{keyword}{typedef} internal::blas\_data\_mapper<Scalar, Index, ColMajor> OutputMapper;
+00773 
+00774     \textcolor{comment}{// TODO: packing could be faster sometimes if we supported row major tensor mappers}
+00775     \textcolor{keyword}{typedef} internal::gemm\_pack\_lhs<LhsScalar, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \textcolor{keyword}{typename} LhsMapper::SubMapper, Traits::mr,
+00776                                     Traits::LhsProgress, \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}> LhsPacker;
+00777     \textcolor{keyword}{typedef} internal::gemm\_pack\_rhs<RhsScalar, Index, typename RhsMapper::SubMapper, Traits::nr, ColMajor> 
+      RhsPacker;
+00778 
+00779     \textcolor{comment}{// TODO: replace false, false with conjugate values?}
+00780     \textcolor{keyword}{typedef} internal::gebp\_kernel<LhsScalar, RhsScalar, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, OutputMapper,
+00781                                   Traits::mr, Traits::nr, \textcolor{keyword}{false}, \textcolor{keyword}{false}> GebpKernel;
+00782 
+00783     \textcolor{keyword}{typedef} internal::packLhsArg<LhsScalar, LhsMapper, Index> packLArg;
+00784     \textcolor{keyword}{typedef} internal::packRhsAndKernelArg<LhsScalar, RhsScalar, RhsMapper, OutputMapper, Index> packRKArg;
+00785 
+00786     \textcolor{comment}{// initialize data mappers}
+00787     LhsMapper lhs(this->m\_leftImpl, this->m\_left\_nocontract\_strides, this->m\_i\_strides,
+00788                   this->m\_left\_contracting\_strides, this->m\_k\_strides);
+00789 
+00790     RhsMapper rhs(this->m\_rightImpl, this->m\_right\_nocontract\_strides, this->m\_j\_strides,
+00791                   this->m\_right\_contracting\_strides, this->m\_k\_strides);
+00792 
+00793     OutputMapper output(buffer, m);
+00794 
+00795     \textcolor{comment}{// compute block sizes (which depend on number of threads)}
+00796     \textcolor{keyword}{const} Index num\_threads = this->m\_device.numThreads();
+00797     internal::TensorContractionBlocking<LhsMapper, RhsMapper, Index, internal::ShardByCol> blocking(k, m, n
+      , num\_threads);
+00798     Index mc = blocking.mc();
+00799     Index nc = blocking.nc();
+00800     Index kc = blocking.kc();
+00801     eigen\_assert(mc <= m);
+00802     eigen\_assert(nc <= n);
+00803     eigen\_assert(kc <= k);
+00804 
+00805 \textcolor{preprocessor}{#define CEIL\_DIV(a, b) (((a) + (b) - 1) / (b))}
+00806     \textcolor{keyword}{const} Index k\_blocks = CEIL\_DIV(k, kc);
+00807     \textcolor{keyword}{const} Index n\_blocks = CEIL\_DIV(n, nc);
+00808     \textcolor{keyword}{const} Index m\_blocks = CEIL\_DIV(m, mc);
+00809     \textcolor{keyword}{const} Index sizeA = mc * kc;
+00810     \textcolor{keyword}{const} Index sizeB = kc * nc;
+00811 
+00812     \textcolor{comment}{/*    cout << "m: " << m << " n: " << n << " k: " << k << endl;}
+00813 \textcolor{comment}{    cout << "mc: " << mc << " nc: " << nc << " kc: " << kc << endl;}
+00814 \textcolor{comment}{    cout << "m\_blocks: " << m\_blocks << " n\_blocks: " << n\_blocks << " k\_blocks: " << k\_blocks << endl;}
+00815 \textcolor{comment}{    cout << "num threads: " << num\_threads << endl;}
+00816 \textcolor{comment}{    */}
+00817 
+00818     \textcolor{comment}{// note: m\_device.allocate should return 16 byte aligned pointers, but if blockA and blockB}
+00819     \textcolor{comment}{//       aren't 16 byte aligned segfaults will happen due to SIMD instructions}
+00820     \textcolor{comment}{// note: You can get away with allocating just a single blockA and offsets and meet the}
+00821     \textcolor{comment}{//       the alignment requirements with the assumption that}
+00822     \textcolor{comment}{//       (Traits::mr * sizeof(ResScalar)) % 16 == 0}
+00823     \textcolor{keyword}{const} Index numBlockAs = numext::mini(num\_threads, m\_blocks);
+00824     MaxSizeVector<LhsScalar *> blockAs(num\_threads);
+00825     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < num\_threads; i++) \{
+00826       blockAs.push\_back(static\_cast<LhsScalar *>(this->m\_device.allocate(sizeA * \textcolor{keyword}{sizeof}(LhsScalar))));
+00827     \}
+00828 
+00829     \textcolor{comment}{// To circumvent alignment issues, I'm just going to separately allocate the memory for each thread}
+00830     \textcolor{comment}{// TODO: is this too much memory to allocate? This simplifies coding a lot, but is wasteful.}
+00831     \textcolor{comment}{//       Other options: (1) reuse memory when a thread finishes. con: tricky}
+00832     \textcolor{comment}{//                      (2) allocate block B memory in each thread. con: overhead}
+00833     MaxSizeVector<RhsScalar *> blockBs(n\_blocks);
+00834     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < n\_blocks; i++) \{
+00835       blockBs.push\_back(static\_cast<RhsScalar *>(this->m\_device.allocate(sizeB * \textcolor{keyword}{sizeof}(RhsScalar))));
+00836     \}
+00837 
+00838     \textcolor{comment}{// lhs\_notifications starts with all null Notifications}
+00839     MaxSizeVector<Notification*> lhs\_notifications(num\_threads, \textcolor{keyword}{nullptr});
+00840 
+00841     \textcolor{comment}{// this should really be numBlockAs * n\_blocks;}
+00842     \textcolor{keyword}{const} Index num\_kernel\_notifications = num\_threads * n\_blocks;
+00843     MaxSizeVector<Notification*> kernel\_notifications(num\_kernel\_notifications,
+00844                                                     \textcolor{keyword}{nullptr});
+00845 
+00846     \textcolor{keywordflow}{for} (Index k\_block\_idx = 0; k\_block\_idx < k\_blocks; k\_block\_idx++) \{
+00847       \textcolor{keyword}{const} Index k\_start = k\_block\_idx * kc;
+00848       \textcolor{comment}{// make sure we don't overshoot right edge of left matrix}
+00849       \textcolor{keyword}{const} Index actual\_kc = numext::mini(k\_start + kc, k) - k\_start;
+00850 
+00851       \textcolor{keywordflow}{for} (Index m\_block\_idx = 0; m\_block\_idx < m\_blocks; m\_block\_idx += numBlockAs) \{
+00852         \textcolor{keyword}{const} Index num\_blocks = numext::mini(m\_blocks-m\_block\_idx, numBlockAs);
+00853 
+00854         \textcolor{keywordflow}{for} (Index mt\_block\_idx = m\_block\_idx; mt\_block\_idx < m\_block\_idx+num\_blocks; mt\_block\_idx++) \{
+00855           \textcolor{keyword}{const} Index m\_start = mt\_block\_idx * mc;
+00856           \textcolor{keyword}{const} Index actual\_mc = numext::mini(m\_start + mc, m) - m\_start;
+00857           eigen\_assert(actual\_mc > 0);
+00858 
+00859           Index blockAId = (k\_block\_idx * m\_blocks + mt\_block\_idx) % num\_threads;
+00860 
+00861           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < n\_blocks; ++i) \{
+00862             Index notification\_id = (blockAId * n\_blocks + i);
+00863             \textcolor{comment}{// Wait for any current kernels using this slot to complete}
+00864             \textcolor{comment}{// before using it.}
+00865             \textcolor{keywordflow}{if} (kernel\_notifications[notification\_id]) \{
+00866               wait\_until\_ready(kernel\_notifications[notification\_id]);
+00867               \textcolor{keyword}{delete} kernel\_notifications[notification\_id];
+00868             \}
+00869             kernel\_notifications[notification\_id] = \textcolor{keyword}{new} Notification();
+00870           \}
+00871           \textcolor{keyword}{const} packLArg arg = \{
+00872             blockAs[blockAId], \textcolor{comment}{// blockA}
+00873             lhs,        \textcolor{comment}{// lhs}
+00874             m\_start,    \textcolor{comment}{// m}
+00875             k\_start,    \textcolor{comment}{// k}
+00876             actual\_mc,  \textcolor{comment}{// mc}
+00877             actual\_kc,  \textcolor{comment}{// kc}
+00878           \};
+00879 
+00880           \textcolor{comment}{// Delete any existing notification since we may be}
+00881           \textcolor{comment}{// replacing it.  The algorithm should ensure that there are}
+00882           \textcolor{comment}{// no existing waiters on this notification.}
+00883           \textcolor{keyword}{delete} lhs\_notifications[blockAId];
+00884           lhs\_notifications[blockAId] =
+00885           this->m\_device.enqueue(&Self::packLhs<packLArg, LhsPacker>, arg);
+00886         \}
+00887 
+00888         \textcolor{comment}{// now start kernels.}
+00889         \textcolor{keyword}{const} Index m\_base\_start = m\_block\_idx * mc;
+00890         \textcolor{keyword}{const} \textcolor{keywordtype}{bool} need\_to\_pack = m\_block\_idx == 0;
+00891 
+00892         \textcolor{keywordflow}{for} (Index n\_block\_idx = 0; n\_block\_idx < n\_blocks; n\_block\_idx++) \{
+00893           \textcolor{keyword}{const} Index n\_start = n\_block\_idx * nc;
+00894           \textcolor{keyword}{const} Index actual\_nc = numext::mini(n\_start + nc, n) - n\_start;
+00895 
+00896           \textcolor{comment}{// first make sure the previous kernels are all done before overwriting rhs. Also wait if}
+00897           \textcolor{comment}{// we're going to start new k. In both cases need\_to\_pack is true.}
+00898           \textcolor{keywordflow}{if} (need\_to\_pack) \{
+00899             \textcolor{keywordflow}{for} (Index i = num\_blocks; i < num\_threads; ++i) \{
+00900               Index blockAId = (k\_block\_idx * m\_blocks + i + m\_block\_idx) % num\_threads;
+00901               Index future\_id = (blockAId * n\_blocks + n\_block\_idx);
+00902               wait\_until\_ready(kernel\_notifications[future\_id]);
+00903             \}
+00904           \}
+00905 
+00906           packRKArg arg = \{
+00907             &blockAs, \textcolor{comment}{// blockA}
+00908             blockBs[n\_block\_idx], \textcolor{comment}{// blockB}
+00909             rhs,          \textcolor{comment}{// rhs}
+00910             output,       \textcolor{comment}{// output}
+00911             m\_base\_start, \textcolor{comment}{// m}
+00912             k\_start,      \textcolor{comment}{// k}
+00913             n\_start,      \textcolor{comment}{// n}
+00914             mc,           \textcolor{comment}{// mc}
+00915             actual\_kc,    \textcolor{comment}{// kc}
+00916             actual\_nc,    \textcolor{comment}{// nc}
+00917             num\_threads,
+00918             numBlockAs,
+00919             m,
+00920             k\_block\_idx,
+00921             m\_block\_idx,
+00922             n\_block\_idx, \textcolor{comment}{// n\_block\_idx}
+00923             m\_blocks, \textcolor{comment}{// m\_blocks}
+00924             n\_blocks, \textcolor{comment}{// n\_blocks}
+00925             &kernel\_notifications, \textcolor{comment}{// kernel notifications}
+00926             &lhs\_notifications,    \textcolor{comment}{// lhs notifications}
+00927             need\_to\_pack, \textcolor{comment}{// need\_to\_pack}
+00928           \};
+00929 
+00930           \textcolor{comment}{// We asynchronously kick off this function, which ends up}
+00931           \textcolor{comment}{// notifying the appropriate kernel\_notifications objects,}
+00932           \textcolor{comment}{// which this thread waits on before exiting.}
+00933           this->m\_device.enqueueNoNotification(&Self::packRhsAndKernel<packRKArg, RhsPacker, GebpKernel>, 
+      arg);
+00934         \}
+00935       \}
+00936     \}
+00937 
+00938     \textcolor{comment}{// Make sure all the kernels are done.}
+00939     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < kernel\_notifications.size(); ++i) \{
+00940       wait\_until\_ready(kernel\_notifications[i]);
+00941       \textcolor{keyword}{delete} kernel\_notifications[i];
+00942     \}
+00943 
+00944     \textcolor{comment}{// No need to wait for lhs notifications since they should have}
+00945     \textcolor{comment}{// already been waited on.  Just clean them up.}
+00946     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < lhs\_notifications.size(); ++i) \{
+00947       \textcolor{keyword}{delete} lhs\_notifications[i];
+00948     \}
+00949 
+00950     \textcolor{comment}{// deallocate all of the memory for both A and B's}
+00951     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < blockAs.size(); i++) \{
+00952       this->m\_device.deallocate(blockAs[i]);
+00953     \}
+00954     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < blockBs.size(); i++) \{
+00955       this->m\_device.deallocate(blockBs[i]);
+00956     \}
+00957 
+00958 \textcolor{preprocessor}{#undef CEIL\_DIV}
+00959   \}
+00960 
+00961   \textcolor{comment}{/*}
+00962 \textcolor{comment}{   * Packs a LHS block of size (mt, kc) starting at lhs(m, k). Before packing}
+00963 \textcolor{comment}{   * the LHS block, check that all of the kernels that worked on the same}
+00964 \textcolor{comment}{   * mt\_block\_idx in the previous m\_block are done.}
+00965 \textcolor{comment}{   */}
+00966   \textcolor{keyword}{template} <\textcolor{keyword}{typename} packLArg, \textcolor{keyword}{typename} LhsPacker>
+00967   \textcolor{keyword}{static} \textcolor{keywordtype}{void} packLhs(\textcolor{keyword}{const} packLArg arg) \{
+00968     \textcolor{comment}{// perform actual packing}
+00969     LhsPacker pack\_lhs;
+00970     pack\_lhs(arg.blockA, arg.lhs.getSubMapper(arg.m\_start, arg.k\_start), arg.kc, arg.mc);
+00971   \}
+00972 
+00973   \textcolor{comment}{/*}
+00974 \textcolor{comment}{   * Packs a RHS block of size (kc, nc) starting at (k, n) after checking that}
+00975 \textcolor{comment}{   * all kernels in the previous block are done.}
+00976 \textcolor{comment}{   * Then for each LHS future, we wait on the future and then call GEBP}
+00977 \textcolor{comment}{   * on the area packed by the future (which starts at}
+00978 \textcolor{comment}{   * blockA + future\_idx * mt * kc) on the LHS and with the full packed}
+00979 \textcolor{comment}{   * RHS block.}
+00980 \textcolor{comment}{   * The output of this GEBP is written to output(m + i * mt, n).}
+00981 \textcolor{comment}{   */}
+00982   \textcolor{keyword}{template} <\textcolor{keyword}{typename} packRKArg, \textcolor{keyword}{typename} RhsPacker, \textcolor{keyword}{typename} GebpKernel>
+00983   \textcolor{keyword}{static} \textcolor{keywordtype}{void} packRhsAndKernel(packRKArg arg) \{
+00984     \textcolor{keywordflow}{if} (arg.need\_to\_pack) \{
+00985       RhsPacker pack\_rhs;
+00986       pack\_rhs(arg.blockB, arg.rhs.getSubMapper(arg.k, arg.n), arg.kc, arg.nc);
+00987     \}
+00988 
+00989     GebpKernel gebp;
+00990     \textcolor{keywordflow}{for} (Index mt\_block\_idx = 0; mt\_block\_idx < arg.num\_blockAs; mt\_block\_idx++) \{
+00991       \textcolor{keyword}{const} Index m\_base\_start = arg.m + arg.mc*mt\_block\_idx;
+00992       \textcolor{keywordflow}{if} (m\_base\_start < arg.max\_m) \{
+00993         Index blockAId = (arg.k\_block\_idx * arg.m\_blocks + mt\_block\_idx + arg.m\_block\_idx) % arg.
+      num\_threads;
+00994         wait\_until\_ready((*arg.lhs\_notifications)[blockAId]);
+00995         \textcolor{keyword}{const} Index actual\_mc = numext::mini(m\_base\_start + arg.mc, arg.max\_m) - m\_base\_start;
+00996         gebp(arg.output.getSubMapper(m\_base\_start, arg.n),
+00997              (*arg.blockAs)[blockAId], arg.blockB,
+00998              actual\_mc, arg.kc, arg.nc, Scalar(1), -1, -1, 0, 0);
+00999 
+01000         \textcolor{comment}{// Notify that the kernel is done.}
+01001         \textcolor{keyword}{const} Index set\_idx = blockAId * arg.n\_blocks + arg.n\_block\_idx;
+01002         (*arg.kernel\_notifications)[set\_idx]->Notify();
+01003       \}
+01004     \}
+01005   \}
+01006 \textcolor{preprocessor}{#endif  // EIGEN\_USE\_SIMPLE\_THREAD\_POOL}
+01007 
+01008   TensorOpCost contractionCost(Index m, Index n, Index bm, Index bn, Index bk,
+01009                                \textcolor{keywordtype}{bool} shard\_by\_col, \textcolor{keywordtype}{bool} prepacked)\textcolor{keyword}{ const }\{
+01010     \textcolor{keyword}{const} \textcolor{keywordtype}{int} packed\_size = std::min<int>(PacketType<LhsScalar, Device>::size,
+01011                                           PacketType<RhsScalar, Device>::size);
+01012     \textcolor{keyword}{const} \textcolor{keywordtype}{int} output\_packet\_size = internal::unpacket\_traits<PacketReturnType>::size;
+01013     \textcolor{keyword}{const} \textcolor{keywordtype}{double} kd = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(bk);
+01014     \textcolor{comment}{// Peak VFMA bandwidth is 0.5. However if we have not enough data for}
+01015     \textcolor{comment}{// vectorization bandwidth drops. The 4.0 and 2.0 bandwidth is determined}
+01016     \textcolor{comment}{// experimentally.}
+01017     \textcolor{keywordtype}{double} computeBandwidth = bk == 1 ? 4.0 :
+01018           (shard\_by\_col ? bn : bm) < Traits::nr ||
+01019           (shard\_by\_col ? bm : bn) < Traits::mr ? 2.0 : 0.5;
+01020 \textcolor{preprocessor}{#ifndef EIGEN\_VECTORIZE\_FMA}
+01021     \textcolor{comment}{// Bandwidth of all of VFMA/MULPS/ADDPS is 0.5 on latest Intel processors.}
+01022     \textcolor{comment}{// However for MULPS/ADDPS we have dependent sequence of 2 such instructions,}
+01023     \textcolor{comment}{// so overall bandwidth is 1.0.}
+01024     \textcolor{keywordflow}{if} (computeBandwidth == 0.5) computeBandwidth = 1.0;
+01025 \textcolor{preprocessor}{#endif}
+01026     \textcolor{comment}{// Computations.}
+01027     TensorOpCost cost = TensorOpCost(0, 0, kd * computeBandwidth, \textcolor{keyword}{true}, packed\_size);
+01028     \textcolor{comment}{// Output stores.}
+01029     cost += TensorOpCost(0, \textcolor{keyword}{sizeof}(CoeffReturnType), 0, \textcolor{keyword}{true}, output\_packet\_size);
+01030     \textcolor{keywordflow}{if} (prepacked) \{
+01031       \textcolor{comment}{// Packing and kernels are executed in different tasks. When we calculate}
+01032       \textcolor{comment}{// task grain size we look only at kernel cost assuming that kernel}
+01033       \textcolor{comment}{// is more expensive than packing.}
+01034       \textcolor{keywordflow}{return} cost;
+01035     \}
+01036     \textcolor{comment}{// Lhs/rhs loads + computations.}
+01037     TensorOpCost lhsCost = this->m\_leftImpl.costPerCoeff(\textcolor{keyword}{true}) * (kd / n);
+01038     TensorOpCost rhsCost = this->m\_rightImpl.costPerCoeff(\textcolor{keyword}{true}) * (kd / m);
+01039     \textcolor{comment}{// Lhs packing memory cost does not contribute considerably to overall}
+01040     \textcolor{comment}{// execution time because lhs is prefetched early and accessed sequentially.}
+01041     \textcolor{keywordflow}{if} (shard\_by\_col)
+01042       lhsCost.dropMemoryCost();
+01043     \textcolor{keywordflow}{else}
+01044       rhsCost.dropMemoryCost();
+01045     \textcolor{keywordflow}{return} cost + lhsCost + rhsCost;
+01046   \}
+01047 \};
+01048 
+01049 \} \textcolor{comment}{// end namespace Eigen}
+01050 
+01051 \textcolor{preprocessor}{#endif  // EIGEN\_USE\_THREADS}
+01052 \textcolor{preprocessor}{#endif // EIGEN\_CXX11\_TENSOR\_TENSOR\_CONTRACTION\_THREAD\_POOL\_H}
+\end{DoxyCode}

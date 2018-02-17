@@ -1,0 +1,795 @@
+\hypertarget{eigen_2_eigen_2src_2_core_2arch_2_n_e_o_n_2_packet_math_8h_source}{}\section{eigen/\+Eigen/src/\+Core/arch/\+N\+E\+O\+N/\+Packet\+Math.h}
+\label{eigen_2_eigen_2src_2_core_2arch_2_n_e_o_n_2_packet_math_8h_source}\index{Packet\+Math.\+h@{Packet\+Math.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2010 Konstantinos Margaritis <markos@freevec.org>}
+00006 \textcolor{comment}{// Heavily based on Gael's SSE version.}
+00007 \textcolor{comment}{//}
+00008 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00009 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00010 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00011 
+00012 \textcolor{preprocessor}{#ifndef EIGEN\_PACKET\_MATH\_NEON\_H}
+00013 \textcolor{preprocessor}{#define EIGEN\_PACKET\_MATH\_NEON\_H}
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00016 
+00017 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00018 
+00019 \textcolor{preprocessor}{#ifndef EIGEN\_CACHEFRIENDLY\_PRODUCT\_THRESHOLD}
+00020 \textcolor{preprocessor}{#define EIGEN\_CACHEFRIENDLY\_PRODUCT\_THRESHOLD 8}
+00021 \textcolor{preprocessor}{#endif}
+00022 
+00023 \textcolor{preprocessor}{#ifndef EIGEN\_HAS\_SINGLE\_INSTRUCTION\_MADD}
+00024 \textcolor{preprocessor}{#define EIGEN\_HAS\_SINGLE\_INSTRUCTION\_MADD}
+00025 \textcolor{preprocessor}{#endif}
+00026 
+00027 \textcolor{preprocessor}{#ifndef EIGEN\_HAS\_SINGLE\_INSTRUCTION\_CJMADD}
+00028 \textcolor{preprocessor}{#define EIGEN\_HAS\_SINGLE\_INSTRUCTION\_CJMADD}
+00029 \textcolor{preprocessor}{#endif}
+00030 
+00031 \textcolor{preprocessor}{#ifndef EIGEN\_ARCH\_DEFAULT\_NUMBER\_OF\_REGISTERS}
+00032 \textcolor{preprocessor}{#if EIGEN\_ARCH\_ARM64}
+00033 \textcolor{preprocessor}{#define EIGEN\_ARCH\_DEFAULT\_NUMBER\_OF\_REGISTERS 32}
+00034 \textcolor{preprocessor}{#else}
+00035 \textcolor{preprocessor}{#define EIGEN\_ARCH\_DEFAULT\_NUMBER\_OF\_REGISTERS 16 }
+00036 \textcolor{preprocessor}{#endif}
+00037 \textcolor{preprocessor}{#endif}
+00038 
+00039 \textcolor{keyword}{typedef} float32x2\_t Packet2f;
+00040 \textcolor{keyword}{typedef} float32x4\_t Packet4f;
+00041 \textcolor{keyword}{typedef} int32x4\_t   Packet4i;
+00042 \textcolor{keyword}{typedef} int32x2\_t   Packet2i;
+00043 \textcolor{keyword}{typedef} uint32x4\_t  Packet4ui;
+00044 
+00045 \textcolor{preprocessor}{#define \_EIGEN\_DECLARE\_CONST\_Packet4f(NAME,X) \(\backslash\)}
+00046 \textcolor{preprocessor}{  const Packet4f p4f\_##NAME = pset1<Packet4f>(X)}
+00047 
+00048 \textcolor{preprocessor}{#define \_EIGEN\_DECLARE\_CONST\_Packet4f\_FROM\_INT(NAME,X) \(\backslash\)}
+00049 \textcolor{preprocessor}{  const Packet4f p4f\_##NAME = vreinterpretq\_f32\_u32(pset1<int32\_t>(X))}
+00050 
+00051 \textcolor{preprocessor}{#define \_EIGEN\_DECLARE\_CONST\_Packet4i(NAME,X) \(\backslash\)}
+00052 \textcolor{preprocessor}{  const Packet4i p4i\_##NAME = pset1<Packet4i>(X)}
+00053 
+00054 \textcolor{preprocessor}{#if EIGEN\_ARCH\_ARM64}
+00055   \textcolor{comment}{// \_\_builtin\_prefetch tends to do nothing on ARM64 compilers because the}
+00056   \textcolor{comment}{// prefetch instructions there are too detailed for \_\_builtin\_prefetch to map}
+00057   \textcolor{comment}{// meaningfully to them.}
+00058 \textcolor{preprocessor}{  #define EIGEN\_ARM\_PREFETCH(ADDR)  \_\_asm\_\_ \_\_volatile\_\_("prfm pldl1keep, [%[addr]]\(\backslash\)n" ::[addr] "r"(ADDR) :
+       );}
+00059 \textcolor{preprocessor}{#elif EIGEN\_HAS\_BUILTIN(\_\_builtin\_prefetch) || EIGEN\_COMP\_GNUC}
+00060 \textcolor{preprocessor}{  #define EIGEN\_ARM\_PREFETCH(ADDR) \_\_builtin\_prefetch(ADDR);}
+00061 \textcolor{preprocessor}{#elif defined \_\_pld}
+00062 \textcolor{preprocessor}{  #define EIGEN\_ARM\_PREFETCH(ADDR) \_\_pld(ADDR)}
+00063 \textcolor{preprocessor}{#elif EIGEN\_ARCH\_ARM32}
+00064 \textcolor{preprocessor}{  #define EIGEN\_ARM\_PREFETCH(ADDR) \_\_asm\_\_ \_\_volatile\_\_ ("pld [%[addr]]\(\backslash\)n" :: [addr] "r" (ADDR) : );}
+00065 \textcolor{preprocessor}{#else}
+00066   \textcolor{comment}{// by default no explicit prefetching}
+00067 \textcolor{preprocessor}{  #define EIGEN\_ARM\_PREFETCH(ADDR)}
+00068 \textcolor{preprocessor}{#endif}
+00069 
+00070 \textcolor{keyword}{template}<> \textcolor{keyword}{struct }packet\_traits<float>  : default\_packet\_traits
+00071 \{
+00072   \textcolor{keyword}{typedef} Packet4f type;
+00073   \textcolor{keyword}{typedef} Packet4f half; \textcolor{comment}{// Packet2f intrinsics not implemented yet}
+00074   \textcolor{keyword}{enum} \{
+00075     Vectorizable = 1,
+00076     AlignedOnScalar = 1,
+00077     size = 4,
+00078     HasHalfPacket=0, \textcolor{comment}{// Packet2f intrinsics not implemented yet}
+00079    
+00080     HasDiv  = 1,
+00081     \textcolor{comment}{// FIXME check the Has*}
+00082     HasSin  = 0,
+00083     HasCos  = 0,
+00084     HasLog  = 0,
+00085     HasExp  = 1,
+00086     HasSqrt = 0
+00087   \};
+00088 \};
+\Hypertarget{eigen_2_eigen_2src_2_core_2arch_2_n_e_o_n_2_packet_math_8h_source_l00089}\hyperlink{struct_eigen_1_1internal_1_1packet__traits_3_01int32__t_01_4}{00089} \textcolor{keyword}{template}<> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1packet__traits}{packet\_traits}<int32\_t>    : \hyperlink{struct_eigen_1_1internal_1_1default__packet__traits}{default\_packet\_traits}
+00090 \{
+00091   \textcolor{keyword}{typedef} Packet4i type;
+00092   \textcolor{keyword}{typedef} Packet4i half; \textcolor{comment}{// Packet2i intrinsics not implemented yet}
+00093   \textcolor{keyword}{enum} \{
+00094     Vectorizable = 1,
+00095     AlignedOnScalar = 1,
+00096     size=4,
+00097     HasHalfPacket=0 \textcolor{comment}{// Packet2i intrinsics not implemented yet}
+00098     \textcolor{comment}{// FIXME check the Has*}
+00099   \};
+00100 \};
+00101 
+00102 \textcolor{preprocessor}{#if EIGEN\_GNUC\_AT\_MOST(4,4) && !EIGEN\_COMP\_LLVM}
+00103 \textcolor{comment}{// workaround gcc 4.2, 4.3 and 4.4 compilatin issue}
+00104 EIGEN\_STRONG\_INLINE float32x4\_t vld1q\_f32(\textcolor{keyword}{const} \textcolor{keywordtype}{float}* x) \{ return ::vld1q\_f32((\textcolor{keyword}{const} float32\_t*)x); \}
+00105 EIGEN\_STRONG\_INLINE float32x2\_t vld1\_f32 (\textcolor{keyword}{const} \textcolor{keywordtype}{float}* x) \{ return ::vld1\_f32 ((\textcolor{keyword}{const} float32\_t*)x); \}
+00106 EIGEN\_STRONG\_INLINE float32x2\_t vld1\_dup\_f32 (\textcolor{keyword}{const} \textcolor{keywordtype}{float}* x) \{ return ::vld1\_dup\_f32 ((\textcolor{keyword}{const} float32\_t*)x)
+      ; \}
+00107 EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void}        vst1q\_f32(\textcolor{keywordtype}{float}* to, float32x4\_t from) \{ ::vst1q\_f32((float32\_t*)to,from); 
+      \}
+00108 EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void}        vst1\_f32 (\textcolor{keywordtype}{float}* to, float32x2\_t from) \{ ::vst1\_f32 ((float32\_t*)to,from); 
+      \}
+00109 \textcolor{preprocessor}{#endif}
+00110 
+00111 \textcolor{keyword}{template}<> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{unpacket\_traits}<Packet4f> \{ \textcolor{keyword}{typedef} \textcolor{keywordtype}{float}   type; \textcolor{keyword}{enum} \{size=4, alignment=
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1af8e2bf74b04c02199f62c5e3c06dbfcc}{Aligned16}\}; \textcolor{keyword}{typedef} Packet4f half; \};
+00112 \textcolor{keyword}{template}<> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{unpacket\_traits}<Packet4i> \{ \textcolor{keyword}{typedef} int32\_t type; \textcolor{keyword}{enum} \{size=4, alignment=
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1af8e2bf74b04c02199f62c5e3c06dbfcc}{Aligned16}\}; \textcolor{keyword}{typedef} Packet4i half; \};
+00113 
+00114 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f pset1<Packet4f>(\textcolor{keyword}{const} \textcolor{keywordtype}{float}&  from) \{ \textcolor{keywordflow}{return} vdupq\_n\_f32(from); \}
+00115 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i pset1<Packet4i>(\textcolor{keyword}{const} int32\_t&    from)   \{ \textcolor{keywordflow}{return} vdupq\_n\_s32(from
+      ); \}
+00116 
+00117 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f plset<Packet4f>(\textcolor{keyword}{const} \textcolor{keywordtype}{float}& a)
+00118 \{
+00119   \textcolor{keyword}{const} \textcolor{keywordtype}{float} f[] = \{0, 1, 2, 3\};
+00120   Packet4f countdown = vld1q\_f32(f);
+00121   \textcolor{keywordflow}{return} vaddq\_f32(pset1<Packet4f>(a), countdown);
+00122 \}
+00123 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i plset<Packet4i>(\textcolor{keyword}{const} int32\_t& a)
+00124 \{
+00125   \textcolor{keyword}{const} int32\_t i[] = \{0, 1, 2, 3\};
+00126   Packet4i countdown = vld1q\_s32(i);
+00127   \textcolor{keywordflow}{return} vaddq\_s32(pset1<Packet4i>(a), countdown);
+00128 \}
+00129 
+00130 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f padd<Packet4f>(\textcolor{keyword}{const} Packet4f& a, \textcolor{keyword}{const} Packet4f& b) \{ \textcolor{keywordflow}{return} 
+      vaddq\_f32(a,b); \}
+00131 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i padd<Packet4i>(\textcolor{keyword}{const} Packet4i& a, \textcolor{keyword}{const} Packet4i& b) \{ \textcolor{keywordflow}{return} 
+      vaddq\_s32(a,b); \}
+00132 
+00133 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f psub<Packet4f>(\textcolor{keyword}{const} Packet4f& a, \textcolor{keyword}{const} Packet4f& b) \{ \textcolor{keywordflow}{return} 
+      vsubq\_f32(a,b); \}
+00134 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i psub<Packet4i>(\textcolor{keyword}{const} Packet4i& a, \textcolor{keyword}{const} Packet4i& b) \{ \textcolor{keywordflow}{return} 
+      vsubq\_s32(a,b); \}
+00135 
+00136 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f pnegate(\textcolor{keyword}{const} Packet4f& a) \{ \textcolor{keywordflow}{return} vnegq\_f32(a); \}
+00137 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i pnegate(\textcolor{keyword}{const} Packet4i& a) \{ \textcolor{keywordflow}{return} vnegq\_s32(a); \}
+00138 
+00139 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f pconj(\textcolor{keyword}{const} Packet4f& a) \{ \textcolor{keywordflow}{return} a; \}
+00140 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i pconj(\textcolor{keyword}{const} Packet4i& a) \{ \textcolor{keywordflow}{return} a; \}
+00141 
+00142 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f pmul<Packet4f>(\textcolor{keyword}{const} Packet4f& a, \textcolor{keyword}{const} Packet4f& b) \{ \textcolor{keywordflow}{return} 
+      vmulq\_f32(a,b); \}
+00143 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i pmul<Packet4i>(\textcolor{keyword}{const} Packet4i& a, \textcolor{keyword}{const} Packet4i& b) \{ \textcolor{keywordflow}{return} 
+      vmulq\_s32(a,b); \}
+00144 
+00145 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f pdiv<Packet4f>(\textcolor{keyword}{const} Packet4f& a, \textcolor{keyword}{const} Packet4f& b)
+00146 \{
+00147 \textcolor{preprocessor}{#if EIGEN\_ARCH\_ARM64}
+00148   \textcolor{keywordflow}{return} vdivq\_f32(a,b);
+00149 \textcolor{preprocessor}{#else}
+00150   Packet4f inv, restep, div;
+00151 
+00152   \textcolor{comment}{// NEON does not offer a divide instruction, we have to do a reciprocal approximation}
+00153   \textcolor{comment}{// However NEON in contrast to other SIMD engines (AltiVec/SSE), offers}
+00154   \textcolor{comment}{// a reciprocal estimate AND a reciprocal step -which saves a few instructions}
+00155   \textcolor{comment}{// vrecpeq\_f32() returns an estimate to 1/b, which we will finetune with}
+00156   \textcolor{comment}{// Newton-Raphson and vrecpsq\_f32()}
+00157   inv = vrecpeq\_f32(b);
+00158 
+00159   \textcolor{comment}{// This returns a differential, by which we will have to multiply inv to get a better}
+00160   \textcolor{comment}{// approximation of 1/b.}
+00161   restep = vrecpsq\_f32(b, inv);
+00162   inv = vmulq\_f32(restep, inv);
+00163 
+00164   \textcolor{comment}{// Finally, multiply a by 1/b and get the wanted result of the division.}
+00165   div = vmulq\_f32(a, inv);
+00166 
+00167   \textcolor{keywordflow}{return} div;
+00168 \textcolor{preprocessor}{#endif}
+00169 \}
+00170 
+00171 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i pdiv<Packet4i>(\textcolor{keyword}{const} Packet4i& \textcolor{comment}{/*a*/}, \textcolor{keyword}{const} Packet4i& \textcolor{comment}{/*b*/})
+00172 \{ eigen\_assert(\textcolor{keyword}{false} && \textcolor{stringliteral}{"packet integer division are not supported by NEON"});
+00173   \textcolor{keywordflow}{return} pset1<Packet4i>(0);
+00174 \}
+00175 
+00176 \textcolor{comment}{// Clang/ARM wrongly advertises \_\_ARM\_FEATURE\_FMA even when it's not available,}
+00177 \textcolor{comment}{// then implements a slow software scalar fallback calling fmaf()!}
+00178 \textcolor{comment}{// Filed LLVM bug:}
+00179 \textcolor{comment}{//     https://llvm.org/bugs/show\_bug.cgi?id=27216}
+00180 \textcolor{preprocessor}{#if (defined \_\_ARM\_FEATURE\_FMA) && !(EIGEN\_COMP\_CLANG && EIGEN\_ARCH\_ARM)}
+00181 \textcolor{comment}{// See bug 936.}
+00182 \textcolor{comment}{// FMA is available on VFPv4 i.e. when compiling with -mfpu=neon-vfpv4.}
+00183 \textcolor{comment}{// FMA is a true fused multiply-add i.e. only 1 rounding at the end, no intermediate rounding.}
+00184 \textcolor{comment}{// MLA is not fused i.e. does 2 roundings.}
+00185 \textcolor{comment}{// In addition to giving better accuracy, FMA also gives better performance here on a Krait (Nexus 4):}
+00186 \textcolor{comment}{// MLA: 10 GFlop/s ; FMA: 12 GFlops/s.}
+00187 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f pmadd(\textcolor{keyword}{const} Packet4f& a, \textcolor{keyword}{const} Packet4f& b, \textcolor{keyword}{const} Packet4f& c) \{ \textcolor{keywordflow}{
+      return} vfmaq\_f32(c,a,b); \}
+00188 \textcolor{preprocessor}{#else}
+00189 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f pmadd(\textcolor{keyword}{const} Packet4f& a, \textcolor{keyword}{const} Packet4f& b, \textcolor{keyword}{const} Packet4f& c) \{
+00190 \textcolor{preprocessor}{#if EIGEN\_COMP\_CLANG && EIGEN\_ARCH\_ARM}
+00191   \textcolor{comment}{// Clang/ARM will replace VMLA by VMUL+VADD at least for some values of -mcpu,}
+00192   \textcolor{comment}{// at least -mcpu=cortex-a8 and -mcpu=cortex-a7. Since the former is the default on}
+00193   \textcolor{comment}{// -march=armv7-a, that is a very common case.}
+00194   \textcolor{comment}{// See e.g. this thread:}
+00195   \textcolor{comment}{//     http://lists.llvm.org/pipermail/llvm-dev/2013-December/068806.html}
+00196   \textcolor{comment}{// Filed LLVM bug:}
+00197   \textcolor{comment}{//     https://llvm.org/bugs/show\_bug.cgi?id=27219}
+00198   Packet4f r = c;
+00199   \textcolor{keyword}{asm} \textcolor{keyword}{volatile}(
+00200     \textcolor{stringliteral}{"vmla.f32 %q[r], %q[a], %q[b]"}
+00201     : [r] \textcolor{stringliteral}{"+w"} (r)
+00202     : [a] \textcolor{stringliteral}{"w"} (a),
+00203       [b] \textcolor{stringliteral}{"w"} (b)
+00204     : );
+00205   \textcolor{keywordflow}{return} r;
+00206 \textcolor{preprocessor}{#else}
+00207   \textcolor{keywordflow}{return} vmlaq\_f32(c,a,b);
+00208 \textcolor{preprocessor}{#endif}
+00209 \}
+00210 \textcolor{preprocessor}{#endif}
+00211 
+00212 \textcolor{comment}{// No FMA instruction for int, so use MLA unconditionally.}
+00213 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i pmadd(\textcolor{keyword}{const} Packet4i& a, \textcolor{keyword}{const} Packet4i& b, \textcolor{keyword}{const} Packet4i& c) \{ \textcolor{keywordflow}{
+      return} vmlaq\_s32(c,a,b); \}
+00214 
+00215 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f pmin<Packet4f>(\textcolor{keyword}{const} Packet4f& a, \textcolor{keyword}{const} Packet4f& b) \{ \textcolor{keywordflow}{return} 
+      vminq\_f32(a,b); \}
+00216 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i pmin<Packet4i>(\textcolor{keyword}{const} Packet4i& a, \textcolor{keyword}{const} Packet4i& b) \{ \textcolor{keywordflow}{return} 
+      vminq\_s32(a,b); \}
+00217 
+00218 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f pmax<Packet4f>(\textcolor{keyword}{const} Packet4f& a, \textcolor{keyword}{const} Packet4f& b) \{ \textcolor{keywordflow}{return} 
+      vmaxq\_f32(a,b); \}
+00219 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i pmax<Packet4i>(\textcolor{keyword}{const} Packet4i& a, \textcolor{keyword}{const} Packet4i& b) \{ \textcolor{keywordflow}{return} 
+      vmaxq\_s32(a,b); \}
+00220 
+00221 \textcolor{comment}{// Logical Operations are not supported for float, so we have to reinterpret casts using NEON intrinsics}
+00222 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f pand<Packet4f>(\textcolor{keyword}{const} Packet4f& a, \textcolor{keyword}{const} Packet4f& b)
+00223 \{
+00224   \textcolor{keywordflow}{return} vreinterpretq\_f32\_u32(vandq\_u32(vreinterpretq\_u32\_f32(a),vreinterpretq\_u32\_f32(b)));
+00225 \}
+00226 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i pand<Packet4i>(\textcolor{keyword}{const} Packet4i& a, \textcolor{keyword}{const} Packet4i& b) \{ \textcolor{keywordflow}{return} 
+      vandq\_s32(a,b); \}
+00227 
+00228 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f por<Packet4f>(\textcolor{keyword}{const} Packet4f& a, \textcolor{keyword}{const} Packet4f& b)
+00229 \{
+00230   \textcolor{keywordflow}{return} vreinterpretq\_f32\_u32(vorrq\_u32(vreinterpretq\_u32\_f32(a),vreinterpretq\_u32\_f32(b)));
+00231 \}
+00232 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i por<Packet4i>(\textcolor{keyword}{const} Packet4i& a, \textcolor{keyword}{const} Packet4i& b) \{ \textcolor{keywordflow}{return} 
+      vorrq\_s32(a,b); \}
+00233 
+00234 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f pxor<Packet4f>(\textcolor{keyword}{const} Packet4f& a, \textcolor{keyword}{const} Packet4f& b)
+00235 \{
+00236   \textcolor{keywordflow}{return} vreinterpretq\_f32\_u32(veorq\_u32(vreinterpretq\_u32\_f32(a),vreinterpretq\_u32\_f32(b)));
+00237 \}
+00238 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i pxor<Packet4i>(\textcolor{keyword}{const} Packet4i& a, \textcolor{keyword}{const} Packet4i& b) \{ \textcolor{keywordflow}{return} 
+      veorq\_s32(a,b); \}
+00239 
+00240 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f pandnot<Packet4f>(\textcolor{keyword}{const} Packet4f& a, \textcolor{keyword}{const} Packet4f& b)
+00241 \{
+00242   \textcolor{keywordflow}{return} vreinterpretq\_f32\_u32(vbicq\_u32(vreinterpretq\_u32\_f32(a),vreinterpretq\_u32\_f32(b)));
+00243 \}
+00244 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i pandnot<Packet4i>(\textcolor{keyword}{const} Packet4i& a, \textcolor{keyword}{const} Packet4i& b) \{ \textcolor{keywordflow}{return} 
+      vbicq\_s32(a,b); \}
+00245 
+00246 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f pload<Packet4f>(\textcolor{keyword}{const} \textcolor{keywordtype}{float}*    from) \{ EIGEN\_DEBUG\_ALIGNED\_LOAD \textcolor{keywordflow}{
+      return} vld1q\_f32(from); \}
+00247 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i pload<Packet4i>(\textcolor{keyword}{const} int32\_t*  from) \{ EIGEN\_DEBUG\_ALIGNED\_LOAD \textcolor{keywordflow}{
+      return} vld1q\_s32(from); \}
+00248 
+00249 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f ploadu<Packet4f>(\textcolor{keyword}{const} \textcolor{keywordtype}{float}*   from) \{ EIGEN\_DEBUG\_UNALIGNED\_LOAD \textcolor{keywordflow}{
+      return} vld1q\_f32(from); \}
+00250 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i ploadu<Packet4i>(\textcolor{keyword}{const} int32\_t* from) \{ EIGEN\_DEBUG\_UNALIGNED\_LOAD \textcolor{keywordflow}{
+      return} vld1q\_s32(from); \}
+00251 
+00252 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f ploaddup<Packet4f>(\textcolor{keyword}{const} \textcolor{keywordtype}{float}* from)
+00253 \{
+00254   float32x2\_t lo, hi;
+00255   lo = vld1\_dup\_f32(from);
+00256   hi = vld1\_dup\_f32(from+1);
+00257   \textcolor{keywordflow}{return} vcombine\_f32(lo, hi);
+00258 \}
+00259 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i ploaddup<Packet4i>(\textcolor{keyword}{const} int32\_t* from)
+00260 \{
+00261   int32x2\_t lo, hi;
+00262   lo = vld1\_dup\_s32(from);
+00263   hi = vld1\_dup\_s32(from+1);
+00264   \textcolor{keywordflow}{return} vcombine\_s32(lo, hi);
+00265 \}
+00266 
+00267 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} pstore<float>  (\textcolor{keywordtype}{float}*    to, \textcolor{keyword}{const} Packet4f& from) \{ 
+      EIGEN\_DEBUG\_ALIGNED\_STORE vst1q\_f32(to, from); \}
+00268 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} pstore<int32\_t>(int32\_t*  to, \textcolor{keyword}{const} Packet4i& from) \{ 
+      EIGEN\_DEBUG\_ALIGNED\_STORE vst1q\_s32(to, from); \}
+00269 
+00270 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} pstoreu<float>  (\textcolor{keywordtype}{float}*   to, \textcolor{keyword}{const} Packet4f& from) \{ 
+      EIGEN\_DEBUG\_UNALIGNED\_STORE vst1q\_f32(to, from); \}
+00271 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} pstoreu<int32\_t>(int32\_t* to, \textcolor{keyword}{const} Packet4i& from) \{ 
+      EIGEN\_DEBUG\_UNALIGNED\_STORE vst1q\_s32(to, from); \}
+00272 
+00273 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} Packet4f pgather<float, Packet4f>(\textcolor{keyword}{const} \textcolor{keywordtype}{float}* from, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} stride)
+00274 \{
+00275   Packet4f res = pset1<Packet4f>(0.f);
+00276   res = vsetq\_lane\_f32(from[0*stride], res, 0);
+00277   res = vsetq\_lane\_f32(from[1*stride], res, 1);
+00278   res = vsetq\_lane\_f32(from[2*stride], res, 2);
+00279   res = vsetq\_lane\_f32(from[3*stride], res, 3);
+00280   \textcolor{keywordflow}{return} res;
+00281 \}
+00282 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} Packet4i pgather<int32\_t, Packet4i>(\textcolor{keyword}{const} int32\_t* from, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} stride)
+00283 \{
+00284   Packet4i res = pset1<Packet4i>(0);
+00285   res = vsetq\_lane\_s32(from[0*stride], res, 0);
+00286   res = vsetq\_lane\_s32(from[1*stride], res, 1);
+00287   res = vsetq\_lane\_s32(from[2*stride], res, 2);
+00288   res = vsetq\_lane\_s32(from[3*stride], res, 3);
+00289   \textcolor{keywordflow}{return} res;
+00290 \}
+00291 
+00292 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keywordtype}{void} pscatter<float, Packet4f>(\textcolor{keywordtype}{float}* to, \textcolor{keyword}{const} Packet4f& from, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} stride)
+00293 \{
+00294   to[stride*0] = vgetq\_lane\_f32(from, 0);
+00295   to[stride*1] = vgetq\_lane\_f32(from, 1);
+00296   to[stride*2] = vgetq\_lane\_f32(from, 2);
+00297   to[stride*3] = vgetq\_lane\_f32(from, 3);
+00298 \}
+00299 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keywordtype}{void} pscatter<int32\_t, Packet4i>(int32\_t* to, \textcolor{keyword}{const} Packet4i& from, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} stride)
+00300 \{
+00301   to[stride*0] = vgetq\_lane\_s32(from, 0);
+00302   to[stride*1] = vgetq\_lane\_s32(from, 1);
+00303   to[stride*2] = vgetq\_lane\_s32(from, 2);
+00304   to[stride*3] = vgetq\_lane\_s32(from, 3);
+00305 \}
+00306 
+00307 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} prefetch<float>  (\textcolor{keyword}{const} \textcolor{keywordtype}{float}*    addr) \{ EIGEN\_ARM\_PREFETCH(addr); \}
+00308 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} prefetch<int32\_t>(\textcolor{keyword}{const} int32\_t*  addr) \{ EIGEN\_ARM\_PREFETCH(addr); \}
+00309 
+00310 \textcolor{comment}{// FIXME only store the 2 first elements ?}
+00311 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{float}   pfirst<Packet4f>(\textcolor{keyword}{const} Packet4f& a) \{ \textcolor{keywordtype}{float}   EIGEN\_ALIGN16 x[4]; 
+      vst1q\_f32(x, a); \textcolor{keywordflow}{return} x[0]; \}
+00312 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE int32\_t pfirst<Packet4i>(\textcolor{keyword}{const} Packet4i& a) \{ int32\_t EIGEN\_ALIGN16 x[4]; 
+      vst1q\_s32(x, a); \textcolor{keywordflow}{return} x[0]; \}
+00313 
+00314 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f preverse(\textcolor{keyword}{const} Packet4f& a) \{
+00315   float32x2\_t a\_lo, a\_hi;
+00316   Packet4f a\_r64;
+00317 
+00318   a\_r64 = vrev64q\_f32(a);
+00319   a\_lo = vget\_low\_f32(a\_r64);
+00320   a\_hi = vget\_high\_f32(a\_r64);
+00321   \textcolor{keywordflow}{return} vcombine\_f32(a\_hi, a\_lo);
+00322 \}
+00323 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i preverse(\textcolor{keyword}{const} Packet4i& a) \{
+00324   int32x2\_t a\_lo, a\_hi;
+00325   Packet4i a\_r64;
+00326 
+00327   a\_r64 = vrev64q\_s32(a);
+00328   a\_lo = vget\_low\_s32(a\_r64);
+00329   a\_hi = vget\_high\_s32(a\_r64);
+00330   \textcolor{keywordflow}{return} vcombine\_s32(a\_hi, a\_lo);
+00331 \}
+00332 
+00333 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f pabs(\textcolor{keyword}{const} Packet4f& a) \{ \textcolor{keywordflow}{return} vabsq\_f32(a); \}
+00334 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i pabs(\textcolor{keyword}{const} Packet4i& a) \{ \textcolor{keywordflow}{return} vabsq\_s32(a); \}
+00335 
+00336 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{float} predux<Packet4f>(\textcolor{keyword}{const} Packet4f& a)
+00337 \{
+00338   float32x2\_t a\_lo, a\_hi, sum;
+00339 
+00340   a\_lo = vget\_low\_f32(a);
+00341   a\_hi = vget\_high\_f32(a);
+00342   sum = vpadd\_f32(a\_lo, a\_hi);
+00343   sum = vpadd\_f32(sum, sum);
+00344   \textcolor{keywordflow}{return} vget\_lane\_f32(sum, 0);
+00345 \}
+00346 
+00347 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4f preduxp<Packet4f>(\textcolor{keyword}{const} Packet4f* vecs)
+00348 \{
+00349   float32x4x2\_t vtrn1, vtrn2, res1, res2;
+00350   Packet4f sum1, sum2, sum;
+00351 
+00352   \textcolor{comment}{// NEON zip performs interleaving of the supplied vectors.}
+00353   \textcolor{comment}{// We perform two interleaves in a row to acquire the transposed vector}
+00354   vtrn1 = vzipq\_f32(vecs[0], vecs[2]);
+00355   vtrn2 = vzipq\_f32(vecs[1], vecs[3]);
+00356   res1 = vzipq\_f32(vtrn1.val[0], vtrn2.val[0]);
+00357   res2 = vzipq\_f32(vtrn1.val[1], vtrn2.val[1]);
+00358 
+00359   \textcolor{comment}{// Do the addition of the resulting vectors}
+00360   sum1 = vaddq\_f32(res1.val[0], res1.val[1]);
+00361   sum2 = vaddq\_f32(res2.val[0], res2.val[1]);
+00362   sum = vaddq\_f32(sum1, sum2);
+00363 
+00364   \textcolor{keywordflow}{return} sum;
+00365 \}
+00366 
+00367 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE int32\_t predux<Packet4i>(\textcolor{keyword}{const} Packet4i& a)
+00368 \{
+00369   int32x2\_t a\_lo, a\_hi, sum;
+00370 
+00371   a\_lo = vget\_low\_s32(a);
+00372   a\_hi = vget\_high\_s32(a);
+00373   sum = vpadd\_s32(a\_lo, a\_hi);
+00374   sum = vpadd\_s32(sum, sum);
+00375   \textcolor{keywordflow}{return} vget\_lane\_s32(sum, 0);
+00376 \}
+00377 
+00378 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet4i preduxp<Packet4i>(\textcolor{keyword}{const} Packet4i* vecs)
+00379 \{
+00380   int32x4x2\_t vtrn1, vtrn2, res1, res2;
+00381   Packet4i sum1, sum2, sum;
+00382 
+00383   \textcolor{comment}{// NEON zip performs interleaving of the supplied vectors.}
+00384   \textcolor{comment}{// We perform two interleaves in a row to acquire the transposed vector}
+00385   vtrn1 = vzipq\_s32(vecs[0], vecs[2]);
+00386   vtrn2 = vzipq\_s32(vecs[1], vecs[3]);
+00387   res1 = vzipq\_s32(vtrn1.val[0], vtrn2.val[0]);
+00388   res2 = vzipq\_s32(vtrn1.val[1], vtrn2.val[1]);
+00389 
+00390   \textcolor{comment}{// Do the addition of the resulting vectors}
+00391   sum1 = vaddq\_s32(res1.val[0], res1.val[1]);
+00392   sum2 = vaddq\_s32(res2.val[0], res2.val[1]);
+00393   sum = vaddq\_s32(sum1, sum2);
+00394 
+00395   \textcolor{keywordflow}{return} sum;
+00396 \}
+00397 
+00398 \textcolor{comment}{// Other reduction functions:}
+00399 \textcolor{comment}{// mul}
+00400 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{float} predux\_mul<Packet4f>(\textcolor{keyword}{const} Packet4f& a)
+00401 \{
+00402   float32x2\_t a\_lo, a\_hi, prod;
+00403 
+00404   \textcolor{comment}{// Get a\_lo = |a1|a2| and a\_hi = |a3|a4|}
+00405   a\_lo = vget\_low\_f32(a);
+00406   a\_hi = vget\_high\_f32(a);
+00407   \textcolor{comment}{// Get the product of a\_lo * a\_hi -> |a1*a3|a2*a4|}
+00408   prod = vmul\_f32(a\_lo, a\_hi);
+00409   \textcolor{comment}{// Multiply prod with its swapped value |a2*a4|a1*a3|}
+00410   prod = vmul\_f32(prod, vrev64\_f32(prod));
+00411 
+00412   \textcolor{keywordflow}{return} vget\_lane\_f32(prod, 0);
+00413 \}
+00414 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE int32\_t predux\_mul<Packet4i>(\textcolor{keyword}{const} Packet4i& a)
+00415 \{
+00416   int32x2\_t a\_lo, a\_hi, prod;
+00417 
+00418   \textcolor{comment}{// Get a\_lo = |a1|a2| and a\_hi = |a3|a4|}
+00419   a\_lo = vget\_low\_s32(a);
+00420   a\_hi = vget\_high\_s32(a);
+00421   \textcolor{comment}{// Get the product of a\_lo * a\_hi -> |a1*a3|a2*a4|}
+00422   prod = vmul\_s32(a\_lo, a\_hi);
+00423   \textcolor{comment}{// Multiply prod with its swapped value |a2*a4|a1*a3|}
+00424   prod = vmul\_s32(prod, vrev64\_s32(prod));
+00425 
+00426   \textcolor{keywordflow}{return} vget\_lane\_s32(prod, 0);
+00427 \}
+00428 
+00429 \textcolor{comment}{// min}
+00430 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{float} predux\_min<Packet4f>(\textcolor{keyword}{const} Packet4f& a)
+00431 \{
+00432   float32x2\_t a\_lo, a\_hi, min;
+00433 
+00434   a\_lo = vget\_low\_f32(a);
+00435   a\_hi = vget\_high\_f32(a);
+00436   min = vpmin\_f32(a\_lo, a\_hi);
+00437   min = vpmin\_f32(min, min);
+00438 
+00439   \textcolor{keywordflow}{return} vget\_lane\_f32(min, 0);
+00440 \}
+00441 
+00442 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE int32\_t predux\_min<Packet4i>(\textcolor{keyword}{const} Packet4i& a)
+00443 \{
+00444   int32x2\_t a\_lo, a\_hi, min;
+00445 
+00446   a\_lo = vget\_low\_s32(a);
+00447   a\_hi = vget\_high\_s32(a);
+00448   min = vpmin\_s32(a\_lo, a\_hi);
+00449   min = vpmin\_s32(min, min);
+00450   
+00451   \textcolor{keywordflow}{return} vget\_lane\_s32(min, 0);
+00452 \}
+00453 
+00454 \textcolor{comment}{// max}
+00455 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{float} predux\_max<Packet4f>(\textcolor{keyword}{const} Packet4f& a)
+00456 \{
+00457   float32x2\_t a\_lo, a\_hi, max;
+00458 
+00459   a\_lo = vget\_low\_f32(a);
+00460   a\_hi = vget\_high\_f32(a);
+00461   max = vpmax\_f32(a\_lo, a\_hi);
+00462   max = vpmax\_f32(max, max);
+00463 
+00464   \textcolor{keywordflow}{return} vget\_lane\_f32(max, 0);
+00465 \}
+00466 
+00467 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE int32\_t predux\_max<Packet4i>(\textcolor{keyword}{const} Packet4i& a)
+00468 \{
+00469   int32x2\_t a\_lo, a\_hi, max;
+00470 
+00471   a\_lo = vget\_low\_s32(a);
+00472   a\_hi = vget\_high\_s32(a);
+00473   max = vpmax\_s32(a\_lo, a\_hi);
+00474   max = vpmax\_s32(max, max);
+00475 
+00476   \textcolor{keywordflow}{return} vget\_lane\_s32(max, 0);
+00477 \}
+00478 
+00479 \textcolor{comment}{// this PALIGN\_NEON business is to work around a bug in LLVM Clang 3.0 causing incorrect compilation
+       errors,}
+00480 \textcolor{comment}{// see bug 347 and this LLVM bug: http://llvm.org/bugs/show\_bug.cgi?id=11074}
+00481 \textcolor{preprocessor}{#define PALIGN\_NEON(Offset,Type,Command) \(\backslash\)}
+00482 \textcolor{preprocessor}{template<>\(\backslash\)}
+00483 \textcolor{preprocessor}{struct palign\_impl<Offset,Type>\(\backslash\)}
+00484 \textcolor{preprocessor}{\{\(\backslash\)}
+00485 \textcolor{preprocessor}{    EIGEN\_STRONG\_INLINE static void run(Type& first, const Type& second)\(\backslash\)}
+00486 \textcolor{preprocessor}{    \{\(\backslash\)}
+00487 \textcolor{preprocessor}{        if (Offset!=0)\(\backslash\)}
+00488 \textcolor{preprocessor}{            first = Command(first, second, Offset);\(\backslash\)}
+00489 \textcolor{preprocessor}{    \}\(\backslash\)}
+00490 \textcolor{preprocessor}{\};\(\backslash\)}
+00491 \textcolor{preprocessor}{}
+00492 PALIGN\_NEON(0,Packet4f,vextq\_f32)
+00493 PALIGN\_NEON(1,Packet4f,vextq\_f32)
+00494 PALIGN\_NEON(2,Packet4f,vextq\_f32)
+00495 PALIGN\_NEON(3,Packet4f,vextq\_f32)
+00496 PALIGN\_NEON(0,Packet4i,vextq\_s32)
+00497 PALIGN\_NEON(1,Packet4i,vextq\_s32)
+00498 PALIGN\_NEON(2,Packet4i,vextq\_s32)
+00499 PALIGN\_NEON(3,Packet4i,vextq\_s32)
+00500 
+00501 \textcolor{preprocessor}{#undef PALIGN\_NEON}
+00502 
+00503 EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keywordtype}{void}
+00504 ptranspose(\hyperlink{struct_eigen_1_1internal_1_1_packet_block}{PacketBlock<Packet4f,4>}& kernel) \{
+00505   float32x4x2\_t tmp1 = vzipq\_f32(kernel.packet[0], kernel.packet[1]);
+00506   float32x4x2\_t tmp2 = vzipq\_f32(kernel.packet[2], kernel.packet[3]);
+00507 
+00508   kernel.packet[0] = vcombine\_f32(vget\_low\_f32(tmp1.val[0]), vget\_low\_f32(tmp2.val[0]));
+00509   kernel.packet[1] = vcombine\_f32(vget\_high\_f32(tmp1.val[0]), vget\_high\_f32(tmp2.val[0]));
+00510   kernel.packet[2] = vcombine\_f32(vget\_low\_f32(tmp1.val[1]), vget\_low\_f32(tmp2.val[1]));
+00511   kernel.packet[3] = vcombine\_f32(vget\_high\_f32(tmp1.val[1]), vget\_high\_f32(tmp2.val[1]));
+00512 \}
+00513 
+00514 EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keywordtype}{void}
+00515 ptranspose(\hyperlink{struct_eigen_1_1internal_1_1_packet_block}{PacketBlock<Packet4i,4>}& kernel) \{
+00516   int32x4x2\_t tmp1 = vzipq\_s32(kernel.packet[0], kernel.packet[1]);
+00517   int32x4x2\_t tmp2 = vzipq\_s32(kernel.packet[2], kernel.packet[3]);
+00518   kernel.packet[0] = vcombine\_s32(vget\_low\_s32(tmp1.val[0]), vget\_low\_s32(tmp2.val[0]));
+00519   kernel.packet[1] = vcombine\_s32(vget\_high\_s32(tmp1.val[0]), vget\_high\_s32(tmp2.val[0]));
+00520   kernel.packet[2] = vcombine\_s32(vget\_low\_s32(tmp1.val[1]), vget\_low\_s32(tmp2.val[1]));
+00521   kernel.packet[3] = vcombine\_s32(vget\_high\_s32(tmp1.val[1]), vget\_high\_s32(tmp2.val[1]));
+00522 \}
+00523 
+00524 \textcolor{comment}{//---------- double ----------}
+00525 
+00526 \textcolor{comment}{// Clang 3.5 in the iOS toolchain has an ICE triggered by NEON intrisics for double.}
+00527 \textcolor{comment}{// Confirmed at least with \_\_apple\_build\_version\_\_ = 6000054.}
+00528 \textcolor{preprocessor}{#ifdef \_\_apple\_build\_version\_\_}
+00529 \textcolor{comment}{// Let's hope that by the time \_\_apple\_build\_version\_\_ hits the 601* range, the bug will be fixed.}
+00530 \textcolor{comment}{// https://gist.github.com/yamaya/2924292 suggests that the 3 first digits are only updated with}
+00531 \textcolor{comment}{// major toolchain updates.}
+00532 \textcolor{preprocessor}{#define EIGEN\_APPLE\_DOUBLE\_NEON\_BUG (\_\_apple\_build\_version\_\_ < 6010000)}
+00533 \textcolor{preprocessor}{#else}
+00534 \textcolor{preprocessor}{#define EIGEN\_APPLE\_DOUBLE\_NEON\_BUG 0}
+00535 \textcolor{preprocessor}{#endif}
+00536 
+00537 \textcolor{preprocessor}{#if EIGEN\_ARCH\_ARM64 && !EIGEN\_APPLE\_DOUBLE\_NEON\_BUG}
+00538 
+00539 \textcolor{comment}{// Bug 907: workaround missing declarations of the following two functions in the ADK}
+00540 \textcolor{comment}{// Defining these functions as templates ensures that if these intrinsics are}
+00541 \textcolor{comment}{// already defined in arm\_neon.h, then our workaround doesn't cause a conflict}
+00542 \textcolor{comment}{// and has lower priority in overload resolution.}
+00543 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00544 uint64x2\_t vreinterpretq\_u64\_f64(\hyperlink{group___sparse_core___module}{T} a)
+00545 \{
+00546   \textcolor{keywordflow}{return} (uint64x2\_t) a;
+00547 \}
+00548 
+00549 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00550 float64x2\_t vreinterpretq\_f64\_u64(\hyperlink{group___sparse_core___module}{T} a)
+00551 \{
+00552   \textcolor{keywordflow}{return} (float64x2\_t) a;
+00553 \}
+00554 
+00555 \textcolor{keyword}{typedef} float64x2\_t Packet2d;
+00556 \textcolor{keyword}{typedef} float64x1\_t Packet1d;
+00557 
+00558 \textcolor{keyword}{template}<> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1packet__traits}{packet\_traits}<double>  : \hyperlink{struct_eigen_1_1internal_1_1default__packet__traits}{default\_packet\_traits}
+00559 \{
+00560   \textcolor{keyword}{typedef} Packet2d type;
+00561   \textcolor{keyword}{typedef} Packet2d half;
+00562   \textcolor{keyword}{enum} \{
+00563     Vectorizable = 1,
+00564     AlignedOnScalar = 1,
+00565     size = 2,
+00566     HasHalfPacket=0,
+00567    
+00568     HasDiv  = 1,
+00569     \textcolor{comment}{// FIXME check the Has*}
+00570     HasSin  = 0,
+00571     HasCos  = 0,
+00572     HasLog  = 0,
+00573     HasExp  = 0,
+00574     HasSqrt = 0
+00575   \};
+00576 \};
+00577 
+00578 \textcolor{keyword}{template}<> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1unpacket__traits}{unpacket\_traits}<Packet2d> \{ \textcolor{keyword}{typedef} \textcolor{keywordtype}{double}  type; \textcolor{keyword}{enum} \{size=2, alignment=
+      \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1af8e2bf74b04c02199f62c5e3c06dbfcc}{Aligned16}\}; \textcolor{keyword}{typedef} Packet2d half; \};
+00579 
+00580 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d pset1<Packet2d>(\textcolor{keyword}{const} \textcolor{keywordtype}{double}&  from) \{ \textcolor{keywordflow}{return} vdupq\_n\_f64(from); \}
+00581 
+00582 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d plset<Packet2d>(\textcolor{keyword}{const} \textcolor{keywordtype}{double}& a)
+00583 \{
+00584   \textcolor{keyword}{const} \textcolor{keywordtype}{double} countdown\_raw[] = \{0.0,1.0\};
+00585   \textcolor{keyword}{const} Packet2d countdown = vld1q\_f64(countdown\_raw);
+00586   \textcolor{keywordflow}{return} vaddq\_f64(pset1<Packet2d>(a), countdown);
+00587 \}
+00588 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d padd<Packet2d>(\textcolor{keyword}{const} Packet2d& a, \textcolor{keyword}{const} Packet2d& b) \{ \textcolor{keywordflow}{return} 
+      vaddq\_f64(a,b); \}
+00589 
+00590 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d psub<Packet2d>(\textcolor{keyword}{const} Packet2d& a, \textcolor{keyword}{const} Packet2d& b) \{ \textcolor{keywordflow}{return} 
+      vsubq\_f64(a,b); \}
+00591 
+00592 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d pnegate(\textcolor{keyword}{const} Packet2d& a) \{ \textcolor{keywordflow}{return} vnegq\_f64(a); \}
+00593 
+00594 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d pconj(\textcolor{keyword}{const} Packet2d& a) \{ \textcolor{keywordflow}{return} a; \}
+00595 
+00596 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d pmul<Packet2d>(\textcolor{keyword}{const} Packet2d& a, \textcolor{keyword}{const} Packet2d& b) \{ \textcolor{keywordflow}{return} 
+      vmulq\_f64(a,b); \}
+00597 
+00598 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d pdiv<Packet2d>(\textcolor{keyword}{const} Packet2d& a, \textcolor{keyword}{const} Packet2d& b) \{ \textcolor{keywordflow}{return} 
+      vdivq\_f64(a,b); \}
+00599 
+00600 \textcolor{preprocessor}{#ifdef \_\_ARM\_FEATURE\_FMA}
+00601 \textcolor{comment}{// See bug 936. See above comment about FMA for float.}
+00602 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d pmadd(\textcolor{keyword}{const} Packet2d& a, \textcolor{keyword}{const} Packet2d& b, \textcolor{keyword}{const} Packet2d& c) \{ \textcolor{keywordflow}{
+      return} vfmaq\_f64(c,a,b); \}
+00603 \textcolor{preprocessor}{#else}
+00604 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d pmadd(\textcolor{keyword}{const} Packet2d& a, \textcolor{keyword}{const} Packet2d& b, \textcolor{keyword}{const} Packet2d& c) \{ \textcolor{keywordflow}{
+      return} vmlaq\_f64(c,a,b); \}
+00605 \textcolor{preprocessor}{#endif}
+00606 
+00607 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d pmin<Packet2d>(\textcolor{keyword}{const} Packet2d& a, \textcolor{keyword}{const} Packet2d& b) \{ \textcolor{keywordflow}{return} 
+      vminq\_f64(a,b); \}
+00608 
+00609 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d pmax<Packet2d>(\textcolor{keyword}{const} Packet2d& a, \textcolor{keyword}{const} Packet2d& b) \{ \textcolor{keywordflow}{return} 
+      vmaxq\_f64(a,b); \}
+00610 
+00611 \textcolor{comment}{// Logical Operations are not supported for float, so we have to reinterpret casts using NEON intrinsics}
+00612 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d pand<Packet2d>(\textcolor{keyword}{const} Packet2d& a, \textcolor{keyword}{const} Packet2d& b)
+00613 \{
+00614   \textcolor{keywordflow}{return} vreinterpretq\_f64\_u64(vandq\_u64(vreinterpretq\_u64\_f64(a),vreinterpretq\_u64\_f64(b)));
+00615 \}
+00616 
+00617 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d por<Packet2d>(\textcolor{keyword}{const} Packet2d& a, \textcolor{keyword}{const} Packet2d& b)
+00618 \{
+00619   \textcolor{keywordflow}{return} vreinterpretq\_f64\_u64(vorrq\_u64(vreinterpretq\_u64\_f64(a),vreinterpretq\_u64\_f64(b)));
+00620 \}
+00621 
+00622 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d pxor<Packet2d>(\textcolor{keyword}{const} Packet2d& a, \textcolor{keyword}{const} Packet2d& b)
+00623 \{
+00624   \textcolor{keywordflow}{return} vreinterpretq\_f64\_u64(veorq\_u64(vreinterpretq\_u64\_f64(a),vreinterpretq\_u64\_f64(b)));
+00625 \}
+00626 
+00627 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d pandnot<Packet2d>(\textcolor{keyword}{const} Packet2d& a, \textcolor{keyword}{const} Packet2d& b)
+00628 \{
+00629   \textcolor{keywordflow}{return} vreinterpretq\_f64\_u64(vbicq\_u64(vreinterpretq\_u64\_f64(a),vreinterpretq\_u64\_f64(b)));
+00630 \}
+00631 
+00632 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d pload<Packet2d>(\textcolor{keyword}{const} \textcolor{keywordtype}{double}* from) \{ EIGEN\_DEBUG\_ALIGNED\_LOAD \textcolor{keywordflow}{
+      return} vld1q\_f64(from); \}
+00633 
+00634 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d ploadu<Packet2d>(\textcolor{keyword}{const} \textcolor{keywordtype}{double}* from) \{ EIGEN\_DEBUG\_UNALIGNED\_LOAD \textcolor{keywordflow}{
+      return} vld1q\_f64(from); \}
+00635 
+00636 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d ploaddup<Packet2d>(\textcolor{keyword}{const} \textcolor{keywordtype}{double}*   from)
+00637 \{
+00638   \textcolor{keywordflow}{return} vld1q\_dup\_f64(from);
+00639 \}
+00640 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} pstore<double>(\textcolor{keywordtype}{double}*   to, \textcolor{keyword}{const} Packet2d& from) \{ 
+      EIGEN\_DEBUG\_ALIGNED\_STORE vst1q\_f64(to, from); \}
+00641 
+00642 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} pstoreu<double>(\textcolor{keywordtype}{double}*  to, \textcolor{keyword}{const} Packet2d& from) \{ 
+      EIGEN\_DEBUG\_UNALIGNED\_STORE vst1q\_f64(to, from); \}
+00643 
+00644 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} Packet2d pgather<double, Packet2d>(\textcolor{keyword}{const} \textcolor{keywordtype}{double}* from, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} stride)
+00645 \{
+00646   Packet2d res = pset1<Packet2d>(0.0);
+00647   res = vsetq\_lane\_f64(from[0*stride], res, 0);
+00648   res = vsetq\_lane\_f64(from[1*stride], res, 1);
+00649   \textcolor{keywordflow}{return} res;
+00650 \}
+00651 \textcolor{keyword}{template}<> EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keywordtype}{void} pscatter<double, Packet2d>(\textcolor{keywordtype}{double}* to, \textcolor{keyword}{const} Packet2d& from, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} stride)
+00652 \{
+00653   to[stride*0] = vgetq\_lane\_f64(from, 0);
+00654   to[stride*1] = vgetq\_lane\_f64(from, 1);
+00655 \}
+00656 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} prefetch<double>(\textcolor{keyword}{const} \textcolor{keywordtype}{double}* addr) \{ EIGEN\_ARM\_PREFETCH(addr); \}
+00657 
+00658 \textcolor{comment}{// FIXME only store the 2 first elements ?}
+00659 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{double} pfirst<Packet2d>(\textcolor{keyword}{const} Packet2d& a) \{ \textcolor{keywordflow}{return} vgetq\_lane\_f64(a, 0); \}
+00660 
+00661 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d preverse(\textcolor{keyword}{const} Packet2d& a) \{ \textcolor{keywordflow}{return} vcombine\_f64(vget\_high\_f64(a),
+       vget\_low\_f64(a)); \}
+00662 
+00663 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d pabs(\textcolor{keyword}{const} Packet2d& a) \{ \textcolor{keywordflow}{return} vabsq\_f64(a); \}
+00664 
+00665 \textcolor{preprocessor}{#if EIGEN\_COMP\_CLANG && defined(\_\_apple\_build\_version\_\_)}
+00666 \textcolor{comment}{// workaround ICE, see bug 907}
+00667 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{double} predux<Packet2d>(\textcolor{keyword}{const} Packet2d& a) \{ \textcolor{keywordflow}{return} (vget\_low\_f64(a) + 
+      vget\_high\_f64(a))[0]; \}
+00668 \textcolor{preprocessor}{#else}
+00669 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{double} predux<Packet2d>(\textcolor{keyword}{const} Packet2d& a) \{ \textcolor{keywordflow}{return} vget\_lane\_f64(
+      vget\_low\_f64(a) + vget\_high\_f64(a), 0); \}
+00670 \textcolor{preprocessor}{#endif}
+00671 
+00672 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE Packet2d preduxp<Packet2d>(\textcolor{keyword}{const} Packet2d* vecs)
+00673 \{
+00674   float64x2\_t trn1, trn2;
+00675 
+00676   \textcolor{comment}{// NEON zip performs interleaving of the supplied vectors.}
+00677   \textcolor{comment}{// We perform two interleaves in a row to acquire the transposed vector}
+00678   trn1 = vzip1q\_f64(vecs[0], vecs[1]);
+00679   trn2 = vzip2q\_f64(vecs[0], vecs[1]);
+00680 
+00681   \textcolor{comment}{// Do the addition of the resulting vectors}
+00682   \textcolor{keywordflow}{return} vaddq\_f64(trn1, trn2);
+00683 \}
+00684 \textcolor{comment}{// Other reduction functions:}
+00685 \textcolor{comment}{// mul}
+00686 \textcolor{preprocessor}{#if EIGEN\_COMP\_CLANG && defined(\_\_apple\_build\_version\_\_)}
+00687 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{double} predux\_mul<Packet2d>(\textcolor{keyword}{const} Packet2d& a) \{ \textcolor{keywordflow}{return} (vget\_low\_f64(a) * 
+      vget\_high\_f64(a))[0]; \}
+00688 \textcolor{preprocessor}{#else}
+00689 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{double} predux\_mul<Packet2d>(\textcolor{keyword}{const} Packet2d& a) \{ \textcolor{keywordflow}{return} vget\_lane\_f64(
+      vget\_low\_f64(a) * vget\_high\_f64(a), 0); \}
+00690 \textcolor{preprocessor}{#endif}
+00691 
+00692 \textcolor{comment}{// min}
+00693 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{double} predux\_min<Packet2d>(\textcolor{keyword}{const} Packet2d& a) \{ \textcolor{keywordflow}{return} vgetq\_lane\_f64(
+      vpminq\_f64(a, a), 0); \}
+00694 
+00695 \textcolor{comment}{// max}
+00696 \textcolor{keyword}{template}<> EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{double} predux\_max<Packet2d>(\textcolor{keyword}{const} Packet2d& a) \{ \textcolor{keywordflow}{return} vgetq\_lane\_f64(
+      vpmaxq\_f64(a, a), 0); \}
+00697 
+00698 \textcolor{comment}{// this PALIGN\_NEON business is to work around a bug in LLVM Clang 3.0 causing incorrect compilation
+       errors,}
+00699 \textcolor{comment}{// see bug 347 and this LLVM bug: http://llvm.org/bugs/show\_bug.cgi?id=11074}
+00700 \textcolor{preprocessor}{#define PALIGN\_NEON(Offset,Type,Command) \(\backslash\)}
+00701 \textcolor{preprocessor}{template<>\(\backslash\)}
+00702 \textcolor{preprocessor}{struct palign\_impl<Offset,Type>\(\backslash\)}
+00703 \textcolor{preprocessor}{\{\(\backslash\)}
+00704 \textcolor{preprocessor}{    EIGEN\_STRONG\_INLINE static void run(Type& first, const Type& second)\(\backslash\)}
+00705 \textcolor{preprocessor}{    \{\(\backslash\)}
+00706 \textcolor{preprocessor}{        if (Offset!=0)\(\backslash\)}
+00707 \textcolor{preprocessor}{            first = Command(first, second, Offset);\(\backslash\)}
+00708 \textcolor{preprocessor}{    \}\(\backslash\)}
+00709 \textcolor{preprocessor}{\};\(\backslash\)}
+00710 \textcolor{preprocessor}{}
+00711 PALIGN\_NEON(0,Packet2d,vextq\_f64)
+00712 PALIGN\_NEON(1,Packet2d,vextq\_f64)
+00713 \textcolor{preprocessor}{#undef PALIGN\_NEON}
+00714 
+00715 EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keywordtype}{void}
+00716 ptranspose(\hyperlink{struct_eigen_1_1internal_1_1_packet_block}{PacketBlock<Packet2d,2>}& kernel) \{
+00717   float64x2\_t trn1 = vzip1q\_f64(kernel.packet[0], kernel.packet[1]);
+00718   float64x2\_t trn2 = vzip2q\_f64(kernel.packet[0], kernel.packet[1]);
+00719 
+00720   kernel.packet[0] = trn1;
+00721   kernel.packet[1] = trn2;
+00722 \}
+00723 \textcolor{preprocessor}{#endif // EIGEN\_ARCH\_ARM64 }
+00724 
+00725 \} \textcolor{comment}{// end namespace internal}
+00726 
+00727 \} \textcolor{comment}{// end namespace Eigen}
+00728 
+00729 \textcolor{preprocessor}{#endif // EIGEN\_PACKET\_MATH\_NEON\_H}
+\end{DoxyCode}

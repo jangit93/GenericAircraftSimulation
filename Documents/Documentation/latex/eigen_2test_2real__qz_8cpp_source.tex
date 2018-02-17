@@ -1,0 +1,102 @@
+\hypertarget{eigen_2test_2real__qz_8cpp_source}{}\section{eigen/test/real\+\_\+qz.cpp}
+\label{eigen_2test_2real__qz_8cpp_source}\index{real\+\_\+qz.\+cpp@{real\+\_\+qz.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2012 Alexey Korepanov <kaikaikai@yandex.ru>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#define EIGEN\_RUNTIME\_NO\_MALLOC}
+00011 \textcolor{preprocessor}{#include "main.h"}
+00012 \textcolor{preprocessor}{#include <limits>}
+00013 \textcolor{preprocessor}{#include <Eigen/Eigenvalues>}
+00014 
+00015 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} real\_qz(\textcolor{keyword}{const} MatrixType& m)
+00016 \{
+00017   \textcolor{comment}{/* this test covers the following files:}
+00018 \textcolor{comment}{     RealQZ.h}
+00019 \textcolor{comment}{  */}
+00020   \textcolor{keyword}{using} std::abs;
+00021   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00022   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00023   
+00024   Index dim = m.cols();
+00025   
+00026   MatrixType \hyperlink{group___core___module_class_eigen_1_1_matrix}{A} = MatrixType::Random(dim,dim),
+00027              \hyperlink{group___core___module_class_eigen_1_1_matrix}{B} = MatrixType::Random(dim,dim);
+00028 
+00029 
+00030   \textcolor{comment}{// Regression test for bug 985: Randomly set rows or columns to zero}
+00031   Index k=internal::random<Index>(0, dim-1);
+00032   \textcolor{keywordflow}{switch}(internal::random<int>(0,10)) \{
+00033   \textcolor{keywordflow}{case} 0:
+00034     A.row(k).setZero(); \textcolor{keywordflow}{break};
+00035   \textcolor{keywordflow}{case} 1:
+00036     A.col(k).setZero(); \textcolor{keywordflow}{break};
+00037   \textcolor{keywordflow}{case} 2:
+00038     \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.row(k).\hyperlink{class_eigen_1_1_plain_object_base_ac21ad5f989f320e46958b75ac8d9a1da}{setZero}(); \textcolor{keywordflow}{break};
+00039   \textcolor{keywordflow}{case} 3:
+00040     \hyperlink{group___core___module_class_eigen_1_1_matrix}{B}.col(k).\hyperlink{class_eigen_1_1_plain_object_base_ac21ad5f989f320e46958b75ac8d9a1da}{setZero}(); \textcolor{keywordflow}{break};
+00041   \textcolor{keywordflow}{default}:
+00042     \textcolor{keywordflow}{break};
+00043   \}
+00044 
+00045   \hyperlink{group___eigenvalues___module}{RealQZ<MatrixType>} qz(dim);
+00046   \textcolor{comment}{// TODO enable full-prealocation of required memory, this probably requires an in-place mode for
+       HessenbergDecomposition}
+00047   \textcolor{comment}{//Eigen::internal::set\_is\_malloc\_allowed(false);}
+00048   qz.compute(A,\hyperlink{group___core___module_class_eigen_1_1_matrix}{B});
+00049   \textcolor{comment}{//Eigen::internal::set\_is\_malloc\_allowed(true);}
+00050   
+00051   VERIFY\_IS\_EQUAL(qz.info(), \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success});
+00052   \textcolor{comment}{// check for zeros}
+00053   \textcolor{keywordtype}{bool} all\_zeros = \textcolor{keyword}{true};
+00054   \textcolor{keywordflow}{for} (Index i=0; i<A.cols(); i++)
+00055     \textcolor{keywordflow}{for} (Index j=0; j<i; j++) \{
+00056       \textcolor{keywordflow}{if} (abs(qz.matrixT()(i,j))!=Scalar(0.0))
+00057       \{
+00058         std::cerr << \textcolor{stringliteral}{"Error: T("} << i << \textcolor{stringliteral}{","} << j << \textcolor{stringliteral}{") = "} << qz.matrixT()(i,j) << std::endl;
+00059         all\_zeros = \textcolor{keyword}{false};
+00060       \}
+00061       \textcolor{keywordflow}{if} (j<i-1 && abs(qz.matrixS()(i,j))!=Scalar(0.0))
+00062       \{
+00063         std::cerr << \textcolor{stringliteral}{"Error: S("} << i << \textcolor{stringliteral}{","} << j << \textcolor{stringliteral}{") = "} << qz.matrixS()(i,j) << std::endl;
+00064         all\_zeros = \textcolor{keyword}{false};
+00065       \}
+00066       \textcolor{keywordflow}{if} (j==i-1 && j>0 && abs(qz.matrixS()(i,j))!=Scalar(0.0) && abs(qz.matrixS()(i-1,j-1))!=Scalar(0.0))
+00067       \{
+00068         std::cerr << \textcolor{stringliteral}{"Error: S("} << i << \textcolor{stringliteral}{","} << j << \textcolor{stringliteral}{") = "} << qz.matrixS()(i,j)  << \textcolor{stringliteral}{" && S("} << i-1 << \textcolor{stringliteral}{","}
+       << j-1 << \textcolor{stringliteral}{") = "} << qz.matrixS()(i-1,j-1) << std::endl;
+00069         all\_zeros = \textcolor{keyword}{false};
+00070       \}
+00071     \}
+00072   VERIFY\_IS\_EQUAL(all\_zeros, \textcolor{keyword}{true});
+00073   VERIFY\_IS\_APPROX(qz.matrixQ()*qz.matrixS()*qz.matrixZ(), A);
+00074   VERIFY\_IS\_APPROX(qz.matrixQ()*qz.matrixT()*qz.matrixZ(), \hyperlink{group___core___module_class_eigen_1_1_matrix}{B});
+00075   VERIFY\_IS\_APPROX(qz.matrixQ()*qz.matrixQ().adjoint(), MatrixType::Identity(dim,dim));
+00076   VERIFY\_IS\_APPROX(qz.matrixZ()*qz.matrixZ().adjoint(), MatrixType::Identity(dim,dim));
+00077 \}
+00078 
+00079 \textcolor{keywordtype}{void} test\_real\_qz()
+00080 \{
+00081   \textcolor{keywordtype}{int} s = 0;
+00082   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00083     CALL\_SUBTEST\_1( real\_qz(Matrix4f()) );
+00084     s = internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE/4);
+00085     CALL\_SUBTEST\_2( real\_qz(MatrixXd(s,s)) );
+00086 
+00087     \textcolor{comment}{// some trivial but implementation-wise tricky cases}
+00088     CALL\_SUBTEST\_2( real\_qz(MatrixXd(1,1)) );
+00089     CALL\_SUBTEST\_2( real\_qz(MatrixXd(2,2)) );
+00090     CALL\_SUBTEST\_3( real\_qz(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,1,1>}()) );
+00091     CALL\_SUBTEST\_4( real\_qz(Matrix2d()) );
+00092   \}
+00093   
+00094   TEST\_SET\_BUT\_UNUSED\_VARIABLE(s)
+00095 \}
+\end{DoxyCode}

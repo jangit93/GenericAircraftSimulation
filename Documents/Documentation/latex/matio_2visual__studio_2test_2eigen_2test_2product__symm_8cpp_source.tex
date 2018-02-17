@@ -1,0 +1,123 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2product__symm_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/product\+\_\+symm.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2product__symm_8cpp_source}\index{product\+\_\+symm.\+cpp@{product\+\_\+symm.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{int} Size, \textcolor{keywordtype}{int} OtherSize> \textcolor{keywordtype}{void} symm(\textcolor{keywordtype}{int} size = Size, \textcolor{keywordtype}{int} othersize = OtherSize)
+00013 \{
+00014   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, Size, Size>} MatrixType;
+00015   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, Size, OtherSize>} Rhs1;
+00016   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, OtherSize, Size>} Rhs2;
+00017   \textcolor{keyword}{enum} \{ order = OtherSize==1 ? 0 : \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor} \};
+00018   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, Size, OtherSize,order>} Rhs3;
+00019   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00020 
+00021   Index rows = size;
+00022   Index cols = size;
+00023 
+00024   MatrixType m1 = MatrixType::Random(rows, cols),
+00025              m2 = MatrixType::Random(rows, cols), m3;
+00026 
+00027   m1 = (m1+m1.adjoint()).eval();
+00028 
+00029   Rhs1 rhs1 = Rhs1::Random(cols, othersize), rhs12(cols, othersize), rhs13(cols, othersize);
+00030   Rhs2 rhs2 = Rhs2::Random(othersize, rows), rhs22(othersize, rows), rhs23(othersize, rows);
+00031   Rhs3 rhs3 = Rhs3::Random(cols, othersize), rhs32(cols, othersize), rhs33(cols, othersize);
+00032 
+00033   Scalar s1 = internal::random<Scalar>(),
+00034          s2 = internal::random<Scalar>();
+00035 
+00036   m2 = m1.template triangularView<Lower>();
+00037   m3 = m2.template selfadjointView<Lower>();
+00038   VERIFY\_IS\_EQUAL(m1, m3);
+00039   VERIFY\_IS\_APPROX(rhs12 = (s1*m2).\textcolor{keyword}{template} selfadjointView<Lower>() * (s2*rhs1),
+00040                    rhs13 = (s1*m1) * (s2*rhs1));
+00041 
+00042   VERIFY\_IS\_APPROX(rhs12 = (s1*m2).transpose().\textcolor{keyword}{template} selfadjointView<Upper>() * (s2*rhs1),
+00043                    rhs13 = (s1*m1.transpose()) * (s2*rhs1));
+00044 
+00045   VERIFY\_IS\_APPROX(rhs12 = (s1*m2).\textcolor{keyword}{template} selfadjointView<Lower>().transpose() * (s2*rhs1),
+00046                    rhs13 = (s1*m1.transpose()) * (s2*rhs1));
+00047 
+00048   VERIFY\_IS\_APPROX(rhs12 = (s1*m2).conjugate().\textcolor{keyword}{template} selfadjointView<Lower>() * (s2*rhs1),
+00049                    rhs13 = (s1*m1).conjugate() * (s2*rhs1));
+00050 
+00051   VERIFY\_IS\_APPROX(rhs12 = (s1*m2).\textcolor{keyword}{template} selfadjointView<Lower>().conjugate() * (s2*rhs1),
+00052                    rhs13 = (s1*m1).conjugate() * (s2*rhs1));
+00053 
+00054   VERIFY\_IS\_APPROX(rhs12 = (s1*m2).adjoint().\textcolor{keyword}{template} selfadjointView<Upper>() * (s2*rhs1),
+00055                    rhs13 = (s1*m1).adjoint() * (s2*rhs1));
+00056 
+00057   VERIFY\_IS\_APPROX(rhs12 = (s1*m2).\textcolor{keyword}{template} selfadjointView<Lower>().adjoint() * (s2*rhs1),
+00058                    rhs13 = (s1*m1).adjoint() * (s2*rhs1));
+00059 
+00060   m2 = m1.template triangularView<Upper>(); rhs12.setRandom(); rhs13 = rhs12;
+00061   m3 = m2.template selfadjointView<Upper>();
+00062   VERIFY\_IS\_EQUAL(m1, m3);
+00063   VERIFY\_IS\_APPROX(rhs12 += (s1*m2).\textcolor{keyword}{template} selfadjointView<Upper>() * (s2*rhs1),
+00064                    rhs13 += (s1*m1) * (s2*rhs1));
+00065 
+00066   m2 = m1.template triangularView<Lower>();
+00067   VERIFY\_IS\_APPROX(rhs12 = (s1*m2).\textcolor{keyword}{template} selfadjointView<Lower>() * (s2*rhs2.adjoint()),
+00068                    rhs13 = (s1*m1) * (s2*rhs2.adjoint()));
+00069 
+00070   m2 = m1.template triangularView<Upper>();
+00071   VERIFY\_IS\_APPROX(rhs12 = (s1*m2).\textcolor{keyword}{template} selfadjointView<Upper>() * (s2*rhs2.adjoint()),
+00072                    rhs13 = (s1*m1) * (s2*rhs2.adjoint()));
+00073 
+00074   m2 = m1.template triangularView<Upper>();
+00075   VERIFY\_IS\_APPROX(rhs12 = (s1*m2.adjoint()).\textcolor{keyword}{template} selfadjointView<Lower>() * (s2*rhs2.adjoint()),
+00076                    rhs13 = (s1*m1.adjoint()) * (s2*rhs2.adjoint()));
+00077 
+00078   \textcolor{comment}{// test row major = <...>}
+00079   m2 = m1.template triangularView<Lower>(); rhs12.setRandom(); rhs13 = rhs12;
+00080   VERIFY\_IS\_APPROX(rhs12 -= (s1*m2).\textcolor{keyword}{template} selfadjointView<Lower>() * (s2*rhs3),
+00081                    rhs13 -= (s1*m1) * (s2 * rhs3));
+00082 
+00083   m2 = m1.template triangularView<Upper>();
+00084   VERIFY\_IS\_APPROX(rhs12 = (s1*m2.adjoint()).\textcolor{keyword}{template} selfadjointView<Lower>() * (s2*rhs3).conjugate(),
+00085                    rhs13 = (s1*m1.adjoint()) * (s2*rhs3).conjugate());
+00086 
+00087 
+00088   m2 = m1.template triangularView<Upper>(); rhs13 = rhs12;
+00089   VERIFY\_IS\_APPROX(rhs12.noalias() += s1 * ((m2.adjoint()).\textcolor{keyword}{template} selfadjointView<Lower>() * (s2*rhs3).
+      conjugate()),
+00090                    rhs13 += (s1*m1.adjoint()) * (s2*rhs3).conjugate());
+00091 
+00092   m2 = m1.template triangularView<Lower>();
+00093   VERIFY\_IS\_APPROX(rhs22 = (rhs2) * (m2).\textcolor{keyword}{template} selfadjointView<Lower>(), rhs23 = (rhs2) * (m1));
+00094   VERIFY\_IS\_APPROX(rhs22 = (s2*rhs2) * (s1*m2).\textcolor{keyword}{template} selfadjointView<Lower>(), rhs23 = (s2*rhs2) * (s1*
+      m1));
+00095 
+00096 \}
+00097 
+00098 \textcolor{keywordtype}{void} test\_product\_symm()
+00099 \{
+00100   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat ; i++)
+00101   \{
+00102     CALL\_SUBTEST\_1(( symm<float,Dynamic,Dynamic>(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE),
+      internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE)) ));
+00103     CALL\_SUBTEST\_2(( symm<double,Dynamic,Dynamic>(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE),
+      internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE)) ));
+00104     CALL\_SUBTEST\_3(( symm<std::complex<float>,Dynamic,Dynamic>(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE/
+      2),internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE/2)) ));
+00105     CALL\_SUBTEST\_4(( symm<std::complex<double>,Dynamic,Dynamic>(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE
+      /2),internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE/2)) ));
+00106 
+00107     CALL\_SUBTEST\_5(( symm<float,Dynamic,1>(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE)) ));
+00108     CALL\_SUBTEST\_6(( symm<double,Dynamic,1>(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE)) ));
+00109     CALL\_SUBTEST\_7(( symm<std::complex<float>,Dynamic,1>(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE)) ));
+00110     CALL\_SUBTEST\_8(( symm<std::complex<double>,Dynamic,1>(internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE)) ));
+00111   \}
+00112 \}
+\end{DoxyCode}

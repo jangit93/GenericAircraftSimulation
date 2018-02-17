@@ -1,0 +1,293 @@
+\hypertarget{eigen_2blas_2level2__real__impl_8h_source}{}\section{eigen/blas/level2\+\_\+real\+\_\+impl.h}
+\label{eigen_2blas_2level2__real__impl_8h_source}\index{level2\+\_\+real\+\_\+impl.\+h@{level2\+\_\+real\+\_\+impl.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2009-2010 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "common.h"}
+00011 
+00012 \textcolor{comment}{// y = alpha*A*x + beta*y}
+00013 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(symv) (\textcolor{keyword}{const} \textcolor{keywordtype}{char} *uplo, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *n, \textcolor{keyword}{const} RealScalar *palpha, \textcolor{keyword}{const} RealScalar *pa, \textcolor{keyword}{
+      const} \textcolor{keywordtype}{int} *lda,
+00014                            \textcolor{keyword}{const} RealScalar *px, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *incx, \textcolor{keyword}{const} RealScalar *pbeta, RealScalar *py, \textcolor{keyword}{
+      const} \textcolor{keywordtype}{int} *incy)
+00015 \{
+00016   \textcolor{keyword}{typedef} void (*functype)(int, \textcolor{keyword}{const} Scalar*, int, \textcolor{keyword}{const} Scalar*, Scalar*, Scalar);
+00017   \textcolor{keyword}{static} \textcolor{keyword}{const} functype \hyperlink{structfunc}{func}[2] = \{
+00018     \textcolor{comment}{// array index: UP}
+00019     (internal::selfadjoint\_matrix\_vector\_product<Scalar,int,ColMajor,Upper,false,false>::run),
+00020     \textcolor{comment}{// array index: LO}
+00021     (internal::selfadjoint\_matrix\_vector\_product<Scalar,int,ColMajor,Lower,false,false>::run),
+00022   \};
+00023 
+00024   \textcolor{keyword}{const} Scalar* a = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pa);
+00025   \textcolor{keyword}{const} Scalar* x = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(px);
+00026   Scalar* y = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(py);
+00027   Scalar alpha  = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(palpha);
+00028   Scalar beta   = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(pbeta);
+00029 
+00030   \textcolor{comment}{// check arguments}
+00031   \textcolor{keywordtype}{int} info = 0;
+00032   \textcolor{keywordflow}{if}(UPLO(*uplo)==INVALID)        info = 1;
+00033   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*n<0)                   info = 2;
+00034   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*lda<std::max(1,*n))    info = 5;
+00035   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incx==0)               info = 7;
+00036   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incy==0)               info = 10;
+00037   \textcolor{keywordflow}{if}(info)
+00038     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"SYMV "},&info,6);
+00039 
+00040   \textcolor{keywordflow}{if}(*n==0)
+00041     \textcolor{keywordflow}{return} 0;
+00042 
+00043   \textcolor{keyword}{const} Scalar* actual\_x = get\_compact\_vector(x,*n,*incx);
+00044   Scalar* actual\_y = get\_compact\_vector(y,*n,*incy);
+00045 
+00046   \textcolor{keywordflow}{if}(beta!=Scalar(1))
+00047   \{
+00048     \textcolor{keywordflow}{if}(beta==Scalar(0)) make\_vector(actual\_y, *n).setZero();
+00049     \textcolor{keywordflow}{else}                make\_vector(actual\_y, *n) *= beta;
+00050   \}
+00051 
+00052   \textcolor{keywordtype}{int} \hyperlink{structcode}{code} = UPLO(*uplo);
+00053   \textcolor{keywordflow}{if}(code>=2 || func[code]==0)
+00054     \textcolor{keywordflow}{return} 0;
+00055 
+00056   func[code](*n, a, *lda, actual\_x, actual\_y, alpha);
+00057 
+00058   \textcolor{keywordflow}{if}(actual\_x!=x) \textcolor{keyword}{delete}[] actual\_x;
+00059   \textcolor{keywordflow}{if}(actual\_y!=y) \textcolor{keyword}{delete}[] copy\_back(actual\_y,y,*n,*incy);
+00060 
+00061   \textcolor{keywordflow}{return} 1;
+00062 \}
+00063 
+00064 \textcolor{comment}{// C := alpha*x*x' + C}
+00065 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(syr)(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *uplo, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *n, \textcolor{keyword}{const} RealScalar *palpha, \textcolor{keyword}{const} RealScalar *px, \textcolor{keyword}{
+      const} \textcolor{keywordtype}{int} *incx, RealScalar *pc, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *ldc)
+00066 \{
+00067 
+00068   \textcolor{keyword}{typedef} void (*functype)(int, Scalar*, int, \textcolor{keyword}{const} Scalar*, \textcolor{keyword}{const} Scalar*, \textcolor{keyword}{const} Scalar&);
+00069   \textcolor{keyword}{static} \textcolor{keyword}{const} functype func[2] = \{
+00070     \textcolor{comment}{// array index: UP}
+00071     (\hyperlink{struct_eigen_1_1selfadjoint__rank1__update}{selfadjoint\_rank1\_update<Scalar,int,ColMajor,Upper,false,Conj>::run}
+      ),
+00072     \textcolor{comment}{// array index: LO}
+00073     (\hyperlink{struct_eigen_1_1selfadjoint__rank1__update}{selfadjoint\_rank1\_update<Scalar,int,ColMajor,Lower,false,Conj>::run}
+      ),
+00074   \};
+00075 
+00076   \textcolor{keyword}{const} Scalar* x = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(px);
+00077   Scalar* c = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pc);
+00078   Scalar alpha = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(palpha);
+00079 
+00080   \textcolor{keywordtype}{int} info = 0;
+00081   \textcolor{keywordflow}{if}(UPLO(*uplo)==INVALID)                                            info = 1;
+00082   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*n<0)                                                       info = 2;
+00083   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incx==0)                                                   info = 5;
+00084   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*ldc<std::max(1,*n))                                        info = 7;
+00085   \textcolor{keywordflow}{if}(info)
+00086     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"SYR  "},&info,6);
+00087 
+00088   \textcolor{keywordflow}{if}(*n==0 || alpha==Scalar(0)) \textcolor{keywordflow}{return} 1;
+00089 
+00090   \textcolor{comment}{// if the increment is not 1, let's copy it to a temporary vector to enable vectorization}
+00091   \textcolor{keyword}{const} Scalar* x\_cpy = get\_compact\_vector(x,*n,*incx);
+00092 
+00093   \textcolor{keywordtype}{int} code = UPLO(*uplo);
+00094   \textcolor{keywordflow}{if}(code>=2 || func[code]==0)
+00095     \textcolor{keywordflow}{return} 0;
+00096 
+00097   func[code](*n, c, *ldc, x\_cpy, x\_cpy, alpha);
+00098 
+00099   \textcolor{keywordflow}{if}(x\_cpy!=x)  \textcolor{keyword}{delete}[] x\_cpy;
+00100 
+00101   \textcolor{keywordflow}{return} 1;
+00102 \}
+00103 
+00104 \textcolor{comment}{// C := alpha*x*y' + alpha*y*x' + C}
+00105 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(syr2)(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *uplo, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *n, \textcolor{keyword}{const} RealScalar *palpha, \textcolor{keyword}{const} RealScalar *px, \textcolor{keyword}{
+      const} \textcolor{keywordtype}{int} *incx, \textcolor{keyword}{const} RealScalar *py, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *incy, RealScalar *pc, \textcolor{keyword}{const} \textcolor{keywordtype}{int} *ldc)
+00106 \{
+00107   \textcolor{keyword}{typedef} void (*functype)(int, Scalar*, int, \textcolor{keyword}{const} Scalar*, \textcolor{keyword}{const} Scalar*, Scalar);
+00108   \textcolor{keyword}{static} \textcolor{keyword}{const} functype func[2] = \{
+00109     \textcolor{comment}{// array index: UP}
+00110     (\hyperlink{structinternal_1_1rank2__update__selector}{internal::rank2\_update\_selector<Scalar,int,Upper>::run}
+      ),
+00111     \textcolor{comment}{// array index: LO}
+00112     (\hyperlink{structinternal_1_1rank2__update__selector}{internal::rank2\_update\_selector<Scalar,int,Lower>::run}
+      ),
+00113   \};
+00114 
+00115   \textcolor{keyword}{const} Scalar* x = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(px);
+00116   \textcolor{keyword}{const} Scalar* y = \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(py);
+00117   Scalar* c = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pc);
+00118   Scalar alpha = *\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }Scalar*\textcolor{keyword}{>}(palpha);
+00119 
+00120   \textcolor{keywordtype}{int} info = 0;
+00121   \textcolor{keywordflow}{if}(UPLO(*uplo)==INVALID)                                            info = 1;
+00122   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*n<0)                                                       info = 2;
+00123   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incx==0)                                                   info = 5;
+00124   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incy==0)                                                   info = 7;
+00125   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*ldc<std::max(1,*n))                                        info = 9;
+00126   \textcolor{keywordflow}{if}(info)
+00127     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"SYR2 "},&info,6);
+00128 
+00129   \textcolor{keywordflow}{if}(alpha==Scalar(0))
+00130     \textcolor{keywordflow}{return} 1;
+00131 
+00132   \textcolor{keyword}{const} Scalar* x\_cpy = get\_compact\_vector(x,*n,*incx);
+00133   \textcolor{keyword}{const} Scalar* y\_cpy = get\_compact\_vector(y,*n,*incy);
+00134 
+00135   \textcolor{keywordtype}{int} code = UPLO(*uplo);
+00136   \textcolor{keywordflow}{if}(code>=2 || func[code]==0)
+00137     \textcolor{keywordflow}{return} 0;
+00138 
+00139   func[code](*n, c, *ldc, x\_cpy, y\_cpy, alpha);
+00140 
+00141   \textcolor{keywordflow}{if}(x\_cpy!=x)  \textcolor{keyword}{delete}[] x\_cpy;
+00142   \textcolor{keywordflow}{if}(y\_cpy!=y)  \textcolor{keyword}{delete}[] y\_cpy;
+00143 
+00144 \textcolor{comment}{//   int code = UPLO(*uplo);}
+00145 \textcolor{comment}{//   if(code>=2 || func[code]==0)}
+00146 \textcolor{comment}{//     return 0;}
+00147 
+00148 \textcolor{comment}{//   func[code](*n, a, *inca, b, *incb, c, *ldc, alpha);}
+00149   \textcolor{keywordflow}{return} 1;
+00150 \}
+00151 
+00159 \textcolor{comment}{// int EIGEN\_BLAS\_FUNC(sbmv)( char *uplo, int *n, int *k, RealScalar *alpha, RealScalar *a, int *lda,}
+00160 \textcolor{comment}{//                            RealScalar *x, int *incx, RealScalar *beta, RealScalar *y, int *incy)}
+00161 \textcolor{comment}{// \{}
+00162 \textcolor{comment}{//   return 1;}
+00163 \textcolor{comment}{// \}}
+00164 
+00165 
+00174 \textcolor{comment}{// int EIGEN\_BLAS\_FUNC(spmv)(char *uplo, int *n, RealScalar *alpha, RealScalar *ap, RealScalar *x, int
+       *incx, RealScalar *beta, RealScalar *y, int *incy)}
+00175 \textcolor{comment}{// \{}
+00176 \textcolor{comment}{//   return 1;}
+00177 \textcolor{comment}{// \}}
+00178 
+00186 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(spr)(\textcolor{keywordtype}{char} *uplo, \textcolor{keywordtype}{int} *n, Scalar *palpha, Scalar *px, \textcolor{keywordtype}{int} *incx, Scalar *pap)
+00187 \{
+00188   \textcolor{keyword}{typedef} void (*functype)(int, Scalar*, \textcolor{keyword}{const} Scalar*, Scalar);
+00189   \textcolor{keyword}{static} \textcolor{keyword}{const} functype func[2] = \{
+00190     \textcolor{comment}{// array index: UP}
+00191     (
+      \hyperlink{structinternal_1_1selfadjoint__packed__rank1__update}{internal::selfadjoint\_packed\_rank1\_update<Scalar,int,ColMajor,Upper,false,false>::run}
+      ),
+00192     \textcolor{comment}{// array index: LO}
+00193     (
+      \hyperlink{structinternal_1_1selfadjoint__packed__rank1__update}{internal::selfadjoint\_packed\_rank1\_update<Scalar,int,ColMajor,Lower,false,false>::run}
+      ),
+00194   \};
+00195 
+00196   Scalar* x = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(px);
+00197   Scalar* ap = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pap);
+00198   Scalar alpha = *\textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(palpha);
+00199 
+00200   \textcolor{keywordtype}{int} info = 0;
+00201   \textcolor{keywordflow}{if}(UPLO(*uplo)==INVALID)                                            info = 1;
+00202   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*n<0)                                                       info = 2;
+00203   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incx==0)                                                   info = 5;
+00204   \textcolor{keywordflow}{if}(info)
+00205     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"SPR  "},&info,6);
+00206 
+00207   \textcolor{keywordflow}{if}(alpha==Scalar(0))
+00208     \textcolor{keywordflow}{return} 1;
+00209 
+00210   Scalar* x\_cpy = get\_compact\_vector(x, *n, *incx);
+00211 
+00212   \textcolor{keywordtype}{int} code = UPLO(*uplo);
+00213   \textcolor{keywordflow}{if}(code>=2 || func[code]==0)
+00214     \textcolor{keywordflow}{return} 0;
+00215 
+00216   func[code](*n, ap, x\_cpy, alpha);
+00217 
+00218   \textcolor{keywordflow}{if}(x\_cpy!=x)  \textcolor{keyword}{delete}[] x\_cpy;
+00219 
+00220   \textcolor{keywordflow}{return} 1;
+00221 \}
+00222 
+00230 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(spr2)(\textcolor{keywordtype}{char} *uplo, \textcolor{keywordtype}{int} *n, RealScalar *palpha, RealScalar *px, \textcolor{keywordtype}{int} *incx, RealScalar *py
+      , \textcolor{keywordtype}{int} *incy, RealScalar *pap)
+00231 \{
+00232   \textcolor{keyword}{typedef} void (*functype)(int, Scalar*, \textcolor{keyword}{const} Scalar*, \textcolor{keyword}{const} Scalar*, Scalar);
+00233   \textcolor{keyword}{static} \textcolor{keyword}{const} functype func[2] = \{
+00234     \textcolor{comment}{// array index: UP}
+00235     (\hyperlink{structinternal_1_1packed__rank2__update__selector}{internal::packed\_rank2\_update\_selector<Scalar,int,Upper>::run}
+      ),
+00236     \textcolor{comment}{// array index: LO}
+00237     (\hyperlink{structinternal_1_1packed__rank2__update__selector}{internal::packed\_rank2\_update\_selector<Scalar,int,Lower>::run}
+      ),
+00238   \};
+00239 
+00240   Scalar* x = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(px);
+00241   Scalar* y = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(py);
+00242   Scalar* ap = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pap);
+00243   Scalar alpha = *\textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(palpha);
+00244 
+00245   \textcolor{keywordtype}{int} info = 0;
+00246   \textcolor{keywordflow}{if}(UPLO(*uplo)==INVALID)                                            info = 1;
+00247   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*n<0)                                                       info = 2;
+00248   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incx==0)                                                   info = 5;
+00249   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incy==0)                                                   info = 7;
+00250   \textcolor{keywordflow}{if}(info)
+00251     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"SPR2 "},&info,6);
+00252 
+00253   \textcolor{keywordflow}{if}(alpha==Scalar(0))
+00254     \textcolor{keywordflow}{return} 1;
+00255 
+00256   Scalar* x\_cpy = get\_compact\_vector(x, *n, *incx);
+00257   Scalar* y\_cpy = get\_compact\_vector(y, *n, *incy);
+00258 
+00259   \textcolor{keywordtype}{int} code = UPLO(*uplo);
+00260   \textcolor{keywordflow}{if}(code>=2 || func[code]==0)
+00261     \textcolor{keywordflow}{return} 0;
+00262 
+00263   func[code](*n, ap, x\_cpy, y\_cpy, alpha);
+00264 
+00265   \textcolor{keywordflow}{if}(x\_cpy!=x)  \textcolor{keyword}{delete}[] x\_cpy;
+00266   \textcolor{keywordflow}{if}(y\_cpy!=y)  \textcolor{keyword}{delete}[] y\_cpy;
+00267 
+00268   \textcolor{keywordflow}{return} 1;
+00269 \}
+00270 
+00278 \textcolor{keywordtype}{int} EIGEN\_BLAS\_FUNC(ger)(\textcolor{keywordtype}{int} *m, \textcolor{keywordtype}{int} *n, Scalar *palpha, Scalar *px, \textcolor{keywordtype}{int} *incx, Scalar *py, \textcolor{keywordtype}{int} *incy, 
+      Scalar *pa, \textcolor{keywordtype}{int} *lda)
+00279 \{
+00280   Scalar* x = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(px);
+00281   Scalar* y = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(py);
+00282   Scalar* a = \textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(pa);
+00283   Scalar alpha = *\textcolor{keyword}{reinterpret\_cast<}Scalar*\textcolor{keyword}{>}(palpha);
+00284 
+00285   \textcolor{keywordtype}{int} info = 0;
+00286        \textcolor{keywordflow}{if}(*m<0)                                                       info = 1;
+00287   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*n<0)                                                       info = 2;
+00288   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incx==0)                                                   info = 5;
+00289   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*incy==0)                                                   info = 7;
+00290   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(*lda<std::max(1,*m))                                        info = 9;
+00291   \textcolor{keywordflow}{if}(info)
+00292     \textcolor{keywordflow}{return} xerbla\_(SCALAR\_SUFFIX\_UP\textcolor{stringliteral}{"GER  "},&info,6);
+00293 
+00294   \textcolor{keywordflow}{if}(alpha==Scalar(0))
+00295     \textcolor{keywordflow}{return} 1;
+00296 
+00297   Scalar* x\_cpy = get\_compact\_vector(x,*m,*incx);
+00298   Scalar* y\_cpy = get\_compact\_vector(y,*n,*incy);
+00299 
+00300   \hyperlink{structinternal_1_1general__rank1__update}{internal::general\_rank1\_update<Scalar,int,ColMajor,false,false>::run}
+      (*m, *n, a, *lda, x\_cpy, y\_cpy, alpha);
+00301 
+00302   \textcolor{keywordflow}{if}(x\_cpy!=x)  \textcolor{keyword}{delete}[] x\_cpy;
+00303   \textcolor{keywordflow}{if}(y\_cpy!=y)  \textcolor{keyword}{delete}[] y\_cpy;
+00304 
+00305   \textcolor{keywordflow}{return} 1;
+00306 \}
+\end{DoxyCode}

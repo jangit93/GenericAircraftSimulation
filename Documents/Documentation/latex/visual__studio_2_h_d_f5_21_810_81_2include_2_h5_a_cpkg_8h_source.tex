@@ -1,0 +1,512 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2include_2_h5_a_cpkg_8h_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/include/\+H5\+A\+Cpkg.h}
+\label{visual__studio_2_h_d_f5_21_810_81_2include_2_h5_a_cpkg_8h_source}\index{H5\+A\+Cpkg.\+h@{H5\+A\+Cpkg.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+00002 \textcolor{comment}{ * Copyright by The HDF Group.                                               *}
+00003 \textcolor{comment}{ * Copyright by the Board of Trustees of the University of Illinois.         *}
+00004 \textcolor{comment}{ * All rights reserved.                                                      *}
+00005 \textcolor{comment}{ *                                                                           *}
+00006 \textcolor{comment}{ * This file is part of HDF5.  The full HDF5 copyright notice, including     *}
+00007 \textcolor{comment}{ * terms governing use, modification, and redistribution, is contained in    *}
+00008 \textcolor{comment}{ * the COPYING file, which can be found at the root of the source code       *}
+00009 \textcolor{comment}{ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *}
+00010 \textcolor{comment}{ * If you do not have access to either file, you may request a copy from     *}
+00011 \textcolor{comment}{ * help@hdfgroup.org.                                                        *}
+00012 \textcolor{comment}{ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00013 
+00014 \textcolor{comment}{/*}
+00015 \textcolor{comment}{ * Programmer: John Mainzer -- 4/19/06}
+00016 \textcolor{comment}{ *}
+00017 \textcolor{comment}{ * Purpose:     This file contains declarations which are normally visible}
+00018 \textcolor{comment}{ *              only within the H5AC package (just H5AC.c at present).}
+00019 \textcolor{comment}{ *}
+00020 \textcolor{comment}{ *      Source files outside the H5AC package should include}
+00021 \textcolor{comment}{ *      H5ACprivate.h instead.}
+00022 \textcolor{comment}{ *}
+00023 \textcolor{comment}{ *      The one exception to this rule is testpar/t\_cache.c.  The}
+00024 \textcolor{comment}{ *      test code is easier to write if it can look at H5AC\_aux\_t.}
+00025 \textcolor{comment}{ *      Indeed, this is the main reason why this file was created.}
+00026 \textcolor{comment}{ *}
+00027 \textcolor{comment}{ */}
+00028 
+00029 \textcolor{preprocessor}{#if !(defined H5AC\_FRIEND || defined H5AC\_MODULE)}
+00030 \textcolor{preprocessor}{#error "Do not include this file outside the H5AC package!"}
+00031 \textcolor{preprocessor}{#endif}
+00032 
+00033 \textcolor{preprocessor}{#ifndef \_H5ACpkg\_H}
+00034 \textcolor{preprocessor}{#define \_H5ACpkg\_H}
+00035 
+00036 \textcolor{comment}{/* Get package's private header */}
+00037 \textcolor{preprocessor}{#include "H5ACprivate.h"}    \textcolor{comment}{/* Metadata cache           */}
+00038 
+00039 
+00040 \textcolor{comment}{/* Get needed headers */}
+00041 \textcolor{preprocessor}{#include "H5Cprivate.h"}         \textcolor{comment}{/* Cache                                */}
+00042 \textcolor{preprocessor}{#include "H5FLprivate.h"}        \textcolor{comment}{/* Free Lists                           */}
+00043 
+00044 \textcolor{comment}{/*****************************/}
+00045 \textcolor{comment}{/* Package Private Variables */}
+00046 \textcolor{comment}{/*****************************/}
+00047 
+00048 \textcolor{comment}{/* Declare extern the free list to manage the H5AC\_aux\_t struct */}
+00049 H5FL\_EXTERN(H5AC\_aux\_t);
+00050 
+00051 
+00052 \textcolor{comment}{/**************************/}
+00053 \textcolor{comment}{/* Package Private Macros */}
+00054 \textcolor{comment}{/**************************/}
+00055 
+00056 \textcolor{preprocessor}{#define H5AC\_DEBUG\_DIRTY\_BYTES\_CREATION 0}
+00057 
+00058 \textcolor{preprocessor}{#ifdef H5\_HAVE\_PARALLEL}
+00059 
+00060 \textcolor{comment}{/* the following #defined are used to specify the operation required}
+00061 \textcolor{comment}{ * at a sync point.}
+00062 \textcolor{comment}{ */}
+00063 
+00064 \textcolor{preprocessor}{#define H5AC\_SYNC\_POINT\_OP\_\_FLUSH\_TO\_MIN\_CLEAN      0}
+00065 \textcolor{preprocessor}{#define H5AC\_SYNC\_POINT\_OP\_\_FLUSH\_CACHE         1}
+00066 
+00067 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5\_HAVE\_PARALLEL */}\textcolor{preprocessor}{}
+00068 
+00069 \textcolor{comment}{/*-------------------------------------------------------------------------}
+00070 \textcolor{comment}{ *  It is a bit difficult to set ranges of allowable values on the}
+00071 \textcolor{comment}{ *  dirty\_bytes\_threshold field of H5AC\_aux\_t.  The following are}
+00072 \textcolor{comment}{ *  probably broader than they should be.}
+00073 \textcolor{comment}{ *-------------------------------------------------------------------------}
+00074 \textcolor{comment}{ */}
+00075 
+00076 \textcolor{preprocessor}{#define H5AC\_\_MIN\_DIRTY\_BYTES\_THRESHOLD     (size\_t) \(\backslash\)}
+00077 \textcolor{preprocessor}{                        (H5C\_\_MIN\_MAX\_CACHE\_SIZE / 2)}
+00078 \textcolor{preprocessor}{#define H5AC\_\_DEFAULT\_DIRTY\_BYTES\_THRESHOLD (256 * 1024)}
+00079 \textcolor{preprocessor}{#define H5AC\_\_MAX\_DIRTY\_BYTES\_THRESHOLD     (size\_t) \(\backslash\)}
+00080 \textcolor{preprocessor}{                        (H5C\_\_MAX\_MAX\_CACHE\_SIZE / 4)}
+00081 
+00082 
+00083 \textcolor{comment}{/****************************************************************************}
+00084 \textcolor{comment}{ *}
+00085 \textcolor{comment}{ * structure H5AC\_aux\_t}
+00086 \textcolor{comment}{ *}
+00087 \textcolor{comment}{ * While H5AC has become a wrapper for the cache implemented in H5C.c, there}
+00088 \textcolor{comment}{ * are some features of the metadata cache that are specific to it, and which}
+00089 \textcolor{comment}{ * therefore do not belong in the more generic H5C cache code.}
+00090 \textcolor{comment}{ *}
+00091 \textcolor{comment}{ * In particular, there is the matter of synchronizing writes from the}
+00092 \textcolor{comment}{ * metadata cache to disk in the PHDF5 case.}
+00093 \textcolor{comment}{ *}
+00094 \textcolor{comment}{ * Prior to this update, the presumption was that all metadata caches would}
+00095 \textcolor{comment}{ * write the same data at the same time since all operations modifying}
+00096 \textcolor{comment}{ * metadata must be performed collectively.  Given this assumption, it was}
+00097 \textcolor{comment}{ * safe to allow only the writes from process 0 to actually make it to disk,}
+00098 \textcolor{comment}{ * while metadata writes from all other processes were discarded.}
+00099 \textcolor{comment}{ *}
+00100 \textcolor{comment}{ * Unfortunately, this presumption is in error as operations that read}
+00101 \textcolor{comment}{ * metadata need not be collective, but can change the location of dirty}
+00102 \textcolor{comment}{ * entries in the metadata cache LRU lists.  This can result in the same}
+00103 \textcolor{comment}{ * metadata write operation triggering writes from the metadata caches on}
+00104 \textcolor{comment}{ * some processes, but not all (causing a hang), or in different sets of}
+00105 \textcolor{comment}{ * entries being written from different caches (potentially resulting in}
+00106 \textcolor{comment}{ * metadata corruption in the file).}
+00107 \textcolor{comment}{ *}
+00108 \textcolor{comment}{ * To deal with this issue, I decided to apply a paradigm shift to the way}
+00109 \textcolor{comment}{ * metadata is written to disk.}
+00110 \textcolor{comment}{ *}
+00111 \textcolor{comment}{ * With this set of changes, only the metadata cache on process 0 is able}
+00112 \textcolor{comment}{ * to write metadata to disk, although metadata caches on all other}
+00113 \textcolor{comment}{ * processes can read metadata from disk as before.}
+00114 \textcolor{comment}{ *}
+00115 \textcolor{comment}{ * To keep all the other caches from getting plugged up with dirty metadata,}
+00116 \textcolor{comment}{ * process 0 periodically broadcasts a list of entries that it has flushed}
+00117 \textcolor{comment}{ * since that last notice, and which are currently clean.  The other caches}
+00118 \textcolor{comment}{ * mark these entries as clean as well, which allows them to evict the}
+00119 \textcolor{comment}{ * entries as needed.}
+00120 \textcolor{comment}{ *}
+00121 \textcolor{comment}{ * One obvious problem in this approach is synchronizing the broadcasts}
+00122 \textcolor{comment}{ * and receptions, as different caches may see different amounts of}
+00123 \textcolor{comment}{ * activity.}
+00124 \textcolor{comment}{ *}
+00125 \textcolor{comment}{ * The current solution is for the caches to track the number of bytes}
+00126 \textcolor{comment}{ * of newly generated dirty metadata, and to broadcast and receive}
+00127 \textcolor{comment}{ * whenever this value exceeds some user specified threshold.}
+00128 \textcolor{comment}{ *}
+00129 \textcolor{comment}{ * Maintaining this count is easy for all processes not on process 0 --}
+00130 \textcolor{comment}{ * all that is necessary is to add the size of the entry to the total}
+00131 \textcolor{comment}{ * whenever there is an insertion, a move of a previously clean entry,}
+00132 \textcolor{comment}{ * or whever a previously clean entry is marked dirty in an unprotect.}
+00133 \textcolor{comment}{ *}
+00134 \textcolor{comment}{ * On process 0, we have to be careful not to count dirty bytes twice.}
+00135 \textcolor{comment}{ * If an entry is marked dirty, flushed, and marked dirty again, all}
+00136 \textcolor{comment}{ * within a single reporting period, it only th first marking should}
+00137 \textcolor{comment}{ * be added to the dirty bytes generated tally, as that is all that}
+00138 \textcolor{comment}{ * the other processes will see.}
+00139 \textcolor{comment}{ *}
+00140 \textcolor{comment}{ * At present, this structure exists to maintain the fields needed to}
+00141 \textcolor{comment}{ * implement the above scheme, and thus is only used in the parallel}
+00142 \textcolor{comment}{ * case.  However, other uses may arise in the future.}
+00143 \textcolor{comment}{ *}
+00144 \textcolor{comment}{ * Instance of this structure are associated with metadata caches via}
+00145 \textcolor{comment}{ * the aux\_ptr field of H5C\_t (see H5Cpkg.h).  The H5AC code is}
+00146 \textcolor{comment}{ * responsible for allocating, maintaining, and discarding instances}
+00147 \textcolor{comment}{ * of H5AC\_aux\_t.}
+00148 \textcolor{comment}{ *}
+00149 \textcolor{comment}{ * The remainder of this header comments documents the individual fields}
+00150 \textcolor{comment}{ * of the structure.}
+00151 \textcolor{comment}{ *}
+00152 \textcolor{comment}{ *                                              JRM - 6/27/05}
+00153 \textcolor{comment}{ *}
+00154 \textcolor{comment}{ * Update: When the above was written, I planned to allow the process}
+00155 \textcolor{comment}{ *  0 metadata cache to write dirty metadata between sync points.}
+00156 \textcolor{comment}{ *  However, testing indicated that this allowed occasional }
+00157 \textcolor{comment}{ *  messages from the future to reach the caches on other processes.}
+00158 \textcolor{comment}{ *}
+00159 \textcolor{comment}{ *  To resolve this, the code was altered to require that all metadata}
+00160 \textcolor{comment}{ *  writes take place during sync points -- which solved the problem.}
+00161 \textcolor{comment}{ *  Initially all writes were performed by the process 0 cache.  This }
+00162 \textcolor{comment}{ *  approach was later replaced with a distributed write approach}
+00163 \textcolor{comment}{ *  in which each process writes a subset of the metadata to be }
+00164 \textcolor{comment}{ *  written.  }
+00165 \textcolor{comment}{ *}
+00166 \textcolor{comment}{ *  After thinking on the matter for a while, I arrived at the }
+00167 \textcolor{comment}{ *  conclusion that the process 0 cache could be allowed to write }
+00168 \textcolor{comment}{ *  dirty metadata between sync points if it restricted itself to }
+00169 \textcolor{comment}{ *  entries that had been dirty at the time of the previous sync point.  }
+00170 \textcolor{comment}{ *  }
+00171 \textcolor{comment}{ *  To date, there has been no attempt to implement this optimization.}
+00172 \textcolor{comment}{ *  However, should it be attempted, much of the supporting code }
+00173 \textcolor{comment}{ *  should still be around.}
+00174 \textcolor{comment}{ *}
+00175 \textcolor{comment}{ *                      JRM -- 1/6/15}
+00176 \textcolor{comment}{ *}
+00177 \textcolor{comment}{ * magic:       Unsigned 32 bit integer always set to}
+00178 \textcolor{comment}{ *      H5AC\_\_H5AC\_AUX\_T\_MAGIC.  This field is used to validate}
+00179 \textcolor{comment}{ *      pointers to instances of H5AC\_aux\_t.}
+00180 \textcolor{comment}{ *}
+00181 \textcolor{comment}{ * mpi\_comm:    MPI communicator associated with the file for which the}
+00182 \textcolor{comment}{ *      cache has been created.}
+00183 \textcolor{comment}{ *}
+00184 \textcolor{comment}{ * mpi\_rank:    MPI rank of this process within mpi\_comm.}
+00185 \textcolor{comment}{ *}
+00186 \textcolor{comment}{ * mpi\_size:    Number of processes in mpi\_comm.}
+00187 \textcolor{comment}{ *}
+00188 \textcolor{comment}{ * write\_permitted:  Boolean flag used to control whether the cache}
+00189 \textcolor{comment}{ *      is permitted to write to file.}
+00190 \textcolor{comment}{ *}
+00191 \textcolor{comment}{ * dirty\_bytes\_threshold: Integer field containing the dirty bytes}
+00192 \textcolor{comment}{ *      generation threashold.  Whenever dirty byte creation}
+00193 \textcolor{comment}{ *      exceeds this value, the metadata cache on process 0}
+00194 \textcolor{comment}{ *      broadcasts a list of the entries it has flushed since}
+00195 \textcolor{comment}{ *      the last broadcast (or since the beginning of execution)}
+00196 \textcolor{comment}{ *      and which are currently clean (if they are still in the}
+00197 \textcolor{comment}{ *      cache)}
+00198 \textcolor{comment}{ *}
+00199 \textcolor{comment}{ *      Similarly, metadata caches on processes other than process}
+00200 \textcolor{comment}{ *      0 will attempt to receive a list of clean entries whenever}
+00201 \textcolor{comment}{ *      the threshold is exceeded.}
+00202 \textcolor{comment}{ *}
+00203 \textcolor{comment}{ * dirty\_bytes:  Integer field containing the number of bytes of dirty}
+00204 \textcolor{comment}{ *      metadata generated since the beginning of the computation,}
+00205 \textcolor{comment}{ *      or (more typically) since the last clean entries list}
+00206 \textcolor{comment}{ *      broadcast.  This field is reset to zero after each such}
+00207 \textcolor{comment}{ *      broadcast.}
+00208 \textcolor{comment}{ *}
+00209 \textcolor{comment}{ * metadata\_write\_strategy: Integer code indicating how we will be }
+00210 \textcolor{comment}{ *      writing the metadata.  In the first incarnation of }
+00211 \textcolor{comment}{ *      this code, all writes were done from process 0.  This}
+00212 \textcolor{comment}{ *      field exists to facilitate experiments with other }
+00213 \textcolor{comment}{ *      strategies.}
+00214 \textcolor{comment}{ *}
+00215 \textcolor{comment}{ *      At present, this field must be set to either}
+00216 \textcolor{comment}{ *      H5AC\_METADATA\_WRITE\_STRATEGY\_\_PROCESS\_0\_ONLY or }
+00217 \textcolor{comment}{ *      H5AC\_METADATA\_WRITE\_STRATEGY\_\_DISTRIBUTED.}
+00218 \textcolor{comment}{ *}
+00219 \textcolor{comment}{ * dirty\_bytes\_propagations: This field only exists when the}
+00220 \textcolor{comment}{ *      H5AC\_DEBUG\_DIRTY\_BYTES\_CREATION #define is TRUE.}
+00221 \textcolor{comment}{ *}
+00222 \textcolor{comment}{ *      It is used to track the number of times the cleaned list}
+00223 \textcolor{comment}{ *      has been propagated from process 0 to the other}
+00224 \textcolor{comment}{ *      processes.}
+00225 \textcolor{comment}{ *}
+00226 \textcolor{comment}{ * unprotect\_dirty\_bytes:  This field only exists when the}
+00227 \textcolor{comment}{ *              H5AC\_DEBUG\_DIRTY\_BYTES\_CREATION #define is TRUE.}
+00228 \textcolor{comment}{ *}
+00229 \textcolor{comment}{ *      It is used to track the number of dirty bytes created}
+00230 \textcolor{comment}{ *      via unprotect operations since the last time the cleaned}
+00231 \textcolor{comment}{ *      list was propagated.}
+00232 \textcolor{comment}{ *}
+00233 \textcolor{comment}{ * unprotect\_dirty\_bytes\_updates: This field only exists when the}
+00234 \textcolor{comment}{ *              H5AC\_DEBUG\_DIRTY\_BYTES\_CREATION #define is TRUE.}
+00235 \textcolor{comment}{ *}
+00236 \textcolor{comment}{ *      It is used to track the number of times dirty bytes have}
+00237 \textcolor{comment}{ *      been created via unprotect operations since the last time}
+00238 \textcolor{comment}{ *      the cleaned list was propagated.}
+00239 \textcolor{comment}{ *}
+00240 \textcolor{comment}{ * insert\_dirty\_bytes:  This field only exists when the}
+00241 \textcolor{comment}{ *              H5AC\_DEBUG\_DIRTY\_BYTES\_CREATION #define is TRUE.}
+00242 \textcolor{comment}{ *}
+00243 \textcolor{comment}{ *      It is used to track the number of dirty bytes created}
+00244 \textcolor{comment}{ *      via insert operations since the last time the cleaned}
+00245 \textcolor{comment}{ *      list was propagated.}
+00246 \textcolor{comment}{ *}
+00247 \textcolor{comment}{ * insert\_dirty\_bytes\_updates:  This field only exists when the}
+00248 \textcolor{comment}{ *              H5AC\_DEBUG\_DIRTY\_BYTES\_CREATION #define is TRUE.}
+00249 \textcolor{comment}{ *}
+00250 \textcolor{comment}{ *      It is used to track the number of times dirty bytes have}
+00251 \textcolor{comment}{ *      been created via insert operations since the last time}
+00252 \textcolor{comment}{ *      the cleaned list was propagated.}
+00253 \textcolor{comment}{ *}
+00254 \textcolor{comment}{ * move\_dirty\_bytes:  This field only exists when the}
+00255 \textcolor{comment}{ *              H5AC\_DEBUG\_DIRTY\_BYTES\_CREATION #define is TRUE.}
+00256 \textcolor{comment}{ *}
+00257 \textcolor{comment}{ *      It is used to track the number of dirty bytes created}
+00258 \textcolor{comment}{ *      via move operations since the last time the cleaned}
+00259 \textcolor{comment}{ *      list was propagated.}
+00260 \textcolor{comment}{ *}
+00261 \textcolor{comment}{ * move\_dirty\_bytes\_updates:  This field only exists when the}
+00262 \textcolor{comment}{ *              H5AC\_DEBUG\_DIRTY\_BYTES\_CREATION #define is TRUE.}
+00263 \textcolor{comment}{ *}
+00264 \textcolor{comment}{ *      It is used to track the number of times dirty bytes have}
+00265 \textcolor{comment}{ *      been created via move operations since the last time}
+00266 \textcolor{comment}{ *      the cleaned list was propagated.}
+00267 \textcolor{comment}{ *}
+00268 \textcolor{comment}{ * Things have changed a bit since the following four fields were defined.}
+00269 \textcolor{comment}{ * If metadata\_write\_strategy is H5AC\_METADATA\_WRITE\_STRATEGY\_\_PROCESS\_0\_ONLY,}
+00270 \textcolor{comment}{ * all comments hold as before -- with the caviate that pending further }
+00271 \textcolor{comment}{ * coding, the process 0 metadata cache is forbidden to flush entries outside}
+00272 \textcolor{comment}{ * of a sync point.}
+00273 \textcolor{comment}{ *}
+00274 \textcolor{comment}{ * However, for different metadata write strategies, these fields are used}
+00275 \textcolor{comment}{ * only to maintain the correct dirty byte count on process zero -- and in}
+00276 \textcolor{comment}{ * most if not all cases, this is redundant, as process zero will be barred}
+00277 \textcolor{comment}{ * from flushing entries outside of a sync point.}
+00278 \textcolor{comment}{ *}
+00279 \textcolor{comment}{ *                      JRM -- 3/16/10}
+00280 \textcolor{comment}{ *}
+00281 \textcolor{comment}{ * d\_slist\_ptr:  Pointer to an instance of H5SL\_t used to maintain a list}
+00282 \textcolor{comment}{ *      of entries that have been dirtied since the last time they}
+00283 \textcolor{comment}{ *      were listed in a clean entries broadcast.  This list is}
+00284 \textcolor{comment}{ *      only maintained by the metadata cache on process 0 -- it}
+00285 \textcolor{comment}{ *      it used to maintain a view of the dirty entries as seen}
+00286 \textcolor{comment}{ *      by the other caches, so as to keep the dirty bytes count}
+00287 \textcolor{comment}{ *      in synchronization with them.}
+00288 \textcolor{comment}{ *}
+00289 \textcolor{comment}{ *      Thus on process 0, the dirty\_bytes count is incremented}
+00290 \textcolor{comment}{ *      only if either}
+00291 \textcolor{comment}{ *}
+00292 \textcolor{comment}{ *      1) an entry is inserted in the metadata cache, or}
+00293 \textcolor{comment}{ *}
+00294 \textcolor{comment}{ *      2) a previously clean entry is moved, and it does not}
+00295 \textcolor{comment}{ *         already appear in the dirty entry list, or}
+00296 \textcolor{comment}{ *}
+00297 \textcolor{comment}{ *      3) a previously clean entry is unprotected with the}
+00298 \textcolor{comment}{ *         dirtied flag set and the entry does not already appear}
+00299 \textcolor{comment}{ *         in the dirty entry list.}
+00300 \textcolor{comment}{ *}
+00301 \textcolor{comment}{ *      Entries are added to the dirty entry list whever they cause}
+00302 \textcolor{comment}{ *      the dirty bytes count to be increased.  They are removed}
+00303 \textcolor{comment}{ *      when they appear in a clean entries broadcast.  Note that}
+00304 \textcolor{comment}{ *      moves must be reflected in the dirty entry list.}
+00305 \textcolor{comment}{ *}
+00306 \textcolor{comment}{ *      To reitterate, this field is only used on process 0 -- it}
+00307 \textcolor{comment}{ *      should be NULL on all other processes.}
+00308 \textcolor{comment}{ *}
+00309 \textcolor{comment}{ * c\_slist\_ptr: Pointer to an instance of H5SL\_t used to maintain a list}
+00310 \textcolor{comment}{ *      of entries that were dirty, have been flushed}
+00311 \textcolor{comment}{ *      to disk since the last clean entries broadcast, and are}
+00312 \textcolor{comment}{ *      still clean.  Since only process 0 can write to disk, this}
+00313 \textcolor{comment}{ *      list only exists on process 0.}
+00314 \textcolor{comment}{ *}
+00315 \textcolor{comment}{ *      In essence, this slist is used to assemble the contents of}
+00316 \textcolor{comment}{ *      the next clean entries broadcast.  The list emptied after}
+00317 \textcolor{comment}{ *      each broadcast.}
+00318 \textcolor{comment}{ *}
+00319 \textcolor{comment}{ * The following two fields are used only when metadata\_write\_strategy}
+00320 \textcolor{comment}{ * is H5AC\_METADATA\_WRITE\_STRATEGY\_\_DISTRIBUTED.}
+00321 \textcolor{comment}{ *}
+00322 \textcolor{comment}{ * candidate\_slist\_ptr: Pointer to an instance of H5SL\_t used by process 0}
+00323 \textcolor{comment}{ *      to construct a list of entries to be flushed at this sync}
+00324 \textcolor{comment}{ *      point.  This list is then broadcast to the other processes,}
+00325 \textcolor{comment}{ *      which then either flush or mark clean all entries on it.}
+00326 \textcolor{comment}{ *}
+00327 \textcolor{comment}{ * write\_done:  In the parallel test bed, it is necessary to ensure that}
+00328 \textcolor{comment}{ *              all writes to the server process from cache 0 complete}
+00329 \textcolor{comment}{ *              before it enters the barrier call with the other caches.}
+00330 \textcolor{comment}{ *}
+00331 \textcolor{comment}{ *              The write\_done callback allows t\_cache to do this without}
+00332 \textcolor{comment}{ *              requiring an ACK on each write.  Since these ACKs greatly}
+00333 \textcolor{comment}{ *              increase the run time on some platforms, this is a}
+00334 \textcolor{comment}{ *              significant optimization.}
+00335 \textcolor{comment}{ *}
+00336 \textcolor{comment}{ *              This field must be set to NULL when the callback is not}
+00337 \textcolor{comment}{ *              needed.}
+00338 \textcolor{comment}{ *}
+00339 \textcolor{comment}{ *      Note: This field has been extended for use by all processes}
+00340 \textcolor{comment}{ *            with the addition of support for the distributed }
+00341 \textcolor{comment}{ *            metadata write strategy.        }
+00342 \textcolor{comment}{ *                                                     JRM -- 5/9/10}
+00343 \textcolor{comment}{ *}
+00344 \textcolor{comment}{ * sync\_point\_done:  In the parallel test bed, it is necessary to verify}
+00345 \textcolor{comment}{ *      that the expected writes, and only the expected writes,}
+00346 \textcolor{comment}{ *      have taken place at the end of each sync point.}
+00347 \textcolor{comment}{ *}
+00348 \textcolor{comment}{ *      The sync\_point\_done callback allows t\_cache to perform }
+00349 \textcolor{comment}{ *      this verification.  The field is set to NULL when the }
+00350 \textcolor{comment}{ *      callback is not needed.}
+00351 \textcolor{comment}{ *}
+00352 \textcolor{comment}{ * The following field supports the metadata cache image feature.}
+00353 \textcolor{comment}{ *}
+00354 \textcolor{comment}{ * p0\_image\_len: unsiged integer containing the length of the metadata cache}
+00355 \textcolor{comment}{ *      image constructed by MPI process 0.  This field should be 0}
+00356 \textcolor{comment}{ *      if the value is unknown, or if cache image is not enabled.}
+00357 \textcolor{comment}{ *}
+00358 \textcolor{comment}{ ****************************************************************************/}
+00359 
+00360 \textcolor{preprocessor}{#ifdef H5\_HAVE\_PARALLEL}
+00361 
+00362 \textcolor{preprocessor}{#define H5AC\_\_H5AC\_AUX\_T\_MAGIC        (unsigned)0x00D0A01}
+00363 
+00364 \textcolor{keyword}{typedef} \textcolor{keyword}{struct }H5AC\_aux\_t
+00365 \{
+00366     uint32\_t    magic;
+00367 
+00368     MPI\_Comm    mpi\_comm;
+00369 
+00370     \textcolor{keywordtype}{int}     mpi\_rank;
+00371 
+00372     \textcolor{keywordtype}{int}     mpi\_size;
+00373 
+00374     hbool\_t write\_permitted;
+00375 
+00376     \textcolor{keywordtype}{size\_t}  dirty\_bytes\_threshold;
+00377 
+00378     \textcolor{keywordtype}{size\_t}  dirty\_bytes;
+00379 
+00380     int32\_t metadata\_write\_strategy;
+00381 
+00382 \textcolor{preprocessor}{#if H5AC\_DEBUG\_DIRTY\_BYTES\_CREATION}
+00383 
+00384     \textcolor{keywordtype}{unsigned}    dirty\_bytes\_propagations;
+00385 
+00386     \textcolor{keywordtype}{size\_t}      unprotect\_dirty\_bytes;
+00387     \textcolor{keywordtype}{unsigned}    unprotect\_dirty\_bytes\_updates;
+00388 
+00389     \textcolor{keywordtype}{size\_t}      insert\_dirty\_bytes;
+00390     \textcolor{keywordtype}{unsigned}    insert\_dirty\_bytes\_updates;
+00391 
+00392     \textcolor{keywordtype}{size\_t}      move\_dirty\_bytes;
+00393     \textcolor{keywordtype}{unsigned}    move\_dirty\_bytes\_updates;
+00394 
+00395 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5AC\_DEBUG\_DIRTY\_BYTES\_CREATION */}\textcolor{preprocessor}{}
+00396 
+00397     H5SL\_t *    d\_slist\_ptr;
+00398 
+00399     H5SL\_t *    c\_slist\_ptr;
+00400 
+00401     H5SL\_t *    candidate\_slist\_ptr;
+00402 
+00403     void    (* write\_done)(void);
+00404 
+00405     void    (* sync\_point\_done)(\textcolor{keywordtype}{unsigned} num\_writes, 
+00406                                     haddr\_t * written\_entries\_tbl);
+00407 
+00408     \textcolor{keywordtype}{unsigned}    p0\_image\_len;
+00409 
+00410 \} H5AC\_aux\_t; \textcolor{comment}{/* struct H5AC\_aux\_t */}
+00411 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5\_HAVE\_PARALLEL */}\textcolor{preprocessor}{}
+00412 
+00413 
+00414 \textcolor{comment}{/******************************/}
+00415 \textcolor{comment}{/* Package Private Prototypes */}
+00416 \textcolor{comment}{/******************************/}
+00417 
+00418 \textcolor{preprocessor}{#ifdef H5\_HAVE\_PARALLEL}
+00419 \textcolor{comment}{/* Parallel I/O routines */}
+00420 H5\_DLL herr\_t H5AC\_\_log\_deleted\_entry(\textcolor{keyword}{const} H5AC\_info\_t *entry\_ptr);
+00421 H5\_DLL herr\_t H5AC\_\_log\_dirtied\_entry(\textcolor{keyword}{const} H5AC\_info\_t *entry\_ptr);
+00422 H5\_DLL herr\_t H5AC\_\_log\_cleaned\_entry(\textcolor{keyword}{const} H5AC\_info\_t *entry\_ptr);
+00423 H5\_DLL herr\_t H5AC\_\_log\_flushed\_entry(\hyperlink{struct_h5_c__t}{H5C\_t} *cache\_ptr, haddr\_t addr,
+00424     hbool\_t was\_dirty, \textcolor{keywordtype}{unsigned} flags);
+00425 H5\_DLL herr\_t H5AC\_\_log\_inserted\_entry(\textcolor{keyword}{const} H5AC\_info\_t *entry\_ptr);
+00426 H5\_DLL herr\_t H5AC\_\_log\_moved\_entry(\textcolor{keyword}{const} \hyperlink{struct_h5_f__t}{H5F\_t} *f, haddr\_t old\_addr,
+00427     haddr\_t new\_addr);
+00428 H5\_DLL herr\_t H5AC\_\_flush\_entries(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id);
+00429 H5\_DLL herr\_t H5AC\_\_run\_sync\_point(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \textcolor{keywordtype}{int} sync\_point\_op);
+00430 H5\_DLL herr\_t H5AC\_\_set\_sync\_point\_done\_callback(\hyperlink{struct_h5_c__t}{H5C\_t} *cache\_ptr,
+00431     \textcolor{keywordtype}{void} (*sync\_point\_done)(\textcolor{keywordtype}{unsigned} num\_writes, haddr\_t *written\_entries\_tbl));
+00432 H5\_DLL herr\_t H5AC\_\_set\_write\_done\_callback(\hyperlink{struct_h5_c__t}{H5C\_t} * cache\_ptr,
+00433     \textcolor{keywordtype}{void} (* write\_done)(\textcolor{keywordtype}{void}));
+00434 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5\_HAVE\_PARALLEL */}\textcolor{preprocessor}{}
+00435 
+00436 \textcolor{comment}{/* Trace file routines */}
+00437 H5\_DLL herr\_t H5AC\_\_close\_trace\_file(H5AC\_t *cache\_ptr);
+00438 H5\_DLL herr\_t H5AC\_\_open\_trace\_file(H5AC\_t *cache\_ptr, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *trace\_file\_name);
+00439 
+00440 \textcolor{comment}{/* Cache logging routines */}
+00441 H5\_DLL herr\_t H5AC\_\_write\_create\_cache\_log\_msg(H5AC\_t *cache);
+00442 H5\_DLL herr\_t H5AC\_\_write\_destroy\_cache\_log\_msg(H5AC\_t *cache);
+00443 H5\_DLL herr\_t H5AC\_\_write\_evict\_cache\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00444                                         herr\_t fxn\_ret\_value);
+00445 H5\_DLL herr\_t H5AC\_\_write\_expunge\_entry\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00446                                                 haddr\_t address,
+00447                                                 \textcolor{keywordtype}{int} type\_id,
+00448                                                 herr\_t fxn\_ret\_value);
+00449 H5\_DLL herr\_t H5AC\_\_write\_flush\_cache\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00450                                               herr\_t fxn\_ret\_value);
+00451 H5\_DLL herr\_t H5AC\_\_write\_insert\_entry\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00452                                                haddr\_t address,
+00453                                                \textcolor{keywordtype}{int} type\_id,
+00454                                                \textcolor{keywordtype}{unsigned} flags,
+00455                                                \textcolor{keywordtype}{size\_t} size,
+00456                                                herr\_t fxn\_ret\_value);
+00457 H5\_DLL herr\_t H5AC\_\_write\_mark\_dirty\_entry\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00458                                                    \textcolor{keyword}{const} H5AC\_info\_t *entry,
+00459                                                    herr\_t fxn\_ret\_value);
+00460 H5\_DLL herr\_t H5AC\_\_write\_mark\_clean\_entry\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00461     \textcolor{keyword}{const} H5AC\_info\_t *entry, herr\_t fxn\_ret\_value);
+00462 H5\_DLL herr\_t H5AC\_\_write\_mark\_unserialized\_entry\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00463         \textcolor{keyword}{const} H5AC\_info\_t *entry, herr\_t fxn\_ret\_value);
+00464 H5\_DLL herr\_t H5AC\_\_write\_mark\_serialized\_entry\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00465     \textcolor{keyword}{const} H5AC\_info\_t *entry, herr\_t fxn\_ret\_value);
+00466 H5\_DLL herr\_t H5AC\_\_write\_move\_entry\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00467                                              haddr\_t old\_addr,
+00468                                              haddr\_t new\_addr,
+00469                                              \textcolor{keywordtype}{int} type\_id,
+00470                                              herr\_t fxn\_ret\_value);
+00471 H5\_DLL herr\_t H5AC\_\_write\_pin\_entry\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00472                                             \textcolor{keyword}{const} H5AC\_info\_t *entry,
+00473                                             herr\_t fxn\_ret\_value);
+00474 H5\_DLL herr\_t H5AC\_\_write\_create\_fd\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00475                                             \textcolor{keyword}{const} H5AC\_info\_t *parent,
+00476                                             \textcolor{keyword}{const} H5AC\_info\_t *child,
+00477                                             herr\_t fxn\_ret\_value);
+00478 H5\_DLL herr\_t H5AC\_\_write\_protect\_entry\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00479                                                 \textcolor{keyword}{const} H5AC\_info\_t *entry,
+00480                                                 \textcolor{keywordtype}{unsigned} flags,
+00481                                                 herr\_t fxn\_ret\_value);
+00482 H5\_DLL herr\_t H5AC\_\_write\_resize\_entry\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00483                                                \textcolor{keyword}{const} H5AC\_info\_t *entry,
+00484                                                \textcolor{keywordtype}{size\_t} new\_size,
+00485                                                herr\_t fxn\_ret\_value);
+00486 H5\_DLL herr\_t H5AC\_\_write\_unpin\_entry\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00487                                               \textcolor{keyword}{const} H5AC\_info\_t *entry,
+00488                                               herr\_t fxn\_ret\_value);
+00489 H5\_DLL herr\_t H5AC\_\_write\_destroy\_fd\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00490                                              \textcolor{keyword}{const} H5AC\_info\_t *parent,
+00491                                              \textcolor{keyword}{const} H5AC\_info\_t *child,
+00492                                              herr\_t fxn\_ret\_value);
+00493 H5\_DLL herr\_t H5AC\_\_write\_unprotect\_entry\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00494                                                   \textcolor{keyword}{const} H5AC\_info\_t *entry,
+00495                                                   \textcolor{keywordtype}{int} type\_id,
+00496                                                   \textcolor{keywordtype}{unsigned} flags,
+00497                                                   herr\_t fxn\_ret\_value);
+00498 H5\_DLL herr\_t H5AC\_\_write\_set\_cache\_config\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00499                                                    \textcolor{keyword}{const} \hyperlink{struct_h5_a_c__cache__config__t}{H5AC\_cache\_config\_t} *
+      \hyperlink{structconfig__s}{config},
+00500                                                    herr\_t fxn\_ret\_value);
+00501 H5\_DLL herr\_t H5AC\_\_write\_remove\_entry\_log\_msg(\textcolor{keyword}{const} H5AC\_t *cache,
+00502                                               \textcolor{keyword}{const} H5AC\_info\_t *entry,
+00503                                               herr\_t fxn\_ret\_value);
+00504 
+00505 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* \_H5ACpkg\_H */}\textcolor{preprocessor}{}
+00506 
+\end{DoxyCode}

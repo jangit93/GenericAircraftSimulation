@@ -1,0 +1,225 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_matrix_market_iterator_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/src/\+Sparse\+Extra/\+Matrix\+Market\+Iterator.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_matrix_market_iterator_8h_source}\index{Matrix\+Market\+Iterator.\+h@{Matrix\+Market\+Iterator.\+h}}
+
+\begin{DoxyCode}
+00001 
+00002 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00003 \textcolor{comment}{// for linear algebra.}
+00004 \textcolor{comment}{//}
+00005 \textcolor{comment}{// Copyright (C) 2012 Desire NUENTSA WAKAM <desire.nuentsa\_wakam@inria.fr>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_BROWSE\_MATRICES\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_BROWSE\_MATRICES\_H}
+00013 
+00014 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00015 
+00016 \textcolor{keyword}{enum} \{
+00017   SPD = 0x100,
+00018   NonSymmetric = 0x0
+00019 \}; 
+00020 
+00041 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Scalar>
+00042 \textcolor{keyword}{class }MatrixMarketIterator 
+00043 \{
+00044     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00045   \textcolor{keyword}{public}:
+00046     \textcolor{keyword}{typedef} Matrix<Scalar,Dynamic,1> \hyperlink{struct_vector_type}{VectorType}; 
+00047     \textcolor{keyword}{typedef} SparseMatrix<Scalar,ColMajor> MatrixType; 
+00048   
+00049   \textcolor{keyword}{public}:
+00050     MatrixMarketIterator(\textcolor{keyword}{const} std::string &folder)
+00051       : m\_sym(0), m\_isvalid(false), m\_matIsLoaded(false), m\_hasRhs(false), m\_hasrefX(false), m\_folder(
+      folder)
+00052     \{
+00053       m\_folder\_id = opendir(folder.c\_str());
+00054       \textcolor{keywordflow}{if}(m\_folder\_id)
+00055         Getnextvalidmatrix();
+00056     \}
+00057     
+00058     ~MatrixMarketIterator()
+00059     \{
+00060       \textcolor{keywordflow}{if} (m\_folder\_id) closedir(m\_folder\_id); 
+00061     \}
+00062     
+00063     \textcolor{keyword}{inline} MatrixMarketIterator& operator++()
+00064     \{
+00065       m\_matIsLoaded = \textcolor{keyword}{false};
+00066       m\_hasrefX = \textcolor{keyword}{false};
+00067       m\_hasRhs = \textcolor{keyword}{false};
+00068       Getnextvalidmatrix();
+00069       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00070     \}
+00071     \textcolor{keyword}{inline} \textcolor{keyword}{operator} bool()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_isvalid;\}
+00072     
+\Hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_matrix_market_iterator_8h_source_l00074}\hyperlink{class_eigen_1_1_matrix_market_iterator_ac938961d685306ef5b48d9943f7dcabd}{00074}     \textcolor{keyword}{inline} MatrixType& \hyperlink{class_eigen_1_1_matrix_market_iterator_ac938961d685306ef5b48d9943f7dcabd}{matrix}() 
+00075     \{ 
+00076       \textcolor{comment}{// Read the matrix}
+00077       \textcolor{keywordflow}{if} (m\_matIsLoaded) \textcolor{keywordflow}{return} m\_mat;
+00078       
+00079       std::string matrix\_file = m\_folder + \textcolor{stringliteral}{"/"} + m\_matname + \textcolor{stringliteral}{".mtx"};
+00080       \textcolor{keywordflow}{if} ( !loadMarket(m\_mat, matrix\_file)) 
+00081       \{
+00082         std::cerr << \textcolor{stringliteral}{"Warning loadMarket failed when loading \(\backslash\)""} << matrix\_file << \textcolor{stringliteral}{"\(\backslash\)""} << std::endl;
+00083         m\_matIsLoaded = \textcolor{keyword}{false};
+00084         \textcolor{keywordflow}{return} m\_mat;
+00085       \}
+00086       m\_matIsLoaded = \textcolor{keyword}{true}; 
+00087 
+00088       \textcolor{keywordflow}{if} (m\_sym != NonSymmetric) 
+00089       \{
+00090         \textcolor{comment}{// Check whether we need to restore a full matrix:}
+00091         RealScalar diag\_norm  = m\_mat.\hyperlink{group___sparse_core___module_a4423486f9fd64cbac7be06c748b37e0a}{diagonal}().norm();
+00092         RealScalar lower\_norm = m\_mat.template triangularView<Lower>().norm();
+00093         RealScalar upper\_norm = m\_mat.template triangularView<Upper>().norm();
+00094         \textcolor{keywordflow}{if}(lower\_norm>diag\_norm && upper\_norm==diag\_norm)
+00095         \{
+00096           \textcolor{comment}{// only the lower part is stored}
+00097           MatrixType tmp(m\_mat);
+00098           m\_mat = tmp.template selfadjointView<Lower>();
+00099         \}
+00100         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(upper\_norm>diag\_norm && lower\_norm==diag\_norm)
+00101         \{
+00102           \textcolor{comment}{// only the upper part is stored}
+00103           MatrixType tmp(m\_mat);
+00104           m\_mat = tmp.template selfadjointView<Upper>();
+00105         \}
+00106       \}
+00107       \textcolor{keywordflow}{return} m\_mat; 
+00108     \}
+00109     
+\Hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_matrix_market_iterator_8h_source_l00113}\hyperlink{class_eigen_1_1_matrix_market_iterator_ac141e537f3bc3a3c078a2780a6a956b6}{00113}     \textcolor{keyword}{inline} VectorType& \hyperlink{class_eigen_1_1_matrix_market_iterator_ac141e537f3bc3a3c078a2780a6a956b6}{rhs}() 
+00114     \{ 
+00115        \textcolor{comment}{// Get the right hand side}
+00116       \textcolor{keywordflow}{if} (m\_hasRhs) \textcolor{keywordflow}{return} m\_rhs;
+00117       
+00118       std::string rhs\_file;
+00119       rhs\_file = m\_folder + \textcolor{stringliteral}{"/"} + m\_matname + \textcolor{stringliteral}{"\_b.mtx"}; \textcolor{comment}{// The pattern is matname\_b.mtx}
+00120       m\_hasRhs = Fileexists(rhs\_file);
+00121       \textcolor{keywordflow}{if} (m\_hasRhs)
+00122       \{
+00123         m\_rhs.\hyperlink{class_eigen_1_1_plain_object_base_a99d9054ee2d5a40c6e00ded0265e9cea}{resize}(m\_mat.\hyperlink{group___sparse_core___module_aa391750e3c530227e4a5c3c52e959975}{cols}());
+00124         m\_hasRhs = loadMarketVector(m\_rhs, rhs\_file);
+00125       \}
+00126       \textcolor{keywordflow}{if} (!m\_hasRhs)
+00127       \{
+00128         \textcolor{comment}{// Generate a random right hand side}
+00129         \textcolor{keywordflow}{if} (!m\_matIsLoaded) this->\hyperlink{class_eigen_1_1_matrix_market_iterator_ac938961d685306ef5b48d9943f7dcabd}{matrix}(); 
+00130         m\_refX.\hyperlink{class_eigen_1_1_plain_object_base_a99d9054ee2d5a40c6e00ded0265e9cea}{resize}(m\_mat.\hyperlink{group___sparse_core___module_aa391750e3c530227e4a5c3c52e959975}{cols}());
+00131         m\_refX.\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00132         m\_rhs = m\_mat * m\_refX;
+00133         m\_hasrefX = \textcolor{keyword}{true};
+00134         m\_hasRhs = \textcolor{keyword}{true};
+00135       \}
+00136       \textcolor{keywordflow}{return} m\_rhs; 
+00137     \}
+00138     
+\Hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_sparse_extra_2_matrix_market_iterator_8h_source_l00145}\hyperlink{class_eigen_1_1_matrix_market_iterator_a80f334d9fbbed0d24ba0c32d2bea16bc}{00145}     \textcolor{keyword}{inline} VectorType& \hyperlink{class_eigen_1_1_matrix_market_iterator_a80f334d9fbbed0d24ba0c32d2bea16bc}{refX}() 
+00146     \{ 
+00147       \textcolor{comment}{// Check if a reference solution is provided}
+00148       \textcolor{keywordflow}{if} (m\_hasrefX) \textcolor{keywordflow}{return} m\_refX;
+00149       
+00150       std::string lhs\_file;
+00151       lhs\_file = m\_folder + \textcolor{stringliteral}{"/"} + m\_matname + \textcolor{stringliteral}{"\_x.mtx"}; 
+00152       m\_hasrefX = Fileexists(lhs\_file);
+00153       \textcolor{keywordflow}{if} (m\_hasrefX)
+00154       \{
+00155         m\_refX.\hyperlink{class_eigen_1_1_plain_object_base_a99d9054ee2d5a40c6e00ded0265e9cea}{resize}(m\_mat.\hyperlink{group___sparse_core___module_aa391750e3c530227e4a5c3c52e959975}{cols}());
+00156         m\_hasrefX = loadMarketVector(m\_refX, lhs\_file);
+00157       \}
+00158       \textcolor{keywordflow}{else}
+00159         m\_refX.\hyperlink{class_eigen_1_1_plain_object_base_a99d9054ee2d5a40c6e00ded0265e9cea}{resize}(0);
+00160       \textcolor{keywordflow}{return} m\_refX; 
+00161     \}
+00162     
+00163     \textcolor{keyword}{inline} std::string& matname() \{ \textcolor{keywordflow}{return} m\_matname; \}
+00164     
+00165     \textcolor{keyword}{inline} \textcolor{keywordtype}{int} sym() \{ \textcolor{keywordflow}{return} m\_sym; \}
+00166     
+00167     \textcolor{keywordtype}{bool} hasRhs() \{\textcolor{keywordflow}{return} m\_hasRhs; \}
+00168     \textcolor{keywordtype}{bool} hasrefX() \{\textcolor{keywordflow}{return} m\_hasrefX; \}
+00169     \textcolor{keywordtype}{bool} isFolderValid() \{ \textcolor{keywordflow}{return} bool(m\_folder\_id); \}
+00170     
+00171   \textcolor{keyword}{protected}:
+00172     
+00173     \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} Fileexists(std::string \hyperlink{structfile}{file})
+00174     \{
+00175       std::ifstream file\_id(file.c\_str());
+00176       \textcolor{keywordflow}{if} (!file\_id.good() ) 
+00177       \{
+00178         \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00179       \}
+00180       \textcolor{keywordflow}{else} 
+00181       \{
+00182         file\_id.close();
+00183         \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00184       \}
+00185     \}
+00186     
+00187     \textcolor{keywordtype}{void} Getnextvalidmatrix( )
+00188     \{
+00189       m\_isvalid = \textcolor{keyword}{false};
+00190       \textcolor{comment}{// Here, we return with the next valid matrix in the folder}
+00191       \textcolor{keywordflow}{while} ( (m\_curs\_id = readdir(m\_folder\_id)) != NULL) \{
+00192         m\_isvalid = \textcolor{keyword}{false};
+00193         std::string curfile;
+00194         curfile = m\_folder + \textcolor{stringliteral}{"/"} + m\_curs\_id->d\_name;
+00195         \textcolor{comment}{// Discard if it is a folder}
+00196         \textcolor{keywordflow}{if} (m\_curs\_id->d\_type == DT\_DIR) \textcolor{keywordflow}{continue}; \textcolor{comment}{//FIXME This may not be available on non BSD systems}
+00197 \textcolor{comment}{//         struct stat st\_buf; }
+00198 \textcolor{comment}{//         stat (curfile.c\_str(), &st\_buf);}
+00199 \textcolor{comment}{//         if (S\_ISDIR(st\_buf.st\_mode)) continue;}
+00200         
+00201         \textcolor{comment}{// Determine from the header if it is a matrix or a right hand side }
+00202         \textcolor{keywordtype}{bool} isvector,iscomplex=\textcolor{keyword}{false};
+00203         \textcolor{keywordflow}{if}(!getMarketHeader(curfile,m\_sym,iscomplex,isvector)) \textcolor{keywordflow}{continue};
+00204         \textcolor{keywordflow}{if}(isvector) \textcolor{keywordflow}{continue};
+00205         \textcolor{keywordflow}{if} (!iscomplex)
+00206         \{
+00207           \textcolor{keywordflow}{if}(\hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same}<Scalar, std::complex<float> >::value || 
+      \hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same}<Scalar, std::complex<double> >::value)
+00208             \textcolor{keywordflow}{continue}; 
+00209         \}
+00210         \textcolor{keywordflow}{if} (iscomplex)
+00211         \{
+00212           \textcolor{keywordflow}{if}(\hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same<Scalar, float>::value} || 
+      \hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same<Scalar, double>::value})
+00213             \textcolor{keywordflow}{continue}; 
+00214         \}
+00215         
+00216         
+00217         \textcolor{comment}{// Get the matrix name}
+00218         std::string filename = m\_curs\_id->d\_name;
+00219         m\_matname = filename.substr(0, filename.length()-4); 
+00220         
+00221         \textcolor{comment}{// Find if the matrix is SPD }
+00222         \textcolor{keywordtype}{size\_t} found = m\_matname.find(\textcolor{stringliteral}{"SPD"});
+00223         \textcolor{keywordflow}{if}( (found!=std::string::npos) && (m\_sym != NonSymmetric) )
+00224           m\_sym = SPD;
+00225        
+00226         m\_isvalid = \textcolor{keyword}{true};
+00227         \textcolor{keywordflow}{break}; 
+00228       \}
+00229     \}
+00230     \textcolor{keywordtype}{int} m\_sym; \textcolor{comment}{// Symmetry of the matrix}
+00231     MatrixType m\_mat; \textcolor{comment}{// Current matrix  }
+00232     VectorType m\_rhs;  \textcolor{comment}{// Current vector}
+00233     VectorType m\_refX; \textcolor{comment}{// The reference solution, if exists}
+00234     std::string m\_matname; \textcolor{comment}{// Matrix Name}
+00235     \textcolor{keywordtype}{bool} m\_isvalid; 
+00236     \textcolor{keywordtype}{bool} m\_matIsLoaded; \textcolor{comment}{// Determine if the matrix has already been loaded from the file}
+00237     \textcolor{keywordtype}{bool} m\_hasRhs; \textcolor{comment}{// The right hand side exists}
+00238     \textcolor{keywordtype}{bool} m\_hasrefX; \textcolor{comment}{// A reference solution is provided}
+00239     std::string m\_folder;
+00240     DIR * m\_folder\_id;
+00241     \textcolor{keyword}{struct }dirent *m\_curs\_id; 
+00242     
+00243 \};
+00244 
+00245 \} \textcolor{comment}{// end namespace Eigen}
+00246 
+00247 \textcolor{preprocessor}{#endif}
+\end{DoxyCode}

@@ -1,0 +1,339 @@
+\hypertarget{eigen_2_eigen_2src_2_sparse_core_2_triangular_solver_8h_source}{}\section{eigen/\+Eigen/src/\+Sparse\+Core/\+Triangular\+Solver.h}
+\label{eigen_2_eigen_2src_2_sparse_core_2_triangular_solver_8h_source}\index{Triangular\+Solver.\+h@{Triangular\+Solver.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_SPARSETRIANGULARSOLVER\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_SPARSETRIANGULARSOLVER\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016 
+00017 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Mode,
+00018   \textcolor{keywordtype}{int} UpLo = (Mode & \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower})
+00019            ? \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}
+00020            : (Mode & \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper})
+00021            ? \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}
+00022            : -1,
+00023   \textcolor{keywordtype}{int} StorageOrder = int(traits<Lhs>::Flags) & \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_triangular_solver_8h_source_l00024}\hyperlink{struct_eigen_1_1internal_1_1sparse__solve__triangular__selector}{00024} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1sparse__solve__triangular__selector}{sparse\_solve\_triangular\_selector};
+00025 
+00026 \textcolor{comment}{// forward substitution, row-major}
+00027 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Mode>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_triangular_solver_8h_source_l00028}\hyperlink{struct_eigen_1_1internal_1_1sparse__solve__triangular__selector_3_01_lhs_00_01_rhs_00_01_mode_00_01_lower_00_01_row_major_01_4}{00028} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1sparse__solve__triangular__selector}{sparse\_solve\_triangular\_selector}<Lhs,Rhs,Mode,
+      \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower},\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}>
+00029 \{
+00030   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Rhs::Scalar Scalar;
+00031   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{evaluator<Lhs>} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{LhsEval};
+00032   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{evaluator<Lhs>::InnerIterator} LhsIterator;
+00033   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} Lhs& lhs, Rhs& other)
+00034   \{
+00035     LhsEval lhsEval(lhs);
+00036     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col=0 ; col<other.cols() ; ++col)
+00037     \{
+00038       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=0; i<lhs.rows(); ++i)
+00039       \{
+00040         Scalar tmp = other.coeff(i,col);
+00041         Scalar lastVal(0);
+00042         \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} lastIndex = 0;
+00043         \textcolor{keywordflow}{for}(LhsIterator it(lhsEval, i); it; ++it)
+00044         \{
+00045           lastVal = it.value();
+00046           lastIndex = it.index();
+00047           \textcolor{keywordflow}{if}(lastIndex==i)
+00048             \textcolor{keywordflow}{break};
+00049           tmp -= lastVal * other.coeff(lastIndex,col);
+00050         \}
+00051         \textcolor{keywordflow}{if} (Mode & \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdaddb72f888ac85d5a1c52333e54f9374b}{UnitDiag})
+00052           other.coeffRef(i,col) = tmp;
+00053         \textcolor{keywordflow}{else}
+00054         \{
+00055           eigen\_assert(lastIndex==i);
+00056           other.coeffRef(i,col) = tmp/lastVal;
+00057         \}
+00058       \}
+00059     \}
+00060   \}
+00061 \};
+00062 
+00063 \textcolor{comment}{// backward substitution, row-major}
+00064 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Mode>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_triangular_solver_8h_source_l00065}\hyperlink{struct_eigen_1_1internal_1_1sparse__solve__triangular__selector_3_01_lhs_00_01_rhs_00_01_mode_00_01_upper_00_01_row_major_01_4}{00065} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1sparse__solve__triangular__selector}{sparse\_solve\_triangular\_selector}<Lhs,Rhs,Mode,Upper,
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor}>
+00066 \{
+00067   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Rhs::Scalar Scalar;
+00068   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{evaluator<Lhs>} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{LhsEval};
+00069   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{evaluator<Lhs>::InnerIterator} LhsIterator;
+00070   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} Lhs& lhs, Rhs& other)
+00071   \{
+00072     LhsEval lhsEval(lhs);
+00073     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col=0 ; col<other.cols() ; ++col)
+00074     \{
+00075       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=lhs.rows()-1 ; i>=0 ; --i)
+00076       \{
+00077         Scalar tmp = other.coeff(i,col);
+00078         Scalar l\_ii(0);
+00079         LhsIterator it(lhsEval, i);
+00080         \textcolor{keywordflow}{while}(it && it.index()<i)
+00081           ++it;
+00082         \textcolor{keywordflow}{if}(!(Mode & \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdaddb72f888ac85d5a1c52333e54f9374b}{UnitDiag}))
+00083         \{
+00084           eigen\_assert(it && it.index()==i);
+00085           l\_ii = it.value();
+00086           ++it;
+00087         \}
+00088         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (it && it.index() == i)
+00089           ++it;
+00090         \textcolor{keywordflow}{for}(; it; ++it)
+00091         \{
+00092           tmp -= it.value() * other.coeff(it.index(),col);
+00093         \}
+00094 
+00095         \textcolor{keywordflow}{if} (Mode & UnitDiag)  other.coeffRef(i,col) = tmp;
+00096         \textcolor{keywordflow}{else}                  other.coeffRef(i,col) = tmp/l\_ii;
+00097       \}
+00098     \}
+00099   \}
+00100 \};
+00101 
+00102 \textcolor{comment}{// forward substitution, col-major}
+00103 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Mode>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_triangular_solver_8h_source_l00104}\hyperlink{struct_eigen_1_1internal_1_1sparse__solve__triangular__selector_3_01_lhs_00_01_rhs_00_01_mode_00_01_lower_00_01_col_major_01_4}{00104} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1sparse__solve__triangular__selector}{sparse\_solve\_triangular\_selector}<Lhs,Rhs,Mode,
+      \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower},\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}>
+00105 \{
+00106   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Rhs::Scalar Scalar;
+00107   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{evaluator<Lhs>} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{LhsEval};
+00108   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{evaluator<Lhs>::InnerIterator} LhsIterator;
+00109   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} Lhs& lhs, Rhs& other)
+00110   \{
+00111     LhsEval lhsEval(lhs);
+00112     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col=0 ; col<other.cols() ; ++col)
+00113     \{
+00114       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=0; i<lhs.cols(); ++i)
+00115       \{
+00116         Scalar& tmp = other.coeffRef(i,col);
+00117         \textcolor{keywordflow}{if} (tmp!=Scalar(0)) \textcolor{comment}{// optimization when other is actually sparse}
+00118         \{
+00119           LhsIterator it(lhsEval, i);
+00120           \textcolor{keywordflow}{while}(it && it.index()<i)
+00121             ++it;
+00122           \textcolor{keywordflow}{if}(!(Mode & \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdaddb72f888ac85d5a1c52333e54f9374b}{UnitDiag}))
+00123           \{
+00124             eigen\_assert(it && it.index()==i);
+00125             tmp /= it.value();
+00126           \}
+00127           \textcolor{keywordflow}{if} (it && it.index()==i)
+00128             ++it;
+00129           \textcolor{keywordflow}{for}(; it; ++it)
+00130             other.coeffRef(it.index(), col) -= tmp * it.value();
+00131         \}
+00132       \}
+00133     \}
+00134   \}
+00135 \};
+00136 
+00137 \textcolor{comment}{// backward substitution, col-major}
+00138 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Mode>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_triangular_solver_8h_source_l00139}\hyperlink{struct_eigen_1_1internal_1_1sparse__solve__triangular__selector_3_01_lhs_00_01_rhs_00_01_mode_00_01_upper_00_01_col_major_01_4}{00139} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1sparse__solve__triangular__selector}{sparse\_solve\_triangular\_selector}<Lhs,Rhs,Mode,Upper,
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}>
+00140 \{
+00141   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Rhs::Scalar Scalar;
+00142   \textcolor{keyword}{typedef} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{evaluator<Lhs>} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{LhsEval};
+00143   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1evaluator}{evaluator<Lhs>::InnerIterator} LhsIterator;
+00144   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} Lhs& lhs, Rhs& other)
+00145   \{
+00146     LhsEval lhsEval(lhs);
+00147     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col=0 ; col<other.cols() ; ++col)
+00148     \{
+00149       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=lhs.cols()-1; i>=0; --i)
+00150       \{
+00151         Scalar& tmp = other.coeffRef(i,col);
+00152         \textcolor{keywordflow}{if} (tmp!=Scalar(0)) \textcolor{comment}{// optimization when other is actually sparse}
+00153         \{
+00154           \textcolor{keywordflow}{if}(!(Mode & \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdaddb72f888ac85d5a1c52333e54f9374b}{UnitDiag}))
+00155           \{
+00156             \textcolor{comment}{// TODO replace this by a binary search. make sure the binary search is safe for partially
+       sorted elements}
+00157             LhsIterator it(lhsEval, i);
+00158             \textcolor{keywordflow}{while}(it && it.index()!=i)
+00159               ++it;
+00160             eigen\_assert(it && it.index()==i);
+00161             other.coeffRef(i,col) /= it.value();
+00162           \}
+00163           LhsIterator it(lhsEval, i);
+00164           \textcolor{keywordflow}{for}(; it && it.index()<i; ++it)
+00165             other.coeffRef(it.index(), col) -= tmp * it.value();
+00166         \}
+00167       \}
+00168     \}
+00169   \}
+00170 \};
+00171 
+00172 \} \textcolor{comment}{// end namespace internal}
+00173 
+00174 \textcolor{preprocessor}{#ifndef EIGEN\_PARSED\_BY\_DOXYGEN}
+00175 
+00176 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ExpressionType,\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} Mode>
+00177 \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00178 \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_triangular_view_impl}{TriangularViewImpl<ExpressionType,Mode,Sparse>::solveInPlace}
+      (\hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<OtherDerived>}& other)\textcolor{keyword}{ const}
+00179 \textcolor{keyword}{}\{
+00180   eigen\_assert(derived().cols() == derived().rows() && derived().cols() == other.rows());
+00181   eigen\_assert((!(Mode & \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda884ff7240392e85aa6e4b3c957e36483}{ZeroDiag})) && \textcolor{keywordtype}{bool}(Mode & (\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}|\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower})));
+00182 
+00183   \textcolor{keyword}{enum} \{ copy = \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<OtherDerived>::Flags} & 
+      \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit} \};
+00184 
+00185   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1conditional}{internal::conditional}<copy,
+00186     \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_matrix}{internal::plain\_matrix\_type\_column\_major<OtherDerived>::type}
+      , OtherDerived&>::type OtherCopy;
+00187   OtherCopy otherCopy(other.derived());
+00188 
+00189   
+      \hyperlink{struct_eigen_1_1internal_1_1sparse__solve__triangular__selector}{internal::sparse\_solve\_triangular\_selector<ExpressionType, typename
+       internal::remove\_reference<OtherCopy>::type}
+      , Mode>::run(derived().nestedExpression(), otherCopy);
+00190 
+00191   \textcolor{keywordflow}{if} (copy)
+00192     other = otherCopy;
+00193 \}
+00194 \textcolor{preprocessor}{#endif}
+00195 
+00196 \textcolor{comment}{// pure sparse path}
+00197 
+00198 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00199 
+00200 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Mode,
+00201   \textcolor{keywordtype}{int} UpLo = (Mode & \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower})
+00202            ? \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}
+00203            : (Mode & \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper})
+00204            ? \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}
+00205            : -1,
+00206   \textcolor{keywordtype}{int} StorageOrder = int(Lhs::Flags) & (\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit})>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_triangular_solver_8h_source_l00207}\hyperlink{struct_eigen_1_1internal_1_1sparse__solve__triangular__sparse__selector}{00207} \textcolor{keyword}{struct} \hyperlink{struct_eigen_1_1internal_1_1sparse__solve__triangular__sparse__selector}{sparse\_solve\_triangular\_sparse\_selector};
+00208 
+00209 \textcolor{comment}{// forward substitution, col-major}
+00210 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Lhs, \textcolor{keyword}{typename} Rhs, \textcolor{keywordtype}{int} Mode, \textcolor{keywordtype}{int} UpLo>
+\Hypertarget{eigen_2_eigen_2src_2_sparse_core_2_triangular_solver_8h_source_l00211}\hyperlink{struct_eigen_1_1internal_1_1sparse__solve__triangular__sparse__selector_3_01_lhs_00_01_rhs_00_0103d70089ab1c1a5e4529163773532981}{00211} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1sparse__solve__triangular__sparse__selector_3_01_lhs_00_01_rhs_00_0103d70089ab1c1a5e4529163773532981}{sparse\_solve\_triangular\_sparse\_selector<Lhs,Rhs,Mode,UpLo,ColMajor>}
+00212 \{
+00213   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Rhs::Scalar Scalar;
+00214   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1promote__index__type}{promote\_index\_type<typename traits<Lhs>::StorageIndex}
+      ,
+00215                                       \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{traits<Rhs>::StorageIndex}>::type 
+      \hyperlink{struct_eigen_1_1internal_1_1conditional}{StorageIndex};
+00216   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} Lhs& lhs, Rhs& other)
+00217   \{
+00218     \textcolor{keyword}{const} \textcolor{keywordtype}{bool} IsLower = (UpLo==\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower});
+00219     \hyperlink{class_eigen_1_1internal_1_1_ambi_vector}{AmbiVector<Scalar,StorageIndex>} tempVector(other.rows()*2);
+00220     tempVector.\hyperlink{class_eigen_1_1internal_1_1_ambi_vector_a8a37e06682a29a63239d914de342096c}{setBounds}(0,other.rows());
+00221 
+00222     Rhs res(other.rows(), other.cols());
+00223     res.reserve(other.nonZeros());
+00224 
+00225     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} col=0 ; col<other.cols() ; ++col)
+00226     \{
+00227       \textcolor{comment}{// FIXME estimate number of non zeros}
+00228       tempVector.init(.99\textcolor{comment}{/*float(other.col(col).nonZeros())/float(other.rows())*/});
+00229       tempVector.setZero();
+00230       tempVector.restart();
+00231       \textcolor{keywordflow}{for} (\textcolor{keyword}{typename} Rhs::InnerIterator rhsIt(other, col); rhsIt; ++rhsIt)
+00232       \{
+00233         tempVector.coeffRef(rhsIt.index()) = rhsIt.value();
+00234       \}
+00235 
+00236       \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i=IsLower?0:lhs.cols()-1;
+00237           IsLower?i<lhs.cols():i>=0;
+00238           i+=IsLower?1:-1)
+00239       \{
+00240         tempVector.restart();
+00241         Scalar& ci = tempVector.coeffRef(i);
+00242         \textcolor{keywordflow}{if} (ci!=Scalar(0))
+00243         \{
+00244           \textcolor{comment}{// find}
+00245           \textcolor{keyword}{typename} Lhs::InnerIterator it(lhs, i);
+00246           \textcolor{keywordflow}{if}(!(Mode & \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdaddb72f888ac85d5a1c52333e54f9374b}{UnitDiag}))
+00247           \{
+00248             \textcolor{keywordflow}{if} (IsLower)
+00249             \{
+00250               eigen\_assert(it.index()==i);
+00251               ci /= it.value();
+00252             \}
+00253             \textcolor{keywordflow}{else}
+00254               ci /= lhs.coeff(i,i);
+00255           \}
+00256           tempVector.restart();
+00257           \textcolor{keywordflow}{if} (IsLower)
+00258           \{
+00259             \textcolor{keywordflow}{if} (it.index()==i)
+00260               ++it;
+00261             \textcolor{keywordflow}{for}(; it; ++it)
+00262               tempVector.coeffRef(it.index()) -= ci * it.value();
+00263           \}
+00264           \textcolor{keywordflow}{else}
+00265           \{
+00266             \textcolor{keywordflow}{for}(; it && it.index()<i; ++it)
+00267               tempVector.coeffRef(it.index()) -= ci * it.value();
+00268           \}
+00269         \}
+00270       \}
+00271 
+00272 
+00273       \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} count = 0;
+00274       \textcolor{comment}{// FIXME compute a reference value to filter zeros}
+00275       \textcolor{keywordflow}{for} (\textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_ambi_vector_1_1_iterator}{AmbiVector<Scalar,StorageIndex>::Iterator} it(
+      tempVector\textcolor{comment}{/*,1e-12*/}); it; ++it)
+00276       \{
+00277         ++ count;
+00278 \textcolor{comment}{//         std::cerr << "fill " << it.index() << ", " << col << "\(\backslash\)n";}
+00279 \textcolor{comment}{//         std::cout << it.value() << "  ";}
+00280         \textcolor{comment}{// FIXME use insertBack}
+00281         res.insert(it.index(), col) = it.value();
+00282       \}
+00283 \textcolor{comment}{//       std::cout << "tempVector.nonZeros() == " << int(count) << " / " << (other.rows()) << "\(\backslash\)n";}
+00284     \}
+00285     res.finalize();
+00286     other = res.markAsRValue();
+00287   \}
+00288 \};
+00289 
+00290 \} \textcolor{comment}{// end namespace internal}
+00291 
+00292 \textcolor{preprocessor}{#ifndef EIGEN\_PARSED\_BY\_DOXYGEN}
+00293 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ExpressionType,\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} Mode>
+00294 \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00295 \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_triangular_view_impl}{TriangularViewImpl<ExpressionType,Mode,Sparse>::solveInPlace}
+      (\hyperlink{group___sparse_core___module_class_eigen_1_1_sparse_matrix_base}{SparseMatrixBase<OtherDerived>}& other)\textcolor{keyword}{ const}
+00296 \textcolor{keyword}{}\{
+00297   eigen\_assert(derived().cols() == derived().rows() && derived().cols() == other.
+      \hyperlink{group___sparse_core___module_a1944e9fa9ce7937bfc3a87b2cb94371f}{rows}());
+00298   eigen\_assert( (!(Mode & \hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda884ff7240392e85aa6e4b3c957e36483}{ZeroDiag})) && \textcolor{keywordtype}{bool}(Mode & (\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda6bcb58be3b8b8ec84859ce0c5ac0aaec}{Upper}|\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower})));
+00299 
+00300 \textcolor{comment}{//   enum \{ copy = internal::traits<OtherDerived>::Flags & RowMajorBit \};}
+00301 
+00302 \textcolor{comment}{//   typedef typename internal::conditional<copy,}
+00303 \textcolor{comment}{//     typename internal::plain\_matrix\_type\_column\_major<OtherDerived>::type, OtherDerived&>::type
+       OtherCopy;}
+00304 \textcolor{comment}{//   OtherCopy otherCopy(other.derived());}
+00305 
+00306   
+      \hyperlink{struct_eigen_1_1internal_1_1sparse__solve__triangular__sparse__selector}{internal::sparse\_solve\_triangular\_sparse\_selector<ExpressionType, OtherDerived, Mode>::run}
+      (derived().nestedExpression(), other.derived());
+00307 
+00308 \textcolor{comment}{//   if (copy)}
+00309 \textcolor{comment}{//     other = otherCopy;}
+00310 \}
+00311 \textcolor{preprocessor}{#endif}
+00312 
+00313 \} \textcolor{comment}{// end namespace Eigen}
+00314 
+00315 \textcolor{preprocessor}{#endif // EIGEN\_SPARSETRIANGULARSOLVER\_H}
+\end{DoxyCode}

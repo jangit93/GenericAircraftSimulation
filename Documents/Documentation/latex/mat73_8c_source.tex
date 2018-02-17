@@ -1,0 +1,2624 @@
+\hypertarget{mat73_8c_source}{}\section{mat73.\+c}
+\label{mat73_8c_source}\index{mat73.\+c@{mat73.\+c}}
+
+\begin{DoxyCode}
+00001 
+00005 \textcolor{comment}{/*}
+00006 \textcolor{comment}{ * Copyright (c) 2005-2018, Christopher C. Hulbert}
+00007 \textcolor{comment}{ * All rights reserved.}
+00008 \textcolor{comment}{ *}
+00009 \textcolor{comment}{ * Redistribution and use in source and binary forms, with or without}
+00010 \textcolor{comment}{ * modification, are permitted provided that the following conditions are met:}
+00011 \textcolor{comment}{ *}
+00012 \textcolor{comment}{ * 1. Redistributions of source code must retain the above copyright notice, this}
+00013 \textcolor{comment}{ *    list of conditions and the following disclaimer.}
+00014 \textcolor{comment}{ *}
+00015 \textcolor{comment}{ * 2. Redistributions in binary form must reproduce the above copyright notice,}
+00016 \textcolor{comment}{ *    this list of conditions and the following disclaimer in the documentation}
+00017 \textcolor{comment}{ *    and/or other materials provided with the distribution.}
+00018 \textcolor{comment}{ *}
+00019 \textcolor{comment}{ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"}
+00020 \textcolor{comment}{ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE}
+00021 \textcolor{comment}{ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE}
+00022 \textcolor{comment}{ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE}
+00023 \textcolor{comment}{ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL}
+00024 \textcolor{comment}{ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR}
+00025 \textcolor{comment}{ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER}
+00026 \textcolor{comment}{ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,}
+00027 \textcolor{comment}{ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}
+00028 \textcolor{comment}{ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}
+00029 \textcolor{comment}{ */}
+00030 
+00031 \textcolor{preprocessor}{#include <stdlib.h>}
+00032 \textcolor{preprocessor}{#include <string.h>}
+00033 \textcolor{preprocessor}{#include <stdio.h>}
+00034 \textcolor{preprocessor}{#include <math.h>}
+00035 \textcolor{preprocessor}{#include <time.h>}
+00036 \textcolor{preprocessor}{#if defined(\_MSC\_VER) || defined(\_\_MINGW32\_\_)}
+00037 \textcolor{preprocessor}{#   define strdup \_strdup}
+00038 \textcolor{preprocessor}{#endif}
+00039 \textcolor{preprocessor}{#include "matio\_private.h"}
+00040 
+00041 \textcolor{preprocessor}{#if defined(MAT73) && MAT73}
+00042 \textcolor{preprocessor}{#if HAVE\_HDF5}
+00043 
+00044 \textcolor{preprocessor}{#include "mat73.h"}
+00045 
+00046 \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{char} *ClassNames[] = \{
+00047     \textcolor{stringliteral}{""},
+00048     \textcolor{stringliteral}{"cell"},
+00049     \textcolor{stringliteral}{"struct"},
+00050     \textcolor{stringliteral}{"object"},
+00051     \textcolor{stringliteral}{"char"},
+00052     \textcolor{stringliteral}{"sparse"},
+00053     \textcolor{stringliteral}{"double"},
+00054     \textcolor{stringliteral}{"single"},
+00055     \textcolor{stringliteral}{"int8"},
+00056     \textcolor{stringliteral}{"uint8"},
+00057     \textcolor{stringliteral}{"int16"},
+00058     \textcolor{stringliteral}{"uint16"},
+00059     \textcolor{stringliteral}{"int32"},
+00060     \textcolor{stringliteral}{"uint32"},
+00061     \textcolor{stringliteral}{"int64"},
+00062     \textcolor{stringliteral}{"uint64"},
+00063     \textcolor{stringliteral}{"function"}
+00064 \};
+00065 
+00066 \textcolor{keyword}{struct }ReadNextIterData \{
+00067     \hyperlink{struct__mat__t}{mat\_t} *mat;
+00068     \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar;
+00069 \};
+00070 
+00071 \textcolor{keyword}{struct }ReadGroupInfoIterData \{
+00072     hsize\_t nfields;
+00073     \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar;
+00074 \};
+00075 
+00076 \textcolor{preprocessor}{#if defined(H5Rdereference)}
+00077 \textcolor{comment}{/* HDF5 1.10.0 */}
+00078 \textcolor{preprocessor}{#define H5RDEREFERENCE(obj\_id, ref\_type, \_ref) H5Rdereference2((obj\_id), H5P\_DATASET\_ACCESS\_DEFAULT,
+       (ref\_type), (\_ref))}
+00079 \textcolor{preprocessor}{#else}
+00080 \textcolor{comment}{/* HDF5 prior to 1.10.0 */}
+00081 \textcolor{preprocessor}{#define H5RDEREFERENCE(obj\_id, ref\_type, \_ref) H5Rdereference((obj\_id), (ref\_type), (\_ref))}
+00082 \textcolor{preprocessor}{#endif}
+00083 
+00084 \textcolor{preprocessor}{#if !defined(MAX\_RANK)}
+00085 \textcolor{comment}{/* Maximal number of dimensions for stack allocated temporary dimension arrays */}
+00086 \textcolor{preprocessor}{#define MAX\_RANK (3)}
+00087 \textcolor{preprocessor}{#endif}
+00088 
+00089 \textcolor{comment}{/*===========================================================================}
+00090 \textcolor{comment}{ *  Private functions}
+00091 \textcolor{comment}{ *===========================================================================}
+00092 \textcolor{comment}{ */}
+00093 \textcolor{keyword}{static} \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gad4d60ae7b709fc81bfd744fb4c857c40}{matio\_classes} ClassStr2ClassType(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name);
+00094 \textcolor{keyword}{static} hid\_t   ClassType2H5T(\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gad4d60ae7b709fc81bfd744fb4c857c40}{matio\_classes} class\_type);
+00095 \textcolor{keyword}{static} hid\_t   DataType2H5T(\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type);
+00096 \textcolor{keyword}{static} hid\_t   SizeType2H5T(\textcolor{keywordtype}{void});
+00097 \textcolor{keyword}{static} \textcolor{keywordtype}{void}    Mat\_H5GetChunkSize(\textcolor{keywordtype}{size\_t} rank,hsize\_t *dims,hsize\_t *chunk\_dims);
+00098 \textcolor{keyword}{static} \textcolor{keywordtype}{void}    Mat\_H5ReadClassType(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,hid\_t dset\_id);
+00099 \textcolor{keyword}{static} \textcolor{keywordtype}{size\_t}* Mat\_H5ReadDims(hid\_t dset\_id, hsize\_t *numel, \textcolor{keywordtype}{int} *rank);
+00100 \textcolor{keyword}{static} \textcolor{keywordtype}{void}    Mat\_H5ReadFieldNames(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar, hid\_t dset\_id, hsize\_t *nfields);
+00101 \textcolor{keyword}{static} \textcolor{keywordtype}{void}    Mat\_H5ReadDatasetInfo(\hyperlink{struct__mat__t}{mat\_t} *mat,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,hid\_t dset\_id);
+00102 \textcolor{keyword}{static} \textcolor{keywordtype}{void}    Mat\_H5ReadGroupInfo(\hyperlink{struct__mat__t}{mat\_t} *mat,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,hid\_t dset\_id);
+00103 \textcolor{keyword}{static} \textcolor{keywordtype}{void}    Mat\_H5ReadNextReferenceInfo(hid\_t ref\_id,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,
+      \hyperlink{struct__mat__t}{mat\_t} *mat);
+00104 \textcolor{keyword}{static} \textcolor{keywordtype}{void}    Mat\_H5ReadNextReferenceData(hid\_t ref\_id,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,
+      \hyperlink{struct__mat__t}{mat\_t} *mat);
+00105 \textcolor{keyword}{static} \textcolor{keywordtype}{int}     Mat\_VarWriteEmpty(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,
+00106                    \textcolor{keyword}{const} \textcolor{keywordtype}{char}* class\_name);
+00107 \textcolor{keyword}{static} \textcolor{keywordtype}{int}     Mat\_VarWriteCell73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,
+00108                    hid\_t *refs\_id,hsize\_t *dims);
+00109 \textcolor{keyword}{static} \textcolor{keywordtype}{int}     Mat\_VarWriteChar73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,hsize\_t *dims);
+00110 \textcolor{keyword}{static} \textcolor{keywordtype}{int}     Mat\_WriteEmptyVariable73(hid\_t \textcolor{keywordtype}{id},\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,hsize\_t rank,
+00111                    \textcolor{keywordtype}{size\_t} *dims);
+00112 \textcolor{keyword}{static} \textcolor{keywordtype}{int}     Mat\_VarWriteLogical73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,hsize\_t *dims);
+00113 \textcolor{keyword}{static} \textcolor{keywordtype}{int}     Mat\_VarWriteNumeric73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,hsize\_t *dims,
+00114                    hsize\_t* max\_dims);
+00115 \textcolor{keyword}{static} \textcolor{keywordtype}{int}     Mat\_VarWriteAppendNumeric73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,\textcolor{keywordtype}{int} dim,
+00116                    hsize\_t *dims);
+00117 \textcolor{keyword}{static} \textcolor{keywordtype}{int}     Mat\_VarWriteSparse73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name);
+00118 \textcolor{keyword}{static} \textcolor{keywordtype}{int}     Mat\_VarWriteStruct73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,
+00119                    hid\_t *refs\_id,hsize\_t *dims);
+00120 \textcolor{keyword}{static} \textcolor{keywordtype}{int}     Mat\_VarWriteNext73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,
+00121                    hid\_t *refs\_id);
+00122 \textcolor{keyword}{static} \textcolor{keywordtype}{int}     Mat\_VarWriteAppendNext73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,
+00123                    \textcolor{keywordtype}{int} dim);
+00124 \textcolor{keyword}{static} \textcolor{keywordtype}{int}     Mat\_VarWriteNextType73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,
+00125                    hid\_t *refs\_id,hsize\_t *dims);
+00126 \textcolor{keyword}{static} \textcolor{keywordtype}{int}     Mat\_VarWriteAppendNextType73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,
+00127                    \textcolor{keywordtype}{int} dim,hsize\_t *dims);
+00128 \textcolor{keyword}{static} herr\_t  Mat\_VarReadNextInfoIterate(hid\_t \textcolor{keywordtype}{id}, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,
+00129                    \textcolor{keyword}{const} \hyperlink{struct_h5_l__info__t}{H5L\_info\_t} *info, \textcolor{keywordtype}{void} *op\_data);
+00130 \textcolor{keyword}{static} herr\_t  Mat\_H5ReadGroupInfoIterate(hid\_t dset\_id, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,
+00131                    \textcolor{keyword}{const} \hyperlink{struct_h5_l__info__t}{H5L\_info\_t} *info, \textcolor{keywordtype}{void} *op\_data);
+00132 \textcolor{keyword}{static} \textcolor{keywordtype}{void}    Mat\_H5ReadData(hid\_t dset\_id, hid\_t h5\_type, hid\_t mem\_space, hid\_t dset\_space,
+00133                    \textcolor{keywordtype}{int} isComplex, \textcolor{keywordtype}{void} *data);
+00134 
+00135 \textcolor{keyword}{static} \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gad4d60ae7b709fc81bfd744fb4c857c40}{matio\_classes}
+00136 ClassStr2ClassType(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name)
+00137 \{
+00138     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gad4d60ae7b709fc81bfd744fb4c857c40}{matio\_classes} \textcolor{keywordtype}{id} = \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5c76eef0ca0373d25abe49053be6fa9a}{MAT\_C\_EMPTY};
+00139     \textcolor{keywordflow}{if} ( NULL != name ) \{
+00140         \textcolor{keywordtype}{int} k;
+00141         \textcolor{keywordflow}{for} ( k = 1; k < 17; k++ ) \{
+00142             \textcolor{keywordflow}{if} ( !strcmp(name,ClassNames[k]) ) \{
+00143                 \textcolor{keywordtype}{id} = (\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gad4d60ae7b709fc81bfd744fb4c857c40}{matio\_classes})k;
+00144                 \textcolor{keywordflow}{break};
+00145             \}
+00146         \}
+00147     \}
+00148 
+00149     \textcolor{keywordflow}{return} id;
+00150 \}
+00151 
+00152 \textcolor{keyword}{static} hid\_t
+00153 ClassType2H5T(\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gad4d60ae7b709fc81bfd744fb4c857c40}{matio\_classes} class\_type)
+00154 \{
+00155     \textcolor{keywordflow}{switch} ( class\_type ) \{
+00156         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5d70e0862e5bdb7bd86bf7ba5948f307}{MAT\_C\_DOUBLE}:
+00157             \textcolor{keywordflow}{return} H5T\_NATIVE\_DOUBLE;
+00158         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2825631e26a961cbe0f79db50a39cea2}{MAT\_C\_SINGLE}:
+00159             \textcolor{keywordflow}{return} H5T\_NATIVE\_FLOAT;
+00160         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a1ea83bcde49b35477494412973f82409}{MAT\_C\_INT64}:
+00161 \textcolor{preprocessor}{#       if CHAR\_BIT*SIZEOF\_SHORT == 64}
+00162             \textcolor{keywordflow}{return} H5T\_NATIVE\_SHORT;
+00163 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_INT == 64}
+00164             \textcolor{keywordflow}{return} H5T\_NATIVE\_INT;
+00165 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG == 64}
+00166             \textcolor{keywordflow}{return} H5T\_NATIVE\_LONG;
+00167 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG\_LONG == 64}
+00168             \textcolor{keywordflow}{return} H5T\_NATIVE\_LLONG;
+00169 \textcolor{preprocessor}{#       endif}
+00170         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a86470e25c3763d9a24623f04326195dd}{MAT\_C\_UINT64}:
+00171 \textcolor{preprocessor}{#       if CHAR\_BIT*SIZEOF\_SHORT == 64}
+00172             \textcolor{keywordflow}{return} H5T\_NATIVE\_USHORT;
+00173 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_INT == 64}
+00174             \textcolor{keywordflow}{return} H5T\_NATIVE\_UINT;
+00175 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG == 64}
+00176             \textcolor{keywordflow}{return} H5T\_NATIVE\_ULONG;
+00177 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG\_LONG == 64}
+00178             \textcolor{keywordflow}{return} H5T\_NATIVE\_ULLONG;
+00179 \textcolor{preprocessor}{#       endif}
+00180         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40adb44fc39694e3152ae5e69470a2fefe8}{MAT\_C\_INT32}:
+00181 \textcolor{preprocessor}{#       if CHAR\_BIT == 32}
+00182             \textcolor{keywordflow}{return} H5T\_NATIVE\_SCHAR;
+00183 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_SHORT == 32}
+00184             \textcolor{keywordflow}{return} H5T\_NATIVE\_SHORT;
+00185 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_INT == 32}
+00186             \textcolor{keywordflow}{return} H5T\_NATIVE\_INT;
+00187 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG == 32}
+00188             \textcolor{keywordflow}{return} H5T\_NATIVE\_LONG;
+00189 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG\_LONG == 32}
+00190             \textcolor{keywordflow}{return} H5T\_NATIVE\_LLONG;
+00191 \textcolor{preprocessor}{#       endif}
+00192         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a9a17a7edd45b19ef68197db81b27e816}{MAT\_C\_UINT32}:
+00193 \textcolor{preprocessor}{#       if CHAR\_BIT == 32}
+00194             \textcolor{keywordflow}{return} H5T\_NATIVE\_UCHAR;
+00195 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_SHORT == 32}
+00196             \textcolor{keywordflow}{return} H5T\_NATIVE\_USHORT;
+00197 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_INT == 32}
+00198             \textcolor{keywordflow}{return} H5T\_NATIVE\_UINT;
+00199 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG == 32}
+00200             \textcolor{keywordflow}{return} H5T\_NATIVE\_ULONG;
+00201 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG\_LONG == 32}
+00202             \textcolor{keywordflow}{return} H5T\_NATIVE\_ULLONG;
+00203 \textcolor{preprocessor}{#       endif}
+00204         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a40370e9de516c5036a67a5865c071006}{MAT\_C\_INT16}:
+00205 \textcolor{preprocessor}{#       if CHAR\_BIT == 16}
+00206             \textcolor{keywordflow}{return} H5T\_NATIVE\_SCHAR;
+00207 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_SHORT == 16}
+00208             \textcolor{keywordflow}{return} H5T\_NATIVE\_SHORT;
+00209 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_INT == 16}
+00210             \textcolor{keywordflow}{return} H5T\_NATIVE\_INT;
+00211 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG == 16}
+00212             \textcolor{keywordflow}{return} H5T\_NATIVE\_LONG;
+00213 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG\_LONG == 16}
+00214             \textcolor{keywordflow}{return} H5T\_NATIVE\_LLONG;
+00215 \textcolor{preprocessor}{#       endif}
+00216         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a8bede21dbf6c1edc0bbccc1481bccae7}{MAT\_C\_UINT16}:
+00217 \textcolor{preprocessor}{#       if CHAR\_BIT == 16}
+00218             \textcolor{keywordflow}{return} H5T\_NATIVE\_UCHAR;
+00219 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_SHORT == 16}
+00220             \textcolor{keywordflow}{return} H5T\_NATIVE\_USHORT;
+00221 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_INT == 16}
+00222             \textcolor{keywordflow}{return} H5T\_NATIVE\_UINT;
+00223 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG == 16}
+00224             \textcolor{keywordflow}{return} H5T\_NATIVE\_ULONG;
+00225 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG\_LONG == 16}
+00226             \textcolor{keywordflow}{return} H5T\_NATIVE\_ULLONG;
+00227 \textcolor{preprocessor}{#       endif}
+00228         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a984ff310f9e906100fcff95f704f43c5}{MAT\_C\_INT8}:
+00229 \textcolor{preprocessor}{#       if CHAR\_BIT == 8}
+00230             \textcolor{keywordflow}{return} H5T\_NATIVE\_SCHAR;
+00231 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_SHORT == 8}
+00232             \textcolor{keywordflow}{return} H5T\_NATIVE\_SHORT;
+00233 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_INT == 8}
+00234             \textcolor{keywordflow}{return} H5T\_NATIVE\_INT;
+00235 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG == 8}
+00236             \textcolor{keywordflow}{return} H5T\_NATIVE\_LONG;
+00237 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG\_LONG == 8}
+00238             \textcolor{keywordflow}{return} H5T\_NATIVE\_LLONG;
+00239 \textcolor{preprocessor}{#       endif}
+00240         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a81270f8093cb4808e992c1d29d84d4e3}{MAT\_C\_UINT8}:
+00241 \textcolor{preprocessor}{#       if CHAR\_BIT == 8}
+00242             \textcolor{keywordflow}{return} H5T\_NATIVE\_UCHAR;
+00243 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_SHORT == 8}
+00244             \textcolor{keywordflow}{return} H5T\_NATIVE\_USHORT;
+00245 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_INT == 8}
+00246             \textcolor{keywordflow}{return} H5T\_NATIVE\_UINT;
+00247 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG == 8}
+00248             \textcolor{keywordflow}{return} H5T\_NATIVE\_ULONG;
+00249 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG\_LONG == 8}
+00250             \textcolor{keywordflow}{return} H5T\_NATIVE\_ULLONG;
+00251 \textcolor{preprocessor}{#       endif}
+00252         \textcolor{keywordflow}{default}:
+00253             \textcolor{keywordflow}{return} -1;
+00254     \}
+00255 \}
+00256 
+00257 \textcolor{keyword}{static} hid\_t
+00258 DataType2H5T(\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type)
+00259 \{
+00260     \textcolor{keywordflow}{switch} ( data\_type ) \{
+00261         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a31e721ecf7e188196f83c32838288797}{MAT\_T\_DOUBLE}:
+00262             \textcolor{keywordflow}{return} H5T\_NATIVE\_DOUBLE;
+00263         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a3a3657d40e9212c923d9b9d03531b64c}{MAT\_T\_SINGLE}:
+00264             \textcolor{keywordflow}{return} H5T\_NATIVE\_FLOAT;
+00265         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a9e825b5d18b8f946eaf2b4b57e51c145}{MAT\_T\_INT64}:
+00266 \textcolor{preprocessor}{#       if CHAR\_BIT*SIZEOF\_SHORT == 64}
+00267             \textcolor{keywordflow}{return} H5T\_NATIVE\_SHORT;
+00268 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_INT == 64}
+00269             \textcolor{keywordflow}{return} H5T\_NATIVE\_INT;
+00270 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG == 64}
+00271             \textcolor{keywordflow}{return} H5T\_NATIVE\_LONG;
+00272 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG\_LONG == 64}
+00273             \textcolor{keywordflow}{return} H5T\_NATIVE\_LLONG;
+00274 \textcolor{preprocessor}{#       endif}
+00275         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a45547932c46be27118abe08302d7e29f}{MAT\_T\_UINT64}:
+00276 \textcolor{preprocessor}{#       if CHAR\_BIT*SIZEOF\_SHORT == 64}
+00277             \textcolor{keywordflow}{return} H5T\_NATIVE\_USHORT;
+00278 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_INT == 64}
+00279             \textcolor{keywordflow}{return} H5T\_NATIVE\_UINT;
+00280 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG == 64}
+00281             \textcolor{keywordflow}{return} H5T\_NATIVE\_ULONG;
+00282 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG\_LONG == 64}
+00283             \textcolor{keywordflow}{return} H5T\_NATIVE\_ULLONG;
+00284 \textcolor{preprocessor}{#       endif}
+00285         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a83e06a68320726c6572bfbb9f3addb1d}{MAT\_T\_INT32}:
+00286 \textcolor{preprocessor}{#       if CHAR\_BIT == 32}
+00287             \textcolor{keywordflow}{return} H5T\_NATIVE\_SCHAR;
+00288 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_SHORT == 32}
+00289             \textcolor{keywordflow}{return} H5T\_NATIVE\_SHORT;
+00290 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_INT == 32}
+00291             \textcolor{keywordflow}{return} H5T\_NATIVE\_INT;
+00292 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG == 32}
+00293             \textcolor{keywordflow}{return} H5T\_NATIVE\_LONG;
+00294 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG\_LONG == 32}
+00295             \textcolor{keywordflow}{return} H5T\_NATIVE\_LLONG;
+00296 \textcolor{preprocessor}{#       endif}
+00297         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453aa397e285a23fe240368b752897652c6a}{MAT\_T\_UINT32}:
+00298 \textcolor{preprocessor}{#       if CHAR\_BIT == 32}
+00299             \textcolor{keywordflow}{return} H5T\_NATIVE\_UCHAR;
+00300 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_SHORT == 32}
+00301             \textcolor{keywordflow}{return} H5T\_NATIVE\_USHORT;
+00302 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_INT == 32}
+00303             \textcolor{keywordflow}{return} H5T\_NATIVE\_UINT;
+00304 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG == 32}
+00305             \textcolor{keywordflow}{return} H5T\_NATIVE\_ULONG;
+00306 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG\_LONG == 32}
+00307             \textcolor{keywordflow}{return} H5T\_NATIVE\_ULLONG;
+00308 \textcolor{preprocessor}{#       endif}
+00309         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a8c5b2e381946e95ea8d81ac216743302}{MAT\_T\_INT16}:
+00310 \textcolor{preprocessor}{#       if CHAR\_BIT == 16}
+00311             \textcolor{keywordflow}{return} H5T\_NATIVE\_SCHAR;
+00312 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_SHORT == 16}
+00313             \textcolor{keywordflow}{return} H5T\_NATIVE\_SHORT;
+00314 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_INT == 16}
+00315             \textcolor{keywordflow}{return} H5T\_NATIVE\_INT;
+00316 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG == 16}
+00317             \textcolor{keywordflow}{return} H5T\_NATIVE\_LONG;
+00318 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG\_LONG == 16}
+00319             \textcolor{keywordflow}{return} H5T\_NATIVE\_LLONG;
+00320 \textcolor{preprocessor}{#       endif}
+00321         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a05bc7af7680aa68be95126ae0a4c2e31}{MAT\_T\_UINT16}:
+00322 \textcolor{preprocessor}{#       if CHAR\_BIT == 16}
+00323             \textcolor{keywordflow}{return} H5T\_NATIVE\_UCHAR;
+00324 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_SHORT == 16}
+00325             \textcolor{keywordflow}{return} H5T\_NATIVE\_USHORT;
+00326 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_INT == 16}
+00327             \textcolor{keywordflow}{return} H5T\_NATIVE\_UINT;
+00328 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG == 16}
+00329             \textcolor{keywordflow}{return} H5T\_NATIVE\_ULONG;
+00330 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG\_LONG == 16}
+00331             \textcolor{keywordflow}{return} H5T\_NATIVE\_ULLONG;
+00332 \textcolor{preprocessor}{#       endif}
+00333         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a9807f5033ed4f9b548953742d9fd1658}{MAT\_T\_INT8}:
+00334 \textcolor{preprocessor}{#       if CHAR\_BIT == 8}
+00335             \textcolor{keywordflow}{return} H5T\_NATIVE\_SCHAR;
+00336 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_SHORT == 8}
+00337             \textcolor{keywordflow}{return} H5T\_NATIVE\_SHORT;
+00338 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_INT == 8}
+00339             \textcolor{keywordflow}{return} H5T\_NATIVE\_INT;
+00340 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG == 8}
+00341             \textcolor{keywordflow}{return} H5T\_NATIVE\_LONG;
+00342 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG\_LONG == 8}
+00343             \textcolor{keywordflow}{return} H5T\_NATIVE\_LLONG;
+00344 \textcolor{preprocessor}{#       endif}
+00345         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a01c1bd7db68f90552862eb5d311be408}{MAT\_T\_UINT8}:
+00346 \textcolor{preprocessor}{#       if CHAR\_BIT == 8}
+00347             \textcolor{keywordflow}{return} H5T\_NATIVE\_UCHAR;
+00348 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_SHORT == 8}
+00349             \textcolor{keywordflow}{return} H5T\_NATIVE\_USHORT;
+00350 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_INT == 8}
+00351             \textcolor{keywordflow}{return} H5T\_NATIVE\_UINT;
+00352 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG == 8}
+00353             \textcolor{keywordflow}{return} H5T\_NATIVE\_ULONG;
+00354 \textcolor{preprocessor}{#       elif CHAR\_BIT*SIZEOF\_LONG\_LONG == 8}
+00355             \textcolor{keywordflow}{return} H5T\_NATIVE\_ULLONG;
+00356 \textcolor{preprocessor}{#       endif}
+00357         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453ac34ad81f5cbd3b7d0d95e57e5be0149b}{MAT\_T\_UTF8}:
+00358             \textcolor{keywordflow}{return} H5T\_NATIVE\_CHAR;
+00359         \textcolor{keywordflow}{default}:
+00360             \textcolor{keywordflow}{return} -1;
+00361     \}
+00362 \}
+00363 
+00364 \textcolor{keyword}{static} hid\_t
+00365 SizeType2H5T(\textcolor{keywordtype}{void})
+00366 \{
+00367     \textcolor{keywordflow}{if} ( \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{size\_t}) == H5Tget\_size(H5T\_NATIVE\_HSIZE) )
+00368         \textcolor{keywordflow}{return} H5T\_NATIVE\_HSIZE;
+00369     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{size\_t}) == H5Tget\_size(H5T\_NATIVE\_ULLONG) )
+00370         \textcolor{keywordflow}{return} H5T\_NATIVE\_ULLONG;
+00371     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{size\_t}) == H5Tget\_size(H5T\_NATIVE\_ULONG) )
+00372         \textcolor{keywordflow}{return} H5T\_NATIVE\_ULONG;
+00373     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{size\_t}) == H5Tget\_size(H5T\_NATIVE\_UINT) )
+00374         \textcolor{keywordflow}{return} H5T\_NATIVE\_UINT;
+00375     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{size\_t}) == H5Tget\_size(H5T\_NATIVE\_USHORT) )
+00376         \textcolor{keywordflow}{return} H5T\_NATIVE\_USHORT;
+00377     \textcolor{keywordflow}{else}
+00378         \textcolor{keywordflow}{return} -1;
+00379 \}
+00380 
+00381 \textcolor{keyword}{static} \textcolor{keywordtype}{void}
+00382 Mat\_H5GetChunkSize(\textcolor{keywordtype}{size\_t} rank,hsize\_t *dims,hsize\_t *chunk\_dims)
+00383 \{
+00384     hsize\_t i, j, chunk\_size = 1;
+00385 
+00386     \textcolor{keywordflow}{for} ( i = 0; i < rank; i++ ) \{
+00387         chunk\_dims[i] = 1;
+00388         \textcolor{keywordflow}{for} ( j = 4096/chunk\_size; j > 1; j >>= 1 ) \{
+00389             \textcolor{keywordflow}{if} ( dims[i] >= j ) \{
+00390                 chunk\_dims[i] = j;
+00391                 \textcolor{keywordflow}{break};
+00392             \}
+00393         \}
+00394         chunk\_size *= chunk\_dims[i];
+00395     \}
+00396 \}
+00397 
+00398 \textcolor{keyword}{static} \textcolor{keywordtype}{void}
+00399 Mat\_H5ReadClassType(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,hid\_t dset\_id)
+00400 \{
+00401     hid\_t attr\_id, type\_id;
+00402     attr\_id = H5Aopen\_by\_name(dset\_id,\textcolor{stringliteral}{"."},\textcolor{stringliteral}{"MATLAB\_class"},H5P\_DEFAULT,H5P\_DEFAULT);
+00403     type\_id  = H5Aget\_type(attr\_id);
+00404     \textcolor{keywordflow}{if} ( H5T\_STRING == H5Tget\_class(type\_id) ) \{
+00405         \textcolor{keywordtype}{char} *class\_str = (\textcolor{keywordtype}{char}*)calloc(H5Tget\_size(type\_id)+1,1);
+00406         \textcolor{keywordflow}{if} ( NULL != class\_str ) \{
+00407             hid\_t class\_id = H5Tcopy(H5T\_C\_S1);
+00408             H5Tset\_size(class\_id,H5Tget\_size(type\_id));
+00409             H5Aread(attr\_id,class\_id,class\_str);
+00410             H5Tclose(class\_id);
+00411             matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} = ClassStr2ClassType(class\_str);
+00412             \textcolor{keywordflow}{if} ( \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5c76eef0ca0373d25abe49053be6fa9a}{MAT\_C\_EMPTY} == matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} ) \{
+00413                 \textcolor{comment}{/* Check if this is a logical variable */}
+00414                 \textcolor{keywordflow}{if} ( !strcmp(class\_str, \textcolor{stringliteral}{"logical"}) ) \{
+00415                     \textcolor{keywordtype}{int} int\_decode = 0;
+00416                     matvar->\hyperlink{group___m_a_t_a866c1539e68073a837833d74cd4a65be}{isLogical} = \hyperlink{group___m_a_t_ggab9d6ef9e3ddca78a317b173f01d53fbba57eb5c6e200bcbc0f1b7982f29a169c2}{MAT\_F\_LOGICAL};
+00417                     \textcolor{keywordflow}{if} ( H5Aexists\_by\_name(dset\_id,\textcolor{stringliteral}{"."},\textcolor{stringliteral}{"MATLAB\_int\_decode"},H5P\_DEFAULT) ) \{
+00418                         hid\_t attr\_id2 = H5Aopen\_by\_name(dset\_id,\textcolor{stringliteral}{"."},\textcolor{stringliteral}{"MATLAB\_int\_decode"},H5P\_DEFAULT,
+      H5P\_DEFAULT);
+00419                         \textcolor{comment}{/* FIXME: Check that dataspace is scalar */}
+00420                         H5Aread(attr\_id2,H5T\_NATIVE\_INT,&int\_decode);
+00421                         H5Aclose(attr\_id2);
+00422                     \}
+00423                     \textcolor{keywordflow}{switch} ( int\_decode ) \{
+00424                         \textcolor{keywordflow}{case} 1:
+00425                             matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} = \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a81270f8093cb4808e992c1d29d84d4e3}{MAT\_C\_UINT8};
+00426                             \textcolor{keywordflow}{break};
+00427                         \textcolor{keywordflow}{case} 2:
+00428                             matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} = \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a8bede21dbf6c1edc0bbccc1481bccae7}{MAT\_C\_UINT16};
+00429                             \textcolor{keywordflow}{break};
+00430                         \textcolor{keywordflow}{case} 4:
+00431                             matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} = \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a9a17a7edd45b19ef68197db81b27e816}{MAT\_C\_UINT32};
+00432                             \textcolor{keywordflow}{break};
+00433                         \textcolor{keywordflow}{default}:
+00434                             \textcolor{keywordflow}{break};
+00435                     \}
+00436                 \}
+00437             \}
+00438 
+00439             matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type} = ClassType2DataType(matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type});
+00440             free(class\_str);
+00441         \}
+00442     \}
+00443     H5Tclose(type\_id);
+00444     H5Aclose(attr\_id);
+00445 \}
+00446 
+00447 \textcolor{keyword}{static} \textcolor{keywordtype}{size\_t}*
+00448 Mat\_H5ReadDims(hid\_t dset\_id, hsize\_t *numel, \textcolor{keywordtype}{int} *rank)
+00449 \{
+00450     hid\_t space\_id;
+00451     \textcolor{keywordtype}{size\_t}* perm\_dims;
+00452 
+00453     *numel = 0;
+00454     space\_id = H5Dget\_space(dset\_id);
+00455     *rank = H5Sget\_simple\_extent\_ndims(space\_id);
+00456     perm\_dims = (\textcolor{keywordtype}{size\_t}*)malloc(*rank*\textcolor{keyword}{sizeof}(*perm\_dims));
+00457     \textcolor{keywordflow}{if} ( NULL != perm\_dims ) \{
+00458         \textcolor{keywordflow}{if} ( MAX\_RANK >= *rank ) \{
+00459             hsize\_t dims[MAX\_RANK];
+00460             \textcolor{keywordtype}{int} k;
+00461             (void)H5Sget\_simple\_extent\_dims(space\_id,dims,NULL);
+00462             *numel = 1;
+00463             \textcolor{comment}{/* Permutate dimensions */}
+00464             \textcolor{keywordflow}{for} ( k = 0; k < *rank; k++ ) \{
+00465                 perm\_dims[k] = (size\_t)dims[*rank - k - 1];
+00466                 *numel *= perm\_dims[k];
+00467             \}
+00468             H5Sclose(space\_id);
+00469         \} \textcolor{keywordflow}{else} \{
+00470             hsize\_t* dims = (hsize\_t*)malloc(*rank*\textcolor{keyword}{sizeof}(hsize\_t));
+00471             \textcolor{keywordflow}{if} ( NULL != dims ) \{
+00472                 \textcolor{keywordtype}{int} k;
+00473                 (void)H5Sget\_simple\_extent\_dims(space\_id,dims,NULL);
+00474                 *numel = 1;
+00475                 \textcolor{comment}{/* Permutate dimensions */}
+00476                 \textcolor{keywordflow}{for} ( k = 0; k < *rank; k++ ) \{
+00477                     perm\_dims[k] = (size\_t)dims[*rank - k - 1];
+00478                     *numel *= perm\_dims[k];
+00479                 \}
+00480                 free(dims);
+00481                 H5Sclose(space\_id);
+00482             \} \textcolor{keywordflow}{else} \{
+00483                 free(perm\_dims);
+00484                 perm\_dims = NULL;
+00485                 H5Sclose(space\_id);
+00486                 \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Error allocating memory for dims"});
+00487             \}
+00488         \}
+00489     \} \textcolor{keywordflow}{else} \{
+00490         H5Sclose(space\_id);
+00491         \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Error allocating memory for matvar->dims"});
+00492     \}
+00493 
+00494     \textcolor{keywordflow}{return} perm\_dims;
+00495 \}
+00496 
+00497 \textcolor{keyword}{static} \textcolor{keywordtype}{void}
+00498 Mat\_H5ReadFieldNames(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar, hid\_t dset\_id, hsize\_t *nfields)
+00499 \{
+00500     hsize\_t  i;
+00501     hid\_t    field\_id, attr\_id, space\_id;
+00502     \hyperlink{structhvl__t}{hvl\_t}   *fieldnames\_vl;
+00503 
+00504     attr\_id = H5Aopen\_by\_name(dset\_id,\textcolor{stringliteral}{"."},\textcolor{stringliteral}{"MATLAB\_fields"},H5P\_DEFAULT,H5P\_DEFAULT);
+00505     space\_id = H5Aget\_space(attr\_id);
+00506     (void)H5Sget\_simple\_extent\_dims(space\_id,nfields,NULL);
+00507     field\_id = H5Aget\_type(attr\_id);
+00508     fieldnames\_vl = (\hyperlink{structhvl__t}{hvl\_t}*)malloc((\textcolor{keywordtype}{size\_t})(*nfields)*\textcolor{keyword}{sizeof}(*fieldnames\_vl));
+00509     H5Aread(attr\_id,field\_id,fieldnames\_vl);
+00510 
+00511     matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a93fc447484f455eddf9334f2e9e411c2}{num\_fields} = (\textcolor{keywordtype}{unsigned} int)*nfields;
+00512     matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames} =
+00513         (\textcolor{keywordtype}{char}**)malloc((\textcolor{keywordtype}{size\_t})(*nfields)*\textcolor{keyword}{sizeof}(*matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->
+      \hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}));
+00514     \textcolor{keywordflow}{for} ( i = 0; i < *nfields; i++ ) \{
+00515         matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[i] =
+00516             (\textcolor{keywordtype}{char}*)calloc(fieldnames\_vl[i].len+1,1);
+00517         memcpy(matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[i],fieldnames\_vl[i].p,
+00518             fieldnames\_vl[i].len);
+00519     \}
+00520 
+00521     H5Dvlen\_reclaim(field\_id,space\_id,H5P\_DEFAULT,fieldnames\_vl);
+00522     H5Sclose(space\_id);
+00523     H5Tclose(field\_id);
+00524     H5Aclose(attr\_id);
+00525     free(fieldnames\_vl);
+00526 \}
+00527 
+00528 \textcolor{keyword}{static} \textcolor{keywordtype}{void}
+00529 Mat\_H5ReadDatasetInfo(\hyperlink{struct__mat__t}{mat\_t} *mat,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,hid\_t dset\_id)
+00530 \{
+00531     ssize\_t name\_len;
+00532     hid\_t   attr\_id,type\_id;
+00533     hsize\_t numel;
+00534 
+00535 \textcolor{preprocessor}{#if 0}
+00536     matvar->fp = mat;
+00537     name\_len = H5Gget\_objname\_by\_idx(fid,mat->\hyperlink{struct__mat__t_a0163a12f9735356723bb604992639d9e}{next\_index},NULL,0);
+00538     matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name} = malloc(1+name\_len);
+00539     \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name} ) \{
+00540         name\_len = H5Gget\_objname\_by\_idx(fid,mat->\hyperlink{struct__mat__t_a0163a12f9735356723bb604992639d9e}{next\_index},
+00541                                          matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name},1+name\_len);
+00542         matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name}[name\_len] = \textcolor{charliteral}{'\(\backslash\)0'};
+00543     \}
+00544     dset\_id = H5Dopen(fid,matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name});
+00545 \textcolor{preprocessor}{#endif}
+00546 
+00547     \textcolor{comment}{/* Get the HDF5 name of the variable */}
+00548     name\_len = H5Iget\_name(dset\_id,NULL,0);
+00549     \textcolor{keywordflow}{if} ( name\_len > 0 ) \{
+00550         matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name = (\textcolor{keywordtype}{char}*)malloc(name\_len+1);
+00551         (void)H5Iget\_name(dset\_id,matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name,name\_len+1);
+00552     \} \textcolor{keywordflow}{else} \{
+00553         \textcolor{comment}{/* Can not get an internal name, so leave the identifier open */}
+00554         matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->id = dset\_id;
+00555     \}
+00556 
+00557     matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} = Mat\_H5ReadDims(dset\_id, &numel, &matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank});
+00558     \textcolor{keywordflow}{if} ( NULL == matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} ) \{
+00559         \textcolor{keywordflow}{return};
+00560     \}
+00561 
+00562     Mat\_H5ReadClassType(matvar, dset\_id);
+00563 
+00564     \textcolor{keywordflow}{if} ( H5Aexists\_by\_name(dset\_id,\textcolor{stringliteral}{"."},\textcolor{stringliteral}{"MATLAB\_global"},H5P\_DEFAULT) ) \{
+00565         attr\_id = H5Aopen\_by\_name(dset\_id,\textcolor{stringliteral}{"."},\textcolor{stringliteral}{"MATLAB\_global"},H5P\_DEFAULT,H5P\_DEFAULT);
+00566         \textcolor{comment}{/* FIXME: Check that dataspace is scalar */}
+00567         H5Aread(attr\_id,H5T\_NATIVE\_INT,&matvar->\hyperlink{group___m_a_t_af26c71c4c0ddb14931d15910dddac1bc}{isGlobal});
+00568         H5Aclose(attr\_id);
+00569     \}
+00570 
+00571     \textcolor{comment}{/* Check for attribute that indicates an empty array */}
+00572     \textcolor{keywordflow}{if} ( H5Aexists\_by\_name(dset\_id,\textcolor{stringliteral}{"."},\textcolor{stringliteral}{"MATLAB\_empty"},H5P\_DEFAULT) ) \{
+00573         \textcolor{keywordtype}{int} empty = 0;
+00574         attr\_id = H5Aopen\_by\_name(dset\_id,\textcolor{stringliteral}{"."},\textcolor{stringliteral}{"MATLAB\_empty"},H5P\_DEFAULT,H5P\_DEFAULT);
+00575         \textcolor{comment}{/* FIXME: Check that dataspace is scalar */}
+00576         H5Aread(attr\_id,H5T\_NATIVE\_INT,&empty);
+00577         H5Aclose(attr\_id);
+00578         \textcolor{keywordflow}{if} ( empty ) \{
+00579             matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} = matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0];
+00580             free(matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims});
+00581             matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} = (\textcolor{keywordtype}{size\_t}*)calloc(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank},\textcolor{keyword}{sizeof}(*matvar->
+      \hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}));
+00582             H5Dread(dset\_id,SizeType2H5T(),H5S\_ALL,H5S\_ALL,
+00583                     H5P\_DEFAULT,matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims});
+00584         \}
+00585     \}
+00586 
+00587     \textcolor{comment}{/* Test if dataset type is compound and if so if it's complex */}
+00588     type\_id = H5Dget\_type(dset\_id);
+00589     \textcolor{keywordflow}{if} ( H5T\_COMPOUND == H5Tget\_class(type\_id) ) \{
+00590         \textcolor{comment}{/* FIXME: Any more checks? */}
+00591         matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} = \hyperlink{group___m_a_t_ggab9d6ef9e3ddca78a317b173f01d53fbbacd7b091a11184aad7fc6078c04470780}{MAT\_F\_COMPLEX};
+00592     \}
+00593     H5Tclose(type\_id);
+00594 
+00595     \textcolor{comment}{/* If the dataset is a cell array read the info of the cells */}
+00596     \textcolor{keywordflow}{if} ( \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2f7abb47a1c51e248bd4e5e03cc81b08}{MAT\_C\_CELL} == matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} ) \{
+00597         \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **cells;
+00598         \textcolor{keywordtype}{int} i,ncells = 1;
+00599         hobj\_ref\_t *ref\_ids;
+00600 
+00601         \textcolor{keywordflow}{for} ( i = 0; i < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; i++ )
+00602             ncells *= matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[i];
+00603         matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size} = \textcolor{keyword}{sizeof}(\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t}**);
+00604         matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes}    = ncells*matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size};
+00605         matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data}      = malloc(matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes});
+00606         cells = (\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t}**)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data};
+00607 
+00608         if ( ncells ) \{
+00609             ref\_ids = (hobj\_ref\_t*)malloc(ncells*\textcolor{keyword}{sizeof}(*ref\_ids));
+00610             H5Dread(dset\_id,H5T\_STD\_REF\_OBJ,H5S\_ALL,H5S\_ALL,H5P\_DEFAULT,ref\_ids);
+00611             \textcolor{keywordflow}{for} ( i = 0; i < ncells; i++ ) \{
+00612                 hid\_t ref\_id;
+00613                 cells[i] = \hyperlink{group___m_a_t_gae7c9c3699f6e9c31a9c490300013098c}{Mat\_VarCalloc}();
+00614                 cells[i]->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_ref = ref\_ids[i];
+00615                 \textcolor{comment}{/* Closing of ref\_id is done in Mat\_H5ReadNextReferenceInfo */}
+00616                 ref\_id = H5RDEREFERENCE(dset\_id,H5R\_OBJECT,ref\_ids+i);
+00617                 cells[i]->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->id = ref\_id;
+00618                 Mat\_H5ReadNextReferenceInfo(ref\_id,cells[i],mat);
+00619             \}
+00620             free(ref\_ids);
+00621         \}
+00622     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40acb467c7749c80902b798134c729bb521}{MAT\_C\_STRUCT} == matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} ) \{
+00623         \textcolor{comment}{/* Empty structures can be a dataset */}
+00624 
+00625         \textcolor{comment}{/* Check if the structure defines its fields in MATLAB\_fields */}
+00626         \textcolor{keywordflow}{if} ( H5Aexists\_by\_name(dset\_id,\textcolor{stringliteral}{"."},\textcolor{stringliteral}{"MATLAB\_fields"},H5P\_DEFAULT) ) \{
+00627             hsize\_t nfields;
+00628             Mat\_H5ReadFieldNames(matvar, dset\_id, &nfields);
+00629         \}
+00630     \}
+00631 \}
+00632 
+00633 \textcolor{keyword}{static} \textcolor{keywordtype}{void}
+00634 Mat\_H5ReadGroupInfo(\hyperlink{struct__mat__t}{mat\_t} *mat,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,hid\_t dset\_id)
+00635 \{
+00636     ssize\_t  name\_len;
+00637     \textcolor{keywordtype}{int}      fields\_are\_variables = 1;
+00638     hsize\_t  nfields=0,numel;
+00639     hid\_t    attr\_id,field\_id;
+00640     \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **fields;
+00641     H5O\_type\_t obj\_type;
+00642 
+00643 \textcolor{preprocessor}{#if 0}
+00644     matvar->fp = mat;
+00645     name\_len = H5Gget\_objname\_by\_idx(fid,mat->\hyperlink{struct__mat__t_a0163a12f9735356723bb604992639d9e}{next\_index},NULL,0);
+00646     matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name} = malloc(1+name\_len);
+00647     \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name} ) \{
+00648         name\_len = H5Gget\_objname\_by\_idx(fid,mat->\hyperlink{struct__mat__t_a0163a12f9735356723bb604992639d9e}{next\_index},
+00649                                          matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name},1+name\_len);
+00650         matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name}[name\_len] = \textcolor{charliteral}{'\(\backslash\)0'};
+00651     \}
+00652     dset\_id = H5Gopen(fid,matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name});
+00653 \textcolor{preprocessor}{#endif}
+00654 
+00655     \textcolor{comment}{/* Get the HDF5 name of the variable */}
+00656     name\_len = H5Iget\_name(dset\_id,NULL,0);
+00657     \textcolor{keywordflow}{if} ( name\_len > 0 ) \{
+00658         matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name = (\textcolor{keywordtype}{char}*)malloc(name\_len+1);
+00659         (void)H5Iget\_name(dset\_id,matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name,name\_len+1);
+00660     \} \textcolor{keywordflow}{else} \{
+00661         \textcolor{comment}{/* Can not get an internal name, so leave the identifier open */}
+00662         matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->id = dset\_id;
+00663     \}
+00664 
+00665     Mat\_H5ReadClassType(matvar,dset\_id);
+00666 
+00667     \textcolor{comment}{/* Check if the variable is global */}
+00668     \textcolor{keywordflow}{if} ( H5Aexists\_by\_name(dset\_id,\textcolor{stringliteral}{"."},\textcolor{stringliteral}{"MATLAB\_global"},H5P\_DEFAULT) ) \{
+00669         attr\_id = H5Aopen\_by\_name(dset\_id,\textcolor{stringliteral}{"."},\textcolor{stringliteral}{"MATLAB\_global"},H5P\_DEFAULT,H5P\_DEFAULT);
+00670         \textcolor{comment}{/* FIXME: Check that dataspace is scalar */}
+00671         H5Aread(attr\_id,H5T\_NATIVE\_INT,&matvar->\hyperlink{group___m_a_t_af26c71c4c0ddb14931d15910dddac1bc}{isGlobal});
+00672         H5Aclose(attr\_id);
+00673     \}
+00674 
+00675     \textcolor{comment}{/* Check if the variable is sparse */}
+00676     \textcolor{keywordflow}{if} ( H5Aexists\_by\_name(dset\_id,\textcolor{stringliteral}{"."},\textcolor{stringliteral}{"MATLAB\_sparse"},H5P\_DEFAULT) ) \{
+00677         hid\_t sparse\_dset\_id;
+00678         \textcolor{keywordtype}{unsigned} nrows = 0;
+00679         \textcolor{keywordtype}{int} rank;
+00680         hsize\_t numel;
+00681 
+00682         attr\_id = H5Aopen\_by\_name(dset\_id,\textcolor{stringliteral}{"."},\textcolor{stringliteral}{"MATLAB\_sparse"},H5P\_DEFAULT,H5P\_DEFAULT);
+00683         H5Aread(attr\_id,H5T\_NATIVE\_UINT,&nrows);
+00684         H5Aclose(attr\_id);
+00685 
+00686         matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} = \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a0d5655b7e6178a2242cb3bb56ff4c8d2}{MAT\_C\_SPARSE};
+00687 
+00688         matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} = 2;
+00689         sparse\_dset\_id = H5Dopen(dset\_id,\textcolor{stringliteral}{"jc"},H5P\_DEFAULT);
+00690         matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} = Mat\_H5ReadDims(sparse\_dset\_id, &numel, &rank);
+00691         H5Dclose(sparse\_dset\_id);
+00692         \textcolor{keywordflow}{if} ( NULL != matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} ) \{
+00693             matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[1] = matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0] - 1;
+00694             matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0] = nrows;
+00695         \} \textcolor{keywordflow}{else} \{
+00696             \textcolor{keywordflow}{return};
+00697         \}
+00698 
+00699         \textcolor{comment}{/* Test if dataset type is compound and if so if it's complex */}
+00700         \textcolor{keywordflow}{if} ( H5Lexists(dset\_id,\textcolor{stringliteral}{"data"},H5P\_DEFAULT) ) \{
+00701             hid\_t type\_id;
+00702             sparse\_dset\_id = H5Dopen(dset\_id,\textcolor{stringliteral}{"data"},H5P\_DEFAULT);
+00703             type\_id = H5Dget\_type(sparse\_dset\_id);
+00704             \textcolor{keywordflow}{if} ( H5T\_COMPOUND == H5Tget\_class(type\_id) ) \{
+00705                 \textcolor{comment}{/* FIXME: Any more checks? */}
+00706                 matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} = \hyperlink{group___m_a_t_ggab9d6ef9e3ddca78a317b173f01d53fbbacd7b091a11184aad7fc6078c04470780}{MAT\_F\_COMPLEX};
+00707             \}
+00708             H5Tclose(type\_id);
+00709             H5Dclose(sparse\_dset\_id);
+00710         \}
+00711         \textcolor{keywordflow}{return};
+00712     \}
+00713 
+00714     \textcolor{comment}{/* Check if the structure defines its fields in MATLAB\_fields */}
+00715     \textcolor{keywordflow}{if} ( H5Aexists\_by\_name(dset\_id,\textcolor{stringliteral}{"."},\textcolor{stringliteral}{"MATLAB\_fields"},H5P\_DEFAULT) ) \{
+00716         Mat\_H5ReadFieldNames(matvar, dset\_id, &nfields);
+00717     \} \textcolor{keywordflow}{else} \{
+00718         \hyperlink{struct_h5_g__info__t}{H5G\_info\_t} group\_info;
+00719         matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a93fc447484f455eddf9334f2e9e411c2}{num\_fields} = 0;
+00720         H5Gget\_info(dset\_id, &group\_info);
+00721         \textcolor{keywordflow}{if} ( group\_info.nlinks > 0 ) \{
+00722             \textcolor{keyword}{struct }ReadGroupInfoIterData group\_data = \{0, NULL\};
+00723             herr\_t herr;
+00724 
+00725             \textcolor{comment}{/* First iteration to retrieve number of relevant links */}
+00726             herr = H5Literate\_by\_name(dset\_id, matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name, H5\_INDEX\_NAME,
+00727                 H5\_ITER\_NATIVE, NULL, Mat\_H5ReadGroupInfoIterate,
+00728                 (\textcolor{keywordtype}{void} *)&group\_data, H5P\_DEFAULT);
+00729             \textcolor{keywordflow}{if} ( herr > 0 && group\_data.nfields > 0 ) \{
+00730                 matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames} =
+00731                     (\textcolor{keywordtype}{char}**)calloc((\textcolor{keywordtype}{size\_t})(group\_data.nfields),\textcolor{keyword}{sizeof}(*matvar->
+      \hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}));
+00732                 group\_data.nfields = 0;
+00733                 group\_data.matvar = matvar;
+00734                 \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames} != NULL ) \{
+00735                     \textcolor{comment}{/* Second iteration to fill fieldnames */}
+00736                     H5Literate\_by\_name(dset\_id, matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name, H5\_INDEX\_NAME,
+00737                         H5\_ITER\_NATIVE, NULL, Mat\_H5ReadGroupInfoIterate,
+00738                         (\textcolor{keywordtype}{void} *)&group\_data, H5P\_DEFAULT);
+00739                 \}
+00740                 matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a93fc447484f455eddf9334f2e9e411c2}{num\_fields} = (unsigned)group\_data.nfields;
+00741                 nfields = group\_data.nfields;
+00742             \}
+00743         \}
+00744     \}
+00745 
+00746     \textcolor{keywordflow}{if} ( nfields > 0 ) \{
+00747         \hyperlink{struct_h5_o__info__t}{H5O\_info\_t} object\_info;
+00748         H5Oget\_info\_by\_name(dset\_id, matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[0], &object\_info, 
+      H5P\_DEFAULT);
+00749         obj\_type = object\_info.type;
+00750     \} \textcolor{keywordflow}{else} \{
+00751         obj\_type = H5O\_TYPE\_UNKNOWN;
+00752     \}
+00753     \textcolor{keywordflow}{if} ( obj\_type == H5O\_TYPE\_DATASET ) \{
+00754         hid\_t field\_type\_id;
+00755         field\_id = H5Dopen(dset\_id,matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[0],H5P\_DEFAULT);
+00756         field\_type\_id = H5Dget\_type(field\_id);
+00757         \textcolor{keywordflow}{if} ( H5T\_REFERENCE == H5Tget\_class(field\_type\_id) ) \{
+00758             \textcolor{comment}{/* Check if the field has the MATLAB\_class attribute. If so, it}
+00759 \textcolor{comment}{             * means the structure is a scalar. Otherwise, the dimensions of}
+00760 \textcolor{comment}{             * the field dataset is the dimensions of the structure}
+00761 \textcolor{comment}{             */}
+00762             \textcolor{keywordflow}{if} ( H5Aexists\_by\_name(field\_id,\textcolor{stringliteral}{"."},\textcolor{stringliteral}{"MATLAB\_class"},H5P\_DEFAULT) ) \{
+00763                 matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} = 2;
+00764                 matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} = (\textcolor{keywordtype}{size\_t}*)malloc(2*\textcolor{keyword}{sizeof}(*matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}));
+00765                 \textcolor{keywordflow}{if} ( NULL != matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} ) \{
+00766                     matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0] = 1;
+00767                     matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[1] = 1;
+00768                     numel = 1;
+00769                 \} \textcolor{keywordflow}{else} \{
+00770                     H5Tclose(field\_type\_id);
+00771                     H5Dclose(field\_id);
+00772                     \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Error allocating memory for matvar->dims"});
+00773                     \textcolor{keywordflow}{return};
+00774                 \}
+00775             \} \textcolor{keywordflow}{else} \{
+00776                 matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} = Mat\_H5ReadDims(field\_id, &numel, &matvar->
+      \hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank});
+00777                 \textcolor{keywordflow}{if} ( NULL != matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} ) \{
+00778                     fields\_are\_variables = 0;
+00779                 \} \textcolor{keywordflow}{else} \{
+00780                     H5Tclose(field\_type\_id);
+00781                     H5Dclose(field\_id);
+00782                     \textcolor{keywordflow}{return};
+00783                 \}
+00784             \}
+00785         \} \textcolor{keywordflow}{else} \{
+00786             \textcolor{comment}{/* Structure should be a scalar */}
+00787             matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} = 2;
+00788             matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} = (\textcolor{keywordtype}{size\_t}*)malloc(2*\textcolor{keyword}{sizeof}(*matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}));
+00789             \textcolor{keywordflow}{if} ( NULL != matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} ) \{
+00790                 matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0] = 1;
+00791                 matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[1] = 1;
+00792                 numel = 1;
+00793             \} \textcolor{keywordflow}{else} \{
+00794                 H5Tclose(field\_type\_id);
+00795                 H5Dclose(field\_id);
+00796                 \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Error allocating memory for matvar->dims"});
+00797                 \textcolor{keywordflow}{return};
+00798             \}
+00799         \}
+00800         H5Tclose(field\_type\_id);
+00801         H5Dclose(field\_id);
+00802     \} \textcolor{keywordflow}{else} \{
+00803         \textcolor{comment}{/* Structure should be a scalar */}
+00804         matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} = 2;
+00805         matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} = (\textcolor{keywordtype}{size\_t}*)malloc(2*\textcolor{keyword}{sizeof}(*matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}));
+00806         \textcolor{keywordflow}{if} ( NULL != matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims} ) \{
+00807             matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0] = 1;
+00808             matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[1] = 1;
+00809             numel = 1;
+00810         \} \textcolor{keywordflow}{else} \{
+00811             \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Error allocating memory for matvar->dims"});
+00812             \textcolor{keywordflow}{return};
+00813         \}
+00814     \}
+00815 
+00816     \textcolor{keywordflow}{if} ( numel < 1 || nfields < 1 )
+00817         \textcolor{keywordflow}{return};
+00818 
+00819     fields = (\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t}**)malloc((\textcolor{keywordtype}{size\_t})(nfields*numel)*\textcolor{keyword}{sizeof}(*fields));
+00820     matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = fields;
+00821     matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size} = \textcolor{keyword}{sizeof}(*fields);
+00822     matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes}    = (size\_t)(nfields*numel*matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size});
+00823     \textcolor{keywordflow}{if} ( NULL != fields ) \{
+00824         \textcolor{keywordtype}{int} k;
+00825         \textcolor{keywordflow}{for} ( k = 0; k < nfields; k++ ) \{
+00826             \hyperlink{struct_h5_o__info__t}{H5O\_info\_t} object\_info;
+00827             fields[k] = NULL;
+00828             H5Oget\_info\_by\_name(dset\_id, matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[k], &object\_info, 
+      H5P\_DEFAULT);
+00829             \textcolor{keywordflow}{if} ( object\_info.type == H5O\_TYPE\_DATASET ) \{
+00830                 field\_id = H5Dopen(dset\_id,matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[k],
+00831                                    H5P\_DEFAULT);
+00832                 \textcolor{keywordflow}{if} ( !fields\_are\_variables ) \{
+00833                     \textcolor{keywordtype}{int} l;
+00834                     hobj\_ref\_t *ref\_ids = (hobj\_ref\_t*)malloc((\textcolor{keywordtype}{size\_t})numel*\textcolor{keyword}{sizeof}(*ref\_ids));
+00835                     H5Dread(field\_id,H5T\_STD\_REF\_OBJ,H5S\_ALL,H5S\_ALL,
+00836                             H5P\_DEFAULT,ref\_ids);
+00837                     \textcolor{keywordflow}{for} ( l = 0; l < numel; l++ ) \{
+00838                         hid\_t ref\_id;
+00839                         fields[l*nfields+k] = \hyperlink{group___m_a_t_gae7c9c3699f6e9c31a9c490300013098c}{Mat\_VarCalloc}();
+00840                         fields[l*nfields+k]->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name} =
+00841                             strdup(matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[k]);
+00842                         fields[l*nfields+k]->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_ref=ref\_ids[l];
+00843                         \textcolor{comment}{/* Get the HDF5 name of the variable */}
+00844                         name\_len = H5Iget\_name(field\_id,NULL,0);
+00845                         \textcolor{keywordflow}{if} ( name\_len > 0 ) \{
+00846                             fields[l*nfields+k]->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name =
+00847                                 (\textcolor{keywordtype}{char}*)malloc(name\_len+1);
+00848                             (void)H5Iget\_name(field\_id,
+00849                                 fields[l*nfields+k]->\hyperlink{namespaceinternal}{internal}->hdf5\_name,
+00850                                 name\_len+1);
+00851                         \}
+00852                         \textcolor{comment}{/* Closing of ref\_id is done in Mat\_H5ReadNextReferenceInfo */}
+00853                         ref\_id = H5RDEREFERENCE(field\_id,H5R\_OBJECT,ref\_ids+l);
+00854                         fields[l*nfields+k]->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->id = ref\_id;
+00855                         Mat\_H5ReadNextReferenceInfo(ref\_id,fields[l*nfields+k],mat);
+00856                     \}
+00857                     free(ref\_ids);
+00858                 \} \textcolor{keywordflow}{else} \{
+00859                     fields[k] = \hyperlink{group___m_a_t_gae7c9c3699f6e9c31a9c490300013098c}{Mat\_VarCalloc}();
+00860                     fields[k]->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name} = strdup(matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->
+      \hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[k]);
+00861                     Mat\_H5ReadDatasetInfo(mat,fields[k],field\_id);
+00862                 \}
+00863                 H5Dclose(field\_id);
+00864             \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( object\_info.type == H5O\_TYPE\_GROUP ) \{
+00865                 field\_id = H5Gopen(dset\_id,matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[k],
+00866                                    H5P\_DEFAULT);
+00867                 \textcolor{keywordflow}{if} ( -1 < field\_id ) \{
+00868                     fields[k] = \hyperlink{group___m_a_t_gae7c9c3699f6e9c31a9c490300013098c}{Mat\_VarCalloc}();
+00869                     fields[k]->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name} = strdup(matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->
+      \hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[k]);
+00870                     Mat\_H5ReadGroupInfo(mat,fields[k],field\_id);
+00871                     H5Gclose(field\_id);
+00872                 \}
+00873             \}
+00874         \}
+00875     \}
+00876 \}
+00877 
+00878 \textcolor{keyword}{static} herr\_t
+00879 Mat\_H5ReadGroupInfoIterate(hid\_t dset\_id, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name, \textcolor{keyword}{const} \hyperlink{struct_h5_l__info__t}{H5L\_info\_t} *info, \textcolor{keywordtype}{void} *op\_data
+      )
+00880 \{
+00881     \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t}  *matvar;
+00882     \hyperlink{struct_h5_o__info__t}{H5O\_info\_t} object\_info;
+00883     \textcolor{keyword}{struct }ReadGroupInfoIterData *group\_data;
+00884 
+00885     \textcolor{comment}{/* FIXME: follow symlinks, datatypes? */}
+00886 
+00887     H5Oget\_info\_by\_name(dset\_id, name, &object\_info, H5P\_DEFAULT);
+00888     \textcolor{keywordflow}{if} ( H5O\_TYPE\_DATASET != object\_info.type && H5O\_TYPE\_GROUP != object\_info.type )
+00889         \textcolor{keywordflow}{return} 0;
+00890 
+00891     group\_data = (\textcolor{keyword}{struct }ReadGroupInfoIterData *)op\_data;
+00892     \textcolor{keywordflow}{if} ( group\_data == NULL )
+00893         \textcolor{keywordflow}{return} -1;
+00894     matvar = group\_data->matvar;
+00895 
+00896     \textcolor{keywordflow}{switch} ( object\_info.type ) \{
+00897         \textcolor{keywordflow}{case} H5O\_TYPE\_GROUP:
+00898             \textcolor{comment}{/* Check that this is not the /#refs# group */}
+00899             \textcolor{keywordflow}{if} ( 0 == strcmp(name,\textcolor{stringliteral}{"#refs#"}) )
+00900                 \textcolor{keywordflow}{return} 0;
+00901             \textcolor{comment}{/* Fall through */}
+00902         \textcolor{keywordflow}{case} H5O\_TYPE\_DATASET:
+00903             \textcolor{keywordflow}{if} ( matvar != NULL ) \{
+00904                 matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[group\_data->nfields] = strdup(name);
+00905             \}
+00906             group\_data->nfields++;
+00907             \textcolor{keywordflow}{break};
+00908         \textcolor{keywordflow}{default}:
+00909             \textcolor{comment}{/* Not possible to get here */}
+00910             \textcolor{keywordflow}{break};
+00911     \}
+00912 
+00913     \textcolor{keywordflow}{return} 1;
+00914 \}
+00915 
+00916 \textcolor{keyword}{static} \textcolor{keywordtype}{void}
+00917 Mat\_H5ReadNextReferenceInfo(hid\_t ref\_id,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\hyperlink{struct__mat__t}{mat\_t} *mat)
+00918 \{
+00919     \textcolor{keywordflow}{if}( ref\_id < 0 || matvar == NULL)
+00920         \textcolor{keywordflow}{return};
+00921 
+00922     \textcolor{keywordflow}{switch} ( H5Iget\_type(ref\_id) ) \{
+00923         \textcolor{keywordflow}{case} H5I\_DATASET:
+00924             Mat\_H5ReadDatasetInfo(mat,matvar,ref\_id);
+00925             \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->id != ref\_id ) \{
+00926                 \textcolor{comment}{/* Close dataset and increment count */}
+00927                 H5Dclose(ref\_id);
+00928             \}
+00929 
+00930             \textcolor{comment}{/*H5Dclose(ref\_id);*/}
+00931             \textcolor{keywordflow}{break};
+00932 
+00933         \textcolor{keywordflow}{case} H5I\_GROUP:
+00934             Mat\_H5ReadGroupInfo(mat,matvar,ref\_id);
+00935             \textcolor{keywordflow}{break};
+00936 
+00937         \textcolor{keywordflow}{default}:
+00938             \textcolor{keywordflow}{break};
+00939     \}
+00940 
+00941     \textcolor{keywordflow}{return};
+00942 \}
+00943 
+00944 \textcolor{keyword}{static} \textcolor{keywordtype}{void}
+00945 Mat\_H5ReadData(hid\_t dset\_id, hid\_t h5\_type, hid\_t mem\_space, hid\_t dset\_space, \textcolor{keywordtype}{int} isComplex, \textcolor{keywordtype}{void} *data)
+00946 \{
+00947     \textcolor{keywordflow}{if} ( !isComplex ) \{
+00948         H5Dread(dset\_id,h5\_type,mem\_space,dset\_space,H5P\_DEFAULT,data);
+00949     \} \textcolor{keywordflow}{else} \{
+00950         \hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t} *complex\_data = (
+      \hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t}*)data;
+00951         hid\_t h5\_complex;
+00952 
+00953         h5\_complex = H5Tcreate(H5T\_COMPOUND,H5Tget\_size(h5\_type));
+00954         H5Tinsert(h5\_complex,\textcolor{stringliteral}{"real"},0,h5\_type);
+00955         H5Dread(dset\_id,h5\_complex,mem\_space,dset\_space,H5P\_DEFAULT,
+00956                 complex\_data->\hyperlink{group___m_a_t_a484a93607508adac2bce53a0252e0325}{Re});
+00957         H5Tclose(h5\_complex);
+00958 
+00959         h5\_complex = H5Tcreate(H5T\_COMPOUND,H5Tget\_size(h5\_type));
+00960         H5Tinsert(h5\_complex,\textcolor{stringliteral}{"imag"},0,h5\_type);
+00961         H5Dread(dset\_id,h5\_complex,mem\_space,dset\_space,H5P\_DEFAULT,
+00962                 complex\_data->\hyperlink{group___m_a_t_a7182d10b0d3598415887376065440946}{Im});
+00963         H5Tclose(h5\_complex);
+00964     \}
+00965 \}
+00966 
+00967 \textcolor{keyword}{static} \textcolor{keywordtype}{void}
+00968 Mat\_H5ReadNextReferenceData(hid\_t ref\_id,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\hyperlink{struct__mat__t}{mat\_t} *mat)
+00969 \{
+00970     \textcolor{keywordtype}{int} k;
+00971     \textcolor{keywordtype}{size\_t} numel;
+00972 
+00973     \textcolor{keywordflow}{if} ( ref\_id < 0 || matvar == NULL )
+00974         \textcolor{keywordflow}{return};
+00975 
+00976     \textcolor{comment}{/* If the datatype with references is a cell, we've already read info into}
+00977 \textcolor{comment}{     * the variable data, so just loop over each cell element and call}
+00978 \textcolor{comment}{     * Mat\_H5ReadNextReferenceData on it.}
+00979 \textcolor{comment}{     */}
+00980     \textcolor{keywordflow}{if} ( \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2f7abb47a1c51e248bd4e5e03cc81b08}{MAT\_C\_CELL} == matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} ) \{
+00981         \textcolor{keywordtype}{size\_t} i;
+00982         \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **cells = (\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t}**)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data};
+00983         numel = 1;
+00984         for ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ )
+00985             numel *= matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[k];
+00986         for ( i = 0; i < numel; i++ )
+00987             Mat\_H5ReadNextReferenceData(cells[i]->\hyperlink{namespaceinternal}{internal}->id,cells[i],mat);
+00988         \textcolor{keywordflow}{return};
+00989     \}
+00990 
+00991     \textcolor{keywordflow}{switch} ( H5Iget\_type(ref\_id) ) \{
+00992         \textcolor{keywordflow}{case} H5I\_DATASET:
+00993         \{
+00994             hid\_t data\_type\_id, dset\_id;
+00995             numel = 1;
+00996             \textcolor{keywordflow}{for} ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ )
+00997                 numel *= matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[k];
+00998 
+00999             if ( \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40aacdec5834df0861130b393697646119c}{MAT\_C\_CHAR} == matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} ) \{
+01000                 matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type} = \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a01c1bd7db68f90552862eb5d311be408}{MAT\_T\_UINT8};
+01001                 matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size} = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(\hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a01c1bd7db68f90552862eb5d311be408}{MAT\_T\_UINT8});
+01002                 data\_type\_id      = DataType2H5T(\hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a01c1bd7db68f90552862eb5d311be408}{MAT\_T\_UINT8});
+01003             \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40acb467c7749c80902b798134c729bb521}{MAT\_C\_STRUCT} == matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} ) \{
+01004                 \textcolor{comment}{/* Empty structure array */}
+01005                 \textcolor{keywordflow}{break};
+01006             \} \textcolor{keywordflow}{else} \{
+01007                 matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size} = \hyperlink{group___m_a_t_ga2bf682f015b22fa796a8885e997661e7}{Mat\_SizeOfClass}(matvar->
+      \hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type});
+01008                 data\_type\_id      = ClassType2H5T(matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type});
+01009             \}
+01010             matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes} = numel*matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size};
+01011 
+01012             \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes} < 1 ) \{
+01013                 H5Dclose(ref\_id);
+01014                 \textcolor{keywordflow}{break};
+01015             \}
+01016 
+01017             dset\_id = ref\_id;
+01018 
+01019             \textcolor{keywordflow}{if} ( !matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} ) \{
+01020                 matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = malloc(matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes});
+01021             \} \textcolor{keywordflow}{else} \{
+01022                 matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = ComplexMalloc(matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes});
+01023             \}
+01024             \textcolor{keywordflow}{if} ( NULL != matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} ) \{
+01025                 Mat\_H5ReadData(dset\_id, data\_type\_id,
+01026                     H5S\_ALL, H5S\_ALL, matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex}, matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data});
+01027             \}
+01028             H5Dclose(dset\_id);
+01029             \textcolor{keywordflow}{break};
+01030         \}
+01031         \textcolor{keywordflow}{case} H5I\_GROUP:
+01032         \{
+01033             \textcolor{keywordflow}{if} ( \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a0d5655b7e6178a2242cb3bb56ff4c8d2}{MAT\_C\_SPARSE} == matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} ) \{
+01034                 Mat\_VarRead73(mat,matvar);
+01035             \} \textcolor{keywordflow}{else} \{
+01036                 \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **fields;
+01037                 \textcolor{keywordtype}{int} i,nfields = 0;
+01038 
+01039                 \textcolor{keywordflow}{if} ( !matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes} || !matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size} || NULL == matvar->
+      \hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} )
+01040                     \textcolor{keywordflow}{break};
+01041                 nfields = matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes} / matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size};
+01042                 fields  = (\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t}**)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data};
+01043                 for ( i = 0; i < nfields; i++ ) \{
+01044                     \textcolor{keywordflow}{if} (  0 < fields[i]->\hyperlink{namespaceinternal}{internal}->hdf5\_ref &&
+01045                          -1 < fields[i]->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->id ) \{
+01046                         \textcolor{comment}{/* Dataset of references */}
+01047                         Mat\_H5ReadNextReferenceData(fields[i]->\hyperlink{namespaceinternal}{internal}->id,fields[i],mat);
+01048                     \} \textcolor{keywordflow}{else} \{
+01049                         Mat\_VarRead73(mat,fields[i]);
+01050                     \}
+01051                 \}
+01052             \}
+01053             \textcolor{keywordflow}{break};
+01054         \}
+01055         \textcolor{keywordflow}{default}:
+01056             \textcolor{keywordflow}{break};
+01057     \}
+01058 
+01059     \textcolor{keywordflow}{return};
+01060 \}
+01061 
+01062 \textcolor{keyword}{static} \textcolor{keywordtype}{int}
+01063 Mat\_VarWriteEmpty(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,\textcolor{keyword}{const} \textcolor{keywordtype}{char}* class\_name)
+01064 \{
+01065     \textcolor{keywordtype}{int}      err = 0;
+01066     hsize\_t  rank = matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank};
+01067     \textcolor{keywordtype}{unsigned} empty = 1;
+01068     hid\_t    mspace\_id, dset\_id, attr\_type\_id, aspace\_id, attr\_id;
+01069 
+01070     mspace\_id = H5Screate\_simple(1,&rank,NULL);
+01071     dset\_id = H5Dcreate(\textcolor{keywordtype}{id},name,H5T\_NATIVE\_HSIZE,mspace\_id,
+01072                         H5P\_DEFAULT,H5P\_DEFAULT,H5P\_DEFAULT);
+01073     attr\_type\_id = H5Tcopy(H5T\_C\_S1);
+01074     H5Tset\_size(attr\_type\_id, strlen(class\_name));
+01075     aspace\_id = H5Screate(H5S\_SCALAR);
+01076     attr\_id = H5Acreate(dset\_id,\textcolor{stringliteral}{"MATLAB\_class"},attr\_type\_id,
+01077                         aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01078     \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id, attr\_type\_id, class\_name) )
+01079         err = 5;
+01080     H5Sclose(aspace\_id);
+01081     H5Aclose(attr\_id);
+01082     H5Tclose(attr\_type\_id);
+01083 
+01084     \textcolor{keywordflow}{if} ( 0 == strcmp(class\_name, \textcolor{stringliteral}{"struct"}) ) \{
+01085         \textcolor{comment}{/* Write the fields attribute */}
+01086         hsize\_t nfields = matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a93fc447484f455eddf9334f2e9e411c2}{num\_fields};
+01087         \textcolor{keywordflow}{if} ( nfields ) \{
+01088             \hyperlink{structhvl__t}{hvl\_t} *fieldnames = (\hyperlink{structhvl__t}{hvl\_t}*)malloc((\textcolor{keywordtype}{size\_t})nfields*\textcolor{keyword}{sizeof}(*fieldnames));
+01089             \textcolor{keywordflow}{if} ( NULL != fieldnames ) \{
+01090                 hid\_t      str\_type\_id,fieldnames\_id;
+01091                 \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **fields;
+01092                 hsize\_t    k;
+01093 
+01094                 str\_type\_id = H5Tcopy(H5T\_C\_S1);
+01095                 fields     = (\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t}**)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data};
+01096                 for ( k = 0; k < nfields; k++ ) \{
+01097                     fieldnames[k].len =
+01098                     strlen(matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[k]);
+01099                     fieldnames[k].p   = matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[k];
+01100                 \}
+01101                 H5Tset\_size(str\_type\_id,1);
+01102                 fieldnames\_id = H5Tvlen\_create(str\_type\_id);
+01103                 aspace\_id     = H5Screate\_simple(1,&nfields,NULL);
+01104                 attr\_id = H5Acreate(dset\_id,\textcolor{stringliteral}{"MATLAB\_fields"},fieldnames\_id,
+01105                                     aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01106                 \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id,fieldnames\_id,fieldnames) )
+01107                     err += 5;
+01108                 H5Aclose(attr\_id);
+01109                 H5Sclose(aspace\_id);
+01110                 H5Tclose(fieldnames\_id);
+01111                 H5Tclose(str\_type\_id);
+01112                 free(fieldnames);
+01113             \} \textcolor{keywordflow}{else} \{
+01114                 err = 1;
+01115             \}
+01116         \}
+01117     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( 0 == strcmp(class\_name, \textcolor{stringliteral}{"logical"}) ) \{
+01118         \textcolor{comment}{/* Write the MATLAB\_int\_decode attribute */}
+01119         \textcolor{keywordtype}{int} int\_decode = 1;
+01120         aspace\_id = H5Screate(H5S\_SCALAR);
+01121         attr\_id = H5Acreate(dset\_id,\textcolor{stringliteral}{"MATLAB\_int\_decode"},H5T\_NATIVE\_INT,
+01122                             aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01123         \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id,H5T\_NATIVE\_INT,&int\_decode) )
+01124             err += 5;
+01125         H5Sclose(aspace\_id);
+01126         H5Aclose(attr\_id);
+01127     \}
+01128 
+01129     \textcolor{comment}{/* Write the empty attribute */}
+01130     aspace\_id = H5Screate(H5S\_SCALAR);
+01131     attr\_id = H5Acreate(dset\_id,\textcolor{stringliteral}{"MATLAB\_empty"},H5T\_NATIVE\_UINT,
+01132                         aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01133     \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id,H5T\_NATIVE\_UINT,&empty) )
+01134         err += 5;
+01135     H5Sclose(aspace\_id);
+01136     H5Aclose(attr\_id);
+01137 
+01138     \textcolor{comment}{/* Write the dimensions as the data */}
+01139     \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id,SizeType2H5T(),H5S\_ALL,H5S\_ALL,
+01140                       H5P\_DEFAULT,matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}) )
+01141         err += 5;
+01142     H5Dclose(dset\_id);
+01143     H5Sclose(mspace\_id);
+01144 
+01145     \textcolor{keywordflow}{return} err;
+01146 \}
+01147 
+01161 \textcolor{keyword}{static} \textcolor{keywordtype}{int}
+01162 Mat\_VarWriteCell73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,hid\_t *refs\_id,hsize\_t *dims)
+01163 \{
+01164     \textcolor{keywordtype}{int}        k;
+01165     hsize\_t    nmemb = 1;
+01166     \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **cells;
+01167     \textcolor{keywordtype}{int}        err = 0;
+01168 
+01169     cells = (\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t}**)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data};
+01170     for ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ )
+01171         nmemb *= dims[k];
+01172 
+01173     \textcolor{keywordflow}{if} ( 0 == nmemb || NULL == matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} ) \{
+01174         err = Mat\_VarWriteEmpty(\textcolor{keywordtype}{id}, matvar, name, ClassNames[matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type}]);
+01175     \} \textcolor{keywordflow}{else} \{
+01176         \textcolor{keywordtype}{char}  id\_name[128] = \{\textcolor{charliteral}{'\(\backslash\)0'},\};
+01177         hid\_t mspace\_id,dset\_id,attr\_id,aspace\_id;
+01178 
+01179         (void)H5Iget\_name(\textcolor{keywordtype}{id},id\_name,127);
+01180         \textcolor{keywordflow}{if} ( *refs\_id < 0 ) \{
+01181             \textcolor{keywordflow}{if} ( H5Lexists(\textcolor{keywordtype}{id},\textcolor{stringliteral}{"/#refs#"},H5P\_DEFAULT) ) \{
+01182                 *refs\_id = H5Gopen(\textcolor{keywordtype}{id},\textcolor{stringliteral}{"/#refs#"},H5P\_DEFAULT);
+01183             \} \textcolor{keywordflow}{else} \{
+01184                 *refs\_id = H5Gcreate(\textcolor{keywordtype}{id},\textcolor{stringliteral}{"/#refs#"},H5P\_DEFAULT,
+01185                                      H5P\_DEFAULT,H5P\_DEFAULT);
+01186             \}
+01187         \}
+01188         \textcolor{keywordflow}{if} ( *refs\_id > -1 ) \{
+01189             \textcolor{keywordtype}{char}        obj\_name[64];
+01190             hobj\_ref\_t *refs;
+01191             hid\_t       str\_type\_id;
+01192 
+01193             refs = (hobj\_ref\_t*)malloc((\textcolor{keywordtype}{size\_t})nmemb*\textcolor{keyword}{sizeof}(*refs));
+01194             mspace\_id = H5Screate\_simple(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank},dims,NULL);
+01195             dset\_id = H5Dcreate(\textcolor{keywordtype}{id},name,H5T\_STD\_REF\_OBJ,mspace\_id,
+01196                                 H5P\_DEFAULT,H5P\_DEFAULT,H5P\_DEFAULT);
+01197 
+01198             \textcolor{keywordflow}{for} ( k = 0; k < nmemb; k++ ) \{
+01199                 \hyperlink{struct_h5_g__info__t}{H5G\_info\_t} group\_info;
+01200                 H5Gget\_info(*refs\_id, &group\_info);
+01201                 sprintf(obj\_name,\textcolor{stringliteral}{"%llu"},group\_info.nlinks);
+01202                 \textcolor{keywordflow}{if} ( NULL != cells[k] )
+01203                     cells[k]->\hyperlink{group___m_a_t_aeef0466048621cb2c959ba7f6c774d06}{compression} = matvar->\hyperlink{group___m_a_t_aeef0466048621cb2c959ba7f6c774d06}{compression};
+01204                 \textcolor{keywordflow}{if} ( 0 != Mat\_VarWriteNext73(*refs\_id,cells[k],obj\_name,refs\_id) )
+01205                     err += 5;
+01206                 sprintf(obj\_name,\textcolor{stringliteral}{"/#refs#/%llu"},group\_info.nlinks);
+01207                 H5Rcreate(refs+k,\textcolor{keywordtype}{id},obj\_name,H5R\_OBJECT,-1);
+01208             \}
+01209 
+01210             \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id,H5T\_STD\_REF\_OBJ,H5S\_ALL,H5S\_ALL,
+01211                               H5P\_DEFAULT,refs) )
+01212                 err += 5;
+01213 
+01214             str\_type\_id = H5Tcopy(H5T\_C\_S1);
+01215             H5Tset\_size(str\_type\_id,4);
+01216             aspace\_id = H5Screate(H5S\_SCALAR);
+01217             attr\_id = H5Acreate(dset\_id,\textcolor{stringliteral}{"MATLAB\_class"},str\_type\_id,
+01218                                 aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01219             \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id,str\_type\_id,\textcolor{stringliteral}{"cell"}) )
+01220                 err += 5;
+01221             H5Aclose(attr\_id);
+01222             H5Sclose(aspace\_id);
+01223             H5Tclose(str\_type\_id);
+01224             H5Dclose(dset\_id);
+01225             free(refs);
+01226             H5Sclose(mspace\_id);
+01227         \} \textcolor{keywordflow}{else} \{
+01228             err = -1;
+01229         \}
+01230     \}
+01231 
+01232     \textcolor{keywordflow}{return} err;
+01233 \}
+01234 
+01247 \textcolor{keyword}{static} \textcolor{keywordtype}{int}
+01248 Mat\_VarWriteChar73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,hsize\_t *dims)
+01249 \{
+01250     \textcolor{keywordtype}{int}     err = 0, k;
+01251     hsize\_t numel = 1;
+01252 
+01253     \textcolor{keywordflow}{for} ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ ) \{
+01254         numel *= dims[k];
+01255     \}
+01256 
+01257     \textcolor{keywordflow}{if} ( 0 == numel || NULL == matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} ) \{
+01258         err = Mat\_VarWriteEmpty(\textcolor{keywordtype}{id}, matvar, name, ClassNames[matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type}]);
+01259     \} \textcolor{keywordflow}{else} \{
+01260         \textcolor{keywordtype}{int}   matlab\_int\_decode = 2;
+01261         hid\_t mspace\_id,dset\_id,attr\_type\_id,attr\_id,aspace\_id;
+01262 
+01263         mspace\_id = H5Screate\_simple(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank},dims,NULL);
+01264         \textcolor{keywordflow}{switch} ( matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type} ) \{
+01265             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a11e43c0e0be79b1983090e02ae583109}{MAT\_T\_UTF32}:
+01266             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a83e06a68320726c6572bfbb9f3addb1d}{MAT\_T\_INT32}:
+01267             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453aa397e285a23fe240368b752897652c6a}{MAT\_T\_UINT32}:
+01268                 \textcolor{comment}{/* Not sure matlab will actually handle this */}
+01269                 dset\_id = H5Dcreate(\textcolor{keywordtype}{id},name,
+01270                                     ClassType2H5T(\hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a9a17a7edd45b19ef68197db81b27e816}{MAT\_C\_UINT32}),
+01271                                     mspace\_id,H5P\_DEFAULT,H5P\_DEFAULT,
+01272                                     H5P\_DEFAULT);
+01273                 \textcolor{keywordflow}{break};
+01274             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a87ffc0412143c326a1fcc759d5d81bdc}{MAT\_T\_UTF16}:
+01275             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453ac34ad81f5cbd3b7d0d95e57e5be0149b}{MAT\_T\_UTF8}:
+01276             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a8c5b2e381946e95ea8d81ac216743302}{MAT\_T\_INT16}:
+01277             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a05bc7af7680aa68be95126ae0a4c2e31}{MAT\_T\_UINT16}:
+01278             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a9807f5033ed4f9b548953742d9fd1658}{MAT\_T\_INT8}:
+01279             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a01c1bd7db68f90552862eb5d311be408}{MAT\_T\_UINT8}:
+01280                 dset\_id = H5Dcreate(\textcolor{keywordtype}{id},name,
+01281                                     ClassType2H5T(\hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a8bede21dbf6c1edc0bbccc1481bccae7}{MAT\_C\_UINT16}),
+01282                                     mspace\_id,H5P\_DEFAULT,H5P\_DEFAULT,
+01283                                     H5P\_DEFAULT);
+01284                 \textcolor{keywordflow}{break};
+01285             \textcolor{keywordflow}{default}:
+01286                 H5Sclose(mspace\_id);
+01287                 \textcolor{keywordflow}{return} -1;
+01288         \}
+01289         attr\_type\_id = H5Tcopy(H5T\_C\_S1);
+01290         H5Tset\_size(attr\_type\_id, strlen(ClassNames[matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type}]));
+01291         aspace\_id = H5Screate(H5S\_SCALAR);
+01292         attr\_id = H5Acreate(dset\_id,\textcolor{stringliteral}{"MATLAB\_class"},attr\_type\_id,
+01293                             aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01294         \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id,attr\_type\_id,ClassNames[matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type}]) )
+01295             err = 5;
+01296         H5Aclose(attr\_id);
+01297         H5Tclose(attr\_type\_id);
+01298 
+01299         attr\_type\_id = H5Tcopy(H5T\_NATIVE\_INT);
+01300         attr\_id = H5Acreate(dset\_id,\textcolor{stringliteral}{"MATLAB\_int\_decode"},attr\_type\_id,
+01301                             aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01302         \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id,attr\_type\_id,&matlab\_int\_decode) )
+01303             err += 5;
+01304         H5Aclose(attr\_id);
+01305         H5Tclose(attr\_type\_id);
+01306         H5Sclose(aspace\_id);
+01307 
+01308         \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id,DataType2H5T(matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type}),
+01309                           H5S\_ALL,H5S\_ALL,H5P\_DEFAULT,matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data}) )
+01310             err += 5;
+01311         H5Dclose(dset\_id);
+01312         H5Sclose(mspace\_id);
+01313     \}
+01314 
+01315     \textcolor{keywordflow}{return} err;
+01316 \}
+01317 
+01318 \textcolor{keyword}{static} \textcolor{keywordtype}{int}
+01319 Mat\_WriteEmptyVariable73(hid\_t \textcolor{keywordtype}{id},\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,hsize\_t rank,\textcolor{keywordtype}{size\_t} *dims)
+01320 \{
+01321     \textcolor{keywordtype}{int} err = 0;
+01322     \textcolor{keywordtype}{unsigned} empty = 1;
+01323     hid\_t mspace\_id,dset\_id;
+01324 
+01325     mspace\_id = H5Screate\_simple(1,&rank,NULL);
+01326     dset\_id = H5Dcreate(\textcolor{keywordtype}{id},name,H5T\_NATIVE\_HSIZE,mspace\_id,
+01327                         H5P\_DEFAULT,H5P\_DEFAULT,H5P\_DEFAULT);
+01328     \textcolor{keywordflow}{if} ( dset\_id > -1 ) \{
+01329         hid\_t attr\_type\_id,attr\_id,aspace\_id;
+01330 
+01331         attr\_type\_id = H5Tcopy(H5T\_C\_S1);
+01332         H5Tset\_size(attr\_type\_id,6);
+01333         aspace\_id = H5Screate(H5S\_SCALAR);
+01334         attr\_id = H5Acreate(dset\_id,\textcolor{stringliteral}{"MATLAB\_class"},attr\_type\_id,
+01335                             aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01336         \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id,attr\_type\_id,\textcolor{stringliteral}{"double"}) )
+01337             err = 5;
+01338         H5Sclose(aspace\_id);
+01339         H5Aclose(attr\_id);
+01340         H5Tclose(attr\_type\_id);
+01341 
+01342         aspace\_id = H5Screate(H5S\_SCALAR);
+01343         attr\_id = H5Acreate(dset\_id,\textcolor{stringliteral}{"MATLAB\_empty"},H5T\_NATIVE\_UINT,
+01344                             aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01345         \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id,H5T\_NATIVE\_UINT,&empty) )
+01346             err += 5;
+01347         H5Sclose(aspace\_id);
+01348         H5Aclose(attr\_id);
+01349 
+01350         \textcolor{comment}{/* Write the dimensions as the data */}
+01351         \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id,SizeType2H5T(),H5S\_ALL,H5S\_ALL,
+01352                           H5P\_DEFAULT,dims) )
+01353             err += 5;
+01354         H5Dclose(dset\_id);
+01355     \} \textcolor{keywordflow}{else} \{
+01356         err = -1;
+01357     \}
+01358     H5Sclose(mspace\_id);
+01359 
+01360     \textcolor{keywordflow}{return} err;
+01361 \}
+01362 
+01375 \textcolor{keyword}{static} \textcolor{keywordtype}{int}
+01376 Mat\_VarWriteLogical73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,hsize\_t *dims)
+01377 \{
+01378     \textcolor{keywordtype}{int}     err = 0, k;
+01379     hsize\_t numel = 1;
+01380     hid\_t   plist;
+01381 
+01382     \textcolor{keywordflow}{for} ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ ) \{
+01383         numel *= dims[k];
+01384     \}
+01385 
+01386     \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_aeef0466048621cb2c959ba7f6c774d06}{compression} ) \{
+01387         plist = H5Pcreate(H5P\_DATASET\_CREATE);
+01388         \textcolor{keywordflow}{if} ( MAX\_RANK >= matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} ) \{
+01389             hsize\_t chunk\_dims[MAX\_RANK];
+01390             Mat\_H5GetChunkSize(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}, dims, chunk\_dims);
+01391             H5Pset\_chunk(plist, matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}, chunk\_dims);
+01392         \} \textcolor{keywordflow}{else} \{
+01393             hsize\_t *chunk\_dims = (hsize\_t*)malloc(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}*\textcolor{keyword}{sizeof}(hsize\_t));
+01394             \textcolor{keywordflow}{if} ( NULL != chunk\_dims ) \{
+01395                 Mat\_H5GetChunkSize(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}, dims, chunk\_dims);
+01396                 H5Pset\_chunk(plist, matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}, chunk\_dims);
+01397                 free(chunk\_dims);
+01398             \} \textcolor{keywordflow}{else} \{
+01399                 H5Pclose(plist);
+01400                 \textcolor{keywordflow}{return} -1;
+01401             \}
+01402         \}
+01403         H5Pset\_deflate(plist, 9);
+01404     \} \textcolor{keywordflow}{else} \{
+01405         plist = H5P\_DEFAULT;
+01406     \}
+01407 
+01408     \textcolor{keywordflow}{if} ( 0 == numel || NULL == matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} ) \{
+01409         err = Mat\_VarWriteEmpty(\textcolor{keywordtype}{id}, matvar, name, \textcolor{stringliteral}{"logical"});
+01410     \} \textcolor{keywordflow}{else} \{
+01411         \textcolor{keywordtype}{int}   int\_decode = 1;
+01412         hid\_t mspace\_id,dset\_id,attr\_type\_id,attr\_id,aspace\_id;
+01413 
+01414         mspace\_id = H5Screate\_simple(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank},dims,NULL);
+01415         \textcolor{comment}{/* Note that MATLAB only recognizes uint8 as logical */}
+01416         dset\_id = H5Dcreate(\textcolor{keywordtype}{id},name,
+01417                             ClassType2H5T(\hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a81270f8093cb4808e992c1d29d84d4e3}{MAT\_C\_UINT8}),
+01418                             mspace\_id,H5P\_DEFAULT,plist,H5P\_DEFAULT);
+01419         attr\_type\_id = H5Tcopy(H5T\_C\_S1);
+01420         H5Tset\_size(attr\_type\_id,7);
+01421         aspace\_id = H5Screate(H5S\_SCALAR);
+01422         attr\_id = H5Acreate(dset\_id,\textcolor{stringliteral}{"MATLAB\_class"},attr\_type\_id,
+01423                             aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01424         \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id,attr\_type\_id,\textcolor{stringliteral}{"logical"}) )
+01425             err = 5;
+01426         H5Sclose(aspace\_id);
+01427         H5Aclose(attr\_id);
+01428         H5Tclose(attr\_type\_id);
+01429         \textcolor{comment}{/* Write the MATLAB\_int\_decode attribute */}
+01430         aspace\_id = H5Screate(H5S\_SCALAR);
+01431         attr\_id = H5Acreate(dset\_id,\textcolor{stringliteral}{"MATLAB\_int\_decode"},H5T\_NATIVE\_INT,
+01432                             aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01433         \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id,H5T\_NATIVE\_INT,&int\_decode) )
+01434             err += 5;
+01435         H5Sclose(aspace\_id);
+01436         H5Aclose(attr\_id);
+01437 
+01438         \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id,DataType2H5T(matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type}),
+01439                           H5S\_ALL,H5S\_ALL,H5P\_DEFAULT,matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data}) )
+01440             err += 5;
+01441         H5Dclose(dset\_id);
+01442         H5Sclose(mspace\_id);
+01443     \}
+01444 
+01445     \textcolor{keywordflow}{if} ( H5P\_DEFAULT != plist )
+01446         H5Pclose(plist);
+01447 
+01448     \textcolor{keywordflow}{return} err;
+01449 \}
+01450 
+01464 \textcolor{keyword}{static} \textcolor{keywordtype}{int}
+01465 Mat\_VarWriteNumeric73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,hsize\_t *dims,hsize\_t* max\_dims)
+01466 \{
+01467     \textcolor{keywordtype}{int} err = 0, k;
+01468     hsize\_t numel = 1;
+01469     hid\_t mspace\_id,dset\_id,attr\_type\_id,attr\_id,aspace\_id,plist;
+01470 
+01471     \textcolor{keywordflow}{for} ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ ) \{
+01472         numel *= dims[k];
+01473     \}
+01474 
+01475     \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_aeef0466048621cb2c959ba7f6c774d06}{compression} || NULL != max\_dims ) \{
+01476         plist = H5Pcreate(H5P\_DATASET\_CREATE);
+01477         \textcolor{keywordflow}{if} ( MAX\_RANK >= matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} ) \{
+01478             hsize\_t chunk\_dims[MAX\_RANK];
+01479             Mat\_H5GetChunkSize(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}, dims, chunk\_dims);
+01480             H5Pset\_chunk(plist, matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}, chunk\_dims);
+01481         \} \textcolor{keywordflow}{else} \{
+01482             hsize\_t *chunk\_dims = (hsize\_t*)malloc(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}*\textcolor{keyword}{sizeof}(hsize\_t));
+01483             \textcolor{keywordflow}{if} ( NULL != chunk\_dims ) \{
+01484                 Mat\_H5GetChunkSize(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}, dims, chunk\_dims);
+01485                 H5Pset\_chunk(plist, matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}, chunk\_dims);
+01486                 free(chunk\_dims);
+01487             \} \textcolor{keywordflow}{else} \{
+01488                 H5Pclose(plist);
+01489                 \textcolor{keywordflow}{return} -1;
+01490             \}
+01491         \}
+01492         \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_aeef0466048621cb2c959ba7f6c774d06}{compression} )
+01493             H5Pset\_deflate(plist, 9);
+01494     \} \textcolor{keywordflow}{else} \{
+01495         plist = H5P\_DEFAULT;
+01496     \}
+01497 
+01498     \textcolor{keywordflow}{if} ( 0 == numel || NULL == matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} ) \{
+01499         err = Mat\_VarWriteEmpty(\textcolor{keywordtype}{id}, matvar, name, ClassNames[matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type}]);
+01500     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} ) \{
+01501         hid\_t h5\_complex,h5\_complex\_base;
+01502 
+01503         h5\_complex\_base = ClassType2H5T(matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type});
+01504         h5\_complex      = H5Tcreate(H5T\_COMPOUND,
+01505                                     2*H5Tget\_size(h5\_complex\_base));
+01506         H5Tinsert(h5\_complex,\textcolor{stringliteral}{"real"},0,h5\_complex\_base);
+01507         H5Tinsert(h5\_complex,\textcolor{stringliteral}{"imag"},H5Tget\_size(h5\_complex\_base),
+01508                   h5\_complex\_base);
+01509         mspace\_id = H5Screate\_simple(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank},dims,max\_dims);
+01510         dset\_id = H5Dcreate(\textcolor{keywordtype}{id},name,h5\_complex,mspace\_id,H5P\_DEFAULT,
+01511                             plist,H5P\_DEFAULT);
+01512         attr\_type\_id = H5Tcopy(H5T\_C\_S1);
+01513         H5Tset\_size(attr\_type\_id, strlen(ClassNames[matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type}]));
+01514         aspace\_id = H5Screate(H5S\_SCALAR);
+01515         attr\_id = H5Acreate(dset\_id,\textcolor{stringliteral}{"MATLAB\_class"},attr\_type\_id,
+01516                             aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01517         \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id, attr\_type\_id, ClassNames[matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type}]) )
+01518             err = 5;
+01519         H5Sclose(aspace\_id);
+01520         H5Aclose(attr\_id);
+01521         H5Tclose(attr\_type\_id);
+01522         H5Tclose(h5\_complex);
+01523 
+01524         \textcolor{comment}{/* Write real part of dataset */}
+01525         h5\_complex = H5Tcreate(H5T\_COMPOUND,
+01526                                H5Tget\_size(h5\_complex\_base));
+01527         H5Tinsert(h5\_complex,\textcolor{stringliteral}{"real"},0,h5\_complex\_base);
+01528         \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id,h5\_complex,H5S\_ALL,H5S\_ALL,H5P\_DEFAULT,
+01529                           ((\hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t}*)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data})->Re) )
+01530             err += 5;
+01531         H5Tclose(h5\_complex);
+01532 
+01533         \textcolor{comment}{/* Write imaginary part of dataset */}
+01534         h5\_complex = H5Tcreate(H5T\_COMPOUND,
+01535                                H5Tget\_size(h5\_complex\_base));
+01536         H5Tinsert(h5\_complex,\textcolor{stringliteral}{"imag"},0,h5\_complex\_base);
+01537         \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id,h5\_complex,H5S\_ALL,H5S\_ALL,H5P\_DEFAULT,
+01538                           ((\hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t}*)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data})->Im) )
+01539             err += 5;
+01540         H5Tclose(h5\_complex);
+01541         H5Dclose(dset\_id);
+01542         H5Sclose(mspace\_id);
+01543     \} \textcolor{keywordflow}{else} \{ \textcolor{comment}{/* matvar->isComplex */}
+01544         mspace\_id = H5Screate\_simple(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank},dims,max\_dims);
+01545         dset\_id = H5Dcreate(\textcolor{keywordtype}{id},name,
+01546                             ClassType2H5T(matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type}),
+01547                             mspace\_id,H5P\_DEFAULT,plist,H5P\_DEFAULT);
+01548         attr\_type\_id = H5Tcopy(H5T\_C\_S1);
+01549         H5Tset\_size(attr\_type\_id, strlen(ClassNames[matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type}]));
+01550         aspace\_id = H5Screate(H5S\_SCALAR);
+01551         attr\_id = H5Acreate(dset\_id,\textcolor{stringliteral}{"MATLAB\_class"},attr\_type\_id,
+01552                             aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01553         \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id, attr\_type\_id, ClassNames[matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type}]) )
+01554             err = 5;
+01555         H5Sclose(aspace\_id);
+01556         H5Aclose(attr\_id);
+01557         H5Tclose(attr\_type\_id);
+01558         \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id,DataType2H5T(matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type}),
+01559                           H5S\_ALL,H5S\_ALL,H5P\_DEFAULT,matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data}) )
+01560             err += 5;
+01561         H5Dclose(dset\_id);
+01562         H5Sclose(mspace\_id);
+01563     \}
+01564 
+01565     \textcolor{keywordflow}{if} ( H5P\_DEFAULT != plist )
+01566         H5Pclose(plist);
+01567 
+01568     \textcolor{keywordflow}{return} err;
+01569 \}
+01570 
+01584 \textcolor{keyword}{static} \textcolor{keywordtype}{int}
+01585 Mat\_VarWriteAppendNumeric73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,\textcolor{keywordtype}{int} dim,hsize\_t *dims)
+01586 \{
+01587     \textcolor{keywordtype}{int} err = 0;
+01588     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} k;
+01589     hsize\_t numel = 1;
+01590 
+01591     \textcolor{keywordflow}{for} ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ ) \{
+01592         numel *= dims[k];
+01593     \}
+01594 
+01595     \textcolor{keywordflow}{if} ( 0 != numel && NULL != matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} ) \{
+01596         hid\_t dset\_id, mspace\_id;
+01597 
+01598         \textcolor{keywordflow}{if} ( H5Lexists(\textcolor{keywordtype}{id}, matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name}, H5P\_DEFAULT) ) \{
+01599             \textcolor{comment}{/* Append */}
+01600             hid\_t space\_id;
+01601             \textcolor{keywordtype}{int} rank;
+01602 
+01603             \textcolor{keywordflow}{if} ( dim < 1 || dim > matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} )
+01604                 \textcolor{keywordflow}{return} -2;
+01605 
+01606             dset\_id = H5Dopen(\textcolor{keywordtype}{id}, matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name}, H5P\_DEFAULT);
+01607             space\_id = H5Dget\_space(dset\_id);
+01608             rank = H5Sget\_simple\_extent\_ndims(space\_id);
+01609             \textcolor{keywordflow}{if} ( rank == matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} ) \{
+01610                 hsize\_t* size\_offset\_dims;
+01611                 size\_offset\_dims = (hsize\_t*)malloc(rank*\textcolor{keyword}{sizeof}(*size\_offset\_dims));
+01612                 \textcolor{keywordflow}{if} ( NULL != size\_offset\_dims ) \{
+01613                     hsize\_t offset;
+01614                     (void)H5Sget\_simple\_extent\_dims(space\_id,size\_offset\_dims,NULL);
+01615                     offset = size\_offset\_dims[matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} - dim];
+01616                     size\_offset\_dims[matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} - dim] += matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[dim - 1];
+01617                     H5Dset\_extent(dset\_id, size\_offset\_dims);
+01618                     \textcolor{keywordflow}{for} ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ ) \{
+01619                         size\_offset\_dims[k] = 0;
+01620                     \}
+01621                     size\_offset\_dims[matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} - dim] = offset;
+01622                     \textcolor{comment}{/* Need to reopen */}
+01623                     H5Sclose(space\_id);
+01624                     space\_id = H5Dget\_space(dset\_id);
+01625                     H5Sselect\_hyperslab(space\_id, H5S\_SELECT\_SET, size\_offset\_dims, NULL,
+01626                                         dims, NULL);
+01627                     free(size\_offset\_dims);
+01628                     mspace\_id = H5Screate\_simple(rank, dims, NULL);
+01629                     \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} ) \{
+01630                         hid\_t h5\_complex, h5\_complex\_base;
+01631 
+01632                         h5\_complex\_base = ClassType2H5T(matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type});
+01633 
+01634                         \textcolor{comment}{/* Write real part of dataset */}
+01635                         h5\_complex = H5Tcreate(H5T\_COMPOUND,
+01636                                                H5Tget\_size(h5\_complex\_base));
+01637                         H5Tinsert(h5\_complex,\textcolor{stringliteral}{"real"},0,h5\_complex\_base);
+01638                         \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id, h5\_complex, mspace\_id, space\_id, H5P\_DEFAULT,
+01639                                           ((\hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t}*)matvar->
+      \hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data})->Re) )
+01640                             err = 5;
+01641                         H5Tclose(h5\_complex);
+01642 
+01643                         \textcolor{comment}{/* Write imaginary part of dataset */}
+01644                         h5\_complex = H5Tcreate(H5T\_COMPOUND,
+01645                                                H5Tget\_size(h5\_complex\_base));
+01646                         H5Tinsert(h5\_complex,\textcolor{stringliteral}{"imag"},0,h5\_complex\_base);
+01647                         \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id, h5\_complex, mspace\_id, space\_id ,H5P\_DEFAULT,
+01648                                           ((\hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t}*)matvar->
+      \hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data})->Im) )
+01649                             err += 5;
+01650                         H5Tclose(h5\_complex);
+01651                     \} \textcolor{keywordflow}{else} \{
+01652                         \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id, DataType2H5T(matvar->
+      \hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type}),
+01653                                           mspace\_id, space\_id, H5P\_DEFAULT, matvar->
+      \hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data}) )
+01654                             err = 5;
+01655                     \}
+01656                     H5Sclose(mspace\_id);
+01657                 \} \textcolor{keywordflow}{else} \{
+01658                     err = -3;
+01659                 \}
+01660             \} \textcolor{keywordflow}{else} \{
+01661                 err = -4;
+01662             \}
+01663             H5Sclose(space\_id);
+01664             H5Dclose(dset\_id);
+01665         \} \textcolor{keywordflow}{else} \{
+01666             \textcolor{comment}{/* Create with unlimited number of dimensions */}
+01667             \textcolor{keywordflow}{if} ( MAX\_RANK >= matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} ) \{
+01668                 hsize\_t max\_dims[MAX\_RANK];
+01669                 \textcolor{keywordflow}{for} ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ ) \{
+01670                     max\_dims[k] = H5S\_UNLIMITED;
+01671                 \}
+01672                 err = Mat\_VarWriteNumeric73(\textcolor{keywordtype}{id},matvar,name,dims,max\_dims);
+01673             \} \textcolor{keywordflow}{else} \{
+01674                 hsize\_t* max\_dims = (hsize\_t*)malloc(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}*\textcolor{keyword}{sizeof}(hsize\_t));
+01675                 \textcolor{keywordflow}{if} ( NULL != max\_dims ) \{
+01676                     \textcolor{keywordflow}{for} ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ ) \{
+01677                         max\_dims[k] = H5S\_UNLIMITED;
+01678                     \}
+01679                     err = Mat\_VarWriteNumeric73(\textcolor{keywordtype}{id},matvar,name,dims,max\_dims);
+01680                     free(max\_dims);
+01681                 \} \textcolor{keywordflow}{else} \{
+01682                     err = -1;
+01683                 \}
+01684             \}
+01685         \}
+01686     \} \textcolor{keywordflow}{else} \{
+01687         err = -1;
+01688     \}
+01689 
+01690     \textcolor{keywordflow}{return} err;
+01691 \}
+01692 
+01704 \textcolor{keyword}{static} \textcolor{keywordtype}{int}
+01705 Mat\_VarWriteSparse73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name)
+01706 \{
+01707     \textcolor{keywordtype}{int} err = 0, k;
+01708     hid\_t   sparse\_id;
+01709     hsize\_t nmemb = 1;
+01710 
+01711     \textcolor{keywordflow}{for} ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ )
+01712         nmemb *= matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[k];
+01713 
+01714     sparse\_id = H5Gcreate(\textcolor{keywordtype}{id},name,H5P\_DEFAULT,H5P\_DEFAULT,H5P\_DEFAULT);
+01715     \textcolor{keywordflow}{if} ( sparse\_id < 0 ) \{
+01716         \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Error creating group for sparse array %s"},
+01717                      matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name});
+01718         err = -1;
+01719     \} \textcolor{keywordflow}{else} \{
+01720         hid\_t size\_type\_id,data\_type\_id;
+01721         hid\_t mspace\_id,dset\_id,attr\_type\_id,attr\_id,aspace\_id;
+01722         \hyperlink{group___m_a_t_structmat__sparse__t}{mat\_sparse\_t} *sparse;
+01723         hsize\_t nir, njc, ndata;
+01724         mat\_uint64\_t sparse\_attr\_value;
+01725         \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gad4d60ae7b709fc81bfd744fb4c857c40}{matio\_classes} class\_type;
+01726 
+01727         sparse = (\hyperlink{group___m_a_t_structmat__sparse__t}{mat\_sparse\_t}*)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data};
+01728         class\_type = DataType2ClassType(matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type});
+01729         attr\_type\_id = H5Tcopy(H5T\_C\_S1);
+01730         H5Tset\_size(attr\_type\_id,
+01731                     matvar->\hyperlink{group___m_a_t_a866c1539e68073a837833d74cd4a65be}{isLogical} ? 7 : strlen(ClassNames[class\_type]));
+01732         aspace\_id = H5Screate(H5S\_SCALAR);
+01733         attr\_id = H5Acreate(sparse\_id,\textcolor{stringliteral}{"MATLAB\_class"},attr\_type\_id,
+01734                             aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01735         \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id, attr\_type\_id,
+01736                           matvar->\hyperlink{group___m_a_t_a866c1539e68073a837833d74cd4a65be}{isLogical} ? \textcolor{stringliteral}{"logical"} : ClassNames[class\_type]) )
+01737             err = 5;
+01738         H5Sclose(aspace\_id);
+01739         H5Aclose(attr\_id);
+01740         H5Tclose(attr\_type\_id);
+01741 
+01742         \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_a866c1539e68073a837833d74cd4a65be}{isLogical} ) \{
+01743             \textcolor{comment}{/* Write the MATLAB\_int\_decode attribute */}
+01744             \textcolor{keywordtype}{int} int\_decode = 1;
+01745             aspace\_id = H5Screate(H5S\_SCALAR);
+01746             attr\_id = H5Acreate(sparse\_id, \textcolor{stringliteral}{"MATLAB\_int\_decode"}, H5T\_NATIVE\_INT,
+01747                                 aspace\_id, H5P\_DEFAULT, H5P\_DEFAULT);
+01748             \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id, H5T\_NATIVE\_INT, &int\_decode) )
+01749                 err += 5;
+01750             H5Sclose(aspace\_id);
+01751             H5Aclose(attr\_id);
+01752         \}
+01753 
+01754         sparse\_attr\_value = matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[0];
+01755         size\_type\_id = ClassType2H5T(\hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a86470e25c3763d9a24623f04326195dd}{MAT\_C\_UINT64});
+01756         aspace\_id = H5Screate(H5S\_SCALAR);
+01757         attr\_id = H5Acreate(sparse\_id,\textcolor{stringliteral}{"MATLAB\_sparse"},size\_type\_id,
+01758                             aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01759         \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id,size\_type\_id,&sparse\_attr\_value) )
+01760             err += 5;
+01761         H5Sclose(aspace\_id);
+01762         H5Aclose(attr\_id);
+01763 
+01764         ndata = sparse->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata};
+01765         data\_type\_id = DataType2H5T(matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type});
+01766         \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} ) \{
+01767             hid\_t h5\_complex;
+01768             \hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t} *complex\_data;
+01769             hsize\_t dims[1];
+01770 
+01771             complex\_data = (\hyperlink{group___m_a_t_structmat__complex__split__t}{mat\_complex\_split\_t}*)sparse->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data};
+01772 
+01773             \textcolor{comment}{/* Create dataset datatype as compound with real and}
+01774 \textcolor{comment}{             * imaginary fields}
+01775 \textcolor{comment}{             */}
+01776             h5\_complex = H5Tcreate(H5T\_COMPOUND,
+01777                                    2*H5Tget\_size(data\_type\_id));
+01778             H5Tinsert(h5\_complex,\textcolor{stringliteral}{"real"},0,data\_type\_id);
+01779             H5Tinsert(h5\_complex,\textcolor{stringliteral}{"imag"},H5Tget\_size(data\_type\_id),
+01780                       data\_type\_id);
+01781 
+01782             \textcolor{comment}{/* Create dataset */}
+01783             dims[0] = ndata;
+01784             mspace\_id = H5Screate\_simple(1,dims,NULL);
+01785             dset\_id = H5Dcreate(sparse\_id,\textcolor{stringliteral}{"data"},h5\_complex,mspace\_id,
+01786                                 H5P\_DEFAULT,H5P\_DEFAULT,H5P\_DEFAULT);
+01787             H5Tclose(h5\_complex);
+01788 
+01789             \textcolor{comment}{/* Write real part of dataset */}
+01790             h5\_complex = H5Tcreate(H5T\_COMPOUND,
+01791                                    H5Tget\_size(data\_type\_id));
+01792             H5Tinsert(h5\_complex,\textcolor{stringliteral}{"real"},0,data\_type\_id);
+01793             \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id,h5\_complex,H5S\_ALL,H5S\_ALL,H5P\_DEFAULT,
+01794                               complex\_data->\hyperlink{group___m_a_t_a484a93607508adac2bce53a0252e0325}{Re}) )
+01795                 err += 5;
+01796             H5Tclose(h5\_complex);
+01797 
+01798             \textcolor{comment}{/* Write imaginary part of dataset */}
+01799             h5\_complex = H5Tcreate(H5T\_COMPOUND,H5Tget\_size(data\_type\_id));
+01800             H5Tinsert(h5\_complex,\textcolor{stringliteral}{"imag"},0,data\_type\_id);
+01801             \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id,h5\_complex,H5S\_ALL,H5S\_ALL,H5P\_DEFAULT,
+01802                               complex\_data->\hyperlink{group___m_a_t_a7182d10b0d3598415887376065440946}{Im}) )
+01803                 err += 5;
+01804             H5Tclose(h5\_complex);
+01805             H5Dclose(dset\_id);
+01806             H5Sclose(mspace\_id);
+01807         \} \textcolor{keywordflow}{else} \{ \textcolor{comment}{/* if ( matvar->isComplex ) */}
+01808             mspace\_id = H5Screate\_simple(1,&ndata,NULL);
+01809             dset\_id = H5Dcreate(sparse\_id,\textcolor{stringliteral}{"data"},data\_type\_id,mspace\_id,
+01810                                 H5P\_DEFAULT,H5P\_DEFAULT,H5P\_DEFAULT);
+01811             \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id,data\_type\_id,H5S\_ALL,H5S\_ALL,H5P\_DEFAULT,
+01812                               sparse->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data}) )
+01813                 err += 5;
+01814             H5Dclose(dset\_id);
+01815             H5Sclose(mspace\_id);
+01816         \}
+01817 
+01818         nir = sparse->\hyperlink{group___m_a_t_aa64636ad57cf87f7a28ff5018437a850}{nir};
+01819         mspace\_id = H5Screate\_simple(1,&nir,NULL);
+01820         dset\_id = H5Dcreate(sparse\_id,\textcolor{stringliteral}{"ir"},size\_type\_id,mspace\_id,
+01821                             H5P\_DEFAULT,H5P\_DEFAULT,H5P\_DEFAULT);
+01822         \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id,H5T\_NATIVE\_INT,H5S\_ALL,H5S\_ALL,H5P\_DEFAULT,
+01823                           sparse->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir}) )
+01824             err += 5;
+01825         H5Dclose(dset\_id);
+01826         H5Sclose(mspace\_id);
+01827 
+01828         njc = sparse->\hyperlink{group___m_a_t_a482d8e4b40aa975f0c1daf146ebe08a4}{njc};
+01829         mspace\_id = H5Screate\_simple(1,&njc,NULL);
+01830         dset\_id = H5Dcreate(sparse\_id,\textcolor{stringliteral}{"jc"},size\_type\_id,mspace\_id,
+01831                             H5P\_DEFAULT,H5P\_DEFAULT,H5P\_DEFAULT);
+01832         \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id,H5T\_NATIVE\_INT,H5S\_ALL,H5S\_ALL,H5P\_DEFAULT,
+01833                           sparse->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc}) )
+01834             err += 5;
+01835         H5Dclose(dset\_id);
+01836         H5Sclose(mspace\_id);
+01837         H5Gclose(sparse\_id);
+01838     \}
+01839 
+01840     \textcolor{keywordflow}{return} err;
+01841 \}
+01842 
+01856 \textcolor{keyword}{static} \textcolor{keywordtype}{int}
+01857 Mat\_VarWriteStruct73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,hid\_t *refs\_id,hsize\_t *dims)
+01858 \{
+01859     \textcolor{keywordtype}{int}     err = 0, k;
+01860     hsize\_t nmemb = 1;
+01861 
+01862     \textcolor{keywordflow}{for} ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ )
+01863         nmemb *= matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[k];
+01864 
+01865     if ( 0 == nmemb || NULL == matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} ) \{
+01866         err = Mat\_VarWriteEmpty(\textcolor{keywordtype}{id}, matvar, name, ClassNames[matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type}]);
+01867     \} \textcolor{keywordflow}{else} \{
+01868         hid\_t struct\_id;
+01869         \textcolor{keywordtype}{char} id\_name[128] = \{\textcolor{charliteral}{'\(\backslash\)0'},\};
+01870 
+01871         (void)H5Iget\_name(\textcolor{keywordtype}{id},id\_name,127);
+01872         struct\_id = H5Gcreate(\textcolor{keywordtype}{id},name,H5P\_DEFAULT,H5P\_DEFAULT,
+01873                               H5P\_DEFAULT);
+01874         \textcolor{keywordflow}{if} ( struct\_id < 0 ) \{
+01875             \hyperlink{group__mat__util_gaf51f2bfbb5580f575e4dd79757e2b80c}{Mat\_Critical}(\textcolor{stringliteral}{"Error creating group for struct %s"},name);
+01876             err = -1;
+01877         \} \textcolor{keywordflow}{else} \{
+01878             hid\_t mspace\_id,dset\_id,attr\_id,aspace\_id;
+01879             hid\_t str\_type\_id,fieldnames\_id;
+01880             \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **fields;
+01881             \hyperlink{structhvl__t}{hvl\_t}     *fieldnames;
+01882             hsize\_t    nfields;
+01883 
+01884             str\_type\_id = H5Tcopy(H5T\_C\_S1);
+01885             H5Tset\_size(str\_type\_id,6);
+01886             aspace\_id = H5Screate(H5S\_SCALAR);
+01887             attr\_id = H5Acreate(struct\_id,\textcolor{stringliteral}{"MATLAB\_class"},str\_type\_id,
+01888                                 aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01889             \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id,str\_type\_id,\textcolor{stringliteral}{"struct"}) )
+01890                 err = 5;
+01891             H5Aclose(attr\_id);
+01892             H5Sclose(aspace\_id);
+01893 
+01894             nfields = matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a93fc447484f455eddf9334f2e9e411c2}{num\_fields};
+01895 
+01896             \textcolor{comment}{/* Structure with no fields */}
+01897             \textcolor{keywordflow}{if} ( nfields == 0 ) \{
+01898                 H5Gclose(struct\_id);
+01899                 H5Tclose(str\_type\_id);
+01900                 \textcolor{keywordflow}{return} err;
+01901             \}
+01902 
+01903             fieldnames = (\hyperlink{structhvl__t}{hvl\_t}*)malloc((\textcolor{keywordtype}{size\_t})nfields*\textcolor{keyword}{sizeof}(*fieldnames));
+01904             fields     = (\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t}**)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data};
+01905             for ( k = 0; k < nfields; k++ ) \{
+01906                 fieldnames[k].len =
+01907                 strlen(matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[k]);
+01908                 fieldnames[k].p   = matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[k];
+01909             \}
+01910             H5Tset\_size(str\_type\_id,1);
+01911             fieldnames\_id = H5Tvlen\_create(str\_type\_id);
+01912             aspace\_id     = H5Screate\_simple(1,&nfields,NULL);
+01913             attr\_id = H5Acreate(struct\_id,\textcolor{stringliteral}{"MATLAB\_fields"},fieldnames\_id,
+01914                                 aspace\_id,H5P\_DEFAULT,H5P\_DEFAULT);
+01915             \textcolor{keywordflow}{if} ( 0 > H5Awrite(attr\_id,fieldnames\_id,fieldnames) )
+01916                 err += 5;
+01917             H5Aclose(attr\_id);
+01918             H5Sclose(aspace\_id);
+01919             H5Tclose(fieldnames\_id);
+01920             H5Tclose(str\_type\_id);
+01921             free(fieldnames);
+01922 
+01923             \textcolor{keywordflow}{if} ( 1 == nmemb ) \{
+01924                 \textcolor{keywordflow}{for} ( k = 0; k < nfields; k++ ) \{
+01925                     \textcolor{keywordflow}{if} ( NULL != fields[k] )
+01926                         fields[k]->\hyperlink{group___m_a_t_aeef0466048621cb2c959ba7f6c774d06}{compression} = matvar->\hyperlink{group___m_a_t_aeef0466048621cb2c959ba7f6c774d06}{compression};
+01927                     \textcolor{keywordflow}{if} ( 0 != Mat\_VarWriteNext73(struct\_id,fields[k],
+01928                         matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[k],refs\_id) )
+01929                         err += 5;
+01930                 \}
+01931             \} \textcolor{keywordflow}{else} \{
+01932                 \textcolor{keywordflow}{if} ( *refs\_id < 0 ) \{
+01933                     \textcolor{keywordflow}{if} ( H5Lexists(\textcolor{keywordtype}{id},\textcolor{stringliteral}{"/#refs#"},H5P\_DEFAULT) ) \{
+01934                         *refs\_id = H5Gopen(\textcolor{keywordtype}{id},\textcolor{stringliteral}{"/#refs#"},H5P\_DEFAULT);
+01935                     \} \textcolor{keywordflow}{else} \{
+01936                         *refs\_id = H5Gcreate(\textcolor{keywordtype}{id},\textcolor{stringliteral}{"/#refs#"},H5P\_DEFAULT,
+01937                                              H5P\_DEFAULT,H5P\_DEFAULT);
+01938                     \}
+01939                 \}
+01940                 \textcolor{keywordflow}{if} ( *refs\_id > -1 ) \{
+01941                     \textcolor{keywordtype}{char} name[64];
+01942                     hobj\_ref\_t **refs;
+01943                     \textcolor{keywordtype}{int} l;
+01944 
+01945                     refs = (hobj\_ref\_t**)malloc((\textcolor{keywordtype}{size\_t})nfields*\textcolor{keyword}{sizeof}(*refs));
+01946                     \textcolor{keywordflow}{for} ( l = 0; l < nfields; l++ )
+01947                         refs[l] = (hobj\_ref\_t*)malloc((\textcolor{keywordtype}{size\_t})nmemb*\textcolor{keyword}{sizeof}(*refs[l]));
+01948 
+01949                     \textcolor{keywordflow}{for} ( k = 0; k < nmemb; k++ ) \{
+01950                         \textcolor{keywordflow}{for} ( l = 0; l < nfields; l++ ) \{
+01951                             \hyperlink{struct_h5_g__info__t}{H5G\_info\_t} group\_info;
+01952                             H5Gget\_info(*refs\_id, &group\_info);
+01953                             sprintf(name,\textcolor{stringliteral}{"%llu"},group\_info.nlinks);
+01954                             \textcolor{keywordflow}{if} ( NULL != fields[k*nfields+l] )
+01955                                 fields[k*nfields+l]->\hyperlink{group___m_a_t_aeef0466048621cb2c959ba7f6c774d06}{compression} =
+01956                                     matvar->\hyperlink{group___m_a_t_aeef0466048621cb2c959ba7f6c774d06}{compression};
+01957                             \textcolor{keywordflow}{if} ( 0 != Mat\_VarWriteNext73(*refs\_id,fields[k*nfields+l],
+01958                                 name,refs\_id) )
+01959                                 err += 5;
+01960                             sprintf(name,\textcolor{stringliteral}{"/#refs#/%llu"},group\_info.nlinks);
+01961                             H5Rcreate(refs[l]+k,\textcolor{keywordtype}{id},name,H5R\_OBJECT,-1);
+01962                         \}
+01963                     \}
+01964 
+01965                     mspace\_id = H5Screate\_simple(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank},dims,NULL);
+01966                     \textcolor{keywordflow}{for} ( l = 0; l < nfields; l++ ) \{
+01967                         dset\_id = H5Dcreate(struct\_id,
+01968                                             matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a7574d000bfc98ad4860ae6590b8d4985}{fieldnames}[l],
+01969                                             H5T\_STD\_REF\_OBJ,mspace\_id,
+01970                                             H5P\_DEFAULT,H5P\_DEFAULT,H5P\_DEFAULT);
+01971                         \textcolor{keywordflow}{if} ( 0 > H5Dwrite(dset\_id,H5T\_STD\_REF\_OBJ,H5S\_ALL,
+01972                                           H5S\_ALL,H5P\_DEFAULT,refs[l]) )
+01973                             err += 5;
+01974                         H5Dclose(dset\_id);
+01975                         free(refs[l]);
+01976                     \}
+01977                     free(refs);
+01978                     H5Sclose(mspace\_id);
+01979                 \} \textcolor{keywordflow}{else} \{
+01980                     err = -1;
+01981                 \}
+01982             \}
+01983             H5Gclose(struct\_id);
+01984         \}
+01985     \}
+01986 
+01987     \textcolor{keywordflow}{return} err;
+01988 \}
+01989 
+01990 \textcolor{keyword}{static} \textcolor{keywordtype}{int}
+01991 Mat\_VarWriteNext73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,hid\_t *refs\_id)
+01992 \{
+01993     \textcolor{keywordtype}{int} err = -1;
+01994 
+01995     \textcolor{keywordflow}{if} ( NULL == matvar ) \{
+01996         \textcolor{keywordtype}{size\_t} dims[2] = \{0,0\};
+01997         \textcolor{keywordflow}{return} Mat\_WriteEmptyVariable73(\textcolor{keywordtype}{id},name,2,dims);
+01998     \}
+01999 
+02000     \textcolor{keywordflow}{if} ( MAX\_RANK >= matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} ) \{
+02001         hsize\_t perm\_dims[MAX\_RANK];
+02002         err = Mat\_VarWriteNextType73(\textcolor{keywordtype}{id}, matvar, name, refs\_id, perm\_dims);
+02003     \} \textcolor{keywordflow}{else} \{
+02004         hsize\_t *perm\_dims = (hsize\_t*)malloc(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}*\textcolor{keyword}{sizeof}(hsize\_t));
+02005         \textcolor{keywordflow}{if} ( NULL != perm\_dims ) \{
+02006             err = Mat\_VarWriteNextType73(\textcolor{keywordtype}{id}, matvar, name, refs\_id, perm\_dims);
+02007             free(perm\_dims);
+02008         \}
+02009     \}
+02010 
+02011     \textcolor{keywordflow}{return} err;
+02012 \}
+02013 
+02014 \textcolor{keyword}{static} \textcolor{keywordtype}{int}
+02015 Mat\_VarWriteAppendNext73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,\textcolor{keywordtype}{int} dim)
+02016 \{
+02017     \textcolor{keywordtype}{int} err = -1;
+02018 
+02019     \textcolor{keywordflow}{if} ( MAX\_RANK >= matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} ) \{
+02020         hsize\_t perm\_dims[MAX\_RANK];
+02021         err = Mat\_VarWriteAppendNextType73(\textcolor{keywordtype}{id}, matvar, name, dim, perm\_dims);
+02022     \} \textcolor{keywordflow}{else} \{
+02023         hsize\_t *perm\_dims = (hsize\_t*)malloc(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}*\textcolor{keyword}{sizeof}(hsize\_t));
+02024         \textcolor{keywordflow}{if} ( NULL != perm\_dims ) \{
+02025             err = Mat\_VarWriteAppendNextType73(\textcolor{keywordtype}{id}, matvar, name, dim, perm\_dims);
+02026             free(perm\_dims);
+02027         \}
+02028     \}
+02029 
+02030     \textcolor{keywordflow}{return} err;
+02031 \}
+02032 
+02033 \textcolor{keyword}{static} \textcolor{keywordtype}{int}
+02034 Mat\_VarWriteNextType73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,hid\_t *refs\_id,hsize\_t *dims)
+02035 \{
+02036     \textcolor{keywordtype}{int} err = -1, k;
+02037 
+02038     \textcolor{comment}{/* Permutate dimensions */}
+02039     \textcolor{keywordflow}{for} ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ ) \{
+02040         dims[k] = matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} - k - 1];
+02041     \}
+02042 
+02043     \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_a866c1539e68073a837833d74cd4a65be}{isLogical} && matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} != 
+      \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a0d5655b7e6178a2242cb3bb56ff4c8d2}{MAT\_C\_SPARSE} ) \{
+02044         err = Mat\_VarWriteLogical73(\textcolor{keywordtype}{id},matvar,name,dims);
+02045     \} \textcolor{keywordflow}{else} \{
+02046         \textcolor{keywordflow}{switch} ( matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} ) \{
+02047             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5d70e0862e5bdb7bd86bf7ba5948f307}{MAT\_C\_DOUBLE}:
+02048             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2825631e26a961cbe0f79db50a39cea2}{MAT\_C\_SINGLE}:
+02049             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a1ea83bcde49b35477494412973f82409}{MAT\_C\_INT64}:
+02050             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a86470e25c3763d9a24623f04326195dd}{MAT\_C\_UINT64}:
+02051             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40adb44fc39694e3152ae5e69470a2fefe8}{MAT\_C\_INT32}:
+02052             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a9a17a7edd45b19ef68197db81b27e816}{MAT\_C\_UINT32}:
+02053             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a40370e9de516c5036a67a5865c071006}{MAT\_C\_INT16}:
+02054             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a8bede21dbf6c1edc0bbccc1481bccae7}{MAT\_C\_UINT16}:
+02055             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a984ff310f9e906100fcff95f704f43c5}{MAT\_C\_INT8}:
+02056             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a81270f8093cb4808e992c1d29d84d4e3}{MAT\_C\_UINT8}:
+02057                 err = Mat\_VarWriteNumeric73(\textcolor{keywordtype}{id},matvar,name,dims,NULL);
+02058                 \textcolor{keywordflow}{break};
+02059             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40aacdec5834df0861130b393697646119c}{MAT\_C\_CHAR}:
+02060                 err = Mat\_VarWriteChar73(\textcolor{keywordtype}{id},matvar,name,dims);
+02061                 \textcolor{keywordflow}{break};
+02062             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40acb467c7749c80902b798134c729bb521}{MAT\_C\_STRUCT}:
+02063                 err = Mat\_VarWriteStruct73(\textcolor{keywordtype}{id},matvar,name,refs\_id,dims);
+02064                 \textcolor{keywordflow}{break};
+02065             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2f7abb47a1c51e248bd4e5e03cc81b08}{MAT\_C\_CELL}:
+02066                 err = Mat\_VarWriteCell73(\textcolor{keywordtype}{id},matvar,name,refs\_id,dims);
+02067                 \textcolor{keywordflow}{break};
+02068             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a0d5655b7e6178a2242cb3bb56ff4c8d2}{MAT\_C\_SPARSE}:
+02069                 err = Mat\_VarWriteSparse73(\textcolor{keywordtype}{id},matvar,name);
+02070                 \textcolor{keywordflow}{break};
+02071             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5c76eef0ca0373d25abe49053be6fa9a}{MAT\_C\_EMPTY}:
+02072                 err = Mat\_WriteEmptyVariable73(\textcolor{keywordtype}{id},name,matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank},matvar->
+      \hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims});
+02073                 \textcolor{keywordflow}{break};
+02074             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40aaa9bf08312779cd1ab8e504a162ddcea}{MAT\_C\_FUNCTION}:
+02075             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40afe45104b68b044c83a2f99e349fa1ea6}{MAT\_C\_OBJECT}:
+02076             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40ad83c684d250e463c1a3779647695c0c9}{MAT\_C\_OPAQUE}:
+02077                 \textcolor{keywordflow}{break};
+02078         \}
+02079     \}
+02080 
+02081     \textcolor{keywordflow}{return} err;
+02082 \}
+02083 
+02084 \textcolor{keyword}{static} \textcolor{keywordtype}{int}
+02085 Mat\_VarWriteAppendNextType73(hid\_t \textcolor{keywordtype}{id},\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,\textcolor{keywordtype}{int} dim,hsize\_t *dims)
+02086 \{
+02087     \textcolor{keywordtype}{int} err = -1, k;
+02088 
+02089     \textcolor{comment}{/* Permutate dimensions */}
+02090     \textcolor{keywordflow}{for} ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ ) \{
+02091         dims[k] = matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank} - k - 1];
+02092     \}
+02093 
+02094     \textcolor{keywordflow}{if} ( !matvar->\hyperlink{group___m_a_t_a866c1539e68073a837833d74cd4a65be}{isLogical} ) \{
+02095         \textcolor{keywordflow}{switch} ( matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} ) \{
+02096             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5d70e0862e5bdb7bd86bf7ba5948f307}{MAT\_C\_DOUBLE}:
+02097             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2825631e26a961cbe0f79db50a39cea2}{MAT\_C\_SINGLE}:
+02098             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a1ea83bcde49b35477494412973f82409}{MAT\_C\_INT64}:
+02099             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a86470e25c3763d9a24623f04326195dd}{MAT\_C\_UINT64}:
+02100             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40adb44fc39694e3152ae5e69470a2fefe8}{MAT\_C\_INT32}:
+02101             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a9a17a7edd45b19ef68197db81b27e816}{MAT\_C\_UINT32}:
+02102             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a40370e9de516c5036a67a5865c071006}{MAT\_C\_INT16}:
+02103             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a8bede21dbf6c1edc0bbccc1481bccae7}{MAT\_C\_UINT16}:
+02104             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a984ff310f9e906100fcff95f704f43c5}{MAT\_C\_INT8}:
+02105             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a81270f8093cb4808e992c1d29d84d4e3}{MAT\_C\_UINT8}:
+02106                 err = Mat\_VarWriteAppendNumeric73(\textcolor{keywordtype}{id},matvar,name,dim,dims);
+02107                 \textcolor{keywordflow}{break};
+02108             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5c76eef0ca0373d25abe49053be6fa9a}{MAT\_C\_EMPTY}:
+02109                 err = Mat\_WriteEmptyVariable73(\textcolor{keywordtype}{id},name,matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank},matvar->
+      \hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims});
+02110                 \textcolor{keywordflow}{break};
+02111             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40aacdec5834df0861130b393697646119c}{MAT\_C\_CHAR}:
+02112             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40acb467c7749c80902b798134c729bb521}{MAT\_C\_STRUCT}:
+02113             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2f7abb47a1c51e248bd4e5e03cc81b08}{MAT\_C\_CELL}:
+02114             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a0d5655b7e6178a2242cb3bb56ff4c8d2}{MAT\_C\_SPARSE}:
+02115             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40aaa9bf08312779cd1ab8e504a162ddcea}{MAT\_C\_FUNCTION}:
+02116             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40afe45104b68b044c83a2f99e349fa1ea6}{MAT\_C\_OBJECT}:
+02117             \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40ad83c684d250e463c1a3779647695c0c9}{MAT\_C\_OPAQUE}:
+02118                 \textcolor{keywordflow}{break};
+02119         \}
+02120     \}
+02121 
+02122     \textcolor{keywordflow}{return} err;
+02123 \}
+02124 
+02141 \hyperlink{struct__mat__t}{mat\_t} *
+02142 Mat\_Create73(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *matname,\textcolor{keyword}{const} \textcolor{keywordtype}{char} *hdr\_str)
+02143 \{
+02144     FILE *fp;
+02145     mat\_int16\_t endian = 0, version;
+02146     \hyperlink{struct__mat__t}{mat\_t} *mat = NULL;
+02147     \textcolor{keywordtype}{size\_t} err;
+02148     time\_t t;
+02149     hid\_t plist\_id,fid;
+02150 
+02151     plist\_id = H5Pcreate(H5P\_FILE\_CREATE);
+02152     H5Pset\_userblock(plist\_id,512);
+02153     fid = H5Fcreate(matname,H5F\_ACC\_TRUNC,plist\_id,H5P\_DEFAULT);
+02154     H5Fclose(fid);
+02155     H5Pclose(plist\_id);
+02156 
+02157     fp = fopen(matname,\textcolor{stringliteral}{"r+b"});
+02158     \textcolor{keywordflow}{if} ( !fp )
+02159         \textcolor{keywordflow}{return} NULL;
+02160 
+02161     (void)fseek(fp,0,SEEK\_SET);
+02162 
+02163     mat = (\hyperlink{struct__mat__t}{mat\_t}*)malloc(\textcolor{keyword}{sizeof}(*mat));
+02164     \textcolor{keywordflow}{if} ( mat == NULL ) \{
+02165         fclose(fp);
+02166         \textcolor{keywordflow}{return} NULL;
+02167     \}
+02168 
+02169     mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp}            = NULL;
+02170     mat->\hyperlink{struct__mat__t_a5ed5d0e4e3c4d76b626a8a1772d579c4}{header}        = NULL;
+02171     mat->\hyperlink{struct__mat__t_a19317c01209959d755d69311960d3eec}{subsys\_offset} = NULL;
+02172     mat->\hyperlink{struct__mat__t_a340b191598135edd03b6dec847f0b1b1}{filename}      = NULL;
+02173     mat->\hyperlink{struct__mat__t_a729c2bc0afc97485057a5af425635b1a}{version}       = 0;
+02174     mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap}      = 0;
+02175     mat->\hyperlink{struct__mat__t_aa43288b63b8edb7cadf0b79e2d1df2ee}{mode}          = 0;
+02176     mat->\hyperlink{struct__mat__t_a0f87794a6113bd568fe591953e20ddf3}{bof}           = 128;
+02177     mat->\hyperlink{struct__mat__t_a0163a12f9735356723bb604992639d9e}{next\_index}    = 0;
+02178     mat->\hyperlink{struct__mat__t_af37d0ba323e65edb27ecd5a2f766a3a4}{num\_datasets}  = 0;
+02179     mat->refs\_id       = -1;
+02180     mat->\hyperlink{struct__mat__t_a1bc6c604459d0787801d5e53d365684c}{dir}           = NULL;
+02181 
+02182     t = time(NULL);
+02183     mat->\hyperlink{struct__mat__t_a340b191598135edd03b6dec847f0b1b1}{filename} = \hyperlink{group__mat__util_ga291b08f933c75fb70e3736b669896ebd}{strdup\_printf}(\textcolor{stringliteral}{"%s"},matname);
+02184     mat->\hyperlink{struct__mat__t_aa43288b63b8edb7cadf0b79e2d1df2ee}{mode}     = \hyperlink{group___m_a_t_ggaa9dcbc70f538af79bd557593ff6b5cdba0f65f27ea42fde32d62b702b82329c1f}{MAT\_ACC\_RDWR};
+02185     mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} = 0;
+02186     mat->\hyperlink{struct__mat__t_a5ed5d0e4e3c4d76b626a8a1772d579c4}{header}   = (\textcolor{keywordtype}{char}*)malloc(128*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{char}));
+02187     mat->\hyperlink{struct__mat__t_a19317c01209959d755d69311960d3eec}{subsys\_offset} = (\textcolor{keywordtype}{char}*)malloc(8*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{char}));
+02188     memset(mat->\hyperlink{struct__mat__t_a5ed5d0e4e3c4d76b626a8a1772d579c4}{header},\textcolor{charliteral}{' '},128);
+02189     \textcolor{keywordflow}{if} ( hdr\_str == NULL ) \{
+02190         err = mat\_snprintf(mat->\hyperlink{struct__mat__t_a5ed5d0e4e3c4d76b626a8a1772d579c4}{header},116,\textcolor{stringliteral}{"MATLAB 7.3 MAT-file, Platform: %s, "}
+02191                 \textcolor{stringliteral}{"Created by: libmatio v%d.%d.%d on %s HDF5 schema 0.5"},
+02192                 MATIO\_PLATFORM, MATIO\_MAJOR\_VERSION, MATIO\_MINOR\_VERSION,
+02193                 MATIO\_RELEASE\_LEVEL, ctime(&t));
+02194     \} \textcolor{keywordflow}{else} \{
+02195         err = mat\_snprintf(mat->\hyperlink{struct__mat__t_a5ed5d0e4e3c4d76b626a8a1772d579c4}{header},116,\textcolor{stringliteral}{"%s"},hdr\_str);
+02196     \}
+02197     \textcolor{keywordflow}{if} ( err >= 116 )
+02198         mat->\hyperlink{struct__mat__t_a5ed5d0e4e3c4d76b626a8a1772d579c4}{header}[115] = \textcolor{charliteral}{'\(\backslash\)0'}; \textcolor{comment}{/* Just to make sure it's NULL terminated */}
+02199     memset(mat->\hyperlink{struct__mat__t_a19317c01209959d755d69311960d3eec}{subsys\_offset},\textcolor{charliteral}{' '},8);
+02200     mat->\hyperlink{struct__mat__t_a729c2bc0afc97485057a5af425635b1a}{version} = (int)0x0200;
+02201     endian = 0x4d49;
+02202 
+02203     version = 0x0200;
+02204 
+02205     fwrite(mat->\hyperlink{struct__mat__t_a5ed5d0e4e3c4d76b626a8a1772d579c4}{header},1,116,fp);
+02206     fwrite(mat->\hyperlink{struct__mat__t_a19317c01209959d755d69311960d3eec}{subsys\_offset},1,8,fp);
+02207     fwrite(&version,2,1,fp);
+02208     fwrite(&endian,2,1,fp);
+02209 
+02210     fclose(fp);
+02211 
+02212     fid = H5Fopen(matname,H5F\_ACC\_RDWR,H5P\_DEFAULT);
+02213 
+02214     mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} = malloc(\textcolor{keyword}{sizeof}(hid\_t));
+02215     *(hid\_t*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} = fid;
+02216 
+02217     \textcolor{keywordflow}{return} mat;
+02218 \}
+02219 
+02228 \textcolor{keywordtype}{void}
+02229 Mat\_VarRead73(\hyperlink{struct__mat__t}{mat\_t} *mat,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar)
+02230 \{
+02231     \textcolor{keywordtype}{int} k;
+02232     \textcolor{keywordtype}{size\_t} numel;
+02233     hid\_t fid,dset\_id,ref\_id;
+02234 
+02235     \textcolor{keywordflow}{if} ( NULL == mat || NULL == matvar )
+02236         \textcolor{keywordflow}{return};
+02237     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( NULL == matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name && 0 > matvar->
+      \hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->id )
+02238         \textcolor{keywordflow}{return};
+02239 
+02240     fid = *(hid\_t*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp};
+02241 
+02242     switch ( matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} ) \{
+02243         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5d70e0862e5bdb7bd86bf7ba5948f307}{MAT\_C\_DOUBLE}:
+02244         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2825631e26a961cbe0f79db50a39cea2}{MAT\_C\_SINGLE}:
+02245         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a1ea83bcde49b35477494412973f82409}{MAT\_C\_INT64}:
+02246         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a86470e25c3763d9a24623f04326195dd}{MAT\_C\_UINT64}:
+02247         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40adb44fc39694e3152ae5e69470a2fefe8}{MAT\_C\_INT32}:
+02248         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a9a17a7edd45b19ef68197db81b27e816}{MAT\_C\_UINT32}:
+02249         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a40370e9de516c5036a67a5865c071006}{MAT\_C\_INT16}:
+02250         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a8bede21dbf6c1edc0bbccc1481bccae7}{MAT\_C\_UINT16}:
+02251         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a984ff310f9e906100fcff95f704f43c5}{MAT\_C\_INT8}:
+02252         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a81270f8093cb4808e992c1d29d84d4e3}{MAT\_C\_UINT8}:
+02253             numel = 1;
+02254             \textcolor{keywordflow}{for} ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ )
+02255                 numel *= matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[k];
+02256             matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size} = \hyperlink{group___m_a_t_ga2bf682f015b22fa796a8885e997661e7}{Mat\_SizeOfClass}(matvar->
+      \hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type});
+02257             matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes}    = numel*matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size};
+02258 
+02259             \textcolor{keywordflow}{if} ( numel < 1 )
+02260                 \textcolor{keywordflow}{break};
+02261 
+02262             \textcolor{keywordflow}{if} ( NULL != matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name ) \{
+02263                 ref\_id = H5Dopen(fid,matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name,H5P\_DEFAULT);
+02264             \} \textcolor{keywordflow}{else} \{
+02265                 ref\_id = matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->id;
+02266                 H5Iinc\_ref(ref\_id);
+02267             \}
+02268             \textcolor{keywordflow}{if} ( 0 < matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_ref ) \{
+02269                 dset\_id = H5RDEREFERENCE(ref\_id,H5R\_OBJECT,&matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_ref);
+02270             \} \textcolor{keywordflow}{else} \{
+02271                 dset\_id = ref\_id;
+02272                 H5Iinc\_ref(dset\_id);
+02273             \}
+02274 
+02275             \textcolor{keywordflow}{if} ( !matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} ) \{
+02276                 matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = malloc(matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes});
+02277             \} \textcolor{keywordflow}{else} \{
+02278                 matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = ComplexMalloc(matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes});
+02279             \}
+02280             \textcolor{keywordflow}{if} ( NULL != matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} ) \{
+02281                 Mat\_H5ReadData(dset\_id, ClassType2H5T(matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type}),
+02282                     H5S\_ALL, H5S\_ALL, matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex}, matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data});
+02283             \}
+02284             H5Dclose(dset\_id);
+02285             H5Dclose(ref\_id);
+02286             \textcolor{keywordflow}{break};
+02287         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40aacdec5834df0861130b393697646119c}{MAT\_C\_CHAR}:
+02288             numel = 1;
+02289             \textcolor{keywordflow}{for} ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ )
+02290                 numel *= matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[k];
+02291             matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type} = \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a01c1bd7db68f90552862eb5d311be408}{MAT\_T\_UINT8};
+02292             matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size} = 1;
+02293             matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes}    = numel*matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size};
+02294 
+02295             if ( NULL != matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name ) \{
+02296                 dset\_id = H5Dopen(fid,matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name,H5P\_DEFAULT);
+02297             \} \textcolor{keywordflow}{else} \{
+02298                 dset\_id = matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->id;
+02299                 H5Iinc\_ref(dset\_id);
+02300             \}
+02301             \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes} > 0 ) \{
+02302                 matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = malloc(matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes});
+02303                 \textcolor{keywordflow}{if} ( NULL != matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} ) \{
+02304                     H5Dread(dset\_id,DataType2H5T(matvar->\hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type}),
+02305                             H5S\_ALL,H5S\_ALL,H5P\_DEFAULT,matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data});
+02306                 \}
+02307             \}
+02308             H5Dclose(dset\_id);
+02309             \textcolor{keywordflow}{break};
+02310         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40acb467c7749c80902b798134c729bb521}{MAT\_C\_STRUCT}:
+02311         \{
+02312             \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **fields;
+02313             \textcolor{keywordtype}{int} i,nfields = 0;
+02314 
+02315             \textcolor{keywordflow}{if} ( !matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a93fc447484f455eddf9334f2e9e411c2}{num\_fields} || NULL == matvar->
+      \hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} )
+02316                 \textcolor{keywordflow}{break};
+02317             numel = 1;
+02318             \textcolor{keywordflow}{for} ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ )
+02319                 numel *= matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[k];
+02320             nfields = matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->\hyperlink{structmatvar__internal_a93fc447484f455eddf9334f2e9e411c2}{num\_fields};
+02321             fields  = (\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t}**)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data};
+02322             \textcolor{keywordflow}{for} ( i = 0; i < nfields*numel; i++ ) \{
+02323                 \textcolor{keywordflow}{if} (  0 < fields[i]->\hyperlink{namespaceinternal}{internal}->hdf5\_ref &&
+02324                      -1 < fields[i]->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->id ) \{
+02325                     \textcolor{comment}{/* Dataset of references */}
+02326                     Mat\_H5ReadNextReferenceData(fields[i]->\hyperlink{namespaceinternal}{internal}->id,fields[i],mat);
+02327                 \} \textcolor{keywordflow}{else} \{
+02328                     Mat\_VarRead73(mat,fields[i]);
+02329                 \}
+02330             \}
+02331             \textcolor{keywordflow}{break};
+02332         \}
+02333         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2f7abb47a1c51e248bd4e5e03cc81b08}{MAT\_C\_CELL}:
+02334         \{
+02335             \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} **cells;
+02336             \textcolor{keywordtype}{int} i,ncells = 0;
+02337 
+02338             ncells = matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes} / matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size};
+02339             cells  = (\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t}**)matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data};
+02340 
+02341             for ( i = 0; i < ncells; i++ )
+02342                 Mat\_H5ReadNextReferenceData(cells[i]->\hyperlink{namespaceinternal}{internal}->id,cells[i],mat);
+02343             \textcolor{keywordflow}{break};
+02344         \}
+02345         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a0d5655b7e6178a2242cb3bb56ff4c8d2}{MAT\_C\_SPARSE}:
+02346         \{
+02347             hid\_t sparse\_dset\_id;
+02348             \hyperlink{group___m_a_t_structmat__sparse__t}{mat\_sparse\_t} *sparse\_data = (\hyperlink{group___m_a_t_structmat__sparse__t}{mat\_sparse\_t} *)calloc(1,
+02349                 \textcolor{keyword}{sizeof}(*sparse\_data));
+02350 
+02351             \textcolor{keywordflow}{if} ( NULL != matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name ) \{
+02352                 dset\_id = H5Gopen(fid,matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name,H5P\_DEFAULT);
+02353             \} \textcolor{keywordflow}{else} \{
+02354                 dset\_id = matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->id;
+02355                 H5Iinc\_ref(dset\_id);
+02356             \}
+02357 
+02358             \textcolor{keywordflow}{if} ( H5Lexists(dset\_id,\textcolor{stringliteral}{"ir"},H5P\_DEFAULT) ) \{
+02359                 \textcolor{keywordtype}{size\_t} *dims;
+02360                 hsize\_t numel;
+02361                 \textcolor{keywordtype}{int} rank;
+02362 
+02363                 sparse\_dset\_id = H5Dopen(dset\_id,\textcolor{stringliteral}{"ir"},H5P\_DEFAULT);
+02364                 dims = Mat\_H5ReadDims(sparse\_dset\_id, &numel, &rank);
+02365                 \textcolor{keywordflow}{if} ( NULL != dims ) \{
+02366                     sparse\_data->\hyperlink{group___m_a_t_aa64636ad57cf87f7a28ff5018437a850}{nir} = dims[0];
+02367                     free(dims);
+02368                     sparse\_data->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir} = (\textcolor{keywordtype}{int}*)malloc(sparse\_data->\hyperlink{group___m_a_t_aa64636ad57cf87f7a28ff5018437a850}{nir}*
+02369                                             \textcolor{keyword}{sizeof}(*sparse\_data->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir}));
+02370                     H5Dread(sparse\_dset\_id,H5T\_NATIVE\_INT,
+02371                             H5S\_ALL,H5S\_ALL,H5P\_DEFAULT,sparse\_data->\hyperlink{group___m_a_t_a8d4c863d704edddec5cbfa15b2d719c8}{ir});
+02372                 \}
+02373                 H5Dclose(sparse\_dset\_id);
+02374             \}
+02375 
+02376             \textcolor{keywordflow}{if} ( H5Lexists(dset\_id,\textcolor{stringliteral}{"jc"},H5P\_DEFAULT) ) \{
+02377                 \textcolor{keywordtype}{size\_t} *dims;
+02378                 hsize\_t numel;
+02379                 \textcolor{keywordtype}{int} rank;
+02380 
+02381                 sparse\_dset\_id = H5Dopen(dset\_id,\textcolor{stringliteral}{"jc"},H5P\_DEFAULT);
+02382                 dims = Mat\_H5ReadDims(sparse\_dset\_id, &numel, &rank);
+02383                 \textcolor{keywordflow}{if} ( NULL != dims ) \{
+02384                     sparse\_data->\hyperlink{group___m_a_t_a482d8e4b40aa975f0c1daf146ebe08a4}{njc} = dims[0];
+02385                     free(dims);
+02386                     sparse\_data->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc} = (\textcolor{keywordtype}{int}*)malloc(sparse\_data->\hyperlink{group___m_a_t_a482d8e4b40aa975f0c1daf146ebe08a4}{njc}*
+02387                                             \textcolor{keyword}{sizeof}(*sparse\_data->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc}));
+02388                     H5Dread(sparse\_dset\_id,H5T\_NATIVE\_INT,
+02389                             H5S\_ALL,H5S\_ALL,H5P\_DEFAULT,sparse\_data->\hyperlink{group___m_a_t_ad1e74cdc4f7eff1e47a670297c01da4b}{jc});
+02390                 \}
+02391                 H5Dclose(sparse\_dset\_id);
+02392             \}
+02393 
+02394             \textcolor{keywordflow}{if} ( H5Lexists(dset\_id,\textcolor{stringliteral}{"data"},H5P\_DEFAULT) ) \{
+02395                 \textcolor{keywordtype}{size\_t} *dims;
+02396                 hsize\_t numel;
+02397                 \textcolor{keywordtype}{int} rank;
+02398 
+02399                 sparse\_dset\_id = H5Dopen(dset\_id,\textcolor{stringliteral}{"data"},H5P\_DEFAULT);
+02400                 dims = Mat\_H5ReadDims(sparse\_dset\_id, &numel, &rank);
+02401                 \textcolor{keywordflow}{if} ( NULL != dims ) \{
+02402                     \textcolor{keywordtype}{size\_t} ndata\_bytes;
+02403                     sparse\_data->\hyperlink{group___m_a_t_ad79471861cb948e32671be6d4089173a}{nzmax} = dims[0];
+02404                     sparse\_data->\hyperlink{group___m_a_t_a1beb8a8c58a808207cbea650563a9b63}{ndata} = dims[0];
+02405                     free(dims);
+02406                     matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size} = \textcolor{keyword}{sizeof}(\hyperlink{group___m_a_t_gad1332d0eb4faa5a99377919f84b77baf}{mat\_sparse\_t});
+02407                     matvar->\hyperlink{group___m_a_t_abf1c844540503be2df9bb3db93cfe307}{nbytes}    = matvar->\hyperlink{group___m_a_t_a9ad1c82e2b568da617e12dc73a26e1f9}{data\_size};
+02408 
+02409                     ndata\_bytes = sparse\_data->\hyperlink{group___m_a_t_ad79471861cb948e32671be6d4089173a}{nzmax}*\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(matvar->
+      \hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type});
+02410                     \textcolor{keywordflow}{if} ( !matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex} ) \{
+02411                         sparse\_data->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data} = malloc(ndata\_bytes);
+02412                     \} \textcolor{keywordflow}{else} \{
+02413                         sparse\_data->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data} = ComplexMalloc(ndata\_bytes);
+02414                     \}
+02415                     \textcolor{keywordflow}{if} ( NULL != sparse\_data->\hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data} ) \{
+02416                         Mat\_H5ReadData(sparse\_dset\_id, DataType2H5T(matvar->
+      \hyperlink{group___m_a_t_ab6aafe9bd77f0f077852593dec438144}{data\_type}),
+02417                             H5S\_ALL, H5S\_ALL, matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex}, sparse\_data->
+      \hyperlink{group___m_a_t_ae2c648cb9eac4ce47f26cddb44246152}{data});
+02418                     \}
+02419                 \}
+02420                 H5Dclose(sparse\_dset\_id);
+02421             \}
+02422             H5Gclose(dset\_id);
+02423             matvar->\hyperlink{group___m_a_t_a5672978efa230bbdecdf38ede781f7fa}{data} = sparse\_data;
+02424             \textcolor{keywordflow}{break};
+02425         \}
+02426         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5c76eef0ca0373d25abe49053be6fa9a}{MAT\_C\_EMPTY}:
+02427         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40aaa9bf08312779cd1ab8e504a162ddcea}{MAT\_C\_FUNCTION}:
+02428         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40afe45104b68b044c83a2f99e349fa1ea6}{MAT\_C\_OBJECT}:
+02429         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40ad83c684d250e463c1a3779647695c0c9}{MAT\_C\_OPAQUE}:
+02430             \textcolor{keywordflow}{break};
+02431     \}
+02432 \}
+02433 
+02448 \textcolor{keywordtype}{int}
+02449 Mat\_VarReadData73(\hyperlink{struct__mat__t}{mat\_t} *mat,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keywordtype}{void} *data,
+02450           \textcolor{keywordtype}{int} *start,\textcolor{keywordtype}{int} *stride,\textcolor{keywordtype}{int} *edge)
+02451 \{
+02452     \textcolor{keywordtype}{int} err = -1, k;
+02453     hid\_t fid,dset\_id,ref\_id,dset\_space,mem\_space;
+02454     hsize\_t *dset\_start\_stride\_edge;
+02455     hsize\_t *dset\_start, *dset\_stride, *dset\_edge;
+02456 
+02457     \textcolor{keywordflow}{if} ( NULL == mat || NULL == matvar || NULL == data || NULL == start ||
+02458          NULL == stride || NULL == edge )
+02459         \textcolor{keywordflow}{return} err;
+02460     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( NULL == matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name && 0 > matvar->
+      \hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->id )
+02461         \textcolor{keywordflow}{return} err;
+02462 
+02463     fid = *(hid\_t*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp};
+02464 
+02465     dset\_start\_stride\_edge = (hsize\_t*)malloc(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}*3*\textcolor{keyword}{sizeof}(hsize\_t));
+02466     \textcolor{keywordflow}{if} ( NULL == dset\_start\_stride\_edge ) \{
+02467         \textcolor{keywordflow}{return} err;
+02468     \}
+02469     dset\_start  = &dset\_start\_stride\_edge[0];
+02470     dset\_stride = &dset\_start\_stride\_edge[matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}];
+02471     dset\_edge   = &dset\_start\_stride\_edge[2*matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}];
+02472 
+02473     \textcolor{keywordflow}{for} ( k = 0; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ ) \{
+02474         dset\_start[k]  = start[matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}-k-1];
+02475         dset\_stride[k] = stride[matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}-k-1];
+02476         dset\_edge[k]   = edge[matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}-k-1];
+02477     \}
+02478     mem\_space = H5Screate\_simple(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}, dset\_edge, NULL);
+02479 
+02480     \textcolor{keywordflow}{switch} ( matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} ) \{
+02481         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5d70e0862e5bdb7bd86bf7ba5948f307}{MAT\_C\_DOUBLE}:
+02482         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2825631e26a961cbe0f79db50a39cea2}{MAT\_C\_SINGLE}:
+02483         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a1ea83bcde49b35477494412973f82409}{MAT\_C\_INT64}:
+02484         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a86470e25c3763d9a24623f04326195dd}{MAT\_C\_UINT64}:
+02485         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40adb44fc39694e3152ae5e69470a2fefe8}{MAT\_C\_INT32}:
+02486         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a9a17a7edd45b19ef68197db81b27e816}{MAT\_C\_UINT32}:
+02487         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a40370e9de516c5036a67a5865c071006}{MAT\_C\_INT16}:
+02488         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a8bede21dbf6c1edc0bbccc1481bccae7}{MAT\_C\_UINT16}:
+02489         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a984ff310f9e906100fcff95f704f43c5}{MAT\_C\_INT8}:
+02490         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a81270f8093cb4808e992c1d29d84d4e3}{MAT\_C\_UINT8}:
+02491             \textcolor{keywordflow}{if} ( NULL != matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name ) \{
+02492                 ref\_id = H5Dopen(fid,matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name,H5P\_DEFAULT);
+02493             \} \textcolor{keywordflow}{else} \{
+02494                 ref\_id = matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->id;
+02495                 H5Iinc\_ref(ref\_id);
+02496             \}
+02497             \textcolor{keywordflow}{if} ( 0 < matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_ref ) \{
+02498                 dset\_id = H5RDEREFERENCE(ref\_id,H5R\_OBJECT,&matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_ref);
+02499             \} \textcolor{keywordflow}{else} \{
+02500                 dset\_id = ref\_id;
+02501                 H5Iinc\_ref(dset\_id);
+02502             \}
+02503 
+02504             dset\_space = H5Dget\_space(dset\_id);
+02505             H5Sselect\_hyperslab(dset\_space, H5S\_SELECT\_SET, dset\_start,
+02506                                 dset\_stride, dset\_edge, NULL);
+02507             Mat\_H5ReadData(dset\_id, ClassType2H5T(matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type}), mem\_space,
+02508                 dset\_space, matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex}, data);
+02509             H5Sclose(dset\_space);
+02510             H5Dclose(dset\_id);
+02511             H5Dclose(ref\_id);
+02512             err = 0;
+02513             \textcolor{keywordflow}{break};
+02514         \textcolor{keywordflow}{default}:
+02515             \textcolor{keywordflow}{break};
+02516     \}
+02517     H5Sclose(mem\_space);
+02518     free(dset\_start\_stride\_edge);
+02519 
+02520     \textcolor{keywordflow}{return} err;
+02521 \}
+02522 
+02539 \textcolor{keywordtype}{int}
+02540 Mat\_VarReadDataLinear73(\hyperlink{struct__mat__t}{mat\_t} *mat,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keywordtype}{void} *data,
+02541     \textcolor{keywordtype}{int} start,\textcolor{keywordtype}{int} stride,\textcolor{keywordtype}{int} edge)
+02542 \{
+02543     \textcolor{keywordtype}{int} err = -1, k;
+02544     hid\_t fid,dset\_id,dset\_space,mem\_space;
+02545     hsize\_t *points, dset\_edge, *dimp;
+02546 
+02547     \textcolor{keywordflow}{if} ( NULL == mat || NULL == matvar || NULL == data )
+02548         \textcolor{keywordflow}{return} err;
+02549     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( NULL == matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name && 0 > matvar->
+      \hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->id )
+02550         \textcolor{keywordflow}{return} err;
+02551 
+02552     fid = *(hid\_t*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp};
+02553 
+02554     dset\_edge = edge;
+02555     mem\_space = H5Screate\_simple(1, &dset\_edge, NULL);
+02556 
+02557     \textcolor{keywordflow}{switch} ( matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type} ) \{
+02558         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5d70e0862e5bdb7bd86bf7ba5948f307}{MAT\_C\_DOUBLE}:
+02559         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2825631e26a961cbe0f79db50a39cea2}{MAT\_C\_SINGLE}:
+02560         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a1ea83bcde49b35477494412973f82409}{MAT\_C\_INT64}:
+02561         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a86470e25c3763d9a24623f04326195dd}{MAT\_C\_UINT64}:
+02562         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40adb44fc39694e3152ae5e69470a2fefe8}{MAT\_C\_INT32}:
+02563         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a9a17a7edd45b19ef68197db81b27e816}{MAT\_C\_UINT32}:
+02564         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a40370e9de516c5036a67a5865c071006}{MAT\_C\_INT16}:
+02565         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a8bede21dbf6c1edc0bbccc1481bccae7}{MAT\_C\_UINT16}:
+02566         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a984ff310f9e906100fcff95f704f43c5}{MAT\_C\_INT8}:
+02567         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a81270f8093cb4808e992c1d29d84d4e3}{MAT\_C\_UINT8}:
+02568             points = (hsize\_t*)malloc(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}*(\textcolor{keywordtype}{size\_t})dset\_edge*\textcolor{keyword}{sizeof}(*points));
+02569             \textcolor{keywordflow}{if} ( NULL == points ) \{
+02570                 err = -2;
+02571                 \textcolor{keywordflow}{break};
+02572             \}
+02573             dimp = (hsize\_t*)malloc(matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}*\textcolor{keyword}{sizeof}(hsize\_t));
+02574             \textcolor{keywordflow}{if} ( NULL == dimp ) \{
+02575                 err = -2;
+02576                 free(points);
+02577                 \textcolor{keywordflow}{break};
+02578             \}
+02579             dimp[0] = 1;
+02580             \textcolor{keywordflow}{for} ( k = 1; k < matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; k++ )
+02581                 dimp[k] = dimp[k-1]*matvar->\hyperlink{group___m_a_t_a8e01234e1c862ce3472bb37f5a09b92c}{dims}[k-1];
+02582             for ( k = 0; k < edge; k++ ) \{
+02583                 \textcolor{keywordtype}{size\_t} l, coord;
+02584                 coord = (size\_t)(start + k*stride);
+02585                 \textcolor{keywordflow}{for} ( l = matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}; l--; ) \{
+02586                     \textcolor{keywordtype}{size\_t} idx = (size\_t)(coord / dimp[l]);
+02587                     points[matvar->\hyperlink{group___m_a_t_a84ba70c96ded13cc555fa75b768d9921}{rank}*(k+1)-1-l] = idx;
+02588                     coord -= idx*(size\_t)dimp[l];
+02589                 \}
+02590             \}
+02591             free(dimp);
+02592 
+02593             \textcolor{keywordflow}{if} ( NULL != matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name ) \{
+02594                 dset\_id = H5Dopen(fid,matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->hdf5\_name,H5P\_DEFAULT);
+02595             \} \textcolor{keywordflow}{else} \{
+02596                 dset\_id = matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->id;
+02597                 H5Iinc\_ref(dset\_id);
+02598             \}
+02599             dset\_space = H5Dget\_space(dset\_id);
+02600             H5Sselect\_elements(dset\_space,H5S\_SELECT\_SET,(\textcolor{keywordtype}{size\_t})dset\_edge,points);
+02601             free(points);
+02602             Mat\_H5ReadData(dset\_id, ClassType2H5T(matvar->\hyperlink{group___m_a_t_aff13035bf3265dd7d9425e5d40c839d4}{class\_type}), mem\_space,
+02603                 dset\_space, matvar->\hyperlink{group___m_a_t_aeb03b3a69f108dc05470b00443a43739}{isComplex}, data);
+02604             H5Sclose(dset\_space);
+02605             H5Dclose(dset\_id);
+02606             err = 0;
+02607             \textcolor{keywordflow}{break};
+02608         \textcolor{keywordflow}{default}:
+02609             \textcolor{keywordflow}{break};
+02610     \}
+02611     H5Sclose(mem\_space);
+02612 
+02613     \textcolor{keywordflow}{return} err;
+02614 \}
+02615 
+02624 \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *
+02625 Mat\_VarReadNextInfo73( \hyperlink{struct__mat__t}{mat\_t} *mat )
+02626 \{
+02627     hid\_t   fid;
+02628     hsize\_t idx;
+02629     herr\_t  herr;
+02630     \textcolor{keyword}{struct }ReadNextIterData mat\_data;
+02631 
+02632     \textcolor{keywordflow}{if} ( mat == NULL )
+02633         \textcolor{keywordflow}{return} NULL;
+02634 
+02635     \textcolor{keywordflow}{if} ( mat->\hyperlink{struct__mat__t_a0163a12f9735356723bb604992639d9e}{next\_index} >= mat->\hyperlink{struct__mat__t_af37d0ba323e65edb27ecd5a2f766a3a4}{num\_datasets} )
+02636         \textcolor{keywordflow}{return} NULL;
+02637 
+02638     fid = *(hid\_t*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp};
+02639     idx = (hsize\_t)mat->\hyperlink{struct__mat__t_a0163a12f9735356723bb604992639d9e}{next\_index};
+02640     mat\_data.mat = mat;
+02641     mat\_data.matvar = NULL;
+02642     herr = H5Literate(fid, H5\_INDEX\_NAME, H5\_ITER\_NATIVE, &idx, Mat\_VarReadNextInfoIterate, (\textcolor{keywordtype}{void}*)&
+      mat\_data);
+02643     \textcolor{keywordflow}{if} ( herr > 0 )
+02644         mat->\hyperlink{struct__mat__t_a0163a12f9735356723bb604992639d9e}{next\_index} = (size\_t)idx;
+02645     \textcolor{keywordflow}{return} mat\_data.matvar;
+02646 \}
+02647 
+02648 \textcolor{keyword}{static} herr\_t
+02649 Mat\_VarReadNextInfoIterate(hid\_t fid, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name, \textcolor{keyword}{const} \hyperlink{struct_h5_l__info__t}{H5L\_info\_t} *info, \textcolor{keywordtype}{void} *op\_data)
+02650 \{
+02651     \hyperlink{struct__mat__t}{mat\_t} *mat;
+02652     \hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar;
+02653     \hyperlink{struct_h5_o__info__t}{H5O\_info\_t} object\_info;
+02654     \textcolor{keyword}{struct }ReadNextIterData *mat\_data;
+02655 
+02656     \textcolor{comment}{/* FIXME: follow symlinks, datatypes? */}
+02657 
+02658     \textcolor{comment}{/* Check that this is not the /#refs# or /"#subsystem#" group */}
+02659     \textcolor{keywordflow}{if} ( 0 == strcmp(name, \textcolor{stringliteral}{"#refs#"}) || 0 == strcmp(name, \textcolor{stringliteral}{"#subsystem#"}) )
+02660         \textcolor{keywordflow}{return} 0;
+02661 
+02662     H5Oget\_info\_by\_name(fid, name, &object\_info, H5P\_DEFAULT);
+02663     \textcolor{keywordflow}{if} ( H5O\_TYPE\_DATASET != object\_info.type && H5O\_TYPE\_GROUP != object\_info.type )
+02664         \textcolor{keywordflow}{return} 0;
+02665 
+02666     mat\_data = (\textcolor{keyword}{struct }ReadNextIterData *)op\_data;
+02667     \textcolor{keywordflow}{if} ( NULL == mat\_data )
+02668         \textcolor{keywordflow}{return} -1;
+02669     mat = mat\_data->mat;
+02670 
+02671     matvar = \hyperlink{group___m_a_t_gae7c9c3699f6e9c31a9c490300013098c}{Mat\_VarCalloc}();
+02672     \textcolor{keywordflow}{if} ( NULL == matvar )
+02673         \textcolor{keywordflow}{return} -1;
+02674 
+02675     matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name} = strdup(name);
+02676     \textcolor{keywordflow}{if} ( NULL == matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name} ) \{
+02677         \hyperlink{group___m_a_t_ga1d14716f7450530fd1c9d02413787f0e}{Mat\_VarFree}(matvar);
+02678         \textcolor{keywordflow}{return} -1;
+02679     \}
+02680 
+02681     \textcolor{keywordflow}{switch} ( object\_info.type ) \{
+02682         \textcolor{keywordflow}{case} H5O\_TYPE\_DATASET:
+02683         \{
+02684             hid\_t dset\_id = H5Dopen(fid,matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name},H5P\_DEFAULT);
+02685 
+02686             Mat\_H5ReadDatasetInfo(mat,matvar,dset\_id);
+02687             \textcolor{keywordflow}{if} ( matvar->\hyperlink{group___m_a_t_a6e97e3ed9f40c49322c18561c2a94e92}{internal}->id != dset\_id ) \{
+02688                 \textcolor{comment}{/* Close dataset and increment count */}
+02689                 H5Dclose(dset\_id);
+02690             \}
+02691             mat\_data->matvar = matvar;
+02692             \textcolor{keywordflow}{break};
+02693         \}
+02694         \textcolor{keywordflow}{case} H5O\_TYPE\_GROUP:
+02695         \{
+02696             hid\_t dset\_id = H5Gopen(fid,matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name},H5P\_DEFAULT);
+02697 
+02698             Mat\_H5ReadGroupInfo(mat,matvar,dset\_id);
+02699             H5Gclose(dset\_id);
+02700             mat\_data->matvar = matvar;
+02701             \textcolor{keywordflow}{break};
+02702         \}
+02703         \textcolor{keywordflow}{default}:
+02704             \textcolor{keywordflow}{break};
+02705     \}
+02706 
+02707     \textcolor{keywordflow}{return} 1;
+02708 \}
+02709 
+02721 \textcolor{keywordtype}{int}
+02722 Mat\_VarWrite73(\hyperlink{struct__mat__t}{mat\_t} *mat,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keywordtype}{int} compress)
+02723 \{
+02724     hid\_t id;
+02725 
+02726     \textcolor{keywordflow}{if} ( NULL == mat || NULL == matvar )
+02727         \textcolor{keywordflow}{return} -1;
+02728 
+02729     matvar->\hyperlink{group___m_a_t_aeef0466048621cb2c959ba7f6c774d06}{compression} = (\textcolor{keyword}{enum} \hyperlink{group___m_a_t_ga768c318af97bd2567758ecb001ceb7f4}{matio\_compression})compress;
+02730 
+02731     \textcolor{keywordtype}{id} = *(hid\_t*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp};
+02732     \textcolor{keywordflow}{return} Mat\_VarWriteNext73(\textcolor{keywordtype}{id},matvar,matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name},&(mat->refs\_id));
+02733 \}
+02734 
+02748 \textcolor{keywordtype}{int}
+02749 Mat\_VarWriteAppend73(\hyperlink{struct__mat__t}{mat\_t} *mat,\hyperlink{group___m_a_t_structmatvar__t}{matvar\_t} *matvar,\textcolor{keywordtype}{int} compress,\textcolor{keywordtype}{int} dim)
+02750 \{
+02751     hid\_t id;
+02752 
+02753     \textcolor{keywordflow}{if} ( NULL == mat || NULL == matvar )
+02754         \textcolor{keywordflow}{return} -1;
+02755 
+02756     matvar->\hyperlink{group___m_a_t_aeef0466048621cb2c959ba7f6c774d06}{compression} = (\textcolor{keyword}{enum} \hyperlink{group___m_a_t_ga768c318af97bd2567758ecb001ceb7f4}{matio\_compression})compress;
+02757 
+02758     \textcolor{keywordtype}{id} = *(hid\_t*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp};
+02759     \textcolor{keywordflow}{return} Mat\_VarWriteAppendNext73(\textcolor{keywordtype}{id},matvar,matvar->\hyperlink{group___m_a_t_a5d4b55b041e3b4fb50c04337f05ad909}{name},dim);
+02760 \}
+02761 
+02762 \textcolor{preprocessor}{#endif}
+02763 \textcolor{preprocessor}{#endif}
+\end{DoxyCode}

@@ -35,7 +35,7 @@ public:
 	/**
 	*  @brief The update function from the selected aerodynamic model is called by a pointer.
 	*/
-	virtual void updateAerodynamic(Float64 FlightTime,
+	virtual void updateAerodynamic(Float64 &FlightTime,
 							AtmosphereStruct & AtmoData,
 							AerodynamicStruct & AeroData,
 							AirframeStruct & AirframeData,
@@ -44,8 +44,10 @@ public:
 	/**
 	*  @brief The init function from the selected aerodynamic model is called by a pointer.
 	*/
-	virtual void initAerodynamic(AerodynamicStruct & AeroData,
+	virtual void initAerodynamic(Float64 &FlightTime, AerodynamicStruct & AeroData,
 						 AircraftStruct &AircraftData);
+
+	virtual void LogAeroData();
 
 
 

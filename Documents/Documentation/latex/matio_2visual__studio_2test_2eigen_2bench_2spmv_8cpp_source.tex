@@ -1,0 +1,242 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2bench_2spmv_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/bench/spmv.cpp}
+\label{matio_2visual__studio_2test_2eigen_2bench_2spmv_8cpp_source}\index{spmv.\+cpp@{spmv.\+cpp}}
+
+\begin{DoxyCode}
+00001 
+00002 \textcolor{comment}{//g++-4.4 -DNOMTL  -Wl,-rpath /usr/local/lib/oski -L /usr/local/lib/oski/ -l oski -l oski\_util -l
+       oski\_util\_Tid  -DOSKI -I ~/Coding/LinearAlgebra/mtl4/  spmv.cpp  -I .. -O2 -DNDEBUG -lrt  -lm -l oski\_mat\_CSC\_Tid 
+       -loskilt && ./a.out r200000 c200000 n100 t1 p1}
+00003 
+00004 \textcolor{preprocessor}{#define SCALAR double}
+00005 
+00006 \textcolor{preprocessor}{#include <iostream>}
+00007 \textcolor{preprocessor}{#include <algorithm>}
+00008 \textcolor{preprocessor}{#include "BenchTimer.h"}
+00009 \textcolor{preprocessor}{#include "BenchSparseUtil.h"}
+00010 
+00011 \textcolor{preprocessor}{#define SPMV\_BENCH(CODE) BENCH(t,tries,repeats,CODE);}
+00012 
+00013 \textcolor{comment}{// #ifdef MKL}
+00014 \textcolor{comment}{//}
+00015 \textcolor{comment}{// #include "mkl\_types.h"}
+00016 \textcolor{comment}{// #include "mkl\_spblas.h"}
+00017 \textcolor{comment}{//}
+00018 \textcolor{comment}{// template<typename Lhs,typename Rhs,typename Res>}
+00019 \textcolor{comment}{// void mkl\_multiply(const Lhs& lhs, const Rhs& rhs, Res& res)}
+00020 \textcolor{comment}{// \{}
+00021 \textcolor{comment}{//   char n = 'N';}
+00022 \textcolor{comment}{//   float alpha = 1;}
+00023 \textcolor{comment}{//   char matdescra[6];}
+00024 \textcolor{comment}{//   matdescra[0] = 'G';}
+00025 \textcolor{comment}{//   matdescra[1] = 0;}
+00026 \textcolor{comment}{//   matdescra[2] = 0;}
+00027 \textcolor{comment}{//   matdescra[3] = 'C';}
+00028 \textcolor{comment}{//   mkl\_scscmm(&n, lhs.rows(), rhs.cols(), lhs.cols(), &alpha, matdescra,}
+00029 \textcolor{comment}{//              lhs.\_valuePtr(), lhs.\_innerIndexPtr(), lhs.outerIndexPtr(),}
+00030 \textcolor{comment}{//              pntre, b, &ldb, &beta, c, &ldc);}
+00031 \textcolor{comment}{// //   mkl\_somatcopy('C', 'T', lhs.rows(), lhs.cols(), 1,}
+00032 \textcolor{comment}{// //                 lhs.\_valuePtr(), lhs.rows(), DST, dst\_stride);}
+00033 \textcolor{comment}{// \}}
+00034 \textcolor{comment}{//}
+00035 \textcolor{comment}{// #endif}
+00036 
+00037 \textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])
+00038 \{
+00039   \textcolor{keywordtype}{int} size = 10000;
+00040   \textcolor{keywordtype}{int} rows = size;
+00041   \textcolor{keywordtype}{int} cols = size;
+00042   \textcolor{keywordtype}{int} nnzPerCol = 40;
+00043   \textcolor{keywordtype}{int} tries = 2;
+00044   \textcolor{keywordtype}{int} repeats = 2;
+00045 
+00046   \textcolor{keywordtype}{bool} need\_help = \textcolor{keyword}{false};
+00047   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 1; i < argc; i++)
+00048   \{
+00049     \textcolor{keywordflow}{if}(argv[i][0] == \textcolor{charliteral}{'r'})
+00050     \{
+00051       rows = atoi(argv[i]+1);
+00052     \}
+00053     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(argv[i][0] == \textcolor{charliteral}{'c'})
+00054     \{
+00055       cols = atoi(argv[i]+1);
+00056     \}
+00057     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(argv[i][0] == \textcolor{charliteral}{'n'})
+00058     \{
+00059       nnzPerCol = atoi(argv[i]+1);
+00060     \}
+00061     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(argv[i][0] == \textcolor{charliteral}{'t'})
+00062     \{
+00063       tries = atoi(argv[i]+1);
+00064     \}
+00065     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(argv[i][0] == \textcolor{charliteral}{'p'})
+00066     \{
+00067       repeats = atoi(argv[i]+1);
+00068     \}
+00069     \textcolor{keywordflow}{else}
+00070     \{
+00071       need\_help = \textcolor{keyword}{true};
+00072     \}
+00073   \}
+00074   \textcolor{keywordflow}{if}(need\_help)
+00075   \{
+00076     std::cout << argv[0] << \textcolor{stringliteral}{" r<nb rows> c<nb columns> n<non zeros per column> t<nb tries> p<nb repeats>\(\backslash\)n"}
+      ;
+00077     \textcolor{keywordflow}{return} 1;
+00078   \}
+00079 
+00080   std::cout << \textcolor{stringliteral}{"SpMV "} << rows << \textcolor{stringliteral}{" x "} << cols << \textcolor{stringliteral}{" with "} << nnzPerCol << \textcolor{stringliteral}{" non zeros per column. ("} << 
+      repeats << \textcolor{stringliteral}{" repeats, and "} << tries << \textcolor{stringliteral}{" tries)\(\backslash\)n\(\backslash\)n"};
+00081 
+00082   \hyperlink{group___sparse_core___module}{EigenSparseMatrix} sm(rows,cols);
+00083   \hyperlink{group___core___module}{DenseVector} dv(cols), res(rows);
+00084   dv.setRandom();
+00085 
+00086   \hyperlink{class_eigen_1_1_bench_timer}{BenchTimer} t;
+00087   \textcolor{keywordflow}{while} (nnzPerCol>=4)
+00088   \{
+00089     std::cout << \textcolor{stringliteral}{"nnz: "} << nnzPerCol << \textcolor{stringliteral}{"\(\backslash\)n"};
+00090     sm.setZero();
+00091     fillMatrix2(nnzPerCol, rows, cols, sm);
+00092 
+00093     \textcolor{comment}{// dense matrices}
+00094 \textcolor{preprocessor}{    #ifdef DENSEMATRIX}
+00095     \{
+00096       \hyperlink{group___core___module}{DenseMatrix} dm(rows,cols), (rows,cols);
+00097       eiToDense(sm, dm);
+00098 
+00099       SPMV\_BENCH(res = dm * sm);
+00100       std::cout << \textcolor{stringliteral}{"Dense       "} << t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()/repeats << \textcolor{stringliteral}{"\(\backslash\)t"};
+00101 
+00102       SPMV\_BENCH(res = dm.transpose() * sm);
+00103       std::cout << t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()/repeats << endl;
+00104     \}
+00105 \textcolor{preprocessor}{    #endif}
+00106 
+00107     \textcolor{comment}{// eigen sparse matrices}
+00108     \{
+00109       SPMV\_BENCH(res.noalias() += sm * dv; )
+00110       std::cout << \textcolor{stringliteral}{"Eigen       "} << t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()/repeats << \textcolor{stringliteral}{"\(\backslash\)t"};
+00111 
+00112       SPMV\_BENCH(res.noalias() += sm.transpose() * dv; )
+00113       std::cout << t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()/repeats << endl;
+00114     \}
+00115 
+00116     \textcolor{comment}{// CSparse}
+00117 \textcolor{preprocessor}{    #ifdef CSPARSE}
+00118     \{
+00119       std::cout << \textcolor{stringliteral}{"CSparse \(\backslash\)n"};
+00120       cs *csm;
+00121       eiToCSparse(sm, csm);
+00122 
+00123 \textcolor{comment}{//       BENCH();}
+00124 \textcolor{comment}{//       timer.stop();}
+00125 \textcolor{comment}{//       std::cout << "   a * b:\(\backslash\)t" << timer.value() << endl;}
+00126 
+00127 \textcolor{comment}{//       BENCH( \{ m3 = cs\_sorted\_multiply2(m1, m2); cs\_spfree(m3); \} );}
+00128 \textcolor{comment}{//       std::cout << "   a * b:\(\backslash\)t" << timer.value() << endl;}
+00129     \}
+00130 \textcolor{preprocessor}{    #endif}
+00131 
+00132 \textcolor{preprocessor}{    #ifdef OSKI}
+00133     \{
+00134       oski\_matrix\_t om;
+00135       oski\_vecview\_t ov, ores;
+00136       oski\_Init();
+00137       om = oski\_CreateMatCSC(sm.\_outerIndexPtr(), sm.\_innerIndexPtr(), sm.\_valuePtr(), rows, cols,
+00138                              SHARE\_INPUTMAT, 1, INDEX\_ZERO\_BASED);
+00139       ov = oski\_CreateVecView(dv.data(), cols, STRIDE\_UNIT);
+00140       ores = oski\_CreateVecView(res.data(), rows, STRIDE\_UNIT);
+00141 
+00142       SPMV\_BENCH( oski\_MatMult(om, OP\_NORMAL, 1, ov, 0, ores) );
+00143       std::cout << \textcolor{stringliteral}{"OSKI        "} << t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()/repeats << \textcolor{stringliteral}{"\(\backslash\)t"};
+00144 
+00145       SPMV\_BENCH( oski\_MatMult(om, OP\_TRANS, 1, ov, 0, ores) );
+00146       std::cout << t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()/repeats << \textcolor{stringliteral}{"\(\backslash\)n"};
+00147 
+00148       \textcolor{comment}{// tune}
+00149       t.reset();
+00150       t.start();
+00151       oski\_SetHintMatMult(om, OP\_NORMAL, 1.0, SYMBOLIC\_VEC, 0.0, SYMBOLIC\_VEC, ALWAYS\_TUNE\_AGGRESSIVELY);
+00152       oski\_TuneMat(om);
+00153       t.stop();
+00154       \textcolor{keywordtype}{double} tuning = t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}();
+00155 
+00156       SPMV\_BENCH( oski\_MatMult(om, OP\_NORMAL, 1, ov, 0, ores) );
+00157       std::cout << \textcolor{stringliteral}{"OSKI tuned  "} << t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()/repeats << \textcolor{stringliteral}{"\(\backslash\)t"};
+00158 
+00159       SPMV\_BENCH( oski\_MatMult(om, OP\_TRANS, 1, ov, 0, ores) );
+00160       std::cout << t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()/repeats << \textcolor{stringliteral}{"\(\backslash\)t("} << tuning <<  \textcolor{stringliteral}{")\(\backslash\)n"};
+00161 
+00162 
+00163       oski\_DestroyMat(om);
+00164       oski\_DestroyVecView(ov);
+00165       oski\_DestroyVecView(ores);
+00166       oski\_Close();
+00167     \}
+00168 \textcolor{preprocessor}{    #endif}
+00169 
+00170 \textcolor{preprocessor}{    #ifndef NOUBLAS}
+00171     \{
+00172       \textcolor{keyword}{using namespace }\hyperlink{namespaceboost_1_1numeric}{boost::numeric};
+00173       UblasMatrix um(rows,cols);
+00174       eiToUblas(sm, um);
+00175 
+00176       boost::numeric::ublas::vector<Scalar> uv(cols), ures(rows);
+00177       \hyperlink{group___core___module_class_eigen_1_1_map}{Map<Matrix<Scalar,Dynamic,1>} >(&uv[0], cols) = dv;
+00178       \hyperlink{group___core___module_class_eigen_1_1_map}{Map<Matrix<Scalar,Dynamic,1>} >(&ures[0], rows) = res;
+00179 
+00180       SPMV\_BENCH(ublas::axpy\_prod(um, uv, ures, \textcolor{keyword}{true}));
+00181       std::cout << \textcolor{stringliteral}{"ublas       "} << t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()/repeats << \textcolor{stringliteral}{"\(\backslash\)t"};
+00182 
+00183       SPMV\_BENCH(ublas::axpy\_prod(boost::numeric::ublas::trans(um), uv, ures, \textcolor{keyword}{true}));
+00184       std::cout << t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()/repeats << endl;
+00185     \}
+00186 \textcolor{preprocessor}{    #endif}
+00187 
+00188     \textcolor{comment}{// GMM++}
+00189 \textcolor{preprocessor}{    #ifndef NOGMM}
+00190     \{
+00191       GmmSparse gm(rows,cols);
+00192       eiToGmm(sm, gm);
+00193 
+00194       std::vector<Scalar> gv(cols), gres(rows);
+00195       \hyperlink{group___core___module_class_eigen_1_1_map}{Map<Matrix<Scalar,Dynamic,1>} >(&gv[0], cols) = dv;
+00196       \hyperlink{group___core___module_class_eigen_1_1_map}{Map<Matrix<Scalar,Dynamic,1>} >(&gres[0], rows) = res;
+00197 
+00198       SPMV\_BENCH(gmm::mult(gm, gv, gres));
+00199       std::cout << \textcolor{stringliteral}{"GMM++       "} << t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()/repeats << \textcolor{stringliteral}{"\(\backslash\)t"};
+00200 
+00201       SPMV\_BENCH(gmm::mult(gmm::transposed(gm), gv, gres));
+00202       std::cout << t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()/repeats << endl;
+00203     \}
+00204 \textcolor{preprocessor}{    #endif}
+00205 
+00206     \textcolor{comment}{// MTL4}
+00207 \textcolor{preprocessor}{    #ifndef NOMTL}
+00208     \{
+00209       MtlSparse mm(rows,cols);
+00210       eiToMtl(sm, mm);
+00211       mtl::dense\_vector<Scalar> mv(cols, 1.0);
+00212       mtl::dense\_vector<Scalar> mres(rows, 1.0);
+00213 
+00214       SPMV\_BENCH(mres = mm * mv);
+00215       std::cout << \textcolor{stringliteral}{"MTL4        "} << t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()/repeats << \textcolor{stringliteral}{"\(\backslash\)t"};
+00216 
+00217       SPMV\_BENCH(mres = trans(mm) * mv);
+00218       std::cout << t.\hyperlink{class_eigen_1_1_bench_timer_a26760f963ed8b64c126159bfea57735e}{value}()/repeats << endl;
+00219     \}
+00220 \textcolor{preprocessor}{    #endif}
+00221 
+00222     std::cout << \textcolor{stringliteral}{"\(\backslash\)n"};
+00223 
+00224     \textcolor{keywordflow}{if}(nnzPerCol==1)
+00225       \textcolor{keywordflow}{break};
+00226     nnzPerCol -= nnzPerCol/2;
+00227   \}
+00228 
+00229   \textcolor{keywordflow}{return} 0;
+00230 \}
+00231 
+00232 
+00233 
+\end{DoxyCode}

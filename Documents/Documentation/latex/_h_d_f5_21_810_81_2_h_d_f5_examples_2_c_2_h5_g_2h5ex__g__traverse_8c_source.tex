@@ -1,0 +1,179 @@
+\hypertarget{_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_g_2h5ex__g__traverse_8c_source}{}\section{H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+C/\+H5\+G/h5ex\+\_\+g\+\_\+traverse.c}
+\label{_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_g_2h5ex__g__traverse_8c_source}\index{h5ex\+\_\+g\+\_\+traverse.\+c@{h5ex\+\_\+g\+\_\+traverse.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/************************************************************}
+00002 \textcolor{comment}{}
+00003 \textcolor{comment}{  This example shows a way to recursively traverse the file}
+00004 \textcolor{comment}{  using H5Literate.  The method shown here guarantees that}
+00005 \textcolor{comment}{  the recursion will not enter an infinite loop, but does}
+00006 \textcolor{comment}{  not prevent objects from being visited more than once.}
+00007 \textcolor{comment}{  The program prints the directory structure of the file}
+00008 \textcolor{comment}{  specified in FILE.  The default file used by this example}
+00009 \textcolor{comment}{  implements the structure described in the User's Guide,}
+00010 \textcolor{comment}{  chapter 4, figure 26.}
+00011 \textcolor{comment}{}
+00012 \textcolor{comment}{  This file is intended for use with HDF5 Library version 1.8}
+00013 \textcolor{comment}{}
+00014 \textcolor{comment}{ ************************************************************/}
+00015 
+00016 \textcolor{preprocessor}{#include "hdf5.h"}
+00017 \textcolor{preprocessor}{#include <stdio.h>}
+00018 
+00019 \textcolor{preprocessor}{#define FILE       "h5ex\_g\_traverse.h5"}
+00020 
+00021 \textcolor{comment}{/*}
+00022 \textcolor{comment}{ * Define operator data structure type for H5Literate callback.}
+00023 \textcolor{comment}{ * During recursive iteration, these structures will form a}
+00024 \textcolor{comment}{ * linked list that can be searched for duplicate groups,}
+00025 \textcolor{comment}{ * preventing infinite recursion.}
+00026 \textcolor{comment}{ */}
+\Hypertarget{_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_g_2h5ex__g__traverse_8c_source_l00027}\hyperlink{structopdata}{00027} \textcolor{keyword}{struct }\hyperlink{structopdata}{opdata} \{
+00028     \textcolor{keywordtype}{unsigned}        recurs;         \textcolor{comment}{/* Recursion level.  0=root */}
+00029     \textcolor{keyword}{struct }\hyperlink{structopdata}{opdata}   *prev;          \textcolor{comment}{/* Pointer to previous opdata */}
+00030     haddr\_t         addr;           \textcolor{comment}{/* Group address */}
+00031 \};
+00032 
+00033 \textcolor{comment}{/*}
+00034 \textcolor{comment}{ * Operator function to be called by H5Literate.}
+00035 \textcolor{comment}{ */}
+00036 herr\_t op\_func (hid\_t loc\_id, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name, \textcolor{keyword}{const} \hyperlink{struct_h5_l__info__t}{H5L\_info\_t} *info,
+00037             \textcolor{keywordtype}{void} *operator\_data);
+00038 
+00039 \textcolor{comment}{/*}
+00040 \textcolor{comment}{ * Function to check for duplicate groups in a path.}
+00041 \textcolor{comment}{ */}
+00042 \textcolor{keywordtype}{int} group\_check (\textcolor{keyword}{struct} \hyperlink{structopdata}{opdata} *od, haddr\_t target\_addr);
+00043 
+00044 \textcolor{keywordtype}{int}
+00045 main (\textcolor{keywordtype}{void})
+00046 \{
+00047     hid\_t           \hyperlink{structfile}{file};           \textcolor{comment}{/* Handle */}
+00048     herr\_t          status;
+00049     \hyperlink{struct_h5_o__info__t}{H5O\_info\_t}      infobuf;
+00050     \textcolor{keyword}{struct }\hyperlink{structopdata}{opdata}   od;
+00051 
+00052     \textcolor{comment}{/*}
+00053 \textcolor{comment}{     * Open file and initialize the operator data structure.}
+00054 \textcolor{comment}{     */}
+00055     file = H5Fopen (FILE, H5F\_ACC\_RDONLY, H5P\_DEFAULT);
+00056     status = H5Oget\_info (file, &infobuf);
+00057     od.recurs = 0;
+00058     od.prev = NULL;
+00059     od.addr = infobuf.addr;
+00060 
+00061     \textcolor{comment}{/*}
+00062 \textcolor{comment}{     * Print the root group and formatting, begin iteration.}
+00063 \textcolor{comment}{     */}
+00064     printf (\textcolor{stringliteral}{"/ \{\(\backslash\)n"});
+00065     status = H5Literate (file, H5\_INDEX\_NAME, H5\_ITER\_NATIVE, NULL, op\_func,
+00066                 (\textcolor{keywordtype}{void} *) &od);
+00067     printf (\textcolor{stringliteral}{"\}\(\backslash\)n"});
+00068 
+00069     \textcolor{comment}{/*}
+00070 \textcolor{comment}{     * Close and release resources.}
+00071 \textcolor{comment}{     */}
+00072     status = H5Fclose (file);
+00073 
+00074     \textcolor{keywordflow}{return} 0;
+00075 \}
+00076 
+00077 
+00078 \textcolor{comment}{/************************************************************}
+00079 \textcolor{comment}{}
+00080 \textcolor{comment}{  Operator function.  This function prints the name and type}
+00081 \textcolor{comment}{  of the object passed to it.  If the object is a group, it}
+00082 \textcolor{comment}{  is first checked against other groups in its path using}
+00083 \textcolor{comment}{  the group\_check function, then if it is not a duplicate,}
+00084 \textcolor{comment}{  H5Literate is called for that group.  This guarantees that}
+00085 \textcolor{comment}{  the program will not enter infinite recursion due to a}
+00086 \textcolor{comment}{  circular path in the file.}
+00087 \textcolor{comment}{}
+00088 \textcolor{comment}{ ************************************************************/}
+00089 herr\_t op\_func (hid\_t loc\_id, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name, \textcolor{keyword}{const} \hyperlink{struct_h5_l__info__t}{H5L\_info\_t} *info,
+00090             \textcolor{keywordtype}{void} *operator\_data)
+00091 \{
+00092     herr\_t          status, return\_val = 0;
+00093     \hyperlink{struct_h5_o__info__t}{H5O\_info\_t}      infobuf;
+00094     \textcolor{keyword}{struct }\hyperlink{structopdata}{opdata}   *od = (\textcolor{keyword}{struct }\hyperlink{structopdata}{opdata} *) operator\_data;
+00095                                 \textcolor{comment}{/* Type conversion */}
+00096     \textcolor{keywordtype}{unsigned}        spaces = 2*(od->recurs+1);
+00097                                 \textcolor{comment}{/* Number of whitespaces to prepend}
+00098 \textcolor{comment}{                                   to output */}
+00099 
+00100     \textcolor{comment}{/*}
+00101 \textcolor{comment}{     * Get type of the object and display its name and type.}
+00102 \textcolor{comment}{     * The name of the object is passed to this function by}
+00103 \textcolor{comment}{     * the Library.}
+00104 \textcolor{comment}{     */}
+00105     status = H5Oget\_info\_by\_name (loc\_id, name, &infobuf, H5P\_DEFAULT);
+00106     printf (\textcolor{stringliteral}{"%*s"}, spaces, \textcolor{stringliteral}{""});     \textcolor{comment}{/* Format output */}
+00107     \textcolor{keywordflow}{switch} (infobuf.type) \{
+00108         \textcolor{keywordflow}{case} H5O\_TYPE\_GROUP:
+00109             printf (\textcolor{stringliteral}{"Group: %s \{\(\backslash\)n"}, name);
+00110 
+00111             \textcolor{comment}{/*}
+00112 \textcolor{comment}{             * Check group address against linked list of operator}
+00113 \textcolor{comment}{             * data structures.  We will always run the check, as the}
+00114 \textcolor{comment}{             * reference count cannot be relied upon if there are}
+00115 \textcolor{comment}{             * symbolic links, and H5Oget\_info\_by\_name always follows}
+00116 \textcolor{comment}{             * symbolic links.  Alternatively we could use H5Lget\_info}
+00117 \textcolor{comment}{             * and never recurse on groups discovered by symbolic}
+00118 \textcolor{comment}{             * links, however it could still fail if an object's}
+00119 \textcolor{comment}{             * reference count was manually manipulated with}
+00120 \textcolor{comment}{             * H5Odecr\_refcount.}
+00121 \textcolor{comment}{             */}
+00122             \textcolor{keywordflow}{if} ( group\_check (od, infobuf.addr) ) \{
+00123                 printf (\textcolor{stringliteral}{"%*s  Warning: Loop detected!\(\backslash\)n"}, spaces, \textcolor{stringliteral}{""});
+00124             \}
+00125             \textcolor{keywordflow}{else} \{
+00126 
+00127                 \textcolor{comment}{/*}
+00128 \textcolor{comment}{                 * Initialize new operator data structure and}
+00129 \textcolor{comment}{                 * begin recursive iteration on the discovered}
+00130 \textcolor{comment}{                 * group.  The new opdata structure is given a}
+00131 \textcolor{comment}{                 * pointer to the current one.}
+00132 \textcolor{comment}{                 */}
+00133                 \textcolor{keyword}{struct }\hyperlink{structopdata}{opdata} nextod;
+00134                 nextod.recurs = od->recurs + 1;
+00135                 nextod.prev = od;
+00136                 nextod.addr = infobuf.addr;
+00137                 return\_val = H5Literate\_by\_name (loc\_id, name, H5\_INDEX\_NAME,
+00138                             H5\_ITER\_NATIVE, NULL, op\_func, (\textcolor{keywordtype}{void} *) &nextod,
+00139                             H5P\_DEFAULT);
+00140             \}
+00141             printf (\textcolor{stringliteral}{"%*s\}\(\backslash\)n"}, spaces, \textcolor{stringliteral}{""});
+00142             \textcolor{keywordflow}{break};
+00143         \textcolor{keywordflow}{case} H5O\_TYPE\_DATASET:
+00144             printf (\textcolor{stringliteral}{"Dataset: %s\(\backslash\)n"}, name);
+00145             \textcolor{keywordflow}{break};
+00146         \textcolor{keywordflow}{case} H5O\_TYPE\_NAMED\_DATATYPE:
+00147             printf (\textcolor{stringliteral}{"Datatype: %s\(\backslash\)n"}, name);
+00148             \textcolor{keywordflow}{break};
+00149         \textcolor{keywordflow}{default}:
+00150             printf ( \textcolor{stringliteral}{"Unknown: %s\(\backslash\)n"}, name);
+00151     \}
+00152 
+00153     \textcolor{keywordflow}{return} return\_val;
+00154 \}
+00155 
+00156 
+00157 \textcolor{comment}{/************************************************************}
+00158 \textcolor{comment}{}
+00159 \textcolor{comment}{  This function recursively searches the linked list of}
+00160 \textcolor{comment}{  opdata structures for one whose address matches}
+00161 \textcolor{comment}{  target\_addr.  Returns 1 if a match is found, and 0}
+00162 \textcolor{comment}{  otherwise.}
+00163 \textcolor{comment}{}
+00164 \textcolor{comment}{ ************************************************************/}
+00165 \textcolor{keywordtype}{int} group\_check (\textcolor{keyword}{struct} \hyperlink{structopdata}{opdata} *od, haddr\_t target\_addr)
+00166 \{
+00167     \textcolor{keywordflow}{if} (od->addr == target\_addr)
+00168         \textcolor{keywordflow}{return} 1;       \textcolor{comment}{/* Addresses match */}
+00169     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (!od->recurs)
+00170         \textcolor{keywordflow}{return} 0;       \textcolor{comment}{/* Root group reached with no matches */}
+00171     \textcolor{keywordflow}{else}
+00172         \textcolor{keywordflow}{return} group\_check (od->prev, target\_addr);
+00173                         \textcolor{comment}{/* Recursively examine the next node */}
+00174 \}
+\end{DoxyCode}

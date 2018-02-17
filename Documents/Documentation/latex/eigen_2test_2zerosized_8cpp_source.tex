@@ -1,0 +1,111 @@
+\hypertarget{eigen_2test_2zerosized_8cpp_source}{}\section{eigen/test/zerosized.cpp}
+\label{eigen_2test_2zerosized_8cpp_source}\index{zerosized.\+cpp@{zerosized.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2011 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 
+00013 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} zeroReduction(\textcolor{keyword}{const} MatrixType& m) \{
+00014   \textcolor{comment}{// Reductions that must hold for zero sized objects}
+00015   VERIFY(m.all());
+00016   VERIFY(!m.any());
+00017   VERIFY(m.prod()==1);
+00018   VERIFY(m.sum()==0);
+00019   VERIFY(m.count()==0);
+00020   VERIFY(m.allFinite());
+00021   VERIFY(!m.hasNaN());
+00022 \}
+00023 
+00024 
+00025 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} zeroSizedMatrix()
+00026 \{
+00027   MatrixType t1;
+00028   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00029 
+00030   \textcolor{keywordflow}{if} (MatrixType::SizeAtCompileTime == Dynamic || MatrixType::SizeAtCompileTime == 0)
+00031   \{
+00032     zeroReduction(t1);
+00033     \textcolor{keywordflow}{if} (MatrixType::RowsAtCompileTime == Dynamic)
+00034       VERIFY(t1.rows() == 0);
+00035     \textcolor{keywordflow}{if} (MatrixType::ColsAtCompileTime == Dynamic)
+00036       VERIFY(t1.cols() == 0);
+00037 
+00038     \textcolor{keywordflow}{if} (MatrixType::RowsAtCompileTime == Dynamic && MatrixType::ColsAtCompileTime == Dynamic)
+00039     \{
+00040 
+00041       MatrixType t2(0, 0), t3(t1);
+00042       VERIFY(t2.rows() == 0);
+00043       VERIFY(t2.cols() == 0);
+00044 
+00045       zeroReduction(t2);
+00046       VERIFY(t1==t2);
+00047     \}
+00048   \}
+00049 
+00050   \textcolor{keywordflow}{if}(MatrixType::MaxColsAtCompileTime!=0 && MatrixType::MaxRowsAtCompileTime!=0)
+00051   \{
+00052     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows = MatrixType::RowsAtCompileTime==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} ? internal::random<Index>(1,10) : 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(MatrixType::RowsAtCompileTime);
+00053     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols = MatrixType::ColsAtCompileTime==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} ? internal::random<Index>(1,10) : 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}(MatrixType::ColsAtCompileTime);
+00054     MatrixType m(rows,cols);
+00055     zeroReduction(m.template block<0,MatrixType::ColsAtCompileTime>(0,0,0,cols));
+00056     zeroReduction(m.template block<MatrixType::RowsAtCompileTime,0>(0,0,rows,0));
+00057     zeroReduction(m.template block<0,1>(0,0));
+00058     zeroReduction(m.template block<1,0>(0,0));
+00059     \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,Dynamic>} prod = m.template 
+      block<MatrixType::RowsAtCompileTime,0>(0,0,rows,0) * m.template block<0,MatrixType::ColsAtCompileTime>(0,0,0,cols);
+00060     VERIFY(prod.rows()==rows && prod.cols()==cols);
+00061     VERIFY(prod.isZero());
+00062     prod = m.template block<1,0>(0,0) * m.template block<0,1>(0,0);
+00063     VERIFY(prod.size()==1);
+00064     VERIFY(prod.isZero());
+00065   \}
+00066 \}
+00067 
+00068 \textcolor{keyword}{template}<\textcolor{keyword}{typename} VectorType> \textcolor{keywordtype}{void} zeroSizedVector()
+00069 \{
+00070   \hyperlink{struct_vector_type}{VectorType} t1;
+00071 
+00072   \textcolor{keywordflow}{if} (VectorType::SizeAtCompileTime == Dynamic || VectorType::SizeAtCompileTime==0)
+00073   \{
+00074     zeroReduction(t1);
+00075     VERIFY(t1.size() == 0);
+00076     \hyperlink{struct_vector_type}{VectorType} t2(DenseIndex(0)); \textcolor{comment}{// DenseIndex disambiguates with 0-the-null-pointer (error with
+       gcc 4.4 and MSVC8)}
+00077     VERIFY(t2.size() == 0);
+00078     zeroReduction(t2);
+00079 
+00080     VERIFY(t1==t2);
+00081   \}
+00082 \}
+00083 
+00084 \textcolor{keywordtype}{void} test\_zerosized()
+00085 \{
+00086   zeroSizedMatrix<Matrix2d>();
+00087   zeroSizedMatrix<Matrix3i>();
+00088   zeroSizedMatrix<Matrix<float, 2, Dynamic> >();
+00089   zeroSizedMatrix<MatrixXf>();
+00090   zeroSizedMatrix<Matrix<float, 0, 0> >();
+00091   zeroSizedMatrix<Matrix<float, Dynamic, 0, 0, 0, 0> >();
+00092   zeroSizedMatrix<Matrix<float, 0, Dynamic, 0, 0, 0> >();
+00093   zeroSizedMatrix<Matrix<float, Dynamic, Dynamic, 0, 0, 0> >();
+00094   zeroSizedMatrix<Matrix<float, 0, 4> >();
+00095   zeroSizedMatrix<Matrix<float, 4, 0> >();
+00096 
+00097   zeroSizedVector<Vector2d>();
+00098   zeroSizedVector<Vector3i>();
+00099   zeroSizedVector<VectorXf>();
+00100   zeroSizedVector<Matrix<float, 0, 1> >();
+00101   zeroSizedVector<Matrix<float, 1, 0> >();
+00102 \}
+\end{DoxyCode}

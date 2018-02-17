@@ -1,0 +1,124 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_g_2h5ex__g__visit_8c_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+C/\+H5\+G/h5ex\+\_\+g\+\_\+visit.c}
+\label{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_g_2h5ex__g__visit_8c_source}\index{h5ex\+\_\+g\+\_\+visit.\+c@{h5ex\+\_\+g\+\_\+visit.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/************************************************************}
+00002 \textcolor{comment}{}
+00003 \textcolor{comment}{  This example shows how to recursively traverse a file}
+00004 \textcolor{comment}{  using H5Ovisit and H5Lvisit.  The program prints all of}
+00005 \textcolor{comment}{  the objects in the file specified in FILE, then prints all}
+00006 \textcolor{comment}{  of the links in that file.  The default file used by this}
+00007 \textcolor{comment}{  example implements the structure described in the User's}
+00008 \textcolor{comment}{  Guide, chapter 4, figure 26.}
+00009 \textcolor{comment}{}
+00010 \textcolor{comment}{  This file is intended for use with HDF5 Library version 1.8}
+00011 \textcolor{comment}{}
+00012 \textcolor{comment}{ ************************************************************/}
+00013 
+00014 \textcolor{preprocessor}{#include "hdf5.h"}
+00015 \textcolor{preprocessor}{#include <stdio.h>}
+00016 
+00017 \textcolor{preprocessor}{#define FILE       "h5ex\_g\_visit.h5"}
+00018 
+00019 \textcolor{comment}{/*}
+00020 \textcolor{comment}{ * Operator function to be called by H5Ovisit.}
+00021 \textcolor{comment}{ */}
+00022 herr\_t op\_func (hid\_t loc\_id, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name, \textcolor{keyword}{const} \hyperlink{struct_h5_o__info__t}{H5O\_info\_t} *info,
+00023             \textcolor{keywordtype}{void} *operator\_data);
+00024 
+00025 \textcolor{comment}{/*}
+00026 \textcolor{comment}{ * Operator function to be called by H5Lvisit.}
+00027 \textcolor{comment}{ */}
+00028 herr\_t op\_func\_L (hid\_t loc\_id, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name, \textcolor{keyword}{const} \hyperlink{struct_h5_l__info__t}{H5L\_info\_t} *info,
+00029             \textcolor{keywordtype}{void} *operator\_data);
+00030 
+00031 \textcolor{keywordtype}{int}
+00032 main (\textcolor{keywordtype}{void})
+00033 \{
+00034     hid\_t           \hyperlink{structfile}{file};           \textcolor{comment}{/* Handle */}
+00035     herr\_t          status;
+00036 
+00037     \textcolor{comment}{/*}
+00038 \textcolor{comment}{     * Open file}
+00039 \textcolor{comment}{     */}
+00040     file = H5Fopen (FILE, H5F\_ACC\_RDONLY, H5P\_DEFAULT);
+00041 
+00042     \textcolor{comment}{/*}
+00043 \textcolor{comment}{     * Begin iteration using H5Ovisit}
+00044 \textcolor{comment}{     */}
+00045     printf (\textcolor{stringliteral}{"Objects in the file:\(\backslash\)n"});
+00046     status = H5Ovisit (file, H5\_INDEX\_NAME, H5\_ITER\_NATIVE, op\_func, NULL);
+00047 
+00048     \textcolor{comment}{/*}
+00049 \textcolor{comment}{     * Repeat the same process using H5Lvisit}
+00050 \textcolor{comment}{     */}
+00051     printf (\textcolor{stringliteral}{"\(\backslash\)nLinks in the file:\(\backslash\)n"});
+00052     status = H5Lvisit (file, H5\_INDEX\_NAME, H5\_ITER\_NATIVE, op\_func\_L, NULL);
+00053 
+00054     \textcolor{comment}{/*}
+00055 \textcolor{comment}{     * Close and release resources.}
+00056 \textcolor{comment}{     */}
+00057     status = H5Fclose (file);
+00058 
+00059     \textcolor{keywordflow}{return} 0;
+00060 \}
+00061 
+00062 
+00063 \textcolor{comment}{/************************************************************}
+00064 \textcolor{comment}{}
+00065 \textcolor{comment}{  Operator function for H5Ovisit.  This function prints the}
+00066 \textcolor{comment}{  name and type of the object passed to it.}
+00067 \textcolor{comment}{}
+00068 \textcolor{comment}{ ************************************************************/}
+00069 herr\_t op\_func (hid\_t loc\_id, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name, \textcolor{keyword}{const} \hyperlink{struct_h5_o__info__t}{H5O\_info\_t} *info,
+00070             \textcolor{keywordtype}{void} *operator\_data)
+00071 \{
+00072     printf (\textcolor{stringliteral}{"/"});               \textcolor{comment}{/* Print root group in object path */}
+00073 
+00074     \textcolor{comment}{/*}
+00075 \textcolor{comment}{     * Check if the current object is the root group, and if not print}
+00076 \textcolor{comment}{     * the full path name and type.}
+00077 \textcolor{comment}{     */}
+00078     \textcolor{keywordflow}{if} (name[0] == \textcolor{charliteral}{'.'})         \textcolor{comment}{/* Root group, do not print '.' */}
+00079         printf (\textcolor{stringliteral}{"  (Group)\(\backslash\)n"});
+00080     \textcolor{keywordflow}{else}
+00081         \textcolor{keywordflow}{switch} (info->type) \{
+00082             \textcolor{keywordflow}{case} H5O\_TYPE\_GROUP:
+00083                 printf (\textcolor{stringliteral}{"%s  (Group)\(\backslash\)n"}, name);
+00084                 \textcolor{keywordflow}{break};
+00085             \textcolor{keywordflow}{case} H5O\_TYPE\_DATASET:
+00086                 printf (\textcolor{stringliteral}{"%s  (Dataset)\(\backslash\)n"}, name);
+00087                 \textcolor{keywordflow}{break};
+00088             \textcolor{keywordflow}{case} H5O\_TYPE\_NAMED\_DATATYPE:
+00089                 printf (\textcolor{stringliteral}{"%s  (Datatype)\(\backslash\)n"}, name);
+00090                 \textcolor{keywordflow}{break};
+00091             \textcolor{keywordflow}{default}:
+00092                 printf (\textcolor{stringliteral}{"%s  (Unknown)\(\backslash\)n"}, name);
+00093         \}
+00094 
+00095     \textcolor{keywordflow}{return} 0;
+00096 \}
+00097 
+00098 
+00099 \textcolor{comment}{/************************************************************}
+00100 \textcolor{comment}{}
+00101 \textcolor{comment}{  Operator function for H5Lvisit.  This function simply}
+00102 \textcolor{comment}{  retrieves the info for the object the current link points}
+00103 \textcolor{comment}{  to, and calls the operator function for H5Ovisit.}
+00104 \textcolor{comment}{}
+00105 \textcolor{comment}{ ************************************************************/}
+00106 herr\_t op\_func\_L (hid\_t loc\_id, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name, \textcolor{keyword}{const} \hyperlink{struct_h5_l__info__t}{H5L\_info\_t} *info,
+00107             \textcolor{keywordtype}{void} *operator\_data)
+00108 \{
+00109     herr\_t          status;
+00110     \hyperlink{struct_h5_o__info__t}{H5O\_info\_t}      infobuf;
+00111 
+00112     \textcolor{comment}{/*}
+00113 \textcolor{comment}{     * Get type of the object and display its name and type.}
+00114 \textcolor{comment}{     * The name of the object is passed to this function by}
+00115 \textcolor{comment}{     * the Library.}
+00116 \textcolor{comment}{     */}
+00117     status = H5Oget\_info\_by\_name (loc\_id, name, &infobuf, H5P\_DEFAULT);
+00118     \textcolor{keywordflow}{return} op\_func (loc\_id, name, &infobuf, operator\_data);
+00119 \}
+\end{DoxyCode}

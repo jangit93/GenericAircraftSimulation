@@ -1,0 +1,797 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__image__patch_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/test/cxx11\+\_\+tensor\+\_\+image\+\_\+patch.cpp}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__image__patch_8cpp_source}\index{cxx11\+\_\+tensor\+\_\+image\+\_\+patch.\+cpp@{cxx11\+\_\+tensor\+\_\+image\+\_\+patch.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2014 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 \textcolor{preprocessor}{#include <Eigen/CXX11/Tensor>}
+00013 
+00014 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor};
+00015 
+00016 \textcolor{keywordtype}{void} test\_simple\_patch()
+00017 \{
+00018   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4>} tensor(2,3,5,7);
+00019   tensor.setRandom();
+00020   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, RowMajor>} tensor\_row\_major = tensor.swap\_layout();
+00021   VERIFY\_IS\_EQUAL(tensor.dimension(0), tensor\_row\_major.dimension(3));
+00022   VERIFY\_IS\_EQUAL(tensor.dimension(1), tensor\_row\_major.dimension(2));
+00023   VERIFY\_IS\_EQUAL(tensor.dimension(2), tensor\_row\_major.dimension(1));
+00024   VERIFY\_IS\_EQUAL(tensor.dimension(3), tensor\_row\_major.dimension(0));
+00025 
+00026   \textcolor{comment}{// Single pixel patch: ColMajor}
+00027   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5>} single\_pixel\_patch;
+00028   single\_pixel\_patch = tensor.extract\_image\_patches(1, 1);
+00029   VERIFY\_IS\_EQUAL(single\_pixel\_patch.dimension(0), 2);
+00030   VERIFY\_IS\_EQUAL(single\_pixel\_patch.dimension(1), 1);
+00031   VERIFY\_IS\_EQUAL(single\_pixel\_patch.dimension(2), 1);
+00032   VERIFY\_IS\_EQUAL(single\_pixel\_patch.dimension(3), 3*5);
+00033   VERIFY\_IS\_EQUAL(single\_pixel\_patch.dimension(4), 7);
+00034 
+00035   \textcolor{comment}{// Single pixel patch: RowMajor}
+00036   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, RowMajor>} single\_pixel\_patch\_row\_major;
+00037   single\_pixel\_patch\_row\_major = tensor\_row\_major.extract\_image\_patches(1, 1);
+00038   VERIFY\_IS\_EQUAL(single\_pixel\_patch\_row\_major.dimension(0), 7);
+00039   VERIFY\_IS\_EQUAL(single\_pixel\_patch\_row\_major.dimension(1), 3*5);
+00040   VERIFY\_IS\_EQUAL(single\_pixel\_patch\_row\_major.dimension(2), 1);
+00041   VERIFY\_IS\_EQUAL(single\_pixel\_patch\_row\_major.dimension(3), 1);
+00042   VERIFY\_IS\_EQUAL(single\_pixel\_patch\_row\_major.dimension(4), 2);
+00043 
+00044   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < tensor.size(); ++i) \{
+00045     \textcolor{comment}{// ColMajor}
+00046     \textcolor{keywordflow}{if} (tensor.data()[i] != single\_pixel\_patch.data()[i]) \{
+00047       std::cout << \textcolor{stringliteral}{"Mismatch detected at index "} << i << \textcolor{stringliteral}{" : "}
+00048            << tensor.data()[i] << \textcolor{stringliteral}{" vs "} << single\_pixel\_patch.data()[i]
+00049            << std::endl;
+00050     \}
+00051     VERIFY\_IS\_EQUAL(single\_pixel\_patch.data()[i], tensor.data()[i]);
+00052     \textcolor{comment}{// RowMajor}
+00053     \textcolor{keywordflow}{if} (tensor\_row\_major.data()[i] != single\_pixel\_patch\_row\_major.data()[i]) \{
+00054       std::cout << \textcolor{stringliteral}{"Mismatch detected at index "} << i << \textcolor{stringliteral}{" : "}
+00055            << tensor.data()[i] << \textcolor{stringliteral}{" vs "}
+00056            << single\_pixel\_patch\_row\_major.data()[i] << std::endl;
+00057     \}
+00058     VERIFY\_IS\_EQUAL(single\_pixel\_patch\_row\_major.data()[i],
+00059                     tensor\_row\_major.data()[i]);
+00060     VERIFY\_IS\_EQUAL(tensor.data()[i], tensor\_row\_major.data()[i]);
+00061     VERIFY\_IS\_EQUAL(single\_pixel\_patch.data()[i],
+00062                     single\_pixel\_patch\_row\_major.data()[i]);
+00063   \}
+00064 
+00065   \textcolor{comment}{// Entire image patch: ColMajor}
+00066   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5>} entire\_image\_patch;
+00067   entire\_image\_patch = tensor.extract\_image\_patches(3, 5);
+00068   VERIFY\_IS\_EQUAL(entire\_image\_patch.dimension(0), 2);
+00069   VERIFY\_IS\_EQUAL(entire\_image\_patch.dimension(1), 3);
+00070   VERIFY\_IS\_EQUAL(entire\_image\_patch.dimension(2), 5);
+00071   VERIFY\_IS\_EQUAL(entire\_image\_patch.dimension(3), 3*5);
+00072   VERIFY\_IS\_EQUAL(entire\_image\_patch.dimension(4), 7);
+00073 
+00074   \textcolor{comment}{// Entire image patch: RowMajor}
+00075   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, RowMajor>} entire\_image\_patch\_row\_major;
+00076   entire\_image\_patch\_row\_major = tensor\_row\_major.extract\_image\_patches(3, 5);
+00077   VERIFY\_IS\_EQUAL(entire\_image\_patch\_row\_major.dimension(0), 7);
+00078   VERIFY\_IS\_EQUAL(entire\_image\_patch\_row\_major.dimension(1), 3*5);
+00079   VERIFY\_IS\_EQUAL(entire\_image\_patch\_row\_major.dimension(2), 5);
+00080   VERIFY\_IS\_EQUAL(entire\_image\_patch\_row\_major.dimension(3), 3);
+00081   VERIFY\_IS\_EQUAL(entire\_image\_patch\_row\_major.dimension(4), 2);
+00082 
+00083   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 3; ++i) \{
+00084     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 5; ++j) \{
+00085       \textcolor{keywordtype}{int} patchId = i+3*j;
+00086       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} r = 0; r < 3; ++r) \{
+00087         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} c = 0; c < 5; ++c) \{
+00088           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = 0; d < 2; ++d) \{
+00089             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} b = 0; b < 7; ++b) \{
+00090               \textcolor{keywordtype}{float} expected = 0.0f;
+00091               \textcolor{keywordtype}{float} expected\_row\_major = 0.0f;
+00092               \textcolor{keywordflow}{if} (r-1+i >= 0 && c-2+j >= 0 && r-1+i < 3 && c-2+j < 5) \{
+00093                 expected = tensor(d, r-1+i, c-2+j, b);
+00094                 expected\_row\_major = tensor\_row\_major(b, c-2+j, r-1+i, d);
+00095               \}
+00096               \textcolor{comment}{// ColMajor}
+00097               \textcolor{keywordflow}{if} (entire\_image\_patch(d, r, c, patchId, b) != expected) \{
+00098                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c
+       << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b << std::endl;
+00099               \}
+00100               VERIFY\_IS\_EQUAL(entire\_image\_patch(d, r, c, patchId, b), expected);
+00101               \textcolor{comment}{// RowMajor}
+00102               \textcolor{keywordflow}{if} (entire\_image\_patch\_row\_major(b, patchId, c, r, d) !=
+00103                   expected\_row\_major) \{
+00104                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j
+00105                      << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b
+00106                      << std::endl;
+00107               \}
+00108               VERIFY\_IS\_EQUAL(entire\_image\_patch\_row\_major(b, patchId, c, r, d),
+00109                               expected\_row\_major);
+00110               \textcolor{comment}{// Check that ColMajor and RowMajor agree.}
+00111               VERIFY\_IS\_EQUAL(expected, expected\_row\_major);
+00112             \}
+00113           \}
+00114         \}
+00115       \}
+00116     \}
+00117   \}
+00118 
+00119   \textcolor{comment}{// 2D patch: ColMajor}
+00120   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5>} twod\_patch;
+00121   twod\_patch = tensor.extract\_image\_patches(2, 2);
+00122   VERIFY\_IS\_EQUAL(twod\_patch.dimension(0), 2);
+00123   VERIFY\_IS\_EQUAL(twod\_patch.dimension(1), 2);
+00124   VERIFY\_IS\_EQUAL(twod\_patch.dimension(2), 2);
+00125   VERIFY\_IS\_EQUAL(twod\_patch.dimension(3), 3*5);
+00126   VERIFY\_IS\_EQUAL(twod\_patch.dimension(4), 7);
+00127 
+00128   \textcolor{comment}{// 2D patch: RowMajor}
+00129   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, RowMajor>} twod\_patch\_row\_major;
+00130   twod\_patch\_row\_major = tensor\_row\_major.extract\_image\_patches(2, 2);
+00131   VERIFY\_IS\_EQUAL(twod\_patch\_row\_major.dimension(0), 7);
+00132   VERIFY\_IS\_EQUAL(twod\_patch\_row\_major.dimension(1), 3*5);
+00133   VERIFY\_IS\_EQUAL(twod\_patch\_row\_major.dimension(2), 2);
+00134   VERIFY\_IS\_EQUAL(twod\_patch\_row\_major.dimension(3), 2);
+00135   VERIFY\_IS\_EQUAL(twod\_patch\_row\_major.dimension(4), 2);
+00136 
+00137 
+00138   \textcolor{comment}{// Based on the calculation described in TensorTraits.h, padding happens to be 0.}
+00139   \textcolor{keywordtype}{int} row\_padding = 0;
+00140   \textcolor{keywordtype}{int} col\_padding = 0;
+00141   \textcolor{keywordtype}{int} stride = 1;
+00142 
+00143   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 3; ++i) \{
+00144     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 5; ++j) \{
+00145       \textcolor{keywordtype}{int} patchId = i+3*j;
+00146       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} r = 0; r < 2; ++r) \{
+00147         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} c = 0; c < 2; ++c) \{
+00148           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = 0; d < 2; ++d) \{
+00149             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} b = 0; b < 7; ++b) \{
+00150               \textcolor{keywordtype}{float} expected = 0.0f;
+00151               \textcolor{keywordtype}{float} expected\_row\_major = 0.0f;
+00152               \textcolor{keywordtype}{int} row\_offset = r*stride + i - row\_padding;
+00153               \textcolor{keywordtype}{int} col\_offset = c*stride + j - col\_padding;
+00154               \textcolor{comment}{// ColMajor}
+00155               \textcolor{keywordflow}{if} (row\_offset >= 0 && col\_offset >= 0 && row\_offset < tensor.dimension(1) && col\_offset < 
+      tensor.dimension(2)) \{
+00156                 expected = tensor(d, row\_offset, col\_offset, b);
+00157               \}
+00158               \textcolor{keywordflow}{if} (twod\_patch(d, r, c, patchId, b) != expected) \{
+00159                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c
+       << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b << std::endl;
+00160               \}
+00161               VERIFY\_IS\_EQUAL(twod\_patch(d, r, c, patchId, b), expected);
+00162 
+00163               \textcolor{comment}{// RowMajor}
+00164               \textcolor{keywordflow}{if} (row\_offset >= 0 && col\_offset >= 0 && row\_offset < tensor\_row\_major.dimension(2) && 
+      col\_offset < tensor\_row\_major.dimension(1)) \{
+00165                 expected\_row\_major = tensor\_row\_major(b, col\_offset, row\_offset, d);
+00166 
+00167               \}
+00168               \textcolor{keywordflow}{if} (twod\_patch\_row\_major(b, patchId, c, r, d) != expected\_row\_major) \{
+00169                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c
+       << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b << std::endl;
+00170               \}
+00171               VERIFY\_IS\_EQUAL(twod\_patch\_row\_major(b, patchId, c, r, d), expected\_row\_major);
+00172               \textcolor{comment}{// Check that ColMajor and RowMajor agree.}
+00173               VERIFY\_IS\_EQUAL(expected, expected\_row\_major);
+00174             \}
+00175           \}
+00176         \}
+00177       \}
+00178     \}
+00179   \}
+00180 \}
+00181 
+00182 \textcolor{comment}{// Verifies VALID padding (no padding) with incrementing values.}
+00183 \textcolor{keywordtype}{void} test\_patch\_padding\_valid()
+00184 \{
+00185   \textcolor{keywordtype}{int} input\_depth = 3;
+00186   \textcolor{keywordtype}{int} input\_rows = 3;
+00187   \textcolor{keywordtype}{int} input\_cols = 3;
+00188   \textcolor{keywordtype}{int} input\_batches = 1;
+00189   \textcolor{keywordtype}{int} ksize = 2;  \textcolor{comment}{// Corresponds to the Rows and Cols for tensor.extract\_image\_patches<>.}
+00190   \textcolor{keywordtype}{int} stride = 2;  \textcolor{comment}{// Only same stride is supported.}
+00191   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4>} tensor(input\_depth, input\_rows, input\_cols, input\_batches);
+00192   \textcolor{comment}{// Initializes tensor with incrementing numbers.}
+00193   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < tensor.size(); ++i) \{
+00194     tensor.data()[i] = i + 1;
+00195   \}
+00196   \textcolor{comment}{// ColMajor}
+00197   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5>} result = tensor.extract\_image\_patches(ksize, ksize, stride, stride, 1, 1
+      , PADDING\_VALID);
+00198 
+00199   VERIFY\_IS\_EQUAL(result.dimension(0), input\_depth);  \textcolor{comment}{// depth}
+00200   VERIFY\_IS\_EQUAL(result.dimension(1), ksize);  \textcolor{comment}{// kernel rows}
+00201   VERIFY\_IS\_EQUAL(result.dimension(2), ksize);  \textcolor{comment}{// kernel cols}
+00202   VERIFY\_IS\_EQUAL(result.dimension(3), 1);  \textcolor{comment}{// number of patches}
+00203   VERIFY\_IS\_EQUAL(result.dimension(4), input\_batches);  \textcolor{comment}{// number of batches}
+00204 
+00205   \textcolor{comment}{// RowMajor}
+00206   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, RowMajor>} tensor\_row\_major = tensor.swap\_layout();
+00207   VERIFY\_IS\_EQUAL(tensor.dimension(0), tensor\_row\_major.dimension(3));
+00208   VERIFY\_IS\_EQUAL(tensor.dimension(1), tensor\_row\_major.dimension(2));
+00209   VERIFY\_IS\_EQUAL(tensor.dimension(2), tensor\_row\_major.dimension(1));
+00210   VERIFY\_IS\_EQUAL(tensor.dimension(3), tensor\_row\_major.dimension(0));
+00211 
+00212   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, RowMajor>} result\_row\_major = tensor\_row\_major.
+      extract\_image\_patches(ksize, ksize, stride, stride, 1, 1, PADDING\_VALID);
+00213   VERIFY\_IS\_EQUAL(result.dimension(0), result\_row\_major.dimension(4));
+00214   VERIFY\_IS\_EQUAL(result.dimension(1), result\_row\_major.dimension(3));
+00215   VERIFY\_IS\_EQUAL(result.dimension(2), result\_row\_major.dimension(2));
+00216   VERIFY\_IS\_EQUAL(result.dimension(3), result\_row\_major.dimension(1));
+00217   VERIFY\_IS\_EQUAL(result.dimension(4), result\_row\_major.dimension(0));
+00218 
+00219   \textcolor{comment}{// No padding is carried out.}
+00220   \textcolor{keywordtype}{int} row\_padding = 0;
+00221   \textcolor{keywordtype}{int} col\_padding = 0;
+00222 
+00223   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; (i+stride+ksize-1) < input\_rows; i += stride) \{  \textcolor{comment}{// input rows}
+00224     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; (j+stride+ksize-1) < input\_cols; j += stride) \{  \textcolor{comment}{// input cols}
+00225       \textcolor{keywordtype}{int} patchId = i+input\_rows*j;
+00226       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} r = 0; r < ksize; ++r) \{  \textcolor{comment}{// patch rows}
+00227         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} c = 0; c < ksize; ++c) \{  \textcolor{comment}{// patch cols}
+00228           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = 0; d < input\_depth; ++d) \{  \textcolor{comment}{// depth}
+00229             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} b = 0; b < input\_batches; ++b) \{  \textcolor{comment}{// batch}
+00230               \textcolor{keywordtype}{float} expected = 0.0f;
+00231               \textcolor{keywordtype}{float} expected\_row\_major = 0.0f;
+00232               \textcolor{keywordtype}{int} row\_offset = r + i - row\_padding;
+00233               \textcolor{keywordtype}{int} col\_offset = c + j - col\_padding;
+00234               \textcolor{keywordflow}{if} (row\_offset >= 0 && col\_offset >= 0 && row\_offset < input\_rows && col\_offset < input\_cols)
+       \{
+00235                 expected = tensor(d, row\_offset, col\_offset, b);
+00236                 expected\_row\_major = tensor\_row\_major(b, col\_offset, row\_offset, d);
+00237               \}
+00238               \textcolor{comment}{// ColMajor}
+00239               \textcolor{keywordflow}{if} (result(d, r, c, patchId, b) != expected) \{
+00240                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c
+       << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b << std::endl;
+00241               \}
+00242               VERIFY\_IS\_EQUAL(result(d, r, c, patchId, b), expected);
+00243               \textcolor{comment}{// RowMajor}
+00244               \textcolor{keywordflow}{if} (result\_row\_major(b, patchId, c, r, d) != expected\_row\_major) \{
+00245                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c
+       << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b << std::endl;
+00246               \}
+00247               VERIFY\_IS\_EQUAL(result\_row\_major(b, patchId, c, r, d), expected\_row\_major);
+00248               \textcolor{comment}{// Check that ColMajor and RowMajor agree.}
+00249               VERIFY\_IS\_EQUAL(expected, expected\_row\_major);
+00250             \}
+00251           \}
+00252         \}
+00253       \}
+00254     \}
+00255   \}
+00256 \}
+00257 
+00258 \textcolor{comment}{// Verifies VALID padding (no padding) with the same value.}
+00259 \textcolor{keywordtype}{void} test\_patch\_padding\_valid\_same\_value()
+00260 \{
+00261   \textcolor{keywordtype}{int} input\_depth = 1;
+00262   \textcolor{keywordtype}{int} input\_rows = 5;
+00263   \textcolor{keywordtype}{int} input\_cols = 5;
+00264   \textcolor{keywordtype}{int} input\_batches = 2;
+00265   \textcolor{keywordtype}{int} ksize = 3;  \textcolor{comment}{// Corresponds to the Rows and Cols for tensor.extract\_image\_patches<>.}
+00266   \textcolor{keywordtype}{int} stride = 2;  \textcolor{comment}{// Only same stride is supported.}
+00267   \textcolor{comment}{// ColMajor}
+00268   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4>} tensor(input\_depth, input\_rows, input\_cols, input\_batches);
+00269   tensor = tensor.constant(11.0f);
+00270   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5>} result = tensor.extract\_image\_patches(ksize, ksize, stride, stride, 1, 1
+      , PADDING\_VALID);
+00271 
+00272   VERIFY\_IS\_EQUAL(result.dimension(0), input\_depth);  \textcolor{comment}{// depth}
+00273   VERIFY\_IS\_EQUAL(result.dimension(1), ksize);  \textcolor{comment}{// kernel rows}
+00274   VERIFY\_IS\_EQUAL(result.dimension(2), ksize);  \textcolor{comment}{// kernel cols}
+00275   VERIFY\_IS\_EQUAL(result.dimension(3), 4);  \textcolor{comment}{// number of patches}
+00276   VERIFY\_IS\_EQUAL(result.dimension(4), input\_batches);  \textcolor{comment}{// number of batches}
+00277 
+00278   \textcolor{comment}{// RowMajor}
+00279   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, RowMajor>} tensor\_row\_major = tensor.swap\_layout();
+00280   VERIFY\_IS\_EQUAL(tensor.dimension(0), tensor\_row\_major.dimension(3));
+00281   VERIFY\_IS\_EQUAL(tensor.dimension(1), tensor\_row\_major.dimension(2));
+00282   VERIFY\_IS\_EQUAL(tensor.dimension(2), tensor\_row\_major.dimension(1));
+00283   VERIFY\_IS\_EQUAL(tensor.dimension(3), tensor\_row\_major.dimension(0));
+00284 
+00285   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, RowMajor>} result\_row\_major = tensor\_row\_major.
+      extract\_image\_patches(ksize, ksize, stride, stride, 1, 1, PADDING\_VALID);
+00286   VERIFY\_IS\_EQUAL(result.dimension(0), result\_row\_major.dimension(4));
+00287   VERIFY\_IS\_EQUAL(result.dimension(1), result\_row\_major.dimension(3));
+00288   VERIFY\_IS\_EQUAL(result.dimension(2), result\_row\_major.dimension(2));
+00289   VERIFY\_IS\_EQUAL(result.dimension(3), result\_row\_major.dimension(1));
+00290   VERIFY\_IS\_EQUAL(result.dimension(4), result\_row\_major.dimension(0));
+00291 
+00292   \textcolor{comment}{// No padding is carried out.}
+00293   \textcolor{keywordtype}{int} row\_padding = 0;
+00294   \textcolor{keywordtype}{int} col\_padding = 0;
+00295 
+00296   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; (i+stride+ksize-1) <= input\_rows; i += stride) \{  \textcolor{comment}{// input rows}
+00297     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; (j+stride+ksize-1) <= input\_cols; j += stride) \{  \textcolor{comment}{// input cols}
+00298       \textcolor{keywordtype}{int} patchId = i+input\_rows*j;
+00299       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} r = 0; r < ksize; ++r) \{  \textcolor{comment}{// patch rows}
+00300         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} c = 0; c < ksize; ++c) \{  \textcolor{comment}{// patch cols}
+00301           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = 0; d < input\_depth; ++d) \{  \textcolor{comment}{// depth}
+00302             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} b = 0; b < input\_batches; ++b) \{  \textcolor{comment}{// batch}
+00303               \textcolor{keywordtype}{float} expected = 0.0f;
+00304               \textcolor{keywordtype}{float} expected\_row\_major = 0.0f;
+00305               \textcolor{keywordtype}{int} row\_offset = r + i - row\_padding;
+00306               \textcolor{keywordtype}{int} col\_offset = c + j - col\_padding;
+00307               \textcolor{keywordflow}{if} (row\_offset >= 0 && col\_offset >= 0 && row\_offset < input\_rows && col\_offset < input\_cols)
+       \{
+00308                 expected = tensor(d, row\_offset, col\_offset, b);
+00309                 expected\_row\_major = tensor\_row\_major(b, col\_offset, row\_offset, d);
+00310               \}
+00311               \textcolor{comment}{// ColMajor}
+00312               \textcolor{keywordflow}{if} (result(d, r, c, patchId, b) != expected) \{
+00313                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c
+       << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b << std::endl;
+00314               \}
+00315               VERIFY\_IS\_EQUAL(result(d, r, c, patchId, b), expected);
+00316               \textcolor{comment}{// RowMajor}
+00317               \textcolor{keywordflow}{if} (result\_row\_major(b, patchId, c, r, d) != expected\_row\_major) \{
+00318                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c
+       << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b << std::endl;
+00319               \}
+00320               VERIFY\_IS\_EQUAL(result\_row\_major(b, patchId, c, r, d), expected\_row\_major);
+00321               \textcolor{comment}{// Check that ColMajor and RowMajor agree.}
+00322               VERIFY\_IS\_EQUAL(expected, expected\_row\_major);
+00323             \}
+00324           \}
+00325         \}
+00326       \}
+00327     \}
+00328   \}
+00329 \}
+00330 
+00331 \textcolor{comment}{// Verifies SAME padding.}
+00332 \textcolor{keywordtype}{void} test\_patch\_padding\_same()
+00333 \{
+00334   \textcolor{keywordtype}{int} input\_depth = 3;
+00335   \textcolor{keywordtype}{int} input\_rows = 4;
+00336   \textcolor{keywordtype}{int} input\_cols = 2;
+00337   \textcolor{keywordtype}{int} input\_batches = 1;
+00338   \textcolor{keywordtype}{int} ksize = 2;  \textcolor{comment}{// Corresponds to the Rows and Cols for tensor.extract\_image\_patches<>.}
+00339   \textcolor{keywordtype}{int} stride = 2;  \textcolor{comment}{// Only same stride is supported.}
+00340   \textcolor{comment}{// ColMajor}
+00341   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4>} tensor(input\_depth, input\_rows, input\_cols, input\_batches);
+00342   \textcolor{comment}{// Initializes tensor with incrementing numbers.}
+00343   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < tensor.size(); ++i) \{
+00344     tensor.data()[i] = i + 1;
+00345   \}
+00346   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5>} result = tensor.extract\_image\_patches(ksize, ksize, stride, stride, 
+      PADDING\_SAME);
+00347 
+00348   VERIFY\_IS\_EQUAL(result.dimension(0), input\_depth);  \textcolor{comment}{// depth}
+00349   VERIFY\_IS\_EQUAL(result.dimension(1), ksize);  \textcolor{comment}{// kernel rows}
+00350   VERIFY\_IS\_EQUAL(result.dimension(2), ksize);  \textcolor{comment}{// kernel cols}
+00351   VERIFY\_IS\_EQUAL(result.dimension(3), 2);  \textcolor{comment}{// number of patches}
+00352   VERIFY\_IS\_EQUAL(result.dimension(4), input\_batches);  \textcolor{comment}{// number of batches}
+00353 
+00354   \textcolor{comment}{// RowMajor}
+00355   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, RowMajor>} tensor\_row\_major = tensor.swap\_layout();
+00356   VERIFY\_IS\_EQUAL(tensor.dimension(0), tensor\_row\_major.dimension(3));
+00357   VERIFY\_IS\_EQUAL(tensor.dimension(1), tensor\_row\_major.dimension(2));
+00358   VERIFY\_IS\_EQUAL(tensor.dimension(2), tensor\_row\_major.dimension(1));
+00359   VERIFY\_IS\_EQUAL(tensor.dimension(3), tensor\_row\_major.dimension(0));
+00360 
+00361   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, RowMajor>} result\_row\_major = tensor\_row\_major.
+      extract\_image\_patches(ksize, ksize, stride, stride, PADDING\_SAME);
+00362   VERIFY\_IS\_EQUAL(result.dimension(0), result\_row\_major.dimension(4));
+00363   VERIFY\_IS\_EQUAL(result.dimension(1), result\_row\_major.dimension(3));
+00364   VERIFY\_IS\_EQUAL(result.dimension(2), result\_row\_major.dimension(2));
+00365   VERIFY\_IS\_EQUAL(result.dimension(3), result\_row\_major.dimension(1));
+00366   VERIFY\_IS\_EQUAL(result.dimension(4), result\_row\_major.dimension(0));
+00367 
+00368   \textcolor{comment}{// Based on the calculation described in TensorTraits.h, padding happens to be}
+00369   \textcolor{comment}{// 0.}
+00370   \textcolor{keywordtype}{int} row\_padding = 0;
+00371   \textcolor{keywordtype}{int} col\_padding = 0;
+00372 
+00373   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; (i+stride+ksize-1) <= input\_rows; i += stride) \{  \textcolor{comment}{// input rows}
+00374     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; (j+stride+ksize-1) <= input\_cols; j += stride) \{  \textcolor{comment}{// input cols}
+00375       \textcolor{keywordtype}{int} patchId = i+input\_rows*j;
+00376       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} r = 0; r < ksize; ++r) \{  \textcolor{comment}{// patch rows}
+00377         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} c = 0; c < ksize; ++c) \{  \textcolor{comment}{// patch cols}
+00378           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = 0; d < input\_depth; ++d) \{  \textcolor{comment}{// depth}
+00379             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} b = 0; b < input\_batches; ++b) \{  \textcolor{comment}{// batch}
+00380               \textcolor{keywordtype}{float} expected = 0.0f;
+00381               \textcolor{keywordtype}{float} expected\_row\_major = 0.0f;
+00382               \textcolor{keywordtype}{int} row\_offset = r*stride + i - row\_padding;
+00383               \textcolor{keywordtype}{int} col\_offset = c*stride + j - col\_padding;
+00384               \textcolor{keywordflow}{if} (row\_offset >= 0 && col\_offset >= 0 && row\_offset < input\_rows && col\_offset < input\_cols)
+       \{
+00385                 expected = tensor(d, row\_offset, col\_offset, b);
+00386                 expected\_row\_major = tensor\_row\_major(b, col\_offset, row\_offset, d);
+00387               \}
+00388               \textcolor{comment}{// ColMajor}
+00389               \textcolor{keywordflow}{if} (result(d, r, c, patchId, b) != expected) \{
+00390                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c
+       << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b << std::endl;
+00391               \}
+00392               VERIFY\_IS\_EQUAL(result(d, r, c, patchId, b), expected);
+00393               \textcolor{comment}{// RowMajor}
+00394               \textcolor{keywordflow}{if} (result\_row\_major(b, patchId, c, r, d) != expected\_row\_major) \{
+00395                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c
+       << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b << std::endl;
+00396               \}
+00397               VERIFY\_IS\_EQUAL(result\_row\_major(b, patchId, c, r, d), expected\_row\_major);
+00398               \textcolor{comment}{// Check that ColMajor and RowMajor agree.}
+00399               VERIFY\_IS\_EQUAL(expected, expected\_row\_major);
+00400             \}
+00401           \}
+00402         \}
+00403       \}
+00404     \}
+00405   \}
+00406 \}
+00407 
+00408 \textcolor{keywordtype}{void} test\_patch\_no\_extra\_dim()
+00409 \{
+00410   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>} tensor(2,3,5);
+00411   tensor.setRandom();
+00412   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3, RowMajor>} tensor\_row\_major = tensor.swap\_layout();
+00413   VERIFY\_IS\_EQUAL(tensor.dimension(0), tensor\_row\_major.dimension(2));
+00414   VERIFY\_IS\_EQUAL(tensor.dimension(1), tensor\_row\_major.dimension(1));
+00415   VERIFY\_IS\_EQUAL(tensor.dimension(2), tensor\_row\_major.dimension(0));
+00416 
+00417   \textcolor{comment}{// Single pixel patch: ColMajor}
+00418   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4>} single\_pixel\_patch;
+00419   single\_pixel\_patch = tensor.extract\_image\_patches(1, 1);
+00420   VERIFY\_IS\_EQUAL(single\_pixel\_patch.dimension(0), 2);
+00421   VERIFY\_IS\_EQUAL(single\_pixel\_patch.dimension(1), 1);
+00422   VERIFY\_IS\_EQUAL(single\_pixel\_patch.dimension(2), 1);
+00423   VERIFY\_IS\_EQUAL(single\_pixel\_patch.dimension(3), 3*5);
+00424 
+00425   \textcolor{comment}{// Single pixel patch: RowMajor}
+00426   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, RowMajor>} single\_pixel\_patch\_row\_major;
+00427   single\_pixel\_patch\_row\_major = tensor\_row\_major.extract\_image\_patches(1, 1);
+00428   VERIFY\_IS\_EQUAL(single\_pixel\_patch\_row\_major.dimension(0), 3*5);
+00429   VERIFY\_IS\_EQUAL(single\_pixel\_patch\_row\_major.dimension(1), 1);
+00430   VERIFY\_IS\_EQUAL(single\_pixel\_patch\_row\_major.dimension(2), 1);
+00431   VERIFY\_IS\_EQUAL(single\_pixel\_patch\_row\_major.dimension(3), 2);
+00432 
+00433   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < tensor.size(); ++i) \{
+00434     \textcolor{comment}{// ColMajor}
+00435     \textcolor{keywordflow}{if} (tensor.data()[i] != single\_pixel\_patch.data()[i]) \{
+00436       std::cout << \textcolor{stringliteral}{"Mismatch detected at index "} << i << \textcolor{stringliteral}{" : "} << tensor.data()[i] << \textcolor{stringliteral}{" vs "} << 
+      single\_pixel\_patch.data()[i] << std::endl;
+00437     \}
+00438     VERIFY\_IS\_EQUAL(single\_pixel\_patch.data()[i], tensor.data()[i]);
+00439     \textcolor{comment}{// RowMajor}
+00440     \textcolor{keywordflow}{if} (tensor\_row\_major.data()[i] != single\_pixel\_patch\_row\_major.data()[i]) \{
+00441       std::cout << \textcolor{stringliteral}{"Mismatch detected at index "} << i << \textcolor{stringliteral}{" : "}
+00442            << tensor.data()[i] << \textcolor{stringliteral}{" vs "}
+00443            << single\_pixel\_patch\_row\_major.data()[i] << std::endl;
+00444     \}
+00445     VERIFY\_IS\_EQUAL(single\_pixel\_patch\_row\_major.data()[i],
+00446                     tensor\_row\_major.data()[i]);
+00447     VERIFY\_IS\_EQUAL(tensor.data()[i], tensor\_row\_major.data()[i]);
+00448     VERIFY\_IS\_EQUAL(single\_pixel\_patch.data()[i],
+00449                     single\_pixel\_patch\_row\_major.data()[i]);
+00450   \}
+00451 
+00452   \textcolor{comment}{// Entire image patch: ColMajor}
+00453   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4>} entire\_image\_patch;
+00454   entire\_image\_patch = tensor.extract\_image\_patches(3, 5);
+00455   VERIFY\_IS\_EQUAL(entire\_image\_patch.dimension(0), 2);
+00456   VERIFY\_IS\_EQUAL(entire\_image\_patch.dimension(1), 3);
+00457   VERIFY\_IS\_EQUAL(entire\_image\_patch.dimension(2), 5);
+00458   VERIFY\_IS\_EQUAL(entire\_image\_patch.dimension(3), 3*5);
+00459 
+00460   \textcolor{comment}{// Entire image patch: RowMajor}
+00461   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, RowMajor>} entire\_image\_patch\_row\_major;
+00462   entire\_image\_patch\_row\_major = tensor\_row\_major.extract\_image\_patches(3, 5);
+00463   VERIFY\_IS\_EQUAL(entire\_image\_patch\_row\_major.dimension(0), 3*5);
+00464   VERIFY\_IS\_EQUAL(entire\_image\_patch\_row\_major.dimension(1), 5);
+00465   VERIFY\_IS\_EQUAL(entire\_image\_patch\_row\_major.dimension(2), 3);
+00466   VERIFY\_IS\_EQUAL(entire\_image\_patch\_row\_major.dimension(3), 2);
+00467 
+00468   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 3; ++i) \{
+00469     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 5; ++j) \{
+00470       \textcolor{keywordtype}{int} patchId = i+3*j;
+00471       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} r = 0; r < 3; ++r) \{
+00472         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} c = 0; c < 5; ++c) \{
+00473           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = 0; d < 2; ++d) \{
+00474             \textcolor{keywordtype}{float} expected = 0.0f;
+00475             \textcolor{keywordtype}{float} expected\_row\_major = 0.0f;
+00476             \textcolor{keywordflow}{if} (r-1+i >= 0 && c-2+j >= 0 && r-1+i < 3 && c-2+j < 5) \{
+00477               expected = tensor(d, r-1+i, c-2+j);
+00478               expected\_row\_major = tensor\_row\_major(c-2+j, r-1+i, d);
+00479             \}
+00480             \textcolor{comment}{// ColMajor}
+00481             \textcolor{keywordflow}{if} (entire\_image\_patch(d, r, c, patchId) != expected) \{
+00482               std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c <
+      < \textcolor{stringliteral}{" d="} << d << std::endl;
+00483             \}
+00484             VERIFY\_IS\_EQUAL(entire\_image\_patch(d, r, c, patchId), expected);
+00485             \textcolor{comment}{// RowMajor}
+00486             \textcolor{keywordflow}{if} (entire\_image\_patch\_row\_major(patchId, c, r, d) !=
+00487                 expected\_row\_major) \{
+00488               std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c <
+      < \textcolor{stringliteral}{" d="} << d << std::endl;
+00489             \}
+00490             VERIFY\_IS\_EQUAL(entire\_image\_patch\_row\_major(patchId, c, r, d),
+00491                             expected\_row\_major);
+00492             \textcolor{comment}{// Check that ColMajor and RowMajor agree.}
+00493             VERIFY\_IS\_EQUAL(expected, expected\_row\_major);
+00494           \}
+00495         \}
+00496       \}
+00497     \}
+00498   \}
+00499 
+00500   \textcolor{comment}{// 2D patch: ColMajor}
+00501   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4>} twod\_patch;
+00502   twod\_patch = tensor.extract\_image\_patches(2, 2);
+00503   VERIFY\_IS\_EQUAL(twod\_patch.dimension(0), 2);
+00504   VERIFY\_IS\_EQUAL(twod\_patch.dimension(1), 2);
+00505   VERIFY\_IS\_EQUAL(twod\_patch.dimension(2), 2);
+00506   VERIFY\_IS\_EQUAL(twod\_patch.dimension(3), 3*5);
+00507 
+00508   \textcolor{comment}{// 2D patch: RowMajor}
+00509   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, RowMajor>} twod\_patch\_row\_major;
+00510   twod\_patch\_row\_major = tensor\_row\_major.extract\_image\_patches(2, 2);
+00511   VERIFY\_IS\_EQUAL(twod\_patch\_row\_major.dimension(0), 3*5);
+00512   VERIFY\_IS\_EQUAL(twod\_patch\_row\_major.dimension(1), 2);
+00513   VERIFY\_IS\_EQUAL(twod\_patch\_row\_major.dimension(2), 2);
+00514   VERIFY\_IS\_EQUAL(twod\_patch\_row\_major.dimension(3), 2);
+00515 
+00516   \textcolor{comment}{// Based on the calculation described in TensorTraits.h, padding happens to be 0.}
+00517   \textcolor{keywordtype}{int} row\_padding = 0;
+00518   \textcolor{keywordtype}{int} col\_padding = 0;
+00519   \textcolor{keywordtype}{int} stride = 1;
+00520 
+00521   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 3; ++i) \{
+00522     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 5; ++j) \{
+00523       \textcolor{keywordtype}{int} patchId = i+3*j;
+00524       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} r = 0; r < 2; ++r) \{
+00525         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} c = 0; c < 2; ++c) \{
+00526           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = 0; d < 2; ++d) \{
+00527             \textcolor{keywordtype}{float} expected = 0.0f;
+00528             \textcolor{keywordtype}{float} expected\_row\_major = 0.0f;
+00529             \textcolor{keywordtype}{int} row\_offset = r*stride + i - row\_padding;
+00530             \textcolor{keywordtype}{int} col\_offset = c*stride + j - col\_padding;
+00531             \textcolor{comment}{// ColMajor}
+00532             \textcolor{keywordflow}{if} (row\_offset >= 0 && col\_offset >= 0 && row\_offset < tensor.dimension(1) && col\_offset < 
+      tensor.dimension(2)) \{
+00533               expected = tensor(d, row\_offset, col\_offset);
+00534             \}
+00535             \textcolor{keywordflow}{if} (twod\_patch(d, r, c, patchId) != expected) \{
+00536               std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c <
+      < \textcolor{stringliteral}{" d="} << d << std::endl;
+00537             \}
+00538             VERIFY\_IS\_EQUAL(twod\_patch(d, r, c, patchId), expected);
+00539             \textcolor{comment}{// RowMajor}
+00540             \textcolor{keywordflow}{if} (row\_offset >= 0 && col\_offset >= 0 && row\_offset < tensor\_row\_major.dimension(1) && 
+      col\_offset < tensor\_row\_major.dimension(0)) \{
+00541               expected\_row\_major = tensor\_row\_major(col\_offset, row\_offset, d);
+00542             \}
+00543             \textcolor{keywordflow}{if} (twod\_patch\_row\_major(patchId, c, r, d) != expected\_row\_major) \{
+00544               std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c <
+      < \textcolor{stringliteral}{" d="} << d << std::endl;
+00545             \}
+00546             VERIFY\_IS\_EQUAL(twod\_patch\_row\_major(patchId, c, r, d), expected\_row\_major);
+00547             \textcolor{comment}{// Check that ColMajor and RowMajor agree.}
+00548             VERIFY\_IS\_EQUAL(expected, expected\_row\_major);
+00549           \}
+00550         \}
+00551       \}
+00552     \}
+00553   \}
+00554 \}
+00555 
+00556 \textcolor{keywordtype}{void} test\_imagenet\_patches()
+00557 \{
+00558   \textcolor{comment}{// Test the code on typical configurations used by the 'imagenet' benchmarks at}
+00559   \textcolor{comment}{// https://github.com/soumith/convnet-benchmarks}
+00560   \textcolor{comment}{// ColMajor}
+00561   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4>} l\_in(3, 128, 128, 16);
+00562   l\_in.setRandom();
+00563   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5>} l\_out = l\_in.extract\_image\_patches(11, 11);
+00564   VERIFY\_IS\_EQUAL(l\_out.dimension(0), 3);
+00565   VERIFY\_IS\_EQUAL(l\_out.dimension(1), 11);
+00566   VERIFY\_IS\_EQUAL(l\_out.dimension(2), 11);
+00567   VERIFY\_IS\_EQUAL(l\_out.dimension(3), 128*128);
+00568   VERIFY\_IS\_EQUAL(l\_out.dimension(4), 16);
+00569 
+00570   \textcolor{comment}{// RowMajor}
+00571   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, RowMajor>} l\_out\_row\_major = l\_in.swap\_layout().
+      extract\_image\_patches(11, 11);
+00572   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(0), 16);
+00573   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(1), 128*128);
+00574   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(2), 11);
+00575   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(3), 11);
+00576   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(4), 3);
+00577 
+00578   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} b = 0; b < 16; ++b) \{
+00579     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 128; ++i) \{
+00580       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 128; ++j) \{
+00581         \textcolor{keywordtype}{int} patchId = i+128*j;
+00582         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} c = 0; c < 11; ++c) \{
+00583           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} r = 0; r < 11; ++r) \{
+00584             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = 0; d < 3; ++d) \{
+00585               \textcolor{keywordtype}{float} expected = 0.0f;
+00586               \textcolor{keywordflow}{if} (r-5+i >= 0 && c-5+j >= 0 && r-5+i < 128 && c-5+j < 128) \{
+00587                 expected = l\_in(d, r-5+i, c-5+j, b);
+00588               \}
+00589               \textcolor{comment}{// ColMajor}
+00590               \textcolor{keywordflow}{if} (l\_out(d, r, c, patchId, b) != expected) \{
+00591                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c
+       << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b << std::endl;
+00592               \}
+00593               VERIFY\_IS\_EQUAL(l\_out(d, r, c, patchId, b), expected);
+00594               \textcolor{comment}{// RowMajor}
+00595               \textcolor{keywordflow}{if} (l\_out\_row\_major(b, patchId, c, r, d) !=
+00596                   expected) \{
+00597                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j
+00598                      << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b
+00599                      << std::endl;
+00600               \}
+00601               VERIFY\_IS\_EQUAL(l\_out\_row\_major(b, patchId, c, r, d),
+00602                               expected);
+00603             \}
+00604           \}
+00605         \}
+00606       \}
+00607     \}
+00608   \}
+00609 
+00610   \textcolor{comment}{// ColMajor}
+00611   l\_in.resize(16, 64, 64, 32);
+00612   l\_in.setRandom();
+00613   l\_out = l\_in.extract\_image\_patches(9, 9);
+00614   VERIFY\_IS\_EQUAL(l\_out.dimension(0), 16);
+00615   VERIFY\_IS\_EQUAL(l\_out.dimension(1), 9);
+00616   VERIFY\_IS\_EQUAL(l\_out.dimension(2), 9);
+00617   VERIFY\_IS\_EQUAL(l\_out.dimension(3), 64*64);
+00618   VERIFY\_IS\_EQUAL(l\_out.dimension(4), 32);
+00619 
+00620   \textcolor{comment}{// RowMajor}
+00621   l\_out\_row\_major = l\_in.swap\_layout().extract\_image\_patches(9, 9);
+00622   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(0), 32);
+00623   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(1), 64*64);
+00624   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(2), 9);
+00625   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(3), 9);
+00626   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(4), 16);
+00627 
+00628   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} b = 0; b < 32; ++b) \{
+00629     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 64; ++i) \{
+00630       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 64; ++j) \{
+00631         \textcolor{keywordtype}{int} patchId = i+64*j;
+00632         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} c = 0; c < 9; ++c) \{
+00633           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} r = 0; r < 9; ++r) \{
+00634             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = 0; d < 16; ++d) \{
+00635               \textcolor{keywordtype}{float} expected = 0.0f;
+00636               \textcolor{keywordflow}{if} (r-4+i >= 0 && c-4+j >= 0 && r-4+i < 64 && c-4+j < 64) \{
+00637                 expected = l\_in(d, r-4+i, c-4+j, b);
+00638               \}
+00639               \textcolor{comment}{// ColMajor}
+00640               \textcolor{keywordflow}{if} (l\_out(d, r, c, patchId, b) != expected) \{
+00641                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c
+       << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b << std::endl;
+00642               \}
+00643               VERIFY\_IS\_EQUAL(l\_out(d, r, c, patchId, b), expected);
+00644               \textcolor{comment}{// RowMajor}
+00645               \textcolor{keywordflow}{if} (l\_out\_row\_major(b, patchId, c, r, d) != expected) \{
+00646                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c
+       << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b << std::endl;
+00647               \}
+00648               VERIFY\_IS\_EQUAL(l\_out\_row\_major(b, patchId, c, r, d), expected);
+00649             \}
+00650           \}
+00651         \}
+00652       \}
+00653     \}
+00654   \}
+00655 
+00656   \textcolor{comment}{// ColMajor}
+00657   l\_in.resize(32, 16, 16, 32);
+00658   l\_in.setRandom();
+00659   l\_out = l\_in.extract\_image\_patches(7, 7);
+00660   VERIFY\_IS\_EQUAL(l\_out.dimension(0), 32);
+00661   VERIFY\_IS\_EQUAL(l\_out.dimension(1), 7);
+00662   VERIFY\_IS\_EQUAL(l\_out.dimension(2), 7);
+00663   VERIFY\_IS\_EQUAL(l\_out.dimension(3), 16*16);
+00664   VERIFY\_IS\_EQUAL(l\_out.dimension(4), 32);
+00665 
+00666   \textcolor{comment}{// RowMajor}
+00667   l\_out\_row\_major = l\_in.swap\_layout().extract\_image\_patches(7, 7);
+00668   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(0), 32);
+00669   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(1), 16*16);
+00670   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(2), 7);
+00671   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(3), 7);
+00672   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(4), 32);
+00673 
+00674   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} b = 0; b < 32; ++b) \{
+00675     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 16; ++i) \{
+00676       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 16; ++j) \{
+00677         \textcolor{keywordtype}{int} patchId = i+16*j;
+00678         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} c = 0; c < 7; ++c) \{
+00679           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} r = 0; r < 7; ++r) \{
+00680             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = 0; d < 32; ++d) \{
+00681               \textcolor{keywordtype}{float} expected = 0.0f;
+00682               \textcolor{keywordflow}{if} (r-3+i >= 0 && c-3+j >= 0 && r-3+i < 16 && c-3+j < 16) \{
+00683                 expected = l\_in(d, r-3+i, c-3+j, b);
+00684               \}
+00685               \textcolor{comment}{// ColMajor}
+00686               \textcolor{keywordflow}{if} (l\_out(d, r, c, patchId, b) != expected) \{
+00687                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c
+       << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b << std::endl;
+00688               \}
+00689               VERIFY\_IS\_EQUAL(l\_out(d, r, c, patchId, b), expected);
+00690               \textcolor{comment}{// RowMajor}
+00691               \textcolor{keywordflow}{if} (l\_out\_row\_major(b, patchId, c, r, d) != expected) \{
+00692                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c
+       << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b << std::endl;
+00693               \}
+00694               VERIFY\_IS\_EQUAL(l\_out\_row\_major(b, patchId, c, r, d), expected);
+00695             \}
+00696           \}
+00697         \}
+00698       \}
+00699     \}
+00700   \}
+00701 
+00702   \textcolor{comment}{// ColMajor}
+00703   l\_in.resize(64, 13, 13, 32);
+00704   l\_in.setRandom();
+00705   l\_out = l\_in.extract\_image\_patches(3, 3);
+00706   VERIFY\_IS\_EQUAL(l\_out.dimension(0), 64);
+00707   VERIFY\_IS\_EQUAL(l\_out.dimension(1), 3);
+00708   VERIFY\_IS\_EQUAL(l\_out.dimension(2), 3);
+00709   VERIFY\_IS\_EQUAL(l\_out.dimension(3), 13*13);
+00710   VERIFY\_IS\_EQUAL(l\_out.dimension(4), 32);
+00711 
+00712   \textcolor{comment}{// RowMajor}
+00713   l\_out\_row\_major = l\_in.swap\_layout().extract\_image\_patches(3, 3);
+00714   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(0), 32);
+00715   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(1), 13*13);
+00716   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(2), 3);
+00717   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(3), 3);
+00718   VERIFY\_IS\_EQUAL(l\_out\_row\_major.dimension(4), 64);
+00719 
+00720   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} b = 0; b < 32; ++b) \{
+00721     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 13; ++i) \{
+00722       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 13; ++j) \{
+00723         \textcolor{keywordtype}{int} patchId = i+13*j;
+00724         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} c = 0; c < 3; ++c) \{
+00725           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} r = 0; r < 3; ++r) \{
+00726             \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} d = 0; d < 64; ++d) \{
+00727               \textcolor{keywordtype}{float} expected = 0.0f;
+00728               \textcolor{keywordflow}{if} (r-1+i >= 0 && c-1+j >= 0 && r-1+i < 13 && c-1+j < 13) \{
+00729                 expected = l\_in(d, r-1+i, c-1+j, b);
+00730               \}
+00731               \textcolor{comment}{// ColMajor}
+00732               \textcolor{keywordflow}{if} (l\_out(d, r, c, patchId, b) != expected) \{
+00733                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c
+       << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b << std::endl;
+00734               \}
+00735               VERIFY\_IS\_EQUAL(l\_out(d, r, c, patchId, b), expected);
+00736               \textcolor{comment}{// RowMajor}
+00737               \textcolor{keywordflow}{if} (l\_out\_row\_major(b, patchId, c, r, d) != expected) \{
+00738                 std::cout << \textcolor{stringliteral}{"Mismatch detected at index i="} << i << \textcolor{stringliteral}{" j="} << j << \textcolor{stringliteral}{" r="} << r << \textcolor{stringliteral}{" c="} << c
+       << \textcolor{stringliteral}{" d="} << d << \textcolor{stringliteral}{" b="} << b << std::endl;
+00739               \}
+00740               VERIFY\_IS\_EQUAL(l\_out\_row\_major(b, patchId, c, r, d), expected);
+00741             \}
+00742           \}
+00743         \}
+00744       \}
+00745     \}
+00746   \}
+00747 \}
+00748 
+00749 \textcolor{keywordtype}{void} test\_cxx11\_tensor\_image\_patch()
+00750 \{
+00751   CALL\_SUBTEST\_1(test\_simple\_patch());
+00752   CALL\_SUBTEST\_2(test\_patch\_no\_extra\_dim());
+00753   CALL\_SUBTEST\_3(test\_patch\_padding\_valid());
+00754   CALL\_SUBTEST\_4(test\_patch\_padding\_valid\_same\_value());
+00755   CALL\_SUBTEST\_5(test\_patch\_padding\_same());
+00756   CALL\_SUBTEST\_6(test\_imagenet\_patches());
+00757 \}
+\end{DoxyCode}

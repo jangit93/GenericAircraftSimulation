@@ -1,0 +1,138 @@
+\hypertarget{_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_d_2h5ex__d__transform_8f90_source}{}\section{H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+F\+O\+R\+T\+R\+A\+N/\+H5\+D/h5ex\+\_\+d\+\_\+transform.f90}
+\label{_h_d_f5_21_810_81_2_h_d_f5_examples_2_f_o_r_t_r_a_n_2_h5_d_2h5ex__d__transform_8f90_source}\index{h5ex\+\_\+d\+\_\+transform.\+f90@{h5ex\+\_\+d\+\_\+transform.\+f90}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{!************************************************************}
+00002 \textcolor{comment}{!}
+00003 \textcolor{comment}{!  This example shows how to read and write data to a dataset}
+00004 \textcolor{comment}{!  using a data transform expression.  The program first}
+00005 \textcolor{comment}{!  writes integers to a dataset using the transform}
+00006 \textcolor{comment}{!  expression TRANSFORM, then closes the file.  Next, it}
+00007 \textcolor{comment}{!  reopens the file, reads back the data without a transform,}
+00008 \textcolor{comment}{!  and outputs the data to the screen.  Finally it reads the}
+00009 \textcolor{comment}{!  data using the transform expression RTRANSFORM and outputs}
+00010 \textcolor{comment}{!  the results to the screen.}
+00011 \textcolor{comment}{!}
+00012 \textcolor{comment}{!  This file is intended for use with HDF5 Library verion 1.8}
+00013 \textcolor{comment}{!}
+00014 \textcolor{comment}{!************************************************************}
+00015 \textcolor{keyword}{PROGRAM} main
+00016 
+00017   \textcolor{keywordtype}{USE }hdf5
+00018 
+00019   \textcolor{keywordtype}{IMPLICIT NONE}
+00020 
+00021   \textcolor{keywordtype}{CHARACTER(LEN=19)}, \textcolor{keywordtype}{PARAMETER} :: filename = \textcolor{stringliteral}{"h5ex\_d\_transform.h5"}
+00022   \textcolor{keywordtype}{CHARACTER(LEN=3)} , \textcolor{keywordtype}{PARAMETER} :: dataset  = \textcolor{stringliteral}{"DS1"}
+00023   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: dim0     = 4
+00024   \textcolor{keywordtype}{INTEGER}          , \textcolor{keywordtype}{PARAMETER} :: dim1     = 7
+00025   \textcolor{keywordtype}{CHARACTER(LEN=3)} , \textcolor{keywordtype}{PARAMETER} :: transform = \textcolor{stringliteral}{"x+1"}
+00026   \textcolor{keywordtype}{CHARACTER(LEN=3)} , \textcolor{keywordtype}{PARAMETER} :: rtransform = \textcolor{stringliteral}{"x-1"}
+00027 
+00028   \textcolor{keywordtype}{INTEGER(HID\_T)}  :: \hyperlink{structfile}{file}, space, dset, dxpl \textcolor{comment}{! Handles}
+00029   \textcolor{keywordtype}{INTEGER}         :: hdferr
+00030   \textcolor{keywordtype}{INTEGER(HSIZE\_T)}, \textcolor{keywordtype}{DIMENSION(1:2)} :: dims = (/dim0, dim1/)
+00031   \textcolor{keywordtype}{INTEGER}, \textcolor{keywordtype}{DIMENSION(1:dim0, 1:dim1)} :: wdata, & \textcolor{comment}{! Write buffer }
+00032                                         rdata    \textcolor{comment}{! Read buffer}
+00033   \textcolor{keywordtype}{INTEGER} :: i, j
+00034   \textcolor{comment}{!}
+00035   \textcolor{comment}{! Initialize FORTRAN interface.}
+00036   \textcolor{comment}{!}
+00037   \textcolor{keyword}{CALL }h5open\_f(hdferr)
+00038   \textcolor{comment}{!}
+00039   \textcolor{comment}{! Initialize data.}
+00040   \textcolor{comment}{!}
+00041   \textcolor{keywordflow}{DO} i = 1, dim0
+00042      \textcolor{keywordflow}{DO} j = 1, dim1
+00043         wdata(i,j) = (i-2)*(j-1)
+00044 \textcolor{keywordflow}{     ENDDO}
+00045 \textcolor{keywordflow}{  ENDDO}
+00046   \textcolor{comment}{!}
+00047   \textcolor{comment}{! Output the data to the screen.}
+00048   \textcolor{comment}{!}
+00049   \textcolor{keyword}{WRITE}(*, \textcolor{stringliteral}{'("Original Data:")'})
+00050   \textcolor{keywordflow}{DO} i=1, dim0
+00051      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" [")'}, advance=\textcolor{stringliteral}{'NO'})
+00052      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(80i3)'}, advance=\textcolor{stringliteral}{'NO'}) wdata(i,:)
+00053      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" ]")'})
+00054 \textcolor{keywordflow}{  ENDDO}
+00055   \textcolor{comment}{!}
+00056   \textcolor{comment}{! Create a new file using the default properties.}
+00057   \textcolor{comment}{!}
+00058   \textcolor{keyword}{CALL }h5fcreate\_f(filename, h5f\_acc\_trunc\_f, \hyperlink{structfile}{file}, hdferr)
+00059   \textcolor{comment}{!}
+00060   \textcolor{comment}{! Create dataspace.  Setting maximum size to NULL sets the maximum}
+00061   \textcolor{comment}{! size to be the current size.}
+00062   \textcolor{comment}{!}
+00063   \textcolor{keyword}{CALL }h5screate\_simple\_f(2, dims, space, hdferr)
+00064   \textcolor{comment}{!}
+00065   \textcolor{comment}{! Create the dataset transfer property list and define the}
+00066   \textcolor{comment}{! transform expression.}
+00067   \textcolor{comment}{!}
+00068   \textcolor{keyword}{CALL }h5pcreate\_f(h5p\_dataset\_xfer\_f, dxpl, hdferr)
+00069   \textcolor{keyword}{CALL }h5pset\_data\_transform\_f (dxpl, transform, hdferr)
+00070   \textcolor{comment}{!}
+00071   \textcolor{comment}{! Create the dataset using the default properties.  Unfortunately}
+00072   \textcolor{comment}{! we must save as a native type or the transform operation will}
+00073   \textcolor{comment}{! fail.}
+00074   \textcolor{comment}{!}
+00075   \textcolor{keyword}{CALL }h5dcreate\_f(\hyperlink{structfile}{file}, dataset, h5t\_native\_integer, space, dset, hdferr)
+00076   \textcolor{comment}{!}
+00077   \textcolor{comment}{! Write the data to the dataset using the dataset transfer}
+00078   \textcolor{comment}{! property list.}
+00079   \textcolor{comment}{!}
+00080   \textcolor{keyword}{CALL }h5dwrite\_f(dset, h5t\_native\_integer, wdata, dims, hdferr,xfer\_prp=dxpl)
+00081   \textcolor{comment}{!}
+00082   \textcolor{comment}{! Close and release resources.}
+00083   \textcolor{comment}{!}
+00084   \textcolor{keyword}{CALL }h5pclose\_f(dxpl , hdferr)
+00085   \textcolor{keyword}{CALL }h5dclose\_f(dset , hdferr)
+00086   \textcolor{keyword}{CALL }h5sclose\_f(space, hdferr)
+00087   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file} , hdferr)
+00088   \textcolor{comment}{!}
+00089   \textcolor{comment}{! Now we begin the read section of this example.}
+00090   \textcolor{comment}{!}
+00091   \textcolor{keyword}{CALL }h5fopen\_f(filename, h5f\_acc\_rdonly\_f, \hyperlink{structfile}{file}, hdferr)
+00092   \textcolor{keyword}{CALL }h5dopen\_f (\hyperlink{structfile}{file}, dataset, dset, hdferr)
+00093   \textcolor{comment}{!}
+00094   \textcolor{comment}{! Read the data using the default properties.}
+00095   \textcolor{comment}{!}
+00096   \textcolor{keyword}{CALL }h5dread\_f(dset, h5t\_native\_integer, rdata, dims, hdferr)
+00097   \textcolor{comment}{!}
+00098   \textcolor{comment}{! Output the data to the screen.}
+00099   \textcolor{comment}{!}
+00100   \textcolor{keyword}{WRITE}(*, \textcolor{stringliteral}{'(/,"Data as written with transform ",A,":")'}) transform
+00101   \textcolor{keywordflow}{DO} i=1, dim0
+00102      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" [")'}, advance=\textcolor{stringliteral}{'NO'})
+00103      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(80i3)'}, advance=\textcolor{stringliteral}{'NO'}) rdata(i,:)
+00104      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" ]")'})
+00105 \textcolor{keywordflow}{  ENDDO}
+00106   \textcolor{comment}{!}
+00107   \textcolor{comment}{! Create the dataset transfer property list and define the}
+00108   \textcolor{comment}{! transform expression.}
+00109   \textcolor{comment}{!}
+00110   \textcolor{keyword}{CALL }h5pcreate\_f(h5p\_dataset\_xfer\_f, dxpl, hdferr)
+00111   \textcolor{keyword}{CALL }h5pset\_data\_transform\_f (dxpl, rtransform, hdferr)
+00112   \textcolor{comment}{!}
+00113   \textcolor{comment}{! Read the data using the dataset transfer property list.}
+00114   \textcolor{comment}{!}
+00115   \textcolor{keyword}{CALL }h5dread\_f(dset, h5t\_native\_integer, rdata, dims, hdferr,xfer\_prp=dxpl)
+00116   \textcolor{comment}{!}
+00117   \textcolor{comment}{! Output the data to the screen.}
+00118   \textcolor{comment}{!}
+00119   \textcolor{keyword}{WRITE}(*, \textcolor{stringliteral}{'(/,"Data as written with transform ",A," and read with transform ",A,":")'}) &
+00120        transform, rtransform
+00121   \textcolor{keywordflow}{DO} i=1, dim0
+00122      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" [")'}, advance=\textcolor{stringliteral}{'NO'})
+00123      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(80i3)'}, advance=\textcolor{stringliteral}{'NO'}) rdata(i,:)
+00124      \textcolor{keyword}{WRITE}(*,\textcolor{stringliteral}{'(" ]")'})
+00125 \textcolor{keywordflow}{  ENDDO}
+00126   \textcolor{comment}{!}
+00127   \textcolor{comment}{! Close and release resources.}
+00128   \textcolor{comment}{!}
+00129   \textcolor{keyword}{CALL }h5pclose\_f(dxpl , hdferr)
+00130   \textcolor{keyword}{CALL }h5dclose\_f(dset , hdferr)
+00131   \textcolor{keyword}{CALL }h5fclose\_f(\hyperlink{structfile}{file} , hdferr)
+00132 
+00133 \textcolor{keyword}{END PROGRAM }main
+\end{DoxyCode}

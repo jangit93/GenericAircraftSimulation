@@ -1,0 +1,192 @@
+\hypertarget{eigen_2bench_2btl_2generic__bench_2timers_2portable__timer_8hh_source}{}\section{eigen/bench/btl/generic\+\_\+bench/timers/portable\+\_\+timer.hh}
+\label{eigen_2bench_2btl_2generic__bench_2timers_2portable__timer_8hh_source}\index{portable\+\_\+timer.\+hh@{portable\+\_\+timer.\+hh}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{//=====================================================}
+00002 \textcolor{comment}{// File   :  portable\_timer.hh}
+00003 \textcolor{comment}{// Author :  L. Plagne <laurent.plagne@edf.fr)> from boost lib}
+00004 \textcolor{comment}{// Copyright (C) EDF R&D,  lun sep 30 14:23:17 CEST 2002}
+00005 \textcolor{comment}{//=====================================================}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This program is free software; you can redistribute it and/or}
+00008 \textcolor{comment}{// modify it under the terms of the GNU General Public License}
+00009 \textcolor{comment}{// as published by the Free Software Foundation; either version 2}
+00010 \textcolor{comment}{// of the License, or (at your option) any later version.}
+00011 \textcolor{comment}{//}
+00012 \textcolor{comment}{// This program is distributed in the hope that it will be useful,}
+00013 \textcolor{comment}{// but WITHOUT ANY WARRANTY; without even the implied warranty of}
+00014 \textcolor{comment}{// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the}
+00015 \textcolor{comment}{// GNU General Public License for more details.}
+00016 \textcolor{comment}{// You should have received a copy of the GNU General Public License}
+00017 \textcolor{comment}{// along with this program; if not, write to the Free Software}
+00018 \textcolor{comment}{// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.}
+00019 \textcolor{comment}{//}
+00020 \textcolor{comment}{//  simple\_time extracted from the boost library}
+00021 \textcolor{comment}{//}
+00022 \textcolor{preprocessor}{#ifndef \_PORTABLE\_TIMER\_HH}
+00023 \textcolor{preprocessor}{#define \_PORTABLE\_TIMER\_HH}
+00024 
+00025 \textcolor{preprocessor}{#include <ctime>}
+00026 \textcolor{preprocessor}{#include <cstdlib>}
+00027 
+00028 \textcolor{preprocessor}{#include <time.h>}
+00029 
+00030 
+00031 \textcolor{preprocessor}{#define USEC\_IN\_SEC 1000000}
+00032 
+00033 
+00034 \textcolor{comment}{//  timer  -------------------------------------------------------------------//}
+00035 
+00036 \textcolor{comment}{//  A timer object measures CPU time.}
+00037 \textcolor{preprocessor}{#if defined(\_MSC\_VER)}
+00038 
+00039 \textcolor{preprocessor}{#define NOMINMAX}
+00040 \textcolor{preprocessor}{#include <windows.h>}
+00041 
+00042 \textcolor{comment}{/*#ifndef hr\_timer}
+00043 \textcolor{comment}{#include "hr\_time.h"}
+00044 \textcolor{comment}{#define hr\_timer}
+00045 \textcolor{comment}{#endif*/}
+00046 
+00047  \textcolor{keyword}{class }\hyperlink{class_portable___timer}{Portable\_Timer}
+00048  \{
+00049   \textcolor{keyword}{public}:
+00050 
+00051    \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\{
+00052     LARGE\_INTEGER start;
+00053     LARGE\_INTEGER stop;
+00054    \} stopWatch;
+00055 
+00056 
+00057    \hyperlink{class_portable___timer}{Portable\_Timer}()
+00058    \{
+00059      startVal.QuadPart = 0;
+00060      stopVal.QuadPart = 0;
+00061      QueryPerformanceFrequency(&frequency);
+00062    \}
+00063 
+00064    \textcolor{keywordtype}{void} start() \{ QueryPerformanceCounter(&startVal); \}
+00065 
+00066    \textcolor{keywordtype}{void} stop() \{ QueryPerformanceCounter(&stopVal); \}
+00067 
+00068    \textcolor{keywordtype}{double} elapsed() \{
+00069      LARGE\_INTEGER time;
+00070      time.QuadPart = stopVal.QuadPart - startVal.QuadPart;
+00071      \textcolor{keywordflow}{return} LIToSecs(time);
+00072    \}
+00073 
+00074    \textcolor{keywordtype}{double} user\_time() \{ \textcolor{keywordflow}{return} elapsed(); \}
+00075 
+00076 
+00077  \textcolor{keyword}{private}:
+00078 
+00079    \textcolor{keywordtype}{double} LIToSecs(LARGE\_INTEGER& L) \{
+00080      \textcolor{keywordflow}{return} ((\textcolor{keywordtype}{double})L.QuadPart /(\textcolor{keywordtype}{double})frequency.QuadPart) ;
+00081    \}
+00082 
+00083    LARGE\_INTEGER startVal;
+00084    LARGE\_INTEGER stopVal;
+00085    LARGE\_INTEGER frequency;
+00086 
+00087 
+00088  \}; \textcolor{comment}{// Portable\_Timer}
+00089 
+00090 \textcolor{preprocessor}{#elif defined(\_\_APPLE\_\_)}
+00091 \textcolor{preprocessor}{#include <CoreServices/CoreServices.h>}
+00092 \textcolor{preprocessor}{#include <mach/mach\_time.h>}
+00093 
+00094 
+00095 \textcolor{keyword}{class }\hyperlink{class_portable___timer}{Portable\_Timer}
+00096 \{
+00097  \textcolor{keyword}{public}:
+00098 
+00099   \hyperlink{class_portable___timer}{Portable\_Timer}()
+00100   \{
+00101   \}
+00102 
+00103   \textcolor{keywordtype}{void} start()
+00104   \{
+00105     m\_start\_time = double(mach\_absolute\_time())*1e-9;;
+00106 
+00107   \}
+00108 
+00109   \textcolor{keywordtype}{void} stop()
+00110   \{
+00111     m\_stop\_time = double(mach\_absolute\_time())*1e-9;;
+00112 
+00113   \}
+00114 
+00115   \textcolor{keywordtype}{double} elapsed()
+00116   \{
+00117     \textcolor{keywordflow}{return}  user\_time();
+00118   \}
+00119 
+00120   \textcolor{keywordtype}{double} user\_time()
+00121   \{
+00122     \textcolor{keywordflow}{return} m\_stop\_time - m\_start\_time;
+00123   \}
+00124 
+00125 
+00126 \textcolor{keyword}{private}:
+00127 
+00128   \textcolor{keywordtype}{double} m\_stop\_time, m\_start\_time;
+00129 
+00130 \}; \textcolor{comment}{// Portable\_Timer (Apple)}
+00131 
+00132 \textcolor{preprocessor}{#else}
+00133 
+00134 \textcolor{preprocessor}{#include <sys/time.h>}
+00135 \textcolor{preprocessor}{#include <sys/resource.h>}
+00136 \textcolor{preprocessor}{#include <unistd.h>}
+00137 \textcolor{preprocessor}{#include <sys/times.h>}
+00138 
+\Hypertarget{eigen_2bench_2btl_2generic__bench_2timers_2portable__timer_8hh_source_l00139}\hyperlink{class_portable___timer}{00139} \textcolor{keyword}{class }\hyperlink{class_portable___timer}{Portable\_Timer}
+00140 \{
+00141  \textcolor{keyword}{public}:
+00142 
+00143   \hyperlink{class_portable___timer}{Portable\_Timer}()
+00144   \{
+00145     m\_clkid = BtlConfig::Instance.realclock ? CLOCK\_REALTIME : CLOCK\_PROCESS\_CPUTIME\_ID;
+00146   \}
+00147 
+00148   \hyperlink{class_portable___timer}{Portable\_Timer}(\textcolor{keywordtype}{int} clkid) : m\_clkid(clkid)
+00149   \{\}
+00150 
+00151   \textcolor{keywordtype}{void} start()
+00152   \{
+00153     timespec ts;
+00154     clock\_gettime(m\_clkid, &ts);
+00155     m\_start\_time = double(ts.tv\_sec) + 1e-9 * double(ts.tv\_nsec);
+00156 
+00157   \}
+00158 
+00159   \textcolor{keywordtype}{void} stop()
+00160   \{
+00161     timespec ts;
+00162     clock\_gettime(m\_clkid, &ts);
+00163     m\_stop\_time = double(ts.tv\_sec) + 1e-9 * double(ts.tv\_nsec);
+00164 
+00165   \}
+00166 
+00167   \textcolor{keywordtype}{double} elapsed()
+00168   \{
+00169     \textcolor{keywordflow}{return}  user\_time();
+00170   \}
+00171 
+00172   \textcolor{keywordtype}{double} user\_time()
+00173   \{
+00174     \textcolor{keywordflow}{return} m\_stop\_time - m\_start\_time;
+00175   \}
+00176 
+00177 
+00178 \textcolor{keyword}{private}:
+00179 
+00180   \textcolor{keywordtype}{int} m\_clkid;
+00181   \textcolor{keywordtype}{double} m\_stop\_time, m\_start\_time;
+00182 
+00183 \}; \textcolor{comment}{// Portable\_Timer (Linux)}
+00184 
+00185 \textcolor{preprocessor}{#endif}
+00186 
+00187 \textcolor{preprocessor}{#endif  // PORTABLE\_TIMER\_HPP}
+\end{DoxyCode}

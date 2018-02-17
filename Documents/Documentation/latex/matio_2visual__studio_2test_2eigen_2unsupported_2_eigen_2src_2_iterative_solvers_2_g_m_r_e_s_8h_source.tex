@@ -1,0 +1,262 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_g_m_r_e_s_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/src/\+Iterative\+Solvers/\+G\+M\+R\+ES.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_g_m_r_e_s_8h_source}\index{G\+M\+R\+E\+S.\+h@{G\+M\+R\+E\+S.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2011 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2012, 2014 Kolja Brix <brix@igpm.rwth-aaachen.de>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_GMRES\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_GMRES\_H}
+00013 
+00014 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00015 
+00016 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00017 
+00055 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} Rhs, \textcolor{keyword}{typename} Dest, \textcolor{keyword}{typename} Preconditioner>
+00056 \textcolor{keywordtype}{bool} \hyperlink{namespace_eigen_1_1internal_a851df31ae9133639a8eb3f6a8484bbf7}{gmres}(\textcolor{keyword}{const} MatrixType & mat, \textcolor{keyword}{const} Rhs & rhs, Dest & x, \textcolor{keyword}{const} Preconditioner & precond,
+00057     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} &iters, \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} &restart, \textcolor{keyword}{typename} Dest::RealScalar & tol\_error) \{
+00058 
+00059   \textcolor{keyword}{using} std::sqrt;
+00060   \textcolor{keyword}{using} std::abs;
+00061 
+00062   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Dest::RealScalar RealScalar;
+00063   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} Dest::Scalar Scalar;
+00064   \textcolor{keyword}{typedef} Matrix < Scalar, Dynamic, 1 > \hyperlink{struct_vector_type}{VectorType};
+00065   \textcolor{keyword}{typedef} Matrix < Scalar, Dynamic, Dynamic, ColMajor> FMatrixType;
+00066 
+00067   RealScalar tol = tol\_error;
+00068   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} maxIters = iters;
+00069   iters = 0;
+00070 
+00071   \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m = mat.rows();
+00072 
+00073   \textcolor{comment}{// residual and preconditioned residual}
+00074   VectorType p0 = rhs - mat*x;
+00075   VectorType r0 = precond.solve(p0);
+00076 
+00077   \textcolor{keyword}{const} RealScalar r0Norm = r0.norm();
+00078 
+00079   \textcolor{comment}{// is initial guess already good enough?}
+00080   \textcolor{keywordflow}{if}(r0Norm == 0)
+00081   \{
+00082     tol\_error = 0;
+00083     \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00084   \}
+00085 
+00086   \textcolor{comment}{// storage for Hessenberg matrix and Householder data}
+00087   FMatrixType H   = FMatrixType::Zero(m, restart + 1);
+00088   VectorType w    = VectorType::Zero(restart + 1);
+00089   VectorType tau  = VectorType::Zero(restart + 1);
+00090 
+00091   \textcolor{comment}{// storage for Jacobi rotations}
+00092   std::vector < JacobiRotation < Scalar > > G(restart);
+00093   
+00094   \textcolor{comment}{// storage for temporaries}
+00095   VectorType t(m), v(m), workspace(m), x\_new(m);
+00096 
+00097   \textcolor{comment}{// generate first Householder vector}
+00098   Ref<VectorType> H0\_tail = H.col(0).tail(m - 1);
+00099   RealScalar beta;
+00100   r0.makeHouseholder(H0\_tail, tau.coeffRef(0), beta);
+00101   w(0) = Scalar(beta);
+00102   
+00103   \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} k = 1; k <= restart; ++k)
+00104   \{
+00105     ++iters;
+00106 
+00107     v = VectorType::Unit(m, k - 1);
+00108 
+00109     \textcolor{comment}{// apply Householder reflections H\_\{1\} ... H\_\{k-1\} to v}
+00110     \textcolor{comment}{// TODO: use a HouseholderSequence}
+00111     \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i = k - 1; i >= 0; --i) \{
+00112       v.tail(m - i).applyHouseholderOnTheLeft(H.col(i).tail(m - i - 1), tau.coeffRef(i), workspace.data());
+00113     \}
+00114 
+00115     \textcolor{comment}{// apply matrix M to v:  v = mat * v;}
+00116     t.noalias() = mat * v;
+00117     v = precond.solve(t);
+00118 
+00119     \textcolor{comment}{// apply Householder reflections H\_\{k-1\} ... H\_\{1\} to v}
+00120     \textcolor{comment}{// TODO: use a HouseholderSequence}
+00121     \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i = 0; i < k; ++i) \{
+00122       v.tail(m - i).applyHouseholderOnTheLeft(H.col(i).tail(m - i - 1), tau.coeffRef(i), workspace.data());
+00123     \}
+00124 
+00125     \textcolor{keywordflow}{if} (v.tail(m - k).norm() != 0.0)
+00126     \{
+00127       \textcolor{keywordflow}{if} (k <= restart)
+00128       \{
+00129         \textcolor{comment}{// generate new Householder vector}
+00130         Ref<VectorType> Hk\_tail = H.col(k).tail(m - k - 1);
+00131         v.tail(m - k).makeHouseholder(Hk\_tail, tau.coeffRef(k), beta);
+00132 
+00133         \textcolor{comment}{// apply Householder reflection H\_\{k\} to v}
+00134         v.tail(m - k).applyHouseholderOnTheLeft(Hk\_tail, tau.coeffRef(k), workspace.data());
+00135       \}
+00136     \}
+00137 
+00138     \textcolor{keywordflow}{if} (k > 1)
+00139     \{
+00140       \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i = 0; i < k - 1; ++i)
+00141       \{
+00142         \textcolor{comment}{// apply old Givens rotations to v}
+00143         v.applyOnTheLeft(i, i + 1, G[i].adjoint());
+00144       \}
+00145     \}
+00146 
+00147     \textcolor{keywordflow}{if} (k<m && v(k) != (Scalar) 0)
+00148     \{
+00149       \textcolor{comment}{// determine next Givens rotation}
+00150       G[k - 1].makeGivens(v(k - 1), v(k));
+00151 
+00152       \textcolor{comment}{// apply Givens rotation to v and w}
+00153       v.applyOnTheLeft(k - 1, k, G[k - 1].adjoint());
+00154       w.applyOnTheLeft(k - 1, k, G[k - 1].adjoint());
+00155     \}
+00156 
+00157     \textcolor{comment}{// insert coefficients into upper matrix triangle}
+00158     H.col(k-1).head(k) = v.head(k);
+00159 
+00160     tol\_error = abs(w(k)) / r0Norm;
+00161     \textcolor{keywordtype}{bool} stop = (k==m || tol\_error < tol || iters == maxIters);
+00162 
+00163     \textcolor{keywordflow}{if} (stop || k == restart)
+00164     \{
+00165       \textcolor{comment}{// solve upper triangular system}
+00166       Ref<VectorType> y = w.head(k);
+00167       H.topLeftCorner(k, k).template triangularView <Upper>().solveInPlace(y);
+00168 
+00169       \textcolor{comment}{// use Horner-like scheme to calculate solution vector}
+00170       x\_new.setZero();
+00171       \textcolor{keywordflow}{for} (\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} i = k - 1; i >= 0; --i)
+00172       \{
+00173         x\_new(i) += y(i);
+00174         \textcolor{comment}{// apply Householder reflection H\_\{i\} to x\_new}
+00175         x\_new.tail(m - i).applyHouseholderOnTheLeft(H.col(i).tail(m - i - 1), tau.coeffRef(i), workspace.
+      data());
+00176       \}
+00177 
+00178       x += x\_new;
+00179 
+00180       \textcolor{keywordflow}{if}(stop)
+00181       \{
+00182         \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00183       \}
+00184       \textcolor{keywordflow}{else}
+00185       \{
+00186         k=0;
+00187 
+00188         \textcolor{comment}{// reset data for restart}
+00189         p0.noalias() = rhs - mat*x;
+00190         r0 = precond.solve(p0);
+00191 
+00192         \textcolor{comment}{// clear Hessenberg matrix and Householder data}
+00193         H.setZero();
+00194         w.setZero();
+00195         tau.setZero();
+00196 
+00197         \textcolor{comment}{// generate first Householder vector}
+00198         r0.makeHouseholder(H0\_tail, tau.coeffRef(0), beta);
+00199         w(0) = Scalar(beta);
+00200       \}
+00201     \}
+00202   \}
+00203 
+00204   \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00205 
+00206 \}
+00207 
+00208 \}
+00209 
+00210 \textcolor{keyword}{template}< \textcolor{keyword}{typename} \_MatrixType,
+00211           \textcolor{keyword}{typename} \_Preconditioner = DiagonalPreconditioner<typename \_MatrixType::Scalar> >
+00212 \textcolor{keyword}{class }GMRES;
+00213 
+00214 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00215 
+00216 \textcolor{keyword}{template}< \textcolor{keyword}{typename} \_MatrixType, \textcolor{keyword}{typename} \_Preconditioner>
+00217 \textcolor{keyword}{struct }traits<GMRES<\_MatrixType,\_Preconditioner> >
+00218 \{
+00219   \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00220   \textcolor{keyword}{typedef} \_Preconditioner Preconditioner;
+00221 \};
+00222 
+00223 \}
+00224 
+00259 \textcolor{keyword}{template}< \textcolor{keyword}{typename} \_MatrixType, \textcolor{keyword}{typename} \_Preconditioner>
+00260 \textcolor{keyword}{class }GMRES : \textcolor{keyword}{public} IterativeSolverBase<GMRES<\_MatrixType,\_Preconditioner> >
+00261 \{
+00262   \textcolor{keyword}{typedef} IterativeSolverBase<GMRES> Base;
+00263   \textcolor{keyword}{using} Base::matrix;
+00264   \textcolor{keyword}{using} Base::m\_error;
+00265   \textcolor{keyword}{using} Base::m\_iterations;
+00266   \textcolor{keyword}{using} Base::m\_info;
+00267   \textcolor{keyword}{using} Base::m\_isInitialized;
+00268 
+00269 \textcolor{keyword}{private}:
+00270   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m\_restart;
+00271 
+00272 \textcolor{keyword}{public}:
+00273   \textcolor{keyword}{using} Base::\_solve\_impl;
+00274   \textcolor{keyword}{typedef} \_MatrixType MatrixType;
+00275   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00276   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00277   \textcolor{keyword}{typedef} \_Preconditioner Preconditioner;
+00278 
+00279 \textcolor{keyword}{public}:
+00280 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_g_m_r_e_s_8h_source_l00282}\hyperlink{group___iterative_linear_solvers___module_a73153e328dfa402cb3640711289f2985}{00282}   \hyperlink{group___iterative_linear_solvers___module_a73153e328dfa402cb3640711289f2985}{GMRES}() : Base(), m\_restart(30) \{\}
+00283 
+00294   \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixDerived>
+\Hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_g_m_r_e_s_8h_source_l00295}\hyperlink{group___iterative_linear_solvers___module_a9ceeeb826c7e60ee948c0d1c0a219607}{00295}   \textcolor{keyword}{explicit} \hyperlink{group___iterative_linear_solvers___module_a9ceeeb826c7e60ee948c0d1c0a219607}{GMRES}(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<MatrixDerived>}& \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}) : Base(A.derived()), 
+      m\_restart(30) \{\}
+00296 
+00297   ~\hyperlink{group___iterative_linear_solvers___module_class_eigen_1_1_g_m_r_e_s}{GMRES}() \{\}
+00298 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_g_m_r_e_s_8h_source_l00301}\hyperlink{group___iterative_linear_solvers___module_ade721328e58ace2d4493cbdcbe53ad09}{00301}   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} \hyperlink{group___iterative_linear_solvers___module_ade721328e58ace2d4493cbdcbe53ad09}{get\_restart}() \{ \textcolor{keywordflow}{return} m\_restart; \}
+00302 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_g_m_r_e_s_8h_source_l00306}\hyperlink{group___iterative_linear_solvers___module_ac50d6bbca4a8a275861770feb211900d}{00306}   \textcolor{keywordtype}{void} \hyperlink{group___iterative_linear_solvers___module_ac50d6bbca4a8a275861770feb211900d}{set\_restart}(\textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} restart) \{ m\_restart=restart; \}
+00307 
+00309   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs,\textcolor{keyword}{typename} Dest>
+00310   \textcolor{keywordtype}{void} \_solve\_with\_guess\_impl(\textcolor{keyword}{const} Rhs& b, Dest& x)\textcolor{keyword}{ const}
+00311 \textcolor{keyword}{  }\{
+00312     \textcolor{keywordtype}{bool} failed = \textcolor{keyword}{false};
+00313     \textcolor{keywordflow}{for}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} j=0; j<b.cols(); ++j)
+00314     \{
+00315       m\_iterations = Base::maxIterations();
+00316       m\_error = Base::m\_tolerance;
+00317 
+00318       \textcolor{keyword}{typename} Dest::ColXpr xj(x,j);
+00319       \textcolor{keywordflow}{if}(!\hyperlink{namespace_eigen_1_1internal_a851df31ae9133639a8eb3f6a8484bbf7}{internal::gmres}(matrix(), b.col(j), xj, Base::m\_preconditioner, m\_iterations, 
+      m\_restart, m\_error))
+00320         failed = \textcolor{keyword}{true};
+00321     \}
+00322     m\_info = failed ? \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaaf9b736d310a664e7729d163a035cc5f}{NumericalIssue}
+00323           : m\_error <= Base::m\_tolerance ? \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success}
+00324           : \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5eaba1c8763d1179778070f365ecc4157a8}{NoConvergence};
+00325     m\_isInitialized = \textcolor{keyword}{true};
+00326   \}
+00327 
+00329   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Rhs,\textcolor{keyword}{typename} Dest>
+00330   \textcolor{keywordtype}{void} \_solve\_impl(\textcolor{keyword}{const} Rhs& b, \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<Dest>} &x)\textcolor{keyword}{ const}
+00331 \textcolor{keyword}{  }\{
+00332     x = b;
+00333     \textcolor{keywordflow}{if}(x.\hyperlink{group___core___module_a8782faeb21e43908cdce47cec06fba23}{squaredNorm}() == 0) \textcolor{keywordflow}{return}; \textcolor{comment}{// Check Zero right hand side}
+00334     \_solve\_with\_guess\_impl(b,x.derived());
+00335   \}
+00336 
+00337 \textcolor{keyword}{protected}:
+00338 
+00339 \};
+00340 
+00341 \} \textcolor{comment}{// end namespace Eigen}
+00342 
+00343 \textcolor{preprocessor}{#endif // EIGEN\_GMRES\_H}
+\end{DoxyCode}

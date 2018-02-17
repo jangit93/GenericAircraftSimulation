@@ -1,0 +1,1952 @@
+\hypertarget{read__data_8c_source}{}\section{read\+\_\+data.\+c}
+\label{read__data_8c_source}\index{read\+\_\+data.\+c@{read\+\_\+data.\+c}}
+
+\begin{DoxyCode}
+00001 
+00005 \textcolor{comment}{/*}
+00006 \textcolor{comment}{ * Copyright (c) 2005-2018, Christopher C. Hulbert}
+00007 \textcolor{comment}{ * All rights reserved.}
+00008 \textcolor{comment}{ *}
+00009 \textcolor{comment}{ * Redistribution and use in source and binary forms, with or without}
+00010 \textcolor{comment}{ * modification, are permitted provided that the following conditions are met:}
+00011 \textcolor{comment}{ *}
+00012 \textcolor{comment}{ * 1. Redistributions of source code must retain the above copyright notice, this}
+00013 \textcolor{comment}{ *    list of conditions and the following disclaimer.}
+00014 \textcolor{comment}{ *}
+00015 \textcolor{comment}{ * 2. Redistributions in binary form must reproduce the above copyright notice,}
+00016 \textcolor{comment}{ *    this list of conditions and the following disclaimer in the documentation}
+00017 \textcolor{comment}{ *    and/or other materials provided with the distribution.}
+00018 \textcolor{comment}{ *}
+00019 \textcolor{comment}{ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"}
+00020 \textcolor{comment}{ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE}
+00021 \textcolor{comment}{ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE}
+00022 \textcolor{comment}{ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE}
+00023 \textcolor{comment}{ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL}
+00024 \textcolor{comment}{ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR}
+00025 \textcolor{comment}{ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER}
+00026 \textcolor{comment}{ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,}
+00027 \textcolor{comment}{ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}
+00028 \textcolor{comment}{ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}
+00029 \textcolor{comment}{ */}
+00030 
+00031 \textcolor{comment}{/* FIXME: Implement Unicode support */}
+00032 \textcolor{preprocessor}{#include <stdlib.h>}
+00033 \textcolor{preprocessor}{#include <string.h>}
+00034 \textcolor{preprocessor}{#include <stdio.h>}
+00035 \textcolor{preprocessor}{#include <math.h>}
+00036 \textcolor{preprocessor}{#include <time.h>}
+00037 \textcolor{preprocessor}{#include "matio\_private.h"}
+00038 \textcolor{preprocessor}{#if defined(HAVE\_ZLIB)}
+00039 \textcolor{preprocessor}{#   include <zlib/zlib.h>}
+00040 \textcolor{preprocessor}{#endif}
+00041 
+00042 \textcolor{preprocessor}{#if !defined(READ\_BLOCK\_SIZE)}
+00043 \textcolor{preprocessor}{#define READ\_BLOCK\_SIZE (256)}
+00044 \textcolor{preprocessor}{#endif}
+00045 
+00046 \textcolor{preprocessor}{#define READ\_DATA\_NOSWAP(T) \(\backslash\)}
+00047 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00048 \textcolor{preprocessor}{        if ( len <= READ\_BLOCK\_SIZE ) \{ \(\backslash\)}
+00049 \textcolor{preprocessor}{            bytesread += fread(v,data\_size,len,(FILE*)mat->fp); \(\backslash\)}
+00050 \textcolor{preprocessor}{            for ( j = 0; j < len; j++ ) \{ \(\backslash\)}
+00051 \textcolor{preprocessor}{                data[j] = (T)v[j]; \(\backslash\)}
+00052 \textcolor{preprocessor}{            \} \(\backslash\)}
+00053 \textcolor{preprocessor}{        \} else \{ \(\backslash\)}
+00054 \textcolor{preprocessor}{            for ( i = 0; i < len-READ\_BLOCK\_SIZE; i+=READ\_BLOCK\_SIZE ) \{ \(\backslash\)}
+00055 \textcolor{preprocessor}{                bytesread += fread(v,data\_size,READ\_BLOCK\_SIZE,(FILE*)mat->fp); \(\backslash\)}
+00056 \textcolor{preprocessor}{                for ( j = 0; j < READ\_BLOCK\_SIZE; j++ ) \{ \(\backslash\)}
+00057 \textcolor{preprocessor}{                    data[i+j] = (T)v[j]; \(\backslash\)}
+00058 \textcolor{preprocessor}{                \} \(\backslash\)}
+00059 \textcolor{preprocessor}{            \} \(\backslash\)}
+00060 \textcolor{preprocessor}{            if ( len > i ) \{ \(\backslash\)}
+00061 \textcolor{preprocessor}{                bytesread += fread(v,data\_size,len-i,(FILE*)mat->fp); \(\backslash\)}
+00062 \textcolor{preprocessor}{                for ( j = 0; j < len-i; j++ ) \{ \(\backslash\)}
+00063 \textcolor{preprocessor}{                    data[i+j] = (T)v[j]; \(\backslash\)}
+00064 \textcolor{preprocessor}{                \} \(\backslash\)}
+00065 \textcolor{preprocessor}{            \}\(\backslash\)}
+00066 \textcolor{preprocessor}{        \} \(\backslash\)}
+00067 \textcolor{preprocessor}{    \} while (0)}
+00068 
+00069 \textcolor{preprocessor}{#define READ\_DATA(T, SwapFunc) \(\backslash\)}
+00070 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00071 \textcolor{preprocessor}{        if ( mat->byteswap ) \{ \(\backslash\)}
+00072 \textcolor{preprocessor}{            if ( len <= READ\_BLOCK\_SIZE ) \{ \(\backslash\)}
+00073 \textcolor{preprocessor}{                bytesread += fread(v,data\_size,len,(FILE*)mat->fp); \(\backslash\)}
+00074 \textcolor{preprocessor}{                for ( j = 0; j < len; j++ ) \{ \(\backslash\)}
+00075 \textcolor{preprocessor}{                    data[j] = (T)SwapFunc(&v[j]); \(\backslash\)}
+00076 \textcolor{preprocessor}{                \} \(\backslash\)}
+00077 \textcolor{preprocessor}{            \} else \{ \(\backslash\)}
+00078 \textcolor{preprocessor}{                for ( i = 0; i < len-READ\_BLOCK\_SIZE; i+=READ\_BLOCK\_SIZE ) \{ \(\backslash\)}
+00079 \textcolor{preprocessor}{                    bytesread += fread(v,data\_size,READ\_BLOCK\_SIZE,(FILE*)mat->fp); \(\backslash\)}
+00080 \textcolor{preprocessor}{                    for ( j = 0; j < READ\_BLOCK\_SIZE; j++ ) \{ \(\backslash\)}
+00081 \textcolor{preprocessor}{                        data[i+j] = (T)SwapFunc(&v[j]); \(\backslash\)}
+00082 \textcolor{preprocessor}{                    \} \(\backslash\)}
+00083 \textcolor{preprocessor}{                \} \(\backslash\)}
+00084 \textcolor{preprocessor}{                if ( len > i ) \{ \(\backslash\)}
+00085 \textcolor{preprocessor}{                    bytesread += fread(v,data\_size,len-i,(FILE*)mat->fp); \(\backslash\)}
+00086 \textcolor{preprocessor}{                    for ( j = 0; j < len-i; j++ ) \{ \(\backslash\)}
+00087 \textcolor{preprocessor}{                        data[i+j] = (T)SwapFunc(&v[j]); \(\backslash\)}
+00088 \textcolor{preprocessor}{                    \} \(\backslash\)}
+00089 \textcolor{preprocessor}{                \}\(\backslash\)}
+00090 \textcolor{preprocessor}{            \} \(\backslash\)}
+00091 \textcolor{preprocessor}{        \} else \{ \(\backslash\)}
+00092 \textcolor{preprocessor}{            READ\_DATA\_NOSWAP(T); \(\backslash\)}
+00093 \textcolor{preprocessor}{        \} \(\backslash\)}
+00094 \textcolor{preprocessor}{    \} while (0)}
+00095 
+00096 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_INT64\_T}
+00097 \textcolor{preprocessor}{#define READ\_DATA\_INT64(T) \(\backslash\)}
+00098 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00099 \textcolor{preprocessor}{        if ( MAT\_T\_INT64 == data\_type ) \{ \(\backslash\)}
+00100 \textcolor{preprocessor}{            mat\_int64\_t v[READ\_BLOCK\_SIZE]; \(\backslash\)}
+00101 \textcolor{preprocessor}{            READ\_DATA(T, Mat\_int64Swap); \(\backslash\)}
+00102 \textcolor{preprocessor}{        \} \(\backslash\)}
+00103 \textcolor{preprocessor}{    \} while (0)}
+00104 \textcolor{preprocessor}{#else}
+00105 \textcolor{preprocessor}{#define READ\_DATA\_INT64}
+00106 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_INT64\_T */}\textcolor{preprocessor}{}
+00107 
+00108 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_UINT64\_T}
+00109 \textcolor{preprocessor}{#define READ\_DATA\_UINT64(T) \(\backslash\)}
+00110 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00111 \textcolor{preprocessor}{        if ( MAT\_T\_UINT64 == data\_type ) \{ \(\backslash\)}
+00112 \textcolor{preprocessor}{            mat\_uint64\_t v[READ\_BLOCK\_SIZE]; \(\backslash\)}
+00113 \textcolor{preprocessor}{            READ\_DATA(T, Mat\_uint64Swap); \(\backslash\)}
+00114 \textcolor{preprocessor}{        \} \(\backslash\)}
+00115 \textcolor{preprocessor}{    \} while (0)}
+00116 \textcolor{preprocessor}{#else}
+00117 \textcolor{preprocessor}{#define READ\_DATA\_UINT64}
+00118 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_UINT64\_T */}\textcolor{preprocessor}{}
+00119 
+00120 \textcolor{preprocessor}{#define READ\_DATA\_TYPE(T) \(\backslash\)}
+00121 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00122 \textcolor{preprocessor}{        switch ( data\_type ) \{ \(\backslash\)}
+00123 \textcolor{preprocessor}{            case MAT\_T\_DOUBLE: \(\backslash\)}
+00124 \textcolor{preprocessor}{            \{ \(\backslash\)}
+00125 \textcolor{preprocessor}{                double v[READ\_BLOCK\_SIZE]; \(\backslash\)}
+00126 \textcolor{preprocessor}{                READ\_DATA(T, Mat\_doubleSwap); \(\backslash\)}
+00127 \textcolor{preprocessor}{                break; \(\backslash\)}
+00128 \textcolor{preprocessor}{            \} \(\backslash\)}
+00129 \textcolor{preprocessor}{            case MAT\_T\_SINGLE: \(\backslash\)}
+00130 \textcolor{preprocessor}{            \{ \(\backslash\)}
+00131 \textcolor{preprocessor}{                float v[READ\_BLOCK\_SIZE]; \(\backslash\)}
+00132 \textcolor{preprocessor}{                READ\_DATA(T, Mat\_floatSwap); \(\backslash\)}
+00133 \textcolor{preprocessor}{                break; \(\backslash\)}
+00134 \textcolor{preprocessor}{            \} \(\backslash\)}
+00135 \textcolor{preprocessor}{            case MAT\_T\_INT32: \(\backslash\)}
+00136 \textcolor{preprocessor}{            \{ \(\backslash\)}
+00137 \textcolor{preprocessor}{                mat\_int32\_t v[READ\_BLOCK\_SIZE]; \(\backslash\)}
+00138 \textcolor{preprocessor}{                READ\_DATA(T, Mat\_int32Swap); \(\backslash\)}
+00139 \textcolor{preprocessor}{                break; \(\backslash\)}
+00140 \textcolor{preprocessor}{            \} \(\backslash\)}
+00141 \textcolor{preprocessor}{            case MAT\_T\_UINT32: \(\backslash\)}
+00142 \textcolor{preprocessor}{            \{ \(\backslash\)}
+00143 \textcolor{preprocessor}{                mat\_uint32\_t v[READ\_BLOCK\_SIZE]; \(\backslash\)}
+00144 \textcolor{preprocessor}{                READ\_DATA(T, Mat\_uint32Swap); \(\backslash\)}
+00145 \textcolor{preprocessor}{                break; \(\backslash\)}
+00146 \textcolor{preprocessor}{            \} \(\backslash\)}
+00147 \textcolor{preprocessor}{            case MAT\_T\_INT16: \(\backslash\)}
+00148 \textcolor{preprocessor}{            \{ \(\backslash\)}
+00149 \textcolor{preprocessor}{                mat\_int16\_t v[READ\_BLOCK\_SIZE]; \(\backslash\)}
+00150 \textcolor{preprocessor}{                READ\_DATA(T, Mat\_int16Swap); \(\backslash\)}
+00151 \textcolor{preprocessor}{                break; \(\backslash\)}
+00152 \textcolor{preprocessor}{            \} \(\backslash\)}
+00153 \textcolor{preprocessor}{            case MAT\_T\_UINT16: \(\backslash\)}
+00154 \textcolor{preprocessor}{            \{ \(\backslash\)}
+00155 \textcolor{preprocessor}{                mat\_uint16\_t v[READ\_BLOCK\_SIZE]; \(\backslash\)}
+00156 \textcolor{preprocessor}{                READ\_DATA(T, Mat\_uint16Swap); \(\backslash\)}
+00157 \textcolor{preprocessor}{                break; \(\backslash\)}
+00158 \textcolor{preprocessor}{            \} \(\backslash\)}
+00159 \textcolor{preprocessor}{            case MAT\_T\_INT8: \(\backslash\)}
+00160 \textcolor{preprocessor}{            \{ \(\backslash\)}
+00161 \textcolor{preprocessor}{                mat\_int8\_t v[READ\_BLOCK\_SIZE]; \(\backslash\)}
+00162 \textcolor{preprocessor}{                READ\_DATA\_NOSWAP(T); \(\backslash\)}
+00163 \textcolor{preprocessor}{                break; \(\backslash\)}
+00164 \textcolor{preprocessor}{            \} \(\backslash\)}
+00165 \textcolor{preprocessor}{            case MAT\_T\_UINT8: \(\backslash\)}
+00166 \textcolor{preprocessor}{            \{ \(\backslash\)}
+00167 \textcolor{preprocessor}{                mat\_uint8\_t v[READ\_BLOCK\_SIZE]; \(\backslash\)}
+00168 \textcolor{preprocessor}{                READ\_DATA\_NOSWAP(T); \(\backslash\)}
+00169 \textcolor{preprocessor}{                break; \(\backslash\)}
+00170 \textcolor{preprocessor}{            \} \(\backslash\)}
+00171 \textcolor{preprocessor}{            default: \(\backslash\)}
+00172 \textcolor{preprocessor}{                READ\_DATA\_INT64(T); \(\backslash\)}
+00173 \textcolor{preprocessor}{                READ\_DATA\_UINT64(T); \(\backslash\)}
+00174 \textcolor{preprocessor}{                break; \(\backslash\)}
+00175 \textcolor{preprocessor}{        \} \(\backslash\)}
+00176 \textcolor{preprocessor}{    \} while (0)}
+00177 
+00178 \textcolor{preprocessor}{#if defined(HAVE\_ZLIB)}
+00179 \textcolor{preprocessor}{#define READ\_COMPRESSED\_DATA(T, SwapFunc) \(\backslash\)}
+00180 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00181 \textcolor{preprocessor}{        if ( mat->byteswap ) \{ \(\backslash\)}
+00182 \textcolor{preprocessor}{            for ( i = 0; i < len; i++ ) \{ \(\backslash\)}
+00183 \textcolor{preprocessor}{                InflateData(mat,z,&v,data\_size); \(\backslash\)}
+00184 \textcolor{preprocessor}{                data[i] = (T)SwapFunc(&v); \(\backslash\)}
+00185 \textcolor{preprocessor}{            \} \(\backslash\)}
+00186 \textcolor{preprocessor}{        \} else \{ \(\backslash\)}
+00187 \textcolor{preprocessor}{            for ( i = 0; i < len; i++ ) \{ \(\backslash\)}
+00188 \textcolor{preprocessor}{                InflateData(mat,z,&v,data\_size); \(\backslash\)}
+00189 \textcolor{preprocessor}{                data[i] = (T)v; \(\backslash\)}
+00190 \textcolor{preprocessor}{            \} \(\backslash\)}
+00191 \textcolor{preprocessor}{        \} \(\backslash\)}
+00192 \textcolor{preprocessor}{    \} while (0)}
+00193 
+00194 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_INT64\_T}
+00195 \textcolor{preprocessor}{#define READ\_COMPRESSED\_DATA\_INT64(T) \(\backslash\)}
+00196 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00197 \textcolor{preprocessor}{        if ( MAT\_T\_INT64 == data\_type ) \{ \(\backslash\)}
+00198 \textcolor{preprocessor}{            mat\_int64\_t v; \(\backslash\)}
+00199 \textcolor{preprocessor}{            READ\_COMPRESSED\_DATA(T, Mat\_int64Swap); \(\backslash\)}
+00200 \textcolor{preprocessor}{        \} \(\backslash\)}
+00201 \textcolor{preprocessor}{    \} while (0)}
+00202 \textcolor{preprocessor}{#else}
+00203 \textcolor{preprocessor}{#define READ\_COMPRESSED\_DATA\_INT64}
+00204 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_INT64\_T */}\textcolor{preprocessor}{}
+00205 
+00206 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_UINT64\_T}
+00207 \textcolor{preprocessor}{#define READ\_COMPRESSED\_DATA\_UINT64(T) \(\backslash\)}
+00208 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00209 \textcolor{preprocessor}{        if ( MAT\_T\_UINT64 == data\_type ) \{ \(\backslash\)}
+00210 \textcolor{preprocessor}{            mat\_uint64\_t v; \(\backslash\)}
+00211 \textcolor{preprocessor}{            READ\_COMPRESSED\_DATA(T, Mat\_uint64Swap); \(\backslash\)}
+00212 \textcolor{preprocessor}{        \} \(\backslash\)}
+00213 \textcolor{preprocessor}{    \} while (0)}
+00214 \textcolor{preprocessor}{#else}
+00215 \textcolor{preprocessor}{#define READ\_COMPRESSED\_DATA\_UINT64}
+00216 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_UINT64\_T */}\textcolor{preprocessor}{}
+00217 
+00218 \textcolor{preprocessor}{#define READ\_COMPRESSED\_DATA\_TYPE(T) \(\backslash\)}
+00219 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+00220 \textcolor{preprocessor}{        switch ( data\_type ) \{ \(\backslash\)}
+00221 \textcolor{preprocessor}{            case MAT\_T\_DOUBLE: \(\backslash\)}
+00222 \textcolor{preprocessor}{            \{ \(\backslash\)}
+00223 \textcolor{preprocessor}{                double v; \(\backslash\)}
+00224 \textcolor{preprocessor}{                READ\_COMPRESSED\_DATA(T, Mat\_doubleSwap); \(\backslash\)}
+00225 \textcolor{preprocessor}{                break; \(\backslash\)}
+00226 \textcolor{preprocessor}{            \} \(\backslash\)}
+00227 \textcolor{preprocessor}{            case MAT\_T\_SINGLE: \(\backslash\)}
+00228 \textcolor{preprocessor}{            \{ \(\backslash\)}
+00229 \textcolor{preprocessor}{                float v; \(\backslash\)}
+00230 \textcolor{preprocessor}{                READ\_COMPRESSED\_DATA(T, Mat\_floatSwap); \(\backslash\)}
+00231 \textcolor{preprocessor}{                break; \(\backslash\)}
+00232 \textcolor{preprocessor}{            \} \(\backslash\)}
+00233 \textcolor{preprocessor}{            case MAT\_T\_INT32: \(\backslash\)}
+00234 \textcolor{preprocessor}{            \{ \(\backslash\)}
+00235 \textcolor{preprocessor}{                mat\_int32\_t v; \(\backslash\)}
+00236 \textcolor{preprocessor}{                READ\_COMPRESSED\_DATA(T, Mat\_int32Swap); \(\backslash\)}
+00237 \textcolor{preprocessor}{                break; \(\backslash\)}
+00238 \textcolor{preprocessor}{            \} \(\backslash\)}
+00239 \textcolor{preprocessor}{            case MAT\_T\_UINT32: \(\backslash\)}
+00240 \textcolor{preprocessor}{            \{ \(\backslash\)}
+00241 \textcolor{preprocessor}{                mat\_uint32\_t v; \(\backslash\)}
+00242 \textcolor{preprocessor}{                READ\_COMPRESSED\_DATA(T, Mat\_uint32Swap); \(\backslash\)}
+00243 \textcolor{preprocessor}{                break; \(\backslash\)}
+00244 \textcolor{preprocessor}{            \} \(\backslash\)}
+00245 \textcolor{preprocessor}{            case MAT\_T\_INT16: \(\backslash\)}
+00246 \textcolor{preprocessor}{            \{ \(\backslash\)}
+00247 \textcolor{preprocessor}{                mat\_int16\_t v; \(\backslash\)}
+00248 \textcolor{preprocessor}{                READ\_COMPRESSED\_DATA(T, Mat\_int16Swap); \(\backslash\)}
+00249 \textcolor{preprocessor}{                break; \(\backslash\)}
+00250 \textcolor{preprocessor}{            \} \(\backslash\)}
+00251 \textcolor{preprocessor}{            case MAT\_T\_UINT16: \(\backslash\)}
+00252 \textcolor{preprocessor}{            \{ \(\backslash\)}
+00253 \textcolor{preprocessor}{                mat\_uint16\_t v; \(\backslash\)}
+00254 \textcolor{preprocessor}{                READ\_COMPRESSED\_DATA(T, Mat\_uint16Swap); \(\backslash\)}
+00255 \textcolor{preprocessor}{                break; \(\backslash\)}
+00256 \textcolor{preprocessor}{            \} \(\backslash\)}
+00257 \textcolor{preprocessor}{            case MAT\_T\_UINT8: \(\backslash\)}
+00258 \textcolor{preprocessor}{            \{ \(\backslash\)}
+00259 \textcolor{preprocessor}{                mat\_uint8\_t v; \(\backslash\)}
+00260 \textcolor{preprocessor}{                for ( i = 0; i < len; i++ ) \{ \(\backslash\)}
+00261 \textcolor{preprocessor}{                    InflateData(mat,z,&v,data\_size); \(\backslash\)}
+00262 \textcolor{preprocessor}{                    data[i] = (T)v; \(\backslash\)}
+00263 \textcolor{preprocessor}{                \} \(\backslash\)}
+00264 \textcolor{preprocessor}{                break; \(\backslash\)}
+00265 \textcolor{preprocessor}{            \} \(\backslash\)}
+00266 \textcolor{preprocessor}{            case MAT\_T\_INT8: \(\backslash\)}
+00267 \textcolor{preprocessor}{            \{ \(\backslash\)}
+00268 \textcolor{preprocessor}{                mat\_int8\_t v; \(\backslash\)}
+00269 \textcolor{preprocessor}{                for ( i = 0; i < len; i++ ) \{ \(\backslash\)}
+00270 \textcolor{preprocessor}{                    InflateData(mat,z,&v,data\_size); \(\backslash\)}
+00271 \textcolor{preprocessor}{                    data[i] = (T)v; \(\backslash\)}
+00272 \textcolor{preprocessor}{                \} \(\backslash\)}
+00273 \textcolor{preprocessor}{                break; \(\backslash\)}
+00274 \textcolor{preprocessor}{            \} \(\backslash\)}
+00275 \textcolor{preprocessor}{            default: \(\backslash\)}
+00276 \textcolor{preprocessor}{                READ\_COMPRESSED\_DATA\_INT64(T); \(\backslash\)}
+00277 \textcolor{preprocessor}{                READ\_COMPRESSED\_DATA\_UINT64(T); \(\backslash\)}
+00278 \textcolor{preprocessor}{                break; \(\backslash\)}
+00279 \textcolor{preprocessor}{        \} \(\backslash\)}
+00280 \textcolor{preprocessor}{    \} while (0)}
+00281 \textcolor{preprocessor}{#endif}
+00282 
+00283 \textcolor{comment}{/*}
+00284 \textcolor{comment}{ * --------------------------------------------------------------------------}
+00285 \textcolor{comment}{ *    Routines to read data of any type into arrays of a specific type}
+00286 \textcolor{comment}{ * --------------------------------------------------------------------------}
+00287 \textcolor{comment}{ */}
+00288 
+00303 \textcolor{keywordtype}{int}
+00304 ReadDoubleData(\hyperlink{struct__mat__t}{mat\_t} *mat,\textcolor{keywordtype}{double} *data,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+00305 \{
+00306     \textcolor{keywordtype}{int} bytesread = 0, i, j;
+00307     \textcolor{keywordtype}{size\_t} data\_size;
+00308 
+00309     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL) )
+00310         \textcolor{keywordflow}{return} 0;
+00311 
+00312     data\_size = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+00313 
+00314     \textcolor{keywordflow}{switch} ( data\_type ) \{
+00315         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a31e721ecf7e188196f83c32838288797}{MAT\_T\_DOUBLE}:
+00316         \{
+00317             bytesread += fread(data,data\_size,len,(FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+00318             \textcolor{keywordflow}{if} ( mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} ) \{
+00319                 \textcolor{keywordflow}{for} ( i = 0; i < len; i++ ) \{
+00320                     (void)\hyperlink{endian_8c_a7f548ab23c3b06fa90ef646ed43dc558}{Mat\_doubleSwap}(data+i);
+00321                 \}
+00322             \}
+00323             \textcolor{keywordflow}{break};
+00324         \}
+00325         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a3a3657d40e9212c923d9b9d03531b64c}{MAT\_T\_SINGLE}:
+00326         \{
+00327             \textcolor{keywordtype}{float} v[READ\_BLOCK\_SIZE];
+00328             READ\_DATA(\textcolor{keywordtype}{double}, \hyperlink{endian_8c_aec590b585dd84bbbae74a857922fced2}{Mat\_floatSwap});
+00329             \textcolor{keywordflow}{break};
+00330         \}
+00331 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_INT64\_T}
+00332         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a9e825b5d18b8f946eaf2b4b57e51c145}{MAT\_T\_INT64}:
+00333         \{
+00334             mat\_int64\_t v[READ\_BLOCK\_SIZE];
+00335             READ\_DATA(\textcolor{keywordtype}{double}, Mat\_int64Swap);
+00336             \textcolor{keywordflow}{break};
+00337         \}
+00338 \textcolor{preprocessor}{#endif}
+00339 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_UINT64\_T}
+00340         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a45547932c46be27118abe08302d7e29f}{MAT\_T\_UINT64}:
+00341         \{
+00342             mat\_uint64\_t v[READ\_BLOCK\_SIZE];
+00343             READ\_DATA(\textcolor{keywordtype}{double}, Mat\_uint64Swap);
+00344             \textcolor{keywordflow}{break};
+00345         \}
+00346 \textcolor{preprocessor}{#endif}
+00347         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a83e06a68320726c6572bfbb9f3addb1d}{MAT\_T\_INT32}:
+00348         \{
+00349             mat\_int32\_t v[READ\_BLOCK\_SIZE];
+00350             READ\_DATA(\textcolor{keywordtype}{double}, \hyperlink{endian_8c_a2e0153996243f0a34df9a5286087cfa3}{Mat\_int32Swap});
+00351             \textcolor{keywordflow}{break};
+00352         \}
+00353         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453aa397e285a23fe240368b752897652c6a}{MAT\_T\_UINT32}:
+00354         \{
+00355             mat\_uint32\_t v[READ\_BLOCK\_SIZE];
+00356             READ\_DATA(\textcolor{keywordtype}{double}, \hyperlink{endian_8c_a8cb0d0750e2eaf9840d95db531934f4f}{Mat\_uint32Swap});
+00357             \textcolor{keywordflow}{break};
+00358         \}
+00359         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a8c5b2e381946e95ea8d81ac216743302}{MAT\_T\_INT16}:
+00360         \{
+00361             mat\_int16\_t v[READ\_BLOCK\_SIZE];
+00362             READ\_DATA(\textcolor{keywordtype}{double}, \hyperlink{endian_8c_a741eb8019dbc3e8addfc0e75adb0dd90}{Mat\_int16Swap});
+00363             \textcolor{keywordflow}{break};
+00364         \}
+00365         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a05bc7af7680aa68be95126ae0a4c2e31}{MAT\_T\_UINT16}:
+00366         \{
+00367             mat\_uint16\_t v[READ\_BLOCK\_SIZE];
+00368             READ\_DATA(\textcolor{keywordtype}{double}, \hyperlink{endian_8c_a0fd527794c69f2872e80a6f20cd09fd2}{Mat\_uint16Swap});
+00369             \textcolor{keywordflow}{break};
+00370         \}
+00371         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a9807f5033ed4f9b548953742d9fd1658}{MAT\_T\_INT8}:
+00372         \{
+00373             mat\_int8\_t v[READ\_BLOCK\_SIZE];
+00374             READ\_DATA\_NOSWAP(\textcolor{keywordtype}{double});
+00375             \textcolor{keywordflow}{break};
+00376         \}
+00377         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a01c1bd7db68f90552862eb5d311be408}{MAT\_T\_UINT8}:
+00378         \{
+00379             mat\_uint8\_t v[READ\_BLOCK\_SIZE];
+00380             READ\_DATA\_NOSWAP(\textcolor{keywordtype}{double});
+00381             \textcolor{keywordflow}{break};
+00382         \}
+00383         \textcolor{keywordflow}{default}:
+00384             \textcolor{keywordflow}{return} 0;
+00385     \}
+00386     bytesread *= data\_size;
+00387     \textcolor{keywordflow}{return} bytesread;
+00388 \}
+00389 
+00390 \textcolor{preprocessor}{#if defined(HAVE\_ZLIB)}
+00391 
+00404 \textcolor{keywordtype}{int}
+00405 ReadCompressedDoubleData(\hyperlink{struct__mat__t}{mat\_t} *mat,z\_streamp z,\textcolor{keywordtype}{double} *data,
+00406     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+00407 \{
+00408     \textcolor{keywordtype}{int} nBytes = 0, i;
+00409     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} data\_size;
+00410     \textcolor{keyword}{union }\_buf \{
+00411         \textcolor{keywordtype}{float}           f[256];
+00412 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_INT64\_T}
+00413         mat\_int64\_t   i64[128];
+00414 \textcolor{preprocessor}{#endif}
+00415 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_UINT64\_T}
+00416         mat\_uint64\_t ui64[128];
+00417 \textcolor{preprocessor}{#endif}
+00418         mat\_int32\_t   i32[256];
+00419         mat\_uint32\_t ui32[256];
+00420         mat\_int16\_t   i16[512];
+00421         mat\_uint16\_t ui16[512];
+00422         mat\_int8\_t     i8[1024];
+00423         mat\_uint8\_t   ui8[1024];
+00424     \} buf;
+00425 
+00426     data\_size = (\textcolor{keywordtype}{unsigned} int)\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+00427 
+00428     \textcolor{keywordflow}{switch} ( data\_type ) \{
+00429         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a31e721ecf7e188196f83c32838288797}{MAT\_T\_DOUBLE}:
+00430         \{
+00431             \textcolor{keywordflow}{if} ( mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} ) \{
+00432                 InflateData(mat,z,data,len*data\_size);
+00433                 \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00434                     (\textcolor{keywordtype}{void})\hyperlink{endian_8c_a7f548ab23c3b06fa90ef646ed43dc558}{Mat\_doubleSwap}(data+i);
+00435             \} \textcolor{keywordflow}{else} \{
+00436                 InflateData(mat,z,data,len*data\_size);
+00437             \}
+00438             \textcolor{keywordflow}{break};
+00439         \}
+00440         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a3a3657d40e9212c923d9b9d03531b64c}{MAT\_T\_SINGLE}:
+00441         \{
+00442             \textcolor{keywordflow}{if} ( mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} ) \{
+00443                 \textcolor{keywordflow}{if} ( len <= 256 )\{
+00444                     InflateData(mat,z,buf.f,len*data\_size);
+00445                     \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00446                         data[i] = \hyperlink{endian_8c_aec590b585dd84bbbae74a857922fced2}{Mat\_floatSwap}(buf.f+i);
+00447                 \} \textcolor{keywordflow}{else} \{
+00448                     \textcolor{keywordtype}{int} j;
+00449                     len -= 256;
+00450                     \textcolor{keywordflow}{for} ( i = 0; i < len; i+=256 ) \{
+00451                         InflateData(mat,z,buf.f,256*data\_size);
+00452                         \textcolor{keywordflow}{for} ( j = 0; j < 256; j++ )
+00453                             data[i+j] = \hyperlink{endian_8c_aec590b585dd84bbbae74a857922fced2}{Mat\_floatSwap}(buf.f+j);
+00454                     \}
+00455                     len = len-(i-256);
+00456                     InflateData(mat,z,buf.f,len*data\_size);
+00457                     \textcolor{keywordflow}{for} ( j = 0; j < len; j++ )
+00458                         data[i+j] = \hyperlink{endian_8c_aec590b585dd84bbbae74a857922fced2}{Mat\_floatSwap}(buf.f+j);
+00459                 \}
+00460             \} \textcolor{keywordflow}{else} \{
+00461                 \textcolor{keywordflow}{if} ( len <= 256 )\{
+00462                     InflateData(mat,z,buf.f,len*data\_size);
+00463                     \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00464                         data[i] = buf.f[i];
+00465                 \} \textcolor{keywordflow}{else} \{
+00466                     \textcolor{keywordtype}{int} j;
+00467                     len -= 256;
+00468                     \textcolor{keywordflow}{for} ( i = 0; i < len; i+=256 ) \{
+00469                         InflateData(mat,z,buf.f,256*data\_size);
+00470                         \textcolor{keywordflow}{for} ( j = 0; j < 256; j++ )
+00471                             data[i+j] = buf.f[j];
+00472                     \}
+00473                     len = len-(i-256);
+00474                     InflateData(mat,z,buf.f,len*data\_size);
+00475                     \textcolor{keywordflow}{for} ( j = 0; j < len; j++ )
+00476                         data[i+j] = buf.f[j];
+00477                 \}
+00478             \}
+00479             \textcolor{keywordflow}{break};
+00480         \}
+00481 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_INT64\_T}
+00482         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a9e825b5d18b8f946eaf2b4b57e51c145}{MAT\_T\_INT64}:
+00483         \{
+00484             \textcolor{keywordflow}{if} ( mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} ) \{
+00485                 \textcolor{keywordflow}{if} ( len <= 128 )\{
+00486                     InflateData(mat,z,buf.i64,len*data\_size);
+00487                     \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00488                         data[i] = (\textcolor{keywordtype}{double})Mat\_int64Swap(buf.i64+i);
+00489                 \} \textcolor{keywordflow}{else} \{
+00490                     \textcolor{keywordtype}{int} j;
+00491                     len -= 128;
+00492                     \textcolor{keywordflow}{for} ( i = 0; i < len; i+=128 ) \{
+00493                         InflateData(mat,z,buf.i64,128*data\_size);
+00494                         \textcolor{keywordflow}{for} ( j = 0; j < 128; j++ )
+00495                             data[i+j] = (\textcolor{keywordtype}{double})Mat\_int64Swap(buf.i64+j);
+00496                     \}
+00497                     len = len-(i-128);
+00498                     InflateData(mat,z,buf.i64,len*data\_size);
+00499                     \textcolor{keywordflow}{for} ( j = 0; j < len; j++ )
+00500                         data[i+j] = (\textcolor{keywordtype}{double})Mat\_int64Swap(buf.i64+j);
+00501                 \}
+00502             \} \textcolor{keywordflow}{else} \{
+00503                 \textcolor{keywordflow}{if} ( len <= 128 )\{
+00504                     InflateData(mat,z,buf.i64,len*data\_size);
+00505                     \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00506                         data[i] = (\textcolor{keywordtype}{double})buf.i64[i];
+00507                 \} \textcolor{keywordflow}{else} \{
+00508                     \textcolor{keywordtype}{int} j;
+00509                     len -= 128;
+00510                     \textcolor{keywordflow}{for} ( i = 0; i < len; i+=128 ) \{
+00511                         InflateData(mat,z,buf.i64,128*data\_size);
+00512                         \textcolor{keywordflow}{for} ( j = 0; j < 128; j++ )
+00513                             data[i+j] = (\textcolor{keywordtype}{double})buf.i64[j];
+00514                     \}
+00515                     len = len-(i-128);
+00516                     InflateData(mat,z,buf.i64,len*data\_size);
+00517                     \textcolor{keywordflow}{for} ( j = 0; j < len; j++ )
+00518                         data[i+j] = (\textcolor{keywordtype}{double})buf.i64[j];
+00519                 \}
+00520             \}
+00521             \textcolor{keywordflow}{break};
+00522         \}
+00523 \textcolor{preprocessor}{#endif}
+00524 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_UINT64\_T}
+00525         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a45547932c46be27118abe08302d7e29f}{MAT\_T\_UINT64}:
+00526         \{
+00527             \textcolor{keywordflow}{if} ( mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} ) \{
+00528                 \textcolor{keywordflow}{if} ( len <= 128 )\{
+00529                     InflateData(mat,z,buf.ui64,len*data\_size);
+00530                     \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00531                         data[i] = (\textcolor{keywordtype}{double})Mat\_uint64Swap(buf.ui64+i);
+00532                 \} \textcolor{keywordflow}{else} \{
+00533                     \textcolor{keywordtype}{int} j;
+00534                     len -= 128;
+00535                     \textcolor{keywordflow}{for} ( i = 0; i < len; i+=128 ) \{
+00536                         InflateData(mat,z,buf.ui64,128*data\_size);
+00537                         \textcolor{keywordflow}{for} ( j = 0; j < 128; j++ )
+00538                             data[i+j] = (\textcolor{keywordtype}{double})Mat\_uint64Swap(buf.ui64+j);
+00539                     \}
+00540                     len = len-(i-128);
+00541                     InflateData(mat,z,buf.ui64,len*data\_size);
+00542                     \textcolor{keywordflow}{for} ( j = 0; j < len; j++ )
+00543                         data[i+j] = (\textcolor{keywordtype}{double})Mat\_uint64Swap(buf.ui64+j);
+00544                 \}
+00545             \} \textcolor{keywordflow}{else} \{
+00546                 \textcolor{keywordflow}{if} ( len <= 128 )\{
+00547                     InflateData(mat,z,buf.ui64,len*data\_size);
+00548                     \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00549                         data[i] = (\textcolor{keywordtype}{double})buf.ui64[i];
+00550                 \} \textcolor{keywordflow}{else} \{
+00551                     \textcolor{keywordtype}{int} j;
+00552                     len -= 128;
+00553                     \textcolor{keywordflow}{for} ( i = 0; i < len; i+=128 ) \{
+00554                         InflateData(mat,z,buf.ui64,128*data\_size);
+00555                         \textcolor{keywordflow}{for} ( j = 0; j < 128; j++ )
+00556                             data[i+j] = (\textcolor{keywordtype}{double})buf.ui64[j];
+00557                     \}
+00558                     len = len-(i-128);
+00559                     InflateData(mat,z,buf.ui64,len*data\_size);
+00560                     \textcolor{keywordflow}{for} ( j = 0; j < len; j++ )
+00561                         data[i+j] = (\textcolor{keywordtype}{double})buf.ui64[j];
+00562                 \}
+00563             \}
+00564             \textcolor{keywordflow}{break};
+00565         \}
+00566 \textcolor{preprocessor}{#endif}
+00567         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a83e06a68320726c6572bfbb9f3addb1d}{MAT\_T\_INT32}:
+00568         \{
+00569             \textcolor{keywordflow}{if} ( mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} ) \{
+00570                 \textcolor{keywordflow}{if} ( len <= 256 )\{
+00571                     InflateData(mat,z,buf.i32,len*data\_size);
+00572                     \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00573                         data[i] = \hyperlink{endian_8c_a2e0153996243f0a34df9a5286087cfa3}{Mat\_int32Swap}(buf.i32+i);
+00574                 \} \textcolor{keywordflow}{else} \{
+00575                     \textcolor{keywordtype}{int} j;
+00576                     len -= 256;
+00577                     \textcolor{keywordflow}{for} ( i = 0; i < len; i+=256 ) \{
+00578                         InflateData(mat,z,buf.i32,256*data\_size);
+00579                         \textcolor{keywordflow}{for} ( j = 0; j < 256; j++ )
+00580                             data[i+j] = \hyperlink{endian_8c_a2e0153996243f0a34df9a5286087cfa3}{Mat\_int32Swap}(buf.i32+j);
+00581                     \}
+00582                     len = len-(i-256);
+00583                     InflateData(mat,z,buf.i32,len*data\_size);
+00584                     \textcolor{keywordflow}{for} ( j = 0; j < len; j++ )
+00585                         data[i+j] = \hyperlink{endian_8c_a2e0153996243f0a34df9a5286087cfa3}{Mat\_int32Swap}(buf.i32+j);
+00586                 \}
+00587             \} \textcolor{keywordflow}{else} \{
+00588                 \textcolor{keywordflow}{if} ( len <= 256 )\{
+00589                     InflateData(mat,z,buf.i32,len*data\_size);
+00590                     \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00591                         data[i] = buf.i32[i];
+00592                 \} \textcolor{keywordflow}{else} \{
+00593                     \textcolor{keywordtype}{int} j;
+00594                     len -= 256;
+00595                     \textcolor{keywordflow}{for} ( i = 0; i < len; i+=256 ) \{
+00596                         InflateData(mat,z,buf.i32,256*data\_size);
+00597                         \textcolor{keywordflow}{for} ( j = 0; j < 256; j++ )
+00598                             data[i+j] = buf.i32[j];
+00599                     \}
+00600                     len = len-(i-256);
+00601                     InflateData(mat,z,buf.i32,len*data\_size);
+00602                     \textcolor{keywordflow}{for} ( j = 0; j < len; j++ )
+00603                         data[i+j] = buf.i32[j];
+00604                 \}
+00605             \}
+00606             \textcolor{keywordflow}{break};
+00607         \}
+00608         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453aa397e285a23fe240368b752897652c6a}{MAT\_T\_UINT32}:
+00609         \{
+00610             \textcolor{keywordflow}{if} ( mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} ) \{
+00611                 \textcolor{keywordflow}{if} ( len <= 256 )\{
+00612                     InflateData(mat,z,buf.ui32,len*data\_size);
+00613                     \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00614                         data[i] = \hyperlink{endian_8c_a8cb0d0750e2eaf9840d95db531934f4f}{Mat\_uint32Swap}(buf.ui32+i);
+00615                 \} \textcolor{keywordflow}{else} \{
+00616                     \textcolor{keywordtype}{int} j;
+00617                     len -= 256;
+00618                     \textcolor{keywordflow}{for} ( i = 0; i < len; i+=256 ) \{
+00619                         InflateData(mat,z,buf.ui32,256*data\_size);
+00620                         \textcolor{keywordflow}{for} ( j = 0; j < 256; j++ )
+00621                             data[i+j] = \hyperlink{endian_8c_a8cb0d0750e2eaf9840d95db531934f4f}{Mat\_uint32Swap}(buf.ui32+j);
+00622                     \}
+00623                     len = len-(i-256);
+00624                     InflateData(mat,z,buf.ui32,len*data\_size);
+00625                     \textcolor{keywordflow}{for} ( j = 0; j < len; j++ )
+00626                         data[i+j] = \hyperlink{endian_8c_a8cb0d0750e2eaf9840d95db531934f4f}{Mat\_uint32Swap}(buf.ui32+j);
+00627                 \}
+00628             \} \textcolor{keywordflow}{else} \{
+00629                 \textcolor{keywordflow}{if} ( len <= 256 ) \{
+00630                     InflateData(mat,z,buf.ui32,len*data\_size);
+00631                     \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00632                         data[i] = buf.ui32[i];
+00633                 \} \textcolor{keywordflow}{else} \{
+00634                     \textcolor{keywordtype}{int} j;
+00635                     len -= 256;
+00636                     \textcolor{keywordflow}{for} ( i = 0; i < len; i+=256 ) \{
+00637                         InflateData(mat,z,buf.ui32,256*data\_size);
+00638                         \textcolor{keywordflow}{for} ( j = 0; j < 256; j++ )
+00639                             data[i+j] = buf.ui32[j];
+00640                     \}
+00641                     len = len-(i-256);
+00642                     InflateData(mat,z,buf.ui32,len*data\_size);
+00643                     \textcolor{keywordflow}{for} ( j = 0; j < len; j++ )
+00644                         data[i+j] = buf.ui32[j];
+00645                 \}
+00646             \}
+00647             \textcolor{keywordflow}{break};
+00648         \}
+00649         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a8c5b2e381946e95ea8d81ac216743302}{MAT\_T\_INT16}:
+00650         \{
+00651             \textcolor{keywordflow}{if} ( mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} ) \{
+00652                 \textcolor{keywordflow}{if} ( len <= 512 )\{
+00653                     InflateData(mat,z,buf.i16,len*data\_size);
+00654                     \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00655                         data[i] = \hyperlink{endian_8c_a741eb8019dbc3e8addfc0e75adb0dd90}{Mat\_int16Swap}(buf.i16+i);
+00656                 \} \textcolor{keywordflow}{else} \{
+00657                     \textcolor{keywordtype}{int} j;
+00658                     len -= 512;
+00659                     \textcolor{keywordflow}{for} ( i = 0; i < len; i+=512 ) \{
+00660                         InflateData(mat,z,buf.i16,512*data\_size);
+00661                         \textcolor{keywordflow}{for} ( j = 0; j < 512; j++ )
+00662                             data[i+j] = \hyperlink{endian_8c_a741eb8019dbc3e8addfc0e75adb0dd90}{Mat\_int16Swap}(buf.i16+j);
+00663                     \}
+00664                     len = len-(i-512);
+00665                     InflateData(mat,z,buf.i16,len*data\_size);
+00666                     \textcolor{keywordflow}{for} ( j = 0; j < len; j++ )
+00667                         data[i+j] = \hyperlink{endian_8c_a741eb8019dbc3e8addfc0e75adb0dd90}{Mat\_int16Swap}(buf.i16+j);
+00668                 \}
+00669             \} \textcolor{keywordflow}{else} \{
+00670                 \textcolor{keywordflow}{if} ( len <= 512 ) \{
+00671                     InflateData(mat,z,buf.i16,len*data\_size);
+00672                     \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00673                         data[i] = buf.i16[i];
+00674                 \} \textcolor{keywordflow}{else} \{
+00675                     \textcolor{keywordtype}{int} j;
+00676                     len -= 512;
+00677                     \textcolor{keywordflow}{for} ( i = 0; i < len; i+=512 ) \{
+00678                         InflateData(mat,z,buf.i16,512*data\_size);
+00679                         \textcolor{keywordflow}{for} ( j = 0; j < 512; j++ )
+00680                             data[i+j] = buf.i16[j];
+00681                     \}
+00682                     len = len-(i-512);
+00683                     InflateData(mat,z,buf.i16,len*data\_size);
+00684                     \textcolor{keywordflow}{for} ( j = 0; j < len; j++ )
+00685                         data[i+j] = buf.i16[j];
+00686                 \}
+00687             \}
+00688             \textcolor{keywordflow}{break};
+00689         \}
+00690         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a05bc7af7680aa68be95126ae0a4c2e31}{MAT\_T\_UINT16}:
+00691         \{
+00692             \textcolor{keywordflow}{if} ( mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} ) \{
+00693                 \textcolor{keywordflow}{if} ( len <= 512 )\{
+00694                     InflateData(mat,z,buf.ui16,len*data\_size);
+00695                     \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00696                         data[i] = \hyperlink{endian_8c_a0fd527794c69f2872e80a6f20cd09fd2}{Mat\_uint16Swap}(buf.ui16+i);
+00697                 \} \textcolor{keywordflow}{else} \{
+00698                     \textcolor{keywordtype}{int} j;
+00699                     len -= 512;
+00700                     \textcolor{keywordflow}{for} ( i = 0; i < len; i+=512 ) \{
+00701                         InflateData(mat,z,buf.ui16,512*data\_size);
+00702                         \textcolor{keywordflow}{for} ( j = 0; j < 512; j++ )
+00703                             data[i+j] = \hyperlink{endian_8c_a0fd527794c69f2872e80a6f20cd09fd2}{Mat\_uint16Swap}(buf.ui16+j);
+00704                     \}
+00705                     len = len-(i-512);
+00706                     InflateData(mat,z,buf.ui16,len*data\_size);
+00707                     \textcolor{keywordflow}{for} ( j = 0; j < len; j++ )
+00708                         data[i+j] = \hyperlink{endian_8c_a0fd527794c69f2872e80a6f20cd09fd2}{Mat\_uint16Swap}(buf.ui16+j);
+00709                 \}
+00710             \} \textcolor{keywordflow}{else} \{
+00711                 \textcolor{keywordflow}{if} ( len <= 512 ) \{
+00712                     InflateData(mat,z,buf.ui16,len*data\_size);
+00713                     \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00714                         data[i] = buf.ui16[i];
+00715                 \} \textcolor{keywordflow}{else} \{
+00716                     \textcolor{keywordtype}{int} j;
+00717                     len -= 512;
+00718                     \textcolor{keywordflow}{for} ( i = 0; i < len; i+=512 ) \{
+00719                         InflateData(mat,z,buf.ui16,512*data\_size);
+00720                         \textcolor{keywordflow}{for} ( j = 0; j < 512; j++ )
+00721                             data[i+j] = buf.ui16[j];
+00722                     \}
+00723                     len = len-(i-512);
+00724                     InflateData(mat,z,buf.ui16,len*data\_size);
+00725                     \textcolor{keywordflow}{for} ( j = 0; j < len; j++ )
+00726                         data[i+j] = buf.ui16[j];
+00727                 \}
+00728             \}
+00729             \textcolor{keywordflow}{break};
+00730         \}
+00731         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a01c1bd7db68f90552862eb5d311be408}{MAT\_T\_UINT8}:
+00732         \{
+00733             \textcolor{keywordflow}{if} ( len <= 1024 ) \{
+00734                 InflateData(mat,z,buf.ui8,len*data\_size);
+00735                 \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00736                     data[i] = buf.ui8[i];
+00737             \} \textcolor{keywordflow}{else} \{
+00738                 \textcolor{keywordtype}{int} j;
+00739                 len -= 1024;
+00740                 \textcolor{keywordflow}{for} ( i = 0; i < len; i+=1024 ) \{
+00741                     InflateData(mat,z,buf.ui8,1024*data\_size);
+00742                     \textcolor{keywordflow}{for} ( j = 0; j < 1024; j++ )
+00743                         data[i+j] = buf.ui8[j];
+00744                 \}
+00745                 len = len-(i-1024);
+00746                 InflateData(mat,z,buf.ui8,len*data\_size);
+00747                 \textcolor{keywordflow}{for} ( j = 0; j < len; j++ )
+00748                     data[i+j] = buf.ui8[j];
+00749             \}
+00750             \textcolor{keywordflow}{break};
+00751         \}
+00752         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a9807f5033ed4f9b548953742d9fd1658}{MAT\_T\_INT8}:
+00753         \{
+00754             \textcolor{keywordflow}{if} ( len <= 1024 ) \{
+00755                 InflateData(mat,z,buf.i8,len*data\_size);
+00756                 \textcolor{keywordflow}{for} ( i = 0; i < len; i++ )
+00757                     data[i] = buf.i8[i];
+00758             \} \textcolor{keywordflow}{else} \{
+00759                 \textcolor{keywordtype}{int} j;
+00760                 len -= 1024;
+00761                 \textcolor{keywordflow}{for} ( i = 0; i < len; i+=1024 ) \{
+00762                     InflateData(mat,z,buf.i8,1024*data\_size);
+00763                     \textcolor{keywordflow}{for} ( j = 0; j < 1024; j++ )
+00764                         data[i+j] = buf.i8[j];
+00765                 \}
+00766                 len = len-(i-1024);
+00767                 InflateData(mat,z,buf.i8,len*data\_size);
+00768                 \textcolor{keywordflow}{for} ( j = 0; j < len; j++ )
+00769                     data[i+j] = buf.i8[j];
+00770             \}
+00771             \textcolor{keywordflow}{break};
+00772         \}
+00773         \textcolor{keywordflow}{default}:
+00774             \textcolor{keywordflow}{return} 0;
+00775     \}
+00776     nBytes = len*data\_size;
+00777     \textcolor{keywordflow}{return} nBytes;
+00778 \}
+00779 \textcolor{preprocessor}{#endif}
+00780 
+00793 \textcolor{keywordtype}{int}
+00794 ReadSingleData(\hyperlink{struct__mat__t}{mat\_t} *mat,\textcolor{keywordtype}{float} *data,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+00795 \{
+00796     \textcolor{keywordtype}{int} bytesread = 0, i, j;
+00797     \textcolor{keywordtype}{size\_t} data\_size;
+00798 
+00799     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL) )
+00800         \textcolor{keywordflow}{return} 0;
+00801 
+00802     data\_size = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+00803     READ\_DATA\_TYPE(\textcolor{keywordtype}{float});
+00804     bytesread *= data\_size;
+00805     \textcolor{keywordflow}{return} bytesread;
+00806 \}
+00807 
+00808 \textcolor{preprocessor}{#if defined(HAVE\_ZLIB)}
+00809 
+00822 \textcolor{keywordtype}{int}
+00823 ReadCompressedSingleData(\hyperlink{struct__mat__t}{mat\_t} *mat,z\_streamp z,\textcolor{keywordtype}{float} *data,
+00824     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+00825 \{
+00826     \textcolor{keywordtype}{int} nBytes = 0, i;
+00827     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} data\_size;
+00828 
+00829     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (z == NULL) )
+00830         \textcolor{keywordflow}{return} 0;
+00831 
+00832     data\_size = (\textcolor{keywordtype}{unsigned} int)\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+00833     READ\_COMPRESSED\_DATA\_TYPE(\textcolor{keywordtype}{float});
+00834     nBytes = len*data\_size;
+00835     \textcolor{keywordflow}{return} nBytes;
+00836 \}
+00837 \textcolor{preprocessor}{#endif}
+00838 
+00839 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_INT64\_T}
+00840 
+00853 \textcolor{keywordtype}{int}
+00854 ReadInt64Data(\hyperlink{struct__mat__t}{mat\_t} *mat,mat\_int64\_t *data,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+00855 \{
+00856     \textcolor{keywordtype}{int} bytesread = 0, i, j;
+00857     \textcolor{keywordtype}{size\_t} data\_size;
+00858 
+00859     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL) )
+00860         \textcolor{keywordflow}{return} 0;
+00861 
+00862     data\_size = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+00863     READ\_DATA\_TYPE(mat\_int64\_t);
+00864     bytesread *= data\_size;
+00865     \textcolor{keywordflow}{return} bytesread;
+00866 \}
+00867 
+00868 \textcolor{preprocessor}{#if defined(HAVE\_ZLIB)}
+00869 
+00883 \textcolor{keywordtype}{int}
+00884 ReadCompressedInt64Data(\hyperlink{struct__mat__t}{mat\_t} *mat,z\_streamp z,mat\_int64\_t *data,
+00885     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+00886 \{
+00887     \textcolor{keywordtype}{int} nBytes = 0, i;
+00888     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} data\_size;
+00889 
+00890     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (z == NULL) )
+00891         \textcolor{keywordflow}{return} 0;
+00892 
+00893     data\_size = (\textcolor{keywordtype}{unsigned} int)\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+00894     READ\_COMPRESSED\_DATA\_TYPE(mat\_int64\_t);
+00895     nBytes = len*data\_size;
+00896     \textcolor{keywordflow}{return} nBytes;
+00897 \}
+00898 \textcolor{preprocessor}{#endif}
+00899 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_INT64\_T */}\textcolor{preprocessor}{}
+00900 
+00901 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_UINT64\_T}
+00902 
+00915 \textcolor{keywordtype}{int}
+00916 ReadUInt64Data(\hyperlink{struct__mat__t}{mat\_t} *mat,mat\_uint64\_t *data,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+00917 \{
+00918     \textcolor{keywordtype}{int} bytesread = 0, i, j;
+00919     \textcolor{keywordtype}{size\_t} data\_size;
+00920 
+00921     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL) )
+00922         \textcolor{keywordflow}{return} 0;
+00923 
+00924     data\_size = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+00925     READ\_DATA\_TYPE(mat\_uint64\_t);
+00926     bytesread *= data\_size;
+00927     \textcolor{keywordflow}{return} bytesread;
+00928 \}
+00929 
+00930 \textcolor{preprocessor}{#if defined(HAVE\_ZLIB)}
+00931 
+00945 \textcolor{keywordtype}{int}
+00946 ReadCompressedUInt64Data(\hyperlink{struct__mat__t}{mat\_t} *mat,z\_streamp z,mat\_uint64\_t *data,
+00947     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+00948 \{
+00949     \textcolor{keywordtype}{int} nBytes = 0, i;
+00950     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} data\_size;
+00951 
+00952     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (z == NULL) )
+00953         \textcolor{keywordflow}{return} 0;
+00954 
+00955     data\_size = (\textcolor{keywordtype}{unsigned} int)\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+00956     READ\_COMPRESSED\_DATA\_TYPE(mat\_uint64\_t);
+00957     nBytes = len*data\_size;
+00958     \textcolor{keywordflow}{return} nBytes;
+00959 \}
+00960 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_ZLIB */}\textcolor{preprocessor}{}
+00961 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_UINT64\_T */}\textcolor{preprocessor}{}
+00962 
+00976 \textcolor{keywordtype}{int}
+00977 ReadInt32Data(\hyperlink{struct__mat__t}{mat\_t} *mat,mat\_int32\_t *data,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+00978 \{
+00979     \textcolor{keywordtype}{int} bytesread = 0, i, j;
+00980     \textcolor{keywordtype}{size\_t} data\_size;
+00981 
+00982     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL) )
+00983         \textcolor{keywordflow}{return} 0;
+00984 
+00985     data\_size = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+00986     READ\_DATA\_TYPE(mat\_int32\_t);
+00987     bytesread *= data\_size;
+00988     \textcolor{keywordflow}{return} bytesread;
+00989 \}
+00990 
+00991 \textcolor{preprocessor}{#if defined(HAVE\_ZLIB)}
+00992 
+01006 \textcolor{keywordtype}{int}
+01007 ReadCompressedInt32Data(\hyperlink{struct__mat__t}{mat\_t} *mat,z\_streamp z,mat\_int32\_t *data,
+01008     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+01009 \{
+01010     \textcolor{keywordtype}{int} nBytes = 0, i;
+01011     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} data\_size;
+01012 
+01013     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (z == NULL) )
+01014         \textcolor{keywordflow}{return} 0;
+01015 
+01016     data\_size = (\textcolor{keywordtype}{unsigned} int)\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+01017     READ\_COMPRESSED\_DATA\_TYPE(mat\_int32\_t);
+01018     nBytes = len*data\_size;
+01019     \textcolor{keywordflow}{return} nBytes;
+01020 \}
+01021 \textcolor{preprocessor}{#endif}
+01022 
+01036 \textcolor{keywordtype}{int}
+01037 ReadUInt32Data(\hyperlink{struct__mat__t}{mat\_t} *mat,mat\_uint32\_t *data,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+01038 \{
+01039     \textcolor{keywordtype}{int} bytesread = 0, i, j;
+01040     \textcolor{keywordtype}{size\_t} data\_size;
+01041 
+01042     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL) )
+01043         \textcolor{keywordflow}{return} 0;
+01044 
+01045     data\_size = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+01046     READ\_DATA\_TYPE(mat\_uint32\_t);
+01047     bytesread *= data\_size;
+01048     \textcolor{keywordflow}{return} bytesread;
+01049 \}
+01050 
+01051 \textcolor{preprocessor}{#if defined(HAVE\_ZLIB)}
+01052 
+01066 \textcolor{keywordtype}{int}
+01067 ReadCompressedUInt32Data(\hyperlink{struct__mat__t}{mat\_t} *mat,z\_streamp z,mat\_uint32\_t *data,
+01068     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+01069 \{
+01070     \textcolor{keywordtype}{int} nBytes = 0, i;
+01071     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} data\_size;
+01072 
+01073     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (z == NULL) )
+01074         \textcolor{keywordflow}{return} 0;
+01075 
+01076     data\_size = (\textcolor{keywordtype}{unsigned} int)\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+01077     READ\_COMPRESSED\_DATA\_TYPE(mat\_uint32\_t);
+01078     nBytes = len*data\_size;
+01079     \textcolor{keywordflow}{return} nBytes;
+01080 \}
+01081 \textcolor{preprocessor}{#endif}
+01082 
+01096 \textcolor{keywordtype}{int}
+01097 ReadInt16Data(\hyperlink{struct__mat__t}{mat\_t} *mat,mat\_int16\_t *data,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+01098 \{
+01099     \textcolor{keywordtype}{int} bytesread = 0, i, j;
+01100     \textcolor{keywordtype}{size\_t} data\_size;
+01101 
+01102     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL) )
+01103         \textcolor{keywordflow}{return} 0;
+01104 
+01105     data\_size = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+01106     READ\_DATA\_TYPE(mat\_int16\_t);
+01107     bytesread *= data\_size;
+01108     \textcolor{keywordflow}{return} bytesread;
+01109 \}
+01110 
+01111 \textcolor{preprocessor}{#if defined(HAVE\_ZLIB)}
+01112 
+01126 \textcolor{keywordtype}{int}
+01127 ReadCompressedInt16Data(\hyperlink{struct__mat__t}{mat\_t} *mat,z\_streamp z,mat\_int16\_t *data,
+01128     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+01129 \{
+01130     \textcolor{keywordtype}{int} nBytes = 0, i;
+01131     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} data\_size;
+01132 
+01133     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (z == NULL) )
+01134         \textcolor{keywordflow}{return} 0;
+01135 
+01136     data\_size = (\textcolor{keywordtype}{unsigned} int)\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+01137     READ\_COMPRESSED\_DATA\_TYPE(mat\_int16\_t);
+01138     nBytes = len*data\_size;
+01139     \textcolor{keywordflow}{return} nBytes;
+01140 \}
+01141 \textcolor{preprocessor}{#endif}
+01142 
+01156 \textcolor{keywordtype}{int}
+01157 ReadUInt16Data(\hyperlink{struct__mat__t}{mat\_t} *mat,mat\_uint16\_t *data,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+01158 \{
+01159     \textcolor{keywordtype}{int} bytesread = 0, i, j;
+01160     \textcolor{keywordtype}{size\_t} data\_size;
+01161 
+01162     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL) )
+01163         \textcolor{keywordflow}{return} 0;
+01164 
+01165     data\_size = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+01166     READ\_DATA\_TYPE(mat\_uint16\_t);
+01167     bytesread *= data\_size;
+01168     \textcolor{keywordflow}{return} bytesread;
+01169 \}
+01170 
+01171 \textcolor{preprocessor}{#if defined(HAVE\_ZLIB)}
+01172 
+01186 \textcolor{keywordtype}{int}
+01187 ReadCompressedUInt16Data(\hyperlink{struct__mat__t}{mat\_t} *mat,z\_streamp z,mat\_uint16\_t *data,
+01188     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+01189 \{
+01190     \textcolor{keywordtype}{int} nBytes = 0, i;
+01191     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} data\_size;
+01192 
+01193     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (z == NULL) )
+01194         \textcolor{keywordflow}{return} 0;
+01195 
+01196     data\_size = (\textcolor{keywordtype}{unsigned} int)\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+01197     READ\_COMPRESSED\_DATA\_TYPE(mat\_uint16\_t);
+01198     nBytes = len*data\_size;
+01199     \textcolor{keywordflow}{return} nBytes;
+01200 \}
+01201 \textcolor{preprocessor}{#endif}
+01202 
+01216 \textcolor{keywordtype}{int}
+01217 ReadInt8Data(\hyperlink{struct__mat__t}{mat\_t} *mat,mat\_int8\_t *data,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+01218 \{
+01219     \textcolor{keywordtype}{int} bytesread = 0, i, j;
+01220     \textcolor{keywordtype}{size\_t} data\_size;
+01221 
+01222     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL) )
+01223         \textcolor{keywordflow}{return} 0;
+01224 
+01225     data\_size = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+01226     READ\_DATA\_TYPE(mat\_int8\_t);
+01227     bytesread *= data\_size;
+01228     \textcolor{keywordflow}{return} bytesread;
+01229 \}
+01230 
+01231 \textcolor{preprocessor}{#if defined(HAVE\_ZLIB)}
+01232 
+01246 \textcolor{keywordtype}{int}
+01247 ReadCompressedInt8Data(\hyperlink{struct__mat__t}{mat\_t} *mat,z\_streamp z,mat\_int8\_t *data,
+01248     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+01249 \{
+01250     \textcolor{keywordtype}{int} nBytes = 0, i;
+01251     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} data\_size;
+01252 
+01253     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (z == NULL) )
+01254         \textcolor{keywordflow}{return} 0;
+01255 
+01256     data\_size = (\textcolor{keywordtype}{unsigned} int)\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+01257     READ\_COMPRESSED\_DATA\_TYPE(mat\_int8\_t);
+01258     nBytes = len*data\_size;
+01259     \textcolor{keywordflow}{return} nBytes;
+01260 \}
+01261 \textcolor{preprocessor}{#endif}
+01262 
+01276 \textcolor{keywordtype}{int}
+01277 ReadUInt8Data(\hyperlink{struct__mat__t}{mat\_t} *mat,mat\_uint8\_t *data,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+01278 \{
+01279     \textcolor{keywordtype}{int} bytesread = 0, i, j;
+01280     \textcolor{keywordtype}{size\_t} data\_size;
+01281 
+01282     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL) )
+01283         \textcolor{keywordflow}{return} 0;
+01284 
+01285     data\_size = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+01286     READ\_DATA\_TYPE(mat\_uint8\_t);
+01287     bytesread *= data\_size;
+01288     \textcolor{keywordflow}{return} bytesread;
+01289 \}
+01290 
+01291 \textcolor{preprocessor}{#if defined(HAVE\_ZLIB)}
+01292 
+01306 \textcolor{keywordtype}{int}
+01307 ReadCompressedUInt8Data(\hyperlink{struct__mat__t}{mat\_t} *mat,z\_streamp z,mat\_uint8\_t *data,
+01308     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+01309 \{
+01310     \textcolor{keywordtype}{int} nBytes = 0, i;
+01311     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} data\_size;
+01312 
+01313     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (z == NULL) )
+01314         \textcolor{keywordflow}{return} 0;
+01315 
+01316     data\_size = (\textcolor{keywordtype}{unsigned} int)\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+01317     READ\_COMPRESSED\_DATA\_TYPE(mat\_uint8\_t);
+01318     nBytes = len*data\_size;
+01319     \textcolor{keywordflow}{return} nBytes;
+01320 \}
+01321 \textcolor{preprocessor}{#endif}
+01322 
+01323 \textcolor{preprocessor}{#undef READ\_DATA}
+01324 \textcolor{preprocessor}{#undef READ\_DATA\_TYPE}
+01325 \textcolor{preprocessor}{#undef READ\_DATA\_INT64}
+01326 \textcolor{preprocessor}{#undef READ\_DATA\_UINT64}
+01327 \textcolor{preprocessor}{#if defined(HAVE\_ZLIB)}
+01328 \textcolor{preprocessor}{#undef READ\_COMPRESSED\_DATA}
+01329 \textcolor{preprocessor}{#undef READ\_COMPRESSED\_DATA\_TYPE}
+01330 \textcolor{preprocessor}{#undef READ\_COMPRESSED\_DATA\_INT64}
+01331 \textcolor{preprocessor}{#undef READ\_COMPRESSED\_DATA\_UINT64}
+01332 \textcolor{preprocessor}{#endif}
+01333 \textcolor{preprocessor}{#if defined(HAVE\_ZLIB)}
+01334 
+01347 \textcolor{keywordtype}{int}
+01348 ReadCompressedCharData(\hyperlink{struct__mat__t}{mat\_t} *mat,z\_streamp z,\textcolor{keywordtype}{char} *data,
+01349     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+01350 \{
+01351     \textcolor{keywordtype}{int} nBytes = 0, i;
+01352     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} data\_size;
+01353 
+01354     \textcolor{keywordflow}{if} ( mat == NULL || data == NULL || mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL )
+01355         \textcolor{keywordflow}{return} 0;
+01356 
+01357     data\_size = (\textcolor{keywordtype}{unsigned} int)\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+01358 
+01359     \textcolor{keywordflow}{switch} ( data\_type ) \{
+01360         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453ac34ad81f5cbd3b7d0d95e57e5be0149b}{MAT\_T\_UTF8}:
+01361         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a9807f5033ed4f9b548953742d9fd1658}{MAT\_T\_INT8}:
+01362         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a01c1bd7db68f90552862eb5d311be408}{MAT\_T\_UINT8}:
+01363             InflateData(mat,z,data,len*data\_size);
+01364             \textcolor{keywordflow}{break};
+01365         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a87ffc0412143c326a1fcc759d5d81bdc}{MAT\_T\_UTF16}:
+01366         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a8c5b2e381946e95ea8d81ac216743302}{MAT\_T\_INT16}:
+01367         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a05bc7af7680aa68be95126ae0a4c2e31}{MAT\_T\_UINT16}:
+01368         \{
+01369             mat\_uint16\_t i16;
+01370 
+01371             \textcolor{keywordflow}{if} ( mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} ) \{
+01372                 \textcolor{keywordflow}{for} ( i = 0; i < len; i++ ) \{
+01373                     InflateData(mat,z,&i16,data\_size);
+01374                     data[i] = (char)\hyperlink{endian_8c_a0fd527794c69f2872e80a6f20cd09fd2}{Mat\_uint16Swap}(&i16);
+01375                 \}
+01376             \} \textcolor{keywordflow}{else} \{
+01377                 \textcolor{keywordflow}{for} ( i = 0; i < len; i++ ) \{
+01378                     InflateData(mat,z,&i16,data\_size);
+01379                     data[i] = (char)i16;
+01380                 \}
+01381             \}
+01382             \textcolor{keywordflow}{break};
+01383         \}
+01384         \textcolor{keywordflow}{default}:
+01385             \hyperlink{group__mat__util_gafcedc83eb7e4759a8ea5c974c4f801c3}{Mat\_Warning}(\textcolor{stringliteral}{"ReadCompressedCharData: %d is not a supported data "}
+01386                 \textcolor{stringliteral}{"type for character data"}, data\_type);
+01387             \textcolor{keywordflow}{break};
+01388     \}
+01389     nBytes = len*data\_size;
+01390     \textcolor{keywordflow}{return} nBytes;
+01391 \}
+01392 \textcolor{preprocessor}{#endif}
+01393 
+01394 \textcolor{keywordtype}{int}
+01395 ReadCharData(\hyperlink{struct__mat__t}{mat\_t} *mat,\textcolor{keywordtype}{char} *data,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} len)
+01396 \{
+01397     \textcolor{keywordtype}{int} bytesread = 0, i;
+01398     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} data\_size;
+01399 
+01400     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL) )
+01401         \textcolor{keywordflow}{return} 0;
+01402 
+01403     data\_size = (\textcolor{keywordtype}{unsigned} int)\hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+01404 
+01405     \textcolor{keywordflow}{switch} ( data\_type ) \{
+01406         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453ac34ad81f5cbd3b7d0d95e57e5be0149b}{MAT\_T\_UTF8}:
+01407         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a9807f5033ed4f9b548953742d9fd1658}{MAT\_T\_INT8}:
+01408         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a01c1bd7db68f90552862eb5d311be408}{MAT\_T\_UINT8}:
+01409             bytesread += fread(data,data\_size,len,(FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+01410             \textcolor{keywordflow}{break};
+01411         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a87ffc0412143c326a1fcc759d5d81bdc}{MAT\_T\_UTF16}:
+01412         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a8c5b2e381946e95ea8d81ac216743302}{MAT\_T\_INT16}:
+01413         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggacf7b3b879282b7ab3a51190e49bf3453a05bc7af7680aa68be95126ae0a4c2e31}{MAT\_T\_UINT16}:
+01414         \{
+01415             mat\_uint16\_t i16;
+01416 
+01417             \textcolor{keywordflow}{if} ( mat->\hyperlink{struct__mat__t_a99d207977af5e04941ace56d71817a40}{byteswap} ) \{
+01418                 \textcolor{keywordflow}{for} ( i = 0; i < len; i++ ) \{
+01419                     bytesread += fread(&i16,data\_size,1,(FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+01420                     data[i] = (char)\hyperlink{endian_8c_a0fd527794c69f2872e80a6f20cd09fd2}{Mat\_uint16Swap}(&i16);
+01421                 \}
+01422             \} \textcolor{keywordflow}{else} \{
+01423                 \textcolor{keywordflow}{for} ( i = 0; i < len; i++ ) \{
+01424                     bytesread += fread(&i16,data\_size,1,(FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp});
+01425                     data[i] = (char)i16;
+01426                 \}
+01427             \}
+01428             \textcolor{keywordflow}{break};
+01429         \}
+01430         \textcolor{keywordflow}{default}:
+01431             \hyperlink{group__mat__util_gafcedc83eb7e4759a8ea5c974c4f801c3}{Mat\_Warning}(\textcolor{stringliteral}{"ReadCharData: %d is not a supported data type for "},
+01432                 \textcolor{stringliteral}{"character data"}, data\_type);
+01433             \textcolor{keywordflow}{break};
+01434     \}
+01435     \textcolor{keywordflow}{return} bytesread;
+01436 \}
+01437 
+01438 \textcolor{comment}{/*}
+01439 \textcolor{comment}{ *-------------------------------------------------------------------}
+01440 \textcolor{comment}{ *  Routines to read "slabs" of data}
+01441 \textcolor{comment}{ *-------------------------------------------------------------------}
+01442 \textcolor{comment}{ */}
+01443 
+01444 \textcolor{preprocessor}{#define READ\_DATA\_SLABN\_RANK\_LOOP \(\backslash\)}
+01445 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+01446 \textcolor{preprocessor}{        for ( j = 1; j < rank; j++ ) \{ \(\backslash\)}
+01447 \textcolor{preprocessor}{            cnt[j]++; \(\backslash\)}
+01448 \textcolor{preprocessor}{            if ( (cnt[j] % edge[j]) == 0 ) \{ \(\backslash\)}
+01449 \textcolor{preprocessor}{                cnt[j] = 0; \(\backslash\)}
+01450 \textcolor{preprocessor}{                if ( (I % dimp[j]) != 0 ) \{ \(\backslash\)}
+01451 \textcolor{preprocessor}{                    (void)fseek((FILE*)mat->fp,data\_size*(dimp[j]-(I % dimp[j]) +
+       dimp[j-1]*start[j]),SEEK\_CUR); \(\backslash\)}
+01452 \textcolor{preprocessor}{                    I += dimp[j]-(I % dimp[j]) + dimp[j-1]*start[j]; \(\backslash\)}
+01453 \textcolor{preprocessor}{                \} else if ( start[j] ) \{ \(\backslash\)}
+01454 \textcolor{preprocessor}{                    (void)fseek((FILE*)mat->fp,data\_size*(dimp[j-1]*start[j]),SEEK\_CUR); \(\backslash\)}
+01455 \textcolor{preprocessor}{                    I += dimp[j-1]*start[j]; \(\backslash\)}
+01456 \textcolor{preprocessor}{                \} \(\backslash\)}
+01457 \textcolor{preprocessor}{            \} else \{ \(\backslash\)}
+01458 \textcolor{preprocessor}{                I += inc[j]; \(\backslash\)}
+01459 \textcolor{preprocessor}{                (void)fseek((FILE*)mat->fp,data\_size*inc[j],SEEK\_CUR); \(\backslash\)}
+01460 \textcolor{preprocessor}{                break; \(\backslash\)}
+01461 \textcolor{preprocessor}{            \} \(\backslash\)}
+01462 \textcolor{preprocessor}{        \} \(\backslash\)}
+01463 \textcolor{preprocessor}{    \} while (0)}
+01464 
+01465 \textcolor{preprocessor}{#define READ\_DATA\_SLABN(ReadDataFunc) \(\backslash\)}
+01466 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+01467 \textcolor{preprocessor}{        inc[0]  = stride[0]-1; \(\backslash\)}
+01468 \textcolor{preprocessor}{        dimp[0] = dims[0]; \(\backslash\)}
+01469 \textcolor{preprocessor}{        N       = edge[0]; \(\backslash\)}
+01470 \textcolor{preprocessor}{        I       = 0; }\textcolor{comment}{/* start[0]; */}\textcolor{preprocessor}{ \(\backslash\)}
+01471 \textcolor{preprocessor}{        for ( i = 1; i < rank; i++ ) \{ \(\backslash\)}
+01472 \textcolor{preprocessor}{            inc[i]  = stride[i]-1; \(\backslash\)}
+01473 \textcolor{preprocessor}{            dimp[i] = dims[i-1]; \(\backslash\)}
+01474 \textcolor{preprocessor}{            for ( j = i; j--; ) \{ \(\backslash\)}
+01475 \textcolor{preprocessor}{                inc[i]  *= dims[j]; \(\backslash\)}
+01476 \textcolor{preprocessor}{                dimp[i] *= dims[j+1]; \(\backslash\)}
+01477 \textcolor{preprocessor}{            \} \(\backslash\)}
+01478 \textcolor{preprocessor}{            N *= edge[i]; \(\backslash\)}
+01479 \textcolor{preprocessor}{            I += dimp[i-1]*start[i]; \(\backslash\)}
+01480 \textcolor{preprocessor}{        \} \(\backslash\)}
+01481 \textcolor{preprocessor}{        (void)fseek((FILE*)mat->fp,I*data\_size,SEEK\_CUR); \(\backslash\)}
+01482 \textcolor{preprocessor}{        if ( stride[0] == 1 ) \{ \(\backslash\)}
+01483 \textcolor{preprocessor}{            for ( i = 0; i < N; i+=edge[0] ) \{ \(\backslash\)}
+01484 \textcolor{preprocessor}{                if ( start[0] ) \{ \(\backslash\)}
+01485 \textcolor{preprocessor}{                    (void)fseek((FILE*)mat->fp,start[0]*data\_size,SEEK\_CUR); \(\backslash\)}
+01486 \textcolor{preprocessor}{                    I += start[0]; \(\backslash\)}
+01487 \textcolor{preprocessor}{                \} \(\backslash\)}
+01488 \textcolor{preprocessor}{                ReadDataFunc(mat,ptr+i,data\_type,edge[0]); \(\backslash\)}
+01489 \textcolor{preprocessor}{                I += dims[0]-start[0]; \(\backslash\)}
+01490 \textcolor{preprocessor}{                (void)fseek((FILE*)mat->fp,data\_size*(dims[0]-edge[0]-start[0]), \(\backslash\)}
+01491 \textcolor{preprocessor}{                    SEEK\_CUR); \(\backslash\)}
+01492 \textcolor{preprocessor}{                READ\_DATA\_SLABN\_RANK\_LOOP; \(\backslash\)}
+01493 \textcolor{preprocessor}{            \} \(\backslash\)}
+01494 \textcolor{preprocessor}{        \} else \{ \(\backslash\)}
+01495 \textcolor{preprocessor}{            for ( i = 0; i < N; i+=edge[0] ) \{ \(\backslash\)}
+01496 \textcolor{preprocessor}{                if ( start[0] ) \{ \(\backslash\)}
+01497 \textcolor{preprocessor}{                    (void)fseek((FILE*)mat->fp,start[0]*data\_size,SEEK\_CUR); \(\backslash\)}
+01498 \textcolor{preprocessor}{                    I += start[0]; \(\backslash\)}
+01499 \textcolor{preprocessor}{                \} \(\backslash\)}
+01500 \textcolor{preprocessor}{                for ( j = 0; j < edge[0]; j++ ) \{ \(\backslash\)}
+01501 \textcolor{preprocessor}{                    ReadDataFunc(mat,ptr+i+j,data\_type,1); \(\backslash\)}
+01502 \textcolor{preprocessor}{                    (void)fseek((FILE*)mat->fp,data\_size*(stride[0]-1),SEEK\_CUR); \(\backslash\)}
+01503 \textcolor{preprocessor}{                    I += stride[0]; \(\backslash\)}
+01504 \textcolor{preprocessor}{                \} \(\backslash\)}
+01505 \textcolor{preprocessor}{                I += dims[0]-edge[0]*stride[0]-start[0]; \(\backslash\)}
+01506 \textcolor{preprocessor}{                (void)fseek((FILE*)mat->fp,data\_size* \(\backslash\)}
+01507 \textcolor{preprocessor}{                    (dims[0]-edge[0]*stride[0]-start[0]),SEEK\_CUR); \(\backslash\)}
+01508 \textcolor{preprocessor}{                READ\_DATA\_SLABN\_RANK\_LOOP; \(\backslash\)}
+01509 \textcolor{preprocessor}{            \} \(\backslash\)}
+01510 \textcolor{preprocessor}{        \} \(\backslash\)}
+01511 \textcolor{preprocessor}{    \} while (0)}
+01512 
+01527 \textcolor{keywordtype}{int}
+01528 ReadDataSlabN(\hyperlink{struct__mat__t}{mat\_t} *mat,\textcolor{keywordtype}{void} *data,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gad4d60ae7b709fc81bfd744fb4c857c40}{matio\_classes} class\_type,
+01529     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} rank,\textcolor{keywordtype}{size\_t} *dims,\textcolor{keywordtype}{int} *start,\textcolor{keywordtype}{int} *stride,
+01530     \textcolor{keywordtype}{int} *edge)
+01531 \{
+01532     \textcolor{keywordtype}{int} nBytes = 0, i, j, N, I = 0;
+01533     \textcolor{keywordtype}{int} inc[10] = \{0,\}, cnt[10] = \{0,\}, dimp[10] = \{0,\};
+01534     \textcolor{keywordtype}{size\_t} data\_size;
+01535 
+01536     \textcolor{keywordflow}{if} ( (mat   == NULL) || (data   == NULL) || (mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL) ||
+01537          (start == NULL) || (stride == NULL) || (edge    == NULL) ) \{
+01538         \textcolor{keywordflow}{return} -1;
+01539     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( rank > 10 ) \{
+01540         \textcolor{keywordflow}{return} -1;
+01541     \}
+01542 
+01543     data\_size = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+01544 
+01545     \textcolor{keywordflow}{switch} ( class\_type ) \{
+01546         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5d70e0862e5bdb7bd86bf7ba5948f307}{MAT\_C\_DOUBLE}:
+01547         \{
+01548             \textcolor{keywordtype}{double} *ptr = (\textcolor{keywordtype}{double}*)data;
+01549             READ\_DATA\_SLABN(ReadDoubleData);
+01550             \textcolor{keywordflow}{break};
+01551         \}
+01552         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2825631e26a961cbe0f79db50a39cea2}{MAT\_C\_SINGLE}:
+01553         \{
+01554             \textcolor{keywordtype}{float} *ptr = (\textcolor{keywordtype}{float}*)data;
+01555             READ\_DATA\_SLABN(ReadSingleData);
+01556             \textcolor{keywordflow}{break};
+01557         \}
+01558 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_INT64\_T}
+01559         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a1ea83bcde49b35477494412973f82409}{MAT\_C\_INT64}:
+01560         \{
+01561             mat\_int64\_t *ptr = (mat\_int64\_t*)data;
+01562             READ\_DATA\_SLABN(ReadInt64Data);
+01563             \textcolor{keywordflow}{break};
+01564         \}
+01565 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_INT64\_T */}\textcolor{preprocessor}{}
+01566 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_UINT64\_T}
+01567         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a86470e25c3763d9a24623f04326195dd}{MAT\_C\_UINT64}:
+01568         \{
+01569             mat\_uint64\_t *ptr = (mat\_uint64\_t*)data;
+01570             READ\_DATA\_SLABN(ReadUInt64Data);
+01571             \textcolor{keywordflow}{break};
+01572         \}
+01573 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_UINT64\_T */}\textcolor{preprocessor}{}
+01574         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40adb44fc39694e3152ae5e69470a2fefe8}{MAT\_C\_INT32}:
+01575         \{
+01576             mat\_int32\_t *ptr = (mat\_int32\_t*)data;
+01577             READ\_DATA\_SLABN(ReadInt32Data);
+01578             \textcolor{keywordflow}{break};
+01579         \}
+01580         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a9a17a7edd45b19ef68197db81b27e816}{MAT\_C\_UINT32}:
+01581         \{
+01582             mat\_uint32\_t *ptr = (mat\_uint32\_t*)data;
+01583             READ\_DATA\_SLABN(ReadUInt32Data);
+01584             \textcolor{keywordflow}{break};
+01585         \}
+01586         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a40370e9de516c5036a67a5865c071006}{MAT\_C\_INT16}:
+01587         \{
+01588             mat\_int16\_t *ptr = (mat\_int16\_t*)data;
+01589             READ\_DATA\_SLABN(ReadInt16Data);
+01590             \textcolor{keywordflow}{break};
+01591         \}
+01592         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a8bede21dbf6c1edc0bbccc1481bccae7}{MAT\_C\_UINT16}:
+01593         \{
+01594             mat\_uint16\_t *ptr = (mat\_uint16\_t*)data;
+01595             READ\_DATA\_SLABN(ReadUInt16Data);
+01596             \textcolor{keywordflow}{break};
+01597         \}
+01598         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a984ff310f9e906100fcff95f704f43c5}{MAT\_C\_INT8}:
+01599         \{
+01600             mat\_int8\_t *ptr = (mat\_int8\_t*)data;
+01601             READ\_DATA\_SLABN(ReadInt8Data);
+01602             \textcolor{keywordflow}{break};
+01603         \}
+01604         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a81270f8093cb4808e992c1d29d84d4e3}{MAT\_C\_UINT8}:
+01605         \{
+01606             mat\_uint8\_t *ptr = (mat\_uint8\_t*)data;
+01607             READ\_DATA\_SLABN(ReadUInt8Data);
+01608             \textcolor{keywordflow}{break};
+01609         \}
+01610         \textcolor{keywordflow}{default}:
+01611             nBytes = 0;
+01612     \}
+01613     \textcolor{keywordflow}{return} nBytes;
+01614 \}
+01615 
+01616 \textcolor{preprocessor}{#undef READ\_DATA\_SLABN}
+01617 \textcolor{preprocessor}{#undef READ\_DATA\_SLABN\_RANK\_LOOP}
+01618 
+01619 \textcolor{preprocessor}{#if defined(HAVE\_ZLIB)}
+01620 \textcolor{preprocessor}{#define READ\_COMPRESSED\_DATA\_SLABN\_RANK\_LOOP \(\backslash\)}
+01621 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+01622 \textcolor{preprocessor}{        for ( j = 1; j < rank; j++ ) \{ \(\backslash\)}
+01623 \textcolor{preprocessor}{            cnt[j]++; \(\backslash\)}
+01624 \textcolor{preprocessor}{            if ( (cnt[j] % edge[j]) == 0 ) \{ \(\backslash\)}
+01625 \textcolor{preprocessor}{                cnt[j] = 0; \(\backslash\)}
+01626 \textcolor{preprocessor}{                if ( (I % dimp[j]) != 0 ) \{ \(\backslash\)}
+01627 \textcolor{preprocessor}{                    InflateSkipData(mat,&z\_copy,data\_type, dimp[j]-(I % dimp[j]) + dimp[j-1]*start[j]); \(\backslash\)}
+01628 \textcolor{preprocessor}{                    I += dimp[j]-(I % dimp[j]) + dimp[j-1]*start[j]; \(\backslash\)}
+01629 \textcolor{preprocessor}{                \} else if ( start[j] ) \{ \(\backslash\)}
+01630 \textcolor{preprocessor}{                    InflateSkipData(mat,&z\_copy,data\_type, dimp[j-1]*start[j]); \(\backslash\)}
+01631 \textcolor{preprocessor}{                    I += dimp[j-1]*start[j]; \(\backslash\)}
+01632 \textcolor{preprocessor}{                \} \(\backslash\)}
+01633 \textcolor{preprocessor}{            \} else \{ \(\backslash\)}
+01634 \textcolor{preprocessor}{                if ( inc[j] ) \{ \(\backslash\)}
+01635 \textcolor{preprocessor}{                    I += inc[j]; \(\backslash\)}
+01636 \textcolor{preprocessor}{                    InflateSkipData(mat,&z\_copy,data\_type,inc[j]); \(\backslash\)}
+01637 \textcolor{preprocessor}{                \} \(\backslash\)}
+01638 \textcolor{preprocessor}{                break; \(\backslash\)}
+01639 \textcolor{preprocessor}{            \} \(\backslash\)}
+01640 \textcolor{preprocessor}{        \} \(\backslash\)}
+01641 \textcolor{preprocessor}{    \} while (0)}
+01642 
+01643 \textcolor{preprocessor}{#define READ\_COMPRESSED\_DATA\_SLABN(ReadDataFunc) \(\backslash\)}
+01644 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+01645 \textcolor{preprocessor}{        inc[0]  = stride[0]-1; \(\backslash\)}
+01646 \textcolor{preprocessor}{        dimp[0] = dims[0]; \(\backslash\)}
+01647 \textcolor{preprocessor}{        N       = edge[0]; \(\backslash\)}
+01648 \textcolor{preprocessor}{        I       = 0; \(\backslash\)}
+01649 \textcolor{preprocessor}{        for ( i = 1; i < rank; i++ ) \{ \(\backslash\)}
+01650 \textcolor{preprocessor}{            inc[i]  = stride[i]-1; \(\backslash\)}
+01651 \textcolor{preprocessor}{            dimp[i] = dims[i-1]; \(\backslash\)}
+01652 \textcolor{preprocessor}{            for ( j = i; j--; ) \{ \(\backslash\)}
+01653 \textcolor{preprocessor}{                inc[i]  *= dims[j]; \(\backslash\)}
+01654 \textcolor{preprocessor}{                dimp[i] *= dims[j+1]; \(\backslash\)}
+01655 \textcolor{preprocessor}{            \} \(\backslash\)}
+01656 \textcolor{preprocessor}{            N *= edge[i]; \(\backslash\)}
+01657 \textcolor{preprocessor}{            I += dimp[i-1]*start[i]; \(\backslash\)}
+01658 \textcolor{preprocessor}{        \} \(\backslash\)}
+01659 \textcolor{preprocessor}{        }\textcolor{comment}{/* Skip all data to the starting indices */}\textcolor{preprocessor}{ \(\backslash\)}
+01660 \textcolor{preprocessor}{        InflateSkipData(mat,&z\_copy,data\_type,I); \(\backslash\)}
+01661 \textcolor{preprocessor}{        if ( stride[0] == 1 ) \{ \(\backslash\)}
+01662 \textcolor{preprocessor}{            for ( i = 0; i < N; i+=edge[0] ) \{ \(\backslash\)}
+01663 \textcolor{preprocessor}{                if ( start[0] ) \{ \(\backslash\)}
+01664 \textcolor{preprocessor}{                    InflateSkipData(mat,&z\_copy,data\_type,start[0]); \(\backslash\)}
+01665 \textcolor{preprocessor}{                    I += start[0]; \(\backslash\)}
+01666 \textcolor{preprocessor}{                \} \(\backslash\)}
+01667 \textcolor{preprocessor}{                ReadDataFunc(mat,&z\_copy,ptr+i,data\_type,edge[0]); \(\backslash\)}
+01668 \textcolor{preprocessor}{                InflateSkipData(mat,&z\_copy,data\_type,dims[0]-start[0]-edge[0]); \(\backslash\)}
+01669 \textcolor{preprocessor}{                I += dims[0]-start[0]; \(\backslash\)}
+01670 \textcolor{preprocessor}{                READ\_COMPRESSED\_DATA\_SLABN\_RANK\_LOOP; \(\backslash\)}
+01671 \textcolor{preprocessor}{            \} \(\backslash\)}
+01672 \textcolor{preprocessor}{        \} else \{ \(\backslash\)}
+01673 \textcolor{preprocessor}{            for ( i = 0; i < N; i+=edge[0] ) \{ \(\backslash\)}
+01674 \textcolor{preprocessor}{                if ( start[0] ) \{ \(\backslash\)}
+01675 \textcolor{preprocessor}{                    InflateSkipData(mat,&z\_copy,data\_type,start[0]); \(\backslash\)}
+01676 \textcolor{preprocessor}{                    I += start[0]; \(\backslash\)}
+01677 \textcolor{preprocessor}{                \} \(\backslash\)}
+01678 \textcolor{preprocessor}{                for ( j = 0; j < edge[0]-1; j++ ) \{ \(\backslash\)}
+01679 \textcolor{preprocessor}{                    ReadDataFunc(mat,&z\_copy,ptr+i+j,data\_type,1); \(\backslash\)}
+01680 \textcolor{preprocessor}{                    InflateSkipData(mat,&z\_copy,data\_type,(stride[0]-1)); \(\backslash\)}
+01681 \textcolor{preprocessor}{                    I += stride[0]; \(\backslash\)}
+01682 \textcolor{preprocessor}{                \} \(\backslash\)}
+01683 \textcolor{preprocessor}{                ReadDataFunc(mat,&z\_copy,ptr+i+j,data\_type,1); \(\backslash\)}
+01684 \textcolor{preprocessor}{                I += dims[0]-(edge[0]-1)*stride[0]-start[0]; \(\backslash\)}
+01685 \textcolor{preprocessor}{                InflateSkipData(mat,&z\_copy,data\_type,dims[0]-(edge[0]-1)*stride[0]-start[0]-1); \(\backslash\)}
+01686 \textcolor{preprocessor}{                READ\_COMPRESSED\_DATA\_SLABN\_RANK\_LOOP; \(\backslash\)}
+01687 \textcolor{preprocessor}{            \} \(\backslash\)}
+01688 \textcolor{preprocessor}{        \} \(\backslash\)}
+01689 \textcolor{preprocessor}{    \} while (0)}
+01690 
+01706 \textcolor{keywordtype}{int}
+01707 ReadCompressedDataSlabN(\hyperlink{struct__mat__t}{mat\_t} *mat,z\_streamp z,\textcolor{keywordtype}{void} *data,
+01708     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gad4d60ae7b709fc81bfd744fb4c857c40}{matio\_classes} class\_type,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} rank,
+01709     \textcolor{keywordtype}{size\_t} *dims,\textcolor{keywordtype}{int} *start,\textcolor{keywordtype}{int} *stride,\textcolor{keywordtype}{int} *edge)
+01710 \{
+01711     \textcolor{keywordtype}{int} nBytes = 0, i, j, N, I = 0;
+01712     \textcolor{keywordtype}{int} inc[10] = \{0,\}, cnt[10] = \{0,\}, dimp[10] = \{0,\};
+01713     \hyperlink{structz__stream__s}{z\_stream} z\_copy = \{0,\};
+01714 
+01715     \textcolor{keywordflow}{if} ( (mat   == NULL) || (data   == NULL) || (mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL) ||
+01716          (start == NULL) || (stride == NULL) || (edge    == NULL) ) \{
+01717         \textcolor{keywordflow}{return} 1;
+01718     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( rank > 10 ) \{
+01719         \textcolor{keywordflow}{return} 1;
+01720     \}
+01721 
+01722     i = inflateCopy(&z\_copy,z);
+01723     \textcolor{keywordflow}{switch} ( class\_type ) \{
+01724         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5d70e0862e5bdb7bd86bf7ba5948f307}{MAT\_C\_DOUBLE}:
+01725         \{
+01726             \textcolor{keywordtype}{double} *ptr = (\textcolor{keywordtype}{double}*)data;
+01727             READ\_COMPRESSED\_DATA\_SLABN(ReadCompressedDoubleData);
+01728             \textcolor{keywordflow}{break};
+01729         \}
+01730         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2825631e26a961cbe0f79db50a39cea2}{MAT\_C\_SINGLE}:
+01731         \{
+01732             \textcolor{keywordtype}{float} *ptr = (\textcolor{keywordtype}{float}*)data;
+01733             READ\_COMPRESSED\_DATA\_SLABN(ReadCompressedSingleData);
+01734             \textcolor{keywordflow}{break};
+01735         \}
+01736 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_INT64\_T}
+01737         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a1ea83bcde49b35477494412973f82409}{MAT\_C\_INT64}:
+01738         \{
+01739             mat\_int64\_t *ptr = (mat\_int64\_t*)data;
+01740             READ\_COMPRESSED\_DATA\_SLABN(ReadCompressedInt64Data);
+01741             \textcolor{keywordflow}{break};
+01742         \}
+01743 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_INT64\_T */}\textcolor{preprocessor}{}
+01744 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_UINT64\_T}
+01745         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a86470e25c3763d9a24623f04326195dd}{MAT\_C\_UINT64}:
+01746         \{
+01747             mat\_uint64\_t *ptr = (mat\_uint64\_t*)data;
+01748             READ\_COMPRESSED\_DATA\_SLABN(ReadCompressedUInt64Data);
+01749             \textcolor{keywordflow}{break};
+01750         \}
+01751 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_UINT64\_T */}\textcolor{preprocessor}{}
+01752         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40adb44fc39694e3152ae5e69470a2fefe8}{MAT\_C\_INT32}:
+01753         \{
+01754             mat\_int32\_t *ptr = (mat\_int32\_t*)data;
+01755             READ\_COMPRESSED\_DATA\_SLABN(ReadCompressedInt32Data);
+01756             \textcolor{keywordflow}{break};
+01757         \}
+01758         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a9a17a7edd45b19ef68197db81b27e816}{MAT\_C\_UINT32}:
+01759         \{
+01760             mat\_uint32\_t *ptr = (mat\_uint32\_t*)data;
+01761             READ\_COMPRESSED\_DATA\_SLABN(ReadCompressedUInt32Data);
+01762             \textcolor{keywordflow}{break};
+01763         \}
+01764         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a40370e9de516c5036a67a5865c071006}{MAT\_C\_INT16}:
+01765         \{
+01766             mat\_int16\_t *ptr = (mat\_int16\_t*)data;
+01767             READ\_COMPRESSED\_DATA\_SLABN(ReadCompressedInt16Data);
+01768             \textcolor{keywordflow}{break};
+01769         \}
+01770         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a8bede21dbf6c1edc0bbccc1481bccae7}{MAT\_C\_UINT16}:
+01771         \{
+01772             mat\_uint16\_t *ptr = (mat\_uint16\_t*)data;
+01773             READ\_COMPRESSED\_DATA\_SLABN(ReadCompressedUInt16Data);
+01774             \textcolor{keywordflow}{break};
+01775         \}
+01776         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a984ff310f9e906100fcff95f704f43c5}{MAT\_C\_INT8}:
+01777         \{
+01778             mat\_int8\_t *ptr = (mat\_int8\_t*)data;
+01779             READ\_COMPRESSED\_DATA\_SLABN(ReadCompressedInt8Data);
+01780             \textcolor{keywordflow}{break};
+01781         \}
+01782         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a81270f8093cb4808e992c1d29d84d4e3}{MAT\_C\_UINT8}:
+01783         \{
+01784             mat\_uint8\_t *ptr = (mat\_uint8\_t*)data;
+01785             READ\_COMPRESSED\_DATA\_SLABN(ReadCompressedUInt8Data);
+01786             \textcolor{keywordflow}{break};
+01787         \}
+01788         \textcolor{keywordflow}{default}:
+01789             nBytes = 0;
+01790     \}
+01791     inflateEnd(&z\_copy);
+01792     \textcolor{keywordflow}{return} nBytes;
+01793 \}
+01794 
+01795 \textcolor{preprocessor}{#undef READ\_COMPRESSED\_DATA\_SLABN}
+01796 \textcolor{preprocessor}{#undef READ\_COMPRESSED\_DATA\_SLABN\_RANK\_LOOP}
+01797 \textcolor{preprocessor}{#endif}
+01798 
+01799 \textcolor{preprocessor}{#define READ\_DATA\_SLAB1(ReadDataFunc) \(\backslash\)}
+01800 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+01801 \textcolor{preprocessor}{        if ( !stride ) \{ \(\backslash\)}
+01802 \textcolor{preprocessor}{            bytesread+=ReadDataFunc(mat,ptr,data\_type,edge); \(\backslash\)}
+01803 \textcolor{preprocessor}{        \} else \{ \(\backslash\)}
+01804 \textcolor{preprocessor}{            for ( i = 0; i < edge; i++ ) \{ \(\backslash\)}
+01805 \textcolor{preprocessor}{                bytesread+=ReadDataFunc(mat,ptr+i,data\_type,1); \(\backslash\)}
+01806 \textcolor{preprocessor}{                (void)fseek((FILE*)mat->fp,stride,SEEK\_CUR); \(\backslash\)}
+01807 \textcolor{preprocessor}{            \} \(\backslash\)}
+01808 \textcolor{preprocessor}{        \} \(\backslash\)}
+01809 \textcolor{preprocessor}{    \} while (0)}
+01810 
+01824 \textcolor{keywordtype}{int}
+01825 ReadDataSlab1(\hyperlink{struct__mat__t}{mat\_t} *mat,\textcolor{keywordtype}{void} *data,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gad4d60ae7b709fc81bfd744fb4c857c40}{matio\_classes} class\_type,
+01826     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} start,\textcolor{keywordtype}{int} stride,\textcolor{keywordtype}{int} edge)
+01827 \{
+01828     \textcolor{keywordtype}{int} i;
+01829     \textcolor{keywordtype}{size\_t} data\_size;
+01830     \textcolor{keywordtype}{int}    bytesread = 0;
+01831 
+01832     data\_size = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+01833     (void)fseek((FILE*)mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp},start*data\_size,SEEK\_CUR);
+01834     stride = data\_size*(stride-1);
+01835 
+01836     \textcolor{keywordflow}{switch} ( class\_type ) \{
+01837         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5d70e0862e5bdb7bd86bf7ba5948f307}{MAT\_C\_DOUBLE}:
+01838         \{
+01839             \textcolor{keywordtype}{double} *ptr = (\textcolor{keywordtype}{double}*)data;
+01840             READ\_DATA\_SLAB1(ReadDoubleData);
+01841             \textcolor{keywordflow}{break};
+01842         \}
+01843         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2825631e26a961cbe0f79db50a39cea2}{MAT\_C\_SINGLE}:
+01844         \{
+01845             \textcolor{keywordtype}{float} *ptr = (\textcolor{keywordtype}{float}*)data;
+01846             READ\_DATA\_SLAB1(ReadSingleData);
+01847             \textcolor{keywordflow}{break};
+01848         \}
+01849 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_INT64\_T}
+01850         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a1ea83bcde49b35477494412973f82409}{MAT\_C\_INT64}:
+01851         \{
+01852             mat\_int64\_t *ptr = (mat\_int64\_t*)data;
+01853             READ\_DATA\_SLAB1(ReadInt64Data);
+01854             \textcolor{keywordflow}{break};
+01855         \}
+01856 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_INT64\_T */}\textcolor{preprocessor}{}
+01857 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_UINT64\_T}
+01858         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a86470e25c3763d9a24623f04326195dd}{MAT\_C\_UINT64}:
+01859         \{
+01860             mat\_uint64\_t *ptr = (mat\_uint64\_t*)data;
+01861             READ\_DATA\_SLAB1(ReadUInt64Data);
+01862             \textcolor{keywordflow}{break};
+01863         \}
+01864 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_UINT64\_T */}\textcolor{preprocessor}{}
+01865         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40adb44fc39694e3152ae5e69470a2fefe8}{MAT\_C\_INT32}:
+01866         \{
+01867             mat\_int32\_t *ptr = (mat\_int32\_t*)data;
+01868             READ\_DATA\_SLAB1(ReadInt32Data);
+01869             \textcolor{keywordflow}{break};
+01870         \}
+01871         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a9a17a7edd45b19ef68197db81b27e816}{MAT\_C\_UINT32}:
+01872         \{
+01873             mat\_uint32\_t *ptr = (mat\_uint32\_t*)data;
+01874             READ\_DATA\_SLAB1(ReadUInt32Data);
+01875             \textcolor{keywordflow}{break};
+01876         \}
+01877         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a40370e9de516c5036a67a5865c071006}{MAT\_C\_INT16}:
+01878         \{
+01879             mat\_int16\_t *ptr = (mat\_int16\_t*)data;
+01880             READ\_DATA\_SLAB1(ReadInt16Data);
+01881             \textcolor{keywordflow}{break};
+01882         \}
+01883         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a8bede21dbf6c1edc0bbccc1481bccae7}{MAT\_C\_UINT16}:
+01884         \{
+01885             mat\_uint16\_t *ptr = (mat\_uint16\_t*)data;
+01886             READ\_DATA\_SLAB1(ReadUInt16Data);
+01887             \textcolor{keywordflow}{break};
+01888         \}
+01889         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a984ff310f9e906100fcff95f704f43c5}{MAT\_C\_INT8}:
+01890         \{
+01891             mat\_int8\_t *ptr = (mat\_int8\_t*)data;
+01892             READ\_DATA\_SLAB1(ReadInt8Data);
+01893             \textcolor{keywordflow}{break};
+01894         \}
+01895         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a81270f8093cb4808e992c1d29d84d4e3}{MAT\_C\_UINT8}:
+01896         \{
+01897             mat\_uint8\_t *ptr = (mat\_uint8\_t*)data;
+01898             READ\_DATA\_SLAB1(ReadUInt8Data);
+01899             \textcolor{keywordflow}{break};
+01900         \}
+01901         \textcolor{keywordflow}{default}:
+01902             \textcolor{keywordflow}{return} 0;
+01903     \}
+01904 
+01905     \textcolor{keywordflow}{return} bytesread;
+01906 \}
+01907 
+01908 \textcolor{preprocessor}{#undef READ\_DATA\_SLAB1}
+01909 
+01910 \textcolor{preprocessor}{#define READ\_DATA\_SLAB2(ReadDataFunc) \(\backslash\)}
+01911 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+01912 \textcolor{preprocessor}{        }\textcolor{comment}{/* If stride[0] is 1 and stride[1] is 1, we are reading all of the */}\textcolor{preprocessor}{ \(\backslash\)}
+01913 \textcolor{preprocessor}{        }\textcolor{comment}{/* data so get rid of the loops. */}\textcolor{preprocessor}{ \(\backslash\)}
+01914 \textcolor{preprocessor}{        if ( (stride[0] == 1 && edge[0] == dims[0]) && \(\backslash\)}
+01915 \textcolor{preprocessor}{             (stride[1] == 1) ) \{ \(\backslash\)}
+01916 \textcolor{preprocessor}{            ReadDataFunc(mat,ptr,data\_type,edge[0]*edge[1]); \(\backslash\)}
+01917 \textcolor{preprocessor}{        \} else \{ \(\backslash\)}
+01918 \textcolor{preprocessor}{            row\_stride = (stride[0]-1)*data\_size; \(\backslash\)}
+01919 \textcolor{preprocessor}{            col\_stride = stride[1]*dims[0]*data\_size; \(\backslash\)}
+01920 \textcolor{preprocessor}{            pos = ftell((FILE*)mat->fp); \(\backslash\)}
+01921 \textcolor{preprocessor}{            if ( pos == -1L ) \{ \(\backslash\)}
+01922 \textcolor{preprocessor}{                Mat\_Critical("Couldn't determine file position"); \(\backslash\)}
+01923 \textcolor{preprocessor}{                return -1; \(\backslash\)}
+01924 \textcolor{preprocessor}{            \} \(\backslash\)}
+01925 \textcolor{preprocessor}{            (void)fseek((FILE*)mat->fp,start[1]*dims[0]*data\_size,SEEK\_CUR); \(\backslash\)}
+01926 \textcolor{preprocessor}{            for ( i = 0; i < edge[1]; i++ ) \{ \(\backslash\)}
+01927 \textcolor{preprocessor}{                pos = ftell((FILE*)mat->fp); \(\backslash\)}
+01928 \textcolor{preprocessor}{                if ( pos == -1L ) \{ \(\backslash\)}
+01929 \textcolor{preprocessor}{                    Mat\_Critical("Couldn't determine file position"); \(\backslash\)}
+01930 \textcolor{preprocessor}{                    return -1; \(\backslash\)}
+01931 \textcolor{preprocessor}{                \} \(\backslash\)}
+01932 \textcolor{preprocessor}{                (void)fseek((FILE*)mat->fp,start[0]*data\_size,SEEK\_CUR); \(\backslash\)}
+01933 \textcolor{preprocessor}{                for ( j = 0; j < edge[0]; j++ ) \{ \(\backslash\)}
+01934 \textcolor{preprocessor}{                    ReadDataFunc(mat,ptr++,data\_type,1); \(\backslash\)}
+01935 \textcolor{preprocessor}{                    (void)fseek((FILE*)mat->fp,row\_stride,SEEK\_CUR); \(\backslash\)}
+01936 \textcolor{preprocessor}{                \} \(\backslash\)}
+01937 \textcolor{preprocessor}{                pos2 = ftell((FILE*)mat->fp); \(\backslash\)}
+01938 \textcolor{preprocessor}{                if ( pos2 == -1L ) \{ \(\backslash\)}
+01939 \textcolor{preprocessor}{                    Mat\_Critical("Couldn't determine file position"); \(\backslash\)}
+01940 \textcolor{preprocessor}{                    return -1; \(\backslash\)}
+01941 \textcolor{preprocessor}{                \} \(\backslash\)}
+01942 \textcolor{preprocessor}{                pos +=col\_stride-pos2; \(\backslash\)}
+01943 \textcolor{preprocessor}{                (void)fseek((FILE*)mat->fp,pos,SEEK\_CUR); \(\backslash\)}
+01944 \textcolor{preprocessor}{            \} \(\backslash\)}
+01945 \textcolor{preprocessor}{        \} \(\backslash\)}
+01946 \textcolor{preprocessor}{    \} while (0)}
+01947 
+01962 \textcolor{keywordtype}{int}
+01963 ReadDataSlab2(\hyperlink{struct__mat__t}{mat\_t} *mat,\textcolor{keywordtype}{void} *data,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gad4d60ae7b709fc81bfd744fb4c857c40}{matio\_classes} class\_type,
+01964     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{size\_t} *dims,\textcolor{keywordtype}{int} *start,\textcolor{keywordtype}{int} *stride,\textcolor{keywordtype}{int} *edge)
+01965 \{
+01966     \textcolor{keywordtype}{int} nBytes = 0, data\_size, i, j;
+01967     \textcolor{keywordtype}{long} pos, row\_stride, col\_stride, pos2;
+01968 
+01969     \textcolor{keywordflow}{if} ( (mat   == NULL) || (data   == NULL) || (mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL) ||
+01970          (start == NULL) || (stride == NULL) || (edge    == NULL) ) \{
+01971         \textcolor{keywordflow}{return} 0;
+01972     \}
+01973 
+01974     data\_size = \hyperlink{group__mat__util_gab6774aabdc124c540c1e7686d0804940}{Mat\_SizeOf}(data\_type);
+01975 
+01976     \textcolor{keywordflow}{switch} ( class\_type ) \{
+01977         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5d70e0862e5bdb7bd86bf7ba5948f307}{MAT\_C\_DOUBLE}:
+01978         \{
+01979             \textcolor{keywordtype}{double} *ptr = (\textcolor{keywordtype}{double}*)data;
+01980             READ\_DATA\_SLAB2(ReadDoubleData);
+01981             \textcolor{keywordflow}{break};
+01982         \}
+01983         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2825631e26a961cbe0f79db50a39cea2}{MAT\_C\_SINGLE}:
+01984         \{
+01985             \textcolor{keywordtype}{float} *ptr = (\textcolor{keywordtype}{float}*)data;
+01986             READ\_DATA\_SLAB2(ReadSingleData);
+01987             \textcolor{keywordflow}{break};
+01988         \}
+01989 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_INT64\_T}
+01990         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a1ea83bcde49b35477494412973f82409}{MAT\_C\_INT64}:
+01991         \{
+01992             mat\_int64\_t *ptr = (mat\_int64\_t*)data;
+01993             READ\_DATA\_SLAB2(ReadInt64Data);
+01994             \textcolor{keywordflow}{break};
+01995         \}
+01996 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_INT64\_T */}\textcolor{preprocessor}{}
+01997 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_UINT64\_T}
+01998         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a86470e25c3763d9a24623f04326195dd}{MAT\_C\_UINT64}:
+01999         \{
+02000             mat\_uint64\_t *ptr = (mat\_uint64\_t*)data;
+02001             READ\_DATA\_SLAB2(ReadUInt64Data);
+02002             \textcolor{keywordflow}{break};
+02003         \}
+02004 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_UINT64\_T */}\textcolor{preprocessor}{}
+02005         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40adb44fc39694e3152ae5e69470a2fefe8}{MAT\_C\_INT32}:
+02006         \{
+02007             mat\_int32\_t *ptr = (mat\_int32\_t*)data;
+02008             READ\_DATA\_SLAB2(ReadInt32Data);
+02009             \textcolor{keywordflow}{break};
+02010         \}
+02011         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a9a17a7edd45b19ef68197db81b27e816}{MAT\_C\_UINT32}:
+02012         \{
+02013             mat\_uint32\_t *ptr = (mat\_uint32\_t*)data;
+02014             READ\_DATA\_SLAB2(ReadUInt32Data);
+02015             \textcolor{keywordflow}{break};
+02016         \}
+02017         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a40370e9de516c5036a67a5865c071006}{MAT\_C\_INT16}:
+02018         \{
+02019             mat\_int16\_t *ptr = (mat\_int16\_t*)data;
+02020             READ\_DATA\_SLAB2(ReadInt16Data);
+02021             \textcolor{keywordflow}{break};
+02022         \}
+02023         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a8bede21dbf6c1edc0bbccc1481bccae7}{MAT\_C\_UINT16}:
+02024         \{
+02025             mat\_uint16\_t *ptr = (mat\_uint16\_t*)data;
+02026             READ\_DATA\_SLAB2(ReadUInt16Data);
+02027             \textcolor{keywordflow}{break};
+02028         \}
+02029         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a984ff310f9e906100fcff95f704f43c5}{MAT\_C\_INT8}:
+02030         \{
+02031             mat\_int8\_t *ptr = (mat\_int8\_t*)data;
+02032             READ\_DATA\_SLAB2(ReadInt8Data);
+02033             \textcolor{keywordflow}{break};
+02034         \}
+02035         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a81270f8093cb4808e992c1d29d84d4e3}{MAT\_C\_UINT8}:
+02036         \{
+02037             mat\_uint8\_t *ptr = (mat\_uint8\_t*)data;
+02038             READ\_DATA\_SLAB2(ReadUInt8Data);
+02039             \textcolor{keywordflow}{break};
+02040         \}
+02041         \textcolor{keywordflow}{default}:
+02042             nBytes = 0;
+02043     \}
+02044     \textcolor{keywordflow}{return} nBytes;
+02045 \}
+02046 
+02047 \textcolor{preprocessor}{#undef READ\_DATA\_SLAB2}
+02048 
+02049 \textcolor{preprocessor}{#if defined(HAVE\_ZLIB)}
+02050 \textcolor{preprocessor}{#define READ\_COMPRESSED\_DATA\_SLAB1(ReadDataFunc) \(\backslash\)}
+02051 \textcolor{preprocessor}{    do \{ \(\backslash\)}
+02052 \textcolor{preprocessor}{        if ( !stride ) \{ \(\backslash\)}
+02053 \textcolor{preprocessor}{            nBytes+=ReadDataFunc(mat,&z\_copy,ptr,data\_type,edge); \(\backslash\)}
+02054 \textcolor{preprocessor}{        \} else \{ \(\backslash\)}
+02055 \textcolor{preprocessor}{            for ( i = 0; i < edge; i++ ) \{ \(\backslash\)}
+02056 \textcolor{preprocessor}{                nBytes+=ReadDataFunc(mat,&z\_copy,ptr+i,data\_type,1); \(\backslash\)}
+02057 \textcolor{preprocessor}{                InflateSkipData(mat,&z\_copy,data\_type,stride); \(\backslash\)}
+02058 \textcolor{preprocessor}{            \} \(\backslash\)}
+02059 \textcolor{preprocessor}{        \} \(\backslash\)}
+02060 \textcolor{preprocessor}{    \} while (0)}
+02061 
+02077 \textcolor{keywordtype}{int}
+02078 ReadCompressedDataSlab1(\hyperlink{struct__mat__t}{mat\_t} *mat,z\_streamp z,\textcolor{keywordtype}{void} *data,
+02079     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gad4d60ae7b709fc81bfd744fb4c857c40}{matio\_classes} class\_type,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{int} start,
+02080     \textcolor{keywordtype}{int} stride,\textcolor{keywordtype}{int} edge)
+02081 \{
+02082     \textcolor{keywordtype}{int} nBytes = 0, i, err;
+02083     \hyperlink{structz__stream__s}{z\_stream} z\_copy = \{0,\};
+02084 
+02085     \textcolor{keywordflow}{if} ( (mat == NULL) || (data == NULL) || (mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL) )
+02086         \textcolor{keywordflow}{return} 0;
+02087 
+02088     stride--;
+02089     err = inflateCopy(&z\_copy,z);
+02090     InflateSkipData(mat,&z\_copy,data\_type,start);
+02091     \textcolor{keywordflow}{switch} ( class\_type ) \{
+02092         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5d70e0862e5bdb7bd86bf7ba5948f307}{MAT\_C\_DOUBLE}:
+02093         \{
+02094             \textcolor{keywordtype}{double} *ptr = (\textcolor{keywordtype}{double}*)data;
+02095             READ\_COMPRESSED\_DATA\_SLAB1(ReadCompressedDoubleData);
+02096             \textcolor{keywordflow}{break};
+02097         \}
+02098         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2825631e26a961cbe0f79db50a39cea2}{MAT\_C\_SINGLE}:
+02099         \{
+02100             \textcolor{keywordtype}{float} *ptr = (\textcolor{keywordtype}{float}*)data;
+02101             READ\_COMPRESSED\_DATA\_SLAB1(ReadCompressedSingleData);
+02102             \textcolor{keywordflow}{break};
+02103         \}
+02104 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_INT64\_T}
+02105         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a1ea83bcde49b35477494412973f82409}{MAT\_C\_INT64}:
+02106         \{
+02107             mat\_int64\_t *ptr = (mat\_int64\_t*)data;
+02108             READ\_COMPRESSED\_DATA\_SLAB1(ReadCompressedInt64Data);
+02109             \textcolor{keywordflow}{break};
+02110         \}
+02111 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_INT64\_T */}\textcolor{preprocessor}{}
+02112 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_UINT64\_T}
+02113         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a86470e25c3763d9a24623f04326195dd}{MAT\_C\_UINT64}:
+02114         \{
+02115             mat\_uint64\_t *ptr = (mat\_uint64\_t*)data;
+02116             READ\_COMPRESSED\_DATA\_SLAB1(ReadCompressedUInt64Data);
+02117             \textcolor{keywordflow}{break};
+02118         \}
+02119 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_UINT64\_T */}\textcolor{preprocessor}{}
+02120         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40adb44fc39694e3152ae5e69470a2fefe8}{MAT\_C\_INT32}:
+02121         \{
+02122             mat\_int32\_t *ptr = (mat\_int32\_t*)data;
+02123             READ\_COMPRESSED\_DATA\_SLAB1(ReadCompressedInt32Data);
+02124             \textcolor{keywordflow}{break};
+02125         \}
+02126         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a9a17a7edd45b19ef68197db81b27e816}{MAT\_C\_UINT32}:
+02127         \{
+02128             mat\_uint32\_t *ptr = (mat\_uint32\_t*)data;
+02129             READ\_COMPRESSED\_DATA\_SLAB1(ReadCompressedUInt32Data);
+02130             \textcolor{keywordflow}{break};
+02131         \}
+02132         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a40370e9de516c5036a67a5865c071006}{MAT\_C\_INT16}:
+02133         \{
+02134             mat\_int16\_t *ptr = (mat\_int16\_t*)data;
+02135             READ\_COMPRESSED\_DATA\_SLAB1(ReadCompressedInt16Data);
+02136             \textcolor{keywordflow}{break};
+02137         \}
+02138         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a8bede21dbf6c1edc0bbccc1481bccae7}{MAT\_C\_UINT16}:
+02139         \{
+02140             mat\_uint16\_t *ptr = (mat\_uint16\_t*)data;
+02141             READ\_COMPRESSED\_DATA\_SLAB1(ReadCompressedUInt16Data);
+02142             \textcolor{keywordflow}{break};
+02143         \}
+02144         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a984ff310f9e906100fcff95f704f43c5}{MAT\_C\_INT8}:
+02145         \{
+02146             mat\_int8\_t *ptr = (mat\_int8\_t*)data;
+02147             READ\_COMPRESSED\_DATA\_SLAB1(ReadCompressedInt8Data);
+02148             \textcolor{keywordflow}{break};
+02149         \}
+02150         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a81270f8093cb4808e992c1d29d84d4e3}{MAT\_C\_UINT8}:
+02151         \{
+02152             mat\_uint8\_t *ptr = (mat\_uint8\_t*)data;
+02153             READ\_COMPRESSED\_DATA\_SLAB1(ReadCompressedUInt8Data);
+02154             \textcolor{keywordflow}{break};
+02155         \}
+02156         \textcolor{keywordflow}{default}:
+02157             \textcolor{keywordflow}{break};
+02158     \}
+02159     inflateEnd(&z\_copy);
+02160     \textcolor{keywordflow}{return} nBytes;
+02161 \}
+02162 
+02163 \textcolor{preprocessor}{#undef READ\_COMPRESSED\_DATA\_SLAB1}
+02164 
+02165 \textcolor{preprocessor}{#define READ\_COMPRESSED\_DATA\_SLAB2(ReadDataFunc) \(\backslash\)}
+02166 \textcolor{preprocessor}{    do \{\(\backslash\)}
+02167 \textcolor{preprocessor}{        row\_stride = (stride[0]-1); \(\backslash\)}
+02168 \textcolor{preprocessor}{        col\_stride = (stride[1]-1)*dims[0]; \(\backslash\)}
+02169 \textcolor{preprocessor}{        InflateSkipData(mat,&z\_copy,data\_type,start[1]*dims[0]); \(\backslash\)}
+02170 \textcolor{preprocessor}{        }\textcolor{comment}{/* If stride[0] is 1 and stride[1] is 1, we are reading all of the */}\textcolor{preprocessor}{ \(\backslash\)}
+02171 \textcolor{preprocessor}{        }\textcolor{comment}{/* data so get rid of the loops.  If stride[0] is 1 and stride[1] */}\textcolor{preprocessor}{ \(\backslash\)}
+02172 \textcolor{preprocessor}{        }\textcolor{comment}{/* is not 0, we are reading whole columns, so get rid of inner loop */}\textcolor{preprocessor}{ \(\backslash\)}
+02173 \textcolor{preprocessor}{        }\textcolor{comment}{/* to speed up the code */}\textcolor{preprocessor}{ \(\backslash\)}
+02174 \textcolor{preprocessor}{        if ( (stride[0] == 1 && edge[0] == dims[0]) && \(\backslash\)}
+02175 \textcolor{preprocessor}{             (stride[1] == 1) ) \{ \(\backslash\)}
+02176 \textcolor{preprocessor}{            ReadDataFunc(mat,&z\_copy,ptr,data\_type,edge[0]*edge[1]); \(\backslash\)}
+02177 \textcolor{preprocessor}{        \} else if ( stride[0] == 1 ) \{ \(\backslash\)}
+02178 \textcolor{preprocessor}{            for ( i = 0; i < edge[1]; i++ ) \{ \(\backslash\)}
+02179 \textcolor{preprocessor}{                InflateSkipData(mat,&z\_copy,data\_type,start[0]); \(\backslash\)}
+02180 \textcolor{preprocessor}{                ReadDataFunc(mat,&z\_copy,ptr,data\_type,edge[0]); \(\backslash\)}
+02181 \textcolor{preprocessor}{                ptr += edge[0]; \(\backslash\)}
+02182 \textcolor{preprocessor}{                pos = dims[0]-(edge[0]-1)*stride[0]-1-start[0] + col\_stride; \(\backslash\)}
+02183 \textcolor{preprocessor}{                InflateSkipData(mat,&z\_copy,data\_type,pos); \(\backslash\)}
+02184 \textcolor{preprocessor}{            \} \(\backslash\)}
+02185 \textcolor{preprocessor}{        \} else \{ \(\backslash\)}
+02186 \textcolor{preprocessor}{            for ( i = 0; i < edge[1]; i++ ) \{ \(\backslash\)}
+02187 \textcolor{preprocessor}{                InflateSkipData(mat,&z\_copy,data\_type,start[0]); \(\backslash\)}
+02188 \textcolor{preprocessor}{                for ( j = 0; j < edge[0]-1; j++ ) \{ \(\backslash\)}
+02189 \textcolor{preprocessor}{                    ReadDataFunc(mat,&z\_copy,ptr++,data\_type,1); \(\backslash\)}
+02190 \textcolor{preprocessor}{                    InflateSkipData(mat,&z\_copy,data\_type,row\_stride); \(\backslash\)}
+02191 \textcolor{preprocessor}{                \} \(\backslash\)}
+02192 \textcolor{preprocessor}{                ReadDataFunc(mat,&z\_copy,ptr++,data\_type,1); \(\backslash\)}
+02193 \textcolor{preprocessor}{                pos = dims[0]-(edge[0]-1)*stride[0]-1-start[0] + col\_stride; \(\backslash\)}
+02194 \textcolor{preprocessor}{                InflateSkipData(mat,&z\_copy,data\_type,pos); \(\backslash\)}
+02195 \textcolor{preprocessor}{            \} \(\backslash\)}
+02196 \textcolor{preprocessor}{        \} \(\backslash\)}
+02197 \textcolor{preprocessor}{    \} while (0)}
+02198 
+02214 \textcolor{keywordtype}{int}
+02215 ReadCompressedDataSlab2(\hyperlink{struct__mat__t}{mat\_t} *mat,z\_streamp z,\textcolor{keywordtype}{void} *data,
+02216     \textcolor{keyword}{enum} \hyperlink{group___m_a_t_gad4d60ae7b709fc81bfd744fb4c857c40}{matio\_classes} class\_type,\textcolor{keyword}{enum} \hyperlink{group___m_a_t_gacf7b3b879282b7ab3a51190e49bf3453}{matio\_types} data\_type,\textcolor{keywordtype}{size\_t} *dims,
+02217     \textcolor{keywordtype}{int} *start,\textcolor{keywordtype}{int} *stride,\textcolor{keywordtype}{int} *edge)
+02218 \{
+02219     \textcolor{keywordtype}{int} nBytes = 0, i, j, err;
+02220     \textcolor{keywordtype}{int} pos, row\_stride, col\_stride;
+02221     \hyperlink{structz__stream__s}{z\_stream} z\_copy = \{0,\};
+02222 
+02223     \textcolor{keywordflow}{if} ( (mat   == NULL) || (data   == NULL) || (mat->\hyperlink{struct__mat__t_a85f562e407ca9ad4d2a6e14f839432b7}{fp} == NULL) ||
+02224          (start == NULL) || (stride == NULL) || (edge    == NULL) ) \{
+02225         \textcolor{keywordflow}{return} 0;
+02226     \}
+02227 
+02228     err = inflateCopy(&z\_copy,z);
+02229     \textcolor{keywordflow}{switch} ( class\_type ) \{
+02230         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a5d70e0862e5bdb7bd86bf7ba5948f307}{MAT\_C\_DOUBLE}:
+02231         \{
+02232             \textcolor{keywordtype}{double} *ptr = (\textcolor{keywordtype}{double}*)data;
+02233             READ\_COMPRESSED\_DATA\_SLAB2(ReadCompressedDoubleData);
+02234             \textcolor{keywordflow}{break};
+02235         \}
+02236         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a2825631e26a961cbe0f79db50a39cea2}{MAT\_C\_SINGLE}:
+02237         \{
+02238             \textcolor{keywordtype}{float} *ptr = (\textcolor{keywordtype}{float}*)data;
+02239             READ\_COMPRESSED\_DATA\_SLAB2(ReadCompressedSingleData);
+02240             \textcolor{keywordflow}{break};
+02241         \}
+02242 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_INT64\_T}
+02243         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a1ea83bcde49b35477494412973f82409}{MAT\_C\_INT64}:
+02244         \{
+02245             mat\_int64\_t *ptr = (mat\_int64\_t*)data;
+02246             READ\_COMPRESSED\_DATA\_SLAB2(ReadCompressedInt64Data);
+02247             \textcolor{keywordflow}{break};
+02248         \}
+02249 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_INT64\_T */}\textcolor{preprocessor}{}
+02250 \textcolor{preprocessor}{#ifdef HAVE\_MAT\_UINT64\_T}
+02251         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a86470e25c3763d9a24623f04326195dd}{MAT\_C\_UINT64}:
+02252         \{
+02253             mat\_uint64\_t *ptr = (mat\_uint64\_t*)data;
+02254             READ\_COMPRESSED\_DATA\_SLAB2(ReadCompressedUInt64Data);
+02255             \textcolor{keywordflow}{break};
+02256         \}
+02257 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* HAVE\_MAT\_UINT64\_T */}\textcolor{preprocessor}{}
+02258         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40adb44fc39694e3152ae5e69470a2fefe8}{MAT\_C\_INT32}:
+02259         \{
+02260             mat\_int32\_t *ptr = (mat\_int32\_t*)data;
+02261             READ\_COMPRESSED\_DATA\_SLAB2(ReadCompressedInt32Data);
+02262             \textcolor{keywordflow}{break};
+02263         \}
+02264         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a9a17a7edd45b19ef68197db81b27e816}{MAT\_C\_UINT32}:
+02265         \{
+02266             mat\_uint32\_t *ptr = (mat\_uint32\_t*)data;
+02267             READ\_COMPRESSED\_DATA\_SLAB2(ReadCompressedUInt32Data);
+02268             \textcolor{keywordflow}{break};
+02269         \}
+02270         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a40370e9de516c5036a67a5865c071006}{MAT\_C\_INT16}:
+02271         \{
+02272             mat\_int16\_t *ptr = (mat\_int16\_t*)data;
+02273             READ\_COMPRESSED\_DATA\_SLAB2(ReadCompressedInt16Data);
+02274             \textcolor{keywordflow}{break};
+02275         \}
+02276         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a8bede21dbf6c1edc0bbccc1481bccae7}{MAT\_C\_UINT16}:
+02277         \{
+02278             mat\_uint16\_t *ptr = (mat\_uint16\_t*)data;
+02279             READ\_COMPRESSED\_DATA\_SLAB2(ReadCompressedUInt16Data);
+02280             \textcolor{keywordflow}{break};
+02281         \}
+02282         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a984ff310f9e906100fcff95f704f43c5}{MAT\_C\_INT8}:
+02283         \{
+02284             mat\_int8\_t *ptr = (mat\_int8\_t*)data;
+02285             READ\_COMPRESSED\_DATA\_SLAB2(ReadCompressedInt8Data);
+02286             \textcolor{keywordflow}{break};
+02287         \}
+02288         \textcolor{keywordflow}{case} \hyperlink{group___m_a_t_ggad4d60ae7b709fc81bfd744fb4c857c40a81270f8093cb4808e992c1d29d84d4e3}{MAT\_C\_UINT8}:
+02289         \{
+02290             mat\_uint8\_t *ptr = (mat\_uint8\_t*)data;
+02291             READ\_COMPRESSED\_DATA\_SLAB2(ReadCompressedUInt8Data);
+02292             \textcolor{keywordflow}{break};
+02293         \}
+02294         \textcolor{keywordflow}{default}:
+02295             nBytes = 0;
+02296     \}
+02297     inflateEnd(&z\_copy);
+02298     \textcolor{keywordflow}{return} nBytes;
+02299 \}
+02300 
+02301 \textcolor{preprocessor}{#undef READ\_COMPRESSED\_DATA\_SLAB2}
+02302 \textcolor{preprocessor}{#endif}
+02303 
+\end{DoxyCode}

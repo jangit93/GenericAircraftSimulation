@@ -1,0 +1,102 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2swap_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/swap.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2swap_8cpp_source}\index{swap.\+cpp@{swap.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2009 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#define EIGEN\_NO\_STATIC\_ASSERT}
+00011 \textcolor{preprocessor}{#include "main.h"}
+00012 
+00013 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00014 \textcolor{keyword}{struct }\hyperlink{structother__matrix__type}{other\_matrix\_type}
+00015 \{
+00016   \textcolor{keyword}{typedef} \textcolor{keywordtype}{int} type;
+00017 \};
+00018 
+00019 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} \_Rows, \textcolor{keywordtype}{int} \_Cols, \textcolor{keywordtype}{int} \_Options, \textcolor{keywordtype}{int} \_MaxRows, \textcolor{keywordtype}{int} \_MaxCols>
+00020 \textcolor{keyword}{struct }\hyperlink{structother__matrix__type}{other\_matrix\_type}<\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix}<\_Scalar, \_Rows, \_Cols, \_Options, \_MaxRows, \_MaxCols>
+       >
+00021 \{
+00022   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<\_Scalar, \_Rows, \_Cols, \_Options^RowMajor, \_MaxRows, \_MaxCols>}
+       type;
+00023 \};
+00024 
+00025 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(\textcolor{keyword}{const} MatrixType& m)
+00026 \{
+00027   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} other\_matrix\_type<MatrixType>::type OtherMatrixType;
+00028   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00029 
+00030   eigen\_assert((!internal::is\_same<MatrixType,OtherMatrixType>::value));
+00031   \textcolor{keyword}{typename} MatrixType::Index rows = m.rows();
+00032   \textcolor{keyword}{typename} MatrixType::Index cols = m.cols();
+00033   
+00034   \textcolor{comment}{// construct 3 matrix guaranteed to be distinct}
+00035   MatrixType m1 = MatrixType::Random(rows,cols);
+00036   MatrixType m2 = MatrixType::Random(rows,cols) + Scalar(100) * MatrixType::Identity(rows,cols);
+00037   OtherMatrixType m3 = OtherMatrixType::Random(rows,cols) + Scalar(200) * OtherMatrixType::Identity(rows,
+      cols);
+00038   
+00039   MatrixType m1\_copy = m1;
+00040   MatrixType m2\_copy = m2;
+00041   OtherMatrixType m3\_copy = m3;
+00042   
+00043   \textcolor{comment}{// test swapping 2 matrices of same type}
+00044   Scalar *d1=m1.data(), *d2=m2.data();
+00045   m1.swap(m2);
+00046   VERIFY\_IS\_APPROX(m1,m2\_copy);
+00047   VERIFY\_IS\_APPROX(m2,m1\_copy);
+00048   \textcolor{keywordflow}{if}(MatrixType::SizeAtCompileTime==Dynamic)
+00049   \{
+00050     VERIFY(m1.data()==d2);
+00051     VERIFY(m2.data()==d1);
+00052   \}
+00053   m1 = m1\_copy;
+00054   m2 = m2\_copy;
+00055   
+00056   \textcolor{comment}{// test swapping 2 matrices of different types}
+00057   m1.swap(m3);
+00058   VERIFY\_IS\_APPROX(m1,m3\_copy);
+00059   VERIFY\_IS\_APPROX(m3,m1\_copy);
+00060   m1 = m1\_copy;
+00061   m3 = m3\_copy;
+00062   
+00063   \textcolor{comment}{// test swapping matrix with expression}
+00064   m1.swap(m2.block(0,0,rows,cols));
+00065   VERIFY\_IS\_APPROX(m1,m2\_copy);
+00066   VERIFY\_IS\_APPROX(m2,m1\_copy);
+00067   m1 = m1\_copy;
+00068   m2 = m2\_copy;
+00069 
+00070   \textcolor{comment}{// test swapping two expressions of different types}
+00071   m1.transpose().swap(m3.transpose());
+00072   VERIFY\_IS\_APPROX(m1,m3\_copy);
+00073   VERIFY\_IS\_APPROX(m3,m1\_copy);
+00074   m1 = m1\_copy;
+00075   m3 = m3\_copy;
+00076   
+00077   \textcolor{keywordflow}{if}(m1.rows()>1)
+00078   \{
+00079     \textcolor{comment}{// test assertion on mismatching size -- matrix case}
+00080     VERIFY\_RAISES\_ASSERT(m1.swap(m1.row(0)));
+00081     \textcolor{comment}{// test assertion on mismatching size -- xpr case}
+00082     VERIFY\_RAISES\_ASSERT(m1.row(0).swap(m1));
+00083   \}
+00084 \}
+00085 
+00086 \textcolor{keywordtype}{void} test\_swap()
+00087 \{
+00088   \textcolor{keywordtype}{int} s = internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE);
+00089   CALL\_SUBTEST\_1( \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(Matrix3f()) ); \textcolor{comment}{// fixed size, no vectorization }
+00090   CALL\_SUBTEST\_2( \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(Matrix4d()) ); \textcolor{comment}{// fixed size, possible vectorization }
+00091   CALL\_SUBTEST\_3( \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(MatrixXd(s,s)) ); \textcolor{comment}{// dyn size, no vectorization }
+00092   CALL\_SUBTEST\_4( \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(MatrixXf(s,s)) ); \textcolor{comment}{// dyn size, possible vectorization }
+00093   TEST\_SET\_BUT\_UNUSED\_VARIABLE(s)
+00094 \}
+\end{DoxyCode}

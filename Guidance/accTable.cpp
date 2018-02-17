@@ -31,12 +31,10 @@ void accTable::initGuidance()
 void accTable::updateGuidance(Float64 FlightTime, 
 							AerodynamicStruct & AeroData, 
 							ThrustStruct & ThrustData, 
-							AircraftStruct & AircraftData, 
 							AirframeStruct & AirframeData, 
-							AtmosphereStruct & AtmosphereData,
 							GuidanceStruct &GuidanceData)
 {
-	GuidanceData.Velocity_com = sqrt(v_x(FlightTime)*v_x(FlightTime) + v_y(FlightTime) * v_y(FlightTime) + v_z(FlightTime) * v_z(FlightTime));
+	//GuidanceData.Velocity_com = sqrt(v_x(FlightTime)*v_x(FlightTime) + v_y(FlightTime) * v_y(FlightTime) + v_z(FlightTime) * v_z(FlightTime));
 
-	AeroData.q_bar;
+	//AeroData.q_bar;
 }

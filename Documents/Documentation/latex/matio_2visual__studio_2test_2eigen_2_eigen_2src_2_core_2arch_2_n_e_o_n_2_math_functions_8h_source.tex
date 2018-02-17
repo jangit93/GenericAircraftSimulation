@@ -1,0 +1,96 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2arch_2_n_e_o_n_2_math_functions_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Core/arch/\+N\+E\+O\+N/\+Math\+Functions.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2arch_2_n_e_o_n_2_math_functions_8h_source}\index{Math\+Functions.\+h@{Math\+Functions.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00005 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00006 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00007 
+00008 \textcolor{comment}{/* The sin, cos, exp, and log functions of this file come from}
+00009 \textcolor{comment}{ * Julien Pommier's sse math library: http://gruntthepeon.free.fr/ssemath/}
+00010 \textcolor{comment}{ */}
+00011 
+00012 \textcolor{preprocessor}{#ifndef EIGEN\_MATH\_FUNCTIONS\_NEON\_H}
+00013 \textcolor{preprocessor}{#define EIGEN\_MATH\_FUNCTIONS\_NEON\_H}
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00016 
+00017 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00018 
+00019 \textcolor{keyword}{template}<> EIGEN\_DEFINE\_FUNCTION\_ALLOWING\_MULTIPLE\_DEFINITIONS EIGEN\_UNUSED
+00020 Packet4f pexp<Packet4f>(\textcolor{keyword}{const} Packet4f& \_x)
+00021 \{
+00022   Packet4f x = \_x;
+00023   Packet4f tmp, fx;
+00024 
+00025   \_EIGEN\_DECLARE\_CONST\_Packet4f(1 , 1.0f);
+00026   \_EIGEN\_DECLARE\_CONST\_Packet4f(half, 0.5f);
+00027   \_EIGEN\_DECLARE\_CONST\_Packet4i(0x7f, 0x7f);
+00028   \_EIGEN\_DECLARE\_CONST\_Packet4f(exp\_hi,  88.3762626647950f);
+00029   \_EIGEN\_DECLARE\_CONST\_Packet4f(exp\_lo, -88.3762626647949f);
+00030   \_EIGEN\_DECLARE\_CONST\_Packet4f(cephes\_LOG2EF, 1.44269504088896341f);
+00031   \_EIGEN\_DECLARE\_CONST\_Packet4f(cephes\_exp\_C1, 0.693359375f);
+00032   \_EIGEN\_DECLARE\_CONST\_Packet4f(cephes\_exp\_C2, -2.12194440e-4f);
+00033   \_EIGEN\_DECLARE\_CONST\_Packet4f(cephes\_exp\_p0, 1.9875691500E-4f);
+00034   \_EIGEN\_DECLARE\_CONST\_Packet4f(cephes\_exp\_p1, 1.3981999507E-3f);
+00035   \_EIGEN\_DECLARE\_CONST\_Packet4f(cephes\_exp\_p2, 8.3334519073E-3f);
+00036   \_EIGEN\_DECLARE\_CONST\_Packet4f(cephes\_exp\_p3, 4.1665795894E-2f);
+00037   \_EIGEN\_DECLARE\_CONST\_Packet4f(cephes\_exp\_p4, 1.6666665459E-1f);
+00038   \_EIGEN\_DECLARE\_CONST\_Packet4f(cephes\_exp\_p5, 5.0000001201E-1f);
+00039 
+00040   x = vminq\_f32(x, p4f\_exp\_hi);
+00041   x = vmaxq\_f32(x, p4f\_exp\_lo);
+00042 
+00043   \textcolor{comment}{/* express exp(x) as exp(g + n*log(2)) */}
+00044   fx = vmlaq\_f32(p4f\_half, x, p4f\_cephes\_LOG2EF);
+00045 
+00046   \textcolor{comment}{/* perform a floorf */}
+00047   tmp = vcvtq\_f32\_s32(vcvtq\_s32\_f32(fx));
+00048 
+00049   \textcolor{comment}{/* if greater, substract 1 */}
+00050   Packet4ui mask = vcgtq\_f32(tmp, fx);
+00051   mask = vandq\_u32(mask, vreinterpretq\_u32\_f32(p4f\_1));
+00052 
+00053   fx = vsubq\_f32(tmp, vreinterpretq\_f32\_u32(mask));
+00054 
+00055   tmp = vmulq\_f32(fx, p4f\_cephes\_exp\_C1);
+00056   Packet4f z = vmulq\_f32(fx, p4f\_cephes\_exp\_C2);
+00057   x = vsubq\_f32(x, tmp);
+00058   x = vsubq\_f32(x, z);
+00059 
+00060   Packet4f y = vmulq\_f32(p4f\_cephes\_exp\_p0, x);
+00061   z = vmulq\_f32(x, x);
+00062   y = vaddq\_f32(y, p4f\_cephes\_exp\_p1);
+00063   y = vmulq\_f32(y, x);
+00064   y = vaddq\_f32(y, p4f\_cephes\_exp\_p2);
+00065   y = vmulq\_f32(y, x);
+00066   y = vaddq\_f32(y, p4f\_cephes\_exp\_p3);
+00067   y = vmulq\_f32(y, x);
+00068   y = vaddq\_f32(y, p4f\_cephes\_exp\_p4);
+00069   y = vmulq\_f32(y, x);
+00070   y = vaddq\_f32(y, p4f\_cephes\_exp\_p5);
+00071 
+00072   y = vmulq\_f32(y, z);
+00073   y = vaddq\_f32(y, x);
+00074   y = vaddq\_f32(y, p4f\_1);
+00075 
+00076   \textcolor{comment}{/* build 2^n */}
+00077   int32x4\_t mm;
+00078   mm = vcvtq\_s32\_f32(fx);
+00079   mm = vaddq\_s32(mm, p4i\_0x7f);
+00080   mm = vshlq\_n\_s32(mm, 23);
+00081   Packet4f pow2n = vreinterpretq\_f32\_s32(mm);
+00082 
+00083   y = vmulq\_f32(y, pow2n);
+00084   \textcolor{keywordflow}{return} y;
+00085 \}
+00086 
+00087 \} \textcolor{comment}{// end namespace internal}
+00088 
+00089 \} \textcolor{comment}{// end namespace Eigen}
+00090 
+00091 \textcolor{preprocessor}{#endif // EIGEN\_MATH\_FUNCTIONS\_NEON\_H}
+\end{DoxyCode}

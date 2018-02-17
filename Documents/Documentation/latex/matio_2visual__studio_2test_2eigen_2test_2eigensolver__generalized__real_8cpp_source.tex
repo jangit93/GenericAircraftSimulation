@@ -1,0 +1,112 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2eigensolver__generalized__real_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/eigensolver\+\_\+generalized\+\_\+real.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2eigensolver__generalized__real_8cpp_source}\index{eigensolver\+\_\+generalized\+\_\+real.\+cpp@{eigensolver\+\_\+generalized\+\_\+real.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2012-2016 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#define EIGEN\_RUNTIME\_NO\_MALLOC}
+00011 \textcolor{preprocessor}{#include "main.h"}
+00012 \textcolor{preprocessor}{#include <limits>}
+00013 \textcolor{preprocessor}{#include <Eigen/Eigenvalues>}
+00014 \textcolor{preprocessor}{#include <Eigen/LU>}
+00015 
+00016 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} generalized\_eigensolver\_real(\textcolor{keyword}{const} MatrixType& m)
+00017 \{
+00018   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00019   \textcolor{comment}{/* this test covers the following files:}
+00020 \textcolor{comment}{     GeneralizedEigenSolver.h}
+00021 \textcolor{comment}{  */}
+00022   Index rows = m.rows();
+00023   Index cols = m.cols();
+00024 
+00025   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00026   \textcolor{keyword}{typedef} std::complex<Scalar> ComplexScalar;
+00027   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar, MatrixType::RowsAtCompileTime, 1>} 
+      \hyperlink{struct_vector_type}{VectorType};
+00028 
+00029   MatrixType a = MatrixType::Random(rows,cols);
+00030   MatrixType b = MatrixType::Random(rows,cols);
+00031   MatrixType a1 = MatrixType::Random(rows,cols);
+00032   MatrixType b1 = MatrixType::Random(rows,cols);
+00033   MatrixType spdA =  a.adjoint() * a + a1.adjoint() * a1;
+00034   MatrixType spdB =  b.adjoint() * b + b1.adjoint() * b1;
+00035 
+00036   \textcolor{comment}{// lets compare to GeneralizedSelfAdjointEigenSolver}
+00037   \{
+00038     \hyperlink{group___eigenvalues___module_class_eigen_1_1_generalized_self_adjoint_eigen_solver}{GeneralizedSelfAdjointEigenSolver<MatrixType>} symmEig(spdA
+      , spdB);
+00039     \hyperlink{group___eigenvalues___module_class_eigen_1_1_generalized_eigen_solver}{GeneralizedEigenSolver<MatrixType>} eig(spdA, spdB);
+00040 
+00041     VERIFY\_IS\_EQUAL(eig.eigenvalues().imag().cwiseAbs().maxCoeff(), 0);
+00042 
+00043     VectorType realEigenvalues = eig.eigenvalues().real();
+00044     std::sort(realEigenvalues.data(), realEigenvalues.data()+realEigenvalues.size());
+00045     VERIFY\_IS\_APPROX(realEigenvalues, symmEig.eigenvalues());
+00046 
+00047     \textcolor{comment}{// check eigenvectors}
+00048     \textcolor{keyword}{typename} \hyperlink{group___core___module}{GeneralizedEigenSolver<MatrixType>::EigenvectorsType}
+       D = eig.eigenvalues().asDiagonal();
+00049     \textcolor{keyword}{typename} \hyperlink{group___core___module}{GeneralizedEigenSolver<MatrixType>::EigenvectorsType}
+       V = eig.eigenvectors();
+00050     VERIFY\_IS\_APPROX(spdA*V, spdB*V*D);
+00051   \}
+00052 
+00053   \textcolor{comment}{// non symmetric case:}
+00054   \{
+00055     \hyperlink{group___eigenvalues___module_class_eigen_1_1_generalized_eigen_solver}{GeneralizedEigenSolver<MatrixType>} eig(rows);
+00056     \textcolor{comment}{// TODO enable full-prealocation of required memory, this probably requires an in-place mode for
+       HessenbergDecomposition}
+00057     \textcolor{comment}{//Eigen::internal::set\_is\_malloc\_allowed(false);}
+00058     eig.compute(a,b);
+00059     \textcolor{comment}{//Eigen::internal::set\_is\_malloc\_allowed(true);}
+00060     \textcolor{keywordflow}{for}(Index k=0; k<cols; ++k)
+00061     \{
+00062       \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<ComplexScalar,Dynamic,Dynamic>} tmp = (eig.betas()(k)*a).
+      template cast<ComplexScalar>() - eig.alphas()(k)*b;
+00063       \textcolor{keywordflow}{if}(tmp.size()>1 && tmp.norm()>(std::numeric\_limits<Scalar>::min)())
+00064         tmp /= tmp.norm();
+00065       VERIFY\_IS\_MUCH\_SMALLER\_THAN( std::abs(tmp.determinant()), Scalar(1) );
+00066     \}
+00067     \textcolor{comment}{// check eigenvectors}
+00068     \textcolor{keyword}{typename} \hyperlink{group___core___module}{GeneralizedEigenSolver<MatrixType>::EigenvectorsType}
+       D = eig.eigenvalues().asDiagonal();
+00069     \textcolor{keyword}{typename} \hyperlink{group___core___module}{GeneralizedEigenSolver<MatrixType>::EigenvectorsType}
+       V = eig.eigenvectors();
+00070     VERIFY\_IS\_APPROX(a*V, b*V*D);
+00071   \}
+00072 
+00073   \textcolor{comment}{// regression test for bug 1098}
+00074   \{
+00075     \hyperlink{group___eigenvalues___module_class_eigen_1_1_generalized_self_adjoint_eigen_solver}{GeneralizedSelfAdjointEigenSolver<MatrixType>} eig1(a.
+      adjoint() * a,b.adjoint() * b);
+00076     eig1.\hyperlink{group___eigenvalues___module_a724764fe196612b752042692156ed023}{compute}(a.adjoint() * a,b.adjoint() * b);
+00077     \hyperlink{group___eigenvalues___module_class_eigen_1_1_generalized_eigen_solver}{GeneralizedEigenSolver<MatrixType>} eig2(a.adjoint() * a,b.adjoint() *
+       b);
+00078     eig2.\hyperlink{group___eigenvalues___module_a275910b47dfe5f40211dcb59cfd68f3c}{compute}(a.adjoint() * a,b.adjoint() * b);
+00079   \}
+00080 \}
+00081 
+00082 \textcolor{keywordtype}{void} test\_eigensolver\_generalized\_real()
+00083 \{
+00084   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00085     \textcolor{keywordtype}{int} s = 0;
+00086     CALL\_SUBTEST\_1( generalized\_eigensolver\_real(Matrix4f()) );
+00087     s = internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE/4);
+00088     CALL\_SUBTEST\_2( generalized\_eigensolver\_real(MatrixXd(s,s)) );
+00089 
+00090     \textcolor{comment}{// some trivial but implementation-wise special cases}
+00091     CALL\_SUBTEST\_2( generalized\_eigensolver\_real(MatrixXd(1,1)) );
+00092     CALL\_SUBTEST\_2( generalized\_eigensolver\_real(MatrixXd(2,2)) );
+00093     CALL\_SUBTEST\_3( generalized\_eigensolver\_real(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double,1,1>}()) );
+00094     CALL\_SUBTEST\_4( generalized\_eigensolver\_real(Matrix2d()) );
+00095     TEST\_SET\_BUT\_UNUSED\_VARIABLE(s)
+00096   \}
+00097 \}
+\end{DoxyCode}

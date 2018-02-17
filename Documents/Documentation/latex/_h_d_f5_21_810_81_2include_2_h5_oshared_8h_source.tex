@@ -1,0 +1,502 @@
+\hypertarget{_h_d_f5_21_810_81_2include_2_h5_oshared_8h_source}{}\section{H\+D\+F5/1.10.1/include/\+H5\+Oshared.h}
+\label{_h_d_f5_21_810_81_2include_2_h5_oshared_8h_source}\index{H5\+Oshared.\+h@{H5\+Oshared.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+00002 \textcolor{comment}{ * Copyright by The HDF Group.                                               *}
+00003 \textcolor{comment}{ * Copyright by the Board of Trustees of the University of Illinois.         *}
+00004 \textcolor{comment}{ * All rights reserved.                                                      *}
+00005 \textcolor{comment}{ *                                                                           *}
+00006 \textcolor{comment}{ * This file is part of HDF5.  The full HDF5 copyright notice, including     *}
+00007 \textcolor{comment}{ * terms governing use, modification, and redistribution, is contained in    *}
+00008 \textcolor{comment}{ * the COPYING file, which can be found at the root of the source code       *}
+00009 \textcolor{comment}{ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *}
+00010 \textcolor{comment}{ * If you do not have access to either file, you may request a copy from     *}
+00011 \textcolor{comment}{ * help@hdfgroup.org.                                                        *}
+00012 \textcolor{comment}{ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00013 
+00014 \textcolor{comment}{/*}
+00015 \textcolor{comment}{ * Programmer:  Quincey Koziol <koziol@hdfgroup.org>}
+00016 \textcolor{comment}{ *      Friday, January 19, 2007}
+00017 \textcolor{comment}{ *}
+00018 \textcolor{comment}{ * Purpose: This file contains inline definitions for "generic" routines}
+00019 \textcolor{comment}{ *      supporting a "shared message interface" (ala Java) for object}
+00020 \textcolor{comment}{ *      header messages that can be shared.  This interface is}
+00021 \textcolor{comment}{ *              dependent on a bunch of macros being defined which define}
+00022 \textcolor{comment}{ *              the name of the interface and "real" methods which need to}
+00023 \textcolor{comment}{ *              be implemented for each message class that supports the}
+00024 \textcolor{comment}{ *              shared message interface.}
+00025 \textcolor{comment}{ */}
+00026 
+00027 \textcolor{preprocessor}{#ifndef H5Oshared\_H}
+00028 \textcolor{preprocessor}{#define H5Oshared\_H}
+00029 
+00030 
+00031 \textcolor{comment}{/*-------------------------------------------------------------------------}
+00032 \textcolor{comment}{ * Function:    H5O\_SHARED\_DECODE}
+00033 \textcolor{comment}{ *}
+00034 \textcolor{comment}{ * Purpose:     Decode an object header message that may be shared.}
+00035 \textcolor{comment}{ *}
+00036 \textcolor{comment}{ * Note:    The actual name of this routine can be different in each source}
+00037 \textcolor{comment}{ *      file that this header file is included in, and must be defined}
+00038 \textcolor{comment}{ *      prior to including this header file.}
+00039 \textcolor{comment}{ *}
+00040 \textcolor{comment}{ * Return:      Success:        Pointer to the new message in native form}
+00041 \textcolor{comment}{ *              Failure:        NULL}
+00042 \textcolor{comment}{ *}
+00043 \textcolor{comment}{ * Programmer:  Quincey Koziol}
+00044 \textcolor{comment}{ *              Friday, January 19, 2007}
+00045 \textcolor{comment}{ *}
+00046 \textcolor{comment}{ *-------------------------------------------------------------------------}
+00047 \textcolor{comment}{ */}
+00048 \textcolor{keyword}{static} H5\_INLINE \textcolor{keywordtype}{void} *
+00049 H5O\_SHARED\_DECODE(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *open\_oh, \textcolor{keywordtype}{unsigned} mesg\_flags,
+00050     \textcolor{keywordtype}{unsigned} *ioflags, \textcolor{keyword}{const} uint8\_t *p)
+00051 \{
+00052     \textcolor{keywordtype}{void} *ret\_value = NULL;     \textcolor{comment}{/* Return value */}
+00053 
+00054     FUNC\_ENTER\_NOAPI\_NOINIT
+00055 
+00056 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_TYPE}
+00057 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_TYPE macro!"}
+00058 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_TYPE */}\textcolor{preprocessor}{}
+00059 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_DECODE}
+00060 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_DECODE macro!"}
+00061 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_DECODE */}\textcolor{preprocessor}{}
+00062 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_DECODE\_REAL}
+00063 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_DECODE\_REAL macro!"}
+00064 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_DECODE\_REAL */}\textcolor{preprocessor}{}
+00065 
+00066     \textcolor{comment}{/* Check for shared message */}
+00067     \textcolor{keywordflow}{if}(mesg\_flags & H5O\_MSG\_FLAG\_SHARED) \{
+00068         \textcolor{comment}{/* Retrieve native message info indirectly through shared message */}
+00069         \textcolor{keywordflow}{if}(NULL == (ret\_value = H5O\_shared\_decode(f, dxpl\_id, open\_oh, ioflags, p, H5O\_SHARED\_TYPE)))
+00070         HGOTO\_ERROR(H5E\_OHDR, H5E\_CANTDECODE, NULL, \textcolor{stringliteral}{"unable to decode shared message"})
+00071 
+00072         \textcolor{comment}{/* We currently do not support automatically fixing shared messages */}
+00073 \textcolor{preprocessor}{#ifdef H5\_STRICT\_FORMAT\_CHECKS}
+00074         \textcolor{keywordflow}{if}(*ioflags & H5O\_DECODEIO\_DIRTY)
+00075             HGOTO\_ERROR(H5E\_OHDR, H5E\_UNSUPPORTED, NULL, \textcolor{stringliteral}{"unable to mark shared message dirty"})
+00076 \textcolor{preprocessor}{#else }\textcolor{comment}{/* H5\_STRICT\_FORMAT\_CHECKS */}\textcolor{preprocessor}{}
+00077         *ioflags &= ~H5O\_DECODEIO\_DIRTY;
+00078 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5\_STRICT\_FORMAT\_CHECKS */}\textcolor{preprocessor}{}
+00079     \} \textcolor{comment}{/* end if */}
+00080     \textcolor{keywordflow}{else} \{
+00081         \textcolor{comment}{/* Decode native message directly */}
+00082         \textcolor{keywordflow}{if}(NULL == (ret\_value = H5O\_SHARED\_DECODE\_REAL(f, dxpl\_id, open\_oh, mesg\_flags, ioflags, p)))
+00083         HGOTO\_ERROR(H5E\_OHDR, H5E\_CANTDECODE, NULL, \textcolor{stringliteral}{"unable to decode native message"})
+00084     \} \textcolor{comment}{/* end else */}
+00085 
+00086 done:
+00087     FUNC\_LEAVE\_NOAPI(ret\_value)
+00088 \} \textcolor{comment}{/* end H5O\_SHARED\_DECODE() */}
+00089 
+00090 
+00091 \textcolor{comment}{/*-------------------------------------------------------------------------}
+00092 \textcolor{comment}{ * Function:    H5O\_SHARED\_ENCODE}
+00093 \textcolor{comment}{ *}
+00094 \textcolor{comment}{ * Purpose:     Encode an object header message that may be shared.}
+00095 \textcolor{comment}{ *}
+00096 \textcolor{comment}{ * Note:    The actual name of this routine can be different in each source}
+00097 \textcolor{comment}{ *      file that this header file is included in, and must be defined}
+00098 \textcolor{comment}{ *      prior to including this header file.}
+00099 \textcolor{comment}{ *}
+00100 \textcolor{comment}{ * Return:      Success:        Non-negative}
+00101 \textcolor{comment}{ *              Failure:        Negative}
+00102 \textcolor{comment}{ *}
+00103 \textcolor{comment}{ * Programmer:  Quincey Koziol}
+00104 \textcolor{comment}{ *              Friday, January 19, 2007}
+00105 \textcolor{comment}{ *}
+00106 \textcolor{comment}{ *-------------------------------------------------------------------------}
+00107 \textcolor{comment}{ */}
+00108 \textcolor{keyword}{static} H5\_INLINE herr\_t
+00109 H5O\_SHARED\_ENCODE(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hbool\_t disable\_shared, uint8\_t *p, \textcolor{keyword}{const} \textcolor{keywordtype}{void} *\_mesg)
+00110 \{
+00111     \textcolor{keyword}{const} H5O\_shared\_t *sh\_mesg = (\textcolor{keyword}{const} H5O\_shared\_t *)\_mesg;     \textcolor{comment}{/* Pointer to shared message portion of
+       actual message */}
+00112     herr\_t ret\_value = SUCCEED;         \textcolor{comment}{/* Return value */}
+00113 
+00114     FUNC\_ENTER\_NOAPI\_NOINIT
+00115 
+00116 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_TYPE}
+00117 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_TYPE macro!"}
+00118 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_TYPE */}\textcolor{preprocessor}{}
+00119 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_ENCODE}
+00120 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_ENCODE macro!"}
+00121 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_ENCODE */}\textcolor{preprocessor}{}
+00122 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_ENCODE\_REAL}
+00123 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_ENCODE\_REAL macro!"}
+00124 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_ENCODE\_REAL */}\textcolor{preprocessor}{}
+00125 
+00126     \textcolor{comment}{/* Sanity check */}
+00127     HDassert(sh\_mesg->type == H5O\_SHARE\_TYPE\_UNSHARED || sh\_mesg->msg\_type\_id == H5O\_SHARED\_TYPE->id);
+00128 
+00129     \textcolor{comment}{/* Check for message stored elsewhere */}
+00130     \textcolor{keywordflow}{if}(H5O\_IS\_STORED\_SHARED(sh\_mesg->type) && !disable\_shared) \{
+00131         \textcolor{comment}{/* Encode shared message into buffer */}
+00132         \textcolor{keywordflow}{if}(H5O\_shared\_encode(f, p, sh\_mesg) < 0)
+00133         HGOTO\_ERROR(H5E\_OHDR, H5E\_CANTENCODE, FAIL, \textcolor{stringliteral}{"unable to encode shared message"})
+00134     \} \textcolor{comment}{/* end if */}
+00135     \textcolor{keywordflow}{else} \{
+00136         \textcolor{comment}{/* Encode native message directly */}
+00137         \textcolor{keywordflow}{if}(H5O\_SHARED\_ENCODE\_REAL(f, p, \_mesg) < 0)
+00138         HGOTO\_ERROR(H5E\_OHDR, H5E\_CANTENCODE, FAIL, \textcolor{stringliteral}{"unable to encode native message"})
+00139     \} \textcolor{comment}{/* end else */}
+00140 
+00141 done:
+00142     FUNC\_LEAVE\_NOAPI(ret\_value)
+00143 \} \textcolor{comment}{/* end H5O\_SHARED\_ENCODE() */}
+00144 
+00145 
+00146 \textcolor{comment}{/*-------------------------------------------------------------------------}
+00147 \textcolor{comment}{ * Function:    H5O\_SHARED\_SIZE}
+00148 \textcolor{comment}{ *}
+00149 \textcolor{comment}{ * Purpose: Returns the length of an encoded message.}
+00150 \textcolor{comment}{ *}
+00151 \textcolor{comment}{ * Note:    The actual name of this routine can be different in each source}
+00152 \textcolor{comment}{ *      file that this header file is included in, and must be defined}
+00153 \textcolor{comment}{ *      prior to including this header file.}
+00154 \textcolor{comment}{ *}
+00155 \textcolor{comment}{ * Return:  Success:    Length}
+00156 \textcolor{comment}{ *      Failure:    0}
+00157 \textcolor{comment}{ *}
+00158 \textcolor{comment}{ * Programmer:  Quincey Koziol}
+00159 \textcolor{comment}{ *              Friday, January 19, 2007}
+00160 \textcolor{comment}{ *}
+00161 \textcolor{comment}{ *-------------------------------------------------------------------------}
+00162 \textcolor{comment}{ */}
+00163 \textcolor{keyword}{static} H5\_INLINE \textcolor{keywordtype}{size\_t}
+00164 H5O\_SHARED\_SIZE(\textcolor{keyword}{const} \hyperlink{struct_h5_f__t}{H5F\_t} *f, hbool\_t disable\_shared, \textcolor{keyword}{const} \textcolor{keywordtype}{void} *\_mesg)
+00165 \{
+00166     \textcolor{keyword}{const} H5O\_shared\_t *sh\_mesg = (\textcolor{keyword}{const} H5O\_shared\_t *)\_mesg;     \textcolor{comment}{/* Pointer to shared message portion of
+       actual message */}
+00167     \textcolor{keywordtype}{size\_t} ret\_value = 0;       \textcolor{comment}{/* Return value */}
+00168 
+00169     FUNC\_ENTER\_NOAPI\_NOINIT
+00170 
+00171 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_TYPE}
+00172 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_TYPE macro!"}
+00173 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_TYPE */}\textcolor{preprocessor}{}
+00174 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_SIZE}
+00175 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_SIZE macro!"}
+00176 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_SIZE */}\textcolor{preprocessor}{}
+00177 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_SIZE\_REAL}
+00178 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_SIZE\_REAL macro!"}
+00179 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_SIZE\_REAL */}\textcolor{preprocessor}{}
+00180 
+00181     \textcolor{comment}{/* Check for message stored elsewhere */}
+00182     \textcolor{keywordflow}{if}(H5O\_IS\_STORED\_SHARED(sh\_mesg->type) && !disable\_shared) \{
+00183         \textcolor{comment}{/* Retrieve encoded size of shared message */}
+00184         \textcolor{keywordflow}{if}(0 == (ret\_value = H5O\_shared\_size(f, sh\_mesg)))
+00185         HGOTO\_ERROR(H5E\_OHDR, H5E\_CANTGET, 0, \textcolor{stringliteral}{"unable to retrieve encoded size of shared message"})
+00186     \} \textcolor{comment}{/* end if */}
+00187     \textcolor{keywordflow}{else} \{
+00188         \textcolor{comment}{/* Retrieve size of native message directly */}
+00189         \textcolor{keywordflow}{if}(0 == (ret\_value = H5O\_SHARED\_SIZE\_REAL(f, \_mesg)))
+00190         HGOTO\_ERROR(H5E\_OHDR, H5E\_CANTGET, 0, \textcolor{stringliteral}{"unable to retrieve encoded size of native message"})
+00191     \} \textcolor{comment}{/* end else */}
+00192 
+00193 done:
+00194     FUNC\_LEAVE\_NOAPI(ret\_value)
+00195 \} \textcolor{comment}{/* end H5O\_SHARED\_SIZE() */}
+00196 
+00197 
+00198 \textcolor{comment}{/*-------------------------------------------------------------------------}
+00199 \textcolor{comment}{ * Function:    H5O\_SHARED\_DELETE}
+00200 \textcolor{comment}{ *}
+00201 \textcolor{comment}{ * Purpose:     Decrement reference count on any objects referenced by}
+00202 \textcolor{comment}{ *              message}
+00203 \textcolor{comment}{ *}
+00204 \textcolor{comment}{ * Note:    The actual name of this routine can be different in each source}
+00205 \textcolor{comment}{ *      file that this header file is included in, and must be defined}
+00206 \textcolor{comment}{ *      prior to including this header file.}
+00207 \textcolor{comment}{ *}
+00208 \textcolor{comment}{ * Return:  Success:    Non-negative}
+00209 \textcolor{comment}{ *      Failure:    Negative}
+00210 \textcolor{comment}{ *}
+00211 \textcolor{comment}{ * Programmer:  Quincey Koziol}
+00212 \textcolor{comment}{ *              Friday, January 19, 2007}
+00213 \textcolor{comment}{ *}
+00214 \textcolor{comment}{ *-------------------------------------------------------------------------}
+00215 \textcolor{comment}{ */}
+00216 \textcolor{keyword}{static} H5\_INLINE herr\_t
+00217 H5O\_SHARED\_DELETE(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *open\_oh, \textcolor{keywordtype}{void} *\_mesg)
+00218 \{
+00219     H5O\_shared\_t *sh\_mesg = (H5O\_shared\_t *)\_mesg;     \textcolor{comment}{/* Pointer to shared message portion of actual
+       message */}
+00220     herr\_t ret\_value = SUCCEED;         \textcolor{comment}{/* Return value */}
+00221 
+00222     FUNC\_ENTER\_NOAPI\_NOINIT
+00223 
+00224 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_TYPE}
+00225 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_TYPE macro!"}
+00226 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_TYPE */}\textcolor{preprocessor}{}
+00227 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_DELETE}
+00228 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_DELETE macro!"}
+00229 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_DELETE */}\textcolor{preprocessor}{}
+00230 
+00231     \textcolor{comment}{/* Check for message tracked elsewhere */}
+00232     \textcolor{keywordflow}{if}(H5O\_IS\_TRACKED\_SHARED(sh\_mesg->type)) \{
+00233         \textcolor{comment}{/* Decrement the reference count on the shared message/object */}
+00234         \textcolor{keywordflow}{if}(H5O\_shared\_delete(f, dxpl\_id, open\_oh, H5O\_SHARED\_TYPE, sh\_mesg) < 0)
+00235         HGOTO\_ERROR(H5E\_OHDR, H5E\_CANTDEC, FAIL, \textcolor{stringliteral}{"unable to decrement ref count for shared message"})
+00236     \} \textcolor{comment}{/* end if */}
+00237 \textcolor{preprocessor}{#ifdef H5O\_SHARED\_DELETE\_REAL}
+00238     \textcolor{keywordflow}{else} \{
+00239         \textcolor{comment}{/* Decrement the reference count on the native message directly */}
+00240         \textcolor{keywordflow}{if}(H5O\_SHARED\_DELETE\_REAL(f, dxpl\_id, open\_oh, \_mesg) < 0)
+00241         HGOTO\_ERROR(H5E\_OHDR, H5E\_CANTDEC, FAIL, \textcolor{stringliteral}{"unable to decrement ref count for native message"})
+00242     \} \textcolor{comment}{/* end else */}
+00243 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_DELETE\_REAL */}\textcolor{preprocessor}{}
+00244 
+00245 done:
+00246     FUNC\_LEAVE\_NOAPI(ret\_value)
+00247 \} \textcolor{comment}{/* end H5O\_SHARED\_DELETE() */}
+00248 
+00249 
+00250 \textcolor{comment}{/*-------------------------------------------------------------------------}
+00251 \textcolor{comment}{ * Function:    H5O\_SHARED\_LINK}
+00252 \textcolor{comment}{ *}
+00253 \textcolor{comment}{ * Purpose:     Increment reference count on any objects referenced by}
+00254 \textcolor{comment}{ *              message}
+00255 \textcolor{comment}{ *}
+00256 \textcolor{comment}{ * Note:    The actual name of this routine can be different in each source}
+00257 \textcolor{comment}{ *      file that this header file is included in, and must be defined}
+00258 \textcolor{comment}{ *      prior to including this header file.}
+00259 \textcolor{comment}{ *}
+00260 \textcolor{comment}{ * Return:  Success:    Non-negative}
+00261 \textcolor{comment}{ *      Failure:    Negative}
+00262 \textcolor{comment}{ *}
+00263 \textcolor{comment}{ * Programmer:  Quincey Koziol}
+00264 \textcolor{comment}{ *              Friday, January 19, 2007}
+00265 \textcolor{comment}{ *}
+00266 \textcolor{comment}{ *-------------------------------------------------------------------------}
+00267 \textcolor{comment}{ */}
+00268 \textcolor{keyword}{static} H5\_INLINE herr\_t
+00269 H5O\_SHARED\_LINK(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *open\_oh, \textcolor{keywordtype}{void} *\_mesg)
+00270 \{
+00271     H5O\_shared\_t *sh\_mesg = (H5O\_shared\_t *)\_mesg;     \textcolor{comment}{/* Pointer to shared message portion of actual
+       message */}
+00272     herr\_t ret\_value = SUCCEED;         \textcolor{comment}{/* Return value */}
+00273 
+00274     FUNC\_ENTER\_NOAPI\_NOINIT
+00275 
+00276 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_TYPE}
+00277 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_TYPE macro!"}
+00278 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_TYPE */}\textcolor{preprocessor}{}
+00279 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_LINK}
+00280 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_LINK macro!"}
+00281 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_LINK */}\textcolor{preprocessor}{}
+00282 
+00283     \textcolor{comment}{/* Check for message tracked elsewhere */}
+00284     \textcolor{keywordflow}{if}(H5O\_IS\_TRACKED\_SHARED(sh\_mesg->type)) \{
+00285         \textcolor{comment}{/* Increment the reference count on the shared message/object */}
+00286         \textcolor{keywordflow}{if}(H5O\_shared\_link(f, dxpl\_id, open\_oh, H5O\_SHARED\_TYPE, sh\_mesg) < 0)
+00287         HGOTO\_ERROR(H5E\_OHDR, H5E\_CANTINC, FAIL, \textcolor{stringliteral}{"unable to increment ref count for shared message"})
+00288     \} \textcolor{comment}{/* end if */}
+00289 \textcolor{preprocessor}{#ifdef H5O\_SHARED\_LINK\_REAL}
+00290     \textcolor{keywordflow}{else} \{
+00291         \textcolor{comment}{/* Increment the reference count on the native message directly */}
+00292         \textcolor{keywordflow}{if}(H5O\_SHARED\_LINK\_REAL(f, dxpl\_id, open\_oh, \_mesg) < 0)
+00293         HGOTO\_ERROR(H5E\_OHDR, H5E\_CANTINC, FAIL, \textcolor{stringliteral}{"unable to increment ref count for native message"})
+00294     \} \textcolor{comment}{/* end else */}
+00295 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_LINK\_REAL */}\textcolor{preprocessor}{}
+00296 
+00297 done:
+00298     FUNC\_LEAVE\_NOAPI(ret\_value)
+00299 \} \textcolor{comment}{/* end H5O\_SHARED\_LINK() */}
+00300 
+00301 
+00302 \textcolor{comment}{/*-------------------------------------------------------------------------}
+00303 \textcolor{comment}{ * Function:    H5O\_SHARED\_COPY\_FILE}
+00304 \textcolor{comment}{ *}
+00305 \textcolor{comment}{ * Purpose:     Copies a message from \_SRC to \_DEST in file}
+00306 \textcolor{comment}{ *}
+00307 \textcolor{comment}{ * Note:    The actual name of this routine can be different in each source}
+00308 \textcolor{comment}{ *      file that this header file is included in, and must be defined}
+00309 \textcolor{comment}{ *      prior to including this header file.}
+00310 \textcolor{comment}{ *}
+00311 \textcolor{comment}{ * Return:  Success:    Non-negative}
+00312 \textcolor{comment}{ *      Failure:    Negative}
+00313 \textcolor{comment}{ *}
+00314 \textcolor{comment}{ * Programmer:  Quincey Koziol}
+00315 \textcolor{comment}{ *              Friday, January 19, 2007}
+00316 \textcolor{comment}{ *}
+00317 \textcolor{comment}{ *-------------------------------------------------------------------------}
+00318 \textcolor{comment}{ */}
+00319 \textcolor{keyword}{static} H5\_INLINE \textcolor{keywordtype}{void} *
+00320 H5O\_SHARED\_COPY\_FILE(\hyperlink{struct_h5_f__t}{H5F\_t} *file\_src, \textcolor{keywordtype}{void} *\_native\_src, \hyperlink{struct_h5_f__t}{H5F\_t} *file\_dst,
+00321     hbool\_t *recompute\_size, \textcolor{keywordtype}{unsigned} *mesg\_flags, H5O\_copy\_t *cpy\_info,
+00322     \textcolor{keywordtype}{void} *udata, hid\_t dxpl\_id)
+00323 \{
+00324     \textcolor{keywordtype}{void} *dst\_mesg = NULL;      \textcolor{comment}{/* Destination message */}
+00325     \textcolor{keywordtype}{void} *ret\_value = NULL;     \textcolor{comment}{/* Return value */}
+00326 
+00327     FUNC\_ENTER\_NOAPI\_NOINIT
+00328 
+00329 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_TYPE}
+00330 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_TYPE macro!"}
+00331 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_TYPE */}\textcolor{preprocessor}{}
+00332 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_COPY\_FILE}
+00333 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_COPY\_FILE macro!"}
+00334 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_COPY\_FILE */}\textcolor{preprocessor}{}
+00335 
+00336 \textcolor{preprocessor}{#ifdef H5O\_SHARED\_COPY\_FILE\_REAL}
+00337     \textcolor{comment}{/* Call native message's copy file callback to copy the message */}
+00338     \textcolor{keywordflow}{if}(NULL == (dst\_mesg = H5O\_SHARED\_COPY\_FILE\_REAL(file\_src, H5O\_SHARED\_TYPE, \_native\_src, file\_dst, 
+      recompute\_size, cpy\_info, udata, dxpl\_id)))
+00339         HGOTO\_ERROR(H5E\_OHDR, H5E\_CANTCOPY, NULL, \textcolor{stringliteral}{"unable to copy native message to another file"})
+00340 \textcolor{preprocessor}{#else }\textcolor{comment}{/* H5O\_SHARED\_COPY\_FILE\_REAL */}\textcolor{preprocessor}{}
+00341     \textcolor{comment}{/* No copy file callback defined, just copy the message itself */}
+00342     \textcolor{keywordflow}{if}(NULL == (dst\_mesg = (H5O\_SHARED\_TYPE->copy)(\_native\_src, NULL)))
+00343         HGOTO\_ERROR(H5E\_OHDR, H5E\_CANTCOPY, NULL, \textcolor{stringliteral}{"unable to copy native message"})
+00344 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_COPY\_FILE\_REAL */}\textcolor{preprocessor}{}
+00345 
+00346     \textcolor{comment}{/* Reset shared message info for new message */}
+00347     HDmemset(dst\_mesg, 0, \textcolor{keyword}{sizeof}(H5O\_shared\_t));
+00348 
+00349     \textcolor{comment}{/* Handle sharing destination message */}
+00350     \textcolor{keywordflow}{if}(H5O\_shared\_copy\_file(file\_src, file\_dst, H5O\_SHARED\_TYPE, \_native\_src,
+00351             dst\_mesg, recompute\_size, mesg\_flags, cpy\_info, udata, dxpl\_id) < 0)
+00352         HGOTO\_ERROR(H5E\_OHDR, H5E\_WRITEERROR, NULL, \textcolor{stringliteral}{"unable to determine if message should be shared"})
+00353 
+00354     \textcolor{comment}{/* Set return value */}
+00355     ret\_value = dst\_mesg;
+00356 
+00357 done:
+00358     if(!ret\_value)
+00359         if(dst\_mesg)
+00360             H5O\_msg\_free(H5O\_SHARED\_TYPE->\textcolor{keywordtype}{id}, dst\_mesg);
+00361 
+00362     FUNC\_LEAVE\_NOAPI(ret\_value)
+00363 \} \textcolor{comment}{/* end H5O\_SHARED\_COPY\_FILE() */}
+00364 
+00365 
+00366 \textcolor{comment}{/*-------------------------------------------------------------------------}
+00367 \textcolor{comment}{ * Function:    H5O\_SHARED\_POST\_COPY\_FILE}
+00368 \textcolor{comment}{ *}
+00369 \textcolor{comment}{ * Purpose:     Copies a message from \_SRC to \_DEST in file}
+00370 \textcolor{comment}{ *}
+00371 \textcolor{comment}{ * Note:        The actual name of this routine can be different in each source}
+00372 \textcolor{comment}{ *              file that this header file is included in, and must be defined}
+00373 \textcolor{comment}{ *              prior to including this header file.}
+00374 \textcolor{comment}{ *}
+00375 \textcolor{comment}{ * Return:      Success:        Non-negative}
+00376 \textcolor{comment}{ *              Failure:        Negative}
+00377 \textcolor{comment}{ *}
+00378 \textcolor{comment}{ * Programmer:  Peter Cao}
+00379 \textcolor{comment}{ *              May 25, 2007}
+00380 \textcolor{comment}{ *}
+00381 \textcolor{comment}{ *-------------------------------------------------------------------------}
+00382 \textcolor{comment}{ */}
+00383 static H5\_INLINE herr\_t
+00384 H5O\_SHARED\_POST\_COPY\_FILE(const H5O\_loc\_t *oloc\_src, const \textcolor{keywordtype}{void} *mesg\_src,
+00385     H5O\_loc\_t *oloc\_dst, \textcolor{keywordtype}{void} *mesg\_dst, \textcolor{keywordtype}{unsigned} *mesg\_flags, hid\_t dxpl\_id,
+00386     H5O\_copy\_t *cpy\_info)
+00387 \{
+00388     \textcolor{keyword}{const} H5O\_shared\_t  *shared\_src = (\textcolor{keyword}{const} H5O\_shared\_t *)mesg\_src; \textcolor{comment}{/* Alias to shared info in native
+       source */}
+00389     H5O\_shared\_t        *shared\_dst = (H5O\_shared\_t *)mesg\_dst; \textcolor{comment}{/* Alias to shared info in native
+       destination */}
+00390     herr\_t              ret\_value = SUCCEED;         \textcolor{comment}{/* Return value */}
+00391 
+00392     FUNC\_ENTER\_NOAPI\_NOINIT
+00393 
+00394     HDassert(oloc\_src->file);
+00395     HDassert(oloc\_dst->file);
+00396     HDassert(mesg\_src);
+00397     HDassert(mesg\_dst);
+00398     HDassert(cpy\_info);
+00399 
+00400 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_TYPE}
+00401 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_TYPE macro!"}
+00402 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_TYPE */}\textcolor{preprocessor}{}
+00403 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_POST\_COPY\_FILE}
+00404 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_POST\_COPY\_FILE macro!"}
+00405 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_POST\_COPY\_FILE */}\textcolor{preprocessor}{}
+00406 
+00407 \textcolor{preprocessor}{#ifdef H5O\_SHARED\_POST\_COPY\_FILE\_REAL}
+00408     \textcolor{comment}{/* Call native message's post copy file callback to copy the message */}
+00409     \textcolor{keywordflow}{if}(H5O\_SHARED\_POST\_COPY\_FILE\_REAL(oloc\_src, mesg\_src, oloc\_dst, mesg\_dst, dxpl\_id, cpy\_info) <0 )
+00410         HGOTO\_ERROR(H5E\_OHDR, H5E\_CANTCOPY, FAIL, \textcolor{stringliteral}{"unable to copy native message to another file"})
+00411 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_POST\_COPY\_FILE\_REAL */}\textcolor{preprocessor}{}
+00412 
+00413     \textcolor{comment}{/* Update shared message after the post copy - will short circuit in}
+00414 \textcolor{comment}{     * production if the DEFER pass determined it will not be shared; debug mode}
+00415 \textcolor{comment}{     * verifies that it is indeed the case */}
+00416     \textcolor{keywordflow}{if}(H5O\_shared\_post\_copy\_file(oloc\_dst->file, H5O\_SHARED\_TYPE,
+00417             shared\_src, shared\_dst, mesg\_flags, dxpl\_id, cpy\_info) < 0)
+00418         HGOTO\_ERROR(H5E\_OHDR, H5E\_WRITEERROR, FAIL, \textcolor{stringliteral}{"unable to fix shared message in post copy"})
+00419 
+00420 \textcolor{preprocessor}{#ifdef H5O\_SHARED\_POST\_COPY\_FILE\_UPD}
+00421     \textcolor{comment}{/* Call native message's post copy file update callback to update the}
+00422 \textcolor{comment}{     * message */}
+00423     \textcolor{keywordflow}{if}(H5O\_SHARED\_POST\_COPY\_FILE\_UPD(oloc\_src, mesg\_src, oloc\_dst, mesg\_dst, dxpl\_id, cpy\_info) < 0)
+00424         HGOTO\_ERROR(H5E\_OHDR, H5E\_CANTCOPY, FAIL, \textcolor{stringliteral}{"unable to update native message"})
+00425 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_POST\_COPY\_FILE\_UPD */}\textcolor{preprocessor}{}
+00426 
+00427     \textcolor{comment}{/* Make sure that if the the source or destination is committed, both are}
+00428 \textcolor{comment}{     * committed */}
+00429     HDassert((shared\_src->type == H5O\_SHARE\_TYPE\_COMMITTED)
+00430             == (shared\_dst->type == H5O\_SHARE\_TYPE\_COMMITTED));
+00431 
+00432 done:
+00433     FUNC\_LEAVE\_NOAPI(ret\_value)
+00434 \} \textcolor{comment}{/* end H5O\_SHARED\_POST\_COPY\_FILE() */}
+00435 
+00436 
+00437 \textcolor{comment}{/*-------------------------------------------------------------------------}
+00438 \textcolor{comment}{ * Function:    H5O\_SHARED\_DEBUG}
+00439 \textcolor{comment}{ *}
+00440 \textcolor{comment}{ * Purpose:     Prints debugging info for a potentially shared message.}
+00441 \textcolor{comment}{ *}
+00442 \textcolor{comment}{ * Note:    The actual name of this routine can be different in each source}
+00443 \textcolor{comment}{ *      file that this header file is included in, and must be defined}
+00444 \textcolor{comment}{ *      prior to including this header file.}
+00445 \textcolor{comment}{ *}
+00446 \textcolor{comment}{ * Return:  Success:    Non-negative}
+00447 \textcolor{comment}{ *      Failure:    Negative}
+00448 \textcolor{comment}{ *}
+00449 \textcolor{comment}{ * Programmer:  Quincey Koziol}
+00450 \textcolor{comment}{ *              Saturday, February  3, 2007}
+00451 \textcolor{comment}{ *}
+00452 \textcolor{comment}{ *-------------------------------------------------------------------------}
+00453 \textcolor{comment}{ */}
+00454 \textcolor{keyword}{static} H5\_INLINE herr\_t
+00455 H5O\_SHARED\_DEBUG(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \textcolor{keyword}{const} \textcolor{keywordtype}{void} *\_mesg, FILE *stream,
+00456     \textcolor{keywordtype}{int} indent, \textcolor{keywordtype}{int} fwidth)
+00457 \{
+00458     \textcolor{keyword}{const} H5O\_shared\_t *sh\_mesg = (\textcolor{keyword}{const} H5O\_shared\_t *)\_mesg;     \textcolor{comment}{/* Pointer to shared message portion of
+       actual message */}
+00459     herr\_t ret\_value = SUCCEED;           \textcolor{comment}{/* Return value */}
+00460 
+00461     FUNC\_ENTER\_NOAPI\_NOINIT
+00462 
+00463 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_TYPE}
+00464 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_TYPE macro!"}
+00465 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_TYPE */}\textcolor{preprocessor}{}
+00466 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_DEBUG}
+00467 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_DEBUG macro!"}
+00468 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_DEBUG */}\textcolor{preprocessor}{}
+00469 \textcolor{preprocessor}{#ifndef H5O\_SHARED\_DEBUG\_REAL}
+00470 \textcolor{preprocessor}{#error "Need to define H5O\_SHARED\_DEBUG\_REAL macro!"}
+00471 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5O\_SHARED\_DEBUG\_REAL */}\textcolor{preprocessor}{}
+00472 
+00473     \textcolor{comment}{/* Check for message stored elsewhere */}
+00474     \textcolor{keywordflow}{if}(H5O\_IS\_STORED\_SHARED(sh\_mesg->type)) \{
+00475         \textcolor{comment}{/* Print shared message information */}
+00476         \textcolor{keywordflow}{if}(H5O\_shared\_debug(sh\_mesg, stream, indent, fwidth) < 0)
+00477             HGOTO\_ERROR(H5E\_OHDR, H5E\_WRITEERROR, FAIL, \textcolor{stringliteral}{"unable to display shared message info"})
+00478     \} \textcolor{comment}{/* end if */}
+00479 
+00480     \textcolor{comment}{/* Call native message's debug callback */}
+00481     \textcolor{keywordflow}{if}(H5O\_SHARED\_DEBUG\_REAL(f, dxpl\_id, \_mesg, stream, indent, fwidth) < 0)
+00482         HGOTO\_ERROR(H5E\_OHDR, H5E\_WRITEERROR, FAIL, \textcolor{stringliteral}{"unable to display native message info"})
+00483 
+00484 done:
+00485     FUNC\_LEAVE\_NOAPI(ret\_value)
+00486 \} \textcolor{comment}{/* end H5O\_SHARED\_DEBUG() */}
+00487 
+00488 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5Oshared\_H */}\textcolor{preprocessor}{}
+00489 
+\end{DoxyCode}

@@ -1,0 +1,142 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_scaling_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/src/\+Iterative\+Solvers/\+Scaling.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_scaling_8h_source}\index{Scaling.\+h@{Scaling.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2012 Desire NUENTSA WAKAM <desire.nuentsa\_wakam@inria.fr}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_ITERSCALING\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_ITERSCALING\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00047 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_MatrixType>
+00048 \textcolor{keyword}{class }IterScaling
+00049 \{
+00050   \textcolor{keyword}{public}:
+00051     \textcolor{keyword}{typedef} \_MatrixType MatrixType; 
+00052     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00053     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index Index;
+00054     
+00055   \textcolor{keyword}{public}:
+00056     IterScaling() \{ \hyperlink{structinit}{init}(); \}
+00057     
+00058     IterScaling(\textcolor{keyword}{const} MatrixType& matrix)
+00059     \{
+00060       \hyperlink{structinit}{init}();
+00061       \hyperlink{class_eigen_1_1_iter_scaling_a6a76754399fd004b3ac6011e272ffb71}{compute}(matrix);
+00062     \}
+00063     
+00064     ~IterScaling() \{ \}
+00065     
+\Hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_scaling_8h_source_l00073}\hyperlink{class_eigen_1_1_iter_scaling_a6a76754399fd004b3ac6011e272ffb71}{00073}     \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_iter_scaling_a6a76754399fd004b3ac6011e272ffb71}{compute} (\textcolor{keyword}{const} MatrixType& mat)
+00074     \{
+00075       \textcolor{keyword}{using} std::abs;
+00076       \textcolor{keywordtype}{int} m = mat.rows(); 
+00077       \textcolor{keywordtype}{int} n = mat.cols();
+00078       eigen\_assert((m>0 && m == n) && \textcolor{stringliteral}{"Please give a non - empty matrix"});
+00079       m\_left.resize(m); 
+00080       m\_right.resize(n);
+00081       m\_left.setOnes();
+00082       m\_right.setOnes();
+00083       m\_matrix = mat;
+00084       VectorXd Dr, Dc, DrRes, DcRes; \textcolor{comment}{// Temporary Left and right scaling vectors}
+00085       Dr.resize(m); Dc.resize(n);
+00086       DrRes.resize(m); DcRes.resize(n);
+00087       \textcolor{keywordtype}{double} EpsRow = 1.0, EpsCol = 1.0;
+00088       \textcolor{keywordtype}{int} its = 0; 
+00089       \textcolor{keywordflow}{do}
+00090       \{ \textcolor{comment}{// Iterate until the infinite norm of each row and column is approximately 1}
+00091         \textcolor{comment}{// Get the maximum value in each row and column}
+00092         Dr.setZero(); Dc.setZero();
+00093         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k=0; k<m\_matrix.outerSize(); ++k)
+00094         \{
+00095           \textcolor{keywordflow}{for} (\textcolor{keyword}{typename} MatrixType::InnerIterator it(m\_matrix, k); it; ++it)
+00096           \{
+00097             \textcolor{keywordflow}{if} ( Dr(it.row()) < abs(it.value()) )
+00098               Dr(it.row()) = abs(it.value());
+00099             
+00100             \textcolor{keywordflow}{if} ( Dc(it.col()) < abs(it.value()) )
+00101               Dc(it.col()) = abs(it.value());
+00102           \}
+00103         \}
+00104         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < m; ++i) 
+00105         \{
+00106           Dr(i) = std::sqrt(Dr(i));
+00107           Dc(i) = std::sqrt(Dc(i));
+00108         \}
+00109         \textcolor{comment}{// Save the scaling factors }
+00110         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < m; ++i) 
+00111         \{
+00112           m\_left(i) /= Dr(i);
+00113           m\_right(i) /= Dc(i);
+00114         \}
+00115         \textcolor{comment}{// Scale the rows and the columns of the matrix}
+00116         DrRes.setZero(); DcRes.setZero(); 
+00117         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k=0; k<m\_matrix.outerSize(); ++k)
+00118         \{
+00119           \textcolor{keywordflow}{for} (\textcolor{keyword}{typename} MatrixType::InnerIterator it(m\_matrix, k); it; ++it)
+00120           \{
+00121             it.valueRef() = it.value()/( Dr(it.row()) * Dc(it.col()) );
+00122             \textcolor{comment}{// Accumulate the norms of the row and column vectors   }
+00123             \textcolor{keywordflow}{if} ( DrRes(it.row()) < abs(it.value()) )
+00124               DrRes(it.row()) = abs(it.value());
+00125             
+00126             \textcolor{keywordflow}{if} ( DcRes(it.col()) < abs(it.value()) )
+00127               DcRes(it.col()) = abs(it.value());
+00128           \}
+00129         \}  
+00130         DrRes.array() = (1-DrRes.array()).abs();
+00131         EpsRow = DrRes.maxCoeff();
+00132         DcRes.array() = (1-DcRes.array()).abs();
+00133         EpsCol = DcRes.maxCoeff();
+00134         its++;
+00135       \}\textcolor{keywordflow}{while} ( (EpsRow >m\_tol || EpsCol > m\_tol) && (its < m\_maxits) );
+00136       m\_isInitialized = \textcolor{keyword}{true};
+00137     \}
+\Hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_scaling_8h_source_l00143}\hyperlink{class_eigen_1_1_iter_scaling_aeff5ccef2ccb32c6f472a190f8a511af}{00143}     \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_iter_scaling_aeff5ccef2ccb32c6f472a190f8a511af}{computeRef} (MatrixType& mat)
+00144     \{
+00145       \hyperlink{class_eigen_1_1_iter_scaling_a6a76754399fd004b3ac6011e272ffb71}{compute} (mat);
+00146       mat = m\_matrix;
+00147     \}
+\Hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_scaling_8h_source_l00150}\hyperlink{class_eigen_1_1_iter_scaling_ab88d288be912d90a1e597e5dab0bd47b}{00150}     VectorXd& \hyperlink{class_eigen_1_1_iter_scaling_ab88d288be912d90a1e597e5dab0bd47b}{LeftScaling}()
+00151     \{
+00152       \textcolor{keywordflow}{return} m\_left;
+00153     \}
+00154     
+\Hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_scaling_8h_source_l00157}\hyperlink{class_eigen_1_1_iter_scaling_a617229454935a6a4fda76b8af56c52ea}{00157}     VectorXd& \hyperlink{class_eigen_1_1_iter_scaling_a617229454935a6a4fda76b8af56c52ea}{RightScaling}()
+00158     \{
+00159       \textcolor{keywordflow}{return} m\_right;
+00160     \}
+00161     
+\Hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_iterative_solvers_2_scaling_8h_source_l00164}\hyperlink{class_eigen_1_1_iter_scaling_acbca5170d8043f40e387bcb6a42f8b71}{00164}     \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_iter_scaling_acbca5170d8043f40e387bcb6a42f8b71}{setTolerance}(\textcolor{keywordtype}{double} tol)
+00165     \{
+00166       m\_tol = tol; 
+00167     \}
+00168       
+00169   \textcolor{keyword}{protected}:
+00170     
+00171     \textcolor{keywordtype}{void} \hyperlink{structinit}{init}()
+00172     \{
+00173       m\_tol = 1e-10;
+00174       m\_maxits = 5;
+00175       m\_isInitialized = \textcolor{keyword}{false};
+00176     \}
+00177     
+00178     MatrixType m\_matrix;
+00179     \textcolor{keyword}{mutable} \hyperlink{group__enums_ga85fad7b87587764e5cf6b513a9e0ee5e}{ComputationInfo} m\_info; 
+00180     \textcolor{keywordtype}{bool} m\_isInitialized; 
+00181     VectorXd m\_left; \textcolor{comment}{// Left scaling vector}
+00182     VectorXd m\_right; \textcolor{comment}{// m\_right scaling vector}
+00183     \textcolor{keywordtype}{double} m\_tol; 
+00184     \textcolor{keywordtype}{int} m\_maxits; \textcolor{comment}{// Maximum number of iterations allowed}
+00185 \};
+00186 \}
+00187 \textcolor{preprocessor}{#endif}
+\end{DoxyCode}

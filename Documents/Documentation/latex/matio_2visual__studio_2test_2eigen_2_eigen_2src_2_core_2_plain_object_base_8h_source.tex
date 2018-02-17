@@ -1,0 +1,953 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Core/\+Plain\+Object\+Base.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source}\index{Plain\+Object\+Base.\+h@{Plain\+Object\+Base.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2006-2008 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_DENSESTORAGEBASE\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_DENSESTORAGEBASE\_H}
+00013 
+00014 \textcolor{preprocessor}{#if defined(EIGEN\_INITIALIZE\_MATRICES\_BY\_ZERO)}
+00015 \textcolor{preprocessor}{# define EIGEN\_INITIALIZE\_COEFFS}
+00016 \textcolor{preprocessor}{# define EIGEN\_INITIALIZE\_COEFFS\_IF\_THAT\_OPTION\_IS\_ENABLED for(int i=0;i<base().size();++i)
+       coeffRef(i)=Scalar(0);}
+00017 \textcolor{preprocessor}{#elif defined(EIGEN\_INITIALIZE\_MATRICES\_BY\_NAN)}
+00018 \textcolor{preprocessor}{# define EIGEN\_INITIALIZE\_COEFFS}
+00019 \textcolor{preprocessor}{# define EIGEN\_INITIALIZE\_COEFFS\_IF\_THAT\_OPTION\_IS\_ENABLED for(int i=0;i<base().size();++i)
+       coeffRef(i)=std::numeric\_limits<Scalar>::quiet\_NaN();}
+00020 \textcolor{preprocessor}{#else}
+00021 \textcolor{preprocessor}{# undef EIGEN\_INITIALIZE\_COEFFS}
+00022 \textcolor{preprocessor}{# define EIGEN\_INITIALIZE\_COEFFS\_IF\_THAT\_OPTION\_IS\_ENABLED}
+00023 \textcolor{preprocessor}{#endif}
+00024 
+00025 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00026 
+00027 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00028 
+00029 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} MaxSizeAtCompileTime> \textcolor{keyword}{struct }check\_rows\_cols\_for\_overflow \{
+00030   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Index>
+00031   EIGEN\_DEVICE\_FUNC
+00032   \textcolor{keyword}{static} EIGEN\_ALWAYS\_INLINE \textcolor{keywordtype}{void} run(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index})
+00033   \{
+00034   \}
+00035 \};
+00036 
+00037 \textcolor{keyword}{template}<> \textcolor{keyword}{struct }check\_rows\_cols\_for\_overflow<\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}> \{
+00038   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Index>
+00039   EIGEN\_DEVICE\_FUNC
+00040   \textcolor{keyword}{static} EIGEN\_ALWAYS\_INLINE \textcolor{keywordtype}{void} run(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00041   \{
+00042     \textcolor{comment}{// http://hg.mozilla.org/mozilla-central/file/6c8a909977d3/xpcom/ds/CheckedInt.h#l242}
+00043     \textcolor{comment}{// we assume Index is signed}
+00044     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} max\_index = (std::size\_t(1) << (8 * \textcolor{keyword}{sizeof}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}) - 1)) - 1; \textcolor{comment}{// assume Index is signed}
+00045     \textcolor{keywordtype}{bool} error = (rows == 0 || cols == 0) ? \textcolor{keyword}{false}
+00046                : (rows > max\_index / cols);
+00047     \textcolor{keywordflow}{if} (error)
+00048       throw\_std\_bad\_alloc();
+00049   \}
+00050 \};
+00051 
+00052 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Derived,
+00053           \textcolor{keyword}{typename} OtherDerived = Derived,
+00054           \textcolor{keywordtype}{bool} IsVector = bool(Derived::IsVectorAtCompileTime) && bool(OtherDerived::IsVectorAtCompileTime)
+      >
+00055 \textcolor{keyword}{struct }conservative\_resize\_like\_impl;
+00056 
+00057 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixTypeA, \textcolor{keyword}{typename} MatrixTypeB, \textcolor{keywordtype}{bool} SwapPo\textcolor{keywordtype}{int}ers> \textcolor{keyword}{struct }matrix\_swap\_impl;
+00058 
+00059 \} \textcolor{comment}{// end namespace internal}
+00060 
+00061 \textcolor{preprocessor}{#ifdef EIGEN\_PARSED\_BY\_DOXYGEN}
+00062 \textcolor{keyword}{namespace }doxygen \{
+00063 
+00064 \textcolor{comment}{// This is a workaround to doxygen not being able to understand the inheritance logic}
+00065 \textcolor{comment}{// when it is hidden by the dense\_xpr\_base helper struct.}
+00066 \textcolor{comment}{// Moreover, doxygen fails to include members that are not documented in the declaration body of}
+00067 \textcolor{comment}{// MatrixBase if we inherits MatrixBase<Matrix<\_Scalar, \_Rows, \_Cols, \_Options, \_MaxRows, \_MaxCols> >,}
+00068 \textcolor{comment}{// this is why we simply inherits MatrixBase, though this does not make sense.}
+00069 
+00071 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived> \textcolor{keyword}{struct }dense\_xpr\_base\_dispatcher;
+00073 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} \_Rows, \textcolor{keywordtype}{int} \_Cols, \textcolor{keywordtype}{int} \_Options, \textcolor{keywordtype}{int} \_MaxRows, \textcolor{keywordtype}{int} \_MaxCols>
+00074 \textcolor{keyword}{struct }dense\_xpr\_base\_dispatcher<Matrix<\_Scalar, \_Rows, \_Cols, \_Options, \_MaxRows, \_MaxCols> >
+00075     : \textcolor{keyword}{public} MatrixBase \{\};
+00077 \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} \_Rows, \textcolor{keywordtype}{int} \_Cols, \textcolor{keywordtype}{int} \_Options, \textcolor{keywordtype}{int} \_MaxRows, \textcolor{keywordtype}{int} \_MaxCols>
+00078 \textcolor{keyword}{struct }dense\_xpr\_base\_dispatcher<Array<\_Scalar, \_Rows, \_Cols, \_Options, \_MaxRows, \_MaxCols> >
+00079     : \textcolor{keyword}{public} ArrayBase \{\};
+00080 
+00081 \} \textcolor{comment}{// namespace doxygen}
+00082 
+00094 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00095 \textcolor{keyword}{class }PlainObjectBase : \textcolor{keyword}{public} doxygen::dense\_xpr\_base\_dispatcher<Derived>
+00096 \textcolor{preprocessor}{#else}
+00097 template<typename Derived>
+00098 class PlainObjectBase : \textcolor{keyword}{public} internal::dense\_xpr\_base<Derived>::type
+00099 \textcolor{preprocessor}{#endif}
+00100 \{
+00101   \textcolor{keyword}{public}:
+00102     \textcolor{keyword}{enum} \{ Options = internal::traits<Derived>::Options \};
+00103     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::dense\_xpr\_base<Derived>::type Base;
+00104 
+00105     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::traits<Derived>::StorageKind StorageKind;
+00106     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::traits<Derived>::Scalar Scalar;
+00107     
+00108     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::packet\_traits<Scalar>::type PacketScalar;
+00109     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real RealScalar;
+00110     \textcolor{keyword}{typedef} Derived DenseType;
+00111 
+00112     \textcolor{keyword}{using} Base::RowsAtCompileTime;
+00113     \textcolor{keyword}{using} Base::ColsAtCompileTime;
+00114     \textcolor{keyword}{using} Base::SizeAtCompileTime;
+00115     \textcolor{keyword}{using} Base::MaxRowsAtCompileTime;
+00116     \textcolor{keyword}{using} Base::MaxColsAtCompileTime;
+00117     \textcolor{keyword}{using} Base::MaxSizeAtCompileTime;
+00118     \textcolor{keyword}{using} Base::IsVectorAtCompileTime;
+00119     \textcolor{keyword}{using} Base::Flags;
+00120 
+00121     \textcolor{keyword}{template}<\textcolor{keyword}{typename} PlainObjectType, \textcolor{keywordtype}{int} MapOptions, \textcolor{keyword}{typename} Str\textcolor{keywordtype}{id}eType> \textcolor{keyword}{friend} \textcolor{keyword}{class }
+      \hyperlink{group___core___module_class_eigen_1_1_map}{Eigen::Map};
+00122     \textcolor{keyword}{friend}  \textcolor{keyword}{class }\hyperlink{group___core___module_class_eigen_1_1_map}{Eigen::Map}<Derived, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ac935220b4c844108e183ebe30a4d5204}{Unaligned}>;
+00123     \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_map}{Eigen::Map<Derived, Unaligned>}  
+      \hyperlink{group___core___module_class_eigen_1_1_map}{MapType};
+00124     \textcolor{keyword}{friend}  \textcolor{keyword}{class }\hyperlink{group___core___module_class_eigen_1_1_map}{Eigen::Map}<const Derived, \hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ac935220b4c844108e183ebe30a4d5204}{Unaligned}>;
+00125     \textcolor{keyword}{typedef} \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_map}{Eigen::Map<const Derived, Unaligned>} ConstMapType;
+00126 \textcolor{preprocessor}{#if EIGEN\_MAX\_ALIGN\_BYTES>0}
+00127     \textcolor{comment}{// for EIGEN\_MAX\_ALIGN\_BYTES==0, AlignedMax==Unaligned, and many compilers generate warnings for
+       friend-ing a class twice.}
+00128     \textcolor{keyword}{friend}  \textcolor{keyword}{class }\hyperlink{group___core___module_class_eigen_1_1_map}{Eigen::Map}<Derived, AlignedMax>;
+00129     \textcolor{keyword}{friend}  \textcolor{keyword}{class }\hyperlink{group___core___module_class_eigen_1_1_map}{Eigen::Map}<const Derived, AlignedMax>;
+00130 \textcolor{preprocessor}{#endif}
+00131     \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_map}{Eigen::Map<Derived, AlignedMax>} AlignedMapType;
+00132     \textcolor{keyword}{typedef} \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_map}{Eigen::Map<const Derived, AlignedMax>} 
+      ConstAlignedMapType;
+00133     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Str\textcolor{keywordtype}{id}eType> \textcolor{keyword}{struct }StridedMapType \{ \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_map}{Eigen::Map<Derived, Unaligned, StrideType>} type; \};
+00134     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Str\textcolor{keywordtype}{id}eType> \textcolor{keyword}{struct }StridedConstMapType \{ \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_map}{Eigen::Map<const Derived, Unaligned, StrideType>} type; \};
+00135     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Str\textcolor{keywordtype}{id}eType> \textcolor{keyword}{struct }StridedAlignedMapType \{ \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_map}{Eigen::Map<Derived, AlignedMax, StrideType>} type; \};
+00136     \textcolor{keyword}{template}<\textcolor{keyword}{typename} Str\textcolor{keywordtype}{id}eType> \textcolor{keyword}{struct }StridedConstAlignedMapType \{ \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_map}{Eigen::Map<const Derived, AlignedMax, StrideType>} type; \};
+00137 
+00138   \textcolor{keyword}{protected}:
+00139     DenseStorage<Scalar, Base::MaxSizeAtCompileTime, Base::RowsAtCompileTime, Base::ColsAtCompileTime,
+       Options> m\_storage;
+00140 
+00141   \textcolor{keyword}{public}:
+00142     \textcolor{keyword}{enum} \{ NeedsToAlign = (SizeAtCompileTime != \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) && (internal::traits<Derived>::Alignment>0)
+       \};
+00143     EIGEN\_MAKE\_ALIGNED\_OPERATOR\_NEW\_IF(NeedsToAlign)
+00144 
+00145     EIGEN\_DEVICE\_FUNC
+00146     Base& base() \{ \textcolor{keywordflow}{return} *\textcolor{keyword}{static\_cast<}Base*\textcolor{keyword}{>}(\textcolor{keyword}{this}); \}
+00147     EIGEN\_DEVICE\_FUNC
+00148     \textcolor{keyword}{const} Base& base()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} *\textcolor{keyword}{static\_cast<}\textcolor{keyword}{const }Base*\textcolor{keyword}{>}(\textcolor{keyword}{this}); \}
+00149 
+00150     EIGEN\_DEVICE\_FUNC
+00151     EIGEN\_STRONG\_INLINE \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_storage.rows(); \}
+00152     EIGEN\_DEVICE\_FUNC
+00153     EIGEN\_STRONG\_INLINE \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_storage.cols(); \}
+00154 
+00159     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00160}\hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{00160}     EIGEN\_STRONG\_INLINE \textcolor{keyword}{const} Scalar& \hyperlink{class_eigen_1_1_plain_object_base_afbfc12954f16d21aedb7bd839f64a278}{coeff}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rowId, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} colId)\textcolor{keyword}{ const}
+00161 \textcolor{keyword}{    }\{
+00162       \textcolor{keywordflow}{if}(Flags & \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit})
+00163         \textcolor{keywordflow}{return} m\_storage.data()[colId + rowId * m\_storage.cols()];
+00164       \textcolor{keywordflow}{else} \textcolor{comment}{// column-major}
+00165         \textcolor{keywordflow}{return} m\_storage.data()[rowId + colId * m\_storage.rows()];
+00166     \}
+00167 
+00172     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00173}\hyperlink{class_eigen_1_1_plain_object_base_af592e3993ea3d4ac9f073b42db2c04cc}{00173}     EIGEN\_STRONG\_INLINE \textcolor{keyword}{const} Scalar& \hyperlink{class_eigen_1_1_plain_object_base_af592e3993ea3d4ac9f073b42db2c04cc}{coeff}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} index)\textcolor{keyword}{ const}
+00174 \textcolor{keyword}{    }\{
+00175       \textcolor{keywordflow}{return} m\_storage.data()[index];
+00176     \}
+00177 
+00182     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00183}\hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{00183}     EIGEN\_STRONG\_INLINE Scalar& \hyperlink{class_eigen_1_1_plain_object_base_a25626a55b26a4323565f79d1b7c48ea8}{coeffRef}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rowId, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} colId)
+00184     \{
+00185       \textcolor{keywordflow}{if}(Flags & \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit})
+00186         \textcolor{keywordflow}{return} m\_storage.data()[colId + rowId * m\_storage.cols()];
+00187       \textcolor{keywordflow}{else} \textcolor{comment}{// column-major}
+00188         \textcolor{keywordflow}{return} m\_storage.data()[rowId + colId * m\_storage.rows()];
+00189     \}
+00190 
+00195     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00196}\hyperlink{class_eigen_1_1_plain_object_base_a571632ed666076d7403c8bd3eece44f0}{00196}     EIGEN\_STRONG\_INLINE Scalar& \hyperlink{class_eigen_1_1_plain_object_base_a571632ed666076d7403c8bd3eece44f0}{coeffRef}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} index)
+00197     \{
+00198       \textcolor{keywordflow}{return} m\_storage.data()[index];
+00199     \}
+00200 
+00203     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00204}\hyperlink{class_eigen_1_1_plain_object_base_ab1b33ee10e4c72ec5cf354d511900e62}{00204}     EIGEN\_STRONG\_INLINE \textcolor{keyword}{const} Scalar& \hyperlink{class_eigen_1_1_plain_object_base_ab1b33ee10e4c72ec5cf354d511900e62}{coeffRef}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rowId, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} colId)\textcolor{keyword}{ const}
+00205 \textcolor{keyword}{    }\{
+00206       \textcolor{keywordflow}{if}(Flags & \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit})
+00207         \textcolor{keywordflow}{return} m\_storage.data()[colId + rowId * m\_storage.cols()];
+00208       \textcolor{keywordflow}{else} \textcolor{comment}{// column-major}
+00209         \textcolor{keywordflow}{return} m\_storage.data()[rowId + colId * m\_storage.rows()];
+00210     \}
+00211 
+00214     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00215}\hyperlink{class_eigen_1_1_plain_object_base_a982b56223d011e2f836a3408983883d4}{00215}     EIGEN\_STRONG\_INLINE \textcolor{keyword}{const} Scalar& \hyperlink{class_eigen_1_1_plain_object_base_a982b56223d011e2f836a3408983883d4}{coeffRef}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} index)\textcolor{keyword}{ const}
+00216 \textcolor{keyword}{    }\{
+00217       \textcolor{keywordflow}{return} m\_storage.data()[index];
+00218     \}
+00219 
+00221     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode>
+00222     EIGEN\_STRONG\_INLINE PacketScalar packet(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rowId, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} colId)\textcolor{keyword}{ const}
+00223 \textcolor{keyword}{    }\{
+00224       \textcolor{keywordflow}{return} internal::ploadt<PacketScalar, LoadMode>
+00225                (m\_storage.data() + (Flags & \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}
+00226                                    ? colId + rowId * m\_storage.cols()
+00227                                    : rowId + colId * m\_storage.rows()));
+00228     \}
+00229 
+00231     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} LoadMode>
+00232     EIGEN\_STRONG\_INLINE PacketScalar packet(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} index)\textcolor{keyword}{ const}
+00233 \textcolor{keyword}{    }\{
+00234       \textcolor{keywordflow}{return} internal::ploadt<PacketScalar, LoadMode>(m\_storage.data() + index);
+00235     \}
+00236 
+00238     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} StoreMode>
+00239     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} writePacket(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rowId, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} colId, \textcolor{keyword}{const} PacketScalar& val)
+00240     \{
+00241       internal::pstoret<Scalar, PacketScalar, StoreMode>
+00242               (m\_storage.data() + (Flags & \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}
+00243                                    ? colId + rowId * m\_storage.cols()
+00244                                    : rowId + colId * m\_storage.rows()), val);
+00245     \}
+00246 
+00248     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} StoreMode>
+00249     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} writePacket(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} index, \textcolor{keyword}{const} PacketScalar& val)
+00250     \{
+00251       internal::pstoret<Scalar, PacketScalar, StoreMode>(m\_storage.data() + index, val);
+00252     \}
+00253 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00255}\hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{00255}     EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{const} Scalar *\hyperlink{class_eigen_1_1_plain_object_base_ac25699535374b1854cf8494e44ad31b2}{data}()\textcolor{keyword}{ const}
+00256 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} m\_storage.data(); \}
+00257 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00259}\hyperlink{class_eigen_1_1_plain_object_base_a54ed64f45b2f5e852355d5e2311810bd}{00259}     EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE Scalar *\hyperlink{class_eigen_1_1_plain_object_base_a54ed64f45b2f5e852355d5e2311810bd}{data}()
+00260     \{ \textcolor{keywordflow}{return} m\_storage.data(); \}
+00261 
+00278     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00279}\hyperlink{class_eigen_1_1_plain_object_base_a99d9054ee2d5a40c6e00ded0265e9cea}{00279}     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_plain_object_base_a99d9054ee2d5a40c6e00ded0265e9cea}{resize}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00280     \{
+00281       eigen\_assert(   EIGEN\_IMPLIES(RowsAtCompileTime!=\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},rows==RowsAtCompileTime)
+00282                    && EIGEN\_IMPLIES(ColsAtCompileTime!=\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},cols==ColsAtCompileTime)
+00283                    && EIGEN\_IMPLIES(RowsAtCompileTime==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} && MaxRowsAtCompileTime!=
+      \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},rows<=MaxRowsAtCompileTime)
+00284                    && EIGEN\_IMPLIES(ColsAtCompileTime==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} && MaxColsAtCompileTime!=
+      \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic},cols<=MaxColsAtCompileTime)
+00285                    && rows>=0 && cols>=0 && \textcolor{stringliteral}{"Invalid sizes when resizing a matrix or array."});
+00286       \hyperlink{struct_eigen_1_1internal_1_1check__rows__cols__for__overflow}{internal::check\_rows\_cols\_for\_overflow<MaxSizeAtCompileTime>::run}
+      (rows, cols);
+00287 \textcolor{preprocessor}{      #ifdef EIGEN\_INITIALIZE\_COEFFS}
+00288         \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size = rows*cols;
+00289         \textcolor{keywordtype}{bool} size\_changed = size != this->size();
+00290         m\_storage.resize(size, rows, cols);
+00291         \textcolor{keywordflow}{if}(size\_changed) EIGEN\_INITIALIZE\_COEFFS\_IF\_THAT\_OPTION\_IS\_ENABLED
+00292 \textcolor{preprocessor}{      #else}
+00293         m\_storage.resize(rows*cols, rows, cols);
+00294 \textcolor{preprocessor}{      #endif}
+00295     \}
+00296 
+00308     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00309}\hyperlink{class_eigen_1_1_plain_object_base_abf8a9ec07cd52a2cdabb527596f7ddd1}{00309}     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_plain_object_base_abf8a9ec07cd52a2cdabb527596f7ddd1}{resize}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size)
+00310     \{
+00311       EIGEN\_STATIC\_ASSERT\_VECTOR\_ONLY(\hyperlink{class_eigen_1_1_plain_object_base}{PlainObjectBase})
+00312       eigen\_assert(((SizeAtCompileTime == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} && (MaxSizeAtCompileTime==
+      \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} || size<=MaxSizeAtCompileTime)) || SizeAtCompileTime == size) && size>=0);
+00313 \textcolor{preprocessor}{      #ifdef EIGEN\_INITIALIZE\_COEFFS}
+00314         \textcolor{keywordtype}{bool} size\_changed = size != this->size();
+00315 \textcolor{preprocessor}{      #endif}
+00316       \textcolor{keywordflow}{if}(RowsAtCompileTime == 1)
+00317         m\_storage.resize(size, 1, size);
+00318       \textcolor{keywordflow}{else}
+00319         m\_storage.resize(size, size, 1);
+00320 \textcolor{preprocessor}{      #ifdef EIGEN\_INITIALIZE\_COEFFS}
+00321         \textcolor{keywordflow}{if}(size\_changed) EIGEN\_INITIALIZE\_COEFFS\_IF\_THAT\_OPTION\_IS\_ENABLED
+00322 \textcolor{preprocessor}{      #endif}
+00323     \}
+00324 
+00333     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00334}\hyperlink{class_eigen_1_1_plain_object_base_ab71a655f73d05a0e389e3ed13b6fe5f3}{00334}     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_plain_object_base_ab71a655f73d05a0e389e3ed13b6fe5f3}{resize}(NoChange\_t, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00335     \{
+00336       resize(rows(), cols);
+00337     \}
+00338 
+00347     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00348}\hyperlink{class_eigen_1_1_plain_object_base_a7b44761b7350ae3756035bbf7d7c04f6}{00348}     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_plain_object_base_a7b44761b7350ae3756035bbf7d7c04f6}{resize}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, NoChange\_t)
+00349     \{
+00350       resize(rows, cols());
+00351     \}
+00352 
+00360     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00361     EIGEN\_DEVICE\_FUNC 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00362}\hyperlink{class_eigen_1_1_plain_object_base_acc7200947e6399bee847ff37c8270fc8}{00362}     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_plain_object_base_acc7200947e6399bee847ff37c8270fc8}{resizeLike}(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<OtherDerived>}& 
+      \_other)
+00363     \{
+00364       \textcolor{keyword}{const} OtherDerived& other = \_other.\hyperlink{group___core___module_a324b16961a11d2ecfd2d1b7dd7946545}{derived}();
+00365       \hyperlink{struct_eigen_1_1internal_1_1check__rows__cols__for__overflow}{internal::check\_rows\_cols\_for\_overflow<MaxSizeAtCompileTime>::run}
+      (other.rows(), other.cols());
+00366       \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} othersize = other.rows()*other.cols();
+00367       \textcolor{keywordflow}{if}(RowsAtCompileTime == 1)
+00368       \{
+00369         eigen\_assert(other.rows() == 1 || other.cols() == 1);
+00370         resize(1, othersize);
+00371       \}
+00372       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(ColsAtCompileTime == 1)
+00373       \{
+00374         eigen\_assert(other.rows() == 1 || other.cols() == 1);
+00375         resize(othersize, 1);
+00376       \}
+00377       \textcolor{keywordflow}{else} resize(other.rows(), other.cols());
+00378     \}
+00379 
+00389     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00390}\hyperlink{class_eigen_1_1_plain_object_base_a5e06c62950ba98fe8ba9c7d4be9c19e4}{00390}     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_plain_object_base_a5e06c62950ba98fe8ba9c7d4be9c19e4}{conservativeResize}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00391     \{
+00392       \hyperlink{struct_eigen_1_1internal_1_1conservative__resize__like__impl}{internal::conservative\_resize\_like\_impl<Derived>::run}
+      (*\textcolor{keyword}{this}, rows, cols);
+00393     \}
+00394 
+00402     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00403}\hyperlink{class_eigen_1_1_plain_object_base_a528879aef40f9cbc4ab4925e4a6bceb9}{00403}     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_plain_object_base_a528879aef40f9cbc4ab4925e4a6bceb9}{conservativeResize}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, NoChange\_t)
+00404     \{
+00405       \textcolor{comment}{// Note: see the comment in conservativeResize(Index,Index)}
+00406       conservativeResize(rows, cols());
+00407     \}
+00408 
+00416     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00417}\hyperlink{class_eigen_1_1_plain_object_base_a46afa73816539b0fe36c6e9abd7978a6}{00417}     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_plain_object_base_a46afa73816539b0fe36c6e9abd7978a6}{conservativeResize}(NoChange\_t, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00418     \{
+00419       \textcolor{comment}{// Note: see the comment in conservativeResize(Index,Index)}
+00420       conservativeResize(rows(), cols);
+00421     \}
+00422 
+00431     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00432}\hyperlink{class_eigen_1_1_plain_object_base_a5429214e7c1ffaf7294a93a5cec62007}{00432}     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_plain_object_base_a5429214e7c1ffaf7294a93a5cec62007}{conservativeResize}(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size)
+00433     \{
+00434       \hyperlink{struct_eigen_1_1internal_1_1conservative__resize__like__impl}{internal::conservative\_resize\_like\_impl<Derived>::run}
+      (*\textcolor{keyword}{this}, size);
+00435     \}
+00436 
+00446     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00447     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00448}\hyperlink{class_eigen_1_1_plain_object_base_a7775d274035c4ef541aa0fc9a3ad30a2}{00448}     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1_plain_object_base_a7775d274035c4ef541aa0fc9a3ad30a2}{conservativeResizeLike}(\textcolor{keyword}{const} 
+      \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)
+00449     \{
+00450       \hyperlink{struct_eigen_1_1internal_1_1conservative__resize__like__impl}{internal::conservative\_resize\_like\_impl<Derived,OtherDerived>::run}
+      (*\textcolor{keyword}{this}, other);
+00451     \}
+00452 
+00456     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00457}\hyperlink{class_eigen_1_1_plain_object_base_a75308f8a23a03f045a1260611e2054a0}{00457}     EIGEN\_STRONG\_INLINE Derived& \hyperlink{class_eigen_1_1_plain_object_base_a75308f8a23a03f045a1260611e2054a0}{operator=}(\textcolor{keyword}{const} \hyperlink{class_eigen_1_1_plain_object_base}{PlainObjectBase}& other)
+00458     \{
+00459       \textcolor{keywordflow}{return} \_set(other);
+00460     \}
+00461 
+00463     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00464     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00465}\hyperlink{class_eigen_1_1_plain_object_base_a6008cee3b716d514b3e14c1bc7c0d34a}{00465}     EIGEN\_STRONG\_INLINE Derived& \hyperlink{class_eigen_1_1_plain_object_base_a6008cee3b716d514b3e14c1bc7c0d34a}{lazyAssign}(\textcolor{keyword}{const} 
+      \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)
+00466     \{
+00467       \_resize\_to\_match(other);
+00468       \textcolor{keywordflow}{return} Base::lazyAssign(other.derived());
+00469     \}
+00470 
+00471     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00472     EIGEN\_DEVICE\_FUNC
+00473     EIGEN\_STRONG\_INLINE Derived& operator=(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_return_by_value}{ReturnByValue<OtherDerived>}& 
+      \hyperlink{structfunc}{func})
+00474     \{
+00475       resize(func.rows(), func.cols());
+00476       \textcolor{keywordflow}{return} Base::operator=(func);
+00477     \}
+00478 
+00479     \textcolor{comment}{// Prevent user from trying to instantiate PlainObjectBase objects}
+00480     \textcolor{comment}{// by making all its constructor protected. See bug 1074.}
+00481   \textcolor{keyword}{protected}:
+00482 
+00483     EIGEN\_DEVICE\_FUNC
+00484     EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1_plain_object_base}{PlainObjectBase}() : m\_storage()
+00485     \{
+00486 \textcolor{comment}{//       \_check\_template\_params();}
+00487 \textcolor{comment}{//       EIGEN\_INITIALIZE\_COEFFS\_IF\_THAT\_OPTION\_IS\_ENABLED}
+00488     \}
+00489 
+00490 \textcolor{preprocessor}{#ifndef EIGEN\_PARSED\_BY\_DOXYGEN}
+00491     \textcolor{comment}{// FIXME is it still needed ?}
+00493 \textcolor{comment}{}    EIGEN\_DEVICE\_FUNC
+00494     \textcolor{keyword}{explicit} PlainObjectBase(
+      \hyperlink{struct_eigen_1_1internal_1_1constructor__without__unaligned__array__assert}{internal::constructor\_without\_unaligned\_array\_assert})
+00495       : m\_storage(\hyperlink{struct_eigen_1_1internal_1_1constructor__without__unaligned__array__assert}{internal::constructor\_without\_unaligned\_array\_assert}
+      ())
+00496     \{
+00497 \textcolor{comment}{//       \_check\_template\_params(); EIGEN\_INITIALIZE\_COEFFS\_IF\_THAT\_OPTION\_IS\_ENABLED}
+00498     \}
+00499 \textcolor{preprocessor}{#endif}
+00500 
+00501 \textcolor{preprocessor}{#if EIGEN\_HAS\_RVALUE\_REFERENCES}
+00502     EIGEN\_DEVICE\_FUNC
+00503     PlainObjectBase(PlainObjectBase&& other) EIGEN\_NOEXCEPT
+00504       : m\_storage( std::move(other.m\_storage) )
+00505     \{
+00506     \}
+00507 
+00508     EIGEN\_DEVICE\_FUNC
+00509     PlainObjectBase& operator=(PlainObjectBase&& other) EIGEN\_NOEXCEPT
+00510     \{
+00511       \textcolor{keyword}{using} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap};
+00512       \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(m\_storage, other.m\_storage);
+00513       \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00514     \}
+00515 \textcolor{preprocessor}{#endif}
+00516 
+00518     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00519}\hyperlink{class_eigen_1_1_plain_object_base_a69656a28768b9b6f8b283e251d3552be}{00519}     EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1_plain_object_base_a69656a28768b9b6f8b283e251d3552be}{PlainObjectBase}(\textcolor{keyword}{const} PlainObjectBase& other)
+00520       : Base(), m\_storage(other.m\_storage) \{ \}
+00521     EIGEN\_DEVICE\_FUNC
+00522     EIGEN\_STRONG\_INLINE PlainObjectBase(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00523       : m\_storage(size, rows, cols)
+00524     \{
+00525 \textcolor{comment}{//       \_check\_template\_params();}
+00526 \textcolor{comment}{//       EIGEN\_INITIALIZE\_COEFFS\_IF\_THAT\_OPTION\_IS\_ENABLED}
+00527     \}
+00528 
+00530     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00531     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00532}\hyperlink{class_eigen_1_1_plain_object_base_a82cdb1b9d5c90c2002cb5086c03c29fa}{00532}     EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1_plain_object_base_a82cdb1b9d5c90c2002cb5086c03c29fa}{PlainObjectBase}(\textcolor{keyword}{const} 
+      \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>} &other)
+00533       : m\_storage()
+00534     \{
+00535       \_check\_template\_params();
+00536       resizeLike(other);
+00537       \_set\_noalias(other);
+00538     \}
+00539 
+00541     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00542     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00543}\hyperlink{class_eigen_1_1_plain_object_base_a31d65efdbeaf9c7693bf6ae204d788f2}{00543}     EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1_plain_object_base_a31d65efdbeaf9c7693bf6ae204d788f2}{PlainObjectBase}(\textcolor{keyword}{const} 
+      \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<OtherDerived>} &other)
+00544       : m\_storage()
+00545     \{
+00546       \_check\_template\_params();
+00547       resizeLike(other);
+00548       *\textcolor{keyword}{this} = other.\hyperlink{group___core___module_a324b16961a11d2ecfd2d1b7dd7946545}{derived}();
+00549     \}
+00551     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00552     EIGEN\_DEVICE\_FUNC
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00553}\hyperlink{class_eigen_1_1_plain_object_base_abb80b2ee27de8b5d7ef2c8fb403c0068}{00553}     EIGEN\_STRONG\_INLINE \hyperlink{class_eigen_1_1_plain_object_base_abb80b2ee27de8b5d7ef2c8fb403c0068}{PlainObjectBase}(\textcolor{keyword}{const} 
+      \hyperlink{group___core___module_class_eigen_1_1_return_by_value}{ReturnByValue<OtherDerived>}& other)
+00554     \{
+00555       \_check\_template\_params();
+00556       \textcolor{comment}{// FIXME this does not automatically transpose vectors if necessary}
+00557       resize(other.rows(), other.cols());
+00558       other.evalTo(this->derived());
+00559     \}
+00560 
+00561   \textcolor{keyword}{public}:
+00562 
+00566     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00567     EIGEN\_DEVICE\_FUNC 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00568}\hyperlink{class_eigen_1_1_plain_object_base_a6d280056e43429f043e8b25262ee6153}{00568}     EIGEN\_STRONG\_INLINE Derived& \hyperlink{class_eigen_1_1_plain_object_base_a6d280056e43429f043e8b25262ee6153}{operator=}(\textcolor{keyword}{const} 
+      \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<OtherDerived>} &other)
+00569     \{
+00570       \_resize\_to\_match(other);
+00571       Base::operator=(other.\hyperlink{group___core___module_a324b16961a11d2ecfd2d1b7dd7946545}{derived}());
+00572       \textcolor{keywordflow}{return} this->derived();
+00573     \}
+00574 
+00583     \textcolor{keyword}{static} \textcolor{keyword}{inline} ConstMapType \hyperlink{group___core___module_class_eigen_1_1_map}{Map}(\textcolor{keyword}{const} Scalar* data)
+00584     \{ \textcolor{keywordflow}{return} ConstMapType(data); \}
+00585     \textcolor{keyword}{static} \textcolor{keyword}{inline} MapType \hyperlink{group___core___module_class_eigen_1_1_map}{Map}(Scalar* data)
+00586     \{ \textcolor{keywordflow}{return} MapType(data); \}
+00587     \textcolor{keyword}{static} \textcolor{keyword}{inline} ConstMapType \hyperlink{group___core___module_class_eigen_1_1_map}{Map}(\textcolor{keyword}{const} Scalar* data, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size)
+00588     \{ \textcolor{keywordflow}{return} ConstMapType(data, size); \}
+00589     \textcolor{keyword}{static} \textcolor{keyword}{inline} MapType \hyperlink{group___core___module_class_eigen_1_1_map}{Map}(Scalar* data, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size)
+00590     \{ \textcolor{keywordflow}{return} MapType(data, size); \}
+00591     \textcolor{keyword}{static} \textcolor{keyword}{inline} ConstMapType \hyperlink{group___core___module_class_eigen_1_1_map}{Map}(\textcolor{keyword}{const} Scalar* data, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00592     \{ \textcolor{keywordflow}{return} ConstMapType(data, rows, cols); \}
+00593     \textcolor{keyword}{static} \textcolor{keyword}{inline} MapType \hyperlink{group___core___module_class_eigen_1_1_map}{Map}(Scalar* data, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00594     \{ \textcolor{keywordflow}{return} MapType(data, rows, cols); \}
+00595 
+00596     \textcolor{keyword}{static} \textcolor{keyword}{inline} ConstAlignedMapType MapAligned(\textcolor{keyword}{const} Scalar* data)
+00597     \{ \textcolor{keywordflow}{return} ConstAlignedMapType(data); \}
+00598     \textcolor{keyword}{static} \textcolor{keyword}{inline} AlignedMapType MapAligned(Scalar* data)
+00599     \{ \textcolor{keywordflow}{return} AlignedMapType(data); \}
+00600     \textcolor{keyword}{static} \textcolor{keyword}{inline} ConstAlignedMapType MapAligned(\textcolor{keyword}{const} Scalar* data, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size)
+00601     \{ \textcolor{keywordflow}{return} ConstAlignedMapType(data, size); \}
+00602     \textcolor{keyword}{static} \textcolor{keyword}{inline} AlignedMapType MapAligned(Scalar* data, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size)
+00603     \{ \textcolor{keywordflow}{return} AlignedMapType(data, size); \}
+00604     \textcolor{keyword}{static} \textcolor{keyword}{inline} ConstAlignedMapType MapAligned(\textcolor{keyword}{const} Scalar* data, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00605     \{ \textcolor{keywordflow}{return} ConstAlignedMapType(data, rows, cols); \}
+00606     \textcolor{keyword}{static} \textcolor{keyword}{inline} AlignedMapType MapAligned(Scalar* data, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00607     \{ \textcolor{keywordflow}{return} AlignedMapType(data, rows, cols); \}
+00608 
+00609     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Outer, \textcolor{keywordtype}{int} Inner>
+00610     \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{typename} StridedConstMapType<Stride<Outer, Inner> >::type \hyperlink{group___core___module_class_eigen_1_1_map}{Map}(\textcolor{keyword}{const} Scalar* data, \textcolor{keyword}{
+      const} \hyperlink{group___core___module_class_eigen_1_1_stride}{Stride<Outer, Inner>}& stride)
+00611     \{ \textcolor{keywordflow}{return} \textcolor{keyword}{typename} StridedConstMapType<Stride<Outer, Inner> >::type(data, stride); \}
+00612     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Outer, \textcolor{keywordtype}{int} Inner>
+00613     \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{typename} StridedMapType<Stride<Outer, Inner> >::type \hyperlink{group___core___module_class_eigen_1_1_map}{Map}(Scalar* data, \textcolor{keyword}{const} 
+      \hyperlink{group___core___module_class_eigen_1_1_stride}{Stride<Outer, Inner>}& stride)
+00614     \{ \textcolor{keywordflow}{return} \textcolor{keyword}{typename} StridedMapType<Stride<Outer, Inner> >::type(data, stride); \}
+00615     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Outer, \textcolor{keywordtype}{int} Inner>
+00616     \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{typename} StridedConstMapType<Stride<Outer, Inner> >::type \hyperlink{group___core___module_class_eigen_1_1_map}{Map}(\textcolor{keyword}{const} Scalar* data, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_stride}{Stride<Outer, Inner>}& stride)
+00617     \{ \textcolor{keywordflow}{return} \textcolor{keyword}{typename} StridedConstMapType<Stride<Outer, Inner> >::type(data, size, stride); \}
+00618     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Outer, \textcolor{keywordtype}{int} Inner>
+00619     \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{typename} StridedMapType<Stride<Outer, Inner> >::type \hyperlink{group___core___module_class_eigen_1_1_map}{Map}(Scalar* data, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_stride}{Stride<Outer, Inner>}& stride)
+00620     \{ \textcolor{keywordflow}{return} \textcolor{keyword}{typename} StridedMapType<Stride<Outer, Inner> >::type(data, size, stride); \}
+00621     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Outer, \textcolor{keywordtype}{int} Inner>
+00622     \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{typename} StridedConstMapType<Stride<Outer, Inner> >::type \hyperlink{group___core___module_class_eigen_1_1_map}{Map}(\textcolor{keyword}{const} Scalar* data, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols, \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_stride}{Stride<Outer, Inner>}& stride)
+00623     \{ \textcolor{keywordflow}{return} \textcolor{keyword}{typename} StridedConstMapType<Stride<Outer, Inner> >::type(data, rows, cols, stride); \}
+00624     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Outer, \textcolor{keywordtype}{int} Inner>
+00625     \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{typename} StridedMapType<Stride<Outer, Inner> >::type \hyperlink{group___core___module_class_eigen_1_1_map}{Map}(Scalar* data, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols, \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_stride}{Stride<Outer, Inner>}& stride)
+00626     \{ \textcolor{keywordflow}{return} \textcolor{keyword}{typename} StridedMapType<Stride<Outer, Inner> >::type(data, rows, cols, stride); \}
+00627 
+00628     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Outer, \textcolor{keywordtype}{int} Inner>
+00629     \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{typename} StridedConstAlignedMapType<Stride<Outer, Inner> >::type MapAligned(\textcolor{keyword}{const} Scalar*
+       data, \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_stride}{Stride<Outer, Inner>}& stride)
+00630     \{ \textcolor{keywordflow}{return} \textcolor{keyword}{typename} StridedConstAlignedMapType<Stride<Outer, Inner> >::type(data, stride); \}
+00631     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Outer, \textcolor{keywordtype}{int} Inner>
+00632     \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{typename} StridedAlignedMapType<Stride<Outer, Inner> >::type MapAligned(Scalar* data, \textcolor{keyword}{
+      const} \hyperlink{group___core___module_class_eigen_1_1_stride}{Stride<Outer, Inner>}& stride)
+00633     \{ \textcolor{keywordflow}{return} \textcolor{keyword}{typename} StridedAlignedMapType<Stride<Outer, Inner> >::type(data, stride); \}
+00634     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Outer, \textcolor{keywordtype}{int} Inner>
+00635     \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{typename} StridedConstAlignedMapType<Stride<Outer, Inner> >::type MapAligned(\textcolor{keyword}{const} Scalar*
+       data, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_stride}{Stride<Outer, Inner>}& stride)
+00636     \{ \textcolor{keywordflow}{return} \textcolor{keyword}{typename} StridedConstAlignedMapType<Stride<Outer, Inner> >::type(data, size, stride); \}
+00637     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Outer, \textcolor{keywordtype}{int} Inner>
+00638     \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{typename} StridedAlignedMapType<Stride<Outer, Inner> >::type MapAligned(Scalar* data, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_stride}{Stride<Outer, Inner>}& stride)
+00639     \{ \textcolor{keywordflow}{return} \textcolor{keyword}{typename} StridedAlignedMapType<Stride<Outer, Inner> >::type(data, size, stride); \}
+00640     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Outer, \textcolor{keywordtype}{int} Inner>
+00641     \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{typename} StridedConstAlignedMapType<Stride<Outer, Inner> >::type MapAligned(\textcolor{keyword}{const} Scalar*
+       data, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols, \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_stride}{Stride<Outer, Inner>}& stride)
+00642     \{ \textcolor{keywordflow}{return} \textcolor{keyword}{typename} StridedConstAlignedMapType<Stride<Outer, Inner> >::type(data, rows, cols, stride); \}
+00643     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Outer, \textcolor{keywordtype}{int} Inner>
+00644     \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{typename} StridedAlignedMapType<Stride<Outer, Inner> >::type MapAligned(Scalar* data, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols, \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_stride}{Stride<Outer, Inner>}& stride)
+00645     \{ \textcolor{keywordflow}{return} \textcolor{keyword}{typename} StridedAlignedMapType<Stride<Outer, Inner> >::type(data, rows, cols, stride); \}
+00647 
+00648     \textcolor{keyword}{using} Base::setConstant;
+00649     EIGEN\_DEVICE\_FUNC Derived& setConstant(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \textcolor{keyword}{const} Scalar& val);
+00650     EIGEN\_DEVICE\_FUNC Derived& setConstant(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols, \textcolor{keyword}{const} Scalar& val);
+00651 
+00652     \textcolor{keyword}{using} Base::setZero;
+00653     EIGEN\_DEVICE\_FUNC Derived& setZero(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size);
+00654     EIGEN\_DEVICE\_FUNC Derived& setZero(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols);
+00655 
+00656     \textcolor{keyword}{using} Base::setOnes;
+00657     EIGEN\_DEVICE\_FUNC Derived& setOnes(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size);
+00658     EIGEN\_DEVICE\_FUNC Derived& setOnes(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols);
+00659 
+00660     \textcolor{keyword}{using} Base::setRandom;
+00661     Derived& setRandom(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size);
+00662     Derived& setRandom(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols);
+00663 
+00664 \textcolor{preprocessor}{    #ifdef EIGEN\_PLAINOBJECTBASE\_PLUGIN}
+00665 \textcolor{preprocessor}{    #include EIGEN\_PLAINOBJECTBASE\_PLUGIN}
+00666 \textcolor{preprocessor}{    #endif}
+00667 
+00668   \textcolor{keyword}{protected}:
+00676     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00677     EIGEN\_DEVICE\_FUNC 
+00678     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_resize\_to\_match(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<OtherDerived>}& other)
+00679     \{
+00680 \textcolor{preprocessor}{      #ifdef EIGEN\_NO\_AUTOMATIC\_RESIZING}
+00681       eigen\_assert((this->size()==0 || (IsVectorAtCompileTime ? (this->size() == other.
+      \hyperlink{group___core___module_ac2c9348df3bb9c0044dbae6c278a8977}{size}())
+00682                  : (rows() == other.\hyperlink{group___core___module_a8141320ba8df384426c298b32b000d8e}{rows}() && cols() == other.\hyperlink{group___core___module_a7b0b45c7351847696c911ce8aa2abbdb}{cols}())))
+00683         && \textcolor{stringliteral}{"Size mismatch. Automatic resizing is disabled because EIGEN\_NO\_AUTOMATIC\_RESIZING is defined"});
+00684       EIGEN\_ONLY\_USED\_FOR\_DEBUG(other);
+00685 \textcolor{preprocessor}{      #else}
+00686       resizeLike(other);
+00687 \textcolor{preprocessor}{      #endif}
+00688     \}
+00689 
+00704     \textcolor{comment}{// aliasing is dealt once in internall::call\_assignment}
+00705     \textcolor{comment}{// so at this stage we have to assume aliasing... and resising has to be done later.}
+00706     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00707     EIGEN\_DEVICE\_FUNC 
+\Hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2_plain_object_base_8h_source_l00708}\hyperlink{class_eigen_1_1_plain_object_base_aa77dab5e9e6ba9e39740e17cfae78a33}{00708}     EIGEN\_STRONG\_INLINE Derived& \hyperlink{class_eigen_1_1_plain_object_base_aa77dab5e9e6ba9e39740e17cfae78a33}{\_set}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)
+00709     \{
+00710       internal::call\_assignment(this->derived(), other.derived());
+00711       \textcolor{keywordflow}{return} this->derived();
+00712     \}
+00713 
+00719     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00720     EIGEN\_DEVICE\_FUNC 
+00721     EIGEN\_STRONG\_INLINE Derived& \_set\_noalias(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)
+00722     \{
+00723       \textcolor{comment}{// I don't think we need this resize call since the lazyAssign will anyways resize}
+00724       \textcolor{comment}{// and lazyAssign will be called by the assign selector.}
+00725       \textcolor{comment}{//\_resize\_to\_match(other);}
+00726       \textcolor{comment}{// the 'false' below means to enforce lazy evaluation. We don't use lazyAssign() because}
+00727       \textcolor{comment}{// it wouldn't allow to copy a row-vector into a column-vector.}
+00728       internal::call\_assignment\_no\_alias(this->derived(), other.derived(), 
+      \hyperlink{struct_eigen_1_1internal_1_1assign__op}{internal::assign\_op<Scalar,typename OtherDerived::Scalar>}
+      ());
+00729       \textcolor{keywordflow}{return} this->derived();
+00730     \}
+00731 
+00732     \textcolor{keyword}{template}<\textcolor{keyword}{typename} T0, \textcolor{keyword}{typename} T1>
+00733     EIGEN\_DEVICE\_FUNC
+00734     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_init2(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols, \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1enable__if}{internal::enable\_if<Base::SizeAtCompileTime!=2,T0>::type}
+      * = 0)
+00735     \{
+00736       EIGEN\_STATIC\_ASSERT(\textcolor{keywordtype}{bool}(\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<T0>::IsInteger}) &&
+00737                           \textcolor{keywordtype}{bool}(\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<T1>::IsInteger}),
+00738                           FLOATING\_POINT\_ARGUMENT\_PASSED\_\_INTEGER\_WAS\_EXPECTED)
+00739       resize(rows,cols);
+00740     \}
+00741     
+00742     \textcolor{keyword}{template}<\textcolor{keyword}{typename} T0, \textcolor{keyword}{typename} T1>
+00743     EIGEN\_DEVICE\_FUNC 
+00744     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_init2(\textcolor{keyword}{const} T0& val0, \textcolor{keyword}{const} T1& val1, \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1enable__if}{internal::enable\_if<Base::SizeAtCompileTime==2,T0>::type}
+      * = 0)
+00745     \{
+00746       EIGEN\_STATIC\_ASSERT\_VECTOR\_SPECIFIC\_SIZE(PlainObjectBase, 2)
+00747       m\_storage.data()[0] = Scalar(val0);
+00748       m\_storage.data()[1] = Scalar(val1);
+00749     \}
+00750     
+00751     \textcolor{keyword}{template}<\textcolor{keyword}{typename} T0, \textcolor{keyword}{typename} T1>
+00752     EIGEN\_DEVICE\_FUNC 
+00753     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_init2(\textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& val0, \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& val1,
+00754                                     \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1enable__if}{internal::enable\_if}<    (!
+      \hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same<Index,Scalar>::value})
+00755                                                                   && (
+      \hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same<T0,Index>::value})
+00756                                                                   && (
+      \hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same<T1,Index>::value})
+00757                                                                   && Base::SizeAtCompileTime==2,T1>::type* 
+      = 0)
+00758     \{
+00759       EIGEN\_STATIC\_ASSERT\_VECTOR\_SPECIFIC\_SIZE(PlainObjectBase, 2)
+00760       m\_storage.data()[0] = Scalar(val0);
+00761       m\_storage.data()[1] = Scalar(val1);
+00762     \}
+00763 
+00764     \textcolor{comment}{// The argument is convertible to the Index type and we either have a non 1x1 Matrix, or a
+       dynamic-sized Array,}
+00765     \textcolor{comment}{// then the argument is meant to be the size of the object.}
+00766     \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00767     EIGEN\_DEVICE\_FUNC
+00768     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_init1(\hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size, \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1enable__if}{internal::enable\_if}<    (Base::SizeAtCompileTime!=1 || !
+      \hyperlink{struct_eigen_1_1internal_1_1is__convertible}{internal::is\_convertible<T, Scalar>::value})
+00769                                                                               && ((!
+      \hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same}<\textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::XprKind}
+      ,\hyperlink{struct_eigen_1_1_array_xpr}{ArrayXpr}>::value || Base::SizeAtCompileTime==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})),\hyperlink{group___sparse_core___module}{T}>::type* = 0)
+00770     \{
+00771       \textcolor{comment}{// NOTE MSVC 2008 complains if we directly put bool(NumTraits<T>::IsInteger) as the
+       EIGEN\_STATIC\_ASSERT argument.}
+00772       \textcolor{keyword}{const} \textcolor{keywordtype}{bool} is\_integer = \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<T>::IsInteger};
+00773       EIGEN\_UNUSED\_VARIABLE(is\_integer);
+00774       EIGEN\_STATIC\_ASSERT(is\_integer,
+00775                           FLOATING\_POINT\_ARGUMENT\_PASSED\_\_INTEGER\_WAS\_EXPECTED)
+00776       resize(size);
+00777     \}
+00778     
+00779     \textcolor{comment}{// We have a 1x1 matrix/array => the argument is interpreted as the value of the unique coefficient
+       (case where scalar type can be implicitely converted)}
+00780     \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00781     EIGEN\_DEVICE\_FUNC
+00782     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_init1(\textcolor{keyword}{const} Scalar& val0, \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1enable__if}{internal::enable\_if}<Base::SizeAtCompileTime==1 && 
+      \hyperlink{struct_eigen_1_1internal_1_1is__convertible}{internal::is\_convertible<T, Scalar>::value},
+      \hyperlink{group___sparse_core___module}{T}>::type* = 0)
+00783     \{
+00784       EIGEN\_STATIC\_ASSERT\_VECTOR\_SPECIFIC\_SIZE(PlainObjectBase, 1)
+00785       m\_storage.data()[0] = val0;
+00786     \}
+00787     
+00788     \textcolor{comment}{// We have a 1x1 matrix/array => the argument is interpreted as the value of the unique coefficient
+       (case where scalar type match the index type)}
+00789     \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00790     EIGEN\_DEVICE\_FUNC
+00791     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_init1(\textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& val0,
+00792                                     \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1enable__if}{internal::enable\_if}<    (!
+      \hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same<Index,Scalar>::value})
+00793                                                                   && (
+      \hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same<Index,T>::value})
+00794                                                                   && Base::SizeAtCompileTime==1
+00795                                                                   && 
+      \hyperlink{struct_eigen_1_1internal_1_1is__convertible}{internal::is\_convertible<T, Scalar>::value},
+      \hyperlink{group___sparse_core___module}{T}*>::type* = 0)
+00796     \{
+00797       EIGEN\_STATIC\_ASSERT\_VECTOR\_SPECIFIC\_SIZE(PlainObjectBase, 1)
+00798       m\_storage.data()[0] = Scalar(val0);
+00799     \}
+00800 
+00801     \textcolor{comment}{// Initialize a fixed size matrix from a pointer to raw data}
+00802     \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00803     EIGEN\_DEVICE\_FUNC
+00804     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_init1(\textcolor{keyword}{const} Scalar* data)\{
+00805       this->\_set\_noalias(ConstMapType(data));
+00806     \}
+00807 
+00808     \textcolor{comment}{// Initialize an arbitrary matrix from a dense expression}
+00809     \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} OtherDerived>
+00810     EIGEN\_DEVICE\_FUNC
+00811     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_init1(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)\{
+00812       this->\_set\_noalias(other);
+00813     \}
+00814 
+00815     \textcolor{comment}{// Initialize an arbitrary matrix from an object convertible to the Derived type.}
+00816     \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00817     EIGEN\_DEVICE\_FUNC
+00818     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_init1(\textcolor{keyword}{const} Derived& other)\{
+00819       this->\_set\_noalias(other);
+00820     \}
+00821 
+00822     \textcolor{comment}{// Initialize an arbitrary matrix from a generic Eigen expression}
+00823     \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} OtherDerived>
+00824     EIGEN\_DEVICE\_FUNC
+00825     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_init1(\textcolor{keyword}{const} \hyperlink{group___core___module_struct_eigen_1_1_eigen_base}{EigenBase<OtherDerived>}& other)\{
+00826       this->derived() = other;
+00827     \}
+00828 
+00829     \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} OtherDerived>
+00830     EIGEN\_DEVICE\_FUNC
+00831     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_init1(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_return_by_value}{ReturnByValue<OtherDerived>}& other)
+00832     \{
+00833       resize(other.rows(), other.cols());
+00834       other.evalTo(this->derived());
+00835     \}
+00836 
+00837     \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} OtherDerived, \textcolor{keywordtype}{int} ColsAtCompileTime>
+00838     EIGEN\_DEVICE\_FUNC
+00839     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_init1(\textcolor{keyword}{const} 
+      \hyperlink{class_eigen_1_1_rotation_base}{RotationBase<OtherDerived,ColsAtCompileTime>}& r)
+00840     \{
+00841       this->derived() = r;
+00842     \}
+00843     
+00844     \textcolor{comment}{// For fixed-size Array<Scalar,...>}
+00845     \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00846     EIGEN\_DEVICE\_FUNC
+00847     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_init1(\textcolor{keyword}{const} Scalar& val0,
+00848                                     \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1enable__if}{internal::enable\_if}<    
+      Base::SizeAtCompileTime!=\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}
+00849                                                                   && Base::SizeAtCompileTime!=1
+00850                                                                   && 
+      \hyperlink{struct_eigen_1_1internal_1_1is__convertible}{internal::is\_convertible<T, Scalar>::value}
+00851                                                                   && 
+      \hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same}<\textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::XprKind}
+      ,\hyperlink{struct_eigen_1_1_array_xpr}{ArrayXpr}>::value,\hyperlink{group___sparse_core___module}{T}>::type* = 0)
+00852     \{
+00853       Base::setConstant(val0);
+00854     \}
+00855     
+00856     \textcolor{comment}{// For fixed-size Array<Index,...>}
+00857     \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+00858     EIGEN\_DEVICE\_FUNC
+00859     EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_init1(\textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}& val0,
+00860                                     \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1enable__if}{internal::enable\_if}<    (!
+      \hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same<Index,Scalar>::value})
+00861                                                                   && (
+      \hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same<Index,T>::value})
+00862                                                                   && Base::SizeAtCompileTime!=
+      \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}
+00863                                                                   && Base::SizeAtCompileTime!=1
+00864                                                                   && 
+      \hyperlink{struct_eigen_1_1internal_1_1is__convertible}{internal::is\_convertible<T, Scalar>::value}
+00865                                                                   && 
+      \hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same}<\textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<Derived>::XprKind}
+      ,\hyperlink{struct_eigen_1_1_array_xpr}{ArrayXpr}>::value,\hyperlink{group___sparse_core___module}{T}*>::type* = 0)
+00866     \{
+00867       Base::setConstant(val0);
+00868     \}
+00869     
+00870     \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixTypeA, \textcolor{keyword}{typename} MatrixTypeB, \textcolor{keywordtype}{bool} SwapPo\textcolor{keywordtype}{int}ers>
+00871     \textcolor{keyword}{friend} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1matrix__swap__impl}{internal::matrix\_swap\_impl};
+00872 
+00873   \textcolor{keyword}{public}:
+00874     
+00875 \textcolor{preprocessor}{#ifndef EIGEN\_PARSED\_BY\_DOXYGEN}
+00876 
+00880     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00881     EIGEN\_DEVICE\_FUNC
+00882     \textcolor{keywordtype}{void} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(\hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>} & other)
+00883     \{
+00884       \textcolor{keyword}{enum} \{ SwapPointers = \hyperlink{struct_eigen_1_1internal_1_1is__same}{internal::is\_same<Derived, OtherDerived>::value}
+       && Base::SizeAtCompileTime==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} \};
+00885       \hyperlink{struct_eigen_1_1internal_1_1matrix__swap__impl}{internal::matrix\_swap\_impl<Derived, OtherDerived, bool(SwapPointers)>::run}
+      (this->derived(), other.derived());
+00886     \}
+00887     
+00891     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00892     EIGEN\_DEVICE\_FUNC
+00893     \textcolor{keywordtype}{void} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(\hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>} \textcolor{keyword}{const} & other)
+00894     \{ \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{Base::swap}(other.derived()); \}
+00895     
+00896     EIGEN\_DEVICE\_FUNC 
+00897     \textcolor{keyword}{static} EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} \_check\_template\_params()
+00898     \{
+00899       EIGEN\_STATIC\_ASSERT((EIGEN\_IMPLIES(MaxRowsAtCompileTime==1 && MaxColsAtCompileTime!=1, (Options&
+      \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13acfcde9cd8677c5f7caf6bd603666aae3}{RowMajor})==RowMajor)
+00900                         && EIGEN\_IMPLIES(MaxColsAtCompileTime==1 && MaxRowsAtCompileTime!=1, (Options&
+      RowMajor)==0)
+00901                         && ((RowsAtCompileTime == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) || (RowsAtCompileTime >= 0))
+00902                         && ((ColsAtCompileTime == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) || (ColsAtCompileTime >= 0))
+00903                         && ((MaxRowsAtCompileTime == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) || (MaxRowsAtCompileTime >= 0))
+00904                         && ((MaxColsAtCompileTime == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) || (MaxColsAtCompileTime >= 0))
+00905                         && (MaxRowsAtCompileTime == RowsAtCompileTime || RowsAtCompileTime==
+      \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})
+00906                         && (MaxColsAtCompileTime == ColsAtCompileTime || ColsAtCompileTime==
+      \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic})
+00907                         && (Options & (\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a40a452614141522dd313363dbbd65726}{DontAlign}|RowMajor)) == Options),
+00908         INVALID\_MATRIX\_TEMPLATE\_PARAMETERS)
+00909     \}
+00910 
+00911     \textcolor{keyword}{enum} \{ IsPlainObjectBase = 1 \};
+00912 \textcolor{preprocessor}{#endif}
+00913 \};
+00914 
+00915 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00916 
+00917 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Derived, \textcolor{keyword}{typename} OtherDerived, \textcolor{keywordtype}{bool} IsVector>
+00918 \textcolor{keyword}{struct }conservative\_resize\_like\_impl
+00919 \{
+00920   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<Derived>}& \_this, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows, 
+      \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols)
+00921   \{
+00922     \textcolor{keywordflow}{if} (\_this.rows() == rows && \_this.cols() == cols) \textcolor{keywordflow}{return};
+00923     EIGEN\_STATIC\_ASSERT\_DYNAMIC\_SIZE(Derived)
+00924 
+00925     \textcolor{keywordflow}{if} ( ( Derived::IsRowMajor && \_this.cols() == cols) || \textcolor{comment}{// row-major and we change only the number of
+       rows}
+00926          (!Derived::IsRowMajor && \_this.rows() == rows) )  \textcolor{comment}{// column-major and we change only the number of
+       columns}
+00927     \{
+00928       \hyperlink{struct_eigen_1_1internal_1_1check__rows__cols__for__overflow}{internal::check\_rows\_cols\_for\_overflow<Derived::MaxSizeAtCompileTime>::run}
+      (rows, cols);
+00929       \_this.derived().m\_storage.conservativeResize(rows*cols,rows,cols);
+00930     \}
+00931     \textcolor{keywordflow}{else}
+00932     \{
+00933       \textcolor{comment}{// The storage order does not allow us to use reallocation.}
+00934       \textcolor{keyword}{typename} Derived::PlainObject tmp(rows,cols);
+00935       \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} common\_rows = numext::mini(rows, \_this.rows());
+00936       \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} common\_cols = numext::mini(cols, \_this.cols());
+00937       tmp.block(0,0,common\_rows,common\_cols) = \_this.\hyperlink{group___core___module_ab8e42e67c5cfd5fa13e684642f0f65bf}{block}(0,0,common\_rows,common\_cols);
+00938       \_this.derived().\hyperlink{group___core___module_ab420d9d588ac443f5a1b1a7dceb12c90}{swap}(tmp);
+00939     \}
+00940   \}
+00941 
+00942   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<Derived>}& \_this, \textcolor{keyword}{const} 
+      \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)
+00943   \{
+00944     \textcolor{keywordflow}{if} (\_this.rows() == other.rows() && \_this.cols() == other.cols()) \textcolor{keywordflow}{return};
+00945 
+00946     \textcolor{comment}{// Note: Here is space for improvement. Basically, for conservativeResize(Index,Index),}
+00947     \textcolor{comment}{// neither RowsAtCompileTime or ColsAtCompileTime must be Dynamic. If only one of the}
+00948     \textcolor{comment}{// dimensions is dynamic, one could use either conservativeResize(Index rows, NoChange\_t) or}
+00949     \textcolor{comment}{// conservativeResize(NoChange\_t, Index cols). For these methods new static asserts like}
+00950     \textcolor{comment}{// EIGEN\_STATIC\_ASSERT\_DYNAMIC\_ROWS and EIGEN\_STATIC\_ASSERT\_DYNAMIC\_COLS would be good.}
+00951     EIGEN\_STATIC\_ASSERT\_DYNAMIC\_SIZE(Derived)
+00952     EIGEN\_STATIC\_ASSERT\_DYNAMIC\_SIZE(OtherDerived)
+00953 
+00954     \textcolor{keywordflow}{if} ( ( Derived::IsRowMajor && \_this.cols() == other.cols()) || \textcolor{comment}{// row-major and we change only the
+       number of rows}
+00955          (!Derived::IsRowMajor && \_this.rows() == other.rows()) )  \textcolor{comment}{// column-major and we change only the
+       number of columns}
+00956     \{
+00957       \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} new\_rows = other.rows() - \_this.rows();
+00958       \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} new\_cols = other.cols() - \_this.cols();
+00959       \_this.derived().m\_storage.conservativeResize(other.size(),other.rows(),other.cols());
+00960       \textcolor{keywordflow}{if} (new\_rows>0)
+00961         \_this.\hyperlink{group___core___module_a6cdf27f6b825097f86fc6bcdbeed9e65}{bottomRightCorner}(new\_rows, other.cols()) = other.
+      \hyperlink{group___core___module_acff625e5f44ffe92bf79d20223114c2d}{bottomRows}(new\_rows);
+00962       \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (new\_cols>0)
+00963         \_this.\hyperlink{group___core___module_a6cdf27f6b825097f86fc6bcdbeed9e65}{bottomRightCorner}(other.rows(), new\_cols) = other.
+      \hyperlink{group___core___module_a5b0fa44c191d40a2f82260f7e5cdeaa9}{rightCols}(new\_cols);
+00964     \}
+00965     \textcolor{keywordflow}{else}
+00966     \{
+00967       \textcolor{comment}{// The storage order does not allow us to use reallocation.}
+00968       \textcolor{keyword}{typename} Derived::PlainObject tmp(other);
+00969       \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} common\_rows = numext::mini(tmp.rows(), \_this.rows());
+00970       \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} common\_cols = numext::mini(tmp.cols(), \_this.cols());
+00971       tmp.block(0,0,common\_rows,common\_cols) = \_this.\hyperlink{group___core___module_ab8e42e67c5cfd5fa13e684642f0f65bf}{block}(0,0,common\_rows,common\_cols);
+00972       \_this.derived().\hyperlink{group___core___module_ab420d9d588ac443f5a1b1a7dceb12c90}{swap}(tmp);
+00973     \}
+00974   \}
+00975 \};
+00976 
+00977 \textcolor{comment}{// Here, the specialization for vectors inherits from the general matrix case}
+00978 \textcolor{comment}{// to allow calling .conservativeResize(rows,cols) on vectors.}
+00979 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Derived, \textcolor{keyword}{typename} OtherDerived>
+00980 \textcolor{keyword}{struct }conservative\_resize\_like\_impl<Derived,OtherDerived,true>
+00981   : conservative\_resize\_like\_impl<Derived,OtherDerived,false>
+00982 \{
+00983   \textcolor{keyword}{using} conservative\_resize\_like\_impl<Derived,OtherDerived,false>::run;
+00984   
+00985   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<Derived>}& \_this, \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} size)
+00986   \{
+00987     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} new\_rows = Derived::RowsAtCompileTime==1 ? 1 : size;
+00988     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} new\_cols = Derived::RowsAtCompileTime==1 ? size : 1;
+00989     \_this.derived().m\_storage.conservativeResize(size,new\_rows,new\_cols);
+00990   \}
+00991 
+00992   \textcolor{keyword}{static} \textcolor{keywordtype}{void} run(\hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<Derived>}& \_this, \textcolor{keyword}{const} 
+      \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)
+00993   \{
+00994     \textcolor{keywordflow}{if} (\_this.rows() == other.rows() && \_this.cols() == other.cols()) \textcolor{keywordflow}{return};
+00995 
+00996     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} num\_new\_elements = other.size() - \_this.size();
+00997 
+00998     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} new\_rows = Derived::RowsAtCompileTime==1 ? 1 : other.rows();
+00999     \textcolor{keyword}{const} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} new\_cols = Derived::RowsAtCompileTime==1 ? other.cols() : 1;
+01000     \_this.derived().m\_storage.conservativeResize(other.size(),new\_rows,new\_cols);
+01001 
+01002     \textcolor{keywordflow}{if} (num\_new\_elements > 0)
+01003       \_this.\hyperlink{group___core___module_aec3cf8f4f73c641d21a2c080c3e59662}{tail}(num\_new\_elements) = other.\hyperlink{group___core___module_aec3cf8f4f73c641d21a2c080c3e59662}{tail}(num\_new\_elements);
+01004   \}
+01005 \};
+01006 
+01007 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixTypeA, \textcolor{keyword}{typename} MatrixTypeB, \textcolor{keywordtype}{bool} SwapPo\textcolor{keywordtype}{int}ers>
+01008 \textcolor{keyword}{struct }matrix\_swap\_impl
+01009 \{
+01010   EIGEN\_DEVICE\_FUNC
+01011   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} run(MatrixTypeA& a, MatrixTypeB& b)
+01012   \{
+01013     a.base().swap(b);
+01014   \}
+01015 \};
+01016 
+01017 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixTypeA, \textcolor{keyword}{typename} MatrixTypeB>
+01018 \textcolor{keyword}{struct }matrix\_swap\_impl<MatrixTypeA, MatrixTypeB, true>
+01019 \{
+01020   EIGEN\_DEVICE\_FUNC
+01021   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} run(MatrixTypeA& a, MatrixTypeB& b)
+01022   \{
+01023     \textcolor{keyword}{static\_cast<}typename MatrixTypeA::Base&\textcolor{keyword}{>}(a).m\_storage.swap(static\_cast<typename MatrixTypeB::Base&>(b).
+      m\_storage);
+01024   \}
+01025 \};
+01026 
+01027 \} \textcolor{comment}{// end namespace internal}
+01028 
+01029 \} \textcolor{comment}{// end namespace Eigen}
+01030 
+01031 \textcolor{preprocessor}{#endif // EIGEN\_DENSESTORAGEBASE\_H}
+\end{DoxyCode}

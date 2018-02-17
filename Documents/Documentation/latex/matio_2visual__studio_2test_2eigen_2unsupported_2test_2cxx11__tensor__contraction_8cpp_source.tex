@@ -1,0 +1,557 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__contraction_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/test/cxx11\+\_\+tensor\+\_\+contraction.cpp}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__contraction_8cpp_source}\index{cxx11\+\_\+tensor\+\_\+contraction.\+cpp@{cxx11\+\_\+tensor\+\_\+contraction.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2014 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 \textcolor{preprocessor}{#include <Eigen/CXX11/Tensor>}
+00013 
+00014 \textcolor{keyword}{using} \hyperlink{struct_eigen_1_1_default_device}{Eigen::DefaultDevice};
+00015 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor};
+00016 
+00017 \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1>::DimensionPair} DimPair;
+00018 
+00019 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00020 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_evals()
+00021 \{
+00022   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} mat1(2, 3);
+00023   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} mat2(2, 3);
+00024   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} mat3(3, 2);
+00025 
+00026   mat1.setRandom();
+00027   mat2.setRandom();
+00028   mat3.setRandom();
+00029 
+00030   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} mat4(3,3);
+00031   mat4.setZero();
+00032   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 1>} dims3 = \{\{DimPair(0, 0)\}\};
+00033   \textcolor{keyword}{typedef} TensorEvaluator<decltype(mat1.contract(mat2, dims3)), \hyperlink{struct_eigen_1_1_default_device}{DefaultDevice}> Evaluator;
+00034   Evaluator eval(mat1.contract(mat2, dims3), \hyperlink{struct_eigen_1_1_default_device}{DefaultDevice}());
+00035   eval.evalTo(mat4.data());
+00036   EIGEN\_STATIC\_ASSERT(Evaluator::NumDims==2ul, YOU\_MADE\_A\_PROGRAMMING\_MISTAKE);
+00037   VERIFY\_IS\_EQUAL(eval.dimensions()[0], 3);
+00038   VERIFY\_IS\_EQUAL(eval.dimensions()[1], 3);
+00039 
+00040   VERIFY\_IS\_APPROX(mat4(0,0), mat1(0,0)*mat2(0,0) + mat1(1,0)*mat2(1,0));
+00041   VERIFY\_IS\_APPROX(mat4(0,1), mat1(0,0)*mat2(0,1) + mat1(1,0)*mat2(1,1));
+00042   VERIFY\_IS\_APPROX(mat4(0,2), mat1(0,0)*mat2(0,2) + mat1(1,0)*mat2(1,2));
+00043   VERIFY\_IS\_APPROX(mat4(1,0), mat1(0,1)*mat2(0,0) + mat1(1,1)*mat2(1,0));
+00044   VERIFY\_IS\_APPROX(mat4(1,1), mat1(0,1)*mat2(0,1) + mat1(1,1)*mat2(1,1));
+00045   VERIFY\_IS\_APPROX(mat4(1,2), mat1(0,1)*mat2(0,2) + mat1(1,1)*mat2(1,2));
+00046   VERIFY\_IS\_APPROX(mat4(2,0), mat1(0,2)*mat2(0,0) + mat1(1,2)*mat2(1,0));
+00047   VERIFY\_IS\_APPROX(mat4(2,1), mat1(0,2)*mat2(0,1) + mat1(1,2)*mat2(1,1));
+00048   VERIFY\_IS\_APPROX(mat4(2,2), mat1(0,2)*mat2(0,2) + mat1(1,2)*mat2(1,2));
+00049 
+00050   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} mat5(2,2);
+00051   mat5.setZero();
+00052   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 1>} dims4 = \{\{DimPair(1, 1)\}\};
+00053   \textcolor{keyword}{typedef} TensorEvaluator<decltype(mat1.contract(mat2, dims4)), \hyperlink{struct_eigen_1_1_default_device}{DefaultDevice}> Evaluator2;
+00054   Evaluator2 eval2(mat1.contract(mat2, dims4), \hyperlink{struct_eigen_1_1_default_device}{DefaultDevice}());
+00055   eval2.evalTo(mat5.data());
+00056   EIGEN\_STATIC\_ASSERT(Evaluator2::NumDims==2ul, YOU\_MADE\_A\_PROGRAMMING\_MISTAKE);
+00057   VERIFY\_IS\_EQUAL(eval2.dimensions()[0], 2);
+00058   VERIFY\_IS\_EQUAL(eval2.dimensions()[1], 2);
+00059 
+00060   VERIFY\_IS\_APPROX(mat5(0,0), mat1(0,0)*mat2(0,0) + mat1(0,1)*mat2(0,1) + mat1(0,2)*mat2(0,2));
+00061   VERIFY\_IS\_APPROX(mat5(0,1), mat1(0,0)*mat2(1,0) + mat1(0,1)*mat2(1,1) + mat1(0,2)*mat2(1,2));
+00062   VERIFY\_IS\_APPROX(mat5(1,0), mat1(1,0)*mat2(0,0) + mat1(1,1)*mat2(0,1) + mat1(1,2)*mat2(0,2));
+00063   VERIFY\_IS\_APPROX(mat5(1,1), mat1(1,0)*mat2(1,0) + mat1(1,1)*mat2(1,1) + mat1(1,2)*mat2(1,2));
+00064 
+00065   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} mat6(2,2);
+00066   mat6.setZero();
+00067   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 1>} dims6 = \{\{DimPair(1, 0)\}\};
+00068   \textcolor{keyword}{typedef} TensorEvaluator<decltype(mat1.contract(mat3, dims6)), \hyperlink{struct_eigen_1_1_default_device}{DefaultDevice}> Evaluator3;
+00069   Evaluator3 eval3(mat1.contract(mat3, dims6), \hyperlink{struct_eigen_1_1_default_device}{DefaultDevice}());
+00070   eval3.evalTo(mat6.data());
+00071   EIGEN\_STATIC\_ASSERT(Evaluator3::NumDims==2ul, YOU\_MADE\_A\_PROGRAMMING\_MISTAKE);
+00072   VERIFY\_IS\_EQUAL(eval3.dimensions()[0], 2);
+00073   VERIFY\_IS\_EQUAL(eval3.dimensions()[1], 2);
+00074 
+00075   VERIFY\_IS\_APPROX(mat6(0,0), mat1(0,0)*mat3(0,0) + mat1(0,1)*mat3(1,0) + mat1(0,2)*mat3(2,0));
+00076   VERIFY\_IS\_APPROX(mat6(0,1), mat1(0,0)*mat3(0,1) + mat1(0,1)*mat3(1,1) + mat1(0,2)*mat3(2,1));
+00077   VERIFY\_IS\_APPROX(mat6(1,0), mat1(1,0)*mat3(0,0) + mat1(1,1)*mat3(1,0) + mat1(1,2)*mat3(2,0));
+00078   VERIFY\_IS\_APPROX(mat6(1,1), mat1(1,0)*mat3(0,1) + mat1(1,1)*mat3(1,1) + mat1(1,2)*mat3(2,1));
+00079 \}
+00080 
+00081 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00082 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_scalar()
+00083 \{
+00084   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, DataLayout>} vec1(\{6\});
+00085   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, DataLayout>} vec2(\{6\});
+00086 
+00087   vec1.setRandom();
+00088   vec2.setRandom();
+00089 
+00090   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 1>} dims = \{\{DimPair(0, 0)\}\};
+00091   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} scalar = vec1.contract(vec2, dims);
+00092 
+00093   \textcolor{keywordtype}{float} expected = 0.0f;
+00094   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 6; ++i) \{
+00095     expected += vec1(i) * vec2(i);
+00096   \}
+00097   VERIFY\_IS\_APPROX(scalar(), expected);
+00098 \}
+00099 
+00100 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00101 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_multidims()
+00102 \{
+00103   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3, DataLayout>} mat1(2, 2, 2);
+00104   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} mat2(2, 2, 2, 2);
+00105 
+00106   mat1.setRandom();
+00107   mat2.setRandom();
+00108 
+00109   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3, DataLayout>} mat3(2, 2, 2);
+00110   mat3.setZero();
+00111   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 2>} dims = \{\{DimPair(1, 2), DimPair(2, 3)\}\};
+00112   \textcolor{keyword}{typedef} TensorEvaluator<decltype(mat1.contract(mat2, dims)), \hyperlink{struct_eigen_1_1_default_device}{DefaultDevice}> Evaluator;
+00113   Evaluator eval(mat1.contract(mat2, dims), \hyperlink{struct_eigen_1_1_default_device}{DefaultDevice}());
+00114   eval.evalTo(mat3.data());
+00115   EIGEN\_STATIC\_ASSERT(Evaluator::NumDims==3ul, YOU\_MADE\_A\_PROGRAMMING\_MISTAKE);
+00116   VERIFY\_IS\_EQUAL(eval.dimensions()[0], 2);
+00117   VERIFY\_IS\_EQUAL(eval.dimensions()[1], 2);
+00118   VERIFY\_IS\_EQUAL(eval.dimensions()[2], 2);
+00119 
+00120   VERIFY\_IS\_APPROX(mat3(0,0,0), mat1(0,0,0)*mat2(0,0,0,0) + mat1(0,1,0)*mat2(0,0,1,0) +
+00121                                 mat1(0,0,1)*mat2(0,0,0,1) + mat1(0,1,1)*mat2(0,0,1,1));
+00122   VERIFY\_IS\_APPROX(mat3(0,0,1), mat1(0,0,0)*mat2(0,1,0,0) + mat1(0,1,0)*mat2(0,1,1,0) +
+00123                                 mat1(0,0,1)*mat2(0,1,0,1) + mat1(0,1,1)*mat2(0,1,1,1));
+00124   VERIFY\_IS\_APPROX(mat3(0,1,0), mat1(0,0,0)*mat2(1,0,0,0) + mat1(0,1,0)*mat2(1,0,1,0) +
+00125                                 mat1(0,0,1)*mat2(1,0,0,1) + mat1(0,1,1)*mat2(1,0,1,1));
+00126   VERIFY\_IS\_APPROX(mat3(0,1,1), mat1(0,0,0)*mat2(1,1,0,0) + mat1(0,1,0)*mat2(1,1,1,0) +
+00127                                 mat1(0,0,1)*mat2(1,1,0,1) + mat1(0,1,1)*mat2(1,1,1,1));
+00128   VERIFY\_IS\_APPROX(mat3(1,0,0), mat1(1,0,0)*mat2(0,0,0,0) + mat1(1,1,0)*mat2(0,0,1,0) +
+00129                                 mat1(1,0,1)*mat2(0,0,0,1) + mat1(1,1,1)*mat2(0,0,1,1));
+00130   VERIFY\_IS\_APPROX(mat3(1,0,1), mat1(1,0,0)*mat2(0,1,0,0) + mat1(1,1,0)*mat2(0,1,1,0) +
+00131                                 mat1(1,0,1)*mat2(0,1,0,1) + mat1(1,1,1)*mat2(0,1,1,1));
+00132   VERIFY\_IS\_APPROX(mat3(1,1,0), mat1(1,0,0)*mat2(1,0,0,0) + mat1(1,1,0)*mat2(1,0,1,0) +
+00133                                 mat1(1,0,1)*mat2(1,0,0,1) + mat1(1,1,1)*mat2(1,0,1,1));
+00134   VERIFY\_IS\_APPROX(mat3(1,1,1), mat1(1,0,0)*mat2(1,1,0,0) + mat1(1,1,0)*mat2(1,1,1,0) +
+00135                                 mat1(1,0,1)*mat2(1,1,0,1) + mat1(1,1,1)*mat2(1,1,1,1));
+00136 
+00137   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} mat4(2, 2);
+00138   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3, DataLayout>} mat5(2, 2, 2);
+00139 
+00140   mat4.setRandom();
+00141   mat5.setRandom();
+00142 
+00143   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, DataLayout>} mat6(2);
+00144   mat6.setZero();
+00145   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 2>} dims2(\{\{DimPair(0, 1), DimPair(1, 0)\}\});
+00146   \textcolor{keyword}{typedef} TensorEvaluator<decltype(mat4.contract(mat5, dims2)), \hyperlink{struct_eigen_1_1_default_device}{DefaultDevice}> Evaluator2;
+00147   Evaluator2 eval2(mat4.contract(mat5, dims2), \hyperlink{struct_eigen_1_1_default_device}{DefaultDevice}());
+00148   eval2.evalTo(mat6.data());
+00149   EIGEN\_STATIC\_ASSERT(Evaluator2::NumDims==1ul, YOU\_MADE\_A\_PROGRAMMING\_MISTAKE);
+00150   VERIFY\_IS\_EQUAL(eval2.dimensions()[0], 2);
+00151 
+00152   VERIFY\_IS\_APPROX(mat6(0), mat4(0,0)*mat5(0,0,0) + mat4(1,0)*mat5(0,1,0) +
+00153                    mat4(0,1)*mat5(1,0,0) + mat4(1,1)*mat5(1,1,0));
+00154   VERIFY\_IS\_APPROX(mat6(1), mat4(0,0)*mat5(0,0,1) + mat4(1,0)*mat5(0,1,1) +
+00155                    mat4(0,1)*mat5(1,0,1) + mat4(1,1)*mat5(1,1,1));
+00156 \}
+00157 
+00158 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00159 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_holes() \{
+00160   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} t1(2, 5, 7, 3);
+00161   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, DataLayout>} t2(2, 7, 11, 13, 3);
+00162   t1.setRandom();
+00163   t2.setRandom();
+00164 
+00165   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 2>} dims = \{\{DimPair(0, 0), DimPair(3, 4)\}\};
+00166   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, DataLayout>} result = t1.contract(t2, dims);
+00167   VERIFY\_IS\_EQUAL(result.dimension(0), 5);
+00168   VERIFY\_IS\_EQUAL(result.dimension(1), 7);
+00169   VERIFY\_IS\_EQUAL(result.dimension(2), 7);
+00170   VERIFY\_IS\_EQUAL(result.dimension(3), 11);
+00171   VERIFY\_IS\_EQUAL(result.dimension(4), 13);
+00172 
+00173   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 5; ++i) \{
+00174     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 5; ++j) \{
+00175       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 5; ++k) \{
+00176         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 5; ++l) \{
+00177           \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} m = 0; m < 5; ++m) \{
+00178             VERIFY\_IS\_APPROX(result(i, j, k, l, m),
+00179                              t1(0, i, j, 0) * t2(0, k, l, m, 0) +
+00180                              t1(1, i, j, 0) * t2(1, k, l, m, 0) +
+00181                              t1(0, i, j, 1) * t2(0, k, l, m, 1) +
+00182                              t1(1, i, j, 1) * t2(1, k, l, m, 1) +
+00183                              t1(0, i, j, 2) * t2(0, k, l, m, 2) +
+00184                              t1(1, i, j, 2) * t2(1, k, l, m, 2));
+00185           \}
+00186         \}
+00187       \}
+00188     \}
+00189   \}
+00190 \}
+00191 
+00192 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00193 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_full\_redux()
+00194 \{
+00195   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} t1(2, 2);
+00196   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3, DataLayout>} t2(2, 2, 2);
+00197   t1.setRandom();
+00198   t2.setRandom();
+00199 
+00200   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 2>} dims = \{\{DimPair(0, 0), DimPair(1, 1)\}\};
+00201   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, DataLayout>} result = t1.contract(t2, dims);
+00202   VERIFY\_IS\_EQUAL(result.dimension(0), 2);
+00203   VERIFY\_IS\_APPROX(result(0), t1(0, 0) * t2(0, 0, 0) +  t1(1, 0) * t2(1, 0, 0)
+00204                             + t1(0, 1) * t2(0, 1, 0) +  t1(1, 1) * t2(1, 1, 0));
+00205   VERIFY\_IS\_APPROX(result(1), t1(0, 0) * t2(0, 0, 1) +  t1(1, 0) * t2(1, 0, 1)
+00206                             + t1(0, 1) * t2(0, 1, 1) +  t1(1, 1) * t2(1, 1, 1));
+00207 
+00208   dims[0] = DimPair(1, 0);
+00209   dims[1] = DimPair(2, 1);
+00210   result = t2.contract(t1, dims);
+00211   VERIFY\_IS\_EQUAL(result.dimension(0), 2);
+00212   VERIFY\_IS\_APPROX(result(0), t1(0, 0) * t2(0, 0, 0) +  t1(1, 0) * t2(0, 1, 0)
+00213                             + t1(0, 1) * t2(0, 0, 1) +  t1(1, 1) * t2(0, 1, 1));
+00214   VERIFY\_IS\_APPROX(result(1), t1(0, 0) * t2(1, 0, 0) +  t1(1, 0) * t2(1, 1, 0)
+00215                             + t1(0, 1) * t2(1, 0, 1) +  t1(1, 1) * t2(1, 1, 1));
+00216 \}
+00217 
+00218 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00219 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_contraction\_of\_contraction()
+00220 \{
+00221   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} t1(2, 2);
+00222   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} t2(2, 2);
+00223   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} t3(2, 2);
+00224   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} t4(2, 2);
+00225   t1.setRandom();
+00226   t2.setRandom();
+00227   t3.setRandom();
+00228   t4.setRandom();
+00229 
+00230   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 1>} dims = \{\{DimPair(1, 0)\}\};
+00231   \textcolor{keyword}{auto} contract1 = t1.contract(t2, dims);
+00232   \textcolor{keyword}{auto} diff = t3 - contract1;
+00233   \textcolor{keyword}{auto} contract2 = t1.contract(t4, dims);
+00234   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} result = contract2.contract(diff, dims);
+00235 
+00236   VERIFY\_IS\_EQUAL(result.dimension(0), 2);
+00237   VERIFY\_IS\_EQUAL(result.dimension(1), 2);
+00238 
+00239   \hyperlink{group___core___module_class_eigen_1_1_map}{Eigen::Map<Eigen::Matrix<float, Dynamic, Dynamic, DataLayout>}
+      >
+00240       m1(t1.data(), 2, 2), m2(t2.data(), 2, 2), m3(t3.data(), 2, 2),
+00241       m4(t4.data(), 2, 2);
+00242   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Eigen::Matrix<float, Dynamic, Dynamic, DataLayout>}
+00243       expected = (m1 * m4) * (m3 - m1 * m2);
+00244 
+00245   VERIFY\_IS\_APPROX(result(0, 0), expected(0, 0));
+00246   VERIFY\_IS\_APPROX(result(0, 1), expected(0, 1));
+00247   VERIFY\_IS\_APPROX(result(1, 0), expected(1, 0));
+00248   VERIFY\_IS\_APPROX(result(1, 1), expected(1, 1));
+00249 \}
+00250 
+00251 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00252 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_expr()
+00253 \{
+00254   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} mat1(2, 3);
+00255   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} mat2(3, 2);
+00256   mat1.setRandom();
+00257   mat2.setRandom();
+00258 
+00259   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} mat3(2,2);
+00260 
+00261   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 1>} dims = \{\{DimPair(1, 0)\}\};
+00262   mat3 = mat1.contract(mat2, dims);
+00263 
+00264   VERIFY\_IS\_APPROX(mat3(0,0), mat1(0,0)*mat2(0,0) + mat1(0,1)*mat2(1,0) + mat1(0,2)*mat2(2,0));
+00265   VERIFY\_IS\_APPROX(mat3(0,1), mat1(0,0)*mat2(0,1) + mat1(0,1)*mat2(1,1) + mat1(0,2)*mat2(2,1));
+00266   VERIFY\_IS\_APPROX(mat3(1,0), mat1(1,0)*mat2(0,0) + mat1(1,1)*mat2(1,0) + mat1(1,2)*mat2(2,0));
+00267   VERIFY\_IS\_APPROX(mat3(1,1), mat1(1,0)*mat2(0,1) + mat1(1,1)*mat2(1,1) + mat1(1,2)*mat2(2,1));
+00268 \}
+00269 
+00270 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00271 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_out\_of\_order\_contraction()
+00272 \{
+00273   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3, DataLayout>} mat1(2, 2, 2);
+00274   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3, DataLayout>} mat2(2, 2, 2);
+00275 
+00276   mat1.setRandom();
+00277   mat2.setRandom();
+00278 
+00279   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} mat3(2, 2);
+00280 
+00281   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 2>} dims = \{\{DimPair(2, 0), DimPair(0, 2)\}\};
+00282   mat3 = mat1.contract(mat2, dims);
+00283 
+00284   VERIFY\_IS\_APPROX(mat3(0, 0),
+00285                    mat1(0,0,0)*mat2(0,0,0) + mat1(1,0,0)*mat2(0,0,1) +
+00286                    mat1(0,0,1)*mat2(1,0,0) + mat1(1,0,1)*mat2(1,0,1));
+00287   VERIFY\_IS\_APPROX(mat3(1, 0),
+00288                    mat1(0,1,0)*mat2(0,0,0) + mat1(1,1,0)*mat2(0,0,1) +
+00289                    mat1(0,1,1)*mat2(1,0,0) + mat1(1,1,1)*mat2(1,0,1));
+00290   VERIFY\_IS\_APPROX(mat3(0, 1),
+00291                    mat1(0,0,0)*mat2(0,1,0) + mat1(1,0,0)*mat2(0,1,1) +
+00292                    mat1(0,0,1)*mat2(1,1,0) + mat1(1,0,1)*mat2(1,1,1));
+00293   VERIFY\_IS\_APPROX(mat3(1, 1),
+00294                    mat1(0,1,0)*mat2(0,1,0) + mat1(1,1,0)*mat2(0,1,1) +
+00295                    mat1(0,1,1)*mat2(1,1,0) + mat1(1,1,1)*mat2(1,1,1));
+00296 
+00297   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 2>} dims2 = \{\{DimPair(0, 2), DimPair(2, 0)\}\};
+00298   mat3 = mat1.contract(mat2, dims2);
+00299 
+00300   VERIFY\_IS\_APPROX(mat3(0, 0),
+00301                    mat1(0,0,0)*mat2(0,0,0) + mat1(1,0,0)*mat2(0,0,1) +
+00302                    mat1(0,0,1)*mat2(1,0,0) + mat1(1,0,1)*mat2(1,0,1));
+00303   VERIFY\_IS\_APPROX(mat3(1, 0),
+00304                    mat1(0,1,0)*mat2(0,0,0) + mat1(1,1,0)*mat2(0,0,1) +
+00305                    mat1(0,1,1)*mat2(1,0,0) + mat1(1,1,1)*mat2(1,0,1));
+00306   VERIFY\_IS\_APPROX(mat3(0, 1),
+00307                    mat1(0,0,0)*mat2(0,1,0) + mat1(1,0,0)*mat2(0,1,1) +
+00308                    mat1(0,0,1)*mat2(1,1,0) + mat1(1,0,1)*mat2(1,1,1));
+00309   VERIFY\_IS\_APPROX(mat3(1, 1),
+00310                    mat1(0,1,0)*mat2(0,1,0) + mat1(1,1,0)*mat2(0,1,1) +
+00311                    mat1(0,1,1)*mat2(1,1,0) + mat1(1,1,1)*mat2(1,1,1));
+00312 
+00313 \}
+00314 
+00315 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00316 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_consistency()
+00317 \{
+00318   \textcolor{comment}{// this does something like testing (A*B)^T = (B^T * A^T)}
+00319 
+00320   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3, DataLayout>} mat1(4, 3, 5);
+00321   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, DataLayout>} mat2(3, 2, 1, 5, 4);
+00322   mat1.setRandom();
+00323   mat2.setRandom();
+00324 
+00325   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} mat3(5, 2, 1, 5);
+00326   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} mat4(2, 1, 5, 5);
+00327 
+00328   \textcolor{comment}{// contract on dimensions of size 4 and 3}
+00329   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 2>} dims1 = \{\{DimPair(0, 4), DimPair(1, 0)\}\};
+00330   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 2>} dims2 = \{\{DimPair(4, 0), DimPair(0, 1)\}\};
+00331 
+00332   mat3 = mat1.contract(mat2, dims1);
+00333   mat4 = mat2.contract(mat1, dims2);
+00334 
+00335   \textcolor{comment}{// check that these are equal except for ordering of dimensions}
+00336   \textcolor{keywordflow}{if} (DataLayout == \hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}) \{
+00337     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < 5; i++) \{
+00338       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} j = 0; j < 10; j++) \{
+00339         VERIFY\_IS\_APPROX(mat3.data()[i + 5 * j], mat4.data()[j + 10 * i]);
+00340       \}
+00341     \}
+00342   \} \textcolor{keywordflow}{else} \{
+00343     \textcolor{comment}{// Row major}
+00344     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < 5; i++) \{
+00345       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} j = 0; j < 10; j++) \{
+00346         VERIFY\_IS\_APPROX(mat3.data()[10 * i + j], mat4.data()[i + 5 * j]);
+00347       \}
+00348     \}
+00349   \}
+00350 \}
+00351 
+00352 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00353 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_large\_contraction()
+00354 \{
+00355   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} t\_left(30, 50, 8, 31);
+00356   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, DataLayout>} t\_right(8, 31, 7, 20, 10);
+00357   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, DataLayout>} t\_result(30, 50, 7, 20, 10);
+00358 
+00359   t\_left.setRandom();
+00360   t\_right.setRandom();
+00361 
+00362   \textcolor{comment}{// Add a little offset so that the results won't be close to zero.}
+00363   t\_left += t\_left.constant(1.0f);
+00364   t\_right += t\_right.constant(1.0f);
+00365 
+00366   \textcolor{keyword}{typedef} Map<Eigen::Matrix<float, Dynamic, Dynamic, DataLayout>> MapXf;
+00367   MapXf m\_left(t\_left.data(), 1500, 248);
+00368   MapXf m\_right(t\_right.data(), 248, 1400);
+00369   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Eigen::Matrix<float, Dynamic, Dynamic, DataLayout>} 
+      m\_result(1500, 1400);
+00370 
+00371   \textcolor{comment}{// this contraction should be equivalent to a single matrix multiplication}
+00372   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 2>} dims = \{\{DimPair(2, 0), DimPair(3, 1)\}\};
+00373 
+00374   \textcolor{comment}{// compute results by separate methods}
+00375   t\_result = t\_left.contract(t\_right, dims);
+00376   m\_result = m\_left * m\_right;
+00377 
+00378   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < t\_result.dimensions().TotalSize(); i++) \{
+00379     VERIFY(&t\_result.data()[i] != &m\_result.data()[i]);
+00380     VERIFY\_IS\_APPROX(t\_result.data()[i], m\_result.data()[i]);
+00381   \}
+00382 \}
+00383 
+00384 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00385 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_matrix\_vector()
+00386 \{
+00387   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} t\_left(30, 50);
+00388   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, DataLayout>} t\_right(50);
+00389   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, DataLayout>} t\_result(30);
+00390 
+00391   t\_left.setRandom();
+00392   t\_right.setRandom();
+00393 
+00394   \textcolor{keyword}{typedef} Map<Eigen::Matrix<float, Dynamic, Dynamic, DataLayout>> MapXf;
+00395   MapXf m\_left(t\_left.data(), 30, 50);
+00396   MapXf m\_right(t\_right.data(), 50, 1);
+00397   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Eigen::Matrix<float, Dynamic, Dynamic, DataLayout>} 
+      m\_result(30, 1);
+00398 
+00399   \textcolor{comment}{// this contraction should be equivalent to a single matrix multiplication}
+00400   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 1>} dims\{\{DimPair(1, 0)\}\};
+00401 
+00402   \textcolor{comment}{// compute results by separate methods}
+00403   t\_result = t\_left.contract(t\_right, dims);
+00404   m\_result = m\_left * m\_right;
+00405 
+00406   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < t\_result.dimensions().TotalSize(); i++) \{
+00407     VERIFY(internal::isApprox(t\_result(i), m\_result(i, 0), 1));
+00408   \}
+00409 \}
+00410 
+00411 
+00412 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00413 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_tensor\_vector()
+00414 \{
+00415   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3, DataLayout>} t\_left(7, 13, 17);
+00416   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} t\_right(1, 7);
+00417 
+00418   t\_left.setRandom();
+00419   t\_right.setRandom();
+00420 
+00421   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1, DataLayout>::DimensionPair} 
+      DimensionPair;
+00422   \hyperlink{class_eigen_1_1array}{Eigen::array<DimensionPair, 1>} dim\_pair01\{\{\{0, 1\}\}\};
+00423   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3, DataLayout>} t\_result = t\_left.contract(t\_right, dim\_pair01);
+00424 
+00425   \textcolor{keyword}{typedef} Map<Eigen::Matrix<float, Dynamic, Dynamic, DataLayout>> MapXf;
+00426   MapXf m\_left(t\_left.data(), 7, 13*17);
+00427   MapXf m\_right(t\_right.data(), 1, 7);
+00428   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Eigen::Matrix<float, Dynamic, Dynamic, DataLayout>} 
+      m\_result = m\_left.transpose() * m\_right.transpose();
+00429 
+00430   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < t\_result.dimensions().TotalSize(); i++) \{
+00431     VERIFY(internal::isApprox(t\_result(i), m\_result(i, 0), 1));
+00432   \}
+00433 \}
+00434 
+00435 
+00436 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00437 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_small\_blocking\_factors()
+00438 \{
+00439   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} t\_left(30, 5, 3, 31);
+00440   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, DataLayout>} t\_right(3, 31, 7, 20, 1);
+00441   t\_left.setRandom();
+00442   t\_right.setRandom();
+00443 
+00444   \textcolor{comment}{// Add a little offset so that the results won't be close to zero.}
+00445   t\_left += t\_left.constant(1.0f);
+00446   t\_right += t\_right.constant(1.0f);
+00447 
+00448   \textcolor{comment}{// Force the cache sizes, which results in smaller blocking factors.}
+00449   \hyperlink{namespace_eigen_ae64421554aa0a4bf9258bafe3170102b}{Eigen::setCpuCacheSizes}(896, 1920, 2944);
+00450 
+00451   \textcolor{comment}{// this contraction should be equivalent to a single matrix multiplication}
+00452   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 2>} dims = \{\{DimPair(2, 0), DimPair(3, 1)\}\};
+00453   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, DataLayout>} t\_result;
+00454   t\_result = t\_left.contract(t\_right, dims);
+00455 
+00456   \textcolor{comment}{// compute result using a simple eigen matrix product}
+00457   Map<Eigen::Matrix<float, Dynamic, Dynamic, DataLayout>> m\_left(t\_left.data(), 150, 93);
+00458   Map<Eigen::Matrix<float, Dynamic, Dynamic, DataLayout>> m\_right(t\_right.data(), 93, 140);
+00459   \hyperlink{group___core___module_class_eigen_1_1_matrix}{Eigen::Matrix<float, Dynamic, Dynamic, DataLayout>} 
+      m\_result = m\_left * m\_right;
+00460 
+00461   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < t\_result.dimensions().TotalSize(); i++) \{
+00462     VERIFY\_IS\_APPROX(t\_result.data()[i], m\_result.data()[i]);
+00463   \}
+00464 \}
+00465 
+00466 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00467 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_tensor\_product()
+00468 \{
+00469   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} mat1(2, 3);
+00470   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} mat2(4, 1);
+00471   mat1.setRandom();
+00472   mat2.setRandom();
+00473 
+00474   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} result = mat1.contract(mat2, 
+      \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 0>}\{\{\}\});
+00475 
+00476   VERIFY\_IS\_EQUAL(result.dimension(0), 2);
+00477   VERIFY\_IS\_EQUAL(result.dimension(1), 3);
+00478   VERIFY\_IS\_EQUAL(result.dimension(2), 4);
+00479   VERIFY\_IS\_EQUAL(result.dimension(3), 1);
+00480   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < result.dimension(0); ++i) \{
+00481     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < result.dimension(1); ++j) \{
+00482       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < result.dimension(2); ++k) \{
+00483         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < result.dimension(3); ++l) \{
+00484             VERIFY\_IS\_APPROX(result(i, j, k, l), mat1(i, j) * mat2(k, l) );
+00485         \}
+00486       \}
+00487     \}
+00488   \}
+00489 \}
+00490 
+00491 
+00492 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00493 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_const\_inputs()
+00494 \{
+00495   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} in1(2, 3);
+00496   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} in2(3, 2);
+00497   in1.setRandom();
+00498   in2.setRandom();
+00499 
+00500   TensorMap<Tensor<const float, 2, DataLayout> > mat1(in1.data(), 2, 3);
+00501   TensorMap<Tensor<const float, 2, DataLayout> > mat2(in2.data(), 3, 2);
+00502   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} mat3(2,2);
+00503 
+00504   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 1>} dims = \{\{DimPair(1, 0)\}\};
+00505   mat3 = mat1.contract(mat2, dims);
+00506 
+00507   VERIFY\_IS\_APPROX(mat3(0,0), mat1(0,0)*mat2(0,0) + mat1(0,1)*mat2(1,0) + mat1(0,2)*mat2(2,0));
+00508   VERIFY\_IS\_APPROX(mat3(0,1), mat1(0,0)*mat2(0,1) + mat1(0,1)*mat2(1,1) + mat1(0,2)*mat2(2,1));
+00509   VERIFY\_IS\_APPROX(mat3(1,0), mat1(1,0)*mat2(0,0) + mat1(1,1)*mat2(1,0) + mat1(1,2)*mat2(2,0));
+00510   VERIFY\_IS\_APPROX(mat3(1,1), mat1(1,0)*mat2(0,1) + mat1(1,1)*mat2(1,1) + mat1(1,2)*mat2(2,1));
+00511 \}
+00512 
+00513 \textcolor{keywordtype}{void} test\_cxx11\_tensor\_contraction()
+00514 \{
+00515   CALL\_SUBTEST(test\_evals<ColMajor>());
+00516   CALL\_SUBTEST(test\_evals<RowMajor>());
+00517   CALL\_SUBTEST(test\_scalar<ColMajor>());
+00518   CALL\_SUBTEST(test\_scalar<RowMajor>());
+00519   CALL\_SUBTEST(test\_multidims<ColMajor>());
+00520   CALL\_SUBTEST(test\_multidims<RowMajor>());
+00521   CALL\_SUBTEST(test\_holes<ColMajor>());
+00522   CALL\_SUBTEST(test\_holes<RowMajor>());
+00523   CALL\_SUBTEST(test\_full\_redux<ColMajor>());
+00524   CALL\_SUBTEST(test\_full\_redux<RowMajor>());
+00525   CALL\_SUBTEST(test\_contraction\_of\_contraction<ColMajor>());
+00526   CALL\_SUBTEST(test\_contraction\_of\_contraction<RowMajor>());
+00527   CALL\_SUBTEST(test\_expr<ColMajor>());
+00528   CALL\_SUBTEST(test\_expr<RowMajor>());
+00529   CALL\_SUBTEST(test\_out\_of\_order\_contraction<ColMajor>());
+00530   CALL\_SUBTEST(test\_out\_of\_order\_contraction<RowMajor>());
+00531   CALL\_SUBTEST(test\_consistency<ColMajor>());
+00532   CALL\_SUBTEST(test\_consistency<RowMajor>());
+00533   CALL\_SUBTEST(test\_large\_contraction<ColMajor>());
+00534   CALL\_SUBTEST(test\_large\_contraction<RowMajor>());
+00535   CALL\_SUBTEST(test\_matrix\_vector<ColMajor>());
+00536   CALL\_SUBTEST(test\_matrix\_vector<RowMajor>());
+00537   CALL\_SUBTEST(test\_tensor\_vector<ColMajor>());
+00538   CALL\_SUBTEST(test\_tensor\_vector<RowMajor>());
+00539   CALL\_SUBTEST(test\_small\_blocking\_factors<ColMajor>());
+00540   CALL\_SUBTEST(test\_small\_blocking\_factors<RowMajor>());
+00541   CALL\_SUBTEST(test\_tensor\_product<ColMajor>());
+00542   CALL\_SUBTEST(test\_tensor\_product<RowMajor>());
+00543   CALL\_SUBTEST(test\_const\_inputs<ColMajor>());
+00544   CALL\_SUBTEST(test\_const\_inputs<RowMajor>());
+00545 \}
+\end{DoxyCode}

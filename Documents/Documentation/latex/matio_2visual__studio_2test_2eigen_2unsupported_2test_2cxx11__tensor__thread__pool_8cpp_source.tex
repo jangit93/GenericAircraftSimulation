@@ -1,0 +1,383 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__thread__pool_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/test/cxx11\+\_\+tensor\+\_\+thread\+\_\+pool.cpp}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__tensor__thread__pool_8cpp_source}\index{cxx11\+\_\+tensor\+\_\+thread\+\_\+pool.\+cpp@{cxx11\+\_\+tensor\+\_\+thread\+\_\+pool.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2014 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#define EIGEN\_USE\_THREADS}
+00011 
+00012 
+00013 \textcolor{preprocessor}{#include "main.h"}
+00014 \textcolor{preprocessor}{#include <iostream>}
+00015 \textcolor{preprocessor}{#include <Eigen/CXX11/Tensor>}
+00016 
+00017 \textcolor{keyword}{using} \hyperlink{class_eigen_1_1_tensor}{Eigen::Tensor};
+00018 
+00019 
+00020 \textcolor{keywordtype}{void} test\_multithread\_elementwise()
+00021 \{
+00022   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>} in1(2,3,7);
+00023   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>} in2(2,3,7);
+00024   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>} out(2,3,7);
+00025 
+00026   in1.setRandom();
+00027   in2.setRandom();
+00028 
+00029   Eigen::ThreadPool tp(internal::random<int>(3, 11));
+00030   Eigen::ThreadPoolDevice thread\_pool\_device(&tp, internal::random<int>(3, 11));
+00031   out.device(thread\_pool\_device) = in1 + in2 * 3.14f;
+00032 
+00033   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00034     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 3; ++j) \{
+00035       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 7; ++k) \{
+00036         VERIFY\_IS\_APPROX(out(i,j,k), in1(i,j,k) + in2(i,j,k) * 3.14f);
+00037       \}
+00038     \}
+00039   \}
+00040 \}
+00041 
+00042 
+00043 \textcolor{keywordtype}{void} test\_multithread\_compound\_assignment()
+00044 \{
+00045   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>} in1(2,3,7);
+00046   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>} in2(2,3,7);
+00047   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3>} out(2,3,7);
+00048 
+00049   in1.setRandom();
+00050   in2.setRandom();
+00051 
+00052   Eigen::ThreadPool tp(internal::random<int>(3, 11));
+00053   Eigen::ThreadPoolDevice thread\_pool\_device(&tp, internal::random<int>(3, 11));
+00054   out.device(thread\_pool\_device) = in1;
+00055   out.device(thread\_pool\_device) += in2 * 3.14f;
+00056 
+00057   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 2; ++i) \{
+00058     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 3; ++j) \{
+00059       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 7; ++k) \{
+00060         VERIFY\_IS\_APPROX(out(i,j,k), in1(i,j,k) + in2(i,j,k) * 3.14f);
+00061       \}
+00062     \}
+00063   \}
+00064 \}
+00065 
+00066 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00067 \textcolor{keywordtype}{void} test\_multithread\_contraction()
+00068 \{
+00069   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} t\_left(30, 50, 37, 31);
+00070   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, DataLayout>} t\_right(37, 31, 70, 2, 10);
+00071   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, DataLayout>} t\_result(30, 50, 70, 2, 10);
+00072 
+00073   t\_left.setRandom();
+00074   t\_right.setRandom();
+00075 
+00076   \textcolor{comment}{// this contraction should be equivalent to a single matrix multiplication}
+00077   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1>::DimensionPair} DimPair;
+00078   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 2>} dims(\{\{DimPair(2, 0), DimPair(3, 1)\}\});
+00079 
+00080   \textcolor{keyword}{typedef} Map<Matrix<float, Dynamic, Dynamic, DataLayout>> MapXf;
+00081   MapXf m\_left(t\_left.data(), 1500, 1147);
+00082   MapXf m\_right(t\_right.data(), 1147, 1400);
+00083   Matrix<float, Dynamic, Dynamic, DataLayout> m\_result(1500, 1400);
+00084 
+00085   Eigen::ThreadPool tp(4);
+00086   Eigen::ThreadPoolDevice thread\_pool\_device(&tp, 4);
+00087 
+00088   \textcolor{comment}{// compute results by separate methods}
+00089   t\_result.device(thread\_pool\_device) = t\_left.contract(t\_right, dims);
+00090   m\_result = m\_left * m\_right;
+00091 
+00092  \textcolor{keywordflow}{for} (ptrdiff\_t i = 0; i < t\_result.size(); i++) \{
+00093     VERIFY(&t\_result.data()[i] != &m\_result.data()[i]);
+00094     \textcolor{keywordflow}{if} (fabsf(t\_result(i) - m\_result(i)) < 1e-4f) \{
+00095       \textcolor{keywordflow}{continue};
+00096     \}
+00097     \textcolor{keywordflow}{if} (Eigen::internal::isApprox(t\_result(i), m\_result(i), 1e-4f)) \{
+00098       \textcolor{keywordflow}{continue};
+00099     \}
+00100     std::cout << \textcolor{stringliteral}{"mismatch detected at index "} << i << \textcolor{stringliteral}{": "} << t\_result(i)
+00101               << \textcolor{stringliteral}{" vs "} <<  m\_result(i) << std::endl;
+00102     assert(\textcolor{keyword}{false});
+00103   \}
+00104 \}
+00105 
+00106 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00107 \textcolor{keywordtype}{void} test\_contraction\_corner\_cases()
+00108 \{
+00109   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} t\_left(32, 500);
+00110   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} t\_right(32, 28*28);
+00111   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} t\_result(500, 28*28);
+00112 
+00113   t\_left = (t\_left.constant(-0.5f) + t\_left.random()) * 2.0f;
+00114   t\_right = (t\_right.constant(-0.6f) + t\_right.random()) * 2.0f;
+00115   t\_result = t\_result.constant(NAN);
+00116 
+00117   \textcolor{comment}{// this contraction should be equivalent to a single matrix multiplication}
+00118   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1>::DimensionPair} DimPair;
+00119   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 1>} dims\{\{DimPair(0, 0)\}\};
+00120 
+00121   \textcolor{keyword}{typedef} Map<Matrix<float, Dynamic, Dynamic, DataLayout>> MapXf;
+00122   MapXf m\_left(t\_left.data(), 32, 500);
+00123   MapXf m\_right(t\_right.data(), 32, 28*28);
+00124   Matrix<float, Dynamic, Dynamic, DataLayout> m\_result(500, 28*28);
+00125 
+00126   Eigen::ThreadPool tp(12);
+00127   Eigen::ThreadPoolDevice thread\_pool\_device(&tp, 12);
+00128 
+00129   \textcolor{comment}{// compute results by separate methods}
+00130   t\_result.device(thread\_pool\_device) = t\_left.contract(t\_right, dims);
+00131   m\_result = m\_left.transpose() * m\_right;
+00132 
+00133   \textcolor{keywordflow}{for} (ptrdiff\_t i = 0; i < t\_result.size(); i++) \{
+00134     assert(!(numext::isnan)(t\_result.data()[i]));
+00135     \textcolor{keywordflow}{if} (fabsf(t\_result.data()[i] - m\_result.data()[i]) >= 1e-4f) \{
+00136       std::cout << \textcolor{stringliteral}{"mismatch detected at index "} << i << \textcolor{stringliteral}{" : "} << t\_result.data()[i] << \textcolor{stringliteral}{" vs "} <<  m\_result
+      .data()[i] << std::endl;
+00137       assert(\textcolor{keyword}{false});
+00138     \}
+00139   \}
+00140 
+00141   t\_left.resize(32, 1);
+00142   t\_left = (t\_left.constant(-0.5f) + t\_left.random()) * 2.0f;
+00143   t\_result.resize (1, 28*28);
+00144   t\_result = t\_result.constant(NAN);
+00145   t\_result.device(thread\_pool\_device) = t\_left.contract(t\_right, dims);
+00146   \textcolor{keyword}{new}(&m\_left) MapXf(t\_left.data(), 32, 1);
+00147   m\_result = m\_left.transpose() * m\_right;
+00148   \textcolor{keywordflow}{for} (ptrdiff\_t i = 0; i < t\_result.size(); i++) \{
+00149     assert(!(numext::isnan)(t\_result.data()[i]));
+00150     \textcolor{keywordflow}{if} (fabsf(t\_result.data()[i] - m\_result.data()[i]) >= 1e-4f) \{
+00151       std::cout << \textcolor{stringliteral}{"mismatch detected: "} << t\_result.data()[i] << \textcolor{stringliteral}{" vs "} <<  m\_result.data()[i] << 
+      std::endl;
+00152       assert(\textcolor{keyword}{false});
+00153     \}
+00154   \}
+00155 
+00156   t\_left.resize(32, 500);
+00157   t\_right.resize(32, 4);
+00158   t\_left = (t\_left.constant(-0.5f) + t\_left.random()) * 2.0f;
+00159   t\_right = (t\_right.constant(-0.6f) + t\_right.random()) * 2.0f;
+00160   t\_result.resize (500, 4);
+00161   t\_result = t\_result.constant(NAN);
+00162   t\_result.device(thread\_pool\_device) = t\_left.contract(t\_right, dims);
+00163   \textcolor{keyword}{new}(&m\_left) MapXf(t\_left.data(), 32, 500);
+00164   \textcolor{keyword}{new}(&m\_right) MapXf(t\_right.data(), 32, 4);
+00165   m\_result = m\_left.transpose() * m\_right;
+00166   \textcolor{keywordflow}{for} (ptrdiff\_t i = 0; i < t\_result.size(); i++) \{
+00167     assert(!(numext::isnan)(t\_result.data()[i]));
+00168     \textcolor{keywordflow}{if} (fabsf(t\_result.data()[i] - m\_result.data()[i]) >= 1e-4f) \{
+00169       std::cout << \textcolor{stringliteral}{"mismatch detected: "} << t\_result.data()[i] << \textcolor{stringliteral}{" vs "} <<  m\_result.data()[i] << 
+      std::endl;
+00170       assert(\textcolor{keyword}{false});
+00171     \}
+00172   \}
+00173 
+00174   t\_left.resize(32, 1);
+00175   t\_right.resize(32, 4);
+00176   t\_left = (t\_left.constant(-0.5f) + t\_left.random()) * 2.0f;
+00177   t\_right = (t\_right.constant(-0.6f) + t\_right.random()) * 2.0f;
+00178   t\_result.resize (1, 4);
+00179   t\_result = t\_result.constant(NAN);
+00180   t\_result.device(thread\_pool\_device) = t\_left.contract(t\_right, dims);
+00181   \textcolor{keyword}{new}(&m\_left) MapXf(t\_left.data(), 32, 1);
+00182   \textcolor{keyword}{new}(&m\_right) MapXf(t\_right.data(), 32, 4);
+00183   m\_result = m\_left.transpose() * m\_right;
+00184   \textcolor{keywordflow}{for} (ptrdiff\_t i = 0; i < t\_result.size(); i++) \{
+00185     assert(!(numext::isnan)(t\_result.data()[i]));
+00186     \textcolor{keywordflow}{if} (fabsf(t\_result.data()[i] - m\_result.data()[i]) >= 1e-4f) \{
+00187       std::cout << \textcolor{stringliteral}{"mismatch detected: "} << t\_result.data()[i] << \textcolor{stringliteral}{" vs "} <<  m\_result.data()[i] << 
+      std::endl;
+00188       assert(\textcolor{keyword}{false});
+00189     \}
+00190   \}
+00191 \}
+00192 
+00193 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00194 \textcolor{keywordtype}{void} test\_multithread\_contraction\_agrees\_with\_singlethread() \{
+00195   \textcolor{keywordtype}{int} contract\_size = internal::random<int>(1, 5000);
+00196 
+00197   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 3, DataLayout>} left(internal::random<int>(1, 80),
+00198                                     contract\_size,
+00199                                     internal::random<int>(1, 100));
+00200 
+00201   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} right(internal::random<int>(1, 25),
+00202                                      internal::random<int>(1, 37),
+00203                                      contract\_size,
+00204                                      internal::random<int>(1, 51));
+00205 
+00206   left.setRandom();
+00207   right.setRandom();
+00208 
+00209   \textcolor{comment}{// add constants to shift values away from 0 for more precision}
+00210   left += left.constant(1.5f);
+00211   right += right.constant(1.5f);
+00212 
+00213   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1>::DimensionPair} DimPair;
+00214   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 1>} dims(\{\{DimPair(1, 2)\}\});
+00215 
+00216   Eigen::ThreadPool tp(internal::random<int>(2, 11));
+00217   Eigen::ThreadPoolDevice thread\_pool\_device(&tp, internal::random<int>(2, 11));
+00218 
+00219   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, DataLayout>} st\_result;
+00220   st\_result = left.contract(right, dims);
+00221 
+00222   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 5, DataLayout>} tp\_result(st\_result.dimensions());
+00223   tp\_result.device(thread\_pool\_device) = left.contract(right, dims);
+00224 
+00225   VERIFY(dimensions\_match(st\_result.dimensions(), tp\_result.dimensions()));
+00226   \textcolor{keywordflow}{for} (ptrdiff\_t i = 0; i < st\_result.size(); i++) \{
+00227     \textcolor{comment}{// if both of the values are very small, then do nothing (because the test will fail}
+00228     \textcolor{comment}{// due to numerical precision issues when values are small)}
+00229     \textcolor{keywordflow}{if} (numext::abs(st\_result.data()[i] - tp\_result.data()[i]) >= 1e-4f) \{
+00230       VERIFY\_IS\_APPROX(st\_result.data()[i], tp\_result.data()[i]);
+00231     \}
+00232   \}
+00233 \}
+00234 
+00235 
+00236 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00237 \textcolor{keywordtype}{void} test\_full\_contraction() \{
+00238   \textcolor{keywordtype}{int} contract\_size1 = internal::random<int>(1, 500);
+00239   \textcolor{keywordtype}{int} contract\_size2 = internal::random<int>(1, 500);
+00240 
+00241   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} left(contract\_size1,
+00242                                     contract\_size2);
+00243   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} right(contract\_size1,
+00244                                     contract\_size2);
+00245   left.setRandom();
+00246   right.setRandom();
+00247 
+00248   \textcolor{comment}{// add constants to shift values away from 0 for more precision}
+00249   left += left.constant(1.5f);
+00250   right += right.constant(1.5f);
+00251 
+00252   \textcolor{keyword}{typedef} \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2>::DimensionPair} DimPair;
+00253   \hyperlink{class_eigen_1_1array}{Eigen::array<DimPair, 2>} dims(\{\{DimPair(0, 0), DimPair(1, 1)\}\});
+00254 
+00255   Eigen::ThreadPool tp(internal::random<int>(2, 11));
+00256   Eigen::ThreadPoolDevice thread\_pool\_device(&tp, internal::random<int>(2, 11));
+00257 
+00258   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} st\_result;
+00259   st\_result = left.contract(right, dims);
+00260 
+00261   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} tp\_result;
+00262   tp\_result.device(thread\_pool\_device) = left.contract(right, dims);
+00263 
+00264   VERIFY(dimensions\_match(st\_result.dimensions(), tp\_result.dimensions()));
+00265   \textcolor{comment}{// if both of the values are very small, then do nothing (because the test will fail}
+00266   \textcolor{comment}{// due to numerical precision issues when values are small)}
+00267   \textcolor{keywordflow}{if} (numext::abs(st\_result() - tp\_result()) >= 1e-4f) \{
+00268     VERIFY\_IS\_APPROX(st\_result(), tp\_result());
+00269   \}
+00270 \}
+00271 
+00272 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00273 \textcolor{keywordtype}{void} test\_multithreaded\_reductions() \{
+00274   \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_threads = internal::random<int>(3, 11);
+00275   ThreadPool thread\_pool(num\_threads);
+00276   Eigen::ThreadPoolDevice thread\_pool\_device(&thread\_pool, num\_threads);
+00277 
+00278   \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_rows = internal::random<int>(13, 732);
+00279   \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_cols = internal::random<int>(13, 732);
+00280   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 2, DataLayout>} t1(num\_rows, num\_cols);
+00281   t1.setRandom();
+00282 
+00283   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} full\_redux;
+00284   full\_redux = t1.sum();
+00285 
+00286   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 0, DataLayout>} full\_redux\_tp;
+00287   full\_redux\_tp.device(thread\_pool\_device) = t1.sum();
+00288 
+00289   \textcolor{comment}{// Check that the single threaded and the multi threaded reductions return}
+00290   \textcolor{comment}{// the same result.}
+00291   VERIFY\_IS\_APPROX(full\_redux(), full\_redux\_tp());
+00292 \}
+00293 
+00294 
+00295 \textcolor{keywordtype}{void} test\_memcpy() \{
+00296 
+00297   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 5; ++i) \{
+00298     \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_threads = internal::random<int>(3, 11);
+00299     Eigen::ThreadPool tp(num\_threads);
+00300     Eigen::ThreadPoolDevice thread\_pool\_device(&tp, num\_threads);
+00301 
+00302     \textcolor{keyword}{const} \textcolor{keywordtype}{int} size = internal::random<int>(13, 7632);
+00303     \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1>} t1(size);
+00304     t1.setRandom();
+00305     std::vector<float> result(size);
+00306     thread\_pool\_device.memcpy(&result[0], t1.data(), size*\textcolor{keyword}{sizeof}(float));
+00307     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < size; j++) \{
+00308       VERIFY\_IS\_EQUAL(t1(j), result[j]);
+00309     \}
+00310   \}
+00311 \}
+00312 
+00313 
+00314 \textcolor{keywordtype}{void} test\_multithread\_random()
+00315 \{
+00316   Eigen::ThreadPool tp(2);
+00317   Eigen::ThreadPoolDevice device(&tp, 2);
+00318   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 1>} t(1 << 20);
+00319   t.device(device) = t.random<\hyperlink{class_eigen_1_1internal_1_1_normal_random_generator}{Eigen::internal::NormalRandomGenerator<float>}
+      >();
+00320 \}
+00321 
+00322 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} DataLayout>
+00323 \textcolor{keywordtype}{void} test\_multithread\_shuffle()
+00324 \{
+00325   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} tensor(17,5,7,11);
+00326   tensor.setRandom();
+00327 
+00328   \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_threads = internal::random<int>(2, 11);
+00329   ThreadPool threads(num\_threads);
+00330   Eigen::ThreadPoolDevice device(&threads, num\_threads);
+00331 
+00332   \hyperlink{class_eigen_1_1_tensor}{Tensor<float, 4, DataLayout>} shuffle(7,5,11,17);
+00333   array<ptrdiff\_t, 4> shuffles = \{\{2,1,3,0\}\};
+00334   shuffle.device(device) = tensor.shuffle(shuffles);
+00335 
+00336   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 17; ++i) \{
+00337     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < 5; ++j) \{
+00338       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < 7; ++k) \{
+00339         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = 0; l < 11; ++l) \{
+00340           VERIFY\_IS\_EQUAL(tensor(i,j,k,l), shuffle(k,j,l,i));
+00341         \}
+00342       \}
+00343     \}
+00344   \}
+00345 \}
+00346 
+00347 
+00348 \textcolor{keywordtype}{void} test\_cxx11\_tensor\_thread\_pool()
+00349 \{
+00350   CALL\_SUBTEST\_1(test\_multithread\_elementwise());
+00351   CALL\_SUBTEST\_1(test\_multithread\_compound\_assignment());
+00352 
+00353   CALL\_SUBTEST\_2(test\_multithread\_contraction<ColMajor>());
+00354   CALL\_SUBTEST\_2(test\_multithread\_contraction<RowMajor>());
+00355 
+00356   CALL\_SUBTEST\_3(test\_multithread\_contraction\_agrees\_with\_singlethread<ColMajor>());
+00357   CALL\_SUBTEST\_3(test\_multithread\_contraction\_agrees\_with\_singlethread<RowMajor>());
+00358 
+00359   \textcolor{comment}{// Exercise various cases that have been problematic in the past.}
+00360   CALL\_SUBTEST\_4(test\_contraction\_corner\_cases<ColMajor>());
+00361   CALL\_SUBTEST\_4(test\_contraction\_corner\_cases<RowMajor>());
+00362 
+00363   CALL\_SUBTEST\_4(test\_full\_contraction<ColMajor>());
+00364   CALL\_SUBTEST\_4(test\_full\_contraction<RowMajor>());
+00365 
+00366   CALL\_SUBTEST\_5(test\_multithreaded\_reductions<ColMajor>());
+00367   CALL\_SUBTEST\_5(test\_multithreaded\_reductions<RowMajor>());
+00368 
+00369   CALL\_SUBTEST\_6(test\_memcpy());
+00370   CALL\_SUBTEST\_6(test\_multithread\_random());
+00371   CALL\_SUBTEST\_6(test\_multithread\_shuffle<ColMajor>());
+00372   CALL\_SUBTEST\_6(test\_multithread\_shuffle<RowMajor>());
+00373 \}
+\end{DoxyCode}

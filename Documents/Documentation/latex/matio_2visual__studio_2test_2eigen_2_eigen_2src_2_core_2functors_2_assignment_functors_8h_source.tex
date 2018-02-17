@@ -1,0 +1,147 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2functors_2_assignment_functors_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+Core/functors/\+Assignment\+Functors.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_core_2functors_2_assignment_functors_8h_source}\index{Assignment\+Functors.\+h@{Assignment\+Functors.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2010 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_ASSIGNMENT\_FUNCTORS\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_ASSIGNMENT\_FUNCTORS\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016   
+00021 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DstScalar,\textcolor{keyword}{typename} SrcScalar> \textcolor{keyword}{struct }assign\_op \{
+00022 
+00023   EIGEN\_EMPTY\_STRUCT\_CTOR(assign\_op)
+00024   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} assignCoeff(DstScalar& a, \textcolor{keyword}{const} SrcScalar& b)\textcolor{keyword}{ const }\{ a = b; \}
+00025   
+00026   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Alignment, \textcolor{keyword}{typename} Packet>
+00027   EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} assignPacket(DstScalar* a, \textcolor{keyword}{const} Packet& b)\textcolor{keyword}{ const}
+00028 \textcolor{keyword}{  }\{ internal::pstoret<DstScalar,Packet,Alignment>(a,b); \}
+00029 \};
+00030 
+00031 \textcolor{comment}{// Empty overload for void type (used by PermutationMatrix)}
+00032 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DstScalar> \textcolor{keyword}{struct }assign\_op<DstScalar,void> \{\};
+00033 
+00034 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DstScalar,\textcolor{keyword}{typename} SrcScalar>
+00035 \textcolor{keyword}{struct }functor\_traits<assign\_op<DstScalar,SrcScalar> > \{
+00036   \textcolor{keyword}{enum} \{
+00037     Cost = NumTraits<DstScalar>::ReadCost,
+00038     PacketAccess = is\_same<DstScalar,SrcScalar>::value && packet\_traits<DstScalar>::Vectorizable && 
+      packet\_traits<SrcScalar>::Vectorizable
+00039   \};
+00040 \};
+00041 
+00046 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DstScalar,\textcolor{keyword}{typename} SrcScalar> \textcolor{keyword}{struct }add\_assign\_op \{
+00047 
+00048   EIGEN\_EMPTY\_STRUCT\_CTOR(add\_assign\_op)
+00049   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} assignCoeff(DstScalar& a, \textcolor{keyword}{const} SrcScalar& b)\textcolor{keyword}{ const }\{ a += b; 
+      \}
+00050   
+00051   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Alignment, \textcolor{keyword}{typename} Packet>
+00052   EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} assignPacket(DstScalar* a, \textcolor{keyword}{const} Packet& b)\textcolor{keyword}{ const}
+00053 \textcolor{keyword}{  }\{ internal::pstoret<DstScalar,Packet,Alignment>(a,internal::padd(internal::ploadt<Packet,Alignment>(a),b)
+      ); \}
+00054 \};
+00055 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DstScalar,\textcolor{keyword}{typename} SrcScalar>
+00056 \textcolor{keyword}{struct }functor\_traits<add\_assign\_op<DstScalar,SrcScalar> > \{
+00057   \textcolor{keyword}{enum} \{
+00058     Cost = NumTraits<DstScalar>::ReadCost + NumTraits<DstScalar>::AddCost,
+00059     PacketAccess = is\_same<DstScalar,SrcScalar>::value && packet\_traits<DstScalar>::HasAdd
+00060   \};
+00061 \};
+00062 
+00067 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DstScalar,\textcolor{keyword}{typename} SrcScalar> \textcolor{keyword}{struct }sub\_assign\_op \{
+00068 
+00069   EIGEN\_EMPTY\_STRUCT\_CTOR(sub\_assign\_op)
+00070   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} assignCoeff(DstScalar& a, \textcolor{keyword}{const} SrcScalar& b)\textcolor{keyword}{ const }\{ a -= b; 
+      \}
+00071   
+00072   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Alignment, \textcolor{keyword}{typename} Packet>
+00073   EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} assignPacket(DstScalar* a, \textcolor{keyword}{const} Packet& b)\textcolor{keyword}{ const}
+00074 \textcolor{keyword}{  }\{ internal::pstoret<DstScalar,Packet,Alignment>(a,internal::psub(internal::ploadt<Packet,Alignment>(a),b)
+      ); \}
+00075 \};
+00076 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DstScalar,\textcolor{keyword}{typename} SrcScalar>
+00077 \textcolor{keyword}{struct }functor\_traits<sub\_assign\_op<DstScalar,SrcScalar> > \{
+00078   \textcolor{keyword}{enum} \{
+00079     Cost = NumTraits<DstScalar>::ReadCost + NumTraits<DstScalar>::AddCost,
+00080     PacketAccess = is\_same<DstScalar,SrcScalar>::value && packet\_traits<DstScalar>::HasSub
+00081   \};
+00082 \};
+00083 
+00088 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DstScalar, \textcolor{keyword}{typename} SrcScalar=DstScalar>
+00089 \textcolor{keyword}{struct }mul\_assign\_op \{
+00090 
+00091   EIGEN\_EMPTY\_STRUCT\_CTOR(mul\_assign\_op)
+00092   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} assignCoeff(DstScalar& a, \textcolor{keyword}{const} SrcScalar& b)\textcolor{keyword}{ const }\{ a *= b; 
+      \}
+00093   
+00094   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Alignment, \textcolor{keyword}{typename} Packet>
+00095   EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} assignPacket(DstScalar* a, \textcolor{keyword}{const} Packet& b)\textcolor{keyword}{ const}
+00096 \textcolor{keyword}{  }\{ internal::pstoret<DstScalar,Packet,Alignment>(a,internal::pmul(internal::ploadt<Packet,Alignment>(a),b)
+      ); \}
+00097 \};
+00098 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DstScalar, \textcolor{keyword}{typename} SrcScalar>
+00099 \textcolor{keyword}{struct }functor\_traits<mul\_assign\_op<DstScalar,SrcScalar> > \{
+00100   \textcolor{keyword}{enum} \{
+00101     Cost = NumTraits<DstScalar>::ReadCost + NumTraits<DstScalar>::MulCost,
+00102     PacketAccess = is\_same<DstScalar,SrcScalar>::value && packet\_traits<DstScalar>::HasMul
+00103   \};
+00104 \};
+00105 
+00110 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DstScalar, \textcolor{keyword}{typename} SrcScalar=DstScalar> \textcolor{keyword}{struct }div\_assign\_op \{
+00111 
+00112   EIGEN\_EMPTY\_STRUCT\_CTOR(div\_assign\_op)
+00113   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} assignCoeff(DstScalar& a, \textcolor{keyword}{const} SrcScalar& b)\textcolor{keyword}{ const }\{ a /= b; 
+      \}
+00114   
+00115   \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Alignment, \textcolor{keyword}{typename} Packet>
+00116   EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} assignPacket(DstScalar* a, \textcolor{keyword}{const} Packet& b)\textcolor{keyword}{ const}
+00117 \textcolor{keyword}{  }\{ internal::pstoret<DstScalar,Packet,Alignment>(a,internal::pdiv(internal::ploadt<Packet,Alignment>(a),b)
+      ); \}
+00118 \};
+00119 \textcolor{keyword}{template}<\textcolor{keyword}{typename} DstScalar, \textcolor{keyword}{typename} SrcScalar>
+00120 \textcolor{keyword}{struct }functor\_traits<div\_assign\_op<DstScalar,SrcScalar> > \{
+00121   \textcolor{keyword}{enum} \{
+00122     Cost = NumTraits<DstScalar>::ReadCost + NumTraits<DstScalar>::MulCost,
+00123     PacketAccess = is\_same<DstScalar,SrcScalar>::value && packet\_traits<DstScalar>::HasDiv
+00124   \};
+00125 \};
+00126 
+00142 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keyword}{struct }swap\_assign\_op \{
+00143 
+00144   EIGEN\_EMPTY\_STRUCT\_CTOR(swap\_assign\_op)
+00145   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{void} assignCoeff(Scalar& a, \textcolor{keyword}{const} Scalar& b)\textcolor{keyword}{ const}
+00146 \textcolor{keyword}{  }\{
+00147 \textcolor{preprocessor}{#ifdef \_\_CUDACC\_\_}
+00148     \textcolor{comment}{// FIXME is there some kind of cuda::swap?}
+00149     Scalar t=b; \textcolor{keyword}{const\_cast<}Scalar&\textcolor{keyword}{>}(b)=a; a=t;
+00150 \textcolor{preprocessor}{#else}
+00151     \textcolor{keyword}{using} \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{std::swap};
+00152     \hyperlink{endian_8c_a3ca5ecd34b04d6a243c054ac3a57f68d}{swap}(a,const\_cast<Scalar&>(b));
+00153 \textcolor{preprocessor}{#endif}
+00154   \}
+00155 \};
+00156 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00157 \textcolor{keyword}{struct }functor\_traits<swap\_assign\_op<Scalar> > \{
+00158   \textcolor{keyword}{enum} \{
+00159     Cost = 3 * NumTraits<Scalar>::ReadCost,
+00160     PacketAccess = packet\_traits<Scalar>::Vectorizable
+00161   \};
+00162 \};
+00163 
+00164 \} \textcolor{comment}{// namespace internal}
+00165 
+00166 \} \textcolor{comment}{// namespace Eigen}
+00167 
+00168 \textcolor{preprocessor}{#endif // EIGEN\_ASSIGNMENT\_FUNCTORS\_H}
+\end{DoxyCode}

@@ -1,0 +1,80 @@
+\hypertarget{eigen_2test_2selfadjoint_8cpp_source}{}\section{eigen/test/selfadjoint.cpp}
+\label{eigen_2test_2selfadjoint_8cpp_source}\index{selfadjoint.\+cpp@{selfadjoint.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is triangularView of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2010 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 
+00012 \textcolor{comment}{// This file tests the basic selfadjointView API,}
+00013 \textcolor{comment}{// the related products and decompositions are tested in specific files.}
+00014 
+00015 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} selfadjoint(\textcolor{keyword}{const} MatrixType& m)
+00016 \{
+00017   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00018   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00019 
+00020   Index rows = m.rows();
+00021   Index cols = m.cols();
+00022 
+00023   MatrixType m1 = MatrixType::Random(rows, cols),
+00024              m2 = MatrixType::Random(rows, cols),
+00025              m3(rows, cols),
+00026              m4(rows, cols);
+00027 
+00028   m1.diagonal() = m1.diagonal().real().template cast<Scalar>();
+00029 
+00030   \textcolor{comment}{// check selfadjoint to dense}
+00031   m3 = m1.template selfadjointView<Upper>();
+00032   VERIFY\_IS\_APPROX(MatrixType(m3.template triangularView<Upper>()), MatrixType(m1.template 
+      triangularView<Upper>()));
+00033   VERIFY\_IS\_APPROX(m3, m3.adjoint());
+00034 
+00035   m3 = m1.template selfadjointView<Lower>();
+00036   VERIFY\_IS\_APPROX(MatrixType(m3.template triangularView<Lower>()), MatrixType(m1.template 
+      triangularView<Lower>()));
+00037   VERIFY\_IS\_APPROX(m3, m3.adjoint());
+00038 
+00039   m3 = m1.template selfadjointView<Upper>();
+00040   m4 = m2;
+00041   m4 += m1.template selfadjointView<Upper>();
+00042   VERIFY\_IS\_APPROX(m4, m2+m3);
+00043 
+00044   m3 = m1.template selfadjointView<Lower>();
+00045   m4 = m2;
+00046   m4 -= m1.template selfadjointView<Lower>();
+00047   VERIFY\_IS\_APPROX(m4, m2-m3);
+00048 \}
+00049 
+00050 \textcolor{keywordtype}{void} bug\_159()
+00051 \{
+00052   Matrix3d m = Matrix3d::Random().selfadjointView<\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cda891792b8ed394f7607ab16dd716f60e6}{Lower}>();
+00053   EIGEN\_UNUSED\_VARIABLE(m)
+00054 \}
+00055 
+00056 \textcolor{keywordtype}{void} test\_selfadjoint()
+00057 \{
+00058   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat ; i++)
+00059   \{
+00060     \textcolor{keywordtype}{int} s = internal::random<int>(1,EIGEN\_TEST\_MAX\_SIZE);
+00061 
+00062     CALL\_SUBTEST\_1( selfadjoint(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 1, 1>}()) );
+00063     CALL\_SUBTEST\_2( selfadjoint(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float, 2, 2>}()) );
+00064     CALL\_SUBTEST\_3( selfadjoint(Matrix3cf()) );
+00065     CALL\_SUBTEST\_4( selfadjoint(MatrixXcd(s,s)) );
+00066     CALL\_SUBTEST\_5( selfadjoint(\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,Dynamic,Dynamic,RowMajor>}
+      (s, s)) );
+00067     
+00068     TEST\_SET\_BUT\_UNUSED\_VARIABLE(s)
+00069   \}
+00070   
+00071   CALL\_SUBTEST\_1( bug\_159() );
+00072 \}
+\end{DoxyCode}

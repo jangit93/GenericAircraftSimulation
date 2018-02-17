@@ -1,0 +1,1162 @@
+\hypertarget{zlib_2contrib_2inflate86_2inffas86_8c_source}{}\section{zlib/contrib/inflate86/inffas86.c}
+\label{zlib_2contrib_2inflate86_2inffas86_8c_source}\index{inffas86.\+c@{inffas86.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* inffas86.c is a hand tuned assembler version of}
+00002 \textcolor{comment}{ *}
+00003 \textcolor{comment}{ * inffast.c -- fast decoding}
+00004 \textcolor{comment}{ * Copyright (C) 1995-2003 Mark Adler}
+00005 \textcolor{comment}{ * For conditions of distribution and use, see copyright notice in zlib.h}
+00006 \textcolor{comment}{ *}
+00007 \textcolor{comment}{ * Copyright (C) 2003 Chris Anderson <christop@charm.net>}
+00008 \textcolor{comment}{ * Please use the copyright conditions above.}
+00009 \textcolor{comment}{ *}
+00010 \textcolor{comment}{ * Dec-29-2003 -- I added AMD64 inflate asm support.  This version is also}
+00011 \textcolor{comment}{ * slightly quicker on x86 systems because, instead of using rep movsb to copy}
+00012 \textcolor{comment}{ * data, it uses rep movsw, which moves data in 2-byte chunks instead of single}
+00013 \textcolor{comment}{ * bytes.  I've tested the AMD64 code on a Fedora Core 1 + the x86\_64 updates}
+00014 \textcolor{comment}{ * from http://fedora.linux.duke.edu/fc1\_x86\_64}
+00015 \textcolor{comment}{ * which is running on an Athlon 64 3000+ / Gigabyte GA-K8VT800M system with}
+00016 \textcolor{comment}{ * 1GB ram.  The 64-bit version is about 4% faster than the 32-bit version,}
+00017 \textcolor{comment}{ * when decompressing mozilla-source-1.3.tar.gz.}
+00018 \textcolor{comment}{ *}
+00019 \textcolor{comment}{ * Mar-13-2003 -- Most of this is derived from inffast.S which is derived from}
+00020 \textcolor{comment}{ * the gcc -S output of zlib-1.2.0/inffast.c.  Zlib-1.2.0 is in beta release at}
+00021 \textcolor{comment}{ * the moment.  I have successfully compiled and tested this code with gcc2.96,}
+00022 \textcolor{comment}{ * gcc3.2, icc5.0, msvc6.0.  It is very close to the speed of inffast.S}
+00023 \textcolor{comment}{ * compiled with gcc -DNO\_MMX, but inffast.S is still faster on the P3 with MMX}
+00024 \textcolor{comment}{ * enabled.  I will attempt to merge the MMX code into this version.  Newer}
+00025 \textcolor{comment}{ * versions of this and inffast.S can be found at}
+00026 \textcolor{comment}{ * http://www.eetbeetee.com/zlib/ and http://www.charm.net/~christop/zlib/}
+00027 \textcolor{comment}{ */}
+00028 
+00029 \textcolor{preprocessor}{#include "zutil.h"}
+00030 \textcolor{preprocessor}{#include "inftrees.h"}
+00031 \textcolor{preprocessor}{#include "inflate.h"}
+00032 \textcolor{preprocessor}{#include "inffast.h"}
+00033 
+00034 \textcolor{comment}{/* Mark Adler's comments from inffast.c: */}
+00035 
+00036 \textcolor{comment}{/*}
+00037 \textcolor{comment}{   Decode literal, length, and distance codes and write out the resulting}
+00038 \textcolor{comment}{   literal and match bytes until either not enough input or output is}
+00039 \textcolor{comment}{   available, an end-of-block is encountered, or a data error is encountered.}
+00040 \textcolor{comment}{   When large enough input and output buffers are supplied to inflate(), for}
+00041 \textcolor{comment}{   example, a 16K input buffer and a 64K output buffer, more than 95% of the}
+00042 \textcolor{comment}{   inflate execution time is spent in this routine.}
+00043 \textcolor{comment}{}
+00044 \textcolor{comment}{   Entry assumptions:}
+00045 \textcolor{comment}{}
+00046 \textcolor{comment}{        state->mode == LEN}
+00047 \textcolor{comment}{        strm->avail\_in >= 6}
+00048 \textcolor{comment}{        strm->avail\_out >= 258}
+00049 \textcolor{comment}{        start >= strm->avail\_out}
+00050 \textcolor{comment}{        state->bits < 8}
+00051 \textcolor{comment}{}
+00052 \textcolor{comment}{   On return, state->mode is one of:}
+00053 \textcolor{comment}{}
+00054 \textcolor{comment}{        LEN -- ran out of enough output space or enough available input}
+00055 \textcolor{comment}{        TYPE -- reached end of block code, inflate() to interpret next block}
+00056 \textcolor{comment}{        BAD -- error in block data}
+00057 \textcolor{comment}{}
+00058 \textcolor{comment}{   Notes:}
+00059 \textcolor{comment}{}
+00060 \textcolor{comment}{    - The maximum input bits used by a length/distance pair is 15 bits for the}
+00061 \textcolor{comment}{      length code, 5 bits for the length extra, 15 bits for the distance code,}
+00062 \textcolor{comment}{      and 13 bits for the distance extra.  This totals 48 bits, or six bytes.}
+00063 \textcolor{comment}{      Therefore if strm->avail\_in >= 6, then there is enough input to avoid}
+00064 \textcolor{comment}{      checking for available input while decoding.}
+00065 \textcolor{comment}{}
+00066 \textcolor{comment}{    - The maximum bytes that a single length/distance pair can output is 258}
+00067 \textcolor{comment}{      bytes, which is the maximum length that can be coded.  inflate\_fast()}
+00068 \textcolor{comment}{      requires strm->avail\_out >= 258 for each loop to avoid checking for}
+00069 \textcolor{comment}{      output space.}
+00070 \textcolor{comment}{ */}
+00071 \textcolor{keywordtype}{void} inflate\_fast(strm, start)
+00072 z\_streamp strm;
+00073 \textcolor{keywordtype}{unsigned} start;         \textcolor{comment}{/* inflate()'s starting value for strm->avail\_out */}
+00074 \{
+00075     \textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *\hyperlink{structstate}{state};
+00076     \textcolor{keyword}{struct }\hyperlink{structinffast__ar}{inffast\_ar} \{
+00077 \textcolor{comment}{/* 64   32                               x86  x86\_64 */}
+00078 \textcolor{comment}{/* ar offset                              register */}
+00079 \textcolor{comment}{/*  0    0 */} \textcolor{keywordtype}{void} *esp;                \textcolor{comment}{/* esp save */}
+00080 \textcolor{comment}{/*  8    4 */} \textcolor{keywordtype}{void} *ebp;                \textcolor{comment}{/* ebp save */}
+00081 \textcolor{comment}{/* 16    8 */} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *in;    \textcolor{comment}{/* esi rsi  local strm->next\_in */}
+00082 \textcolor{comment}{/* 24   12 */} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *last;  \textcolor{comment}{/*     r9   while in < last */}
+00083 \textcolor{comment}{/* 32   16 */} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *out;   \textcolor{comment}{/* edi rdi  local strm->next\_out */}
+00084 \textcolor{comment}{/* 40   20 */} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *beg;   \textcolor{comment}{/*          inflate()'s init next\_out */}
+00085 \textcolor{comment}{/* 48   24 */} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *end;   \textcolor{comment}{/*     r10  while out < end */}
+00086 \textcolor{comment}{/* 56   28 */} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} FAR *window;\textcolor{comment}{/*          size of window, wsize!=0 */}
+00087 \textcolor{comment}{/* 64   32 */} \hyperlink{structcode}{code} \textcolor{keyword}{const} FAR *lcode;    \textcolor{comment}{/* ebp rbp  local strm->lencode */}
+00088 \textcolor{comment}{/* 72   36 */} \hyperlink{structcode}{code} \textcolor{keyword}{const} FAR *dcode;    \textcolor{comment}{/*     r11  local strm->distcode */}
+00089 \textcolor{comment}{/* 80   40 */} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} hold;       \textcolor{comment}{/* edx rdx  local strm->hold */}
+00090 \textcolor{comment}{/* 88   44 */} \textcolor{keywordtype}{unsigned} bits;            \textcolor{comment}{/* ebx rbx  local strm->bits */}
+00091 \textcolor{comment}{/* 92   48 */} \textcolor{keywordtype}{unsigned} wsize;           \textcolor{comment}{/*          window size */}
+00092 \textcolor{comment}{/* 96   52 */} \textcolor{keywordtype}{unsigned} write;           \textcolor{comment}{/*          window write index */}
+00093 \textcolor{comment}{/*100   56 */} \textcolor{keywordtype}{unsigned} lmask;           \textcolor{comment}{/*     r12  mask for lcode */}
+00094 \textcolor{comment}{/*104   60 */} \textcolor{keywordtype}{unsigned} dmask;           \textcolor{comment}{/*     r13  mask for dcode */}
+00095 \textcolor{comment}{/*108   64 */} \textcolor{keywordtype}{unsigned} len;             \textcolor{comment}{/*     r14  match length */}
+00096 \textcolor{comment}{/*112   68 */} \textcolor{keywordtype}{unsigned} dist;            \textcolor{comment}{/*     r15  match distance */}
+00097 \textcolor{comment}{/*116   72 */} \textcolor{keywordtype}{unsigned} status;          \textcolor{comment}{/*          set when state chng*/}
+00098     \} ar;
+00099 
+00100 \textcolor{preprocessor}{#if defined( \_\_GNUC\_\_ ) && defined( \_\_amd64\_\_ ) && ! defined( \_\_i386 )}
+00101 \textcolor{preprocessor}{#define PAD\_AVAIL\_IN 6}
+00102 \textcolor{preprocessor}{#define PAD\_AVAIL\_OUT 258}
+00103 \textcolor{preprocessor}{#else}
+00104 \textcolor{preprocessor}{#define PAD\_AVAIL\_IN 5}
+00105 \textcolor{preprocessor}{#define PAD\_AVAIL\_OUT 257}
+00106 \textcolor{preprocessor}{#endif}
+00107 
+00108     \textcolor{comment}{/* copy state to local variables */}
+00109     state = (\textcolor{keyword}{struct }\hyperlink{structinflate__state}{inflate\_state} FAR *)strm->state;
+00110     ar.in = strm->next\_in;
+00111     ar.last = ar.in + (strm->avail\_in - PAD\_AVAIL\_IN);
+00112     ar.out = strm->next\_out;
+00113     ar.beg = ar.out - (start - strm->avail\_out);
+00114     ar.end = ar.out + (strm->avail\_out - PAD\_AVAIL\_OUT);
+00115     ar.wsize = state->wsize;
+00116     ar.write = state->wnext;
+00117     ar.window = state->window;
+00118     ar.hold = state->hold;
+00119     ar.bits = state->bits;
+00120     ar.lcode = state->lencode;
+00121     ar.dcode = state->distcode;
+00122     ar.lmask = (1U << state->lenbits) - 1;
+00123     ar.dmask = (1U << state->distbits) - 1;
+00124 
+00125     \textcolor{comment}{/* decode literals and length/distances until end-of-block or not enough}
+00126 \textcolor{comment}{       input data or output space */}
+00127 
+00128     \textcolor{comment}{/* align in on 1/2 hold size boundary */}
+00129     \textcolor{keywordflow}{while} (((\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long})(\textcolor{keywordtype}{void} *)ar.in & (\textcolor{keyword}{sizeof}(ar.hold) / 2 - 1)) != 0) \{
+00130         ar.hold += (\textcolor{keywordtype}{unsigned} long)*ar.in++ << ar.bits;
+00131         ar.bits += 8;
+00132     \}
+00133 
+00134 \textcolor{preprocessor}{#if defined( \_\_GNUC\_\_ ) && defined( \_\_amd64\_\_ ) && ! defined( \_\_i386 )}
+00135     \_\_asm\_\_ \_\_volatile\_\_ (
+00136 \textcolor{stringliteral}{"        leaq    %0, %%rax\(\backslash\)n"}
+00137 \textcolor{stringliteral}{"        movq    %%rbp, 8(%%rax)\(\backslash\)n"}       \textcolor{comment}{/* save regs rbp and rsp */}
+00138 \textcolor{stringliteral}{"        movq    %%rsp, (%%rax)\(\backslash\)n"}
+00139 \textcolor{stringliteral}{"        movq    %%rax, %%rsp\(\backslash\)n"}          \textcolor{comment}{/* make rsp point to &ar */}
+00140 \textcolor{stringliteral}{"        movq    16(%%rsp), %%rsi\(\backslash\)n"}      \textcolor{comment}{/* rsi  = in */}
+00141 \textcolor{stringliteral}{"        movq    32(%%rsp), %%rdi\(\backslash\)n"}      \textcolor{comment}{/* rdi  = out */}
+00142 \textcolor{stringliteral}{"        movq    24(%%rsp), %%r9\(\backslash\)n"}       \textcolor{comment}{/* r9   = last */}
+00143 \textcolor{stringliteral}{"        movq    48(%%rsp), %%r10\(\backslash\)n"}      \textcolor{comment}{/* r10  = end */}
+00144 \textcolor{stringliteral}{"        movq    64(%%rsp), %%rbp\(\backslash\)n"}      \textcolor{comment}{/* rbp  = lcode */}
+00145 \textcolor{stringliteral}{"        movq    72(%%rsp), %%r11\(\backslash\)n"}      \textcolor{comment}{/* r11  = dcode */}
+00146 \textcolor{stringliteral}{"        movq    80(%%rsp), %%rdx\(\backslash\)n"}      \textcolor{comment}{/* rdx  = hold */}
+00147 \textcolor{stringliteral}{"        movl    88(%%rsp), %%ebx\(\backslash\)n"}      \textcolor{comment}{/* ebx  = bits */}
+00148 \textcolor{stringliteral}{"        movl    100(%%rsp), %%r12d\(\backslash\)n"}    \textcolor{comment}{/* r12d = lmask */}
+00149 \textcolor{stringliteral}{"        movl    104(%%rsp), %%r13d\(\backslash\)n"}    \textcolor{comment}{/* r13d = dmask */}
+00150                                           \textcolor{comment}{/* r14d = len */}
+00151                                           \textcolor{comment}{/* r15d = dist */}
+00152 \textcolor{stringliteral}{"        cld\(\backslash\)n"}
+00153 \textcolor{stringliteral}{"        cmpq    %%rdi, %%r10\(\backslash\)n"}
+00154 \textcolor{stringliteral}{"        je      .L\_one\_time\(\backslash\)n"}           \textcolor{comment}{/* if only one decode left */}
+00155 \textcolor{stringliteral}{"        cmpq    %%rsi, %%r9\(\backslash\)n"}
+00156 \textcolor{stringliteral}{"        je      .L\_one\_time\(\backslash\)n"}
+00157 \textcolor{stringliteral}{"        jmp     .L\_do\_loop\(\backslash\)n"}
+00158 
+00159 \textcolor{stringliteral}{".L\_one\_time:\(\backslash\)n"}
+00160 \textcolor{stringliteral}{"        movq    %%r12, %%r8\(\backslash\)n"}           \textcolor{comment}{/* r8 = lmask */}
+00161 \textcolor{stringliteral}{"        cmpb    $32, %%bl\(\backslash\)n"}
+00162 \textcolor{stringliteral}{"        ja      .L\_get\_length\_code\_one\_time\(\backslash\)n"}
+00163 
+00164 \textcolor{stringliteral}{"        lodsl\(\backslash\)n"}                         \textcolor{comment}{/* eax = *(uint *)in++ */}
+00165 \textcolor{stringliteral}{"        movb    %%bl, %%cl\(\backslash\)n"}            \textcolor{comment}{/* cl = bits, needs it for shifting */}
+00166 \textcolor{stringliteral}{"        addb    $32, %%bl\(\backslash\)n"}             \textcolor{comment}{/* bits += 32 */}
+00167 \textcolor{stringliteral}{"        shlq    %%cl, %%rax\(\backslash\)n"}
+00168 \textcolor{stringliteral}{"        orq     %%rax, %%rdx\(\backslash\)n"}          \textcolor{comment}{/* hold |= *((uint *)in)++ << bits */}
+00169 \textcolor{stringliteral}{"        jmp     .L\_get\_length\_code\_one\_time\(\backslash\)n"}
+00170 
+00171 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00172 \textcolor{stringliteral}{".L\_while\_test:\(\backslash\)n"}
+00173 \textcolor{stringliteral}{"        cmpq    %%rdi, %%r10\(\backslash\)n"}
+00174 \textcolor{stringliteral}{"        jbe     .L\_break\_loop\(\backslash\)n"}
+00175 \textcolor{stringliteral}{"        cmpq    %%rsi, %%r9\(\backslash\)n"}
+00176 \textcolor{stringliteral}{"        jbe     .L\_break\_loop\(\backslash\)n"}
+00177 
+00178 \textcolor{stringliteral}{".L\_do\_loop:\(\backslash\)n"}
+00179 \textcolor{stringliteral}{"        movq    %%r12, %%r8\(\backslash\)n"}           \textcolor{comment}{/* r8 = lmask */}
+00180 \textcolor{stringliteral}{"        cmpb    $32, %%bl\(\backslash\)n"}
+00181 \textcolor{stringliteral}{"        ja      .L\_get\_length\_code\(\backslash\)n"}    \textcolor{comment}{/* if (32 < bits) */}
+00182 
+00183 \textcolor{stringliteral}{"        lodsl\(\backslash\)n"}                         \textcolor{comment}{/* eax = *(uint *)in++ */}
+00184 \textcolor{stringliteral}{"        movb    %%bl, %%cl\(\backslash\)n"}            \textcolor{comment}{/* cl = bits, needs it for shifting */}
+00185 \textcolor{stringliteral}{"        addb    $32, %%bl\(\backslash\)n"}             \textcolor{comment}{/* bits += 32 */}
+00186 \textcolor{stringliteral}{"        shlq    %%cl, %%rax\(\backslash\)n"}
+00187 \textcolor{stringliteral}{"        orq     %%rax, %%rdx\(\backslash\)n"}          \textcolor{comment}{/* hold |= *((uint *)in)++ << bits */}
+00188 
+00189 \textcolor{stringliteral}{".L\_get\_length\_code:\(\backslash\)n"}
+00190 \textcolor{stringliteral}{"        andq    %%rdx, %%r8\(\backslash\)n"}            \textcolor{comment}{/* r8 &= hold */}
+00191 \textcolor{stringliteral}{"        movl    (%%rbp,%%r8,4), %%eax\(\backslash\)n"}  \textcolor{comment}{/* eax = lcode[hold & lmask] */}
+00192 
+00193 \textcolor{stringliteral}{"        movb    %%ah, %%cl\(\backslash\)n"}            \textcolor{comment}{/* cl = this.bits */}
+00194 \textcolor{stringliteral}{"        subb    %%ah, %%bl\(\backslash\)n"}            \textcolor{comment}{/* bits -= this.bits */}
+00195 \textcolor{stringliteral}{"        shrq    %%cl, %%rdx\(\backslash\)n"}           \textcolor{comment}{/* hold >>= this.bits */}
+00196 
+00197 \textcolor{stringliteral}{"        testb   %%al, %%al\(\backslash\)n"}
+00198 \textcolor{stringliteral}{"        jnz     .L\_test\_for\_length\_base\(\backslash\)n"} \textcolor{comment}{/* if (op != 0) 45.7% */}
+00199 
+00200 \textcolor{stringliteral}{"        movq    %%r12, %%r8\(\backslash\)n"}            \textcolor{comment}{/* r8 = lmask */}
+00201 \textcolor{stringliteral}{"        shrl    $16, %%eax\(\backslash\)n"}            \textcolor{comment}{/* output this.val char */}
+00202 \textcolor{stringliteral}{"        stosb\(\backslash\)n"}
+00203 
+00204 \textcolor{stringliteral}{".L\_get\_length\_code\_one\_time:\(\backslash\)n"}
+00205 \textcolor{stringliteral}{"        andq    %%rdx, %%r8\(\backslash\)n"}            \textcolor{comment}{/* r8 &= hold */}
+00206 \textcolor{stringliteral}{"        movl    (%%rbp,%%r8,4), %%eax\(\backslash\)n"} \textcolor{comment}{/* eax = lcode[hold & lmask] */}
+00207 
+00208 \textcolor{stringliteral}{".L\_dolen:\(\backslash\)n"}
+00209 \textcolor{stringliteral}{"        movb    %%ah, %%cl\(\backslash\)n"}            \textcolor{comment}{/* cl = this.bits */}
+00210 \textcolor{stringliteral}{"        subb    %%ah, %%bl\(\backslash\)n"}            \textcolor{comment}{/* bits -= this.bits */}
+00211 \textcolor{stringliteral}{"        shrq    %%cl, %%rdx\(\backslash\)n"}           \textcolor{comment}{/* hold >>= this.bits */}
+00212 
+00213 \textcolor{stringliteral}{"        testb   %%al, %%al\(\backslash\)n"}
+00214 \textcolor{stringliteral}{"        jnz     .L\_test\_for\_length\_base\(\backslash\)n"} \textcolor{comment}{/* if (op != 0) 45.7% */}
+00215 
+00216 \textcolor{stringliteral}{"        shrl    $16, %%eax\(\backslash\)n"}            \textcolor{comment}{/* output this.val char */}
+00217 \textcolor{stringliteral}{"        stosb\(\backslash\)n"}
+00218 \textcolor{stringliteral}{"        jmp     .L\_while\_test\(\backslash\)n"}
+00219 
+00220 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00221 \textcolor{stringliteral}{".L\_test\_for\_length\_base:\(\backslash\)n"}
+00222 \textcolor{stringliteral}{"        movl    %%eax, %%r14d\(\backslash\)n"}         \textcolor{comment}{/* len = this */}
+00223 \textcolor{stringliteral}{"        shrl    $16, %%r14d\(\backslash\)n"}           \textcolor{comment}{/* len = this.val */}
+00224 \textcolor{stringliteral}{"        movb    %%al, %%cl\(\backslash\)n"}
+00225 
+00226 \textcolor{stringliteral}{"        testb   $16, %%al\(\backslash\)n"}
+00227 \textcolor{stringliteral}{"        jz      .L\_test\_for\_second\_level\_length\(\backslash\)n"} \textcolor{comment}{/* if ((op & 16) == 0) 8% */}
+00228 \textcolor{stringliteral}{"        andb    $15, %%cl\(\backslash\)n"}             \textcolor{comment}{/* op &= 15 */}
+00229 \textcolor{stringliteral}{"        jz      .L\_decode\_distance\(\backslash\)n"}    \textcolor{comment}{/* if (!op) */}
+00230 
+00231 \textcolor{stringliteral}{".L\_add\_bits\_to\_len:\(\backslash\)n"}
+00232 \textcolor{stringliteral}{"        subb    %%cl, %%bl\(\backslash\)n"}
+00233 \textcolor{stringliteral}{"        xorl    %%eax, %%eax\(\backslash\)n"}
+00234 \textcolor{stringliteral}{"        incl    %%eax\(\backslash\)n"}
+00235 \textcolor{stringliteral}{"        shll    %%cl, %%eax\(\backslash\)n"}
+00236 \textcolor{stringliteral}{"        decl    %%eax\(\backslash\)n"}
+00237 \textcolor{stringliteral}{"        andl    %%edx, %%eax\(\backslash\)n"}          \textcolor{comment}{/* eax &= hold */}
+00238 \textcolor{stringliteral}{"        shrq    %%cl, %%rdx\(\backslash\)n"}
+00239 \textcolor{stringliteral}{"        addl    %%eax, %%r14d\(\backslash\)n"}         \textcolor{comment}{/* len += hold & mask[op] */}
+00240 
+00241 \textcolor{stringliteral}{".L\_decode\_distance:\(\backslash\)n"}
+00242 \textcolor{stringliteral}{"        movq    %%r13, %%r8\(\backslash\)n"}           \textcolor{comment}{/* r8 = dmask */}
+00243 \textcolor{stringliteral}{"        cmpb    $32, %%bl\(\backslash\)n"}
+00244 \textcolor{stringliteral}{"        ja      .L\_get\_distance\_code\(\backslash\)n"}  \textcolor{comment}{/* if (32 < bits) */}
+00245 
+00246 \textcolor{stringliteral}{"        lodsl\(\backslash\)n"}                         \textcolor{comment}{/* eax = *(uint *)in++ */}
+00247 \textcolor{stringliteral}{"        movb    %%bl, %%cl\(\backslash\)n"}            \textcolor{comment}{/* cl = bits, needs it for shifting */}
+00248 \textcolor{stringliteral}{"        addb    $32, %%bl\(\backslash\)n"}             \textcolor{comment}{/* bits += 32 */}
+00249 \textcolor{stringliteral}{"        shlq    %%cl, %%rax\(\backslash\)n"}
+00250 \textcolor{stringliteral}{"        orq     %%rax, %%rdx\(\backslash\)n"}          \textcolor{comment}{/* hold |= *((uint *)in)++ << bits */}
+00251 
+00252 \textcolor{stringliteral}{".L\_get\_distance\_code:\(\backslash\)n"}
+00253 \textcolor{stringliteral}{"        andq    %%rdx, %%r8\(\backslash\)n"}           \textcolor{comment}{/* r8 &= hold */}
+00254 \textcolor{stringliteral}{"        movl    (%%r11,%%r8,4), %%eax\(\backslash\)n"} \textcolor{comment}{/* eax = dcode[hold & dmask] */}
+00255 
+00256 \textcolor{stringliteral}{".L\_dodist:\(\backslash\)n"}
+00257 \textcolor{stringliteral}{"        movl    %%eax, %%r15d\(\backslash\)n"}         \textcolor{comment}{/* dist = this */}
+00258 \textcolor{stringliteral}{"        shrl    $16, %%r15d\(\backslash\)n"}           \textcolor{comment}{/* dist = this.val */}
+00259 \textcolor{stringliteral}{"        movb    %%ah, %%cl\(\backslash\)n"}
+00260 \textcolor{stringliteral}{"        subb    %%ah, %%bl\(\backslash\)n"}            \textcolor{comment}{/* bits -= this.bits */}
+00261 \textcolor{stringliteral}{"        shrq    %%cl, %%rdx\(\backslash\)n"}           \textcolor{comment}{/* hold >>= this.bits */}
+00262 \textcolor{stringliteral}{"        movb    %%al, %%cl\(\backslash\)n"}            \textcolor{comment}{/* cl = this.op */}
+00263 
+00264 \textcolor{stringliteral}{"        testb   $16, %%al\(\backslash\)n"}             \textcolor{comment}{/* if ((op & 16) == 0) */}
+00265 \textcolor{stringliteral}{"        jz      .L\_test\_for\_second\_level\_dist\(\backslash\)n"}
+00266 \textcolor{stringliteral}{"        andb    $15, %%cl\(\backslash\)n"}             \textcolor{comment}{/* op &= 15 */}
+00267 \textcolor{stringliteral}{"        jz      .L\_check\_dist\_one\(\backslash\)n"}
+00268 
+00269 \textcolor{stringliteral}{".L\_add\_bits\_to\_dist:\(\backslash\)n"}
+00270 \textcolor{stringliteral}{"        subb    %%cl, %%bl\(\backslash\)n"}
+00271 \textcolor{stringliteral}{"        xorl    %%eax, %%eax\(\backslash\)n"}
+00272 \textcolor{stringliteral}{"        incl    %%eax\(\backslash\)n"}
+00273 \textcolor{stringliteral}{"        shll    %%cl, %%eax\(\backslash\)n"}
+00274 \textcolor{stringliteral}{"        decl    %%eax\(\backslash\)n"}                 \textcolor{comment}{/* (1 << op) - 1 */}
+00275 \textcolor{stringliteral}{"        andl    %%edx, %%eax\(\backslash\)n"}          \textcolor{comment}{/* eax &= hold */}
+00276 \textcolor{stringliteral}{"        shrq    %%cl, %%rdx\(\backslash\)n"}
+00277 \textcolor{stringliteral}{"        addl    %%eax, %%r15d\(\backslash\)n"}         \textcolor{comment}{/* dist += hold & ((1 << op) - 1) */}
+00278 
+00279 \textcolor{stringliteral}{".L\_check\_window:\(\backslash\)n"}
+00280 \textcolor{stringliteral}{"        movq    %%rsi, %%r8\(\backslash\)n"}           \textcolor{comment}{/* save in so from can use it's reg */}
+00281 \textcolor{stringliteral}{"        movq    %%rdi, %%rax\(\backslash\)n"}
+00282 \textcolor{stringliteral}{"        subq    40(%%rsp), %%rax\(\backslash\)n"}      \textcolor{comment}{/* nbytes = out - beg */}
+00283 
+00284 \textcolor{stringliteral}{"        cmpl    %%r15d, %%eax\(\backslash\)n"}
+00285 \textcolor{stringliteral}{"        jb      .L\_clip\_window\(\backslash\)n"}        \textcolor{comment}{/* if (dist > nbytes) 4.2% */}
+00286 
+00287 \textcolor{stringliteral}{"        movl    %%r14d, %%ecx\(\backslash\)n"}         \textcolor{comment}{/* ecx = len */}
+00288 \textcolor{stringliteral}{"        movq    %%rdi, %%rsi\(\backslash\)n"}
+00289 \textcolor{stringliteral}{"        subq    %%r15, %%rsi\(\backslash\)n"}          \textcolor{comment}{/* from = out - dist */}
+00290 
+00291 \textcolor{stringliteral}{"        sarl    %%ecx\(\backslash\)n"}
+00292 \textcolor{stringliteral}{"        jnc     .L\_copy\_two\(\backslash\)n"}           \textcolor{comment}{/* if len % 2 == 0 */}
+00293 
+00294 \textcolor{stringliteral}{"        rep     movsw\(\backslash\)n"}
+00295 \textcolor{stringliteral}{"        movb    (%%rsi), %%al\(\backslash\)n"}
+00296 \textcolor{stringliteral}{"        movb    %%al, (%%rdi)\(\backslash\)n"}
+00297 \textcolor{stringliteral}{"        incq    %%rdi\(\backslash\)n"}
+00298 
+00299 \textcolor{stringliteral}{"        movq    %%r8, %%rsi\(\backslash\)n"}           \textcolor{comment}{/* move in back to %rsi, toss from */}
+00300 \textcolor{stringliteral}{"        jmp     .L\_while\_test\(\backslash\)n"}
+00301 
+00302 \textcolor{stringliteral}{".L\_copy\_two:\(\backslash\)n"}
+00303 \textcolor{stringliteral}{"        rep     movsw\(\backslash\)n"}
+00304 \textcolor{stringliteral}{"        movq    %%r8, %%rsi\(\backslash\)n"}           \textcolor{comment}{/* move in back to %rsi, toss from */}
+00305 \textcolor{stringliteral}{"        jmp     .L\_while\_test\(\backslash\)n"}
+00306 
+00307 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00308 \textcolor{stringliteral}{".L\_check\_dist\_one:\(\backslash\)n"}
+00309 \textcolor{stringliteral}{"        cmpl    $1, %%r15d\(\backslash\)n"}            \textcolor{comment}{/* if dist 1, is a memset */}
+00310 \textcolor{stringliteral}{"        jne     .L\_check\_window\(\backslash\)n"}
+00311 \textcolor{stringliteral}{"        cmpq    %%rdi, 40(%%rsp)\(\backslash\)n"}      \textcolor{comment}{/* if out == beg, outside window */}
+00312 \textcolor{stringliteral}{"        je      .L\_check\_window\(\backslash\)n"}
+00313 
+00314 \textcolor{stringliteral}{"        movl    %%r14d, %%ecx\(\backslash\)n"}         \textcolor{comment}{/* ecx = len */}
+00315 \textcolor{stringliteral}{"        movb    -1(%%rdi), %%al\(\backslash\)n"}
+00316 \textcolor{stringliteral}{"        movb    %%al, %%ah\(\backslash\)n"}
+00317 
+00318 \textcolor{stringliteral}{"        sarl    %%ecx\(\backslash\)n"}
+00319 \textcolor{stringliteral}{"        jnc     .L\_set\_two\(\backslash\)n"}
+00320 \textcolor{stringliteral}{"        movb    %%al, (%%rdi)\(\backslash\)n"}
+00321 \textcolor{stringliteral}{"        incq    %%rdi\(\backslash\)n"}
+00322 
+00323 \textcolor{stringliteral}{".L\_set\_two:\(\backslash\)n"}
+00324 \textcolor{stringliteral}{"        rep     stosw\(\backslash\)n"}
+00325 \textcolor{stringliteral}{"        jmp     .L\_while\_test\(\backslash\)n"}
+00326 
+00327 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00328 \textcolor{stringliteral}{".L\_test\_for\_second\_level\_length:\(\backslash\)n"}
+00329 \textcolor{stringliteral}{"        testb   $64, %%al\(\backslash\)n"}
+00330 \textcolor{stringliteral}{"        jnz     .L\_test\_for\_end\_of\_block\(\backslash\)n"} \textcolor{comment}{/* if ((op & 64) != 0) */}
+00331 
+00332 \textcolor{stringliteral}{"        xorl    %%eax, %%eax\(\backslash\)n"}
+00333 \textcolor{stringliteral}{"        incl    %%eax\(\backslash\)n"}
+00334 \textcolor{stringliteral}{"        shll    %%cl, %%eax\(\backslash\)n"}
+00335 \textcolor{stringliteral}{"        decl    %%eax\(\backslash\)n"}
+00336 \textcolor{stringliteral}{"        andl    %%edx, %%eax\(\backslash\)n"}         \textcolor{comment}{/* eax &= hold */}
+00337 \textcolor{stringliteral}{"        addl    %%r14d, %%eax\(\backslash\)n"}        \textcolor{comment}{/* eax += len */}
+00338 \textcolor{stringliteral}{"        movl    (%%rbp,%%rax,4), %%eax\(\backslash\)n"} \textcolor{comment}{/* eax = lcode[val+(hold&mask[op])]*/}
+00339 \textcolor{stringliteral}{"        jmp     .L\_dolen\(\backslash\)n"}
+00340 
+00341 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00342 \textcolor{stringliteral}{".L\_test\_for\_second\_level\_dist:\(\backslash\)n"}
+00343 \textcolor{stringliteral}{"        testb   $64, %%al\(\backslash\)n"}
+00344 \textcolor{stringliteral}{"        jnz     .L\_invalid\_distance\_code\(\backslash\)n"} \textcolor{comment}{/* if ((op & 64) != 0) */}
+00345 
+00346 \textcolor{stringliteral}{"        xorl    %%eax, %%eax\(\backslash\)n"}
+00347 \textcolor{stringliteral}{"        incl    %%eax\(\backslash\)n"}
+00348 \textcolor{stringliteral}{"        shll    %%cl, %%eax\(\backslash\)n"}
+00349 \textcolor{stringliteral}{"        decl    %%eax\(\backslash\)n"}
+00350 \textcolor{stringliteral}{"        andl    %%edx, %%eax\(\backslash\)n"}         \textcolor{comment}{/* eax &= hold */}
+00351 \textcolor{stringliteral}{"        addl    %%r15d, %%eax\(\backslash\)n"}        \textcolor{comment}{/* eax += dist */}
+00352 \textcolor{stringliteral}{"        movl    (%%r11,%%rax,4), %%eax\(\backslash\)n"} \textcolor{comment}{/* eax = dcode[val+(hold&mask[op])]*/}
+00353 \textcolor{stringliteral}{"        jmp     .L\_dodist\(\backslash\)n"}
+00354 
+00355 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00356 \textcolor{stringliteral}{".L\_clip\_window:\(\backslash\)n"}
+00357 \textcolor{stringliteral}{"        movl    %%eax, %%ecx\(\backslash\)n"}         \textcolor{comment}{/* ecx = nbytes */}
+00358 \textcolor{stringliteral}{"        movl    92(%%rsp), %%eax\(\backslash\)n"}     \textcolor{comment}{/* eax = wsize, prepare for dist cmp */}
+00359 \textcolor{stringliteral}{"        negl    %%ecx\(\backslash\)n"}                \textcolor{comment}{/* nbytes = -nbytes */}
+00360 
+00361 \textcolor{stringliteral}{"        cmpl    %%r15d, %%eax\(\backslash\)n"}
+00362 \textcolor{stringliteral}{"        jb      .L\_invalid\_distance\_too\_far\(\backslash\)n"} \textcolor{comment}{/* if (dist > wsize) */}
+00363 
+00364 \textcolor{stringliteral}{"        addl    %%r15d, %%ecx\(\backslash\)n"}         \textcolor{comment}{/* nbytes = dist - nbytes */}
+00365 \textcolor{stringliteral}{"        cmpl    $0, 96(%%rsp)\(\backslash\)n"}
+00366 \textcolor{stringliteral}{"        jne     .L\_wrap\_around\_window\(\backslash\)n"} \textcolor{comment}{/* if (write != 0) */}
+00367 
+00368 \textcolor{stringliteral}{"        movq    56(%%rsp), %%rsi\(\backslash\)n"}     \textcolor{comment}{/* from  = window */}
+00369 \textcolor{stringliteral}{"        subl    %%ecx, %%eax\(\backslash\)n"}         \textcolor{comment}{/* eax  -= nbytes */}
+00370 \textcolor{stringliteral}{"        addq    %%rax, %%rsi\(\backslash\)n"}         \textcolor{comment}{/* from += wsize - nbytes */}
+00371 
+00372 \textcolor{stringliteral}{"        movl    %%r14d, %%eax\(\backslash\)n"}        \textcolor{comment}{/* eax = len */}
+00373 \textcolor{stringliteral}{"        cmpl    %%ecx, %%r14d\(\backslash\)n"}
+00374 \textcolor{stringliteral}{"        jbe     .L\_do\_copy\(\backslash\)n"}           \textcolor{comment}{/* if (nbytes >= len) */}
+00375 
+00376 \textcolor{stringliteral}{"        subl    %%ecx, %%eax\(\backslash\)n"}         \textcolor{comment}{/* eax -= nbytes */}
+00377 \textcolor{stringliteral}{"        rep     movsb\(\backslash\)n"}
+00378 \textcolor{stringliteral}{"        movq    %%rdi, %%rsi\(\backslash\)n"}
+00379 \textcolor{stringliteral}{"        subq    %%r15, %%rsi\(\backslash\)n"}         \textcolor{comment}{/* from = &out[ -dist ] */}
+00380 \textcolor{stringliteral}{"        jmp     .L\_do\_copy\(\backslash\)n"}
+00381 
+00382 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00383 \textcolor{stringliteral}{".L\_wrap\_around\_window:\(\backslash\)n"}
+00384 \textcolor{stringliteral}{"        movl    96(%%rsp), %%eax\(\backslash\)n"}     \textcolor{comment}{/* eax = write */}
+00385 \textcolor{stringliteral}{"        cmpl    %%eax, %%ecx\(\backslash\)n"}
+00386 \textcolor{stringliteral}{"        jbe     .L\_contiguous\_in\_window\(\backslash\)n"} \textcolor{comment}{/* if (write >= nbytes) */}
+00387 
+00388 \textcolor{stringliteral}{"        movl    92(%%rsp), %%esi\(\backslash\)n"}     \textcolor{comment}{/* from  = wsize */}
+00389 \textcolor{stringliteral}{"        addq    56(%%rsp), %%rsi\(\backslash\)n"}     \textcolor{comment}{/* from += window */}
+00390 \textcolor{stringliteral}{"        addq    %%rax, %%rsi\(\backslash\)n"}         \textcolor{comment}{/* from += write */}
+00391 \textcolor{stringliteral}{"        subq    %%rcx, %%rsi\(\backslash\)n"}         \textcolor{comment}{/* from -= nbytes */}
+00392 \textcolor{stringliteral}{"        subl    %%eax, %%ecx\(\backslash\)n"}         \textcolor{comment}{/* nbytes -= write */}
+00393 
+00394 \textcolor{stringliteral}{"        movl    %%r14d, %%eax\(\backslash\)n"}        \textcolor{comment}{/* eax = len */}
+00395 \textcolor{stringliteral}{"        cmpl    %%ecx, %%eax\(\backslash\)n"}
+00396 \textcolor{stringliteral}{"        jbe     .L\_do\_copy\(\backslash\)n"}           \textcolor{comment}{/* if (nbytes >= len) */}
+00397 
+00398 \textcolor{stringliteral}{"        subl    %%ecx, %%eax\(\backslash\)n"}         \textcolor{comment}{/* len -= nbytes */}
+00399 \textcolor{stringliteral}{"        rep     movsb\(\backslash\)n"}
+00400 \textcolor{stringliteral}{"        movq    56(%%rsp), %%rsi\(\backslash\)n"}     \textcolor{comment}{/* from = window */}
+00401 \textcolor{stringliteral}{"        movl    96(%%rsp), %%ecx\(\backslash\)n"}     \textcolor{comment}{/* nbytes = write */}
+00402 \textcolor{stringliteral}{"        cmpl    %%ecx, %%eax\(\backslash\)n"}
+00403 \textcolor{stringliteral}{"        jbe     .L\_do\_copy\(\backslash\)n"}           \textcolor{comment}{/* if (nbytes >= len) */}
+00404 
+00405 \textcolor{stringliteral}{"        subl    %%ecx, %%eax\(\backslash\)n"}         \textcolor{comment}{/* len -= nbytes */}
+00406 \textcolor{stringliteral}{"        rep     movsb\(\backslash\)n"}
+00407 \textcolor{stringliteral}{"        movq    %%rdi, %%rsi\(\backslash\)n"}
+00408 \textcolor{stringliteral}{"        subq    %%r15, %%rsi\(\backslash\)n"}         \textcolor{comment}{/* from = out - dist */}
+00409 \textcolor{stringliteral}{"        jmp     .L\_do\_copy\(\backslash\)n"}
+00410 
+00411 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00412 \textcolor{stringliteral}{".L\_contiguous\_in\_window:\(\backslash\)n"}
+00413 \textcolor{stringliteral}{"        movq    56(%%rsp), %%rsi\(\backslash\)n"}     \textcolor{comment}{/* rsi = window */}
+00414 \textcolor{stringliteral}{"        addq    %%rax, %%rsi\(\backslash\)n"}
+00415 \textcolor{stringliteral}{"        subq    %%rcx, %%rsi\(\backslash\)n"}         \textcolor{comment}{/* from += write - nbytes */}
+00416 
+00417 \textcolor{stringliteral}{"        movl    %%r14d, %%eax\(\backslash\)n"}        \textcolor{comment}{/* eax = len */}
+00418 \textcolor{stringliteral}{"        cmpl    %%ecx, %%eax\(\backslash\)n"}
+00419 \textcolor{stringliteral}{"        jbe     .L\_do\_copy\(\backslash\)n"}           \textcolor{comment}{/* if (nbytes >= len) */}
+00420 
+00421 \textcolor{stringliteral}{"        subl    %%ecx, %%eax\(\backslash\)n"}         \textcolor{comment}{/* len -= nbytes */}
+00422 \textcolor{stringliteral}{"        rep     movsb\(\backslash\)n"}
+00423 \textcolor{stringliteral}{"        movq    %%rdi, %%rsi\(\backslash\)n"}
+00424 \textcolor{stringliteral}{"        subq    %%r15, %%rsi\(\backslash\)n"}         \textcolor{comment}{/* from = out - dist */}
+00425 \textcolor{stringliteral}{"        jmp     .L\_do\_copy\(\backslash\)n"}           \textcolor{comment}{/* if (nbytes >= len) */}
+00426 
+00427 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00428 \textcolor{stringliteral}{".L\_do\_copy:\(\backslash\)n"}
+00429 \textcolor{stringliteral}{"        movl    %%eax, %%ecx\(\backslash\)n"}         \textcolor{comment}{/* ecx = len */}
+00430 \textcolor{stringliteral}{"        rep     movsb\(\backslash\)n"}
+00431 
+00432 \textcolor{stringliteral}{"        movq    %%r8, %%rsi\(\backslash\)n"}          \textcolor{comment}{/* move in back to %esi, toss from */}
+00433 \textcolor{stringliteral}{"        jmp     .L\_while\_test\(\backslash\)n"}
+00434 
+00435 \textcolor{stringliteral}{".L\_test\_for\_end\_of\_block:\(\backslash\)n"}
+00436 \textcolor{stringliteral}{"        testb   $32, %%al\(\backslash\)n"}
+00437 \textcolor{stringliteral}{"        jz      .L\_invalid\_literal\_length\_code\(\backslash\)n"}
+00438 \textcolor{stringliteral}{"        movl    $1, 116(%%rsp)\(\backslash\)n"}
+00439 \textcolor{stringliteral}{"        jmp     .L\_break\_loop\_with\_status\(\backslash\)n"}
+00440 
+00441 \textcolor{stringliteral}{".L\_invalid\_literal\_length\_code:\(\backslash\)n"}
+00442 \textcolor{stringliteral}{"        movl    $2, 116(%%rsp)\(\backslash\)n"}
+00443 \textcolor{stringliteral}{"        jmp     .L\_break\_loop\_with\_status\(\backslash\)n"}
+00444 
+00445 \textcolor{stringliteral}{".L\_invalid\_distance\_code:\(\backslash\)n"}
+00446 \textcolor{stringliteral}{"        movl    $3, 116(%%rsp)\(\backslash\)n"}
+00447 \textcolor{stringliteral}{"        jmp     .L\_break\_loop\_with\_status\(\backslash\)n"}
+00448 
+00449 \textcolor{stringliteral}{".L\_invalid\_distance\_too\_far:\(\backslash\)n"}
+00450 \textcolor{stringliteral}{"        movl    $4, 116(%%rsp)\(\backslash\)n"}
+00451 \textcolor{stringliteral}{"        jmp     .L\_break\_loop\_with\_status\(\backslash\)n"}
+00452 
+00453 \textcolor{stringliteral}{".L\_break\_loop:\(\backslash\)n"}
+00454 \textcolor{stringliteral}{"        movl    $0, 116(%%rsp)\(\backslash\)n"}
+00455 
+00456 \textcolor{stringliteral}{".L\_break\_loop\_with\_status:\(\backslash\)n"}
+00457 \textcolor{comment}{/* put in, out, bits, and hold back into ar and pop esp */}
+00458 \textcolor{stringliteral}{"        movq    %%rsi, 16(%%rsp)\(\backslash\)n"}     \textcolor{comment}{/* in */}
+00459 \textcolor{stringliteral}{"        movq    %%rdi, 32(%%rsp)\(\backslash\)n"}     \textcolor{comment}{/* out */}
+00460 \textcolor{stringliteral}{"        movl    %%ebx, 88(%%rsp)\(\backslash\)n"}     \textcolor{comment}{/* bits */}
+00461 \textcolor{stringliteral}{"        movq    %%rdx, 80(%%rsp)\(\backslash\)n"}     \textcolor{comment}{/* hold */}
+00462 \textcolor{stringliteral}{"        movq    (%%rsp), %%rax\(\backslash\)n"}       \textcolor{comment}{/* restore rbp and rsp */}
+00463 \textcolor{stringliteral}{"        movq    8(%%rsp), %%rbp\(\backslash\)n"}
+00464 \textcolor{stringliteral}{"        movq    %%rax, %%rsp\(\backslash\)n"}
+00465           :
+00466           : \textcolor{stringliteral}{"m"} (ar)
+00467           : \textcolor{stringliteral}{"memory"}, \textcolor{stringliteral}{"%rax"}, \textcolor{stringliteral}{"%rbx"}, \textcolor{stringliteral}{"%rcx"}, \textcolor{stringliteral}{"%rdx"}, \textcolor{stringliteral}{"%rsi"}, \textcolor{stringliteral}{"%rdi"},
+00468             \textcolor{stringliteral}{"%r8"}, \textcolor{stringliteral}{"%r9"}, \textcolor{stringliteral}{"%r10"}, \textcolor{stringliteral}{"%r11"}, \textcolor{stringliteral}{"%r12"}, \textcolor{stringliteral}{"%r13"}, \textcolor{stringliteral}{"%r14"}, \textcolor{stringliteral}{"%r15"}
+00469     );
+00470 \textcolor{preprocessor}{#elif ( defined( \_\_GNUC\_\_ ) || defined( \_\_ICC ) ) && defined( \_\_i386 )}
+00471     \_\_asm\_\_ \_\_volatile\_\_ (
+00472 \textcolor{stringliteral}{"        leal    %0, %%eax\(\backslash\)n"}
+00473 \textcolor{stringliteral}{"        movl    %%esp, (%%eax)\(\backslash\)n"}        \textcolor{comment}{/* save esp, ebp */}
+00474 \textcolor{stringliteral}{"        movl    %%ebp, 4(%%eax)\(\backslash\)n"}
+00475 \textcolor{stringliteral}{"        movl    %%eax, %%esp\(\backslash\)n"}
+00476 \textcolor{stringliteral}{"        movl    8(%%esp), %%esi\(\backslash\)n"}       \textcolor{comment}{/* esi = in */}
+00477 \textcolor{stringliteral}{"        movl    16(%%esp), %%edi\(\backslash\)n"}      \textcolor{comment}{/* edi = out */}
+00478 \textcolor{stringliteral}{"        movl    40(%%esp), %%edx\(\backslash\)n"}      \textcolor{comment}{/* edx = hold */}
+00479 \textcolor{stringliteral}{"        movl    44(%%esp), %%ebx\(\backslash\)n"}      \textcolor{comment}{/* ebx = bits */}
+00480 \textcolor{stringliteral}{"        movl    32(%%esp), %%ebp\(\backslash\)n"}      \textcolor{comment}{/* ebp = lcode */}
+00481 
+00482 \textcolor{stringliteral}{"        cld\(\backslash\)n"}
+00483 \textcolor{stringliteral}{"        jmp     .L\_do\_loop\(\backslash\)n"}
+00484 
+00485 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00486 \textcolor{stringliteral}{".L\_while\_test:\(\backslash\)n"}
+00487 \textcolor{stringliteral}{"        cmpl    %%edi, 24(%%esp)\(\backslash\)n"}      \textcolor{comment}{/* out < end */}
+00488 \textcolor{stringliteral}{"        jbe     .L\_break\_loop\(\backslash\)n"}
+00489 \textcolor{stringliteral}{"        cmpl    %%esi, 12(%%esp)\(\backslash\)n"}      \textcolor{comment}{/* in < last */}
+00490 \textcolor{stringliteral}{"        jbe     .L\_break\_loop\(\backslash\)n"}
+00491 
+00492 \textcolor{stringliteral}{".L\_do\_loop:\(\backslash\)n"}
+00493 \textcolor{stringliteral}{"        cmpb    $15, %%bl\(\backslash\)n"}
+00494 \textcolor{stringliteral}{"        ja      .L\_get\_length\_code\(\backslash\)n"}    \textcolor{comment}{/* if (15 < bits) */}
+00495 
+00496 \textcolor{stringliteral}{"        xorl    %%eax, %%eax\(\backslash\)n"}
+00497 \textcolor{stringliteral}{"        lodsw\(\backslash\)n"}                         \textcolor{comment}{/* al = *(ushort *)in++ */}
+00498 \textcolor{stringliteral}{"        movb    %%bl, %%cl\(\backslash\)n"}            \textcolor{comment}{/* cl = bits, needs it for shifting */}
+00499 \textcolor{stringliteral}{"        addb    $16, %%bl\(\backslash\)n"}             \textcolor{comment}{/* bits += 16 */}
+00500 \textcolor{stringliteral}{"        shll    %%cl, %%eax\(\backslash\)n"}
+00501 \textcolor{stringliteral}{"        orl     %%eax, %%edx\(\backslash\)n"}        \textcolor{comment}{/* hold |= *((ushort *)in)++ << bits */}
+00502 
+00503 \textcolor{stringliteral}{".L\_get\_length\_code:\(\backslash\)n"}
+00504 \textcolor{stringliteral}{"        movl    56(%%esp), %%eax\(\backslash\)n"}      \textcolor{comment}{/* eax = lmask */}
+00505 \textcolor{stringliteral}{"        andl    %%edx, %%eax\(\backslash\)n"}          \textcolor{comment}{/* eax &= hold */}
+00506 \textcolor{stringliteral}{"        movl    (%%ebp,%%eax,4), %%eax\(\backslash\)n"} \textcolor{comment}{/* eax = lcode[hold & lmask] */}
+00507 
+00508 \textcolor{stringliteral}{".L\_dolen:\(\backslash\)n"}
+00509 \textcolor{stringliteral}{"        movb    %%ah, %%cl\(\backslash\)n"}            \textcolor{comment}{/* cl = this.bits */}
+00510 \textcolor{stringliteral}{"        subb    %%ah, %%bl\(\backslash\)n"}            \textcolor{comment}{/* bits -= this.bits */}
+00511 \textcolor{stringliteral}{"        shrl    %%cl, %%edx\(\backslash\)n"}           \textcolor{comment}{/* hold >>= this.bits */}
+00512 
+00513 \textcolor{stringliteral}{"        testb   %%al, %%al\(\backslash\)n"}
+00514 \textcolor{stringliteral}{"        jnz     .L\_test\_for\_length\_base\(\backslash\)n"} \textcolor{comment}{/* if (op != 0) 45.7% */}
+00515 
+00516 \textcolor{stringliteral}{"        shrl    $16, %%eax\(\backslash\)n"}            \textcolor{comment}{/* output this.val char */}
+00517 \textcolor{stringliteral}{"        stosb\(\backslash\)n"}
+00518 \textcolor{stringliteral}{"        jmp     .L\_while\_test\(\backslash\)n"}
+00519 
+00520 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00521 \textcolor{stringliteral}{".L\_test\_for\_length\_base:\(\backslash\)n"}
+00522 \textcolor{stringliteral}{"        movl    %%eax, %%ecx\(\backslash\)n"}          \textcolor{comment}{/* len = this */}
+00523 \textcolor{stringliteral}{"        shrl    $16, %%ecx\(\backslash\)n"}            \textcolor{comment}{/* len = this.val */}
+00524 \textcolor{stringliteral}{"        movl    %%ecx, 64(%%esp)\(\backslash\)n"}      \textcolor{comment}{/* save len */}
+00525 \textcolor{stringliteral}{"        movb    %%al, %%cl\(\backslash\)n"}
+00526 
+00527 \textcolor{stringliteral}{"        testb   $16, %%al\(\backslash\)n"}
+00528 \textcolor{stringliteral}{"        jz      .L\_test\_for\_second\_level\_length\(\backslash\)n"} \textcolor{comment}{/* if ((op & 16) == 0) 8% */}
+00529 \textcolor{stringliteral}{"        andb    $15, %%cl\(\backslash\)n"}             \textcolor{comment}{/* op &= 15 */}
+00530 \textcolor{stringliteral}{"        jz      .L\_decode\_distance\(\backslash\)n"}    \textcolor{comment}{/* if (!op) */}
+00531 \textcolor{stringliteral}{"        cmpb    %%cl, %%bl\(\backslash\)n"}
+00532 \textcolor{stringliteral}{"        jae     .L\_add\_bits\_to\_len\(\backslash\)n"}    \textcolor{comment}{/* if (op <= bits) */}
+00533 
+00534 \textcolor{stringliteral}{"        movb    %%cl, %%ch\(\backslash\)n"}            \textcolor{comment}{/* stash op in ch, freeing cl */}
+00535 \textcolor{stringliteral}{"        xorl    %%eax, %%eax\(\backslash\)n"}
+00536 \textcolor{stringliteral}{"        lodsw\(\backslash\)n"}                         \textcolor{comment}{/* al = *(ushort *)in++ */}
+00537 \textcolor{stringliteral}{"        movb    %%bl, %%cl\(\backslash\)n"}            \textcolor{comment}{/* cl = bits, needs it for shifting */}
+00538 \textcolor{stringliteral}{"        addb    $16, %%bl\(\backslash\)n"}             \textcolor{comment}{/* bits += 16 */}
+00539 \textcolor{stringliteral}{"        shll    %%cl, %%eax\(\backslash\)n"}
+00540 \textcolor{stringliteral}{"        orl     %%eax, %%edx\(\backslash\)n"}         \textcolor{comment}{/* hold |= *((ushort *)in)++ << bits */}
+00541 \textcolor{stringliteral}{"        movb    %%ch, %%cl\(\backslash\)n"}            \textcolor{comment}{/* move op back to ecx */}
+00542 
+00543 \textcolor{stringliteral}{".L\_add\_bits\_to\_len:\(\backslash\)n"}
+00544 \textcolor{stringliteral}{"        subb    %%cl, %%bl\(\backslash\)n"}
+00545 \textcolor{stringliteral}{"        xorl    %%eax, %%eax\(\backslash\)n"}
+00546 \textcolor{stringliteral}{"        incl    %%eax\(\backslash\)n"}
+00547 \textcolor{stringliteral}{"        shll    %%cl, %%eax\(\backslash\)n"}
+00548 \textcolor{stringliteral}{"        decl    %%eax\(\backslash\)n"}
+00549 \textcolor{stringliteral}{"        andl    %%edx, %%eax\(\backslash\)n"}          \textcolor{comment}{/* eax &= hold */}
+00550 \textcolor{stringliteral}{"        shrl    %%cl, %%edx\(\backslash\)n"}
+00551 \textcolor{stringliteral}{"        addl    %%eax, 64(%%esp)\(\backslash\)n"}      \textcolor{comment}{/* len += hold & mask[op] */}
+00552 
+00553 \textcolor{stringliteral}{".L\_decode\_distance:\(\backslash\)n"}
+00554 \textcolor{stringliteral}{"        cmpb    $15, %%bl\(\backslash\)n"}
+00555 \textcolor{stringliteral}{"        ja      .L\_get\_distance\_code\(\backslash\)n"}  \textcolor{comment}{/* if (15 < bits) */}
+00556 
+00557 \textcolor{stringliteral}{"        xorl    %%eax, %%eax\(\backslash\)n"}
+00558 \textcolor{stringliteral}{"        lodsw\(\backslash\)n"}                         \textcolor{comment}{/* al = *(ushort *)in++ */}
+00559 \textcolor{stringliteral}{"        movb    %%bl, %%cl\(\backslash\)n"}            \textcolor{comment}{/* cl = bits, needs it for shifting */}
+00560 \textcolor{stringliteral}{"        addb    $16, %%bl\(\backslash\)n"}             \textcolor{comment}{/* bits += 16 */}
+00561 \textcolor{stringliteral}{"        shll    %%cl, %%eax\(\backslash\)n"}
+00562 \textcolor{stringliteral}{"        orl     %%eax, %%edx\(\backslash\)n"}         \textcolor{comment}{/* hold |= *((ushort *)in)++ << bits */}
+00563 
+00564 \textcolor{stringliteral}{".L\_get\_distance\_code:\(\backslash\)n"}
+00565 \textcolor{stringliteral}{"        movl    60(%%esp), %%eax\(\backslash\)n"}      \textcolor{comment}{/* eax = dmask */}
+00566 \textcolor{stringliteral}{"        movl    36(%%esp), %%ecx\(\backslash\)n"}      \textcolor{comment}{/* ecx = dcode */}
+00567 \textcolor{stringliteral}{"        andl    %%edx, %%eax\(\backslash\)n"}          \textcolor{comment}{/* eax &= hold */}
+00568 \textcolor{stringliteral}{"        movl    (%%ecx,%%eax,4), %%eax\(\backslash\)n"}\textcolor{comment}{/* eax = dcode[hold & dmask] */}
+00569 
+00570 \textcolor{stringliteral}{".L\_dodist:\(\backslash\)n"}
+00571 \textcolor{stringliteral}{"        movl    %%eax, %%ebp\(\backslash\)n"}          \textcolor{comment}{/* dist = this */}
+00572 \textcolor{stringliteral}{"        shrl    $16, %%ebp\(\backslash\)n"}            \textcolor{comment}{/* dist = this.val */}
+00573 \textcolor{stringliteral}{"        movb    %%ah, %%cl\(\backslash\)n"}
+00574 \textcolor{stringliteral}{"        subb    %%ah, %%bl\(\backslash\)n"}            \textcolor{comment}{/* bits -= this.bits */}
+00575 \textcolor{stringliteral}{"        shrl    %%cl, %%edx\(\backslash\)n"}           \textcolor{comment}{/* hold >>= this.bits */}
+00576 \textcolor{stringliteral}{"        movb    %%al, %%cl\(\backslash\)n"}            \textcolor{comment}{/* cl = this.op */}
+00577 
+00578 \textcolor{stringliteral}{"        testb   $16, %%al\(\backslash\)n"}             \textcolor{comment}{/* if ((op & 16) == 0) */}
+00579 \textcolor{stringliteral}{"        jz      .L\_test\_for\_second\_level\_dist\(\backslash\)n"}
+00580 \textcolor{stringliteral}{"        andb    $15, %%cl\(\backslash\)n"}             \textcolor{comment}{/* op &= 15 */}
+00581 \textcolor{stringliteral}{"        jz      .L\_check\_dist\_one\(\backslash\)n"}
+00582 \textcolor{stringliteral}{"        cmpb    %%cl, %%bl\(\backslash\)n"}
+00583 \textcolor{stringliteral}{"        jae     .L\_add\_bits\_to\_dist\(\backslash\)n"}   \textcolor{comment}{/* if (op <= bits) 97.6% */}
+00584 
+00585 \textcolor{stringliteral}{"        movb    %%cl, %%ch\(\backslash\)n"}            \textcolor{comment}{/* stash op in ch, freeing cl */}
+00586 \textcolor{stringliteral}{"        xorl    %%eax, %%eax\(\backslash\)n"}
+00587 \textcolor{stringliteral}{"        lodsw\(\backslash\)n"}                         \textcolor{comment}{/* al = *(ushort *)in++ */}
+00588 \textcolor{stringliteral}{"        movb    %%bl, %%cl\(\backslash\)n"}            \textcolor{comment}{/* cl = bits, needs it for shifting */}
+00589 \textcolor{stringliteral}{"        addb    $16, %%bl\(\backslash\)n"}             \textcolor{comment}{/* bits += 16 */}
+00590 \textcolor{stringliteral}{"        shll    %%cl, %%eax\(\backslash\)n"}
+00591 \textcolor{stringliteral}{"        orl     %%eax, %%edx\(\backslash\)n"}        \textcolor{comment}{/* hold |= *((ushort *)in)++ << bits */}
+00592 \textcolor{stringliteral}{"        movb    %%ch, %%cl\(\backslash\)n"}            \textcolor{comment}{/* move op back to ecx */}
+00593 
+00594 \textcolor{stringliteral}{".L\_add\_bits\_to\_dist:\(\backslash\)n"}
+00595 \textcolor{stringliteral}{"        subb    %%cl, %%bl\(\backslash\)n"}
+00596 \textcolor{stringliteral}{"        xorl    %%eax, %%eax\(\backslash\)n"}
+00597 \textcolor{stringliteral}{"        incl    %%eax\(\backslash\)n"}
+00598 \textcolor{stringliteral}{"        shll    %%cl, %%eax\(\backslash\)n"}
+00599 \textcolor{stringliteral}{"        decl    %%eax\(\backslash\)n"}                 \textcolor{comment}{/* (1 << op) - 1 */}
+00600 \textcolor{stringliteral}{"        andl    %%edx, %%eax\(\backslash\)n"}          \textcolor{comment}{/* eax &= hold */}
+00601 \textcolor{stringliteral}{"        shrl    %%cl, %%edx\(\backslash\)n"}
+00602 \textcolor{stringliteral}{"        addl    %%eax, %%ebp\(\backslash\)n"}          \textcolor{comment}{/* dist += hold & ((1 << op) - 1) */}
+00603 
+00604 \textcolor{stringliteral}{".L\_check\_window:\(\backslash\)n"}
+00605 \textcolor{stringliteral}{"        movl    %%esi, 8(%%esp)\(\backslash\)n"}       \textcolor{comment}{/* save in so from can use it's reg */}
+00606 \textcolor{stringliteral}{"        movl    %%edi, %%eax\(\backslash\)n"}
+00607 \textcolor{stringliteral}{"        subl    20(%%esp), %%eax\(\backslash\)n"}      \textcolor{comment}{/* nbytes = out - beg */}
+00608 
+00609 \textcolor{stringliteral}{"        cmpl    %%ebp, %%eax\(\backslash\)n"}
+00610 \textcolor{stringliteral}{"        jb      .L\_clip\_window\(\backslash\)n"}        \textcolor{comment}{/* if (dist > nbytes) 4.2% */}
+00611 
+00612 \textcolor{stringliteral}{"        movl    64(%%esp), %%ecx\(\backslash\)n"}      \textcolor{comment}{/* ecx = len */}
+00613 \textcolor{stringliteral}{"        movl    %%edi, %%esi\(\backslash\)n"}
+00614 \textcolor{stringliteral}{"        subl    %%ebp, %%esi\(\backslash\)n"}          \textcolor{comment}{/* from = out - dist */}
+00615 
+00616 \textcolor{stringliteral}{"        sarl    %%ecx\(\backslash\)n"}
+00617 \textcolor{stringliteral}{"        jnc     .L\_copy\_two\(\backslash\)n"}           \textcolor{comment}{/* if len % 2 == 0 */}
+00618 
+00619 \textcolor{stringliteral}{"        rep     movsw\(\backslash\)n"}
+00620 \textcolor{stringliteral}{"        movb    (%%esi), %%al\(\backslash\)n"}
+00621 \textcolor{stringliteral}{"        movb    %%al, (%%edi)\(\backslash\)n"}
+00622 \textcolor{stringliteral}{"        incl    %%edi\(\backslash\)n"}
+00623 
+00624 \textcolor{stringliteral}{"        movl    8(%%esp), %%esi\(\backslash\)n"}       \textcolor{comment}{/* move in back to %esi, toss from */}
+00625 \textcolor{stringliteral}{"        movl    32(%%esp), %%ebp\(\backslash\)n"}      \textcolor{comment}{/* ebp = lcode */}
+00626 \textcolor{stringliteral}{"        jmp     .L\_while\_test\(\backslash\)n"}
+00627 
+00628 \textcolor{stringliteral}{".L\_copy\_two:\(\backslash\)n"}
+00629 \textcolor{stringliteral}{"        rep     movsw\(\backslash\)n"}
+00630 \textcolor{stringliteral}{"        movl    8(%%esp), %%esi\(\backslash\)n"}       \textcolor{comment}{/* move in back to %esi, toss from */}
+00631 \textcolor{stringliteral}{"        movl    32(%%esp), %%ebp\(\backslash\)n"}      \textcolor{comment}{/* ebp = lcode */}
+00632 \textcolor{stringliteral}{"        jmp     .L\_while\_test\(\backslash\)n"}
+00633 
+00634 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00635 \textcolor{stringliteral}{".L\_check\_dist\_one:\(\backslash\)n"}
+00636 \textcolor{stringliteral}{"        cmpl    $1, %%ebp\(\backslash\)n"}            \textcolor{comment}{/* if dist 1, is a memset */}
+00637 \textcolor{stringliteral}{"        jne     .L\_check\_window\(\backslash\)n"}
+00638 \textcolor{stringliteral}{"        cmpl    %%edi, 20(%%esp)\(\backslash\)n"}
+00639 \textcolor{stringliteral}{"        je      .L\_check\_window\(\backslash\)n"}      \textcolor{comment}{/* out == beg, if outside window */}
+00640 
+00641 \textcolor{stringliteral}{"        movl    64(%%esp), %%ecx\(\backslash\)n"}      \textcolor{comment}{/* ecx = len */}
+00642 \textcolor{stringliteral}{"        movb    -1(%%edi), %%al\(\backslash\)n"}
+00643 \textcolor{stringliteral}{"        movb    %%al, %%ah\(\backslash\)n"}
+00644 
+00645 \textcolor{stringliteral}{"        sarl    %%ecx\(\backslash\)n"}
+00646 \textcolor{stringliteral}{"        jnc     .L\_set\_two\(\backslash\)n"}
+00647 \textcolor{stringliteral}{"        movb    %%al, (%%edi)\(\backslash\)n"}
+00648 \textcolor{stringliteral}{"        incl    %%edi\(\backslash\)n"}
+00649 
+00650 \textcolor{stringliteral}{".L\_set\_two:\(\backslash\)n"}
+00651 \textcolor{stringliteral}{"        rep     stosw\(\backslash\)n"}
+00652 \textcolor{stringliteral}{"        movl    32(%%esp), %%ebp\(\backslash\)n"}      \textcolor{comment}{/* ebp = lcode */}
+00653 \textcolor{stringliteral}{"        jmp     .L\_while\_test\(\backslash\)n"}
+00654 
+00655 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00656 \textcolor{stringliteral}{".L\_test\_for\_second\_level\_length:\(\backslash\)n"}
+00657 \textcolor{stringliteral}{"        testb   $64, %%al\(\backslash\)n"}
+00658 \textcolor{stringliteral}{"        jnz     .L\_test\_for\_end\_of\_block\(\backslash\)n"} \textcolor{comment}{/* if ((op & 64) != 0) */}
+00659 
+00660 \textcolor{stringliteral}{"        xorl    %%eax, %%eax\(\backslash\)n"}
+00661 \textcolor{stringliteral}{"        incl    %%eax\(\backslash\)n"}
+00662 \textcolor{stringliteral}{"        shll    %%cl, %%eax\(\backslash\)n"}
+00663 \textcolor{stringliteral}{"        decl    %%eax\(\backslash\)n"}
+00664 \textcolor{stringliteral}{"        andl    %%edx, %%eax\(\backslash\)n"}         \textcolor{comment}{/* eax &= hold */}
+00665 \textcolor{stringliteral}{"        addl    64(%%esp), %%eax\(\backslash\)n"}     \textcolor{comment}{/* eax += len */}
+00666 \textcolor{stringliteral}{"        movl    (%%ebp,%%eax,4), %%eax\(\backslash\)n"} \textcolor{comment}{/* eax = lcode[val+(hold&mask[op])]*/}
+00667 \textcolor{stringliteral}{"        jmp     .L\_dolen\(\backslash\)n"}
+00668 
+00669 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00670 \textcolor{stringliteral}{".L\_test\_for\_second\_level\_dist:\(\backslash\)n"}
+00671 \textcolor{stringliteral}{"        testb   $64, %%al\(\backslash\)n"}
+00672 \textcolor{stringliteral}{"        jnz     .L\_invalid\_distance\_code\(\backslash\)n"} \textcolor{comment}{/* if ((op & 64) != 0) */}
+00673 
+00674 \textcolor{stringliteral}{"        xorl    %%eax, %%eax\(\backslash\)n"}
+00675 \textcolor{stringliteral}{"        incl    %%eax\(\backslash\)n"}
+00676 \textcolor{stringliteral}{"        shll    %%cl, %%eax\(\backslash\)n"}
+00677 \textcolor{stringliteral}{"        decl    %%eax\(\backslash\)n"}
+00678 \textcolor{stringliteral}{"        andl    %%edx, %%eax\(\backslash\)n"}         \textcolor{comment}{/* eax &= hold */}
+00679 \textcolor{stringliteral}{"        addl    %%ebp, %%eax\(\backslash\)n"}         \textcolor{comment}{/* eax += dist */}
+00680 \textcolor{stringliteral}{"        movl    36(%%esp), %%ecx\(\backslash\)n"}     \textcolor{comment}{/* ecx = dcode */}
+00681 \textcolor{stringliteral}{"        movl    (%%ecx,%%eax,4), %%eax\(\backslash\)n"} \textcolor{comment}{/* eax = dcode[val+(hold&mask[op])]*/}
+00682 \textcolor{stringliteral}{"        jmp     .L\_dodist\(\backslash\)n"}
+00683 
+00684 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00685 \textcolor{stringliteral}{".L\_clip\_window:\(\backslash\)n"}
+00686 \textcolor{stringliteral}{"        movl    %%eax, %%ecx\(\backslash\)n"}
+00687 \textcolor{stringliteral}{"        movl    48(%%esp), %%eax\(\backslash\)n"}     \textcolor{comment}{/* eax = wsize */}
+00688 \textcolor{stringliteral}{"        negl    %%ecx\(\backslash\)n"}                \textcolor{comment}{/* nbytes = -nbytes */}
+00689 \textcolor{stringliteral}{"        movl    28(%%esp), %%esi\(\backslash\)n"}     \textcolor{comment}{/* from = window */}
+00690 
+00691 \textcolor{stringliteral}{"        cmpl    %%ebp, %%eax\(\backslash\)n"}
+00692 \textcolor{stringliteral}{"        jb      .L\_invalid\_distance\_too\_far\(\backslash\)n"} \textcolor{comment}{/* if (dist > wsize) */}
+00693 
+00694 \textcolor{stringliteral}{"        addl    %%ebp, %%ecx\(\backslash\)n"}         \textcolor{comment}{/* nbytes = dist - nbytes */}
+00695 \textcolor{stringliteral}{"        cmpl    $0, 52(%%esp)\(\backslash\)n"}
+00696 \textcolor{stringliteral}{"        jne     .L\_wrap\_around\_window\(\backslash\)n"} \textcolor{comment}{/* if (write != 0) */}
+00697 
+00698 \textcolor{stringliteral}{"        subl    %%ecx, %%eax\(\backslash\)n"}
+00699 \textcolor{stringliteral}{"        addl    %%eax, %%esi\(\backslash\)n"}         \textcolor{comment}{/* from += wsize - nbytes */}
+00700 
+00701 \textcolor{stringliteral}{"        movl    64(%%esp), %%eax\(\backslash\)n"}     \textcolor{comment}{/* eax = len */}
+00702 \textcolor{stringliteral}{"        cmpl    %%ecx, %%eax\(\backslash\)n"}
+00703 \textcolor{stringliteral}{"        jbe     .L\_do\_copy\(\backslash\)n"}           \textcolor{comment}{/* if (nbytes >= len) */}
+00704 
+00705 \textcolor{stringliteral}{"        subl    %%ecx, %%eax\(\backslash\)n"}         \textcolor{comment}{/* len -= nbytes */}
+00706 \textcolor{stringliteral}{"        rep     movsb\(\backslash\)n"}
+00707 \textcolor{stringliteral}{"        movl    %%edi, %%esi\(\backslash\)n"}
+00708 \textcolor{stringliteral}{"        subl    %%ebp, %%esi\(\backslash\)n"}         \textcolor{comment}{/* from = out - dist */}
+00709 \textcolor{stringliteral}{"        jmp     .L\_do\_copy\(\backslash\)n"}
+00710 
+00711 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00712 \textcolor{stringliteral}{".L\_wrap\_around\_window:\(\backslash\)n"}
+00713 \textcolor{stringliteral}{"        movl    52(%%esp), %%eax\(\backslash\)n"}     \textcolor{comment}{/* eax = write */}
+00714 \textcolor{stringliteral}{"        cmpl    %%eax, %%ecx\(\backslash\)n"}
+00715 \textcolor{stringliteral}{"        jbe     .L\_contiguous\_in\_window\(\backslash\)n"} \textcolor{comment}{/* if (write >= nbytes) */}
+00716 
+00717 \textcolor{stringliteral}{"        addl    48(%%esp), %%esi\(\backslash\)n"}     \textcolor{comment}{/* from += wsize */}
+00718 \textcolor{stringliteral}{"        addl    %%eax, %%esi\(\backslash\)n"}         \textcolor{comment}{/* from += write */}
+00719 \textcolor{stringliteral}{"        subl    %%ecx, %%esi\(\backslash\)n"}         \textcolor{comment}{/* from -= nbytes */}
+00720 \textcolor{stringliteral}{"        subl    %%eax, %%ecx\(\backslash\)n"}         \textcolor{comment}{/* nbytes -= write */}
+00721 
+00722 \textcolor{stringliteral}{"        movl    64(%%esp), %%eax\(\backslash\)n"}     \textcolor{comment}{/* eax = len */}
+00723 \textcolor{stringliteral}{"        cmpl    %%ecx, %%eax\(\backslash\)n"}
+00724 \textcolor{stringliteral}{"        jbe     .L\_do\_copy\(\backslash\)n"}           \textcolor{comment}{/* if (nbytes >= len) */}
+00725 
+00726 \textcolor{stringliteral}{"        subl    %%ecx, %%eax\(\backslash\)n"}         \textcolor{comment}{/* len -= nbytes */}
+00727 \textcolor{stringliteral}{"        rep     movsb\(\backslash\)n"}
+00728 \textcolor{stringliteral}{"        movl    28(%%esp), %%esi\(\backslash\)n"}     \textcolor{comment}{/* from = window */}
+00729 \textcolor{stringliteral}{"        movl    52(%%esp), %%ecx\(\backslash\)n"}     \textcolor{comment}{/* nbytes = write */}
+00730 \textcolor{stringliteral}{"        cmpl    %%ecx, %%eax\(\backslash\)n"}
+00731 \textcolor{stringliteral}{"        jbe     .L\_do\_copy\(\backslash\)n"}           \textcolor{comment}{/* if (nbytes >= len) */}
+00732 
+00733 \textcolor{stringliteral}{"        subl    %%ecx, %%eax\(\backslash\)n"}         \textcolor{comment}{/* len -= nbytes */}
+00734 \textcolor{stringliteral}{"        rep     movsb\(\backslash\)n"}
+00735 \textcolor{stringliteral}{"        movl    %%edi, %%esi\(\backslash\)n"}
+00736 \textcolor{stringliteral}{"        subl    %%ebp, %%esi\(\backslash\)n"}         \textcolor{comment}{/* from = out - dist */}
+00737 \textcolor{stringliteral}{"        jmp     .L\_do\_copy\(\backslash\)n"}
+00738 
+00739 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00740 \textcolor{stringliteral}{".L\_contiguous\_in\_window:\(\backslash\)n"}
+00741 \textcolor{stringliteral}{"        addl    %%eax, %%esi\(\backslash\)n"}
+00742 \textcolor{stringliteral}{"        subl    %%ecx, %%esi\(\backslash\)n"}         \textcolor{comment}{/* from += write - nbytes */}
+00743 
+00744 \textcolor{stringliteral}{"        movl    64(%%esp), %%eax\(\backslash\)n"}     \textcolor{comment}{/* eax = len */}
+00745 \textcolor{stringliteral}{"        cmpl    %%ecx, %%eax\(\backslash\)n"}
+00746 \textcolor{stringliteral}{"        jbe     .L\_do\_copy\(\backslash\)n"}           \textcolor{comment}{/* if (nbytes >= len) */}
+00747 
+00748 \textcolor{stringliteral}{"        subl    %%ecx, %%eax\(\backslash\)n"}         \textcolor{comment}{/* len -= nbytes */}
+00749 \textcolor{stringliteral}{"        rep     movsb\(\backslash\)n"}
+00750 \textcolor{stringliteral}{"        movl    %%edi, %%esi\(\backslash\)n"}
+00751 \textcolor{stringliteral}{"        subl    %%ebp, %%esi\(\backslash\)n"}         \textcolor{comment}{/* from = out - dist */}
+00752 \textcolor{stringliteral}{"        jmp     .L\_do\_copy\(\backslash\)n"}           \textcolor{comment}{/* if (nbytes >= len) */}
+00753 
+00754 \textcolor{stringliteral}{".align 32,0x90\(\backslash\)n"}
+00755 \textcolor{stringliteral}{".L\_do\_copy:\(\backslash\)n"}
+00756 \textcolor{stringliteral}{"        movl    %%eax, %%ecx\(\backslash\)n"}
+00757 \textcolor{stringliteral}{"        rep     movsb\(\backslash\)n"}
+00758 
+00759 \textcolor{stringliteral}{"        movl    8(%%esp), %%esi\(\backslash\)n"}      \textcolor{comment}{/* move in back to %esi, toss from */}
+00760 \textcolor{stringliteral}{"        movl    32(%%esp), %%ebp\(\backslash\)n"}     \textcolor{comment}{/* ebp = lcode */}
+00761 \textcolor{stringliteral}{"        jmp     .L\_while\_test\(\backslash\)n"}
+00762 
+00763 \textcolor{stringliteral}{".L\_test\_for\_end\_of\_block:\(\backslash\)n"}
+00764 \textcolor{stringliteral}{"        testb   $32, %%al\(\backslash\)n"}
+00765 \textcolor{stringliteral}{"        jz      .L\_invalid\_literal\_length\_code\(\backslash\)n"}
+00766 \textcolor{stringliteral}{"        movl    $1, 72(%%esp)\(\backslash\)n"}
+00767 \textcolor{stringliteral}{"        jmp     .L\_break\_loop\_with\_status\(\backslash\)n"}
+00768 
+00769 \textcolor{stringliteral}{".L\_invalid\_literal\_length\_code:\(\backslash\)n"}
+00770 \textcolor{stringliteral}{"        movl    $2, 72(%%esp)\(\backslash\)n"}
+00771 \textcolor{stringliteral}{"        jmp     .L\_break\_loop\_with\_status\(\backslash\)n"}
+00772 
+00773 \textcolor{stringliteral}{".L\_invalid\_distance\_code:\(\backslash\)n"}
+00774 \textcolor{stringliteral}{"        movl    $3, 72(%%esp)\(\backslash\)n"}
+00775 \textcolor{stringliteral}{"        jmp     .L\_break\_loop\_with\_status\(\backslash\)n"}
+00776 
+00777 \textcolor{stringliteral}{".L\_invalid\_distance\_too\_far:\(\backslash\)n"}
+00778 \textcolor{stringliteral}{"        movl    8(%%esp), %%esi\(\backslash\)n"}
+00779 \textcolor{stringliteral}{"        movl    $4, 72(%%esp)\(\backslash\)n"}
+00780 \textcolor{stringliteral}{"        jmp     .L\_break\_loop\_with\_status\(\backslash\)n"}
+00781 
+00782 \textcolor{stringliteral}{".L\_break\_loop:\(\backslash\)n"}
+00783 \textcolor{stringliteral}{"        movl    $0, 72(%%esp)\(\backslash\)n"}
+00784 
+00785 \textcolor{stringliteral}{".L\_break\_loop\_with\_status:\(\backslash\)n"}
+00786 \textcolor{comment}{/* put in, out, bits, and hold back into ar and pop esp */}
+00787 \textcolor{stringliteral}{"        movl    %%esi, 8(%%esp)\(\backslash\)n"}      \textcolor{comment}{/* save in */}
+00788 \textcolor{stringliteral}{"        movl    %%edi, 16(%%esp)\(\backslash\)n"}     \textcolor{comment}{/* save out */}
+00789 \textcolor{stringliteral}{"        movl    %%ebx, 44(%%esp)\(\backslash\)n"}     \textcolor{comment}{/* save bits */}
+00790 \textcolor{stringliteral}{"        movl    %%edx, 40(%%esp)\(\backslash\)n"}     \textcolor{comment}{/* save hold */}
+00791 \textcolor{stringliteral}{"        movl    4(%%esp), %%ebp\(\backslash\)n"}      \textcolor{comment}{/* restore esp, ebp */}
+00792 \textcolor{stringliteral}{"        movl    (%%esp), %%esp\(\backslash\)n"}
+00793           :
+00794           : \textcolor{stringliteral}{"m"} (ar)
+00795           : \textcolor{stringliteral}{"memory"}, \textcolor{stringliteral}{"%eax"}, \textcolor{stringliteral}{"%ebx"}, \textcolor{stringliteral}{"%ecx"}, \textcolor{stringliteral}{"%edx"}, \textcolor{stringliteral}{"%esi"}, \textcolor{stringliteral}{"%edi"}
+00796     );
+00797 \textcolor{preprocessor}{#elif defined( \_MSC\_VER ) && ! defined( \_M\_AMD64 )}
+00798     \_\_asm \{
+00799     lea eax, ar
+00800     mov [eax], esp         \textcolor{comment}{/* save esp, ebp */}
+00801     mov [eax+4], ebp
+00802     mov esp, eax
+00803     mov esi, [esp+8]       \textcolor{comment}{/* esi = in */}
+00804     mov edi, [esp+16]      \textcolor{comment}{/* edi = out */}
+00805     mov edx, [esp+40]      \textcolor{comment}{/* edx = hold */}
+00806     mov ebx, [esp+44]      \textcolor{comment}{/* ebx = bits */}
+00807     mov ebp, [esp+32]      \textcolor{comment}{/* ebp = lcode */}
+00808 
+00809     cld
+00810     jmp L\_do\_loop
+00811 
+00812 ALIGN 4
+00813 L\_while\_test:
+00814     cmp [esp+24], edi
+00815     jbe L\_break\_loop
+00816     cmp [esp+12], esi
+00817     jbe L\_break\_loop
+00818 
+00819 L\_do\_loop:
+00820     cmp bl, 15
+00821     ja  L\_get\_length\_code    \textcolor{comment}{/* if (15 < bits) */}
+00822 
+00823     xor eax, eax
+00824     lodsw                         \textcolor{comment}{/* al = *(ushort *)in++ */}
+00825     mov cl, bl            \textcolor{comment}{/* cl = bits, needs it for shifting */}
+00826     add bl, 16             \textcolor{comment}{/* bits += 16 */}
+00827     shl eax, cl
+00828     or  edx, eax        \textcolor{comment}{/* hold |= *((ushort *)in)++ << bits */}
+00829 
+00830 L\_get\_length\_code:
+00831     mov eax, [esp+56]      \textcolor{comment}{/* eax = lmask */}
+00832     and eax, edx          \textcolor{comment}{/* eax &= hold */}
+00833     mov eax, [ebp+eax*4] \textcolor{comment}{/* eax = lcode[hold & lmask] */}
+00834 
+00835 L\_dolen:
+00836     mov cl, ah            \textcolor{comment}{/* cl = this.bits */}
+00837     sub bl, ah            \textcolor{comment}{/* bits -= this.bits */}
+00838     shr edx, cl           \textcolor{comment}{/* hold >>= this.bits */}
+00839 
+00840     test    al, al
+00841     jnz L\_test\_for\_length\_base \textcolor{comment}{/* if (op != 0) 45.7% */}
+00842 
+00843     shr eax, 16            \textcolor{comment}{/* output this.val char */}
+00844     stosb
+00845     jmp L\_while\_test
+00846 
+00847 ALIGN 4
+00848 L\_test\_for\_length\_base:
+00849     mov ecx, eax          \textcolor{comment}{/* len = this */}
+00850     shr ecx, 16            \textcolor{comment}{/* len = this.val */}
+00851     mov [esp+64], ecx      \textcolor{comment}{/* save len */}
+00852     mov cl, al
+00853 
+00854     test    al, 16
+00855     jz  L\_test\_for\_second\_level\_length \textcolor{comment}{/* if ((op & 16) == 0) 8% */}
+00856     and cl, 15             \textcolor{comment}{/* op &= 15 */}
+00857     jz  L\_decode\_distance    \textcolor{comment}{/* if (!op) */}
+00858     cmp bl, cl
+00859     jae L\_add\_bits\_to\_len    \textcolor{comment}{/* if (op <= bits) */}
+00860 
+00861     mov ch, cl            \textcolor{comment}{/* stash op in ch, freeing cl */}
+00862     xor eax, eax
+00863     lodsw                         \textcolor{comment}{/* al = *(ushort *)in++ */}
+00864     mov cl, bl            \textcolor{comment}{/* cl = bits, needs it for shifting */}
+00865     add bl, 16             \textcolor{comment}{/* bits += 16 */}
+00866     shl eax, cl
+00867     or  edx, eax         \textcolor{comment}{/* hold |= *((ushort *)in)++ << bits */}
+00868     mov cl, ch            \textcolor{comment}{/* move op back to ecx */}
+00869 
+00870 L\_add\_bits\_to\_len:
+00871     sub bl, cl
+00872     xor eax, eax
+00873     inc eax
+00874     shl eax, cl
+00875     dec eax
+00876     and eax, edx          \textcolor{comment}{/* eax &= hold */}
+00877     shr edx, cl
+00878     add [esp+64], eax      \textcolor{comment}{/* len += hold & mask[op] */}
+00879 
+00880 L\_decode\_distance:
+00881     cmp bl, 15
+00882     ja  L\_get\_distance\_code  \textcolor{comment}{/* if (15 < bits) */}
+00883 
+00884     xor eax, eax
+00885     lodsw                         \textcolor{comment}{/* al = *(ushort *)in++ */}
+00886     mov cl, bl            \textcolor{comment}{/* cl = bits, needs it for shifting */}
+00887     add bl, 16             \textcolor{comment}{/* bits += 16 */}
+00888     shl eax, cl
+00889     or  edx, eax         \textcolor{comment}{/* hold |= *((ushort *)in)++ << bits */}
+00890 
+00891 L\_get\_distance\_code:
+00892     mov eax, [esp+60]      \textcolor{comment}{/* eax = dmask */}
+00893     mov ecx, [esp+36]      \textcolor{comment}{/* ecx = dcode */}
+00894     and eax, edx          \textcolor{comment}{/* eax &= hold */}
+00895     mov eax, [ecx+eax*4]\textcolor{comment}{/* eax = dcode[hold & dmask] */}
+00896 
+00897 L\_dodist:
+00898     mov ebp, eax          \textcolor{comment}{/* dist = this */}
+00899     shr ebp, 16            \textcolor{comment}{/* dist = this.val */}
+00900     mov cl, ah
+00901     sub bl, ah            \textcolor{comment}{/* bits -= this.bits */}
+00902     shr edx, cl           \textcolor{comment}{/* hold >>= this.bits */}
+00903     mov cl, al            \textcolor{comment}{/* cl = this.op */}
+00904 
+00905     test    al, 16             \textcolor{comment}{/* if ((op & 16) == 0) */}
+00906     jz  L\_test\_for\_second\_level\_dist
+00907     and cl, 15             \textcolor{comment}{/* op &= 15 */}
+00908     jz  L\_check\_dist\_one
+00909     cmp bl, cl
+00910     jae L\_add\_bits\_to\_dist   \textcolor{comment}{/* if (op <= bits) 97.6% */}
+00911 
+00912     mov ch, cl            \textcolor{comment}{/* stash op in ch, freeing cl */}
+00913     xor eax, eax
+00914     lodsw                         \textcolor{comment}{/* al = *(ushort *)in++ */}
+00915     mov cl, bl            \textcolor{comment}{/* cl = bits, needs it for shifting */}
+00916     add bl, 16             \textcolor{comment}{/* bits += 16 */}
+00917     shl eax, cl
+00918     or  edx, eax        \textcolor{comment}{/* hold |= *((ushort *)in)++ << bits */}
+00919     mov cl, ch            \textcolor{comment}{/* move op back to ecx */}
+00920 
+00921 L\_add\_bits\_to\_dist:
+00922     sub bl, cl
+00923     xor eax, eax
+00924     inc eax
+00925     shl eax, cl
+00926     dec eax                 \textcolor{comment}{/* (1 << op) - 1 */}
+00927     and eax, edx          \textcolor{comment}{/* eax &= hold */}
+00928     shr edx, cl
+00929     add ebp, eax          \textcolor{comment}{/* dist += hold & ((1 << op) - 1) */}
+00930 
+00931 L\_check\_window:
+00932     mov [esp+8], esi       \textcolor{comment}{/* save in so from can use it's reg */}
+00933     mov eax, edi
+00934     sub eax, [esp+20]      \textcolor{comment}{/* nbytes = out - beg */}
+00935 
+00936     cmp eax, ebp
+00937     jb  L\_clip\_window        \textcolor{comment}{/* if (dist > nbytes) 4.2% */}
+00938 
+00939     mov ecx, [esp+64]      \textcolor{comment}{/* ecx = len */}
+00940     mov esi, edi
+00941     sub esi, ebp          \textcolor{comment}{/* from = out - dist */}
+00942 
+00943     sar ecx, 1
+00944     jnc L\_copy\_two
+00945 
+00946     rep     movsw
+00947     mov al, [esi]
+00948     mov [edi], al
+00949     inc edi
+00950 
+00951     mov esi, [esp+8]      \textcolor{comment}{/* move in back to %esi, toss from */}
+00952     mov ebp, [esp+32]     \textcolor{comment}{/* ebp = lcode */}
+00953     jmp L\_while\_test
+00954 
+00955 L\_copy\_two:
+00956     rep     movsw
+00957     mov esi, [esp+8]      \textcolor{comment}{/* move in back to %esi, toss from */}
+00958     mov ebp, [esp+32]     \textcolor{comment}{/* ebp = lcode */}
+00959     jmp L\_while\_test
+00960 
+00961 ALIGN 4
+00962 L\_check\_dist\_one:
+00963     cmp ebp, 1            \textcolor{comment}{/* if dist 1, is a memset */}
+00964     jne L\_check\_window
+00965     cmp [esp+20], edi
+00966     je  L\_check\_window    \textcolor{comment}{/* out == beg, if outside window */}
+00967 
+00968     mov ecx, [esp+64]     \textcolor{comment}{/* ecx = len */}
+00969     mov al, [edi-1]
+00970     mov ah, al
+00971 
+00972     sar ecx, 1
+00973     jnc L\_set\_two
+00974     mov [edi], al         \textcolor{comment}{/* memset out with from[-1] */}
+00975     inc edi
+00976 
+00977 L\_set\_two:
+00978     rep     stosw
+00979     mov ebp, [esp+32]     \textcolor{comment}{/* ebp = lcode */}
+00980     jmp L\_while\_test
+00981 
+00982 ALIGN 4
+00983 L\_test\_for\_second\_level\_length:
+00984     test    al, 64
+00985     jnz L\_test\_for\_end\_of\_block \textcolor{comment}{/* if ((op & 64) != 0) */}
+00986 
+00987     xor eax, eax
+00988     inc eax
+00989     shl eax, cl
+00990     dec eax
+00991     and eax, edx         \textcolor{comment}{/* eax &= hold */}
+00992     add eax, [esp+64]     \textcolor{comment}{/* eax += len */}
+00993     mov eax, [ebp+eax*4] \textcolor{comment}{/* eax = lcode[val+(hold&mask[op])]*/}
+00994     jmp L\_dolen
+00995 
+00996 ALIGN 4
+00997 L\_test\_for\_second\_level\_dist:
+00998     test    al, 64
+00999     jnz L\_invalid\_distance\_code \textcolor{comment}{/* if ((op & 64) != 0) */}
+01000 
+01001     xor eax, eax
+01002     inc eax
+01003     shl eax, cl
+01004     dec eax
+01005     and eax, edx         \textcolor{comment}{/* eax &= hold */}
+01006     add eax, ebp         \textcolor{comment}{/* eax += dist */}
+01007     mov ecx, [esp+36]     \textcolor{comment}{/* ecx = dcode */}
+01008     mov eax, [ecx+eax*4] \textcolor{comment}{/* eax = dcode[val+(hold&mask[op])]*/}
+01009     jmp L\_dodist
+01010 
+01011 ALIGN 4
+01012 L\_clip\_window:
+01013     mov ecx, eax
+01014     mov eax, [esp+48]     \textcolor{comment}{/* eax = wsize */}
+01015     neg ecx                \textcolor{comment}{/* nbytes = -nbytes */}
+01016     mov esi, [esp+28]     \textcolor{comment}{/* from = window */}
+01017 
+01018     cmp eax, ebp
+01019     jb  L\_invalid\_distance\_too\_far \textcolor{comment}{/* if (dist > wsize) */}
+01020 
+01021     add ecx, ebp         \textcolor{comment}{/* nbytes = dist - nbytes */}
+01022     cmp dword ptr [esp+52], 0
+01023     jne L\_wrap\_around\_window \textcolor{comment}{/* if (write != 0) */}
+01024 
+01025     sub eax, ecx
+01026     add esi, eax         \textcolor{comment}{/* from += wsize - nbytes */}
+01027 
+01028     mov eax, [esp+64]    \textcolor{comment}{/* eax = len */}
+01029     cmp eax, ecx
+01030     jbe L\_do\_copy          \textcolor{comment}{/* if (nbytes >= len) */}
+01031 
+01032     sub eax, ecx         \textcolor{comment}{/* len -= nbytes */}
+01033     rep     movsb
+01034     mov esi, edi
+01035     sub esi, ebp         \textcolor{comment}{/* from = out - dist */}
+01036     jmp L\_do\_copy
+01037 
+01038 ALIGN 4
+01039 L\_wrap\_around\_window:
+01040     mov eax, [esp+52]    \textcolor{comment}{/* eax = write */}
+01041     cmp ecx, eax
+01042     jbe L\_contiguous\_in\_window \textcolor{comment}{/* if (write >= nbytes) */}
+01043 
+01044     add esi, [esp+48]    \textcolor{comment}{/* from += wsize */}
+01045     add esi, eax         \textcolor{comment}{/* from += write */}
+01046     sub esi, ecx         \textcolor{comment}{/* from -= nbytes */}
+01047     sub ecx, eax         \textcolor{comment}{/* nbytes -= write */}
+01048 
+01049     mov eax, [esp+64]    \textcolor{comment}{/* eax = len */}
+01050     cmp eax, ecx
+01051     jbe L\_do\_copy          \textcolor{comment}{/* if (nbytes >= len) */}
+01052 
+01053     sub eax, ecx         \textcolor{comment}{/* len -= nbytes */}
+01054     rep     movsb
+01055     mov esi, [esp+28]     \textcolor{comment}{/* from = window */}
+01056     mov ecx, [esp+52]     \textcolor{comment}{/* nbytes = write */}
+01057     cmp eax, ecx
+01058     jbe L\_do\_copy          \textcolor{comment}{/* if (nbytes >= len) */}
+01059 
+01060     sub eax, ecx         \textcolor{comment}{/* len -= nbytes */}
+01061     rep     movsb
+01062     mov esi, edi
+01063     sub esi, ebp         \textcolor{comment}{/* from = out - dist */}
+01064     jmp L\_do\_copy
+01065 
+01066 ALIGN 4
+01067 L\_contiguous\_in\_window:
+01068     add esi, eax
+01069     sub esi, ecx         \textcolor{comment}{/* from += write - nbytes */}
+01070 
+01071     mov eax, [esp+64]    \textcolor{comment}{/* eax = len */}
+01072     cmp eax, ecx
+01073     jbe L\_do\_copy          \textcolor{comment}{/* if (nbytes >= len) */}
+01074 
+01075     sub eax, ecx         \textcolor{comment}{/* len -= nbytes */}
+01076     rep     movsb
+01077     mov esi, edi
+01078     sub esi, ebp         \textcolor{comment}{/* from = out - dist */}
+01079     jmp L\_do\_copy
+01080 
+01081 ALIGN 4
+01082 L\_do\_copy:
+01083     mov ecx, eax
+01084     rep     movsb
+01085 
+01086     mov esi, [esp+8]      \textcolor{comment}{/* move in back to %esi, toss from */}
+01087     mov ebp, [esp+32]     \textcolor{comment}{/* ebp = lcode */}
+01088     jmp L\_while\_test
+01089 
+01090 L\_test\_for\_end\_of\_block:
+01091     test    al, 32
+01092     jz  L\_invalid\_literal\_length\_code
+01093     mov dword ptr [esp+72], 1
+01094     jmp L\_break\_loop\_with\_status
+01095 
+01096 L\_invalid\_literal\_length\_code:
+01097     mov dword ptr [esp+72], 2
+01098     jmp L\_break\_loop\_with\_status
+01099 
+01100 L\_invalid\_distance\_code:
+01101     mov dword ptr [esp+72], 3
+01102     jmp L\_break\_loop\_with\_status
+01103 
+01104 L\_invalid\_distance\_too\_far:
+01105     mov esi, [esp+4]
+01106     mov dword ptr [esp+72], 4
+01107     jmp L\_break\_loop\_with\_status
+01108 
+01109 L\_break\_loop:
+01110     mov dword ptr [esp+72], 0
+01111 
+01112 L\_break\_loop\_with\_status:
+01113 \textcolor{comment}{/* put in, out, bits, and hold back into ar and pop esp */}
+01114     mov [esp+8], esi     \textcolor{comment}{/* save in */}
+01115     mov [esp+16], edi    \textcolor{comment}{/* save out */}
+01116     mov [esp+44], ebx    \textcolor{comment}{/* save bits */}
+01117     mov [esp+40], edx    \textcolor{comment}{/* save hold */}
+01118     mov ebp, [esp+4]     \textcolor{comment}{/* restore esp, ebp */}
+01119     mov esp, [esp]
+01120     \}
+01121 \textcolor{preprocessor}{#else}
+01122 \textcolor{preprocessor}{#error "x86 architecture not defined"}
+01123 \textcolor{preprocessor}{#endif}
+01124 
+01125     \textcolor{keywordflow}{if} (ar.status > 1) \{
+01126         \textcolor{keywordflow}{if} (ar.status == 2)
+01127             strm->msg = \textcolor{stringliteral}{"invalid literal/length code"};
+01128         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (ar.status == 3)
+01129             strm->msg = \textcolor{stringliteral}{"invalid distance code"};
+01130         \textcolor{keywordflow}{else}
+01131             strm->msg = \textcolor{stringliteral}{"invalid distance too far back"};
+01132         state->mode = BAD;
+01133     \}
+01134     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} ( ar.status == 1 ) \{
+01135         state->mode = TYPE;
+01136     \}
+01137 
+01138     \textcolor{comment}{/* return unused bytes (on entry, bits < 8, so in won't go too far back) */}
+01139     ar.len = ar.bits >> 3;
+01140     ar.in -= ar.len;
+01141     ar.bits -= ar.len << 3;
+01142     ar.hold &= (1U << ar.bits) - 1;
+01143 
+01144     \textcolor{comment}{/* update state and return */}
+01145     strm->next\_in = ar.in;
+01146     strm->next\_out = ar.out;
+01147     strm->avail\_in = (unsigned)(ar.in < ar.last ?
+01148                                 PAD\_AVAIL\_IN + (ar.last - ar.in) :
+01149                                 PAD\_AVAIL\_IN - (ar.in - ar.last));
+01150     strm->avail\_out = (unsigned)(ar.out < ar.end ?
+01151                                  PAD\_AVAIL\_OUT + (ar.end - ar.out) :
+01152                                  PAD\_AVAIL\_OUT - (ar.out - ar.end));
+01153     state->hold = ar.hold;
+01154     state->bits = ar.bits;
+01155     \textcolor{keywordflow}{return};
+01156 \}
+01157 
+\end{DoxyCode}

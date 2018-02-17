@@ -1,0 +1,258 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_polynomials_2_companion_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/src/\+Polynomials/\+Companion.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2src_2_polynomials_2_companion_8h_source}\index{Companion.\+h@{Companion.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2010 Manuel Yguel <manuel.yguel@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_COMPANION\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_COMPANION\_H}
+00012 
+00013 \textcolor{comment}{// This file requires the user to include}
+00014 \textcolor{comment}{// * Eigen/Core}
+00015 \textcolor{comment}{// * Eigen/src/PolynomialSolver.h}
+00016 
+00017 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00018 
+00019 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00020 
+00021 \textcolor{preprocessor}{#ifndef EIGEN\_PARSED\_BY\_DOXYGEN}
+00022 
+00023 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00024 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} radix()\{ \textcolor{keywordflow}{return} 2; \}
+00025 
+00026 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+00027 \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} radix2()\{ \textcolor{keywordflow}{return} radix<T>()*radix<T>(); \}
+00028 
+00029 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Size>
+00030 \textcolor{keyword}{struct }decrement\_if\_fixed\_size
+00031 \{
+00032   \textcolor{keyword}{enum} \{
+00033     ret = (Size == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}) ? \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} : Size-1 \};
+00034 \};
+00035 
+00036 \textcolor{preprocessor}{#endif}
+00037 
+00038 \textcolor{keyword}{template}< \textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} \_Deg >
+00039 \textcolor{keyword}{class }companion
+00040 \{
+00041   \textcolor{keyword}{public}:
+00042     EIGEN\_MAKE\_ALIGNED\_OPERATOR\_NEW\_IF\_VECTORIZABLE\_FIXED\_SIZE(\_Scalar,\_Deg==
+      \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} ? \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} : \_Deg)
+00043 
+00044     \textcolor{keyword}{enum} \{
+00045       Deg = \_Deg,
+00046       Deg\_1=decrement\_if\_fixed\_size<Deg>::ret
+00047     \};
+00048 
+00049     \textcolor{keyword}{typedef} \_Scalar                                Scalar;
+00050     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} NumTraits<Scalar>::Real       RealScalar;
+00051     \textcolor{keyword}{typedef} Matrix<Scalar, Deg, 1>                 RightColumn;
+00052     \textcolor{comment}{//typedef DiagonalMatrix< Scalar, Deg\_1, Deg\_1 > BottomLeftDiagonal;}
+00053     \textcolor{keyword}{typedef} Matrix<Scalar, Deg\_1, 1>               BottomLeftDiagonal;
+00054 
+00055     \textcolor{keyword}{typedef} Matrix<Scalar, Deg, Deg>               DenseCompanionMatrixType;
+00056     \textcolor{keyword}{typedef} Matrix< Scalar, \_Deg, Deg\_1 >          LeftBlock;
+00057     \textcolor{keyword}{typedef} Matrix< Scalar, Deg\_1, Deg\_1 >         BottomLeftBlock;
+00058     \textcolor{keyword}{typedef} Matrix< Scalar, 1, Deg\_1 >             LeftBlockFirstRow;
+00059 
+00060     \textcolor{keyword}{typedef} DenseIndex \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00061 
+00062   \textcolor{keyword}{public}:
+00063     EIGEN\_STRONG\_INLINE \textcolor{keyword}{const} \_Scalar operator()(Index row, Index col )\textcolor{keyword}{ const}
+00064 \textcolor{keyword}{    }\{
+00065       \textcolor{keywordflow}{if}( m\_bl\_diag.rows() > col )
+00066       \{
+00067         \textcolor{keywordflow}{if}( 0 < row )\{ \textcolor{keywordflow}{return} m\_bl\_diag[col]; \}
+00068         \textcolor{keywordflow}{else}\{ \textcolor{keywordflow}{return} 0; \}
+00069       \}
+00070       \textcolor{keywordflow}{else}\{ \textcolor{keywordflow}{return} m\_monic[row]; \}
+00071     \}
+00072 
+00073   \textcolor{keyword}{public}:
+00074     \textcolor{keyword}{template}<\textcolor{keyword}{typename} VectorType>
+00075     \textcolor{keywordtype}{void} setPolynomial( \textcolor{keyword}{const} \hyperlink{struct_vector_type}{VectorType}& poly )
+00076     \{
+00077       \textcolor{keyword}{const} Index deg = poly.size()-1;
+00078       m\_monic = -1/poly[deg] * poly.head(deg);
+00079       \textcolor{comment}{//m\_bl\_diag.setIdentity( deg-1 );}
+00080       m\_bl\_diag.setOnes(deg-1);
+00081     \}
+00082 
+00083     \textcolor{keyword}{template}<\textcolor{keyword}{typename} VectorType>
+00084     companion( \textcolor{keyword}{const} \hyperlink{struct_vector_type}{VectorType}& poly )\{
+00085       setPolynomial( poly ); \}
+00086 
+00087   \textcolor{keyword}{public}:
+00088     DenseCompanionMatrixType denseMatrix()\textcolor{keyword}{ const}
+00089 \textcolor{keyword}{    }\{
+00090       \textcolor{keyword}{const} Index deg   = m\_monic.size();
+00091       \textcolor{keyword}{const} Index deg\_1 = deg-1;
+00092       DenseCompanionMatrixType companion(deg,deg);
+00093       companion <<
+00094         ( LeftBlock(deg,deg\_1)
+00095           << LeftBlockFirstRow::Zero(1,deg\_1),
+00096           BottomLeftBlock::Identity(deg-1,deg-1)*m\_bl\_diag.asDiagonal() ).finished()
+00097         , m\_monic;
+00098       \textcolor{keywordflow}{return} companion;
+00099     \}
+00100 
+00101 
+00102 
+00103   \textcolor{keyword}{protected}:
+00110     \textcolor{keywordtype}{bool} balanced( Scalar colNorm, Scalar rowNorm,
+00111         \textcolor{keywordtype}{bool}& isBalanced, Scalar& colB, Scalar& rowB );
+00112 
+00119     \textcolor{keywordtype}{bool} balancedR( Scalar colNorm, Scalar rowNorm,
+00120         \textcolor{keywordtype}{bool}& isBalanced, Scalar& colB, Scalar& rowB );
+00121 
+00122   \textcolor{keyword}{public}:
+00131     \textcolor{keywordtype}{void} balance();
+00132 
+00133   \textcolor{keyword}{protected}:
+00134       RightColumn                m\_monic;
+00135       BottomLeftDiagonal         m\_bl\_diag;
+00136 \};
+00137 
+00138 
+00139 
+00140 \textcolor{keyword}{template}< \textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} \_Deg >
+00141 \textcolor{keyword}{inline}
+00142 \textcolor{keywordtype}{bool} \hyperlink{class_eigen_1_1internal_1_1companion_ac5c7b024fdd218ea68165bd948f48e83}{companion<\_Scalar,\_Deg>::balanced}( Scalar colNorm, Scalar rowNorm,
+00143     \textcolor{keywordtype}{bool}& isBalanced, Scalar& colB, Scalar& rowB )
+00144 \{
+00145   \textcolor{keywordflow}{if}( Scalar(0) == colNorm || Scalar(0) == rowNorm )\{ \textcolor{keywordflow}{return} \textcolor{keyword}{true}; \}
+00146   \textcolor{keywordflow}{else}
+00147   \{
+00148     \textcolor{comment}{//To find the balancing coefficients, if the radix is 2,}
+00149     \textcolor{comment}{//one finds \(\backslash\)f$ \(\backslash\)sigma \(\backslash\)f$ such that}
+00150     \textcolor{comment}{// \(\backslash\)f$ 2^\{2\(\backslash\)sigma-1\} < rowNorm / colNorm \(\backslash\)le 2^\{2\(\backslash\)sigma+1\} \(\backslash\)f$}
+00151     \textcolor{comment}{// then the balancing coefficient for the row is \(\backslash\)f$ 1/2^\{\(\backslash\)sigma\} \(\backslash\)f$}
+00152     \textcolor{comment}{// and the balancing coefficient for the column is \(\backslash\)f$ 2^\{\(\backslash\)sigma\} \(\backslash\)f$}
+00153     rowB = rowNorm / radix<Scalar>();
+00154     colB = Scalar(1);
+00155     \textcolor{keyword}{const} Scalar s = colNorm + rowNorm;
+00156 
+00157     \textcolor{keywordflow}{while} (colNorm < rowB)
+00158     \{
+00159       colB *= radix<Scalar>();
+00160       colNorm *= radix2<Scalar>();
+00161     \}
+00162 
+00163     rowB = rowNorm * radix<Scalar>();
+00164 
+00165     \textcolor{keywordflow}{while} (colNorm >= rowB)
+00166     \{
+00167       colB /= radix<Scalar>();
+00168       colNorm /= radix2<Scalar>();
+00169     \}
+00170 
+00171     \textcolor{comment}{//This line is used to avoid insubstantial balancing}
+00172     \textcolor{keywordflow}{if} ((rowNorm + colNorm) < Scalar(0.95) * s * colB)
+00173     \{
+00174       isBalanced = \textcolor{keyword}{false};
+00175       rowB = Scalar(1) / colB;
+00176       \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00177     \}
+00178     \textcolor{keywordflow}{else}\{
+00179       \textcolor{keywordflow}{return} \textcolor{keyword}{true}; \}
+00180   \}
+00181 \}
+00182 
+00183 \textcolor{keyword}{template}< \textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} \_Deg >
+00184 \textcolor{keyword}{inline}
+00185 \textcolor{keywordtype}{bool} \hyperlink{class_eigen_1_1internal_1_1companion_a9945fcaca89aecc2fbff0e9b06510de0}{companion<\_Scalar,\_Deg>::balancedR}( Scalar colNorm, Scalar rowNorm,
+00186     \textcolor{keywordtype}{bool}& isBalanced, Scalar& colB, Scalar& rowB )
+00187 \{
+00188   \textcolor{keywordflow}{if}( Scalar(0) == colNorm || Scalar(0) == rowNorm )\{ \textcolor{keywordflow}{return} \textcolor{keyword}{true}; \}
+00189   \textcolor{keywordflow}{else}
+00190   \{
+00195     \textcolor{keyword}{const} \_Scalar q = colNorm/rowNorm;
+00196     \textcolor{keywordflow}{if}( !isApprox( q, \_Scalar(1) ) )
+00197     \{
+00198       rowB = sqrt( colNorm/rowNorm );
+00199       colB = Scalar(1)/rowB;
+00200 
+00201       isBalanced = \textcolor{keyword}{false};
+00202       \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00203     \}
+00204     \textcolor{keywordflow}{else}\{
+00205       \textcolor{keywordflow}{return} \textcolor{keyword}{true}; \}
+00206   \}
+00207 \}
+00208 
+00209 
+00210 \textcolor{keyword}{template}< \textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} \_Deg >
+00211 \textcolor{keywordtype}{void} \hyperlink{class_eigen_1_1internal_1_1companion_a7362d054f04f6d554fb6c8a279287000}{companion<\_Scalar,\_Deg>::balance}()
+00212 \{
+00213   \textcolor{keyword}{using} std::abs;
+00214   EIGEN\_STATIC\_ASSERT( Deg == \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} || 1 < Deg, YOU\_MADE\_A\_PROGRAMMING\_MISTAKE );
+00215   \textcolor{keyword}{const} Index deg   = m\_monic.size();
+00216   \textcolor{keyword}{const} Index deg\_1 = deg-1;
+00217 
+00218   \textcolor{keywordtype}{bool} hasConverged=\textcolor{keyword}{false};
+00219   \textcolor{keywordflow}{while}( !hasConverged )
+00220   \{
+00221     hasConverged = \textcolor{keyword}{true};
+00222     Scalar colNorm,rowNorm;
+00223     Scalar colB,rowB;
+00224 
+00225     \textcolor{comment}{//First row, first column excluding the diagonal}
+00226     \textcolor{comment}{//==============================================}
+00227     colNorm = abs(m\_bl\_diag[0]);
+00228     rowNorm = abs(m\_monic[0]);
+00229 
+00230     \textcolor{comment}{//Compute balancing of the row and the column}
+00231     \textcolor{keywordflow}{if}( !balanced( colNorm, rowNorm, hasConverged, colB, rowB ) )
+00232     \{
+00233       m\_bl\_diag[0] *= colB;
+00234       m\_monic[0] *= rowB;
+00235     \}
+00236 
+00237     \textcolor{comment}{//Middle rows and columns excluding the diagonal}
+00238     \textcolor{comment}{//==============================================}
+00239     \textcolor{keywordflow}{for}( Index i=1; i<deg\_1; ++i )
+00240     \{
+00241       \textcolor{comment}{// column norm, excluding the diagonal}
+00242       colNorm = abs(m\_bl\_diag[i]);
+00243 
+00244       \textcolor{comment}{// row norm, excluding the diagonal}
+00245       rowNorm = abs(m\_bl\_diag[i-1]) + abs(m\_monic[i]);
+00246 
+00247       \textcolor{comment}{//Compute balancing of the row and the column}
+00248       \textcolor{keywordflow}{if}( !balanced( colNorm, rowNorm, hasConverged, colB, rowB ) )
+00249       \{
+00250         m\_bl\_diag[i]   *= colB;
+00251         m\_bl\_diag[i-1] *= rowB;
+00252         m\_monic[i]     *= rowB;
+00253       \}
+00254     \}
+00255 
+00256     \textcolor{comment}{//Last row, last column excluding the diagonal}
+00257     \textcolor{comment}{//============================================}
+00258     \textcolor{keyword}{const} Index ebl = m\_bl\_diag.size()-1;
+00259     VectorBlock<RightColumn,Deg\_1> headMonic( m\_monic, 0, deg\_1 );
+00260     colNorm = headMonic.array().abs().sum();
+00261     rowNorm = abs( m\_bl\_diag[ebl] );
+00262 
+00263     \textcolor{comment}{//Compute balancing of the row and the column}
+00264     \textcolor{keywordflow}{if}( !balanced( colNorm, rowNorm, hasConverged, colB, rowB ) )
+00265     \{
+00266       headMonic      *= colB;
+00267       m\_bl\_diag[ebl] *= rowB;
+00268     \}
+00269   \}
+00270 \}
+00271 
+00272 \} \textcolor{comment}{// end namespace internal}
+00273 
+00274 \} \textcolor{comment}{// end namespace Eigen}
+00275 
+00276 \textcolor{preprocessor}{#endif // EIGEN\_COMPANION\_H}
+\end{DoxyCode}

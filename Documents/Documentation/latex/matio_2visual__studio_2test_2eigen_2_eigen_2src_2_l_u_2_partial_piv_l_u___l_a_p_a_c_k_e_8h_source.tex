@@ -1,0 +1,87 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u___l_a_p_a_c_k_e_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/\+Eigen/src/\+L\+U/\+Partial\+Piv\+L\+U\+\_\+\+L\+A\+P\+A\+C\+KE.h}
+\label{matio_2visual__studio_2test_2eigen_2_eigen_2src_2_l_u_2_partial_piv_l_u___l_a_p_a_c_k_e_8h_source}\index{Partial\+Piv\+L\+U\+\_\+\+L\+A\+P\+A\+C\+K\+E.\+h@{Partial\+Piv\+L\+U\+\_\+\+L\+A\+P\+A\+C\+K\+E.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/*}
+00002 \textcolor{comment}{ Copyright (c) 2011, Intel Corporation. All rights reserved.}
+00003 \textcolor{comment}{}
+00004 \textcolor{comment}{ Redistribution and use in source and binary forms, with or without modification,}
+00005 \textcolor{comment}{ are permitted provided that the following conditions are met:}
+00006 \textcolor{comment}{}
+00007 \textcolor{comment}{ * Redistributions of source code must retain the above copyright notice, this}
+00008 \textcolor{comment}{   list of conditions and the following disclaimer.}
+00009 \textcolor{comment}{ * Redistributions in binary form must reproduce the above copyright notice,}
+00010 \textcolor{comment}{   this list of conditions and the following disclaimer in the documentation}
+00011 \textcolor{comment}{   and/or other materials provided with the distribution.}
+00012 \textcolor{comment}{ * Neither the name of Intel Corporation nor the names of its contributors may}
+00013 \textcolor{comment}{   be used to endorse or promote products derived from this software without}
+00014 \textcolor{comment}{   specific prior written permission.}
+00015 \textcolor{comment}{}
+00016 \textcolor{comment}{ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND}
+00017 \textcolor{comment}{ ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED}
+00018 \textcolor{comment}{ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE}
+00019 \textcolor{comment}{ DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR}
+00020 \textcolor{comment}{ ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES}
+00021 \textcolor{comment}{ (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;}
+00022 \textcolor{comment}{ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON}
+00023 \textcolor{comment}{ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}
+00024 \textcolor{comment}{ (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS}
+00025 \textcolor{comment}{ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}
+00026 \textcolor{comment}{}
+00027 \textcolor{comment}{ ********************************************************************************}
+00028 \textcolor{comment}{ *   Content : Eigen bindings to LAPACKe}
+00029 \textcolor{comment}{ *     LU decomposition with partial pivoting based on LAPACKE\_?getrf function.}
+00030 \textcolor{comment}{ ********************************************************************************}
+00031 \textcolor{comment}{*/}
+00032 
+00033 \textcolor{preprocessor}{#ifndef EIGEN\_PARTIALLU\_LAPACK\_H}
+00034 \textcolor{preprocessor}{#define EIGEN\_PARTIALLU\_LAPACK\_H}
+00035 
+00036 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{ 
+00037 
+00038 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00039 
+00042 \textcolor{preprocessor}{#define EIGEN\_LAPACKE\_LU\_PARTPIV(EIGTYPE, LAPACKE\_TYPE, LAPACKE\_PREFIX) \(\backslash\)}
+00043 \textcolor{preprocessor}{template<int StorageOrder> \(\backslash\)}
+00044 \textcolor{preprocessor}{struct partial\_lu\_impl<EIGTYPE, StorageOrder, lapack\_int> \(\backslash\)}
+00045 \textcolor{preprocessor}{\{ \(\backslash\)}
+00046 \textcolor{preprocessor}{  }\textcolor{comment}{/* \(\backslash\)internal performs the LU decomposition in-place of the matrix represented */}\textcolor{preprocessor}{ \(\backslash\)}
+00047 \textcolor{preprocessor}{  static lapack\_int blocked\_lu(Index rows, Index cols, EIGTYPE* lu\_data, Index luStride, lapack\_int*
+       row\_transpositions, lapack\_int& nb\_transpositions, lapack\_int maxBlockSize=256) \(\backslash\)}
+00048 \textcolor{preprocessor}{  \{ \(\backslash\)}
+00049 \textcolor{preprocessor}{    EIGEN\_UNUSED\_VARIABLE(maxBlockSize);\(\backslash\)}
+00050 \textcolor{preprocessor}{    lapack\_int matrix\_order, first\_zero\_pivot; \(\backslash\)}
+00051 \textcolor{preprocessor}{    lapack\_int m, n, lda, *ipiv, info; \(\backslash\)}
+00052 \textcolor{preprocessor}{    EIGTYPE* a; \(\backslash\)}
+00053 \textcolor{preprocessor}{}\textcolor{comment}{/* Set up parameters for ?getrf */}\textcolor{preprocessor}{ \(\backslash\)}
+00054 \textcolor{preprocessor}{    matrix\_order = StorageOrder==RowMajor ? LAPACK\_ROW\_MAJOR : LAPACK\_COL\_MAJOR; \(\backslash\)}
+00055 \textcolor{preprocessor}{    lda = convert\_index<lapack\_int>(luStride); \(\backslash\)}
+00056 \textcolor{preprocessor}{    a = lu\_data; \(\backslash\)}
+00057 \textcolor{preprocessor}{    ipiv = row\_transpositions; \(\backslash\)}
+00058 \textcolor{preprocessor}{    m = convert\_index<lapack\_int>(rows); \(\backslash\)}
+00059 \textcolor{preprocessor}{    n = convert\_index<lapack\_int>(cols); \(\backslash\)}
+00060 \textcolor{preprocessor}{    nb\_transpositions = 0; \(\backslash\)}
+00061 \textcolor{preprocessor}{\(\backslash\)}
+00062 \textcolor{preprocessor}{    info = LAPACKE\_##LAPACKE\_PREFIX##getrf( matrix\_order, m, n, (LAPACKE\_TYPE*)a, lda, ipiv ); \(\backslash\)}
+00063 \textcolor{preprocessor}{\(\backslash\)}
+00064 \textcolor{preprocessor}{    for(int i=0;i<m;i++) \{ ipiv[i]--; if (ipiv[i]!=i) nb\_transpositions++; \} \(\backslash\)}
+00065 \textcolor{preprocessor}{\(\backslash\)}
+00066 \textcolor{preprocessor}{    eigen\_assert(info >= 0); \(\backslash\)}
+00067 \textcolor{preprocessor}{}\textcolor{comment}{/* something should be done with nb\_transpositions */}\textcolor{preprocessor}{ \(\backslash\)}
+00068 \textcolor{preprocessor}{\(\backslash\)}
+00069 \textcolor{preprocessor}{    first\_zero\_pivot = info; \(\backslash\)}
+00070 \textcolor{preprocessor}{    return first\_zero\_pivot; \(\backslash\)}
+00071 \textcolor{preprocessor}{  \} \(\backslash\)}
+00072 \textcolor{preprocessor}{\};}
+00073 
+00074 EIGEN\_LAPACKE\_LU\_PARTPIV(\textcolor{keywordtype}{double}, \textcolor{keywordtype}{double}, d)
+00075 EIGEN\_LAPACKE\_LU\_PARTPIV(\textcolor{keywordtype}{float}, \textcolor{keywordtype}{float}, s)
+00076 EIGEN\_LAPACKE\_LU\_PARTPIV(dcomplex, lapack\_complex\_double, z)
+00077 EIGEN\_LAPACKE\_LU\_PARTPIV(scomplex, lapack\_complex\_float,  c)
+00078 
+00079 \} \textcolor{comment}{// end namespace internal}
+00080 
+00081 \} \textcolor{comment}{// end namespace Eigen}
+00082 
+00083 \textcolor{preprocessor}{#endif // EIGEN\_PARTIALLU\_LAPACK\_H}
+\end{DoxyCode}

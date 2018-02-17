@@ -1,0 +1,120 @@
+\hypertarget{eigen_2test_2geo__eulerangles_8cpp_source}{}\section{eigen/test/geo\+\_\+eulerangles.cpp}
+\label{eigen_2test_2geo__eulerangles_8cpp_source}\index{geo\+\_\+eulerangles.\+cpp@{geo\+\_\+eulerangles.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2012 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 \textcolor{preprocessor}{#include <Eigen/Geometry>}
+00012 \textcolor{preprocessor}{#include <Eigen/LU>}
+00013 \textcolor{preprocessor}{#include <Eigen/SVD>}
+00014 
+00015 
+00016 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00017 \textcolor{keywordtype}{void} verify\_euler(\textcolor{keyword}{const} \hyperlink{group___core___module}{Matrix<Scalar,3,1>}& ea, \textcolor{keywordtype}{int} i, \textcolor{keywordtype}{int} j, \textcolor{keywordtype}{int} k)
+00018 \{
+00019   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,3,3>} Matrix3;
+00020   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,3,1>} Vector3;
+00021   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_angle_axis}{AngleAxis<Scalar>} AngleAxisx;
+00022   \textcolor{keyword}{using} std::abs;
+00023   Matrix3 m(AngleAxisx(ea[0], Vector3::Unit(i)) * AngleAxisx(ea[1], Vector3::Unit(j)) * AngleAxisx(ea[2], 
+      Vector3::Unit(k)));
+00024   Vector3 eabis = m.eulerAngles(i, j, k);
+00025   Matrix3 mbis(AngleAxisx(eabis[0], Vector3::Unit(i)) * AngleAxisx(eabis[1], Vector3::Unit(j)) * AngleAxisx
+      (eabis[2], Vector3::Unit(k))); 
+00026   VERIFY\_IS\_APPROX(m,  mbis); 
+00027   \textcolor{comment}{/* If I==K, and ea[1]==0, then there no unique solution. */} 
+00028   \textcolor{comment}{/* The remark apply in the case where I!=K, and |ea[1]| is close to pi/2. */} 
+00029   \textcolor{keywordflow}{if}( (i!=k || ea[1]!=0) && (i==k || !internal::isApprox(abs(ea[1]),Scalar(EIGEN\_PI/2),
+      test\_precision<Scalar>())) ) 
+00030     VERIFY((ea-eabis).norm() <= test\_precision<Scalar>());
+00031   
+00032   \textcolor{comment}{// approx\_or\_less\_than does not work for 0}
+00033   VERIFY(0 < eabis[0] || test\_isMuchSmallerThan(eabis[0], Scalar(1)));
+00034   VERIFY\_IS\_APPROX\_OR\_LESS\_THAN(eabis[0], Scalar(EIGEN\_PI));
+00035   VERIFY\_IS\_APPROX\_OR\_LESS\_THAN(-Scalar(EIGEN\_PI), eabis[1]);
+00036   VERIFY\_IS\_APPROX\_OR\_LESS\_THAN(eabis[1], Scalar(EIGEN\_PI));
+00037   VERIFY\_IS\_APPROX\_OR\_LESS\_THAN(-Scalar(EIGEN\_PI), eabis[2]);
+00038   VERIFY\_IS\_APPROX\_OR\_LESS\_THAN(eabis[2], Scalar(EIGEN\_PI));
+00039 \}
+00040 
+00041 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keywordtype}{void} check\_all\_var(\textcolor{keyword}{const} \hyperlink{group___core___module}{Matrix<Scalar,3,1>}& ea)
+00042 \{
+00043   verify\_euler(ea, 0,1,2);
+00044   verify\_euler(ea, 0,1,0);
+00045   verify\_euler(ea, 0,2,1);
+00046   verify\_euler(ea, 0,2,0);
+00047 
+00048   verify\_euler(ea, 1,2,0);
+00049   verify\_euler(ea, 1,2,1);
+00050   verify\_euler(ea, 1,0,2);
+00051   verify\_euler(ea, 1,0,1);
+00052 
+00053   verify\_euler(ea, 2,0,1);
+00054   verify\_euler(ea, 2,0,2);
+00055   verify\_euler(ea, 2,1,0);
+00056   verify\_euler(ea, 2,1,2);
+00057 \}
+00058 
+00059 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keywordtype}{void} eulerangles()
+00060 \{
+00061   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<Scalar,3,3>} Matrix3;
+00062   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,3,1>} Vector3;
+00063   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_array}{Array<Scalar,3,1>} Array3;
+00064   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternion<Scalar>} Quaternionx;
+00065   \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_angle_axis}{AngleAxis<Scalar>} AngleAxisx;
+00066 
+00067   Scalar a = internal::random<Scalar>(-Scalar(EIGEN\_PI), Scalar(EIGEN\_PI));
+00068   Quaternionx q1;
+00069   q1 = AngleAxisx(a, Vector3::Random().normalized());
+00070   Matrix3 m;
+00071   m = q1;
+00072   
+00073   Vector3 ea = m.eulerAngles(0,1,2);
+00074   check\_all\_var(ea);
+00075   ea = m.eulerAngles(0,1,0);
+00076   check\_all\_var(ea);
+00077   
+00078   \textcolor{comment}{// Check with purely random Quaternion:}
+00079   q1.coeffs() = Quaternionx::Coefficients::Random().normalized();
+00080   m = q1;
+00081   ea = m.eulerAngles(0,1,2);
+00082   check\_all\_var(ea);
+00083   ea = m.eulerAngles(0,1,0);
+00084   check\_all\_var(ea);
+00085   
+00086   \textcolor{comment}{// Check with random angles in range [0:pi]x[-pi:pi]x[-pi:pi].}
+00087   ea = (Array3::Random() + Array3(1,0,0))*Scalar(EIGEN\_PI)*Array3(0.5,1,1);
+00088   check\_all\_var(ea);
+00089   
+00090   ea[2] = ea[0] = internal::random<Scalar>(0,Scalar(EIGEN\_PI));
+00091   check\_all\_var(ea);
+00092   
+00093   ea[0] = ea[1] = internal::random<Scalar>(0,Scalar(EIGEN\_PI));
+00094   check\_all\_var(ea);
+00095   
+00096   ea[1] = 0;
+00097   check\_all\_var(ea);
+00098   
+00099   ea.head(2).setZero();
+00100   check\_all\_var(ea);
+00101   
+00102   ea.setZero();
+00103   check\_all\_var(ea);
+00104 \}
+00105 
+00106 \textcolor{keywordtype}{void} test\_geo\_eulerangles()
+00107 \{
+00108   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00109     CALL\_SUBTEST\_1( eulerangles<float>() );
+00110     CALL\_SUBTEST\_2( eulerangles<double>() );
+00111   \}
+00112 \}
+\end{DoxyCode}

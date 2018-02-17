@@ -1,0 +1,504 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2svd__common_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/svd\+\_\+common.h}
+\label{matio_2visual__studio_2test_2eigen_2test_2svd__common_8h_source}\index{svd\+\_\+common.\+h@{svd\+\_\+common.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2014 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2009 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef SVD\_DEFAULT}
+00012 \textcolor{preprocessor}{#error a macro SVD\_DEFAULT(MatrixType) must be defined prior to including svd\_common.h}
+00013 \textcolor{preprocessor}{#endif}
+00014 
+00015 \textcolor{preprocessor}{#ifndef SVD\_FOR\_MIN\_NORM}
+00016 \textcolor{preprocessor}{#error a macro SVD\_FOR\_MIN\_NORM(MatrixType) must be defined prior to including svd\_common.h}
+00017 \textcolor{preprocessor}{#endif}
+00018 
+00019 \textcolor{preprocessor}{#include "svd\_fill.h"}
+00020 
+00021 \textcolor{comment}{// Check that the matrix m is properly reconstructed and that the U and V factors are unitary}
+00022 \textcolor{comment}{// The SVD must have already been computed.}
+00023 \textcolor{keyword}{template}<\textcolor{keyword}{typename} SvdType, \textcolor{keyword}{typename} MatrixType>
+00024 \textcolor{keywordtype}{void} svd\_check\_full(\textcolor{keyword}{const} MatrixType& m, \textcolor{keyword}{const} SvdType& svd)
+00025 \{
+00026   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00027   Index rows = m.rows();
+00028   Index cols = m.cols();
+00029 
+00030   \textcolor{keyword}{enum} \{
+00031     RowsAtCompileTime = MatrixType::RowsAtCompileTime,
+00032     ColsAtCompileTime = MatrixType::ColsAtCompileTime
+00033   \};
+00034 
+00035   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00036   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00037   \textcolor{keyword}{typedef} Matrix<Scalar, RowsAtCompileTime, RowsAtCompileTime> MatrixUType;
+00038   \textcolor{keyword}{typedef} Matrix<Scalar, ColsAtCompileTime, ColsAtCompileTime> MatrixVType;
+00039 
+00040   MatrixType sigma = MatrixType::Zero(rows,cols);
+00041   sigma.diagonal() = svd.singularValues().template cast<Scalar>();
+00042   MatrixUType u = svd.matrixU();
+00043   MatrixVType v = svd.matrixV();
+00044   RealScalar scaling = m.cwiseAbs().maxCoeff();
+00045   \textcolor{keywordflow}{if}(scaling<(std::numeric\_limits<RealScalar>::min)())
+00046   \{
+00047     VERIFY(sigma.cwiseAbs().maxCoeff() <= (std::numeric\_limits<RealScalar>::min)());
+00048   \}
+00049   \textcolor{keywordflow}{else}
+00050   \{
+00051     VERIFY\_IS\_APPROX(m/scaling, u * (sigma/scaling) * v.adjoint());
+00052   \}
+00053   VERIFY\_IS\_UNITARY(u);
+00054   VERIFY\_IS\_UNITARY(v);
+00055 \}
+00056 
+00057 \textcolor{comment}{// Compare partial SVD defined by computationOptions to a full SVD referenceSvd}
+00058 \textcolor{keyword}{template}<\textcolor{keyword}{typename} SvdType, \textcolor{keyword}{typename} MatrixType>
+00059 \textcolor{keywordtype}{void} svd\_compare\_to\_full(\textcolor{keyword}{const} MatrixType& m,
+00060                          \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} computationOptions,
+00061                          \textcolor{keyword}{const} SvdType& referenceSvd)
+00062 \{
+00063   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00064   Index rows = m.rows();
+00065   Index cols = m.cols();
+00066   Index diagSize = (std::min)(rows, cols);
+00067   RealScalar prec = test\_precision<RealScalar>();
+00068 
+00069   SvdType svd(m, computationOptions);
+00070 
+00071   VERIFY\_IS\_APPROX(svd.singularValues(), referenceSvd.singularValues());
+00072   
+00073   \textcolor{keywordflow}{if}(computationOptions & (\hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9a52c6f7e80bbf9a42297c88f700245b51}{ComputeFullV}|\hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9a1055e53fa95c8ae04a07ebb72cfafd95}{ComputeThinV}))
+00074   \{
+00075     VERIFY( (svd.matrixV().adjoint()*svd.matrixV()).isIdentity(prec) );
+00076     VERIFY\_IS\_APPROX( svd.matrixV().leftCols(diagSize) * svd.singularValues().asDiagonal() * svd.matrixV().
+      leftCols(diagSize).adjoint(),
+00077                       referenceSvd.matrixV().leftCols(diagSize) * referenceSvd.singularValues().asDiagonal(
+      ) * referenceSvd.matrixV().leftCols(diagSize).adjoint());
+00078   \}
+00079   
+00080   \textcolor{keywordflow}{if}(computationOptions & (\hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9a2b4f91ca5859a4159dbfe8090043817f}{ComputeFullU}|\hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9af8c742a1aa87773e165eae406c9ccaf8}{ComputeThinU}))
+00081   \{
+00082     VERIFY( (svd.matrixU().adjoint()*svd.matrixU()).isIdentity(prec) );
+00083     VERIFY\_IS\_APPROX( svd.matrixU().leftCols(diagSize) * svd.singularValues().cwiseAbs2().asDiagonal() * 
+      svd.matrixU().leftCols(diagSize).adjoint(),
+00084                       referenceSvd.matrixU().leftCols(diagSize) * referenceSvd.singularValues().cwiseAbs2()
+      .asDiagonal() * referenceSvd.matrixU().leftCols(diagSize).adjoint());
+00085   \}
+00086   
+00087   \textcolor{comment}{// The following checks are not critical.}
+00088   \textcolor{comment}{// For instance, with Dived&Conquer SVD, if only the factor 'V' is computedt then different matrix-matrix
+       product implementation will be used}
+00089   \textcolor{comment}{// and the resulting 'V' factor might be significantly different when the SVD decomposition is not
+       unique, especially with single precision float.}
+00090   ++g\_test\_level;
+00091   \textcolor{keywordflow}{if}(computationOptions & \hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9a2b4f91ca5859a4159dbfe8090043817f}{ComputeFullU})  VERIFY\_IS\_APPROX(svd.matrixU(), referenceSvd.matrixU()
+      );
+00092   \textcolor{keywordflow}{if}(computationOptions & \hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9af8c742a1aa87773e165eae406c9ccaf8}{ComputeThinU})  VERIFY\_IS\_APPROX(svd.matrixU(), referenceSvd.matrixU()
+      .leftCols(diagSize));
+00093   \textcolor{keywordflow}{if}(computationOptions & \hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9a52c6f7e80bbf9a42297c88f700245b51}{ComputeFullV})  VERIFY\_IS\_APPROX(svd.matrixV().cwiseAbs(), 
+      referenceSvd.matrixV().cwiseAbs());
+00094   \textcolor{keywordflow}{if}(computationOptions & \hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9a1055e53fa95c8ae04a07ebb72cfafd95}{ComputeThinV})  VERIFY\_IS\_APPROX(svd.matrixV(), referenceSvd.matrixV()
+      .leftCols(diagSize));
+00095   --g\_test\_level;
+00096 \}
+00097 
+00098 \textcolor{comment}{//}
+00099 \textcolor{keyword}{template}<\textcolor{keyword}{typename} SvdType, \textcolor{keyword}{typename} MatrixType>
+00100 \textcolor{keywordtype}{void} svd\_least\_square(\textcolor{keyword}{const} MatrixType& m, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} computationOptions)
+00101 \{
+00102   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00103   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00104   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index Index;
+00105   Index rows = m.rows();
+00106   Index cols = m.cols();
+00107 
+00108   \textcolor{keyword}{enum} \{
+00109     RowsAtCompileTime = MatrixType::RowsAtCompileTime,
+00110     ColsAtCompileTime = MatrixType::ColsAtCompileTime
+00111   \};
+00112 
+00113   \textcolor{keyword}{typedef} Matrix<Scalar, RowsAtCompileTime, Dynamic> RhsType;
+00114   \textcolor{keyword}{typedef} Matrix<Scalar, ColsAtCompileTime, Dynamic> SolutionType;
+00115 
+00116   RhsType rhs = RhsType::Random(rows, internal::random<Index>(1, cols));
+00117   SvdType svd(m, computationOptions);
+00118 
+00119        \textcolor{keywordflow}{if}(internal::is\_same<RealScalar,double>::value) svd.setThreshold(1e-8);
+00120   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if}(internal::is\_same<RealScalar,float>::value)  svd.setThreshold(2e-4);
+00121 
+00122   SolutionType x = svd.solve(rhs);
+00123    
+00124   RealScalar residual = (m*x-rhs).norm();
+00125   RealScalar rhs\_norm = rhs.norm();
+00126   \textcolor{keywordflow}{if}(!test\_isMuchSmallerThan(residual,rhs.norm()))
+00127   \{
+00128     \textcolor{comment}{// ^^^ If the residual is very small, then we have an exact solution, so we are already good.}
+00129     
+00130     \textcolor{comment}{// evaluate normal equation which works also for least-squares solutions}
+00131     \textcolor{keywordflow}{if}(internal::is\_same<RealScalar,double>::value || svd.rank()==m.diagonal().size())
+00132     \{
+00133       \textcolor{keyword}{using} std::sqrt;
+00134       \textcolor{comment}{// This test is not stable with single precision.}
+00135       \textcolor{comment}{// This is probably because squaring m signicantly affects the precision.      }
+00136       \textcolor{keywordflow}{if}(internal::is\_same<RealScalar,float>::value) ++g\_test\_level;
+00137       
+00138       VERIFY\_IS\_APPROX(m.adjoint()*(m*x),m.adjoint()*rhs);
+00139       
+00140       \textcolor{keywordflow}{if}(internal::is\_same<RealScalar,float>::value) --g\_test\_level;
+00141     \}
+00142     
+00143     \textcolor{comment}{// Check that there is no significantly better solution in the neighborhood of x}
+00144     \textcolor{keywordflow}{for}(Index k=0;k<x.rows();++k)
+00145     \{
+00146       \textcolor{keyword}{using} std::abs;
+00147       
+00148       SolutionType y(x);
+00149       y.row(k) = (RealScalar(1)+2*NumTraits<RealScalar>::epsilon())*x.row(k);
+00150       RealScalar residual\_y = (m*y-rhs).norm();
+00151       VERIFY( test\_isMuchSmallerThan(abs(residual\_y-residual), rhs\_norm) || residual < residual\_y );
+00152       \textcolor{keywordflow}{if}(internal::is\_same<RealScalar,float>::value) ++g\_test\_level;
+00153       VERIFY( test\_isApprox(residual\_y,residual) || residual < residual\_y );
+00154       \textcolor{keywordflow}{if}(internal::is\_same<RealScalar,float>::value) --g\_test\_level;
+00155       
+00156       y.row(k) = (RealScalar(1)-2*NumTraits<RealScalar>::epsilon())*x.row(k);
+00157       residual\_y = (m*y-rhs).norm();
+00158       VERIFY( test\_isMuchSmallerThan(abs(residual\_y-residual), rhs\_norm) || residual < residual\_y );
+00159       \textcolor{keywordflow}{if}(internal::is\_same<RealScalar,float>::value) ++g\_test\_level;
+00160       VERIFY( test\_isApprox(residual\_y,residual) || residual < residual\_y );
+00161       \textcolor{keywordflow}{if}(internal::is\_same<RealScalar,float>::value) --g\_test\_level;
+00162     \}
+00163   \}
+00164 \}
+00165 
+00166 \textcolor{comment}{// check minimal norm solutions, the inoput matrix m is only used to recover problem size}
+00167 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00168 \textcolor{keywordtype}{void} svd\_min\_norm(\textcolor{keyword}{const} MatrixType& m, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} computationOptions)
+00169 \{
+00170   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00171   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index Index;
+00172   Index cols = m.cols();
+00173 
+00174   \textcolor{keyword}{enum} \{
+00175     ColsAtCompileTime = MatrixType::ColsAtCompileTime
+00176   \};
+00177 
+00178   \textcolor{keyword}{typedef} Matrix<Scalar, ColsAtCompileTime, Dynamic> SolutionType;
+00179 
+00180   \textcolor{comment}{// generate a full-rank m x n problem with m<n}
+00181   \textcolor{keyword}{enum} \{
+00182     RankAtCompileTime2 = ColsAtCompileTime==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} ? \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} : (ColsAtCompileTime)/2+1,
+00183     RowsAtCompileTime3 = ColsAtCompileTime==Dynamic ? Dynamic : ColsAtCompileTime+1
+00184   \};
+00185   \textcolor{keyword}{typedef} Matrix<Scalar, RankAtCompileTime2, ColsAtCompileTime> MatrixType2;
+00186   \textcolor{keyword}{typedef} Matrix<Scalar, RankAtCompileTime2, 1> RhsType2;
+00187   \textcolor{keyword}{typedef} Matrix<Scalar, ColsAtCompileTime, RankAtCompileTime2> MatrixType2T;
+00188   Index rank = RankAtCompileTime2==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} ? internal::random<Index>(1,cols) : Index(
+      RankAtCompileTime2);
+00189   MatrixType2 m2(rank,cols);
+00190   \textcolor{keywordtype}{int} guard = 0;
+00191   \textcolor{keywordflow}{do} \{
+00192     m2.setRandom();
+00193   \} \textcolor{keywordflow}{while}(SVD\_FOR\_MIN\_NORM(MatrixType2)(m2).setThreshold(test\_precision<Scalar>()).rank()!=rank && (++guard
+      )<10);
+00194   VERIFY(guard<10);
+00195 
+00196   RhsType2 rhs2 = RhsType2::Random(rank);
+00197   \textcolor{comment}{// use QR to find a reference minimal norm solution}
+00198   HouseholderQR<MatrixType2T> qr(m2.adjoint());
+00199   Matrix<Scalar,Dynamic,1> tmp = qr.matrixQR().topLeftCorner(rank,rank).template triangularView<Upper>().
+      adjoint().solve(rhs2);
+00200   tmp.conservativeResize(cols);
+00201   tmp.tail(cols-rank).setZero();
+00202   SolutionType x21 = qr.householderQ() * tmp;
+00203   \textcolor{comment}{// now check with SVD}
+00204   SVD\_FOR\_MIN\_NORM(MatrixType2) svd2(m2, computationOptions);
+00205   SolutionType x22 = svd2.solve(rhs2);
+00206   VERIFY\_IS\_APPROX(m2*x21, rhs2);
+00207   VERIFY\_IS\_APPROX(m2*x22, rhs2);
+00208   VERIFY\_IS\_APPROX(x21, x22);
+00209 
+00210   \textcolor{comment}{// Now check with a rank deficient matrix}
+00211   \textcolor{keyword}{typedef} Matrix<Scalar, RowsAtCompileTime3, ColsAtCompileTime> MatrixType3;
+00212   \textcolor{keyword}{typedef} Matrix<Scalar, RowsAtCompileTime3, 1> RhsType3;
+00213   Index rows3 = RowsAtCompileTime3==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} ? internal::random<Index>(rank+1,2*cols) : Index(
+      RowsAtCompileTime3);
+00214   Matrix<Scalar,RowsAtCompileTime3,Dynamic> C = Matrix<Scalar,RowsAtCompileTime3,Dynamic>::Random(rows3,
+      rank);
+00215   MatrixType3 m3 = C * m2;
+00216   RhsType3 rhs3 = C * rhs2;
+00217   SVD\_FOR\_MIN\_NORM(MatrixType3) svd3(m3, computationOptions);
+00218   SolutionType x3 = svd3.solve(rhs3);
+00219   VERIFY\_IS\_APPROX(m3*x3, rhs3);
+00220   VERIFY\_IS\_APPROX(m3*x21, rhs3);
+00221   VERIFY\_IS\_APPROX(m2*x3, rhs2);
+00222   VERIFY\_IS\_APPROX(x21, x3);
+00223 \}
+00224 
+00225 \textcolor{comment}{// Check full, compare\_to\_full, least\_square, and min\_norm for all possible compute-options}
+00226 \textcolor{keyword}{template}<\textcolor{keyword}{typename} SvdType, \textcolor{keyword}{typename} MatrixType>
+00227 \textcolor{keywordtype}{void} svd\_test\_all\_computation\_options(\textcolor{keyword}{const} MatrixType& m, \textcolor{keywordtype}{bool} full\_only)
+00228 \{
+00229 \textcolor{comment}{//   if (QRPreconditioner == NoQRPreconditioner && m.rows() != m.cols())}
+00230 \textcolor{comment}{//     return;}
+00231   SvdType fullSvd(m, ComputeFullU|ComputeFullV);
+00232   CALL\_SUBTEST(( svd\_check\_full(m, fullSvd) ));
+00233   CALL\_SUBTEST(( svd\_least\_square<SvdType>(m, ComputeFullU | ComputeFullV) ));
+00234   CALL\_SUBTEST(( svd\_min\_norm(m, ComputeFullU | ComputeFullV) ));
+00235   
+00236 \textcolor{preprocessor}{  #if defined \_\_INTEL\_COMPILER}
+00237   \textcolor{comment}{// remark #111: statement is unreachable}
+00238 \textcolor{preprocessor}{  #pragma warning disable 111}
+00239 \textcolor{preprocessor}{  #endif}
+00240   \textcolor{keywordflow}{if}(full\_only)
+00241     \textcolor{keywordflow}{return};
+00242 
+00243   CALL\_SUBTEST(( svd\_compare\_to\_full(m, ComputeFullU, fullSvd) ));
+00244   CALL\_SUBTEST(( svd\_compare\_to\_full(m, ComputeFullV, fullSvd) ));
+00245   CALL\_SUBTEST(( svd\_compare\_to\_full(m, 0, fullSvd) ));
+00246 
+00247   \textcolor{keywordflow}{if} (MatrixType::ColsAtCompileTime == Dynamic) \{
+00248     \textcolor{comment}{// thin U/V are only available with dynamic number of columns}
+00249     CALL\_SUBTEST(( svd\_compare\_to\_full(m, ComputeFullU|ComputeThinV, fullSvd) ));
+00250     CALL\_SUBTEST(( svd\_compare\_to\_full(m,              ComputeThinV, fullSvd) ));
+00251     CALL\_SUBTEST(( svd\_compare\_to\_full(m, ComputeThinU|ComputeFullV, fullSvd) ));
+00252     CALL\_SUBTEST(( svd\_compare\_to\_full(m, ComputeThinU             , fullSvd) ));
+00253     CALL\_SUBTEST(( svd\_compare\_to\_full(m, ComputeThinU|ComputeThinV, fullSvd) ));
+00254     
+00255     CALL\_SUBTEST(( svd\_least\_square<SvdType>(m, ComputeFullU | ComputeThinV) ));
+00256     CALL\_SUBTEST(( svd\_least\_square<SvdType>(m, ComputeThinU | ComputeFullV) ));
+00257     CALL\_SUBTEST(( svd\_least\_square<SvdType>(m, ComputeThinU | ComputeThinV) ));
+00258 
+00259     CALL\_SUBTEST(( svd\_min\_norm(m, ComputeFullU | ComputeThinV) ));
+00260     CALL\_SUBTEST(( svd\_min\_norm(m, ComputeThinU | ComputeFullV) ));
+00261     CALL\_SUBTEST(( svd\_min\_norm(m, ComputeThinU | ComputeThinV) ));
+00262 
+00263     \textcolor{comment}{// test reconstruction}
+00264     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index Index;
+00265     Index diagSize = (std::min)(m.rows(), m.cols());
+00266     SvdType svd(m, ComputeThinU | ComputeThinV);
+00267     VERIFY\_IS\_APPROX(m, svd.matrixU().leftCols(diagSize) * svd.singularValues().asDiagonal() * svd.matrixV(
+      ).leftCols(diagSize).adjoint());
+00268   \}
+00269 \}
+00270 
+00271 
+00272 \textcolor{comment}{// work around stupid msvc error when constructing at compile time an expression that involves}
+00273 \textcolor{comment}{// a division by zero, even if the numeric type has floating point}
+00274 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar>
+00275 EIGEN\_DONT\_INLINE Scalar zero() \{ \textcolor{keywordflow}{return} Scalar(0); \}
+00276 
+00277 \textcolor{comment}{// workaround aggressive optimization in ICC}
+00278 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> EIGEN\_DONT\_INLINE  \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} sub(\hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} a, \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T} b) \{ \textcolor{keywordflow}{return} a - b; \}
+00279 
+00280 \textcolor{comment}{// all this function does is verify we don't iterate infinitely on nan/inf values}
+00281 \textcolor{keyword}{template}<\textcolor{keyword}{typename} SvdType, \textcolor{keyword}{typename} MatrixType>
+00282 \textcolor{keywordtype}{void} svd\_inf\_nan()
+00283 \{
+00284   SvdType svd;
+00285   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00286   Scalar some\_inf = Scalar(1) / zero<Scalar>();
+00287   VERIFY(sub(some\_inf, some\_inf) != sub(some\_inf, some\_inf));
+00288   svd.compute(MatrixType::Constant(10,10,some\_inf), ComputeFullU | ComputeFullV);
+00289 
+00290   Scalar nan = std::numeric\_limits<Scalar>::quiet\_NaN();
+00291   VERIFY(nan != nan);
+00292   svd.compute(MatrixType::Constant(10,10,nan), ComputeFullU | ComputeFullV);
+00293 
+00294   MatrixType m = MatrixType::Zero(10,10);
+00295   m(internal::random<int>(0,9), internal::random<int>(0,9)) = some\_inf;
+00296   svd.compute(m, ComputeFullU | ComputeFullV);
+00297 
+00298   m = MatrixType::Zero(10,10);
+00299   m(internal::random<int>(0,9), internal::random<int>(0,9)) = nan;
+00300   svd.compute(m, ComputeFullU | ComputeFullV);
+00301   
+00302   \textcolor{comment}{// regression test for bug 791}
+00303   m.resize(3,3);
+00304   m << 0,    2*NumTraits<Scalar>::epsilon(),  0.5,
+00305        0,   -0.5,                             0,
+00306        nan,  0,                               0;
+00307   svd.compute(m, ComputeFullU | ComputeFullV);
+00308   
+00309   m.resize(4,4);
+00310   m <<  1, 0, 0, 0,
+00311         0, 3, 1, 2e-308,
+00312         1, 0, 1, nan,
+00313         0, nan, nan, 0;
+00314   svd.compute(m, ComputeFullU | ComputeFullV);
+00315 \}
+00316 
+00317 \textcolor{comment}{// Regression test for bug 286: JacobiSVD loops indefinitely with some}
+00318 \textcolor{comment}{// matrices containing denormal numbers.}
+00319 \textcolor{keyword}{template}<\textcolor{keyword}{typename}>
+00320 \textcolor{keywordtype}{void} svd\_underoverflow()
+00321 \{
+00322 \textcolor{preprocessor}{#if defined \_\_INTEL\_COMPILER}
+00323 \textcolor{comment}{// shut up warning #239: floating point underflow}
+00324 \textcolor{preprocessor}{#pragma warning push}
+00325 \textcolor{preprocessor}{#pragma warning disable 239}
+00326 \textcolor{preprocessor}{#endif}
+00327   Matrix2d \hyperlink{group___core___module_class_eigen_1_1_matrix}{M};
+00328   M << -7.90884e-313, -4.94e-324,
+00329                  0, 5.60844e-313;
+00330   SVD\_DEFAULT(Matrix2d) svd;
+00331   svd.compute(M,ComputeFullU|ComputeFullV);
+00332   CALL\_SUBTEST( svd\_check\_full(M,svd) );
+00333   
+00334   \textcolor{comment}{// Check all 2x2 matrices made with the following coefficients:}
+00335   VectorXd value\_set(9);
+00336   value\_set << 0, 1, -1, 5.60844e-313, -5.60844e-313, 4.94e-324, -4.94e-324, -4.94e-223, 4.94e-223;
+00337   Array4i id(0,0,0,0);
+00338   \textcolor{keywordtype}{int} k = 0;
+00339   \textcolor{keywordflow}{do}
+00340   \{
+00341     M << value\_set(\textcolor{keywordtype}{id}(0)), value\_set(\textcolor{keywordtype}{id}(1)), value\_set(\textcolor{keywordtype}{id}(2)), value\_set(\textcolor{keywordtype}{id}(3));
+00342     svd.compute(M,ComputeFullU|ComputeFullV);
+00343     CALL\_SUBTEST( svd\_check\_full(M,svd) );
+00344 
+00345     id(k)++;
+00346     \textcolor{keywordflow}{if}(\textcolor{keywordtype}{id}(k)>=value\_set.size())
+00347     \{
+00348       \textcolor{keywordflow}{while}(k<3 && \textcolor{keywordtype}{id}(k)>=value\_set.size()) \textcolor{keywordtype}{id}(++k)++;
+00349       \textcolor{keywordtype}{id}.head(k).setZero();
+00350       k=0;
+00351     \}
+00352 
+00353   \} \textcolor{keywordflow}{while}((\textcolor{keywordtype}{id}<\textcolor{keywordtype}{int}(value\_set.size())).all());
+00354   
+00355 \textcolor{preprocessor}{#if defined \_\_INTEL\_COMPILER}
+00356 \textcolor{preprocessor}{#pragma warning pop}
+00357 \textcolor{preprocessor}{#endif}
+00358   
+00359   \textcolor{comment}{// Check for overflow:}
+00360   Matrix3d M3;
+00361   M3 << 4.4331978442502944e+307, -5.8585363752028680e+307,  6.4527017443412964e+307,
+00362         3.7841695601406358e+307,  2.4331702789740617e+306, -3.5235707140272905e+307,
+00363        -8.7190887618028355e+307, -7.3453213709232193e+307, -2.4367363684472105e+307;
+00364 
+00365   SVD\_DEFAULT(Matrix3d) svd3;
+00366   svd3.compute(M3,ComputeFullU|ComputeFullV); \textcolor{comment}{// just check we don't loop indefinitely}
+00367   CALL\_SUBTEST( svd\_check\_full(M3,svd3) );
+00368 \}
+00369 
+00370 \textcolor{comment}{// void jacobisvd(const MatrixType& a = MatrixType(), bool pickrandom = true)}
+00371 
+00372 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00373 \textcolor{keywordtype}{void} svd\_all\_trivial\_2x2( \textcolor{keywordtype}{void} (*cb)(\textcolor{keyword}{const} MatrixType&,\textcolor{keywordtype}{bool}) )
+00374 \{
+00375   MatrixType M;
+00376   VectorXd value\_set(3);
+00377   value\_set << 0, 1, -1;
+00378   Array4i id(0,0,0,0);
+00379   \textcolor{keywordtype}{int} k = 0;
+00380   \textcolor{keywordflow}{do}
+00381   \{
+00382     M << value\_set(\textcolor{keywordtype}{id}(0)), value\_set(\textcolor{keywordtype}{id}(1)), value\_set(\textcolor{keywordtype}{id}(2)), value\_set(\textcolor{keywordtype}{id}(3));
+00383     
+00384     cb(M,\textcolor{keyword}{false});
+00385     
+00386     id(k)++;
+00387     \textcolor{keywordflow}{if}(\textcolor{keywordtype}{id}(k)>=value\_set.size())
+00388     \{
+00389       \textcolor{keywordflow}{while}(k<3 && \textcolor{keywordtype}{id}(k)>=value\_set.size()) \textcolor{keywordtype}{id}(++k)++;
+00390       \textcolor{keywordtype}{id}.head(k).setZero();
+00391       k=0;
+00392     \}
+00393     
+00394   \} \textcolor{keywordflow}{while}((\textcolor{keywordtype}{id}<\textcolor{keywordtype}{int}(value\_set.size())).all());
+00395 \}
+00396 
+00397 \textcolor{keyword}{template}<\textcolor{keyword}{typename}>
+00398 \textcolor{keywordtype}{void} svd\_preallocate()
+00399 \{
+00400   Vector3f v(3.f, 2.f, 1.f);
+00401   MatrixXf m = v.asDiagonal();
+00402 
+00403   internal::set\_is\_malloc\_allowed(\textcolor{keyword}{false});
+00404   VERIFY\_RAISES\_ASSERT(VectorXf tmp(10);)
+00405   SVD\_DEFAULT(MatrixXf) svd;
+00406   internal::set\_is\_malloc\_allowed(\textcolor{keyword}{true});
+00407   svd.compute(m);
+00408   VERIFY\_IS\_APPROX(svd.singularValues(), v);
+00409 
+00410   SVD\_DEFAULT(MatrixXf) svd2(3,3);
+00411   internal::set\_is\_malloc\_allowed(\textcolor{keyword}{false});
+00412   svd2.compute(m);
+00413   internal::set\_is\_malloc\_allowed(\textcolor{keyword}{true});
+00414   VERIFY\_IS\_APPROX(svd2.singularValues(), v);
+00415   VERIFY\_RAISES\_ASSERT(svd2.matrixU());
+00416   VERIFY\_RAISES\_ASSERT(svd2.matrixV());
+00417   svd2.compute(m, ComputeFullU | ComputeFullV);
+00418   VERIFY\_IS\_APPROX(svd2.matrixU(), Matrix3f::Identity());
+00419   VERIFY\_IS\_APPROX(svd2.matrixV(), Matrix3f::Identity());
+00420   internal::set\_is\_malloc\_allowed(\textcolor{keyword}{false});
+00421   svd2.compute(m);
+00422   internal::set\_is\_malloc\_allowed(\textcolor{keyword}{true});
+00423 
+00424   SVD\_DEFAULT(MatrixXf) svd3(3,3,ComputeFullU|ComputeFullV);
+00425   internal::set\_is\_malloc\_allowed(\textcolor{keyword}{false});
+00426   svd2.compute(m);
+00427   internal::set\_is\_malloc\_allowed(\textcolor{keyword}{true});
+00428   VERIFY\_IS\_APPROX(svd2.singularValues(), v);
+00429   VERIFY\_IS\_APPROX(svd2.matrixU(), Matrix3f::Identity());
+00430   VERIFY\_IS\_APPROX(svd2.matrixV(), Matrix3f::Identity());
+00431   internal::set\_is\_malloc\_allowed(\textcolor{keyword}{false});
+00432   svd2.compute(m, ComputeFullU|ComputeFullV);
+00433   internal::set\_is\_malloc\_allowed(\textcolor{keyword}{true});
+00434 \}
+00435 
+00436 \textcolor{keyword}{template}<\textcolor{keyword}{typename} SvdType,\textcolor{keyword}{typename} MatrixType> 
+00437 \textcolor{keywordtype}{void} svd\_verify\_assert(\textcolor{keyword}{const} MatrixType& m)
+00438 \{
+00439   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00440   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index Index;
+00441   Index rows = m.rows();
+00442   Index cols = m.cols();
+00443 
+00444   \textcolor{keyword}{enum} \{
+00445     RowsAtCompileTime = MatrixType::RowsAtCompileTime,
+00446     ColsAtCompileTime = MatrixType::ColsAtCompileTime
+00447   \};
+00448 
+00449   \textcolor{keyword}{typedef} Matrix<Scalar, RowsAtCompileTime, 1> RhsType;
+00450   RhsType rhs(rows);
+00451   SvdType svd;
+00452   VERIFY\_RAISES\_ASSERT(svd.matrixU())
+00453   VERIFY\_RAISES\_ASSERT(svd.singularValues())
+00454   VERIFY\_RAISES\_ASSERT(svd.matrixV())
+00455   VERIFY\_RAISES\_ASSERT(svd.solve(rhs))
+00456   MatrixType a = MatrixType::Zero(rows, cols);
+00457   a.setZero();
+00458   svd.compute(a, 0);
+00459   VERIFY\_RAISES\_ASSERT(svd.matrixU())
+00460   VERIFY\_RAISES\_ASSERT(svd.matrixV())
+00461   svd.singularValues();
+00462   VERIFY\_RAISES\_ASSERT(svd.solve(rhs))
+00463     
+00464   \textcolor{keywordflow}{if} (ColsAtCompileTime == Dynamic)
+00465   \{
+00466     svd.compute(a, ComputeThinU);
+00467     svd.matrixU();
+00468     VERIFY\_RAISES\_ASSERT(svd.matrixV())
+00469     VERIFY\_RAISES\_ASSERT(svd.solve(rhs))
+00470     svd.compute(a, ComputeThinV);
+00471     svd.matrixV();
+00472     VERIFY\_RAISES\_ASSERT(svd.matrixU())
+00473     VERIFY\_RAISES\_ASSERT(svd.solve(rhs))
+00474   \}
+00475   \textcolor{keywordflow}{else}
+00476   \{
+00477     VERIFY\_RAISES\_ASSERT(svd.compute(a, ComputeThinU))
+00478     VERIFY\_RAISES\_ASSERT(svd.compute(a, ComputeThinV))
+00479   \}
+00480 \}
+00481 
+00482 #undef SVD\_DEFAULT
+00483 #undef SVD\_FOR\_MIN\_NORM
+\end{DoxyCode}

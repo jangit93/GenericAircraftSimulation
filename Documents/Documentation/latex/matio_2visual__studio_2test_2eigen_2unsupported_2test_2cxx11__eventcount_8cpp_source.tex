@@ -1,0 +1,149 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__eventcount_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/test/cxx11\+\_\+eventcount.cpp}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2test_2cxx11__eventcount_8cpp_source}\index{cxx11\+\_\+eventcount.\+cpp@{cxx11\+\_\+eventcount.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2016 Dmitry Vyukov <dvyukov@google.com>}
+00005 \textcolor{comment}{// Copyright (C) 2016 Benoit Steiner <benoit.steiner.goog@gmail.com>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#define EIGEN\_USE\_THREADS}
+00012 \textcolor{preprocessor}{#include "main.h"}
+00013 \textcolor{preprocessor}{#include <Eigen/CXX11/ThreadPool>}
+00014 
+00015 \textcolor{comment}{// Visual studio doesn't implement a rand\_r() function since its}
+00016 \textcolor{comment}{// implementation of rand() is already thread safe}
+00017 \textcolor{keywordtype}{int} rand\_reentrant(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int}* s) \{
+00018 \textcolor{preprocessor}{#ifdef EIGEN\_COMP\_MSVC\_STRICT}
+00019   EIGEN\_UNUSED\_VARIABLE(s);
+00020   \textcolor{keywordflow}{return} rand();
+00021 \textcolor{preprocessor}{#else}
+00022   \textcolor{keywordflow}{return} rand\_r(s);
+00023 \textcolor{preprocessor}{#endif}
+00024 \}
+00025 
+00026 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_basic\_eventcount()
+00027 \{
+00028   MaxSizeVector<EventCount::Waiter> waiters(1);
+00029   waiters.resize(1);
+00030   EventCount ec(waiters);
+00031   EventCount::Waiter& w = waiters[0];
+00032   ec.Notify(\textcolor{keyword}{false});
+00033   ec.Prewait(&w);
+00034   ec.Notify(\textcolor{keyword}{true});
+00035   ec.CommitWait(&w);
+00036   ec.Prewait(&w);
+00037   ec.CancelWait(&w);
+00038 \}
+00039 
+00040 \textcolor{comment}{// Fake bounded counter-based queue.}
+00041 \textcolor{keyword}{struct }\hyperlink{struct_test_queue}{TestQueue} \{
+00042   std::atomic<int> val\_;
+00043   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} kQueueSize = 10;
+00044 
+00045   \hyperlink{struct_test_queue}{TestQueue}() : val\_() \{\}
+00046 
+00047   ~\hyperlink{struct_test_queue}{TestQueue}() \{ VERIFY\_IS\_EQUAL(val\_.load(), 0); \}
+00048 
+00049   \textcolor{keywordtype}{bool} Push() \{
+00050     \textcolor{keywordtype}{int} val = val\_.load(std::memory\_order\_relaxed);
+00051     \textcolor{keywordflow}{for} (;;) \{
+00052       VERIFY\_GE(val, 0);
+00053       VERIFY\_LE(val, kQueueSize);
+00054       \textcolor{keywordflow}{if} (val == kQueueSize) \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00055       \textcolor{keywordflow}{if} (val\_.compare\_exchange\_weak(val, val + 1, std::memory\_order\_relaxed))
+00056         \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00057     \}
+00058   \}
+00059 
+00060   \textcolor{keywordtype}{bool} Pop() \{
+00061     \textcolor{keywordtype}{int} val = val\_.load(std::memory\_order\_relaxed);
+00062     \textcolor{keywordflow}{for} (;;) \{
+00063       VERIFY\_GE(val, 0);
+00064       VERIFY\_LE(val, kQueueSize);
+00065       \textcolor{keywordflow}{if} (val == 0) \textcolor{keywordflow}{return} \textcolor{keyword}{false};
+00066       \textcolor{keywordflow}{if} (val\_.compare\_exchange\_weak(val, val - 1, std::memory\_order\_relaxed))
+00067         \textcolor{keywordflow}{return} \textcolor{keyword}{true};
+00068     \}
+00069   \}
+00070 
+00071   \textcolor{keywordtype}{bool} Empty() \{ \textcolor{keywordflow}{return} val\_.load(std::memory\_order\_relaxed) == 0; \}
+00072 \};
+00073 
+00074 \textcolor{keyword}{const} \textcolor{keywordtype}{int} TestQueue::kQueueSize;
+00075 
+00076 \textcolor{comment}{// A number of producers send messages to a set of consumers using a set of}
+00077 \textcolor{comment}{// fake queues. Ensure that it does not crash, consumers don't deadlock and}
+00078 \textcolor{comment}{// number of blocked and unblocked threads match.}
+00079 \textcolor{keyword}{static} \textcolor{keywordtype}{void} test\_stress\_eventcount()
+00080 \{
+00081   \textcolor{keyword}{const} \textcolor{keywordtype}{int} kThreads = std::thread::hardware\_concurrency();
+00082   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} kEvents = 1 << 16;
+00083   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} kQueues = 10;
+00084 
+00085   MaxSizeVector<EventCount::Waiter> waiters(kThreads);
+00086   waiters.resize(kThreads);
+00087   EventCount ec(waiters);
+00088   \hyperlink{struct_test_queue}{TestQueue} queues[kQueues];
+00089 
+00090   std::vector<std::unique\_ptr<std::thread>> producers;
+00091   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < kThreads; i++) \{
+00092     producers.emplace\_back(\textcolor{keyword}{new} std::thread([&ec, &queues]() \{
+00093       \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} rnd = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int}\textcolor{keyword}{>}(std::hash<std::thread::id>()(std::this\_thread::get\_id())
+      );
+00094       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < kEvents; j++) \{
+00095         \textcolor{keywordtype}{unsigned} idx = rand\_reentrant(&rnd) % kQueues;
+00096         \textcolor{keywordflow}{if} (queues[idx].Push()) \{
+00097           ec.Notify(\textcolor{keyword}{false});
+00098           \textcolor{keywordflow}{continue};
+00099         \}
+00100         EIGEN\_THREAD\_YIELD();
+00101         j--;
+00102       \}
+00103     \}));
+00104   \}
+00105 
+00106   std::vector<std::unique\_ptr<std::thread>> consumers;
+00107   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < kThreads; i++) \{
+00108     consumers.emplace\_back(\textcolor{keyword}{new} std::thread([&ec, &queues, &waiters, i]() \{
+00109       EventCount::Waiter& w = waiters[i];
+00110       \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} rnd = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int}\textcolor{keyword}{>}(std::hash<std::thread::id>()(std::this\_thread::get\_id())
+      );
+00111       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < kEvents; j++) \{
+00112         \textcolor{keywordtype}{unsigned} idx = rand\_reentrant(&rnd) % kQueues;
+00113         \textcolor{keywordflow}{if} (queues[idx].Pop()) \textcolor{keywordflow}{continue};
+00114         j--;
+00115         ec.Prewait(&w);
+00116         \textcolor{keywordtype}{bool} empty = \textcolor{keyword}{true};
+00117         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} q = 0; q < kQueues; q++) \{
+00118           \textcolor{keywordflow}{if} (!queues[q].Empty()) \{
+00119             empty = \textcolor{keyword}{false};
+00120             \textcolor{keywordflow}{break};
+00121           \}
+00122         \}
+00123         \textcolor{keywordflow}{if} (!empty) \{
+00124           ec.CancelWait(&w);
+00125           \textcolor{keywordflow}{continue};
+00126         \}
+00127         ec.CommitWait(&w);
+00128       \}
+00129     \}));
+00130   \}
+00131 
+00132   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < kThreads; i++) \{
+00133     producers[i]->join();
+00134     consumers[i]->join();
+00135   \}
+00136 \}
+00137 
+00138 \textcolor{keywordtype}{void} test\_cxx11\_eventcount()
+00139 \{
+00140   CALL\_SUBTEST(test\_basic\_eventcount());
+00141   CALL\_SUBTEST(test\_stress\_eventcount());
+00142 \}
+\end{DoxyCode}

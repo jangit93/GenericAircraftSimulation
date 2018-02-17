@@ -1,0 +1,561 @@
+\hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source}{}\section{eigen/\+Eigen/src/\+Core/\+Vectorwise\+Op.h}
+\label{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source}\index{Vectorwise\+Op.\+h@{Vectorwise\+Op.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2010 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{// Copyright (C) 2006-2008 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00006 \textcolor{comment}{//}
+00007 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00008 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00009 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00010 
+00011 \textcolor{preprocessor}{#ifndef EIGEN\_PARTIAL\_REDUX\_H}
+00012 \textcolor{preprocessor}{#define EIGEN\_PARTIAL\_REDUX\_H}
+00013 
+00014 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00015 
+00032 \textcolor{keyword}{template}< \textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} MemberOp, \textcolor{keywordtype}{int} Direction>
+00033 \textcolor{keyword}{class }PartialReduxExpr;
+00034 
+00035 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00036 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} MemberOp, \textcolor{keywordtype}{int} Direction>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00037}\hyperlink{struct_eigen_1_1internal_1_1traits_3_01_partial_redux_expr_3_01_matrix_type_00_01_member_op_00_01_direction_01_4_01_4}{00037} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1traits}{traits}<\hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{PartialReduxExpr}<MatrixType, MemberOp, Direction> >
+00038  : \hyperlink{struct_eigen_1_1internal_1_1traits}{traits}<MatrixType>
+00039 \{
+00040   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MemberOp::result\_type Scalar;
+00041   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{traits<MatrixType>::StorageKind} StorageKind;
+00042   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1traits}{traits<MatrixType>::XprKind} XprKind;
+00043   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar InputScalar;
+00044   \textcolor{keyword}{enum} \{
+00045     RowsAtCompileTime = Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}   ? 1 : MatrixType::RowsAtCompileTime,
+00046     ColsAtCompileTime = Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal} ? 1 : MatrixType::ColsAtCompileTime,
+00047     MaxRowsAtCompileTime = Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}   ? 1 : MatrixType::MaxRowsAtCompileTime,
+00048     MaxColsAtCompileTime = Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal} ? 1 : MatrixType::MaxColsAtCompileTime,
+00049     Flags = RowsAtCompileTime == 1 ? \hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit} : 0,
+00050     TraversalSize = Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical} ? MatrixType::RowsAtCompileTime :  
+      MatrixType::ColsAtCompileTime
+00051   \};
+00052 \};
+00053 \}
+00054 
+00055 \textcolor{keyword}{template}< \textcolor{keyword}{typename} MatrixType, \textcolor{keyword}{typename} MemberOp, \textcolor{keywordtype}{int} Direction>
+00056 \textcolor{keyword}{class }\hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{PartialReduxExpr} : \textcolor{keyword}{public} \hyperlink{struct_eigen_1_1internal_1_1dense__xpr__base}{internal::dense\_xpr\_base}< PartialRe
+      duxExpr<MatrixType, MemberOp, Direction> >::type,
+00057                          \hyperlink{class_eigen_1_1internal_1_1no__assignment__operator}{internal::no\_assignment\_operator}
+00058 \{
+00059   \textcolor{keyword}{public}:
+00060 
+00061     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1dense__xpr__base}{internal::dense\_xpr\_base<PartialReduxExpr>::type}
+       Base;
+00062     EIGEN\_DENSE\_PUBLIC\_INTERFACE(\hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{PartialReduxExpr})
+00063 
+00064     EIGEN\_DEVICE\_FUNC
+00065     \textcolor{keyword}{explicit} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{PartialReduxExpr}(\textcolor{keyword}{const} MatrixType& mat, \textcolor{keyword}{const} MemberOp& 
+      \hyperlink{structfunc}{func} = MemberOp())
+00066       : m\_matrix(mat), m\_functor(\hyperlink{structfunc}{func}) \{\}
+00067 
+00068     EIGEN\_DEVICE\_FUNC
+00069     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} rows()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} (Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}   ? 1 : m\_matrix.rows()); \}
+00070     EIGEN\_DEVICE\_FUNC
+00071     \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} cols()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} (Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal} ? 1 : m\_matrix.cols()); \}
+00072 
+00073     EIGEN\_DEVICE\_FUNC
+00074     \textcolor{keyword}{typename} MatrixType::Nested nestedExpression()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix; \}
+00075 
+00076     EIGEN\_DEVICE\_FUNC
+00077     \textcolor{keyword}{const} MemberOp& functor()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_functor; \}
+00078 
+00079   \textcolor{keyword}{protected}:
+00080     \textcolor{keyword}{typename} MatrixType::Nested m\_matrix;
+00081     \textcolor{keyword}{const} MemberOp m\_functor;
+00082 \};
+00083 
+00084 \textcolor{preprocessor}{#define EIGEN\_MEMBER\_FUNCTOR(MEMBER,COST)                               \(\backslash\)}
+00085 \textcolor{preprocessor}{  template <typename ResultType>                                        \(\backslash\)}
+00086 \textcolor{preprocessor}{  struct member\_##MEMBER \{                                              \(\backslash\)}
+00087 \textcolor{preprocessor}{    EIGEN\_EMPTY\_STRUCT\_CTOR(member\_##MEMBER)                            \(\backslash\)}
+00088 \textcolor{preprocessor}{    typedef ResultType result\_type;                                     \(\backslash\)}
+00089 \textcolor{preprocessor}{    template<typename Scalar, int Size> struct Cost                     \(\backslash\)}
+00090 \textcolor{preprocessor}{    \{ enum \{ value = COST \}; \};                                         \(\backslash\)}
+00091 \textcolor{preprocessor}{    template<typename XprType>                                          \(\backslash\)}
+00092 \textcolor{preprocessor}{    EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE                               \(\backslash\)}
+00093 \textcolor{preprocessor}{    ResultType operator()(const XprType& mat) const                     \(\backslash\)}
+00094 \textcolor{preprocessor}{    \{ return mat.MEMBER(); \} \(\backslash\)}
+00095 \textcolor{preprocessor}{  \}}
+00096 
+00097 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00098 
+00099 EIGEN\_MEMBER\_FUNCTOR(squaredNorm, Size * \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::MulCost} + (Size-1)*
+      \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost});
+00100 EIGEN\_MEMBER\_FUNCTOR(norm, (Size+5) * \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::MulCost} + (Size-1)*
+      \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost});
+00101 EIGEN\_MEMBER\_FUNCTOR(stableNorm, (Size+5) * \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::MulCost} + (Size-1)
+      *\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost});
+00102 EIGEN\_MEMBER\_FUNCTOR(blueNorm, (Size+5) * \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::MulCost} + (Size-1)*
+      \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost});
+00103 EIGEN\_MEMBER\_FUNCTOR(hypotNorm, (Size-1) * \hyperlink{struct_eigen_1_1internal_1_1functor__traits}{functor\_traits}<
+      \hyperlink{struct_eigen_1_1internal_1_1scalar__hypot__op}{scalar\_hypot\_op<Scalar>} >::Cost );
+00104 EIGEN\_MEMBER\_FUNCTOR(sum, (Size-1)*\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost});
+00105 EIGEN\_MEMBER\_FUNCTOR(mean, (Size-1)*\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost} + 
+      \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::MulCost});
+00106 EIGEN\_MEMBER\_FUNCTOR(minCoeff, (Size-1)*\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost});
+00107 EIGEN\_MEMBER\_FUNCTOR(maxCoeff, (Size-1)*\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost});
+00108 EIGEN\_MEMBER\_FUNCTOR(all, (Size-1)*\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost});
+00109 EIGEN\_MEMBER\_FUNCTOR(any, (Size-1)*\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost});
+00110 EIGEN\_MEMBER\_FUNCTOR(count, (Size-1)*\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost});
+00111 EIGEN\_MEMBER\_FUNCTOR(prod, (Size-1)*\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::MulCost});
+00112 
+00113 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} p, \textcolor{keyword}{typename} ResultType>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00114}\hyperlink{struct_eigen_1_1internal_1_1member__lpnorm}{00114} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1member__lpnorm}{member\_lpnorm} \{
+00115   \textcolor{keyword}{typedef} ResultType result\_type;
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00116}\hyperlink{struct_eigen_1_1internal_1_1member__lpnorm_1_1_cost}{00116}   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{int} Size> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1member__lpnorm_1_1_cost}{Cost}
+00117   \{ \textcolor{keyword}{enum} \{ value = (Size+5) * \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::MulCost} + (Size-1)*
+      \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost} \}; \};
+00118   EIGEN\_DEVICE\_FUNC \hyperlink{struct_eigen_1_1internal_1_1member__lpnorm}{member\_lpnorm}() \{\}
+00119   \textcolor{keyword}{template}<\textcolor{keyword}{typename} XprType>
+00120   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} ResultType operator()(\textcolor{keyword}{const} XprType& mat)\textcolor{keyword}{ const}
+00121 \textcolor{keyword}{  }\{ \textcolor{keywordflow}{return} mat.template lpNorm<p>(); \}
+00122 \};
+00123 
+00124 \textcolor{keyword}{template} <\textcolor{keyword}{typename} BinaryOp, \textcolor{keyword}{typename} Scalar>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00125}\hyperlink{struct_eigen_1_1internal_1_1member__redux}{00125} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1member__redux}{member\_redux} \{
+00126   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1result__of}{result\_of}<
+00127                      BinaryOp(\textcolor{keyword}{const} Scalar&,\textcolor{keyword}{const} Scalar&)
+00128                    >::type  result\_type;
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00129}\hyperlink{struct_eigen_1_1internal_1_1member__redux_1_1_cost}{00129}   \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Scalar, \textcolor{keywordtype}{int} Size> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1member__redux_1_1_cost}{Cost}
+00130   \{ \textcolor{keyword}{enum} \{ value = (Size-1) * \hyperlink{struct_eigen_1_1internal_1_1functor__traits}{functor\_traits<BinaryOp>::Cost} \}; \};
+00131   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{explicit} \hyperlink{struct_eigen_1_1internal_1_1member__redux}{member\_redux}(\textcolor{keyword}{const} BinaryOp \hyperlink{structfunc}{func}) : m\_functor(func) \{\}
+00132   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00133   EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} result\_type operator()(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<Derived>}& mat)\textcolor{keyword}{ const}
+00134 \textcolor{keyword}{  }\{ \textcolor{keywordflow}{return} mat.redux(m\_functor); \}
+00135   \textcolor{keyword}{const} BinaryOp m\_functor;
+00136 \};
+00137 \}
+00138 
+00156 \textcolor{keyword}{template}<\textcolor{keyword}{typename} ExpressionType, \textcolor{keywordtype}{int} Direction> \textcolor{keyword}{class }\hyperlink{group___core___module_class_eigen_1_1_vectorwise_op}{VectorwiseOp}
+00157 \{
+00158   \textcolor{keyword}{public}:
+00159 
+00160     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ExpressionType::Scalar Scalar;
+00161     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ExpressionType::RealScalar RealScalar;
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00162}\hyperlink{group___core___module_a4907c654e5810edd98e4162093b19532}{00162}     \textcolor{keyword}{typedef} \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Eigen::Index} \hyperlink{group___core___module_a4907c654e5810edd98e4162093b19532}{Index}; 
+00163     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{internal::ref\_selector<ExpressionType>::non\_const\_type}
+       \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{ExpressionTypeNested};
+00164     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{internal::remove\_all<ExpressionTypeNested>::type}
+       \hyperlink{group___sparse_core___module}{ExpressionTypeNestedCleaned};
+00165 
+00166     \textcolor{keyword}{template}<\textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Scalar> \textcolor{keyword}{class }\hyperlink{struct_functor}{Functor},
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00167}\hyperlink{struct_eigen_1_1_vectorwise_op_1_1_return_type}{00167}                       \textcolor{keyword}{typename} Scalar\_=Scalar> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_vectorwise_op_1_1_return_type}{ReturnType}
+00168     \{
+00169       \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{PartialReduxExpr}<ExpressionType,
+00170                                \hyperlink{struct_functor}{Functor<Scalar\_>},
+00171                                Direction
+00172                               > \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{Type};
+00173     \};
+00174 
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00175}\hyperlink{struct_eigen_1_1_vectorwise_op_1_1_redux_return_type}{00175}     \textcolor{keyword}{template}<\textcolor{keyword}{typename} BinaryOp> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_vectorwise_op_1_1_redux_return_type}{ReduxReturnType}
+00176     \{
+00177       \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{PartialReduxExpr}<ExpressionType,
+00178                                \hyperlink{struct_eigen_1_1internal_1_1member__redux}{internal::member\_redux<BinaryOp,Scalar>}
+      ,
+00179                                Direction
+00180                               > \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{Type};
+00181     \};
+00182 
+00183     \textcolor{keyword}{enum} \{
+00184       isVertical   = (Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}) ? 1 : 0,
+00185       isHorizontal = (Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal}) ? 1 : 0
+00186     \};
+00187 
+00188   \textcolor{keyword}{protected}:
+00189 
+00190     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1conditional}{internal::conditional}<isVertical,
+00191                                \textcolor{keyword}{typename} ExpressionType::ColXpr,
+00192                                \textcolor{keyword}{typename} ExpressionType::RowXpr>::type \hyperlink{class_eigen_1_1internal_1_1_tensor_lazy_evaluator_writable}{SubVector};
+00195     EIGEN\_DEVICE\_FUNC
+00196     SubVector subVector(Index i)
+00197     \{
+00198       \textcolor{keywordflow}{return} SubVector(m\_matrix.derived(),i);
+00199     \}
+00200 
+00203     EIGEN\_DEVICE\_FUNC
+00204     Index subVectors()\textcolor{keyword}{ const}
+00205 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} isVertical?m\_matrix.cols():m\_matrix.rows(); \}
+00206 
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00207}\hyperlink{struct_eigen_1_1_vectorwise_op_1_1_extended_type}{00207}     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_vectorwise_op_1_1_extended_type}{ExtendedType} \{
+00208       \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_replicate}{Replicate}<OtherDerived,
+00209                         isVertical   ? 1 : ExpressionType::RowsAtCompileTime,
+00210                         isHorizontal ? 1 : ExpressionType::ColsAtCompileTime> 
+      \hyperlink{group___core___module_class_eigen_1_1_replicate}{Type};
+00211     \};
+00212 
+00215     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00216     EIGEN\_DEVICE\_FUNC
+00217     \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_replicate}{ExtendedType<OtherDerived>::Type}
+00218     extendedTo(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)\textcolor{keyword}{ const}
+00219 \textcolor{keyword}{    }\{
+00220       EIGEN\_STATIC\_ASSERT(EIGEN\_IMPLIES(isVertical, OtherDerived::MaxColsAtCompileTime==1),
+00221                           YOU\_PASSED\_A\_ROW\_VECTOR\_BUT\_A\_COLUMN\_VECTOR\_WAS\_EXPECTED)
+00222       EIGEN\_STATIC\_ASSERT(EIGEN\_IMPLIES(isHorizontal, OtherDerived::MaxRowsAtCompileTime==1),
+00223                           YOU\_PASSED\_A\_COLUMN\_VECTOR\_BUT\_A\_ROW\_VECTOR\_WAS\_EXPECTED)
+00224       \textcolor{keywordflow}{return} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_replicate}{ExtendedType<OtherDerived>::Type}
+00225                       (other.derived(),
+00226                        isVertical   ? 1 : m\_matrix.rows(),
+00227                        isHorizontal ? 1 : m\_matrix.cols());
+00228     \}
+00229 
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00230}\hyperlink{struct_eigen_1_1_vectorwise_op_1_1_opposite_extended_type}{00230}     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_vectorwise_op_1_1_opposite_extended_type}{OppositeExtendedType} \{
+00231       \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_replicate}{Replicate}<OtherDerived,
+00232                         isHorizontal ? 1 : ExpressionType::RowsAtCompileTime,
+00233                         isVertical   ? 1 : ExpressionType::ColsAtCompileTime> 
+      \hyperlink{group___core___module_class_eigen_1_1_replicate}{Type};
+00234     \};
+00235 
+00238     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00239     EIGEN\_DEVICE\_FUNC
+00240     \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_replicate}{OppositeExtendedType<OtherDerived>::Type}
+00241     extendedToOpposite(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)\textcolor{keyword}{ const}
+00242 \textcolor{keyword}{    }\{
+00243       EIGEN\_STATIC\_ASSERT(EIGEN\_IMPLIES(isHorizontal, OtherDerived::MaxColsAtCompileTime==1),
+00244                           YOU\_PASSED\_A\_ROW\_VECTOR\_BUT\_A\_COLUMN\_VECTOR\_WAS\_EXPECTED)
+00245       EIGEN\_STATIC\_ASSERT(EIGEN\_IMPLIES(isVertical, OtherDerived::MaxRowsAtCompileTime==1),
+00246                           YOU\_PASSED\_A\_COLUMN\_VECTOR\_BUT\_A\_ROW\_VECTOR\_WAS\_EXPECTED)
+00247       \textcolor{keywordflow}{return} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_replicate}{OppositeExtendedType<OtherDerived>::Type}
+00248                       (other.derived(),
+00249                        isHorizontal  ? 1 : m\_matrix.rows(),
+00250                        isVertical    ? 1 : m\_matrix.cols());
+00251     \}
+00252 
+00253   \textcolor{keyword}{public}:
+00254     EIGEN\_DEVICE\_FUNC
+00255     \textcolor{keyword}{explicit} \textcolor{keyword}{inline} \hyperlink{group___core___module_class_eigen_1_1_vectorwise_op}{VectorwiseOp}(ExpressionType& matrix) : m\_matrix(matrix) \{\}
+00256 
+00258     EIGEN\_DEVICE\_FUNC
+00259     \textcolor{keyword}{inline} \textcolor{keyword}{const} ExpressionType& \_expression()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix; \}
+00260 
+00268     \textcolor{keyword}{template}<\textcolor{keyword}{typename} BinaryOp>
+00269     EIGEN\_DEVICE\_FUNC
+00270     \textcolor{keyword}{const} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{ReduxReturnType<BinaryOp>::Type}
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00271}\hyperlink{group___core___module_a798df97b5445eb6370fe5c90be2f7962}{00271}     \hyperlink{group___core___module_a798df97b5445eb6370fe5c90be2f7962}{redux}(\textcolor{keyword}{const} BinaryOp& \hyperlink{structfunc}{func} = BinaryOp())\textcolor{keyword}{ const}
+00272 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{ReduxReturnType<BinaryOp>::Type}(\_expression(), 
+      \hyperlink{struct_eigen_1_1internal_1_1member__redux}{internal::member\_redux<BinaryOp,Scalar>}(
+      \hyperlink{structfunc}{func})); \}
+00273 
+00274     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{ReturnType<internal::member\_minCoeff>::Type}
+       \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{MinCoeffReturnType};
+00275     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{ReturnType<internal::member\_maxCoeff>::Type}
+       \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{MaxCoeffReturnType};
+00276     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{ReturnType<internal::member\_squaredNorm,RealScalar>::Type}
+       \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{SquaredNormReturnType};
+00277     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{ReturnType<internal::member\_norm,RealScalar>::Type}
+       \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{NormReturnType};
+00278     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{ReturnType<internal::member\_blueNorm,RealScalar>::Type}
+       \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{BlueNormReturnType};
+00279     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{ReturnType<internal::member\_stableNorm,RealScalar>::Type}
+       \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{StableNormReturnType};
+00280     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{ReturnType<internal::member\_hypotNorm,RealScalar>::Type}
+       \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{HypotNormReturnType};
+00281     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{ReturnType<internal::member\_sum>::Type} 
+      \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{SumReturnType};
+00282     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{ReturnType<internal::member\_mean>::Type} 
+      \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{MeanReturnType};
+00283     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{ReturnType<internal::member\_all>::Type} 
+      \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{AllReturnType};
+00284     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{ReturnType<internal::member\_any>::Type} 
+      \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{AnyReturnType};
+00285     \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{PartialReduxExpr<ExpressionType, internal::member\_count<Index>}
+      , Direction> \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{CountReturnType};
+00286     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{ReturnType<internal::member\_prod>::Type} 
+      \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{ProdReturnType};
+00287     \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_reverse}{Reverse<const ExpressionType, Direction>} 
+      \hyperlink{group___core___module_class_eigen_1_1_reverse}{ConstReverseReturnType};
+00288     \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_reverse}{Reverse<ExpressionType, Direction>} 
+      \hyperlink{group___core___module_class_eigen_1_1_reverse}{ReverseReturnType};
+00289 
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00290}\hyperlink{struct_eigen_1_1_vectorwise_op_1_1_lp_norm_return_type}{00290}     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} p> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_vectorwise_op_1_1_lp_norm_return_type}{LpNormReturnType} \{
+00291       \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{PartialReduxExpr<ExpressionType, internal::member\_lpnorm<p,RealScalar>}
+      ,Direction> \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{Type};
+00292     \};
+00293 
+00303     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00304}\hyperlink{group___core___module_a05f6f60662c06b4987e7eaf747a032c0}{00304}     \textcolor{keyword}{const} MinCoeffReturnType \hyperlink{group___core___module_a05f6f60662c06b4987e7eaf747a032c0}{minCoeff}()\textcolor{keyword}{ const}
+00305 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} MinCoeffReturnType(\_expression()); \}
+00306 
+00316     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00317}\hyperlink{group___core___module_a48457cc94227563bca448496aaad8e9c}{00317}     \textcolor{keyword}{const} MaxCoeffReturnType \hyperlink{group___core___module_a48457cc94227563bca448496aaad8e9c}{maxCoeff}()\textcolor{keyword}{ const}
+00318 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} MaxCoeffReturnType(\_expression()); \}
+00319 
+00328     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00329}\hyperlink{group___core___module_a6f23ba41822436d3176d718596be8fd0}{00329}     \textcolor{keyword}{const} SquaredNormReturnType \hyperlink{group___core___module_a6f23ba41822436d3176d718596be8fd0}{squaredNorm}()\textcolor{keyword}{ const}
+00330 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} SquaredNormReturnType(\_expression()); \}
+00331 
+00340     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00341}\hyperlink{group___core___module_a1c098483dfb35329f11b769cb5c1b6c1}{00341}     \textcolor{keyword}{const} NormReturnType \hyperlink{group___core___module_a1c098483dfb35329f11b769cb5c1b6c1}{norm}()\textcolor{keyword}{ const}
+00342 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} NormReturnType(\_expression()); \}
+00343 
+00352     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} p>
+00353     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00354}\hyperlink{group___core___module_a87b514857655134e74ee313d865ab6d6}{00354}     \textcolor{keyword}{const} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{LpNormReturnType<p>::Type} \hyperlink{group___core___module_a87b514857655134e74ee313d865ab6d6}{lpNorm}()\textcolor{keyword}{ const}
+00355 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_partial_redux_expr}{LpNormReturnType<p>::Type}(\_expression()); \}
+00356 
+00357 
+00364     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00365}\hyperlink{group___core___module_ae1d431dae7e328e1e6d08d2fb5dc6c22}{00365}     \textcolor{keyword}{const} BlueNormReturnType \hyperlink{group___core___module_ae1d431dae7e328e1e6d08d2fb5dc6c22}{blueNorm}()\textcolor{keyword}{ const}
+00366 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} BlueNormReturnType(\_expression()); \}
+00367 
+00368 
+00375     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00376}\hyperlink{group___core___module_adfa17a946f1bd845b85cba8cf34732ac}{00376}     \textcolor{keyword}{const} StableNormReturnType \hyperlink{group___core___module_adfa17a946f1bd845b85cba8cf34732ac}{stableNorm}()\textcolor{keyword}{ const}
+00377 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} StableNormReturnType(\_expression()); \}
+00378 
+00379 
+00386     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00387}\hyperlink{group___core___module_a9ae3feb2723628a3bcff6eabda2fa77d}{00387}     \textcolor{keyword}{const} HypotNormReturnType \hyperlink{group___core___module_a9ae3feb2723628a3bcff6eabda2fa77d}{hypotNorm}()\textcolor{keyword}{ const}
+00388 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} HypotNormReturnType(\_expression()); \}
+00389 
+00397     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00398}\hyperlink{group___core___module_a2005154bdb90789c0eb55343be9694c1}{00398}     \textcolor{keyword}{const} SumReturnType \hyperlink{group___core___module_a2005154bdb90789c0eb55343be9694c1}{sum}()\textcolor{keyword}{ const}
+00399 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} SumReturnType(\_expression()); \}
+00400 
+00405     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00406}\hyperlink{group___core___module_aea15d46c791ef6d17860fc8a61a5fbd6}{00406}     \textcolor{keyword}{const} MeanReturnType \hyperlink{group___core___module_aea15d46c791ef6d17860fc8a61a5fbd6}{mean}()\textcolor{keyword}{ const}
+00407 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} MeanReturnType(\_expression()); \}
+00408 
+00414     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00415}\hyperlink{group___core___module_a2762ceabf1fecc22506ed304d0099f6c}{00415}     \textcolor{keyword}{const} AllReturnType \hyperlink{group___core___module_a2762ceabf1fecc22506ed304d0099f6c}{all}()\textcolor{keyword}{ const}
+00416 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} AllReturnType(\_expression()); \}
+00417 
+00423     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00424}\hyperlink{group___core___module_a7a513e04b7198f2fc565f636309337cc}{00424}     \textcolor{keyword}{const} AnyReturnType \hyperlink{group___core___module_a7a513e04b7198f2fc565f636309337cc}{any}()\textcolor{keyword}{ const}
+00425 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} AnyReturnType(\_expression()); \}
+00426 
+00436     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00437}\hyperlink{group___core___module_abf7ae4a00d195d06d46ad6c269d8508f}{00437}     \textcolor{keyword}{const} CountReturnType \hyperlink{group___core___module_abf7ae4a00d195d06d46ad6c269d8508f}{count}()\textcolor{keyword}{ const}
+00438 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} CountReturnType(\_expression()); \}
+00439 
+00447     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00448}\hyperlink{group___core___module_a6863499c3e7ea8635784376806abcf9f}{00448}     \textcolor{keyword}{const} ProdReturnType \hyperlink{group___core___module_a6863499c3e7ea8635784376806abcf9f}{prod}()\textcolor{keyword}{ const}
+00449 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} ProdReturnType(\_expression()); \}
+00450 
+00451 
+00459     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00460}\hyperlink{group___core___module_a058b821b65e2e27839853d9a25b0216c}{00460}     \textcolor{keyword}{const} ConstReverseReturnType \hyperlink{group___core___module_a058b821b65e2e27839853d9a25b0216c}{reverse}()\textcolor{keyword}{ const}
+00461 \textcolor{keyword}{    }\{ \textcolor{keywordflow}{return} ConstReverseReturnType( \_expression() ); \}
+00462 
+00467     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00468}\hyperlink{group___core___module_a094915725d604015221205e8c4ccb993}{00468}     ReverseReturnType \hyperlink{group___core___module_a094915725d604015221205e8c4ccb993}{reverse}()
+00469     \{ \textcolor{keywordflow}{return} ReverseReturnType( \_expression() ); \}
+00470 
+00471     \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_replicate}{Replicate<ExpressionType,(isVertical?Dynamic:1),(isHorizontal?Dynamic:1)>}
+       \hyperlink{group___core___module_class_eigen_1_1_replicate}{ReplicateReturnType};
+00472     EIGEN\_DEVICE\_FUNC
+00473     \textcolor{keyword}{const} ReplicateReturnType replicate(Index factor) \textcolor{keyword}{const};
+00474 
+00483     \textcolor{comment}{// NOTE implemented here because of sunstudio's compilation errors}
+00484     \textcolor{comment}{// isVertical*Factor+isHorizontal instead of (isVertical?Factor:1) to handle CUDA bug with ternary
+       operator}
+00485     \textcolor{keyword}{template}<\textcolor{keywordtype}{int} Factor> \textcolor{keyword}{const} 
+      \hyperlink{group___core___module_class_eigen_1_1_replicate}{Replicate<ExpressionType,isVertical*Factor+isHorizontal,isHorizontal*Factor+isVertical>}
+00486     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00487}\hyperlink{group___core___module_adafbfe5f623bc8fdc9877eb073f1ba5c}{00487}     \hyperlink{group___core___module_adafbfe5f623bc8fdc9877eb073f1ba5c}{replicate}(Index factor = Factor)\textcolor{keyword}{ const}
+00488 \textcolor{keyword}{    }\{
+00489       \textcolor{keywordflow}{return} 
+      \hyperlink{group___core___module_class_eigen_1_1_replicate}{Replicate<ExpressionType,(isVertical?Factor:1),(isHorizontal?Factor:1)>}
+00490           (\_expression(),isVertical?factor:1,isHorizontal?factor:1);
+00491     \}
+00492 
+00494 
+00496     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00497     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00498}\hyperlink{group___core___module_a61f54a2994758cc098671d5f0f36cfa6}{00498}     ExpressionType& \hyperlink{group___core___module_a61f54a2994758cc098671d5f0f36cfa6}{operator=}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)
+00499     \{
+00500       EIGEN\_STATIC\_ASSERT\_VECTOR\_ONLY(OtherDerived)
+00501       EIGEN\_STATIC\_ASSERT\_SAME\_XPR\_KIND(ExpressionType, OtherDerived)
+00502       \textcolor{comment}{//eigen\_assert((m\_matrix.isNull()) == (other.isNull())); FIXME}
+00503       \textcolor{keywordflow}{return} \textcolor{keyword}{const\_cast<}ExpressionType&\textcolor{keyword}{>}(m\_matrix = extendedTo(other.derived()));
+00504     \}
+00505 
+00507     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00508     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00509}\hyperlink{group___core___module_ad60d01ea6717f9ef6fd7941cf8b99db7}{00509}     ExpressionType& \hyperlink{group___core___module_ad60d01ea6717f9ef6fd7941cf8b99db7}{operator+=}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)
+00510     \{
+00511       EIGEN\_STATIC\_ASSERT\_VECTOR\_ONLY(OtherDerived)
+00512       EIGEN\_STATIC\_ASSERT\_SAME\_XPR\_KIND(ExpressionType, OtherDerived)
+00513       \textcolor{keywordflow}{return} \textcolor{keyword}{const\_cast<}ExpressionType&\textcolor{keyword}{>}(m\_matrix += extendedTo(other.derived()));
+00514     \}
+00515 
+00517     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00518     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00519}\hyperlink{group___core___module_acf1e97639651a9b617680ba3b3ece24a}{00519}     ExpressionType& \hyperlink{group___core___module_acf1e97639651a9b617680ba3b3ece24a}{operator-=}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)
+00520     \{
+00521       EIGEN\_STATIC\_ASSERT\_VECTOR\_ONLY(OtherDerived)
+00522       EIGEN\_STATIC\_ASSERT\_SAME\_XPR\_KIND(ExpressionType, OtherDerived)
+00523       \textcolor{keywordflow}{return} \textcolor{keyword}{const\_cast<}ExpressionType&\textcolor{keyword}{>}(m\_matrix -= extendedTo(other.derived()));
+00524     \}
+00525 
+00527     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00528     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00529}\hyperlink{group___core___module_ad5e0f0005806295e07c11534f698351e}{00529}     ExpressionType& \hyperlink{group___core___module_ad5e0f0005806295e07c11534f698351e}{operator*=}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)
+00530     \{
+00531       EIGEN\_STATIC\_ASSERT\_VECTOR\_ONLY(OtherDerived)
+00532       EIGEN\_STATIC\_ASSERT\_ARRAYXPR(ExpressionType)
+00533       EIGEN\_STATIC\_ASSERT\_SAME\_XPR\_KIND(ExpressionType, OtherDerived)
+00534       m\_matrix *= extendedTo(other.derived());
+00535       \textcolor{keywordflow}{return} \textcolor{keyword}{const\_cast<}ExpressionType&\textcolor{keyword}{>}(m\_matrix);
+00536     \}
+00537 
+00539     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00540     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00541}\hyperlink{group___core___module_ac04267f84ef1c52d88f452667cf757ae}{00541}     ExpressionType& \hyperlink{group___core___module_ac04267f84ef1c52d88f452667cf757ae}{operator/=}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)
+00542     \{
+00543       EIGEN\_STATIC\_ASSERT\_VECTOR\_ONLY(OtherDerived)
+00544       EIGEN\_STATIC\_ASSERT\_ARRAYXPR(ExpressionType)
+00545       EIGEN\_STATIC\_ASSERT\_SAME\_XPR\_KIND(ExpressionType, OtherDerived)
+00546       m\_matrix /= extendedTo(other.derived());
+00547       \textcolor{keywordflow}{return} \textcolor{keyword}{const\_cast<}ExpressionType&\textcolor{keyword}{>}(m\_matrix);
+00548     \}
+00549 
+00551     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived> EIGEN\_STRONG\_INLINE EIGEN\_DEVICE\_FUNC
+00552     \hyperlink{group___core___module_class_eigen_1_1_cwise_binary_op}{CwiseBinaryOp<internal::scalar\_sum\_op<Scalar,typename OtherDerived::Scalar>}
+      ,
+00553                   \textcolor{keyword}{const} ExpressionTypeNestedCleaned,
+00554                   \textcolor{keyword}{const} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_replicate}{ExtendedType<OtherDerived>::Type}>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00555}\hyperlink{group___core___module_ad38bb674b896bfc8f96baeb487aa2184}{00555}     \hyperlink{group___core___module_ad38bb674b896bfc8f96baeb487aa2184}{operator+}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)\textcolor{keyword}{ const}
+00556 \textcolor{keyword}{    }\{
+00557       EIGEN\_STATIC\_ASSERT\_VECTOR\_ONLY(OtherDerived)
+00558       EIGEN\_STATIC\_ASSERT\_SAME\_XPR\_KIND(ExpressionType, OtherDerived)
+00559       \textcolor{keywordflow}{return} m\_matrix + extendedTo(other.derived());
+00560     \}
+00561 
+00563     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00564     EIGEN\_DEVICE\_FUNC
+00565     
+      \hyperlink{group___core___module_class_eigen_1_1_cwise_binary_op}{CwiseBinaryOp<internal::scalar\_difference\_op<Scalar,typename OtherDerived::Scalar>}
+      ,
+00566                   \textcolor{keyword}{const} ExpressionTypeNestedCleaned,
+00567                   \textcolor{keyword}{const} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_replicate}{ExtendedType<OtherDerived>::Type}>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00568}\hyperlink{group___core___module_a5aced68defd8d0fd08829386b6c285fb}{00568}     \hyperlink{group___core___module_a5aced68defd8d0fd08829386b6c285fb}{operator-}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)\textcolor{keyword}{ const}
+00569 \textcolor{keyword}{    }\{
+00570       EIGEN\_STATIC\_ASSERT\_VECTOR\_ONLY(OtherDerived)
+00571       EIGEN\_STATIC\_ASSERT\_SAME\_XPR\_KIND(ExpressionType, OtherDerived)
+00572       \textcolor{keywordflow}{return} m\_matrix - extendedTo(other.derived());
+00573     \}
+00574 
+00577     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived> EIGEN\_STRONG\_INLINE EIGEN\_DEVICE\_FUNC
+00578     \hyperlink{group___core___module_class_eigen_1_1_cwise_binary_op}{CwiseBinaryOp<internal::scalar\_product\_op<Scalar>},
+00579                   \textcolor{keyword}{const} ExpressionTypeNestedCleaned,
+00580                   \textcolor{keyword}{const} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_replicate}{ExtendedType<OtherDerived>::Type}>
+00581     EIGEN\_DEVICE\_FUNC
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00582}\hyperlink{group___core___module_ab416470ff03705428a5f6f633f815415}{00582}     \hyperlink{group___core___module_ab416470ff03705428a5f6f633f815415}{operator*}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)\textcolor{keyword}{ const}
+00583 \textcolor{keyword}{    }\{
+00584       EIGEN\_STATIC\_ASSERT\_VECTOR\_ONLY(OtherDerived)
+00585       EIGEN\_STATIC\_ASSERT\_ARRAYXPR(ExpressionType)
+00586       EIGEN\_STATIC\_ASSERT\_SAME\_XPR\_KIND(ExpressionType, OtherDerived)
+00587       \textcolor{keywordflow}{return} m\_matrix * extendedTo(other.derived());
+00588     \}
+00589 
+00592     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00593     EIGEN\_DEVICE\_FUNC
+00594     \hyperlink{group___core___module_class_eigen_1_1_cwise_binary_op}{CwiseBinaryOp<internal::scalar\_quotient\_op<Scalar>},
+00595                   \textcolor{keyword}{const} ExpressionTypeNestedCleaned,
+00596                   \textcolor{keyword}{const} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_replicate}{ExtendedType<OtherDerived>::Type}>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00597}\hyperlink{group___core___module_ae36a76f1da78cb2ea74447c86ac68580}{00597}     \hyperlink{group___core___module_ae36a76f1da78cb2ea74447c86ac68580}{operator/}(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_dense_base}{DenseBase<OtherDerived>}& other)\textcolor{keyword}{ const}
+00598 \textcolor{keyword}{    }\{
+00599       EIGEN\_STATIC\_ASSERT\_VECTOR\_ONLY(OtherDerived)
+00600       EIGEN\_STATIC\_ASSERT\_ARRAYXPR(ExpressionType)
+00601       EIGEN\_STATIC\_ASSERT\_SAME\_XPR\_KIND(ExpressionType, OtherDerived)
+00602       \textcolor{keywordflow}{return} m\_matrix / extendedTo(other.derived());
+00603     \}
+00604 
+00609     EIGEN\_DEVICE\_FUNC
+00610     CwiseBinaryOp<internal::scalar\_quotient\_op<Scalar>,
+00611                   \textcolor{keyword}{const} ExpressionTypeNestedCleaned,
+00612                   \textcolor{keyword}{const} \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1_vectorwise_op_1_1_opposite_extended_type}{OppositeExtendedType<typename ReturnType<internal::member\_norm,RealScalar>::Type}
+      >::Type>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00613}\hyperlink{group___core___module_a38799c77ec92e4b856804b7f0bc35c67}{00613}     \hyperlink{group___core___module_a38799c77ec92e4b856804b7f0bc35c67}{normalized}()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} m\_matrix.cwiseQuotient(extendedToOpposite(this->norm())); \}
+00614 
+00615 
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00619}\hyperlink{group___core___module_a1d22c9442537bd654edb4604db7b7b57}{00619}     EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} \hyperlink{group___core___module_a1d22c9442537bd654edb4604db7b7b57}{normalize}() \{
+00620       m\_matrix = this->normalized();
+00621     \}
+00622 
+00623     EIGEN\_DEVICE\_FUNC \textcolor{keyword}{inline} \textcolor{keywordtype}{void} reverseInPlace();
+00624 
+00626 
+00627     \textcolor{keyword}{typedef} \hyperlink{group___geometry___module_class_eigen_1_1_homogeneous}{Homogeneous<ExpressionType,Direction>} 
+      \hyperlink{group___geometry___module_class_eigen_1_1_homogeneous}{HomogeneousReturnType};
+00628     EIGEN\_DEVICE\_FUNC
+00629     HomogeneousReturnType homogeneous() \textcolor{keyword}{const};
+00630 
+00631     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} ExpressionType::PlainObject CrossReturnType;
+00632     \textcolor{keyword}{template}<\textcolor{keyword}{typename} OtherDerived>
+00633     EIGEN\_DEVICE\_FUNC
+00634     \textcolor{keyword}{const} CrossReturnType cross(\textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_matrix_base}{MatrixBase<OtherDerived>}& other) \textcolor{keyword}{const};
+00635 
+00636     \textcolor{keyword}{enum} \{
+00637       HNormalized\_Size = Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical} ? 
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<ExpressionType>::RowsAtCompileTime}
+00638                                              : 
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<ExpressionType>::ColsAtCompileTime},
+00639       HNormalized\_SizeMinusOne = HNormalized\_Size==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} ? \hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} : HNormalized\_Size-1
+00640     \};
+00641     \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_block}{Block}<\textcolor{keyword}{const} ExpressionType,
+00642                   Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}   ? int(HNormalized\_SizeMinusOne)
+00643                                         : int(
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<ExpressionType>::RowsAtCompileTime}),
+00644                   Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal} ? int(HNormalized\_SizeMinusOne)
+00645                                         : int(
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<ExpressionType>::ColsAtCompileTime})>
+00646             \hyperlink{group___core___module_class_eigen_1_1_block}{HNormalized\_Block};
+00647     \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_block}{Block}<\textcolor{keyword}{const} ExpressionType,
+00648                   Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}   ? 1 : int(
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<ExpressionType>::RowsAtCompileTime}),
+00649                   Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal} ? 1 : int(
+      \hyperlink{struct_eigen_1_1internal_1_1traits}{internal::traits<ExpressionType>::ColsAtCompileTime})>
+00650             \hyperlink{group___core___module_class_eigen_1_1_block}{HNormalized\_Factors};
+00651     \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_cwise_binary_op}{CwiseBinaryOp<internal::scalar\_quotient\_op<typename internal::traits<ExpressionType>::Scalar}
+      >,
+00652                 \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_block}{HNormalized\_Block},
+00653                 \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_replicate}{Replicate}<\hyperlink{group___core___module_class_eigen_1_1_block}{HNormalized\_Factors},
+00654                   Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7addca718e0564723df21d61b94b1198be}{Vertical}   ? HNormalized\_SizeMinusOne : 1,
+00655                   Direction==\hyperlink{group__enums_ggad49a7b3738e273eb00932271b36127f7aae8a16b3b9272683c1162915f6d892be}{Horizontal} ? HNormalized\_SizeMinusOne : 1> >
+00656             \hyperlink{group___core___module_class_eigen_1_1_cwise_binary_op}{HNormalizedReturnType};
+00657 
+00658     EIGEN\_DEVICE\_FUNC
+00659     \textcolor{keyword}{const} \hyperlink{group___core___module_class_eigen_1_1_cwise_binary_op}{HNormalizedReturnType} hnormalized() \textcolor{keyword}{const};
+00660 
+00661   \textcolor{keyword}{protected}:
+00662     ExpressionTypeNested m\_matrix;
+00663 \};
+00664 
+00665 \textcolor{comment}{//const colwise moved to DenseBase.h due to CUDA compiler bug}
+00666 
+00667 
+00672 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00673 \textcolor{keyword}{inline} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_vectorwise_op}{DenseBase<Derived>::ColwiseReturnType}
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00674}\hyperlink{group___core___module_a1c0e1b6067ec1de6cb8799da55aa7d30}{00674} \hyperlink{group___core___module_a978724c07b70cb9b8fdef67a4de08788}{DenseBase<Derived>::colwise}()
+00675 \{
+00676   \textcolor{keywordflow}{return} \hyperlink{group___core___module_class_eigen_1_1_vectorwise_op}{ColwiseReturnType}(derived());
+00677 \}
+00678 
+00679 \textcolor{comment}{//const rowwise moved to DenseBase.h due to CUDA compiler bug}
+00680 
+00681 
+00686 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Derived>
+00687 \textcolor{keyword}{inline} \textcolor{keyword}{typename} \hyperlink{group___core___module_class_eigen_1_1_vectorwise_op}{DenseBase<Derived>::RowwiseReturnType}
+\Hypertarget{eigen_2_eigen_2src_2_core_2_vectorwise_op_8h_source_l00688}\hyperlink{group___core___module_a6daa3a3156ca0e0722bf78638e1c7f28}{00688} \hyperlink{group___core___module_af9662cd704ffc16c5b88c7b2d331576f}{DenseBase<Derived>::rowwise}()
+00689 \{
+00690   \textcolor{keywordflow}{return} \hyperlink{group___core___module_class_eigen_1_1_vectorwise_op}{RowwiseReturnType}(derived());
+00691 \}
+00692 
+00693 \} \textcolor{comment}{// end namespace Eigen}
+00694 
+00695 \textcolor{preprocessor}{#endif // EIGEN\_PARTIAL\_REDUX\_H}
+\end{DoxyCode}

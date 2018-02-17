@@ -1,0 +1,309 @@
+\hypertarget{visual__studio_2zlib_2inftrees_8c_source}{}\section{visual\+\_\+studio/zlib/inftrees.c}
+\label{visual__studio_2zlib_2inftrees_8c_source}\index{inftrees.\+c@{inftrees.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* inftrees.c -- generate Huffman trees for efficient decoding}
+00002 \textcolor{comment}{ * Copyright (C) 1995-2017 Mark Adler}
+00003 \textcolor{comment}{ * For conditions of distribution and use, see copyright notice in zlib.h}
+00004 \textcolor{comment}{ */}
+00005 
+00006 \textcolor{preprocessor}{#include "zutil.h"}
+00007 \textcolor{preprocessor}{#include "inftrees.h"}
+00008 
+00009 \textcolor{preprocessor}{#define MAXBITS 15}
+00010 
+00011 \textcolor{keyword}{const} \textcolor{keywordtype}{char} inflate\_copyright[] =
+00012    \textcolor{stringliteral}{" inflate 1.2.11 Copyright 1995-2017 Mark Adler "};
+00013 \textcolor{comment}{/*}
+00014 \textcolor{comment}{  If you use the zlib library in a product, an acknowledgment is welcome}
+00015 \textcolor{comment}{  in the documentation of your product. If for some reason you cannot}
+00016 \textcolor{comment}{  include such an acknowledgment, I would appreciate that you keep this}
+00017 \textcolor{comment}{  copyright string in the executable of your product.}
+00018 \textcolor{comment}{ */}
+00019 
+00020 \textcolor{comment}{/*}
+00021 \textcolor{comment}{   Build a set of tables to decode the provided canonical Huffman code.}
+00022 \textcolor{comment}{   The code lengths are lens[0..codes-1].  The result starts at *table,}
+00023 \textcolor{comment}{   whose indices are 0..2^bits-1.  work is a writable array of at least}
+00024 \textcolor{comment}{   lens shorts, which is used as a work area.  type is the type of code}
+00025 \textcolor{comment}{   to be generated, CODES, LENS, or DISTS.  On return, zero is success,}
+00026 \textcolor{comment}{   -1 is an invalid code, and +1 means that ENOUGH isn't enough.  table}
+00027 \textcolor{comment}{   on return points to the next available entry's address.  bits is the}
+00028 \textcolor{comment}{   requested root table index bits, and on return it is the actual root}
+00029 \textcolor{comment}{   table index bits.  It will differ if the request is greater than the}
+00030 \textcolor{comment}{   longest code or if it is less than the shortest code.}
+00031 \textcolor{comment}{ */}
+00032 \textcolor{keywordtype}{int} ZLIB\_INTERNAL inflate\_table(type, lens, codes, table, bits, work)
+00033 codetype type;
+00034 \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{short} FAR *lens;
+00035 \textcolor{keywordtype}{unsigned} codes;
+00036 \hyperlink{structcode}{code} FAR * FAR *table;
+00037 \textcolor{keywordtype}{unsigned} FAR *bits;
+00038 \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{short} FAR *work;
+00039 \{
+00040     \textcolor{keywordtype}{unsigned} len;               \textcolor{comment}{/* a code's length in bits */}
+00041     \textcolor{keywordtype}{unsigned} sym;               \textcolor{comment}{/* index of code symbols */}
+00042     \textcolor{keywordtype}{unsigned} min, max;          \textcolor{comment}{/* minimum and maximum code lengths */}
+00043     \textcolor{keywordtype}{unsigned} root;              \textcolor{comment}{/* number of index bits for root table */}
+00044     \textcolor{keywordtype}{unsigned} curr;              \textcolor{comment}{/* number of index bits for current table */}
+00045     \textcolor{keywordtype}{unsigned} drop;              \textcolor{comment}{/* code bits to drop for sub-table */}
+00046     \textcolor{keywordtype}{int} left;                   \textcolor{comment}{/* number of prefix codes available */}
+00047     \textcolor{keywordtype}{unsigned} used;              \textcolor{comment}{/* code entries in table used */}
+00048     \textcolor{keywordtype}{unsigned} huff;              \textcolor{comment}{/* Huffman code */}
+00049     \textcolor{keywordtype}{unsigned} incr;              \textcolor{comment}{/* for incrementing code, index */}
+00050     \textcolor{keywordtype}{unsigned} fill;              \textcolor{comment}{/* index for replicating entries */}
+00051     \textcolor{keywordtype}{unsigned} low;               \textcolor{comment}{/* low bits for current root entry */}
+00052     \textcolor{keywordtype}{unsigned} mask;              \textcolor{comment}{/* mask for low root bits */}
+00053     \hyperlink{structcode}{code} here;                  \textcolor{comment}{/* table entry for duplication */}
+00054     \hyperlink{structcode}{code} FAR *next;             \textcolor{comment}{/* next available space in table */}
+00055     \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{short} FAR *base;     \textcolor{comment}{/* base value table to use */}
+00056     \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{short} FAR *extra;    \textcolor{comment}{/* extra bits table to use */}
+00057     \textcolor{keywordtype}{unsigned} match;             \textcolor{comment}{/* use base and extra for symbol >= match */}
+00058     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{short} count[MAXBITS+1];    \textcolor{comment}{/* number of codes of each length */}
+00059     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{short} offs[MAXBITS+1];     \textcolor{comment}{/* offsets in table for each length */}
+00060     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{short} lbase[31] = \{ \textcolor{comment}{/* Length codes 257..285 base */}
+00061         3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
+00062         35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0\};
+00063     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{short} lext[31] = \{ \textcolor{comment}{/* Length codes 257..285 extra */}
+00064         16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 18, 18, 18, 18,
+00065         19, 19, 19, 19, 20, 20, 20, 20, 21, 21, 21, 21, 16, 77, 202\};
+00066     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{short} dbase[32] = \{ \textcolor{comment}{/* Distance codes 0..29 base */}
+00067         1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
+00068         257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
+00069         8193, 12289, 16385, 24577, 0, 0\};
+00070     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{short} dext[32] = \{ \textcolor{comment}{/* Distance codes 0..29 extra */}
+00071         16, 16, 16, 16, 17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22,
+00072         23, 23, 24, 24, 25, 25, 26, 26, 27, 27,
+00073         28, 28, 29, 29, 64, 64\};
+00074 
+00075     \textcolor{comment}{/*}
+00076 \textcolor{comment}{       Process a set of code lengths to create a canonical Huffman code.  The}
+00077 \textcolor{comment}{       code lengths are lens[0..codes-1].  Each length corresponds to the}
+00078 \textcolor{comment}{       symbols 0..codes-1.  The Huffman code is generated by first sorting the}
+00079 \textcolor{comment}{       symbols by length from short to long, and retaining the symbol order}
+00080 \textcolor{comment}{       for codes with equal lengths.  Then the code starts with all zero bits}
+00081 \textcolor{comment}{       for the first code of the shortest length, and the codes are integer}
+00082 \textcolor{comment}{       increments for the same length, and zeros are appended as the length}
+00083 \textcolor{comment}{       increases.  For the deflate format, these bits are stored backwards}
+00084 \textcolor{comment}{       from their more natural integer increment ordering, and so when the}
+00085 \textcolor{comment}{       decoding tables are built in the large loop below, the integer codes}
+00086 \textcolor{comment}{       are incremented backwards.}
+00087 \textcolor{comment}{}
+00088 \textcolor{comment}{       This routine assumes, but does not check, that all of the entries in}
+00089 \textcolor{comment}{       lens[] are in the range 0..MAXBITS.  The caller must assure this.}
+00090 \textcolor{comment}{       1..MAXBITS is interpreted as that code length.  zero means that that}
+00091 \textcolor{comment}{       symbol does not occur in this code.}
+00092 \textcolor{comment}{}
+00093 \textcolor{comment}{       The codes are sorted by computing a count of codes for each length,}
+00094 \textcolor{comment}{       creating from that a table of starting indices for each length in the}
+00095 \textcolor{comment}{       sorted table, and then entering the symbols in order in the sorted}
+00096 \textcolor{comment}{       table.  The sorted table is work[], with that space being provided by}
+00097 \textcolor{comment}{       the caller.}
+00098 \textcolor{comment}{}
+00099 \textcolor{comment}{       The length counts are used for other purposes as well, i.e. finding}
+00100 \textcolor{comment}{       the minimum and maximum length codes, determining if there are any}
+00101 \textcolor{comment}{       codes at all, checking for a valid set of lengths, and looking ahead}
+00102 \textcolor{comment}{       at length counts to determine sub-table sizes when building the}
+00103 \textcolor{comment}{       decoding tables.}
+00104 \textcolor{comment}{     */}
+00105 
+00106     \textcolor{comment}{/* accumulate lengths for codes (assumes lens[] all in 0..MAXBITS) */}
+00107     \textcolor{keywordflow}{for} (len = 0; len <= MAXBITS; len++)
+00108         count[len] = 0;
+00109     \textcolor{keywordflow}{for} (sym = 0; sym < codes; sym++)
+00110         count[lens[sym]]++;
+00111 
+00112     \textcolor{comment}{/* bound code lengths, force root to be within code lengths */}
+00113     root = *bits;
+00114     \textcolor{keywordflow}{for} (max = MAXBITS; max >= 1; max--)
+00115         \textcolor{keywordflow}{if} (count[max] != 0) \textcolor{keywordflow}{break};
+00116     \textcolor{keywordflow}{if} (root > max) root = max;
+00117     \textcolor{keywordflow}{if} (max == 0) \{                     \textcolor{comment}{/* no symbols to code at all */}
+00118         here.op = (\textcolor{keywordtype}{unsigned} char)64;    \textcolor{comment}{/* invalid code marker */}
+00119         here.bits = (\textcolor{keywordtype}{unsigned} char)1;
+00120         here.val = (\textcolor{keywordtype}{unsigned} short)0;
+00121         *(*table)++ = here;             \textcolor{comment}{/* make a table to force an error */}
+00122         *(*table)++ = here;
+00123         *bits = 1;
+00124         \textcolor{keywordflow}{return} 0;     \textcolor{comment}{/* no symbols, but wait for decoding to report error */}
+00125     \}
+00126     \textcolor{keywordflow}{for} (min = 1; min < max; min++)
+00127         \textcolor{keywordflow}{if} (count[min] != 0) \textcolor{keywordflow}{break};
+00128     \textcolor{keywordflow}{if} (root < min) root = min;
+00129 
+00130     \textcolor{comment}{/* check for an over-subscribed or incomplete set of lengths */}
+00131     left = 1;
+00132     \textcolor{keywordflow}{for} (len = 1; len <= MAXBITS; len++) \{
+00133         left <<= 1;
+00134         left -= count[len];
+00135         \textcolor{keywordflow}{if} (left < 0) \textcolor{keywordflow}{return} -1;        \textcolor{comment}{/* over-subscribed */}
+00136     \}
+00137     \textcolor{keywordflow}{if} (left > 0 && (type == CODES || max != 1))
+00138         \textcolor{keywordflow}{return} -1;                      \textcolor{comment}{/* incomplete set */}
+00139 
+00140     \textcolor{comment}{/* generate offsets into symbol table for each length for sorting */}
+00141     offs[1] = 0;
+00142     \textcolor{keywordflow}{for} (len = 1; len < MAXBITS; len++)
+00143         offs[len + 1] = offs[len] + count[len];
+00144 
+00145     \textcolor{comment}{/* sort symbols by length, by symbol order within each length */}
+00146     \textcolor{keywordflow}{for} (sym = 0; sym < codes; sym++)
+00147         \textcolor{keywordflow}{if} (lens[sym] != 0) work[offs[lens[sym]]++] = (\textcolor{keywordtype}{unsigned} short)sym;
+00148 
+00149     \textcolor{comment}{/*}
+00150 \textcolor{comment}{       Create and fill in decoding tables.  In this loop, the table being}
+00151 \textcolor{comment}{       filled is at next and has curr index bits.  The code being used is huff}
+00152 \textcolor{comment}{       with length len.  That code is converted to an index by dropping drop}
+00153 \textcolor{comment}{       bits off of the bottom.  For codes where len is less than drop + curr,}
+00154 \textcolor{comment}{       those top drop + curr - len bits are incremented through all values to}
+00155 \textcolor{comment}{       fill the table with replicated entries.}
+00156 \textcolor{comment}{}
+00157 \textcolor{comment}{       root is the number of index bits for the root table.  When len exceeds}
+00158 \textcolor{comment}{       root, sub-tables are created pointed to by the root entry with an index}
+00159 \textcolor{comment}{       of the low root bits of huff.  This is saved in low to check for when a}
+00160 \textcolor{comment}{       new sub-table should be started.  drop is zero when the root table is}
+00161 \textcolor{comment}{       being filled, and drop is root when sub-tables are being filled.}
+00162 \textcolor{comment}{}
+00163 \textcolor{comment}{       When a new sub-table is needed, it is necessary to look ahead in the}
+00164 \textcolor{comment}{       code lengths to determine what size sub-table is needed.  The length}
+00165 \textcolor{comment}{       counts are used for this, and so count[] is decremented as codes are}
+00166 \textcolor{comment}{       entered in the tables.}
+00167 \textcolor{comment}{}
+00168 \textcolor{comment}{       used keeps track of how many table entries have been allocated from the}
+00169 \textcolor{comment}{       provided *table space.  It is checked for LENS and DIST tables against}
+00170 \textcolor{comment}{       the constants ENOUGH\_LENS and ENOUGH\_DISTS to guard against changes in}
+00171 \textcolor{comment}{       the initial root table size constants.  See the comments in inftrees.h}
+00172 \textcolor{comment}{       for more information.}
+00173 \textcolor{comment}{}
+00174 \textcolor{comment}{       sym increments through all symbols, and the loop terminates when}
+00175 \textcolor{comment}{       all codes of length max, i.e. all codes, have been processed.  This}
+00176 \textcolor{comment}{       routine permits incomplete codes, so another loop after this one fills}
+00177 \textcolor{comment}{       in the rest of the decoding tables with invalid code markers.}
+00178 \textcolor{comment}{     */}
+00179 
+00180     \textcolor{comment}{/* set up for code type */}
+00181     \textcolor{keywordflow}{switch} (type) \{
+00182     \textcolor{keywordflow}{case} CODES:
+00183         base = extra = work;    \textcolor{comment}{/* dummy value--not used */}
+00184         match = 20;
+00185         \textcolor{keywordflow}{break};
+00186     \textcolor{keywordflow}{case} LENS:
+00187         base = lbase;
+00188         extra = lext;
+00189         match = 257;
+00190         \textcolor{keywordflow}{break};
+00191     \textcolor{keywordflow}{default}:    \textcolor{comment}{/* DISTS */}
+00192         base = dbase;
+00193         extra = dext;
+00194         match = 0;
+00195     \}
+00196 
+00197     \textcolor{comment}{/* initialize state for loop */}
+00198     huff = 0;                   \textcolor{comment}{/* starting code */}
+00199     sym = 0;                    \textcolor{comment}{/* starting code symbol */}
+00200     len = min;                  \textcolor{comment}{/* starting code length */}
+00201     next = *table;              \textcolor{comment}{/* current table to fill in */}
+00202     curr = root;                \textcolor{comment}{/* current table index bits */}
+00203     drop = 0;                   \textcolor{comment}{/* current bits to drop from code for index */}
+00204     low = (unsigned)(-1);       \textcolor{comment}{/* trigger new sub-table when len > root */}
+00205     used = 1U << root;          \textcolor{comment}{/* use root table entries */}
+00206     mask = used - 1;            \textcolor{comment}{/* mask for comparing low */}
+00207 
+00208     \textcolor{comment}{/* check available table space */}
+00209     \textcolor{keywordflow}{if} ((type == LENS && used > ENOUGH\_LENS) ||
+00210         (type == DISTS && used > ENOUGH\_DISTS))
+00211         \textcolor{keywordflow}{return} 1;
+00212 
+00213     \textcolor{comment}{/* process all codes and make table entries */}
+00214     \textcolor{keywordflow}{for} (;;) \{
+00215         \textcolor{comment}{/* create table entry */}
+00216         here.bits = (\textcolor{keywordtype}{unsigned} char)(len - drop);
+00217         \textcolor{keywordflow}{if} (work[sym] + 1U < match) \{
+00218             here.op = (\textcolor{keywordtype}{unsigned} char)0;
+00219             here.val = work[sym];
+00220         \}
+00221         \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (work[sym] >= match) \{
+00222             here.op = (\textcolor{keywordtype}{unsigned} char)(extra[work[sym] - match]);
+00223             here.val = base[work[sym] - match];
+00224         \}
+00225         \textcolor{keywordflow}{else} \{
+00226             here.op = (\textcolor{keywordtype}{unsigned} char)(32 + 64);         \textcolor{comment}{/* end of block */}
+00227             here.val = 0;
+00228         \}
+00229 
+00230         \textcolor{comment}{/* replicate for those indices with low len bits equal to huff */}
+00231         incr = 1U << (len - drop);
+00232         fill = 1U << curr;
+00233         min = fill;                 \textcolor{comment}{/* save offset to next table */}
+00234         \textcolor{keywordflow}{do} \{
+00235             fill -= incr;
+00236             next[(huff >> drop) + fill] = here;
+00237         \} \textcolor{keywordflow}{while} (fill != 0);
+00238 
+00239         \textcolor{comment}{/* backwards increment the len-bit code huff */}
+00240         incr = 1U << (len - 1);
+00241         \textcolor{keywordflow}{while} (huff & incr)
+00242             incr >>= 1;
+00243         \textcolor{keywordflow}{if} (incr != 0) \{
+00244             huff &= incr - 1;
+00245             huff += incr;
+00246         \}
+00247         \textcolor{keywordflow}{else}
+00248             huff = 0;
+00249 
+00250         \textcolor{comment}{/* go to next symbol, update count, len */}
+00251         sym++;
+00252         \textcolor{keywordflow}{if} (--(count[len]) == 0) \{
+00253             \textcolor{keywordflow}{if} (len == max) \textcolor{keywordflow}{break};
+00254             len = lens[work[sym]];
+00255         \}
+00256 
+00257         \textcolor{comment}{/* create new sub-table if needed */}
+00258         \textcolor{keywordflow}{if} (len > root && (huff & mask) != low) \{
+00259             \textcolor{comment}{/* if first time, transition to sub-tables */}
+00260             \textcolor{keywordflow}{if} (drop == 0)
+00261                 drop = root;
+00262 
+00263             \textcolor{comment}{/* increment past last table */}
+00264             next += min;            \textcolor{comment}{/* here min is 1 << curr */}
+00265 
+00266             \textcolor{comment}{/* determine length of next table */}
+00267             curr = len - drop;
+00268             left = (int)(1 << curr);
+00269             \textcolor{keywordflow}{while} (curr + drop < max) \{
+00270                 left -= count[curr + drop];
+00271                 \textcolor{keywordflow}{if} (left <= 0) \textcolor{keywordflow}{break};
+00272                 curr++;
+00273                 left <<= 1;
+00274             \}
+00275 
+00276             \textcolor{comment}{/* check for enough space */}
+00277             used += 1U << curr;
+00278             \textcolor{keywordflow}{if} ((type == LENS && used > ENOUGH\_LENS) ||
+00279                 (type == DISTS && used > ENOUGH\_DISTS))
+00280                 \textcolor{keywordflow}{return} 1;
+00281 
+00282             \textcolor{comment}{/* point entry in root table to sub-table */}
+00283             low = huff & mask;
+00284             (*table)[low].op = (\textcolor{keywordtype}{unsigned} char)curr;
+00285             (*table)[low].bits = (\textcolor{keywordtype}{unsigned} char)root;
+00286             (*table)[low].val = (\textcolor{keywordtype}{unsigned} short)(next - *table);
+00287         \}
+00288     \}
+00289 
+00290     \textcolor{comment}{/* fill in remaining table entry if code is incomplete (guaranteed to have}
+00291 \textcolor{comment}{       at most one remaining entry, since if the code is incomplete, the}
+00292 \textcolor{comment}{       maximum code length that was allowed to get this far is one bit) */}
+00293     \textcolor{keywordflow}{if} (huff != 0) \{
+00294         here.op = (\textcolor{keywordtype}{unsigned} char)64;            \textcolor{comment}{/* invalid code marker */}
+00295         here.bits = (\textcolor{keywordtype}{unsigned} char)(len - drop);
+00296         here.val = (\textcolor{keywordtype}{unsigned} short)0;
+00297         next[huff] = here;
+00298     \}
+00299 
+00300     \textcolor{comment}{/* set return parameters */}
+00301     *table += used;
+00302     *bits = root;
+00303     \textcolor{keywordflow}{return} 0;
+00304 \}
+\end{DoxyCode}

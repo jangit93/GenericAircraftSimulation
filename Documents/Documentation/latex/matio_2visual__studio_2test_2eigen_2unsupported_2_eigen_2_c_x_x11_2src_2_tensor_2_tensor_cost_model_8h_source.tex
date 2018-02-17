@@ -1,0 +1,209 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_cost_model_8h_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/\+Eigen/\+C\+X\+X11/src/\+Tensor/\+Tensor\+Cost\+Model.h}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2_eigen_2_c_x_x11_2src_2_tensor_2_tensor_cost_model_8h_source}\index{Tensor\+Cost\+Model.\+h@{Tensor\+Cost\+Model.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2016 Rasmus Munk Larsen <rmlarsen@google.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_CXX11\_TENSOR\_TENSOR\_COST\_MODEL\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_CXX11\_TENSOR\_TENSOR\_COST\_MODEL\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00023 \textcolor{comment}{// Class storing the cost of evaluating a tensor expression in terms of the}
+00024 \textcolor{comment}{// estimated number of operand bytes loads, bytes stored, and compute cycles.}
+00025 \textcolor{keyword}{class }TensorOpCost \{
+00026  \textcolor{keyword}{public}:
+00027   \textcolor{comment}{// TODO(rmlarsen): Fix the scalar op costs in Eigen proper. Even a simple}
+00028   \textcolor{comment}{// model based on minimal reciprocal throughput numbers from Intel or}
+00029   \textcolor{comment}{// Agner Fog's tables would be better than what is there now.}
+00030   \textcolor{keyword}{template} <\textcolor{keyword}{typename} ArgType>
+00031   \textcolor{keyword}{static} EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{int} MulCost() \{
+00032     \textcolor{keywordflow}{return} internal::functor\_traits<
+00033         internal::scalar\_product\_op<ArgType, ArgType> >::Cost;
+00034   \}
+00035   \textcolor{keyword}{template} <\textcolor{keyword}{typename} ArgType>
+00036   \textcolor{keyword}{static} EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{int} AddCost() \{
+00037     \textcolor{keywordflow}{return} internal::functor\_traits<internal::scalar\_sum\_op<ArgType> >::Cost;
+00038   \}
+00039   \textcolor{keyword}{template} <\textcolor{keyword}{typename} ArgType>
+00040   \textcolor{keyword}{static} EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{int} DivCost() \{
+00041     \textcolor{keywordflow}{return} internal::functor\_traits<
+00042         internal::scalar\_quotient\_op<ArgType, ArgType> >::Cost;
+00043   \}
+00044   \textcolor{keyword}{template} <\textcolor{keyword}{typename} ArgType>
+00045   \textcolor{keyword}{static} EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{int} ModCost() \{
+00046     \textcolor{keywordflow}{return} internal::functor\_traits<internal::scalar\_mod\_op<ArgType> >::Cost;
+00047   \}
+00048   \textcolor{keyword}{template} <\textcolor{keyword}{typename} SrcType, \textcolor{keyword}{typename} TargetType>
+00049   \textcolor{keyword}{static} EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{int} CastCost() \{
+00050     \textcolor{keywordflow}{return} internal::functor\_traits<
+00051         internal::scalar\_cast\_op<SrcType, TargetType> >::Cost;
+00052   \}
+00053 
+00054   EIGEN\_DEVICE\_FUNC
+00055   TensorOpCost() : bytes\_loaded\_(0), bytes\_stored\_(0), compute\_cycles\_(0) \{\}
+00056   EIGEN\_DEVICE\_FUNC
+00057   TensorOpCost(\textcolor{keywordtype}{double} bytes\_loaded, \textcolor{keywordtype}{double} bytes\_stored, \textcolor{keywordtype}{double} compute\_cycles)
+00058       : bytes\_loaded\_(bytes\_loaded),
+00059         bytes\_stored\_(bytes\_stored),
+00060         compute\_cycles\_(compute\_cycles) \{\}
+00061 
+00062   EIGEN\_DEVICE\_FUNC
+00063   TensorOpCost(\textcolor{keywordtype}{double} bytes\_loaded, \textcolor{keywordtype}{double} bytes\_stored, \textcolor{keywordtype}{double} compute\_cycles,
+00064                \textcolor{keywordtype}{bool} vectorized, \textcolor{keywordtype}{double} packet\_size)
+00065       : bytes\_loaded\_(bytes\_loaded),
+00066         bytes\_stored\_(bytes\_stored),
+00067         compute\_cycles\_(vectorized ? compute\_cycles / packet\_size
+00068                                    : compute\_cycles) \{
+00069     eigen\_assert(bytes\_loaded >= 0 && (numext::isfinite)(bytes\_loaded));
+00070     eigen\_assert(bytes\_stored >= 0 && (numext::isfinite)(bytes\_stored));
+00071     eigen\_assert(compute\_cycles >= 0 && (numext::isfinite)(compute\_cycles));
+00072   \}
+00073 
+00074   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{double} bytes\_loaded()\textcolor{keyword}{ const }\{
+00075     \textcolor{keywordflow}{return} bytes\_loaded\_;
+00076   \}
+00077   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{double} bytes\_stored()\textcolor{keyword}{ const }\{
+00078     \textcolor{keywordflow}{return} bytes\_stored\_;
+00079   \}
+00080   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{double} compute\_cycles()\textcolor{keyword}{ const }\{
+00081     \textcolor{keywordflow}{return} compute\_cycles\_;
+00082   \}
+00083   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{double} total\_cost(
+00084       \textcolor{keywordtype}{double} load\_cost, \textcolor{keywordtype}{double} store\_cost, \textcolor{keywordtype}{double} compute\_cost)\textcolor{keyword}{ const }\{
+00085     \textcolor{keywordflow}{return} load\_cost * bytes\_loaded\_ + store\_cost * bytes\_stored\_ +
+00086            compute\_cost * compute\_cycles\_;
+00087   \}
+00088 
+00089   \textcolor{comment}{// Drop memory access component. Intended for cases when memory accesses are}
+00090   \textcolor{comment}{// sequential or are completely masked by computations.}
+00091   EIGEN\_DEVICE\_FUNC \textcolor{keywordtype}{void} dropMemoryCost() \{
+00092     bytes\_loaded\_ = 0;
+00093     bytes\_stored\_ = 0;
+00094   \}
+00095 
+00096   \textcolor{comment}{// TODO(rmlarsen): Define min in terms of total cost, not elementwise.}
+00097   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE TensorOpCost cwiseMin(
+00098       \textcolor{keyword}{const} TensorOpCost& rhs)\textcolor{keyword}{ const }\{
+00099     \textcolor{keywordtype}{double} bytes\_loaded = numext::mini(bytes\_loaded\_, rhs.bytes\_loaded());
+00100     \textcolor{keywordtype}{double} bytes\_stored = numext::mini(bytes\_stored\_, rhs.bytes\_stored());
+00101     \textcolor{keywordtype}{double} compute\_cycles = numext::mini(compute\_cycles\_, rhs.compute\_cycles());
+00102     \textcolor{keywordflow}{return} TensorOpCost(bytes\_loaded, bytes\_stored, compute\_cycles);
+00103   \}
+00104 
+00105   \textcolor{comment}{// TODO(rmlarsen): Define max in terms of total cost, not elementwise.}
+00106   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE TensorOpCost cwiseMax(
+00107       \textcolor{keyword}{const} TensorOpCost& rhs)\textcolor{keyword}{ const }\{
+00108     \textcolor{keywordtype}{double} bytes\_loaded = numext::maxi(bytes\_loaded\_, rhs.bytes\_loaded());
+00109     \textcolor{keywordtype}{double} bytes\_stored = numext::maxi(bytes\_stored\_, rhs.bytes\_stored());
+00110     \textcolor{keywordtype}{double} compute\_cycles = numext::maxi(compute\_cycles\_, rhs.compute\_cycles());
+00111     \textcolor{keywordflow}{return} TensorOpCost(bytes\_loaded, bytes\_stored, compute\_cycles);
+00112   \}
+00113 
+00114   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE TensorOpCost& operator+=(
+00115       \textcolor{keyword}{const} TensorOpCost& rhs) \{
+00116     bytes\_loaded\_ += rhs.bytes\_loaded();
+00117     bytes\_stored\_ += rhs.bytes\_stored();
+00118     compute\_cycles\_ += rhs.compute\_cycles();
+00119     \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00120   \}
+00121 
+00122   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE TensorOpCost& operator*=(\textcolor{keywordtype}{double} rhs) \{
+00123     bytes\_loaded\_ *= rhs;
+00124     bytes\_stored\_ *= rhs;
+00125     compute\_cycles\_ *= rhs;
+00126     \textcolor{keywordflow}{return} *\textcolor{keyword}{this};
+00127   \}
+00128 
+00129   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{friend} TensorOpCost operator+(
+00130       TensorOpCost lhs, \textcolor{keyword}{const} TensorOpCost& rhs) \{
+00131     lhs += rhs;
+00132     \textcolor{keywordflow}{return} lhs;
+00133   \}
+00134   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{friend} TensorOpCost operator*(
+00135       TensorOpCost lhs, \textcolor{keywordtype}{double} rhs) \{
+00136     lhs *= rhs;
+00137     \textcolor{keywordflow}{return} lhs;
+00138   \}
+00139   EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keyword}{friend} TensorOpCost operator*(
+00140       \textcolor{keywordtype}{double} lhs, TensorOpCost rhs) \{
+00141     rhs *= lhs;
+00142     \textcolor{keywordflow}{return} rhs;
+00143   \}
+00144 
+00145   \textcolor{keyword}{friend} std::ostream& operator<<(std::ostream& os, \textcolor{keyword}{const} TensorOpCost& tc) \{
+00146     \textcolor{keywordflow}{return} os << \textcolor{stringliteral}{"[bytes\_loaded = "} << tc.bytes\_loaded()
+00147               << \textcolor{stringliteral}{", bytes\_stored = "} << tc.bytes\_stored()
+00148               << \textcolor{stringliteral}{", compute\_cycles = "} << tc.compute\_cycles() << \textcolor{stringliteral}{"]"};
+00149   \}
+00150 
+00151  \textcolor{keyword}{private}:
+00152   \textcolor{keywordtype}{double} bytes\_loaded\_;
+00153   \textcolor{keywordtype}{double} bytes\_stored\_;
+00154   \textcolor{keywordtype}{double} compute\_cycles\_;
+00155 \};
+00156 
+00157 \textcolor{comment}{// TODO(rmlarsen): Implement a policy that chooses an "optimal" number of theads}
+00158 \textcolor{comment}{// in [1:max\_threads] instead of just switching multi-threading off for small}
+00159 \textcolor{comment}{// work units.}
+00160 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Device>
+00161 \textcolor{keyword}{class }TensorCostModel \{
+00162  \textcolor{keyword}{public}:
+00163   \textcolor{comment}{// Scaling from Eigen compute cost to device cycles.}
+00164   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} kDeviceCyclesPerComputeCycle = 1;
+00165 
+00166  \textcolor{comment}{// Costs in device cycles.}
+00167   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} kStartupCycles = 100000;
+00168   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} kPerThreadCycles = 100000;
+00169   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} kTaskSize = 40000;
+00170 
+00171   \textcolor{comment}{// Returns the number of threads in [1:max\_threads] to use for}
+00172   \textcolor{comment}{// evaluating an expression with the given output size and cost per}
+00173   \textcolor{comment}{// coefficient.}
+00174   \textcolor{keyword}{static} EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{int} numThreads(
+00175       \textcolor{keywordtype}{double} output\_size, \textcolor{keyword}{const} TensorOpCost& cost\_per\_coeff, \textcolor{keywordtype}{int} max\_threads) \{
+00176     \textcolor{keywordtype}{double} cost = totalCost(output\_size, cost\_per\_coeff);
+00177     \textcolor{keywordtype}{int} threads = (cost - kStartupCycles) / kPerThreadCycles + 0.9;
+00178     \textcolor{keywordflow}{return} numext::mini(max\_threads, numext::maxi(1, threads));
+00179   \}
+00180 
+00181   \textcolor{comment}{// taskSize assesses parallel task size.}
+00182   \textcolor{comment}{// Value of 1.0 means ideal parallel task size. Values < 1.0 mean that task}
+00183   \textcolor{comment}{// granularity needs to be increased to mitigate parallelization overheads.}
+00184   \textcolor{keyword}{static} EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{double} taskSize(
+00185       \textcolor{keywordtype}{double} output\_size, \textcolor{keyword}{const} TensorOpCost& cost\_per\_coeff) \{
+00186     \textcolor{keywordflow}{return} totalCost(output\_size, cost\_per\_coeff) / kTaskSize;
+00187   \}
+00188 
+00189  \textcolor{keyword}{private}:
+00190   \textcolor{keyword}{static} EIGEN\_DEVICE\_FUNC EIGEN\_STRONG\_INLINE \textcolor{keywordtype}{double} totalCost(
+00191       \textcolor{keywordtype}{double} output\_size, \textcolor{keyword}{const} TensorOpCost& cost\_per\_coeff) \{
+00192     \textcolor{comment}{// Cost of memory fetches from L2 cache. 64 is typical cache line size.}
+00193     \textcolor{comment}{// 11 is L2 cache latency on Haswell.}
+00194     \textcolor{comment}{// We don't know whether data is in L1, L2 or L3. But we are most interested}
+00195     \textcolor{comment}{// in single-threaded computational time around 100us-10ms (smaller time}
+00196     \textcolor{comment}{// is too small for parallelization, larger time is not intersting}
+00197     \textcolor{comment}{// either because we are probably using all available threads already).}
+00198     \textcolor{comment}{// And for the target time range, L2 seems to be what matters. Data set}
+00199     \textcolor{comment}{// fitting into L1 is too small to take noticeable time. Data set fitting}
+00200     \textcolor{comment}{// only into L3 presumably will take more than 10ms to load and process.}
+00201     \textcolor{keyword}{const} \textcolor{keywordtype}{double} kLoadCycles = 1.0 / 64 * 11;
+00202     \textcolor{keyword}{const} \textcolor{keywordtype}{double} kStoreCycles = 1.0 / 64 * 11;
+00203     \textcolor{comment}{// Scaling from Eigen compute cost to device cycles.}
+00204     \textcolor{keywordflow}{return} output\_size *
+00205         cost\_per\_coeff.total\_cost(kLoadCycles, kStoreCycles,
+00206                                   kDeviceCyclesPerComputeCycle);
+00207   \}
+00208 \};
+00209 
+00210 \}  \textcolor{comment}{// namespace Eigen}
+00211 
+00212 \textcolor{preprocessor}{#endif  // EIGEN\_CXX11\_TENSOR\_TENSOR\_COST\_MODEL\_H}
+\end{DoxyCode}

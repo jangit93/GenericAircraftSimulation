@@ -1,0 +1,348 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2unsupported_2test_2openglsupport_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/unsupported/test/openglsupport.cpp}
+\label{matio_2visual__studio_2test_2eigen_2unsupported_2test_2openglsupport_8cpp_source}\index{openglsupport.\+cpp@{openglsupport.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2010 Gael Guennebaud <gael.guennebaud@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include <main.h>}
+00011 \textcolor{preprocessor}{#include <iostream>}
+00012 \textcolor{preprocessor}{#include <GL/glew.h>}
+00013 \textcolor{preprocessor}{#include <Eigen/OpenGLSupport>}
+00014 \textcolor{preprocessor}{#include <GL/glut.h>}
+00015 \textcolor{keyword}{using namespace }\hyperlink{namespace_eigen}{Eigen};
+00016 
+00017 
+00018 
+00019 
+00020 \textcolor{preprocessor}{#define VERIFY\_MATRIX(CODE,REF) \{ \(\backslash\)}
+00021 \textcolor{preprocessor}{    glLoadIdentity(); \(\backslash\)}
+00022 \textcolor{preprocessor}{    CODE; \(\backslash\)}
+00023 \textcolor{preprocessor}{    Matrix<float,4,4,ColMajor> m; m.setZero(); \(\backslash\)}
+00024 \textcolor{preprocessor}{    glGet(GL\_MODELVIEW\_MATRIX, m); \(\backslash\)}
+00025 \textcolor{preprocessor}{    if(!(REF).cast<float>().isApprox(m)) \{ \(\backslash\)}
+00026 \textcolor{preprocessor}{      std::cerr << "Expected:\(\backslash\)n" << ((REF).cast<float>()) << "\(\backslash\)n" << "got\(\backslash\)n" << m << "\(\backslash\)n\(\backslash\)n"; \(\backslash\)}
+00027 \textcolor{preprocessor}{    \} \(\backslash\)}
+00028 \textcolor{preprocessor}{    VERIFY\_IS\_APPROX((REF).cast<float>(), m); \(\backslash\)}
+00029 \textcolor{preprocessor}{  \}}
+00030 
+00031 \textcolor{preprocessor}{#define VERIFY\_UNIFORM(SUFFIX,NAME,TYPE) \{ \(\backslash\)}
+00032 \textcolor{preprocessor}{    TYPE value; value.setRandom(); \(\backslash\)}
+00033 \textcolor{preprocessor}{    TYPE data; \(\backslash\)}
+00034 \textcolor{preprocessor}{    int loc = glGetUniformLocation(prg\_id, #NAME); \(\backslash\)}
+00035 \textcolor{preprocessor}{    VERIFY((loc!=-1) && "uniform not found"); \(\backslash\)}
+00036 \textcolor{preprocessor}{    glUniform(loc,value); \(\backslash\)}
+00037 \textcolor{preprocessor}{    EIGEN\_CAT(glGetUniform,SUFFIX)(prg\_id,loc,data.data()); \(\backslash\)}
+00038 \textcolor{preprocessor}{    if(!value.isApprox(data)) \{ \(\backslash\)}
+00039 \textcolor{preprocessor}{      std::cerr << "Expected:\(\backslash\)n" << value << "\(\backslash\)n" << "got\(\backslash\)n" << data << "\(\backslash\)n\(\backslash\)n"; \(\backslash\)}
+00040 \textcolor{preprocessor}{    \} \(\backslash\)}
+00041 \textcolor{preprocessor}{    VERIFY\_IS\_APPROX(value, data); \(\backslash\)}
+00042 \textcolor{preprocessor}{  \}}
+00043   
+00044 \textcolor{preprocessor}{#define VERIFY\_UNIFORMi(NAME,TYPE) \{ \(\backslash\)}
+00045 \textcolor{preprocessor}{    TYPE value = TYPE::Random().eval().cast<float>().cast<TYPE::Scalar>(); \(\backslash\)}
+00046 \textcolor{preprocessor}{    TYPE data; \(\backslash\)}
+00047 \textcolor{preprocessor}{    int loc = glGetUniformLocation(prg\_id, #NAME); \(\backslash\)}
+00048 \textcolor{preprocessor}{    VERIFY((loc!=-1) && "uniform not found"); \(\backslash\)}
+00049 \textcolor{preprocessor}{    glUniform(loc,value); \(\backslash\)}
+00050 \textcolor{preprocessor}{    glGetUniformiv(prg\_id,loc,(GLint*)data.data()); \(\backslash\)}
+00051 \textcolor{preprocessor}{    if(!value.isApprox(data)) \{ \(\backslash\)}
+00052 \textcolor{preprocessor}{      std::cerr << "Expected:\(\backslash\)n" << value << "\(\backslash\)n" << "got\(\backslash\)n" << data << "\(\backslash\)n\(\backslash\)n"; \(\backslash\)}
+00053 \textcolor{preprocessor}{    \} \(\backslash\)}
+00054 \textcolor{preprocessor}{    VERIFY\_IS\_APPROX(value, data); \(\backslash\)}
+00055 \textcolor{preprocessor}{  \}}
+00056   
+00057 \textcolor{keywordtype}{void} printInfoLog(GLuint objectID)
+00058 \{
+00059     \textcolor{keywordtype}{int} infologLength, charsWritten;
+00060     GLchar *infoLog;
+00061     glGetProgramiv(objectID,GL\_INFO\_LOG\_LENGTH, &infologLength);
+00062     \textcolor{keywordflow}{if}(infologLength > 0)
+00063     \{
+00064         infoLog = \textcolor{keyword}{new} GLchar[infologLength];
+00065         glGetProgramInfoLog(objectID, infologLength, &charsWritten, infoLog);
+00066         \textcolor{keywordflow}{if} (charsWritten>0)
+00067           std::cerr << \textcolor{stringliteral}{"Shader info : \(\backslash\)n"} << infoLog << std::endl;
+00068         \textcolor{keyword}{delete}[] infoLog;
+00069     \}
+00070 \}
+00071 
+00072 GLint createShader(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* vtx, \textcolor{keyword}{const} \textcolor{keywordtype}{char}* frg)
+00073 \{
+00074   GLint prg\_id = glCreateProgram();
+00075   GLint vtx\_id = glCreateShader(GL\_VERTEX\_SHADER);
+00076   GLint frg\_id = glCreateShader(GL\_FRAGMENT\_SHADER);
+00077   GLint ok;
+00078   
+00079   glShaderSource(vtx\_id, 1, &vtx, 0);
+00080   glCompileShader(vtx\_id);
+00081   glGetShaderiv(vtx\_id,GL\_COMPILE\_STATUS,&ok);
+00082   \textcolor{keywordflow}{if}(!ok)
+00083   \{
+00084     std::cerr << \textcolor{stringliteral}{"vtx compilation failed\(\backslash\)n"};
+00085   \}
+00086   
+00087   glShaderSource(frg\_id, 1, &frg, 0);
+00088   glCompileShader(frg\_id);
+00089   glGetShaderiv(frg\_id,GL\_COMPILE\_STATUS,&ok);
+00090   \textcolor{keywordflow}{if}(!ok)
+00091   \{
+00092     std::cerr << \textcolor{stringliteral}{"frg compilation failed\(\backslash\)n"};
+00093   \}
+00094   
+00095   glAttachShader(prg\_id, vtx\_id);
+00096   glAttachShader(prg\_id, frg\_id);
+00097   glLinkProgram(prg\_id);
+00098   glGetProgramiv(prg\_id,GL\_LINK\_STATUS,&ok);
+00099   \textcolor{keywordflow}{if}(!ok)
+00100   \{
+00101     std::cerr << \textcolor{stringliteral}{"linking failed\(\backslash\)n"};
+00102   \}
+00103   printInfoLog(prg\_id);
+00104   
+00105   glUseProgram(prg\_id);
+00106   \textcolor{keywordflow}{return} prg\_id;
+00107 \}
+00108 
+00109 \textcolor{keywordtype}{void} test\_openglsupport()
+00110 \{
+00111   \textcolor{keywordtype}{int} argc = 0;
+00112   glutInit(&argc, 0);
+00113   glutInitDisplayMode(GLUT\_DOUBLE | GLUT\_RGB | GLUT\_DEPTH);
+00114   glutInitWindowPosition (0,0);
+00115   glutInitWindowSize(10, 10);
+00116 
+00117   \textcolor{keywordflow}{if}(glutCreateWindow(\textcolor{stringliteral}{"Eigen"}) <= 0)
+00118   \{
+00119     std::cerr << \textcolor{stringliteral}{"Error: Unable to create GLUT Window.\(\backslash\)n"};
+00120     exit(1);
+00121   \}
+00122   
+00123   glewExperimental = GL\_TRUE;
+00124   \textcolor{keywordflow}{if}(glewInit() != GLEW\_OK)
+00125   \{
+00126     std::cerr << \textcolor{stringliteral}{"Warning: Failed to initialize GLEW\(\backslash\)n"};
+00127   \}
+00128 
+00129   Vector3f v3f;
+00130   Matrix3f rot;
+00131   glBegin(GL\_POINTS);
+00132   
+00133   glVertex(v3f);
+00134   glVertex(2*v3f+v3f);
+00135   glVertex(rot*v3f);
+00136   
+00137   glEnd();
+00138   
+00139   \textcolor{comment}{// 4x4 matrices}
+00140   Matrix4f mf44; mf44.setRandom();
+00141   VERIFY\_MATRIX(glLoadMatrix(mf44), mf44);
+00142   VERIFY\_MATRIX(glMultMatrix(mf44), mf44);
+00143   Matrix4d md44; md44.setRandom();
+00144   VERIFY\_MATRIX(glLoadMatrix(md44), md44);
+00145   VERIFY\_MATRIX(glMultMatrix(md44), md44);
+00146   
+00147   \textcolor{comment}{// Quaternion}
+00148   \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaterniond} qd(\hyperlink{group___geometry___module_gac218cd8f23b49aa36401d0c843bb6835}{AngleAxisd}(internal::random<double>(), Vector3d::Random()));
+00149   VERIFY\_MATRIX(glRotate(qd), \hyperlink{group___geometry___module_gab9cec8c457da930391eb73370e07aaae}{Projective3d}(qd).matrix());
+00150   
+00151   \hyperlink{group___geometry___module_class_eigen_1_1_quaternion}{Quaternionf} qf(\hyperlink{group___geometry___module_gadc7128416da41ca99bb8af814b78599e}{AngleAxisf}(internal::random<double>(), Vector3f::Random()));
+00152   VERIFY\_MATRIX(glRotate(qf), \hyperlink{group___geometry___module_gab14804071b7486b6666f3d324475a478}{Projective3f}(qf).matrix());
+00153   
+00154   \textcolor{comment}{// 3D Transform}
+00155   \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<float,3,AffineCompact>} acf3; acf3.
+      \hyperlink{group___geometry___module_aec8168000a88a807130d41020af98d47}{matrix}().\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00156   VERIFY\_MATRIX(glLoadMatrix(acf3), \hyperlink{group___geometry___module_gab14804071b7486b6666f3d324475a478}{Projective3f}(acf3).matrix());
+00157   VERIFY\_MATRIX(glMultMatrix(acf3), \hyperlink{group___geometry___module_gab14804071b7486b6666f3d324475a478}{Projective3f}(acf3).matrix());
+00158   
+00159   \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<float,3,Affine>} af3(acf3);
+00160   VERIFY\_MATRIX(glLoadMatrix(af3), \hyperlink{group___geometry___module_gab14804071b7486b6666f3d324475a478}{Projective3f}(af3).matrix());
+00161   VERIFY\_MATRIX(glMultMatrix(af3), \hyperlink{group___geometry___module_gab14804071b7486b6666f3d324475a478}{Projective3f}(af3).matrix());
+00162   
+00163   \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<float,3,Projective>} pf3; pf3.\hyperlink{group___geometry___module_aec8168000a88a807130d41020af98d47}{matrix}().
+      \hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00164   VERIFY\_MATRIX(glLoadMatrix(pf3), \hyperlink{group___geometry___module_gab14804071b7486b6666f3d324475a478}{Projective3f}(pf3).matrix());
+00165   VERIFY\_MATRIX(glMultMatrix(pf3), \hyperlink{group___geometry___module_gab14804071b7486b6666f3d324475a478}{Projective3f}(pf3).matrix());
+00166   
+00167   \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<double,3,AffineCompact>} acd3; acd3.
+      \hyperlink{group___geometry___module_aec8168000a88a807130d41020af98d47}{matrix}().\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00168   VERIFY\_MATRIX(glLoadMatrix(acd3), \hyperlink{group___geometry___module_gab9cec8c457da930391eb73370e07aaae}{Projective3d}(acd3).matrix());
+00169   VERIFY\_MATRIX(glMultMatrix(acd3), \hyperlink{group___geometry___module_gab9cec8c457da930391eb73370e07aaae}{Projective3d}(acd3).matrix());
+00170   
+00171   \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<double,3,Affine>} ad3(acd3);
+00172   VERIFY\_MATRIX(glLoadMatrix(ad3), \hyperlink{group___geometry___module_gab9cec8c457da930391eb73370e07aaae}{Projective3d}(ad3).matrix());
+00173   VERIFY\_MATRIX(glMultMatrix(ad3), \hyperlink{group___geometry___module_gab9cec8c457da930391eb73370e07aaae}{Projective3d}(ad3).matrix());
+00174   
+00175   \hyperlink{group___geometry___module_class_eigen_1_1_transform}{Transform<double,3,Projective>} pd3; pd3.\hyperlink{group___geometry___module_aec8168000a88a807130d41020af98d47}{matrix}().
+      \hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00176   VERIFY\_MATRIX(glLoadMatrix(pd3), \hyperlink{group___geometry___module_gab9cec8c457da930391eb73370e07aaae}{Projective3d}(pd3).matrix());
+00177   VERIFY\_MATRIX(glMultMatrix(pd3), \hyperlink{group___geometry___module_gab9cec8c457da930391eb73370e07aaae}{Projective3d}(pd3).matrix());
+00178   
+00179   \textcolor{comment}{// translations (2D and 3D)}
+00180   \{
+00181     Vector2f vf2; vf2.setRandom(); Vector3f vf23; vf23 << vf2, 0;
+00182     VERIFY\_MATRIX(glTranslate(vf2), \hyperlink{group___geometry___module_gab14804071b7486b6666f3d324475a478}{Projective3f}(\hyperlink{group___geometry___module_class_eigen_1_1_translation}{Translation3f}(vf23)).matrix());
+00183     Vector2d vd2; vd2.setRandom(); Vector3d vd23; vd23 << vd2, 0;
+00184     VERIFY\_MATRIX(glTranslate(vd2), \hyperlink{group___geometry___module_gab9cec8c457da930391eb73370e07aaae}{Projective3d}(\hyperlink{group___geometry___module_class_eigen_1_1_translation}{Translation3d}(vd23)).matrix());
+00185     
+00186     Vector3f vf3; vf3.setRandom();
+00187     VERIFY\_MATRIX(glTranslate(vf3), \hyperlink{group___geometry___module_gab14804071b7486b6666f3d324475a478}{Projective3f}(\hyperlink{group___geometry___module_class_eigen_1_1_translation}{Translation3f}(vf3)).matrix());
+00188     Vector3d vd3; vd3.setRandom();
+00189     VERIFY\_MATRIX(glTranslate(vd3), \hyperlink{group___geometry___module_gab9cec8c457da930391eb73370e07aaae}{Projective3d}(\hyperlink{group___geometry___module_class_eigen_1_1_translation}{Translation3d}(vd3)).matrix());
+00190     
+00191     \hyperlink{group___geometry___module_class_eigen_1_1_translation}{Translation<float,3>} tf3; tf3.vector().\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00192     VERIFY\_MATRIX(glTranslate(tf3), \hyperlink{group___geometry___module_gab14804071b7486b6666f3d324475a478}{Projective3f}(tf3).matrix());
+00193     
+00194     \hyperlink{group___geometry___module_class_eigen_1_1_translation}{Translation<double,3>} td3;  td3.vector().\hyperlink{class_eigen_1_1_plain_object_base_af0e576a0e1aefc9ee346de44cc352ba3}{setRandom}();
+00195     VERIFY\_MATRIX(glTranslate(td3), \hyperlink{group___geometry___module_gab9cec8c457da930391eb73370e07aaae}{Projective3d}(td3).matrix());
+00196   \}
+00197   
+00198   \textcolor{comment}{// scaling (2D and 3D)}
+00199   \{
+00200     Vector2f vf2; vf2.setRandom(); Vector3f vf23; vf23 << vf2, 1;
+00201     VERIFY\_MATRIX(glScale(vf2), \hyperlink{group___geometry___module_gab14804071b7486b6666f3d324475a478}{Projective3f}(\hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Scaling}(vf23)).matrix());
+00202     Vector2d vd2; vd2.setRandom(); Vector3d vd23; vd23 << vd2, 1;
+00203     VERIFY\_MATRIX(glScale(vd2), \hyperlink{group___geometry___module_gab9cec8c457da930391eb73370e07aaae}{Projective3d}(\hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Scaling}(vd23)).matrix());
+00204     
+00205     Vector3f vf3; vf3.setRandom();
+00206     VERIFY\_MATRIX(glScale(vf3), \hyperlink{group___geometry___module_gab14804071b7486b6666f3d324475a478}{Projective3f}(\hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Scaling}(vf3)).matrix());
+00207     Vector3d vd3; vd3.setRandom();
+00208     VERIFY\_MATRIX(glScale(vd3), \hyperlink{group___geometry___module_gab9cec8c457da930391eb73370e07aaae}{Projective3d}(\hyperlink{group___geometry___module_ga23a8ed57e3f2973526026765ae697761}{Scaling}(vd3)).matrix());
+00209     
+00210     \hyperlink{class_eigen_1_1_uniform_scaling}{UniformScaling<float>} usf(internal::random<float>());
+00211     VERIFY\_MATRIX(glScale(usf), \hyperlink{group___geometry___module_gab14804071b7486b6666f3d324475a478}{Projective3f}(usf).matrix());
+00212     
+00213     \hyperlink{class_eigen_1_1_uniform_scaling}{UniformScaling<double>} usd(internal::random<double>());
+00214     VERIFY\_MATRIX(glScale(usd), \hyperlink{group___geometry___module_gab9cec8c457da930391eb73370e07aaae}{Projective3d}(usd).matrix());
+00215   \}
+00216   
+00217   \textcolor{comment}{// uniform}
+00218   \{
+00219     \textcolor{keyword}{const} \textcolor{keywordtype}{char}* vtx = \textcolor{stringliteral}{"void main(void) \{ gl\_Position = gl\_Vertex; \}\(\backslash\)n"};
+00220     
+00221     \textcolor{keywordflow}{if}(GLEW\_VERSION\_2\_0)
+00222     \{
+00223 \textcolor{preprocessor}{      #ifdef GL\_VERSION\_2\_0}
+00224       \textcolor{keyword}{const} \textcolor{keywordtype}{char}* frg = \textcolor{stringliteral}{""}
+00225         \textcolor{stringliteral}{"uniform vec2 v2f;\(\backslash\)n"}
+00226         \textcolor{stringliteral}{"uniform vec3 v3f;\(\backslash\)n"}
+00227         \textcolor{stringliteral}{"uniform vec4 v4f;\(\backslash\)n"}
+00228         \textcolor{stringliteral}{"uniform ivec2 v2i;\(\backslash\)n"}
+00229         \textcolor{stringliteral}{"uniform ivec3 v3i;\(\backslash\)n"}
+00230         \textcolor{stringliteral}{"uniform ivec4 v4i;\(\backslash\)n"}
+00231         \textcolor{stringliteral}{"uniform mat2 m2f;\(\backslash\)n"}
+00232         \textcolor{stringliteral}{"uniform mat3 m3f;\(\backslash\)n"}
+00233         \textcolor{stringliteral}{"uniform mat4 m4f;\(\backslash\)n"}
+00234         \textcolor{stringliteral}{"void main(void) \{ gl\_FragColor =
+       vec4(v2f[0]+v3f[0]+v4f[0])+vec4(v2i[0]+v3i[0]+v4i[0])+vec4(m2f[0][0]+m3f[0][0]+m4f[0][0]); \}\(\backslash\)n"};
+00235         
+00236       GLint prg\_id = createShader(vtx,frg);
+00237       
+00238       VERIFY\_UNIFORM(fv,v2f, Vector2f);
+00239       VERIFY\_UNIFORM(fv,v3f, Vector3f);
+00240       VERIFY\_UNIFORM(fv,v4f, Vector4f);
+00241       VERIFY\_UNIFORMi(v2i, Vector2i);
+00242       VERIFY\_UNIFORMi(v3i, Vector3i);
+00243       VERIFY\_UNIFORMi(v4i, Vector4i);
+00244       VERIFY\_UNIFORM(fv,m2f, Matrix2f);
+00245       VERIFY\_UNIFORM(fv,m3f, Matrix3f);
+00246       VERIFY\_UNIFORM(fv,m4f, Matrix4f);
+00247 \textcolor{preprocessor}{      #endif}
+00248     \}
+00249     \textcolor{keywordflow}{else}
+00250       std::cerr << \textcolor{stringliteral}{"Warning: opengl 2.0 was not tested\(\backslash\)n"};
+00251     
+00252     \textcolor{keywordflow}{if}(GLEW\_VERSION\_2\_1)
+00253     \{
+00254 \textcolor{preprocessor}{      #ifdef GL\_VERSION\_2\_1}
+00255       \textcolor{keyword}{const} \textcolor{keywordtype}{char}* frg = \textcolor{stringliteral}{"#version 120\(\backslash\)n"}
+00256         \textcolor{stringliteral}{"uniform mat2x3 m23f;\(\backslash\)n"}
+00257         \textcolor{stringliteral}{"uniform mat3x2 m32f;\(\backslash\)n"}
+00258         \textcolor{stringliteral}{"uniform mat2x4 m24f;\(\backslash\)n"}
+00259         \textcolor{stringliteral}{"uniform mat4x2 m42f;\(\backslash\)n"}
+00260         \textcolor{stringliteral}{"uniform mat3x4 m34f;\(\backslash\)n"}
+00261         \textcolor{stringliteral}{"uniform mat4x3 m43f;\(\backslash\)n"}
+00262         \textcolor{stringliteral}{"void main(void) \{ gl\_FragColor =
+       vec4(m23f[0][0]+m32f[0][0]+m24f[0][0]+m42f[0][0]+m34f[0][0]+m43f[0][0]); \}\(\backslash\)n"};
+00263         
+00264       GLint prg\_id = createShader(vtx,frg);
+00265       
+00266       \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,2,3>} Matrix23f;
+00267       \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,3,2>} Matrix32f;
+00268       \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,2,4>} Matrix24f;
+00269       \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,4,2>} Matrix42f;
+00270       \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,3,4>} Matrix34f;
+00271       \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,4,3>} Matrix43f;
+00272       
+00273       VERIFY\_UNIFORM(fv,m23f, Matrix23f);
+00274       VERIFY\_UNIFORM(fv,m32f, Matrix32f);
+00275       VERIFY\_UNIFORM(fv,m24f, Matrix24f);
+00276       VERIFY\_UNIFORM(fv,m42f, Matrix42f);
+00277       VERIFY\_UNIFORM(fv,m34f, Matrix34f);
+00278       VERIFY\_UNIFORM(fv,m43f, Matrix43f);
+00279 \textcolor{preprocessor}{      #endif}
+00280     \}
+00281     \textcolor{keywordflow}{else}
+00282       std::cerr << \textcolor{stringliteral}{"Warning: opengl 2.1 was not tested\(\backslash\)n"};
+00283     
+00284     \textcolor{keywordflow}{if}(GLEW\_VERSION\_3\_0)
+00285     \{
+00286 \textcolor{preprocessor}{      #ifdef GL\_VERSION\_3\_0}
+00287       \textcolor{keyword}{const} \textcolor{keywordtype}{char}* frg = \textcolor{stringliteral}{"#version 150\(\backslash\)n"}
+00288         \textcolor{stringliteral}{"uniform uvec2 v2ui;\(\backslash\)n"}
+00289         \textcolor{stringliteral}{"uniform uvec3 v3ui;\(\backslash\)n"}
+00290         \textcolor{stringliteral}{"uniform uvec4 v4ui;\(\backslash\)n"}
+00291         \textcolor{stringliteral}{"out vec4 data;\(\backslash\)n"}
+00292         \textcolor{stringliteral}{"void main(void) \{ data = vec4(v2ui[0]+v3ui[0]+v4ui[0]); \}\(\backslash\)n"};
+00293         
+00294       GLint prg\_id = createShader(vtx,frg);
+00295       
+00296       \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<unsigned int,2,1>} Vector2ui;
+00297       \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<unsigned int,3,1>} Vector3ui;
+00298       \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<unsigned int,4,1>} Vector4ui;
+00299       
+00300       VERIFY\_UNIFORMi(v2ui, Vector2ui);
+00301       VERIFY\_UNIFORMi(v3ui, Vector3ui);
+00302       VERIFY\_UNIFORMi(v4ui, Vector4ui);
+00303 \textcolor{preprocessor}{      #endif}
+00304     \}
+00305     \textcolor{keywordflow}{else}
+00306       std::cerr << \textcolor{stringliteral}{"Warning: opengl 3.0 was not tested\(\backslash\)n"};
+00307     
+00308 \textcolor{preprocessor}{    #ifdef GLEW\_ARB\_gpu\_shader\_fp64}
+00309     \textcolor{keywordflow}{if}(GLEW\_ARB\_gpu\_shader\_fp64)
+00310     \{
+00311 \textcolor{preprocessor}{      #ifdef GL\_ARB\_gpu\_shader\_fp64}
+00312       \textcolor{keyword}{const} \textcolor{keywordtype}{char}* frg = \textcolor{stringliteral}{"#version 150\(\backslash\)n"}
+00313         \textcolor{stringliteral}{"uniform dvec2 v2d;\(\backslash\)n"}
+00314         \textcolor{stringliteral}{"uniform dvec3 v3d;\(\backslash\)n"}
+00315         \textcolor{stringliteral}{"uniform dvec4 v4d;\(\backslash\)n"}
+00316         \textcolor{stringliteral}{"out vec4 data;\(\backslash\)n"}
+00317         \textcolor{stringliteral}{"void main(void) \{ data = vec4(v2d[0]+v3d[0]+v4d[0]); \}\(\backslash\)n"};
+00318         
+00319       GLint prg\_id = createShader(vtx,frg);
+00320       
+00321       \textcolor{keyword}{typedef} Vector2d Vector2d;
+00322       \textcolor{keyword}{typedef} Vector3d Vector3d;
+00323       \textcolor{keyword}{typedef} Vector4d Vector4d;
+00324       
+00325       VERIFY\_UNIFORM(dv,v2d, Vector2d);
+00326       VERIFY\_UNIFORM(dv,v3d, Vector3d);
+00327       VERIFY\_UNIFORM(dv,v4d, Vector4d);
+00328 \textcolor{preprocessor}{      #endif}
+00329     \}
+00330     \textcolor{keywordflow}{else}
+00331       std::cerr << \textcolor{stringliteral}{"Warning: GLEW\_ARB\_gpu\_shader\_fp64 was not tested\(\backslash\)n"};
+00332 \textcolor{preprocessor}{    #else}
+00333       std::cerr << \textcolor{stringliteral}{"Warning: GLEW\_ARB\_gpu\_shader\_fp64 was not tested\(\backslash\)n"};
+00334 \textcolor{preprocessor}{    #endif}
+00335   \}
+00336   
+00337 \}
+\end{DoxyCode}

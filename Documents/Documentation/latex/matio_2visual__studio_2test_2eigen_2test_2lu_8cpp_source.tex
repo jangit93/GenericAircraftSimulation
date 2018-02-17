@@ -1,0 +1,290 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2lu_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/lu.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2lu_8cpp_source}\index{lu.\+cpp@{lu.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2008-2009 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#include "main.h"}
+00011 \textcolor{preprocessor}{#include <Eigen/LU>}
+00012 \textcolor{keyword}{using namespace }\hyperlink{namespacestd}{std};
+00013 
+00014 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType>
+00015 \textcolor{keyword}{typename} MatrixType::RealScalar matrix\_l1\_norm(\textcolor{keyword}{const} MatrixType& m) \{
+00016   \textcolor{keywordflow}{return} m.cwiseAbs().colwise().sum().maxCoeff();
+00017 \}
+00018 
+00019 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} lu\_non\_invertible()
+00020 \{
+00021   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index};
+00022   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::RealScalar RealScalar;
+00023   \textcolor{comment}{/* this test covers the following files:}
+00024 \textcolor{comment}{     LU.h}
+00025 \textcolor{comment}{  */}
+00026   Index rows, cols, cols2;
+00027   \textcolor{keywordflow}{if}(MatrixType::RowsAtCompileTime==Dynamic)
+00028   \{
+00029     rows = internal::random<Index>(2,EIGEN\_TEST\_MAX\_SIZE);
+00030   \}
+00031   \textcolor{keywordflow}{else}
+00032   \{
+00033     rows = MatrixType::RowsAtCompileTime;
+00034   \}
+00035   \textcolor{keywordflow}{if}(MatrixType::ColsAtCompileTime==Dynamic)
+00036   \{
+00037     cols = internal::random<Index>(2,EIGEN\_TEST\_MAX\_SIZE);
+00038     cols2 = internal::random<int>(2,EIGEN\_TEST\_MAX\_SIZE);
+00039   \}
+00040   \textcolor{keywordflow}{else}
+00041   \{
+00042     cols2 = cols = MatrixType::ColsAtCompileTime;
+00043   \}
+00044 
+00045   \textcolor{keyword}{enum} \{
+00046     RowsAtCompileTime = MatrixType::RowsAtCompileTime,
+00047     ColsAtCompileTime = MatrixType::ColsAtCompileTime
+00048   \};
+00049   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::kernel\_retval\_base<FullPivLU<MatrixType> >::ReturnType KernelMatrixType;
+00050   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} internal::image\_retval\_base<FullPivLU<MatrixType> >::ReturnType ImageMatrixType;
+00051   \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<typename MatrixType::Scalar, ColsAtCompileTime, ColsAtCompileTime>}
+00052           CMatrixType;
+00053   \textcolor{keyword}{typedef} 
+      \hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<typename MatrixType::Scalar, RowsAtCompileTime, RowsAtCompileTime>}
+00054           RMatrixType;
+00055 
+00056   Index rank = internal::random<Index>(1, (std::min)(rows, cols)-1);
+00057 
+00058   \textcolor{comment}{// The image of the zero matrix should consist of a single (zero) column vector}
+00059   VERIFY((MatrixType::Zero(rows,cols).fullPivLu().image(MatrixType::Zero(rows,cols)).cols() == 1));
+00060 
+00061   MatrixType m1(rows, cols), m3(rows, cols2);
+00062   CMatrixType m2(cols, cols2);
+00063   \hyperlink{namespace_eigen_a0d9a7ddcee5c7c8defaba3628455efb2}{createRandomPIMatrixOfRank}(rank, rows, cols, m1);
+00064 
+00065   \hyperlink{group___l_u___module_class_eigen_1_1_full_piv_l_u}{FullPivLU<MatrixType>} lu;
+00066 
+00067   \textcolor{comment}{// The special value 0.01 below works well in tests. Keep in mind that we're only computing the rank}
+00068   \textcolor{comment}{// of singular values are either 0 or 1.}
+00069   \textcolor{comment}{// So it's not clear at all that the epsilon should play any role there.}
+00070   lu.\hyperlink{group___l_u___module_a414592d82de98f5bd075965caf56d681}{setThreshold}(RealScalar(0.01));
+00071   lu.\hyperlink{group___l_u___module_a0a3c3b1bbafa31a03567a4573ebabc79}{compute}(m1);
+00072 
+00073   MatrixType u(rows,cols);
+00074   u = lu.\hyperlink{group___l_u___module_afea0b8fc707a9097d46fe358cb18bbff}{matrixLU}().template triangularView<Upper>();
+00075   RMatrixType l = RMatrixType::Identity(rows,rows);
+00076   l.block(0,0,rows,(std::min)(rows,cols)).template triangularView<StrictlyLower>()
+00077     = lu.\hyperlink{group___l_u___module_afea0b8fc707a9097d46fe358cb18bbff}{matrixLU}().block(0,0,rows,(std::min)(rows,cols));
+00078 
+00079   VERIFY\_IS\_APPROX(lu.\hyperlink{group___l_u___module_a09274c82240f6441af5e6c99e24e756d}{permutationP}() * m1 * lu.\hyperlink{group___l_u___module_a8d18190c7618de271cba7293f0493a36}{permutationQ}(), l*u);
+00080 
+00081   KernelMatrixType m1kernel = lu.\hyperlink{group___l_u___module_a70f52eeb2cd07dfbf790fce106fb4015}{kernel}();
+00082   ImageMatrixType m1image = lu.\hyperlink{group___l_u___module_a0893985d2dab367baa6e57c6fd0c4956}{image}(m1);
+00083 
+00084   VERIFY\_IS\_APPROX(m1, lu.\hyperlink{group___l_u___module_a191a4f598b0c192a83ab48984e87ee51}{reconstructedMatrix}());
+00085   VERIFY(rank == lu.\hyperlink{group___l_u___module_a67a870aa69e699e058d04802ba0bdad9}{rank}());
+00086   VERIFY(cols - lu.\hyperlink{group___l_u___module_a67a870aa69e699e058d04802ba0bdad9}{rank}() == lu.\hyperlink{group___l_u___module_a64e191225834e91161ea53ad4b78167b}{dimensionOfKernel}());
+00087   VERIFY(!lu.\hyperlink{group___l_u___module_ab13992c852aa593461d9b81790b56667}{isInjective}());
+00088   VERIFY(!lu.\hyperlink{group___l_u___module_afdf2579c93473650f2ef2a47a376c4a0}{isInvertible}());
+00089   VERIFY(!lu.\hyperlink{group___l_u___module_a1f6222875fc3a181ee1544b9b36dfda5}{isSurjective}());
+00090   VERIFY((m1 * m1kernel).isMuchSmallerThan(m1));
+00091   VERIFY(m1image.fullPivLu().rank() == rank);
+00092   VERIFY\_IS\_APPROX(m1 * m1.adjoint() * m1image, m1image);
+00093 
+00094   m2 = CMatrixType::Random(cols,cols2);
+00095   m3 = m1*m2;
+00096   m2 = CMatrixType::Random(cols,cols2);
+00097   \textcolor{comment}{// test that the code, which does resize(), may be applied to an xpr}
+00098   m2.block(0,0,m2.rows(),m2.cols()) = lu.\hyperlink{group___l_u___module_af563471f6f3283fd10779ef02dd0b748}{solve}(m3);
+00099   VERIFY\_IS\_APPROX(m3, m1*m2);
+00100 
+00101   \textcolor{comment}{// test solve with transposed}
+00102   m3 = MatrixType::Random(rows,cols2);
+00103   m2 = m1.transpose()*m3;
+00104   m3 = MatrixType::Random(rows,cols2);
+00105   lu.template \_solve\_impl\_transposed<false>(m2, m3);
+00106   VERIFY\_IS\_APPROX(m2, m1.transpose()*m3);
+00107   m3 = MatrixType::Random(rows,cols2);
+00108   m3 = lu.\hyperlink{class_eigen_1_1_solver_base_a732e75b5132bb4db3775916927b0e86c}{transpose}().solve(m2);
+00109   VERIFY\_IS\_APPROX(m2, m1.transpose()*m3);
+00110 
+00111   \textcolor{comment}{// test solve with conjugate transposed}
+00112   m3 = MatrixType::Random(rows,cols2);
+00113   m2 = m1.adjoint()*m3;
+00114   m3 = MatrixType::Random(rows,cols2);
+00115   lu.template \_solve\_impl\_transposed<true>(m2, m3);
+00116   VERIFY\_IS\_APPROX(m2, m1.adjoint()*m3);
+00117   m3 = MatrixType::Random(rows,cols2);
+00118   m3 = lu.\hyperlink{class_eigen_1_1_solver_base_a05a3686a89888681c8e0c2bcab6d1ce5}{adjoint}().solve(m2);
+00119   VERIFY\_IS\_APPROX(m2, m1.adjoint()*m3);
+00120 \}
+00121 
+00122 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} lu\_invertible()
+00123 \{
+00124   \textcolor{comment}{/* this test covers the following files:}
+00125 \textcolor{comment}{     LU.h}
+00126 \textcolor{comment}{  */}
+00127   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<typename MatrixType::Scalar>::Real}
+       RealScalar;
+00128   Index size = MatrixType::RowsAtCompileTime;
+00129   \textcolor{keywordflow}{if}( size==Dynamic)
+00130     size = internal::random<Index>(1,EIGEN\_TEST\_MAX\_SIZE);
+00131 
+00132   MatrixType m1(size, size), m2(size, size), m3(size, size);
+00133   \hyperlink{group___l_u___module_class_eigen_1_1_full_piv_l_u}{FullPivLU<MatrixType>} lu;
+00134   lu.\hyperlink{group___l_u___module_a414592d82de98f5bd075965caf56d681}{setThreshold}(RealScalar(0.01));
+00135   \textcolor{keywordflow}{do} \{
+00136     m1 = MatrixType::Random(size,size);
+00137     lu.\hyperlink{group___l_u___module_a0a3c3b1bbafa31a03567a4573ebabc79}{compute}(m1);
+00138   \} \textcolor{keywordflow}{while}(!lu.\hyperlink{group___l_u___module_afdf2579c93473650f2ef2a47a376c4a0}{isInvertible}());
+00139 
+00140   VERIFY\_IS\_APPROX(m1, lu.\hyperlink{group___l_u___module_a191a4f598b0c192a83ab48984e87ee51}{reconstructedMatrix}());
+00141   VERIFY(0 == lu.\hyperlink{group___l_u___module_a64e191225834e91161ea53ad4b78167b}{dimensionOfKernel}());
+00142   VERIFY(lu.\hyperlink{group___l_u___module_a70f52eeb2cd07dfbf790fce106fb4015}{kernel}().cols() == 1); \textcolor{comment}{// the kernel() should consist of a single (zero) column vector}
+00143   VERIFY(size == lu.\hyperlink{group___l_u___module_a67a870aa69e699e058d04802ba0bdad9}{rank}());
+00144   VERIFY(lu.\hyperlink{group___l_u___module_ab13992c852aa593461d9b81790b56667}{isInjective}());
+00145   VERIFY(lu.\hyperlink{group___l_u___module_a1f6222875fc3a181ee1544b9b36dfda5}{isSurjective}());
+00146   VERIFY(lu.\hyperlink{group___l_u___module_afdf2579c93473650f2ef2a47a376c4a0}{isInvertible}());
+00147   VERIFY(lu.\hyperlink{group___l_u___module_a0893985d2dab367baa6e57c6fd0c4956}{image}(m1).fullPivLu().isInvertible());
+00148   m3 = MatrixType::Random(size,size);
+00149   m2 = lu.\hyperlink{group___l_u___module_af563471f6f3283fd10779ef02dd0b748}{solve}(m3);
+00150   VERIFY\_IS\_APPROX(m3, m1*m2);
+00151   MatrixType m1\_inverse = lu.\hyperlink{group___l_u___module_ae6f4bb55f859f6353f99cf15ecff4b25}{inverse}();
+00152   VERIFY\_IS\_APPROX(m2, m1\_inverse*m3);
+00153 
+00154   RealScalar rcond = (RealScalar(1) / matrix\_l1\_norm(m1)) / matrix\_l1\_norm(m1\_inverse);
+00155   \textcolor{keyword}{const} RealScalar rcond\_est = lu.\hyperlink{group___l_u___module_a0bc63f910960dc3e35acecc8442025b6}{rcond}();
+00156   \textcolor{comment}{// Verify that the estimated condition number is within a factor of 10 of the}
+00157   \textcolor{comment}{// truth.}
+00158   VERIFY(rcond\_est > rcond / 10 && rcond\_est < rcond * 10);
+00159 
+00160   \textcolor{comment}{// test solve with transposed}
+00161   lu.template \_solve\_impl\_transposed<false>(m3, m2);
+00162   VERIFY\_IS\_APPROX(m3, m1.transpose()*m2);
+00163   m3 = MatrixType::Random(size,size);
+00164   m3 = lu.\hyperlink{class_eigen_1_1_solver_base_a732e75b5132bb4db3775916927b0e86c}{transpose}().solve(m2);
+00165   VERIFY\_IS\_APPROX(m2, m1.transpose()*m3);
+00166 
+00167   \textcolor{comment}{// test solve with conjugate transposed}
+00168   lu.template \_solve\_impl\_transposed<true>(m3, m2);
+00169   VERIFY\_IS\_APPROX(m3, m1.adjoint()*m2);
+00170   m3 = MatrixType::Random(size,size);
+00171   m3 = lu.\hyperlink{class_eigen_1_1_solver_base_a05a3686a89888681c8e0c2bcab6d1ce5}{adjoint}().solve(m2);
+00172   VERIFY\_IS\_APPROX(m2, m1.adjoint()*m3);
+00173 
+00174   \textcolor{comment}{// Regression test for Bug 302}
+00175   MatrixType m4 = MatrixType::Random(size,size);
+00176   VERIFY\_IS\_APPROX(lu.\hyperlink{group___l_u___module_af563471f6f3283fd10779ef02dd0b748}{solve}(m3*m4), lu.\hyperlink{group___l_u___module_af563471f6f3283fd10779ef02dd0b748}{solve}(m3)*m4);
+00177 \}
+00178 
+00179 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} lu\_partial\_piv()
+00180 \{
+00181   \textcolor{comment}{/* this test covers the following files:}
+00182 \textcolor{comment}{     PartialPivLU.h}
+00183 \textcolor{comment}{  */}
+00184   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Index Index;
+00185   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<typename MatrixType::Scalar>::Real}
+       RealScalar;
+00186   Index size = internal::random<Index>(1,4);
+00187 
+00188   MatrixType m1(size, size), m2(size, size), m3(size, size);
+00189   m1.setRandom();
+00190   \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU<MatrixType>} plu(m1);
+00191 
+00192   VERIFY\_IS\_APPROX(m1, plu.reconstructedMatrix());
+00193 
+00194   m3 = MatrixType::Random(size,size);
+00195   m2 = plu.solve(m3);
+00196   VERIFY\_IS\_APPROX(m3, m1*m2);
+00197   MatrixType m1\_inverse = plu.inverse();
+00198   VERIFY\_IS\_APPROX(m2, m1\_inverse*m3);
+00199 
+00200   RealScalar rcond = (RealScalar(1) / matrix\_l1\_norm(m1)) / matrix\_l1\_norm(m1\_inverse);
+00201   \textcolor{keyword}{const} RealScalar rcond\_est = plu.rcond();
+00202   \textcolor{comment}{// Verify that the estimate is within a factor of 10 of the truth.}
+00203   VERIFY(rcond\_est > rcond / 10 && rcond\_est < rcond * 10);
+00204 
+00205   \textcolor{comment}{// test solve with transposed}
+00206   plu.template \_solve\_impl\_transposed<false>(m3, m2);
+00207   VERIFY\_IS\_APPROX(m3, m1.transpose()*m2);
+00208   m3 = MatrixType::Random(size,size);
+00209   m3 = plu.transpose().solve(m2);
+00210   VERIFY\_IS\_APPROX(m2, m1.transpose()*m3);
+00211 
+00212   \textcolor{comment}{// test solve with conjugate transposed}
+00213   plu.template \_solve\_impl\_transposed<true>(m3, m2);
+00214   VERIFY\_IS\_APPROX(m3, m1.adjoint()*m2);
+00215   m3 = MatrixType::Random(size,size);
+00216   m3 = plu.adjoint().solve(m2);
+00217   VERIFY\_IS\_APPROX(m2, m1.adjoint()*m3);
+00218 \}
+00219 
+00220 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType> \textcolor{keywordtype}{void} lu\_verify\_assert()
+00221 \{
+00222   MatrixType tmp;
+00223 
+00224   \hyperlink{group___l_u___module_class_eigen_1_1_full_piv_l_u}{FullPivLU<MatrixType>} lu;
+00225   VERIFY\_RAISES\_ASSERT(lu.\hyperlink{group___l_u___module_afea0b8fc707a9097d46fe358cb18bbff}{matrixLU}())
+00226   VERIFY\_RAISES\_ASSERT(lu.\hyperlink{group___l_u___module_a09274c82240f6441af5e6c99e24e756d}{permutationP}())
+00227   VERIFY\_RAISES\_ASSERT(lu.\hyperlink{group___l_u___module_a8d18190c7618de271cba7293f0493a36}{permutationQ}())
+00228   VERIFY\_RAISES\_ASSERT(lu.\hyperlink{group___l_u___module_a70f52eeb2cd07dfbf790fce106fb4015}{kernel}())
+00229   VERIFY\_RAISES\_ASSERT(lu.\hyperlink{group___l_u___module_a0893985d2dab367baa6e57c6fd0c4956}{image}(tmp))
+00230   VERIFY\_RAISES\_ASSERT(lu.\hyperlink{group___l_u___module_af563471f6f3283fd10779ef02dd0b748}{solve}(tmp))
+00231   VERIFY\_RAISES\_ASSERT(lu.\hyperlink{group___l_u___module_a71654e5c60a26407ecccfaa5b34bb0aa}{determinant}())
+00232   VERIFY\_RAISES\_ASSERT(lu.\hyperlink{group___l_u___module_a67a870aa69e699e058d04802ba0bdad9}{rank}())
+00233   VERIFY\_RAISES\_ASSERT(lu.\hyperlink{group___l_u___module_a64e191225834e91161ea53ad4b78167b}{dimensionOfKernel}())
+00234   VERIFY\_RAISES\_ASSERT(lu.\hyperlink{group___l_u___module_ab13992c852aa593461d9b81790b56667}{isInjective}())
+00235   VERIFY\_RAISES\_ASSERT(lu.\hyperlink{group___l_u___module_a1f6222875fc3a181ee1544b9b36dfda5}{isSurjective}())
+00236   VERIFY\_RAISES\_ASSERT(lu.\hyperlink{group___l_u___module_afdf2579c93473650f2ef2a47a376c4a0}{isInvertible}())
+00237   VERIFY\_RAISES\_ASSERT(lu.\hyperlink{group___l_u___module_ae6f4bb55f859f6353f99cf15ecff4b25}{inverse}())
+00238 
+00239   \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU<MatrixType>} plu;
+00240   VERIFY\_RAISES\_ASSERT(plu.matrixLU())
+00241   VERIFY\_RAISES\_ASSERT(plu.permutationP())
+00242   VERIFY\_RAISES\_ASSERT(plu.solve(tmp))
+00243   VERIFY\_RAISES\_ASSERT(plu.determinant())
+00244   VERIFY\_RAISES\_ASSERT(plu.inverse())
+00245 \}
+00246 
+00247 \textcolor{keywordtype}{void} test\_lu()
+00248 \{
+00249   \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int} i = 0; i < g\_repeat; i++) \{
+00250     CALL\_SUBTEST\_1( lu\_non\_invertible<Matrix3f>() );
+00251     CALL\_SUBTEST\_1( lu\_invertible<Matrix3f>() );
+00252     CALL\_SUBTEST\_1( lu\_verify\_assert<Matrix3f>() );
+00253 
+00254     CALL\_SUBTEST\_2( (lu\_non\_invertible<\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double, 4, 6>} >()) );
+00255     CALL\_SUBTEST\_2( (lu\_verify\_assert<\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<double, 4, 6>} >()) );
+00256 
+00257     CALL\_SUBTEST\_3( lu\_non\_invertible<MatrixXf>() );
+00258     CALL\_SUBTEST\_3( lu\_invertible<MatrixXf>() );
+00259     CALL\_SUBTEST\_3( lu\_verify\_assert<MatrixXf>() );
+00260 
+00261     CALL\_SUBTEST\_4( lu\_non\_invertible<MatrixXd>() );
+00262     CALL\_SUBTEST\_4( lu\_invertible<MatrixXd>() );
+00263     CALL\_SUBTEST\_4( lu\_partial\_piv<MatrixXd>() );
+00264     CALL\_SUBTEST\_4( lu\_verify\_assert<MatrixXd>() );
+00265 
+00266     CALL\_SUBTEST\_5( lu\_non\_invertible<MatrixXcf>() );
+00267     CALL\_SUBTEST\_5( lu\_invertible<MatrixXcf>() );
+00268     CALL\_SUBTEST\_5( lu\_verify\_assert<MatrixXcf>() );
+00269 
+00270     CALL\_SUBTEST\_6( lu\_non\_invertible<MatrixXcd>() );
+00271     CALL\_SUBTEST\_6( lu\_invertible<MatrixXcd>() );
+00272     CALL\_SUBTEST\_6( lu\_partial\_piv<MatrixXcd>() );
+00273     CALL\_SUBTEST\_6( lu\_verify\_assert<MatrixXcd>() );
+00274 
+00275     CALL\_SUBTEST\_7(( lu\_non\_invertible<\hyperlink{group___core___module_class_eigen_1_1_matrix}{Matrix<float,Dynamic,16>} >() ));
+00276 
+00277     \textcolor{comment}{// Test problem size constructors}
+00278     CALL\_SUBTEST\_9( \hyperlink{group___l_u___module_class_eigen_1_1_partial_piv_l_u}{PartialPivLU<MatrixXf>}(10) );
+00279     CALL\_SUBTEST\_9( \hyperlink{group___l_u___module_class_eigen_1_1_full_piv_l_u}{FullPivLU<MatrixXf>}(10, 20); );
+00280   \}
+00281 \}
+\end{DoxyCode}

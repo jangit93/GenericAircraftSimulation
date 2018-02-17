@@ -1,0 +1,69 @@
+\hypertarget{matio_2visual__studio_2test_2eigen_2test_2spqr__support_8cpp_source}{}\section{matio/visual\+\_\+studio/test/eigen/test/spqr\+\_\+support.cpp}
+\label{matio_2visual__studio_2test_2eigen_2test_2spqr__support_8cpp_source}\index{spqr\+\_\+support.\+cpp@{spqr\+\_\+support.\+cpp}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2012 Desire Nuentsa Wakam <desire.nuentsa\_wakam@inria.fr>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 
+00009 \textcolor{preprocessor}{#define EIGEN\_NO\_DEBUG\_SMALL\_PRODUCT\_BLOCKS}
+00010 \textcolor{preprocessor}{#include "sparse.h"}
+00011 \textcolor{preprocessor}{#include <Eigen/SPQRSupport>}
+00012 
+00013 
+00014 \textcolor{keyword}{template}<\textcolor{keyword}{typename} MatrixType,\textcolor{keyword}{typename} DenseMat>
+00015 \textcolor{keywordtype}{int} generate\_sparse\_rectangular\_problem(MatrixType& \hyperlink{group___core___module_class_eigen_1_1_matrix}{A}, DenseMat& dA, \textcolor{keywordtype}{int} maxRows = 300, \textcolor{keywordtype}{int} maxCols = 300)
+00016 \{
+00017   eigen\_assert(maxRows >= maxCols);
+00018   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} MatrixType::Scalar Scalar;
+00019   \textcolor{keywordtype}{int} rows = internal::random<int>(1,maxRows);
+00020   \textcolor{keywordtype}{int} cols = internal::random<int>(1,rows);
+00021   \textcolor{keywordtype}{double} density = (std::max)(8./(rows*cols), 0.01);
+00022   
+00023   A.resize(rows,cols);
+00024   dA.resize(rows,cols);
+00025   initSparse<Scalar>(density, dA, A,ForceNonZeroDiag);
+00026   A.makeCompressed();
+00027   \textcolor{keywordflow}{return} rows;
+00028 \}
+00029 
+00030 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar> \textcolor{keywordtype}{void} test\_spqr\_scalar()
+00031 \{
+00032   \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module}{SparseMatrix<Scalar,ColMajor>} MatrixType; 
+00033   MatrixType A;
+00034   \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,Dynamic>} dA;
+00035   \textcolor{keyword}{typedef} \hyperlink{group___core___module}{Matrix<Scalar,Dynamic,1>} \hyperlink{group___core___module}{DenseVector};
+00036   DenseVector refX,x,b; 
+00037   \hyperlink{class_eigen_1_1_s_p_q_r}{SPQR<MatrixType>} solver; 
+00038   generate\_sparse\_rectangular\_problem(A,dA);
+00039   
+00040   \hyperlink{namespace_eigen_a62e77e0933482dafde8fe197d9a2cfde}{Index} m = A.rows();
+00041   b = DenseVector::Random(m);
+00042   solver.compute(A);
+00043   \textcolor{keywordflow}{if} (solver.\hyperlink{class_eigen_1_1_s_p_q_r_a3ab7bacba8d2be20adc10b4d5b6c071f}{info}() != \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success})
+00044   \{
+00045     std::cerr << \textcolor{stringliteral}{"sparse QR factorization failed\(\backslash\)n"};
+00046     exit(0);
+00047     \textcolor{keywordflow}{return};
+00048   \}
+00049   x = solver.\hyperlink{group___sparse_core___module_a4a66e9498b06e3ec4ec36f06b26d4e8f}{solve}(b);
+00050   \textcolor{keywordflow}{if} (solver.\hyperlink{class_eigen_1_1_s_p_q_r_a3ab7bacba8d2be20adc10b4d5b6c071f}{info}() != \hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea52581b035f4b59c203b8ff999ef5fcea}{Success})
+00051   \{
+00052     std::cerr << \textcolor{stringliteral}{"sparse QR factorization failed\(\backslash\)n"};
+00053     exit(0);
+00054     \textcolor{keywordflow}{return};
+00055   \}  
+00056   \textcolor{comment}{//Compare with a dense solver}
+00057   refX = dA.colPivHouseholderQr().solve(b);
+00058   VERIFY(x.isApprox(refX,test\_precision<Scalar>()));
+00059 \}
+00060 \textcolor{keywordtype}{void} test\_spqr\_support()
+00061 \{
+00062   CALL\_SUBTEST\_1(test\_spqr\_scalar<double>());
+00063   CALL\_SUBTEST\_2(test\_spqr\_scalar<std::complex<double> >());
+00064 \}
+\end{DoxyCode}

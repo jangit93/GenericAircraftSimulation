@@ -1,0 +1,178 @@
+\hypertarget{_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_t_2h5ex__t__array_8c_source}{}\section{H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+C/\+H5\+T/h5ex\+\_\+t\+\_\+array.c}
+\label{_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_h5_t_2h5ex__t__array_8c_source}\index{h5ex\+\_\+t\+\_\+array.\+c@{h5ex\+\_\+t\+\_\+array.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/************************************************************}
+00002 \textcolor{comment}{}
+00003 \textcolor{comment}{  This example shows how to read and write array datatypes}
+00004 \textcolor{comment}{  to a dataset.  The program first writes integers arrays of}
+00005 \textcolor{comment}{  dimension ADIM0xADIM1 to a dataset with a dataspace of}
+00006 \textcolor{comment}{  DIM0, then closes the  file.  Next, it reopens the file,}
+00007 \textcolor{comment}{  reads back the data, and outputs it to the screen.}
+00008 \textcolor{comment}{}
+00009 \textcolor{comment}{  This file is intended for use with HDF5 Library version 1.8}
+00010 \textcolor{comment}{}
+00011 \textcolor{comment}{ ************************************************************/}
+00012 
+00013 \textcolor{preprocessor}{#include "hdf5.h"}
+00014 \textcolor{preprocessor}{#include <stdio.h>}
+00015 \textcolor{preprocessor}{#include <stdlib.h>}
+00016 
+00017 \textcolor{preprocessor}{#define FILE            "h5ex\_t\_array.h5"}
+00018 \textcolor{preprocessor}{#define DATASET         "DS1"}
+00019 \textcolor{preprocessor}{#define DIM0            4}
+00020 \textcolor{preprocessor}{#define ADIM0           3}
+00021 \textcolor{preprocessor}{#define ADIM1           5}
+00022 
+00023 \textcolor{keywordtype}{int}
+00024 main (\textcolor{keywordtype}{void})
+00025 \{
+00026     hid\_t       \hyperlink{structfile}{file}, filetype, memtype, space, dset;
+00027                                                 \textcolor{comment}{/* Handles */}
+00028     herr\_t      status;
+00029     hsize\_t     dims[1] = \{DIM0\},
+00030                 adims[2] = \{ADIM0, ADIM1\};
+00031     \textcolor{keywordtype}{int}         wdata[DIM0][ADIM0][ADIM1],      \textcolor{comment}{/* Write buffer */}
+00032                 ***rdata,                       \textcolor{comment}{/* Read buffer */}
+00033                 ndims,
+00034                 i, j, k;
+00035 
+00036     \textcolor{comment}{/*}
+00037 \textcolor{comment}{     * Initialize data.  i is the element in the dataspace, j and k the}
+00038 \textcolor{comment}{     * elements within the array datatype.}
+00039 \textcolor{comment}{     */}
+00040     \textcolor{keywordflow}{for} (i=0; i<DIM0; i++)
+00041         \textcolor{keywordflow}{for} (j=0; j<ADIM0; j++)
+00042             \textcolor{keywordflow}{for} (k=0; k<ADIM1; k++)
+00043                 wdata[i][j][k] = i * j - j * k + i * k;
+00044 
+00045     \textcolor{comment}{/*}
+00046 \textcolor{comment}{     * Create a new file using the default properties.}
+00047 \textcolor{comment}{     */}
+00048     file = H5Fcreate (FILE, H5F\_ACC\_TRUNC, H5P\_DEFAULT, H5P\_DEFAULT);
+00049 
+00050     \textcolor{comment}{/*}
+00051 \textcolor{comment}{     * Create array datatypes for file and memory.}
+00052 \textcolor{comment}{     */}
+00053     filetype = H5Tarray\_create (H5T\_STD\_I64LE, 2, adims);
+00054     memtype = H5Tarray\_create (H5T\_NATIVE\_INT, 2, adims);
+00055 
+00056     \textcolor{comment}{/*}
+00057 \textcolor{comment}{     * Create dataspace.  Setting maximum size to NULL sets the maximum}
+00058 \textcolor{comment}{     * size to be the current size.}
+00059 \textcolor{comment}{     */}
+00060     space = H5Screate\_simple (1, dims, NULL);
+00061 
+00062     \textcolor{comment}{/*}
+00063 \textcolor{comment}{     * Create the dataset and write the array data to it.}
+00064 \textcolor{comment}{     */}
+00065     dset = H5Dcreate (file, DATASET, filetype, space, H5P\_DEFAULT, H5P\_DEFAULT,
+00066                 H5P\_DEFAULT);
+00067     status = H5Dwrite (dset, memtype, H5S\_ALL, H5S\_ALL, H5P\_DEFAULT,
+00068                 wdata[0][0]);
+00069 
+00070     \textcolor{comment}{/*}
+00071 \textcolor{comment}{     * Close and release resources.}
+00072 \textcolor{comment}{     */}
+00073     status = H5Dclose (dset);
+00074     status = H5Sclose (space);
+00075     status = H5Tclose (filetype);
+00076     status = H5Tclose (memtype);
+00077     status = H5Fclose (file);
+00078 
+00079 
+00080     \textcolor{comment}{/*}
+00081 \textcolor{comment}{     * Now we begin the read section of this example.  Here we assume}
+00082 \textcolor{comment}{     * the dataset and array have the same name and rank, but can have}
+00083 \textcolor{comment}{     * any size.  Therefore we must allocate a new array to read in}
+00084 \textcolor{comment}{     * data using malloc().}
+00085 \textcolor{comment}{     */}
+00086 
+00087     \textcolor{comment}{/*}
+00088 \textcolor{comment}{     * Open file and dataset.}
+00089 \textcolor{comment}{     */}
+00090     file = H5Fopen (FILE, H5F\_ACC\_RDONLY, H5P\_DEFAULT);
+00091     dset = H5Dopen (file, DATASET, H5P\_DEFAULT);
+00092 
+00093     \textcolor{comment}{/*}
+00094 \textcolor{comment}{     * Get the datatype and its dimensions.}
+00095 \textcolor{comment}{     */}
+00096     filetype = H5Dget\_type (dset);
+00097     ndims = H5Tget\_array\_dims (filetype, adims);
+00098 
+00099     \textcolor{comment}{/*}
+00100 \textcolor{comment}{     * Get dataspace and allocate memory for read buffer.  This is a}
+00101 \textcolor{comment}{     * three dimensional dataset when the array datatype is included so}
+00102 \textcolor{comment}{     * the dynamic allocation must be done in steps.}
+00103 \textcolor{comment}{     */}
+00104     space = H5Dget\_space (dset);
+00105     ndims = H5Sget\_simple\_extent\_dims (space, dims, NULL);
+00106 
+00107     \textcolor{comment}{/*}
+00108 \textcolor{comment}{     * Allocate array of pointers to two-dimensional arrays (the}
+00109 \textcolor{comment}{     * elements of the dataset.}
+00110 \textcolor{comment}{     */}
+00111     rdata = (\textcolor{keywordtype}{int} ***) malloc (dims[0] * \textcolor{keyword}{sizeof} (\textcolor{keywordtype}{int} **));
+00112 
+00113     \textcolor{comment}{/*}
+00114 \textcolor{comment}{     * Allocate two dimensional array of pointers to rows in the data}
+00115 \textcolor{comment}{     * elements.}
+00116 \textcolor{comment}{     */}
+00117     rdata[0] = (\textcolor{keywordtype}{int} **) malloc (dims[0] * adims[0] * \textcolor{keyword}{sizeof} (\textcolor{keywordtype}{int} *));
+00118 
+00119     \textcolor{comment}{/*}
+00120 \textcolor{comment}{     * Allocate space for integer data.}
+00121 \textcolor{comment}{     */}
+00122     rdata[0][0] = (\textcolor{keywordtype}{int} *) malloc (dims[0] * adims[0] * adims[1] * \textcolor{keyword}{sizeof} (\textcolor{keywordtype}{int}));
+00123 
+00124     \textcolor{comment}{/*}
+00125 \textcolor{comment}{     * Set the members of the pointer arrays allocated above to point}
+00126 \textcolor{comment}{     * to the correct locations in their respective arrays.}
+00127 \textcolor{comment}{     */}
+00128     \textcolor{keywordflow}{for} (i=0; i<dims[0]; i++) \{
+00129         rdata[i] = rdata[0] + i * adims[0];
+00130         \textcolor{keywordflow}{for} (j=0; j<adims[0]; j++)
+00131             rdata[i][j] = rdata[0][0] + (adims[0] * adims[1] * i) +
+00132                         (adims[1] * j);
+00133     \}
+00134 
+00135     \textcolor{comment}{/*}
+00136 \textcolor{comment}{     * Create the memory datatype.}
+00137 \textcolor{comment}{     */}
+00138     memtype = H5Tarray\_create (H5T\_NATIVE\_INT, 2, adims);
+00139 
+00140     \textcolor{comment}{/*}
+00141 \textcolor{comment}{     * Read the data.}
+00142 \textcolor{comment}{     */}
+00143     status = H5Dread (dset, memtype, H5S\_ALL, H5S\_ALL, H5P\_DEFAULT,
+00144                 rdata[0][0]);
+00145 
+00146     \textcolor{comment}{/*}
+00147 \textcolor{comment}{     * Output the data to the screen.}
+00148 \textcolor{comment}{     */}
+00149     \textcolor{keywordflow}{for} (i=0; i<dims[0]; i++) \{
+00150         printf (\textcolor{stringliteral}{"%s[%d]:\(\backslash\)n"}, DATASET, i);
+00151         \textcolor{keywordflow}{for} (j=0; j<adims[0]; j++) \{
+00152             printf (\textcolor{stringliteral}{" ["});
+00153             \textcolor{keywordflow}{for} (k=0; k<adims[1]; k++)
+00154                 printf (\textcolor{stringliteral}{" %3d"}, rdata[i][j][k]);
+00155             printf (\textcolor{stringliteral}{"]\(\backslash\)n"});
+00156         \}
+00157         printf(\textcolor{stringliteral}{"\(\backslash\)n"});
+00158     \}
+00159 
+00160     \textcolor{comment}{/*}
+00161 \textcolor{comment}{     * Close and release resources.}
+00162 \textcolor{comment}{     */}
+00163     free (rdata[0][0]);
+00164     free (rdata[0]);
+00165     free (rdata);
+00166     status = H5Dclose (dset);
+00167     status = H5Sclose (space);
+00168     status = H5Tclose (filetype);
+00169     status = H5Tclose (memtype);
+00170     status = H5Fclose (file);
+00171 
+00172     \textcolor{keywordflow}{return} 0;
+00173 \}
+\end{DoxyCode}

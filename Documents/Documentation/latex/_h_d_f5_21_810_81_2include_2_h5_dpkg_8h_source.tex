@@ -1,0 +1,811 @@
+\hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source}{}\section{H\+D\+F5/1.10.1/include/\+H5\+Dpkg.h}
+\label{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source}\index{H5\+Dpkg.\+h@{H5\+Dpkg.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+00002 \textcolor{comment}{ * Copyright by The HDF Group.                                               *}
+00003 \textcolor{comment}{ * Copyright by the Board of Trustees of the University of Illinois.         *}
+00004 \textcolor{comment}{ * All rights reserved.                                                      *}
+00005 \textcolor{comment}{ *                                                                           *}
+00006 \textcolor{comment}{ * This file is part of HDF5.  The full HDF5 copyright notice, including     *}
+00007 \textcolor{comment}{ * terms governing use, modification, and redistribution, is contained in    *}
+00008 \textcolor{comment}{ * the COPYING file, which can be found at the root of the source code       *}
+00009 \textcolor{comment}{ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *}
+00010 \textcolor{comment}{ * If you do not have access to either file, you may request a copy from     *}
+00011 \textcolor{comment}{ * help@hdfgroup.org.                                                        *}
+00012 \textcolor{comment}{ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00013 
+00014 \textcolor{comment}{/*}
+00015 \textcolor{comment}{ * Programmer:  Quincey Koziol <koziol@ncsa.uiuc.edu>}
+00016 \textcolor{comment}{ *      Monday, April 14, 2003}
+00017 \textcolor{comment}{ *}
+00018 \textcolor{comment}{ * Purpose: This file contains declarations which are visible only within}
+00019 \textcolor{comment}{ *      the H5D package.  Source files outside the H5D package should}
+00020 \textcolor{comment}{ *      include H5Dprivate.h instead.}
+00021 \textcolor{comment}{ */}
+00022 \textcolor{preprocessor}{#if !(defined H5D\_FRIEND || defined H5D\_MODULE)}
+00023 \textcolor{preprocessor}{#error "Do not include this file outside the H5D package!"}
+00024 \textcolor{preprocessor}{#endif}
+00025 
+00026 \textcolor{preprocessor}{#ifndef \_H5Dpkg\_H}
+00027 \textcolor{preprocessor}{#define \_H5Dpkg\_H}
+00028 
+00029 \textcolor{comment}{/* Get package's private header */}
+00030 \textcolor{preprocessor}{#include "H5Dprivate.h"}
+00031 
+00032 \textcolor{comment}{/* Other private headers needed by this file */}
+00033 \textcolor{preprocessor}{#include "H5ACprivate.h"}    \textcolor{comment}{/* Metadata cache           */}
+00034 \textcolor{preprocessor}{#include "H5B2private.h"}        \textcolor{comment}{/* v2 B-trees                           */}
+00035 \textcolor{preprocessor}{#include "H5Fprivate.h"}     \textcolor{comment}{/* File access              */}
+00036 \textcolor{preprocessor}{#include "H5Gprivate.h"}     \textcolor{comment}{/* Groups               */}
+00037 \textcolor{preprocessor}{#include "H5SLprivate.h"}    \textcolor{comment}{/* Skip lists               */}
+00038 \textcolor{preprocessor}{#include "H5Tprivate.h"}     \textcolor{comment}{/* Datatypes                    */}
+00039 
+00040 \textcolor{comment}{/**************************/}
+00041 \textcolor{comment}{/* Package Private Macros */}
+00042 \textcolor{comment}{/**************************/}
+00043 
+00044 \textcolor{comment}{/* Set the minimum object header size to create objects with */}
+00045 \textcolor{preprocessor}{#define H5D\_MINHDR\_SIZE 256}
+00046 
+00047 \textcolor{comment}{/* [Simple] Macro to construct a H5D\_io\_info\_t from it's components */}
+00048 \textcolor{preprocessor}{#define H5D\_BUILD\_IO\_INFO\_WRT(io\_info, ds, dxpl\_c, dxpl\_m, dxpl\_r, str, buf)    \(\backslash\)}
+00049 \textcolor{preprocessor}{    (io\_info)->dset = ds;                                               \(\backslash\)}
+00050 \textcolor{preprocessor}{    (io\_info)->dxpl\_cache = dxpl\_c;                                     \(\backslash\)}
+00051 \textcolor{preprocessor}{    (io\_info)->raw\_dxpl\_id = dxpl\_r;                                    \(\backslash\)}
+00052 \textcolor{preprocessor}{    (io\_info)->md\_dxpl\_id = dxpl\_m;                                     \(\backslash\)}
+00053 \textcolor{preprocessor}{    (io\_info)->store = str;                                             \(\backslash\)}
+00054 \textcolor{preprocessor}{    (io\_info)->op\_type = H5D\_IO\_OP\_WRITE;                               \(\backslash\)}
+00055 \textcolor{preprocessor}{    (io\_info)->u.wbuf = buf}
+00056 \textcolor{preprocessor}{#define H5D\_BUILD\_IO\_INFO\_RD(io\_info, ds, dxpl\_c, dxpl\_m, dxpl\_r, str, buf) \(\backslash\)}
+00057 \textcolor{preprocessor}{    (io\_info)->dset = ds;                                               \(\backslash\)}
+00058 \textcolor{preprocessor}{    (io\_info)->dxpl\_cache = dxpl\_c;                                     \(\backslash\)}
+00059 \textcolor{preprocessor}{    (io\_info)->raw\_dxpl\_id = dxpl\_r;                                    \(\backslash\)}
+00060 \textcolor{preprocessor}{    (io\_info)->md\_dxpl\_id = dxpl\_m;                                     \(\backslash\)}
+00061 \textcolor{preprocessor}{    (io\_info)->store = str;                                             \(\backslash\)}
+00062 \textcolor{preprocessor}{    (io\_info)->op\_type = H5D\_IO\_OP\_READ;                                \(\backslash\)}
+00063 \textcolor{preprocessor}{    (io\_info)->u.rbuf = buf}
+00064 
+00065 \textcolor{comment}{/* Flags for marking aspects of a dataset dirty */}
+00066 \textcolor{preprocessor}{#define H5D\_MARK\_SPACE  0x01}
+00067 \textcolor{preprocessor}{#define H5D\_MARK\_LAYOUT  0x02}
+00068 
+00069 \textcolor{comment}{/* Default creation parameters for chunk index data structures */}
+00070 \textcolor{comment}{/* See H5O\_layout\_chunk\_t */}
+00071 
+00072 \textcolor{comment}{/* Fixed array creation values */}
+00073 \textcolor{preprocessor}{#define H5D\_FARRAY\_CREATE\_PARAM\_SIZE        1   }\textcolor{comment}{/* Size of the creation parameters in bytes */}\textcolor{preprocessor}{}
+00074 \textcolor{preprocessor}{#define H5D\_FARRAY\_MAX\_DBLK\_PAGE\_NELMTS\_BITS    10      }\textcolor{comment}{/* i.e. 1024 elements per data block page */}\textcolor{preprocessor}{}
+00075 
+00076 \textcolor{comment}{/* Extensible array creation values */}
+00077 \textcolor{preprocessor}{#define H5D\_EARRAY\_CREATE\_PARAM\_SIZE        5   }\textcolor{comment}{/* Size of the creation parameters in bytes */}\textcolor{preprocessor}{}
+00078 \textcolor{preprocessor}{#define H5D\_EARRAY\_MAX\_NELMTS\_BITS          32  }\textcolor{comment}{/* i.e. 4 giga-elements */}\textcolor{preprocessor}{}
+00079 \textcolor{preprocessor}{#define H5D\_EARRAY\_IDX\_BLK\_ELMTS            4}
+00080 \textcolor{preprocessor}{#define H5D\_EARRAY\_SUP\_BLK\_MIN\_DATA\_PTRS    4}
+00081 \textcolor{preprocessor}{#define H5D\_EARRAY\_DATA\_BLK\_MIN\_ELMTS       16}
+00082 \textcolor{preprocessor}{#define H5D\_EARRAY\_MAX\_DBLOCK\_PAGE\_NELMTS\_BITS  10  }\textcolor{comment}{/* i.e. 1024 elements per data block page */}\textcolor{preprocessor}{}
+00083 
+00084 \textcolor{comment}{/* v2 B-tree creation values for raw meta\_size */}
+00085 \textcolor{preprocessor}{#define H5D\_BT2\_CREATE\_PARAM\_SIZE   6       }\textcolor{comment}{/* Size of the creation parameters in bytes */}\textcolor{preprocessor}{}
+00086 \textcolor{preprocessor}{#define H5D\_BT2\_NODE\_SIZE           2048}
+00087 \textcolor{preprocessor}{#define H5D\_BT2\_SPLIT\_PERC          100}
+00088 \textcolor{preprocessor}{#define H5D\_BT2\_MERGE\_PERC          40}
+00089 
+00090 
+00091 \textcolor{comment}{/****************************/}
+00092 \textcolor{comment}{/* Package Private Typedefs */}
+00093 \textcolor{comment}{/****************************/}
+00094 
+00095 \textcolor{comment}{/* Typedef for datatype information for raw data I/O operation */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00096}\hyperlink{struct_h5_d__type__info__t}{00096} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} \{
+00097     \textcolor{comment}{/* Initial values */}
+00098     \textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *mem\_type;              \textcolor{comment}{/* Pointer to memory datatype */}
+00099     \textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *dset\_type;             \textcolor{comment}{/* Pointer to dataset datatype */}
+00100     \hyperlink{struct_h5_t__path__t}{H5T\_path\_t} *tpath;                  \textcolor{comment}{/* Datatype conversion path */}
+00101     hid\_t src\_type\_id;                  \textcolor{comment}{/* Source datatype ID */}
+00102     hid\_t dst\_type\_id;                  \textcolor{comment}{/* Destination datatype ID */}
+00103 
+00104     \textcolor{comment}{/* Computed/derived values */}
+00105     \textcolor{keywordtype}{size\_t} src\_type\_size;       \textcolor{comment}{/* Size of source type  */}
+00106     \textcolor{keywordtype}{size\_t} dst\_type\_size;           \textcolor{comment}{/* Size of destination type */}
+00107     \textcolor{keywordtype}{size\_t} max\_type\_size;           \textcolor{comment}{/* Size of largest source/destination type */}
+00108     hbool\_t is\_conv\_noop;               \textcolor{comment}{/* Whether the type conversion is a NOOP */}
+00109     hbool\_t is\_xform\_noop;              \textcolor{comment}{/* Whether the data transform is a NOOP */}
+00110     \textcolor{keyword}{const} H5T\_subset\_info\_t *cmpd\_subset;   \textcolor{comment}{/* Info related to the compound subset conversion functions */}
+00111     H5T\_bkg\_t need\_bkg;             \textcolor{comment}{/* Type of background buf needed */}
+00112     \textcolor{keywordtype}{size\_t} request\_nelmts;      \textcolor{comment}{/* Requested strip mine */}
+00113     uint8\_t *tconv\_buf;                 \textcolor{comment}{/* Datatype conv buffer */}
+00114     hbool\_t tconv\_buf\_allocated;        \textcolor{comment}{/* Whether the type conversion buffer was allocated */}
+00115     uint8\_t *bkg\_buf;                   \textcolor{comment}{/* Background buffer    */}
+00116     hbool\_t bkg\_buf\_allocated;          \textcolor{comment}{/* Whether the background buffer was allocated */}
+00117 \} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t};
+00118 
+00119 \textcolor{comment}{/* Forward declaration of structs used below */}
+00120 \textcolor{keyword}{struct }\hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t};
+00121 \textcolor{keyword}{struct }\hyperlink{struct_h5_d__chunk__map__t}{H5D\_chunk\_map\_t};
+00122 
+00123 \textcolor{comment}{/* Function pointers for I/O on particular types of dataset layouts */}
+00124 \textcolor{keyword}{typedef} herr\_t (*H5D\_layout\_construct\_func\_t)(\hyperlink{struct_h5_f__t}{H5F\_t} *f, \hyperlink{struct_h5_d__t}{H5D\_t} *dset);
+00125 \textcolor{keyword}{typedef} herr\_t (*H5D\_layout\_init\_func\_t)(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \textcolor{keyword}{const} 
+      \hyperlink{struct_h5_d__t}{H5D\_t} *dset,
+00126     hid\_t dapl\_id);
+00127 \textcolor{keyword}{typedef} hbool\_t (*H5D\_layout\_is\_space\_alloc\_func\_t)(\textcolor{keyword}{const} H5O\_storage\_t *storage);
+00128 \textcolor{keyword}{typedef} herr\_t (*H5D\_layout\_io\_init\_func\_t)(\textcolor{keyword}{const} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00129     \textcolor{keyword}{const} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info,
+00130     hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space,
+00131     \textcolor{keyword}{struct }\hyperlink{struct_h5_d__chunk__map__t}{H5D\_chunk\_map\_t} *cm);
+00132 \textcolor{keyword}{typedef} herr\_t (*H5D\_layout\_read\_func\_t)(\textcolor{keyword}{struct }\hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00133     \textcolor{keyword}{const} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info, hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space,
+00134     \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space, \textcolor{keyword}{struct }\hyperlink{struct_h5_d__chunk__map__t}{H5D\_chunk\_map\_t} *fm);
+00135 \textcolor{keyword}{typedef} herr\_t (*H5D\_layout\_write\_func\_t)(\textcolor{keyword}{struct }\hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00136     \textcolor{keyword}{const} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info, hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space,
+00137     \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space, \textcolor{keyword}{struct }\hyperlink{struct_h5_d__chunk__map__t}{H5D\_chunk\_map\_t} *fm);
+00138 \textcolor{keyword}{typedef} ssize\_t (*H5D\_layout\_readvv\_func\_t)(\textcolor{keyword}{const} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00139     \textcolor{keywordtype}{size\_t} dset\_max\_nseq, \textcolor{keywordtype}{size\_t} *dset\_curr\_seq, \textcolor{keywordtype}{size\_t} dset\_len\_arr[], hsize\_t dset\_offset\_arr[],
+00140     \textcolor{keywordtype}{size\_t} mem\_max\_nseq, \textcolor{keywordtype}{size\_t} *mem\_curr\_seq, \textcolor{keywordtype}{size\_t} mem\_len\_arr[], hsize\_t mem\_offset\_arr[]);
+00141 \textcolor{keyword}{typedef} ssize\_t (*H5D\_layout\_writevv\_func\_t)(\textcolor{keyword}{const} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00142     \textcolor{keywordtype}{size\_t} dset\_max\_nseq, \textcolor{keywordtype}{size\_t} *dset\_curr\_seq, \textcolor{keywordtype}{size\_t} dset\_len\_arr[], hsize\_t dset\_offset\_arr[],
+00143     \textcolor{keywordtype}{size\_t} mem\_max\_nseq, \textcolor{keywordtype}{size\_t} *mem\_curr\_seq, \textcolor{keywordtype}{size\_t} mem\_len\_arr[], hsize\_t mem\_offset\_arr[]);
+00144 \textcolor{keyword}{typedef} herr\_t (*H5D\_layout\_flush\_func\_t)(\hyperlink{struct_h5_d__t}{H5D\_t} *dataset, hid\_t dxpl\_id);
+00145 \textcolor{keyword}{typedef} herr\_t (*H5D\_layout\_io\_term\_func\_t)(\textcolor{keyword}{const} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__chunk__map__t}{H5D\_chunk\_map\_t} *cm);
+00146 \textcolor{keyword}{typedef} herr\_t (*H5D\_layout\_dest\_func\_t)(\hyperlink{struct_h5_d__t}{H5D\_t} *dataset, hid\_t dxpl\_id);
+00147 
+00148 \textcolor{comment}{/* Typedef for grouping layout I/O routines */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00149}\hyperlink{struct_h5_d__layout__ops__t}{00149} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__layout__ops__t}{H5D\_layout\_ops\_t} \{
+00150     H5D\_layout\_construct\_func\_t construct;      \textcolor{comment}{/* Layout constructor for new datasets */}
+00151     H5D\_layout\_init\_func\_t \hyperlink{structinit}{init};        \textcolor{comment}{/* Layout initializer for dataset */}
+00152     H5D\_layout\_is\_space\_alloc\_func\_t is\_space\_alloc;    \textcolor{comment}{/* Query routine to determine if storage is
+       allocated */}
+00153     H5D\_layout\_io\_init\_func\_t io\_init;  \textcolor{comment}{/* I/O initialization routine */}
+00154     H5D\_layout\_read\_func\_t ser\_read;    \textcolor{comment}{/* High-level I/O routine for reading data in serial */}
+00155     H5D\_layout\_write\_func\_t ser\_write;  \textcolor{comment}{/* High-level I/O routine for writing data in serial */}
+00156 \textcolor{preprocessor}{#ifdef H5\_HAVE\_PARALLEL}
+00157     H5D\_layout\_read\_func\_t par\_read;    \textcolor{comment}{/* High-level I/O routine for reading data in parallel */}
+00158     H5D\_layout\_write\_func\_t par\_write;  \textcolor{comment}{/* High-level I/O routine for writing data in parallel */}
+00159 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5\_HAVE\_PARALLEL */}\textcolor{preprocessor}{}
+00160     H5D\_layout\_readvv\_func\_t readvv;    \textcolor{comment}{/* Low-level I/O routine for reading data */}
+00161     H5D\_layout\_writevv\_func\_t writevv;  \textcolor{comment}{/* Low-level I/O routine for writing data */}
+00162     H5D\_layout\_flush\_func\_t flush;      \textcolor{comment}{/* Low-level I/O routine for flushing raw data */}
+00163     H5D\_layout\_io\_term\_func\_t io\_term;  \textcolor{comment}{/* I/O shutdown routine */}
+00164     H5D\_layout\_dest\_func\_t dest;        \textcolor{comment}{/* Destroy layout info */}
+00165 \} \hyperlink{struct_h5_d__layout__ops__t}{H5D\_layout\_ops\_t};
+00166 
+00167 \textcolor{comment}{/* Function pointers for either multiple or single block I/O access */}
+00168 \textcolor{keyword}{typedef} herr\_t (*H5D\_io\_single\_read\_func\_t)(\textcolor{keyword}{const} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00169     \textcolor{keyword}{const} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info,
+00170     hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space);
+00171 \textcolor{keyword}{typedef} herr\_t (*H5D\_io\_single\_write\_func\_t)(\textcolor{keyword}{const} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00172     \textcolor{keyword}{const} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info,
+00173     hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space);
+00174 
+00175 \textcolor{comment}{/* Typedef for raw data I/O framework info */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00176}\hyperlink{struct_h5_d__io__ops__t}{00176} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__io__ops__t}{H5D\_io\_ops\_t} \{
+00177     H5D\_layout\_read\_func\_t multi\_read;          \textcolor{comment}{/* High-level I/O routine for reading data */}
+00178     H5D\_layout\_write\_func\_t multi\_write;        \textcolor{comment}{/* High-level I/O routine for writing data */}
+00179     H5D\_io\_single\_read\_func\_t single\_read;      \textcolor{comment}{/* I/O routine for reading single block */}
+00180     H5D\_io\_single\_write\_func\_t single\_write;    \textcolor{comment}{/* I/O routine for writing single block */}
+00181 \} \hyperlink{struct_h5_d__io__ops__t}{H5D\_io\_ops\_t};
+00182 
+00183 \textcolor{comment}{/* Typedefs for dataset storage information */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00184}\hyperlink{struct_h5_d__contig__storage__t}{00184} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\{
+00185     haddr\_t dset\_addr;      \textcolor{comment}{/* Address of dataset in file */}
+00186     hsize\_t dset\_size;      \textcolor{comment}{/* Total size of dataset in file */}
+00187 \} \hyperlink{struct_h5_d__contig__storage__t}{H5D\_contig\_storage\_t};
+00188 
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00189}\hyperlink{struct_h5_d__chunk__storage__t}{00189} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\{
+00190     hsize\_t *scaled;        \textcolor{comment}{/* Scaled coordinates for a chunk */}
+00191 \} \hyperlink{struct_h5_d__chunk__storage__t}{H5D\_chunk\_storage\_t};
+00192 
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00193}\hyperlink{struct_h5_d__compact__storage__t}{00193} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\{
+00194     \textcolor{keywordtype}{void} *buf;              \textcolor{comment}{/* Buffer for compact dataset */}
+00195     hbool\_t *dirty;         \textcolor{comment}{/* Pointer to dirty flag to mark */}
+00196 \} \hyperlink{struct_h5_d__compact__storage__t}{H5D\_compact\_storage\_t};
+00197 
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00198}\hyperlink{union_h5_d__storage__t}{00198} \textcolor{keyword}{typedef} \textcolor{keyword}{union }\hyperlink{union_h5_d__storage__t}{H5D\_storage\_t} \{
+00199     \hyperlink{struct_h5_d__contig__storage__t}{H5D\_contig\_storage\_t} contig; \textcolor{comment}{/* Contiguous information for dataset */}
+00200     \hyperlink{struct_h5_d__chunk__storage__t}{H5D\_chunk\_storage\_t} chunk;  \textcolor{comment}{/* Chunk information for dataset */}
+00201     \hyperlink{struct_h5_d__compact__storage__t}{H5D\_compact\_storage\_t} compact; \textcolor{comment}{/* Compact information for dataset */}
+00202     H5O\_efl\_t   efl;            \textcolor{comment}{/* External file list information for dataset */}
+00203 \} \hyperlink{union_h5_d__storage__t}{H5D\_storage\_t};
+00204 
+00205 \textcolor{comment}{/* Typedef for raw data I/O operation info */}
+00206 \textcolor{keyword}{typedef} \textcolor{keyword}{enum} H5D\_io\_op\_type\_t \{
+00207     H5D\_IO\_OP\_READ,         \textcolor{comment}{/* Read operation */}
+00208     H5D\_IO\_OP\_WRITE         \textcolor{comment}{/* Write operation */}
+00209 \} H5D\_io\_op\_type\_t;
+00210 
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00211}\hyperlink{struct_h5_d__io__info__t}{00211} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} \{
+00212     \textcolor{keyword}{const} \hyperlink{struct_h5_d__t}{H5D\_t} *dset;          \textcolor{comment}{/* Pointer to dataset being operated on */}
+00213 \textcolor{preprocessor}{#ifndef H5\_HAVE\_PARALLEL}
+00214     \textcolor{keyword}{const}
+00215 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5\_HAVE\_PARALLEL */}\textcolor{preprocessor}{}
+00216         H5D\_dxpl\_cache\_t *dxpl\_cache; \textcolor{comment}{/* Pointer to cached DXPL info */}
+00217     hid\_t raw\_dxpl\_id;          \textcolor{comment}{/* Original DXPL ID */}
+00218     hid\_t md\_dxpl\_id;           \textcolor{comment}{/* metadata dxpl needed for parallel HDF5 */}
+00219 \textcolor{preprocessor}{#ifdef H5\_HAVE\_PARALLEL}
+00220     MPI\_Comm comm;              \textcolor{comment}{/* MPI communicator for file */}
+00221     hbool\_t using\_mpi\_vfd;      \textcolor{comment}{/* Whether the file is using an MPI-based VFD */}
+00222     \textcolor{keyword}{struct }\{
+00223         H5FD\_mpio\_xfer\_t xfer\_mode; \textcolor{comment}{/* Parallel transfer for this request (H5D\_XFER\_IO\_XFER\_MODE\_NAME) */}
+00224         H5FD\_mpio\_collective\_opt\_t coll\_opt\_mode; \textcolor{comment}{/* Parallel transfer with independent IO or collective IO
+       with this mode */}
+00225         \hyperlink{struct_h5_d__io__ops__t}{H5D\_io\_ops\_t} io\_ops;    \textcolor{comment}{/* I/O operation function pointers */}
+00226     \} orig;
+00227 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5\_HAVE\_PARALLEL */}\textcolor{preprocessor}{}
+00228     \hyperlink{union_h5_d__storage__t}{H5D\_storage\_t} *store;       \textcolor{comment}{/* Dataset storage info */}
+00229     \hyperlink{struct_h5_d__layout__ops__t}{H5D\_layout\_ops\_t} layout\_ops;    \textcolor{comment}{/* Dataset layout I/O operation function pointers */}
+00230     \hyperlink{struct_h5_d__io__ops__t}{H5D\_io\_ops\_t} io\_ops;        \textcolor{comment}{/* I/O operation function pointers */}
+00231     H5D\_io\_op\_type\_t op\_type;
+00232     \textcolor{keyword}{union }\{
+00233         \textcolor{keywordtype}{void} *rbuf;             \textcolor{comment}{/* Pointer to buffer for read */}
+00234         \textcolor{keyword}{const} \textcolor{keywordtype}{void} *wbuf;       \textcolor{comment}{/* Pointer to buffer to write */}
+00235     \} u;
+00236 \} \hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t};
+00237 
+00238 
+00239 \textcolor{comment}{/******************/}
+00240 \textcolor{comment}{/* Chunk typedefs */}
+00241 \textcolor{comment}{/******************/}
+00242 
+00243 \textcolor{comment}{/* Typedef for chunked dataset index operation info */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00244}\hyperlink{struct_h5_d__chk__idx__info__t}{00244} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__chk__idx__info__t}{H5D\_chk\_idx\_info\_t} \{
+00245     \hyperlink{struct_h5_f__t}{H5F\_t} *f;                   \textcolor{comment}{/* File pointer for operation */}
+00246     hid\_t dxpl\_id;              \textcolor{comment}{/* DXPL ID for operation */}
+00247     \textcolor{keyword}{const} H5O\_pline\_t *pline;   \textcolor{comment}{/* I/O pipeline info */}
+00248     H5O\_layout\_chunk\_t *layout;           \textcolor{comment}{/* Chunk layout description */}
+00249     H5O\_storage\_chunk\_t *storage;         \textcolor{comment}{/* Chunk storage description */}
+00250 \} \hyperlink{struct_h5_d__chk__idx__info__t}{H5D\_chk\_idx\_info\_t};
+00251 
+00252 \textcolor{comment}{/*}
+00253 \textcolor{comment}{ * "Generic" chunk record.  Each chunk is keyed by the minimum logical}
+00254 \textcolor{comment}{ * N-dimensional coordinates and the datatype size of the chunk.}
+00255 \textcolor{comment}{ * The fastest-varying dimension is assumed to reference individual bytes of}
+00256 \textcolor{comment}{ * the array, so a 100-element 1-D array of 4-byte integers would really be a}
+00257 \textcolor{comment}{ * 2-D array with the slow varying dimension of size 100 and the fast varying}
+00258 \textcolor{comment}{ * dimension of size 4 (the storage dimensionality has very little to do with}
+00259 \textcolor{comment}{ * the real dimensionality).}
+00260 \textcolor{comment}{ *}
+00261 \textcolor{comment}{ * The chunk's file address, filter mask and size on disk are not key values.}
+00262 \textcolor{comment}{ */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00263}\hyperlink{struct_h5_d__chunk__rec__t}{00263} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__chunk__rec__t}{H5D\_chunk\_rec\_t} \{
+00264     hsize\_t scaled[H5O\_LAYOUT\_NDIMS];   \textcolor{comment}{/* Logical offset to start */}
+00265     uint32\_t    nbytes;             \textcolor{comment}{/* Size of stored data  */}
+00266     uint32\_t    filter\_mask;            \textcolor{comment}{/* Excluded filters */}
+00267     haddr\_t     chunk\_addr;                     \textcolor{comment}{/* Address of chunk in file */}
+00268 \} \hyperlink{struct_h5_d__chunk__rec__t}{H5D\_chunk\_rec\_t};
+00269 
+00270 \textcolor{comment}{/*}
+00271 \textcolor{comment}{ * Common data exchange structure for indexed storage nodes.  This structure is}
+00272 \textcolor{comment}{ * passed through the indexing layer to the methods for the objects}
+00273 \textcolor{comment}{ * to which the index points.}
+00274 \textcolor{comment}{ */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00275}\hyperlink{struct_h5_d__chunk__common__ud__t}{00275} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__chunk__common__ud__t}{H5D\_chunk\_common\_ud\_t} \{
+00276     \textcolor{keyword}{const} H5O\_layout\_chunk\_t *layout;           \textcolor{comment}{/* Chunk layout description */}
+00277     \textcolor{keyword}{const} H5O\_storage\_chunk\_t *storage;         \textcolor{comment}{/* Chunk storage description */}
+00278     \textcolor{keyword}{const} hsize\_t *scaled;              \textcolor{comment}{/* Scaled coordinates for a chunk */}
+00279 \} \hyperlink{struct_h5_d__chunk__common__ud__t}{H5D\_chunk\_common\_ud\_t};
+00280 
+00281 \textcolor{comment}{/* B-tree callback info for various operations */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00282}\hyperlink{struct_h5_d__chunk__ud__t}{00282} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__chunk__ud__t}{H5D\_chunk\_ud\_t} \{
+00283     \textcolor{comment}{/* Downward */}
+00284     \hyperlink{struct_h5_d__chunk__common__ud__t}{H5D\_chunk\_common\_ud\_t} common;       \textcolor{comment}{/* Common info for B-tree user data (must be
+       first) */}
+00285 
+00286     \textcolor{comment}{/* Upward */}
+00287     \textcolor{keywordtype}{unsigned}    idx\_hint;               \textcolor{comment}{/* Index of chunk in cache, if present */}
+00288     H5F\_block\_t chunk\_block;            \textcolor{comment}{/* Offset/length of chunk in file */}
+00289     \textcolor{keywordtype}{unsigned}    filter\_mask;        \textcolor{comment}{/* Excluded filters */}
+00290     hbool\_t     new\_unfilt\_chunk;       \textcolor{comment}{/* Whether the chunk just became unfiltered */}
+00291     hsize\_t     chunk\_idx;              \textcolor{comment}{/* Chunk index for EA, FA indexing */}
+00292 \} \hyperlink{struct_h5_d__chunk__ud__t}{H5D\_chunk\_ud\_t};
+00293 
+00294 \textcolor{comment}{/* Typedef for "generic" chunk callbacks */}
+00295 \textcolor{keyword}{typedef} int (*H5D\_chunk\_cb\_func\_t)(\textcolor{keyword}{const} \hyperlink{struct_h5_d__chunk__rec__t}{H5D\_chunk\_rec\_t} *chunk\_rec,
+00296     \textcolor{keywordtype}{void} *udata);
+00297 
+00298 \textcolor{comment}{/* Typedefs for chunk operations */}
+00299 \textcolor{keyword}{typedef} herr\_t (*H5D\_chunk\_init\_func\_t)(\textcolor{keyword}{const} \hyperlink{struct_h5_d__chk__idx__info__t}{H5D\_chk\_idx\_info\_t} *idx\_info,
+00300     \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *space, haddr\_t dset\_ohdr\_addr);
+00301 \textcolor{keyword}{typedef} herr\_t (*H5D\_chunk\_create\_func\_t)(\textcolor{keyword}{const} \hyperlink{struct_h5_d__chk__idx__info__t}{H5D\_chk\_idx\_info\_t} *idx\_info);
+00302 \textcolor{keyword}{typedef} hbool\_t (*H5D\_chunk\_is\_space\_alloc\_func\_t)(\textcolor{keyword}{const} H5O\_storage\_chunk\_t *storage);
+00303 \textcolor{keyword}{typedef} herr\_t (*H5D\_chunk\_insert\_func\_t)(\textcolor{keyword}{const} \hyperlink{struct_h5_d__chk__idx__info__t}{H5D\_chk\_idx\_info\_t} *idx\_info,
+00304     \hyperlink{struct_h5_d__chunk__ud__t}{H5D\_chunk\_ud\_t} *udata, \textcolor{keyword}{const} \hyperlink{struct_h5_d__t}{H5D\_t} *dset);
+00305 \textcolor{keyword}{typedef} herr\_t (*H5D\_chunk\_get\_addr\_func\_t)(\textcolor{keyword}{const} \hyperlink{struct_h5_d__chk__idx__info__t}{H5D\_chk\_idx\_info\_t} *idx\_info,
+00306     \hyperlink{struct_h5_d__chunk__ud__t}{H5D\_chunk\_ud\_t} *udata);
+00307 \textcolor{keyword}{typedef} herr\_t (*H5D\_chunk\_resize\_func\_t)(H5O\_layout\_chunk\_t *layout);
+00308 \textcolor{keyword}{typedef} int (*H5D\_chunk\_iterate\_func\_t)(\textcolor{keyword}{const} \hyperlink{struct_h5_d__chk__idx__info__t}{H5D\_chk\_idx\_info\_t} *idx\_info,
+00309     H5D\_chunk\_cb\_func\_t chunk\_cb, \textcolor{keywordtype}{void} *chunk\_udata);
+00310 \textcolor{keyword}{typedef} herr\_t (*H5D\_chunk\_remove\_func\_t)(\textcolor{keyword}{const} \hyperlink{struct_h5_d__chk__idx__info__t}{H5D\_chk\_idx\_info\_t} *idx\_info,
+00311     \hyperlink{struct_h5_d__chunk__common__ud__t}{H5D\_chunk\_common\_ud\_t} *udata);
+00312 \textcolor{keyword}{typedef} herr\_t (*H5D\_chunk\_delete\_func\_t)(\textcolor{keyword}{const} \hyperlink{struct_h5_d__chk__idx__info__t}{H5D\_chk\_idx\_info\_t} *idx\_info);
+00313 \textcolor{keyword}{typedef} herr\_t (*H5D\_chunk\_copy\_setup\_func\_t)(\textcolor{keyword}{const} \hyperlink{struct_h5_d__chk__idx__info__t}{H5D\_chk\_idx\_info\_t} *idx\_info\_src,
+00314     \textcolor{keyword}{const} \hyperlink{struct_h5_d__chk__idx__info__t}{H5D\_chk\_idx\_info\_t} *idx\_info\_dst);
+00315 \textcolor{keyword}{typedef} herr\_t (*H5D\_chunk\_copy\_shutdown\_func\_t)(H5O\_storage\_chunk\_t *storage\_src,
+00316     H5O\_storage\_chunk\_t *storage\_dst, hid\_t dxpl\_id);
+00317 \textcolor{keyword}{typedef} herr\_t (*H5D\_chunk\_size\_func\_t)(\textcolor{keyword}{const} \hyperlink{struct_h5_d__chk__idx__info__t}{H5D\_chk\_idx\_info\_t} *idx\_info,
+00318     hsize\_t *idx\_size);
+00319 \textcolor{keyword}{typedef} herr\_t (*H5D\_chunk\_reset\_func\_t)(H5O\_storage\_chunk\_t *storage, hbool\_t reset\_addr);
+00320 \textcolor{keyword}{typedef} herr\_t (*H5D\_chunk\_dump\_func\_t)(\textcolor{keyword}{const} H5O\_storage\_chunk\_t *storage,
+00321     FILE *stream);
+00322 \textcolor{keyword}{typedef} herr\_t (*H5D\_chunk\_dest\_func\_t)(\textcolor{keyword}{const} \hyperlink{struct_h5_d__chk__idx__info__t}{H5D\_chk\_idx\_info\_t} *idx\_info);
+00323 
+00324 \textcolor{comment}{/* Typedef for grouping chunk I/O routines */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00325}\hyperlink{struct_h5_d__chunk__ops__t}{00325} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__chunk__ops__t}{H5D\_chunk\_ops\_t} \{
+00326     hbool\_t can\_swim;                       \textcolor{comment}{/* Flag to indicate that the index supports SWMR access */}
+00327     H5D\_chunk\_init\_func\_t \hyperlink{structinit}{init};             \textcolor{comment}{/* Routine to initialize indexing information in memory */}
+00328     H5D\_chunk\_create\_func\_t create;         \textcolor{comment}{/* Routine to create chunk index */}
+00329     H5D\_chunk\_is\_space\_alloc\_func\_t is\_space\_alloc;    \textcolor{comment}{/* Query routine to determine if storage/index is
+       allocated */}
+00330     H5D\_chunk\_insert\_func\_t insert;         \textcolor{comment}{/* Routine to insert a chunk into an index */}
+00331     H5D\_chunk\_get\_addr\_func\_t get\_addr;     \textcolor{comment}{/* Routine to retrieve address of chunk in file */}
+00332     H5D\_chunk\_resize\_func\_t resize;         \textcolor{comment}{/* Routine to update chunk index info after resizing dataset */}
+00333     H5D\_chunk\_iterate\_func\_t iterate;       \textcolor{comment}{/* Routine to iterate over chunks */}
+00334     H5D\_chunk\_remove\_func\_t \textcolor{keyword}{remove};         \textcolor{comment}{/* Routine to remove a chunk from an index */}
+00335     H5D\_chunk\_delete\_func\_t idx\_delete;     \textcolor{comment}{/* Routine to delete index & all chunks from file*/}
+00336     H5D\_chunk\_copy\_setup\_func\_t copy\_setup; \textcolor{comment}{/* Routine to perform any necessary setup for copying chunks */}
+00337     H5D\_chunk\_copy\_shutdown\_func\_t copy\_shutdown; \textcolor{comment}{/* Routine to perform any necessary shutdown for copying
+       chunks */}
+00338     H5D\_chunk\_size\_func\_t size;             \textcolor{comment}{/* Routine to get size of indexing information */}
+00339     H5D\_chunk\_reset\_func\_t reset;           \textcolor{comment}{/* Routine to reset indexing information */}
+00340     H5D\_chunk\_dump\_func\_t dump;             \textcolor{comment}{/* Routine to dump indexing information */}
+00341     H5D\_chunk\_dest\_func\_t dest;             \textcolor{comment}{/* Routine to destroy indexing information in memory */}
+00342 \} \hyperlink{struct_h5_d__chunk__ops__t}{H5D\_chunk\_ops\_t};
+00343 
+00344 \textcolor{comment}{/* Structure holding information about a chunk's selection for mapping */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00345}\hyperlink{struct_h5_d__chunk__info__t}{00345} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__chunk__info__t}{H5D\_chunk\_info\_t} \{
+00346     hsize\_t index;              \textcolor{comment}{/* "Index" of chunk in dataset */}
+00347     uint32\_t chunk\_points;      \textcolor{comment}{/* Number of elements selected in chunk */}
+00348     hsize\_t scaled[H5O\_LAYOUT\_NDIMS];   \textcolor{comment}{/* Scaled coordinates of chunk (in file dataset's dataspace) */}
+00349     \hyperlink{struct_h5_s__t}{H5S\_t} *fspace;              \textcolor{comment}{/* Dataspace describing chunk & selection in it */}
+00350     hbool\_t fspace\_shared;      \textcolor{comment}{/* Indicate that the file space for a chunk is shared and shouldn't be
+       freed */}
+00351     \hyperlink{struct_h5_s__t}{H5S\_t} *mspace;              \textcolor{comment}{/* Dataspace describing selection in memory corresponding to this
+       chunk */}
+00352     hbool\_t mspace\_shared;      \textcolor{comment}{/* Indicate that the memory space for a chunk is shared and shouldn't be
+       freed */}
+00353 \} \hyperlink{struct_h5_d__chunk__info__t}{H5D\_chunk\_info\_t};
+00354 
+00355 \textcolor{comment}{/* Main structure holding the mapping between file chunks and memory */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00356}\hyperlink{struct_h5_d__chunk__map__t}{00356} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__chunk__map__t}{H5D\_chunk\_map\_t} \{
+00357     H5O\_layout\_t *layout;       \textcolor{comment}{/* Dataset layout information*/}
+00358     hsize\_t nelmts;             \textcolor{comment}{/* Number of elements selected in file & memory dataspaces */}
+00359 
+00360     \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space;    \textcolor{comment}{/* Pointer to the file dataspace */}
+00361     \textcolor{keywordtype}{unsigned} f\_ndims;           \textcolor{comment}{/* Number of dimensions for file dataspace */}
+00362 
+00363     \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space;     \textcolor{comment}{/* Pointer to the memory dataspace */}
+00364     \hyperlink{struct_h5_s__t}{H5S\_t} *mchunk\_tmpl;         \textcolor{comment}{/* Dataspace template for new memory chunks */}
+00365     H5S\_sel\_iter\_t mem\_iter;    \textcolor{comment}{/* Iterator for elements in memory selection */}
+00366     \textcolor{keywordtype}{unsigned} m\_ndims;           \textcolor{comment}{/* Number of dimensions for memory dataspace */}
+00367     H5S\_sel\_type msel\_type;     \textcolor{comment}{/* Selection type in memory */}
+00368     H5S\_sel\_type fsel\_type;     \textcolor{comment}{/* Selection type in file */}
+00369 
+00370     H5SL\_t *sel\_chunks;         \textcolor{comment}{/* Skip list containing information for each chunk selected */}
+00371 
+00372     \hyperlink{struct_h5_s__t}{H5S\_t}  *single\_space;       \textcolor{comment}{/* Dataspace for single chunk */}
+00373     \hyperlink{struct_h5_d__chunk__info__t}{H5D\_chunk\_info\_t} *single\_chunk\_info;  \textcolor{comment}{/* Pointer to single chunk's info */}
+00374     hbool\_t use\_single;         \textcolor{comment}{/* Whether I/O is on a single element */}
+00375 
+00376     hsize\_t last\_index;         \textcolor{comment}{/* Index of last chunk operated on */}
+00377     \hyperlink{struct_h5_d__chunk__info__t}{H5D\_chunk\_info\_t} *last\_chunk\_info;  \textcolor{comment}{/* Pointer to last chunk's info */}
+00378 
+00379     hsize\_t chunk\_dim[H5O\_LAYOUT\_NDIMS];    \textcolor{comment}{/* Size of chunk in each dimension */}
+00380 
+00381 \textcolor{preprocessor}{#ifdef H5\_HAVE\_PARALLEL}
+00382     \hyperlink{struct_h5_d__chunk__info__t}{H5D\_chunk\_info\_t} **select\_chunk;    \textcolor{comment}{/* Store the information about whether this chunk
+       is selected or not */}
+00383 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5\_HAVE\_PARALLEL */}\textcolor{preprocessor}{}
+00384 \} \hyperlink{struct_h5_d__chunk__map__t}{H5D\_chunk\_map\_t};
+00385 
+00386 \textcolor{comment}{/* Cached information about a particular chunk */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00387}\hyperlink{struct_h5_d__chunk__cached__t}{00387} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__chunk__cached__t}{H5D\_chunk\_cached\_t} \{
+00388     hbool\_t     valid;                          \textcolor{comment}{/*whether cache info is valid*/}
+00389     hsize\_t scaled[H5O\_LAYOUT\_NDIMS];   \textcolor{comment}{/*scaled offset of chunk*/}
+00390     haddr\_t addr;               \textcolor{comment}{/*file address of chunk */}
+00391     uint32\_t    nbytes;             \textcolor{comment}{/*size of stored data   */}
+00392     hsize\_t     chunk\_idx;          \textcolor{comment}{/*index of chunk in dataset */}
+00393     \textcolor{keywordtype}{unsigned}    filter\_mask;            \textcolor{comment}{/*excluded filters  */}
+00394 \} \hyperlink{struct_h5_d__chunk__cached__t}{H5D\_chunk\_cached\_t};
+00395 
+00396 \textcolor{comment}{/****************************/}
+00397 \textcolor{comment}{/* Virtual dataset typedefs */}
+00398 \textcolor{comment}{/****************************/}
+00399 
+00400 \textcolor{comment}{/* List of files held open during refresh operations */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00401}\hyperlink{struct_h5_d__virtual__held__file__t}{00401} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__virtual__held__file__t}{H5D\_virtual\_held\_file\_t} \{
+00402     \hyperlink{struct_h5_f__t}{H5F\_t} *\hyperlink{structfile}{file};                                \textcolor{comment}{/* Pointer to file held open */}
+00403     \textcolor{keyword}{struct }\hyperlink{struct_h5_d__virtual__held__file__t}{H5D\_virtual\_held\_file\_t} *next;       \textcolor{comment}{/* Pointer to next node in list */}
+00404 \} \hyperlink{struct_h5_d__virtual__held__file__t}{H5D\_virtual\_held\_file\_t};
+00405 
+00406 \textcolor{comment}{/* The raw data chunk cache */}
+00407 \textcolor{keyword}{struct }H5D\_rdcc\_ent\_t;  \textcolor{comment}{/* Forward declaration of struct used below */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00408}\hyperlink{struct_h5_d__rdcc__t}{00408} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__rdcc__t}{H5D\_rdcc\_t} \{
+00409     \textcolor{keyword}{struct }\{
+00410         \textcolor{keywordtype}{unsigned}    ninits; \textcolor{comment}{/* Number of chunk creations        */}
+00411         \textcolor{keywordtype}{unsigned}    nhits;  \textcolor{comment}{/* Number of cache hits         */}
+00412         \textcolor{keywordtype}{unsigned}    nmisses;\textcolor{comment}{/* Number of cache misses       */}
+00413         \textcolor{keywordtype}{unsigned}    nflushes;\textcolor{comment}{/* Number of cache flushes     */}
+00414     \} stats;
+00415     \textcolor{keywordtype}{size\_t}      nbytes\_max; \textcolor{comment}{/* Maximum cached raw data in bytes */}
+00416     \textcolor{keywordtype}{size\_t}      nslots; \textcolor{comment}{/* Number of chunk slots allocated  */}
+00417     \textcolor{keywordtype}{double}      w0;     \textcolor{comment}{/* Chunk preemption policy          */}
+00418     \textcolor{keyword}{struct }H5D\_rdcc\_ent\_t *head; \textcolor{comment}{/* Head of doubly linked list      */}
+00419     \textcolor{keyword}{struct }H5D\_rdcc\_ent\_t *tail; \textcolor{comment}{/* Tail of doubly linked list      */}
+00420     \textcolor{keyword}{struct }H5D\_rdcc\_ent\_t *tmp\_head; \textcolor{comment}{/* Head of temporary doubly linked list.  Chunks on this list are not
+       in the hash table (slot).  The head entry is a sentinel (does not refer to an actual chunk). */}
+00421     \textcolor{keywordtype}{size\_t}      nbytes\_used; \textcolor{comment}{/* Current cached raw data in bytes */}
+00422     \textcolor{keywordtype}{int}         nused;  \textcolor{comment}{/* Number of chunk slots in use     */}
+00423     \hyperlink{struct_h5_d__chunk__cached__t}{H5D\_chunk\_cached\_t} last;    \textcolor{comment}{/* Cached copy of last chunk information */}
+00424     \textcolor{keyword}{struct }H5D\_rdcc\_ent\_t **slot; \textcolor{comment}{/* Chunk slots, each points to a chunk*/}
+00425     H5SL\_t      *sel\_chunks; \textcolor{comment}{/* Skip list containing information for each chunk selected */}
+00426     \hyperlink{struct_h5_s__t}{H5S\_t}      *single\_space; \textcolor{comment}{/* Dataspace for single element I/O on chunks */}
+00427     \hyperlink{struct_h5_d__chunk__info__t}{H5D\_chunk\_info\_t}    *single\_chunk\_info;  \textcolor{comment}{/* Pointer to single chunk's info */}
+00428 
+00429     \textcolor{comment}{/* Cached information about scaled dataspace dimensions */}
+00430     hsize\_t             scaled\_dims[H5S\_MAX\_RANK];          \textcolor{comment}{/* The scaled dim sizes */}
+00431     hsize\_t             scaled\_power2up[H5S\_MAX\_RANK];      \textcolor{comment}{/* The scaled dim sizes, rounded up to next
+       power of 2 */}
+00432     \textcolor{keywordtype}{unsigned}            scaled\_encode\_bits[H5S\_MAX\_RANK];   \textcolor{comment}{/* The number of bits needed to encode the
+       scaled dim sizes */}
+00433 \} \hyperlink{struct_h5_d__rdcc__t}{H5D\_rdcc\_t};
+00434 
+00435 \textcolor{comment}{/* The raw data contiguous data cache */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00436}\hyperlink{struct_h5_d__rdcdc__t}{00436} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__rdcdc__t}{H5D\_rdcdc\_t} \{
+00437     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *sieve\_buf;   \textcolor{comment}{/* Buffer to hold data sieve buffer */}
+00438     haddr\_t sieve\_loc;          \textcolor{comment}{/* File location (offset) of the data sieve buffer */}
+00439     \textcolor{keywordtype}{size\_t} sieve\_size;          \textcolor{comment}{/* Size of the data sieve buffer used (in bytes) */}
+00440     \textcolor{keywordtype}{size\_t} sieve\_buf\_size;      \textcolor{comment}{/* Size of the data sieve buffer allocated (in bytes) */}
+00441     hbool\_t sieve\_dirty;        \textcolor{comment}{/* Flag to indicate that the data sieve buffer is dirty */}
+00442 \} \hyperlink{struct_h5_d__rdcdc__t}{H5D\_rdcdc\_t};
+00443 
+00444 \textcolor{comment}{/*}
+00445 \textcolor{comment}{ * A dataset is made of two layers, an H5D\_t struct that is unique to}
+00446 \textcolor{comment}{ * each instance of an opened datset, and a shared struct that is only}
+00447 \textcolor{comment}{ * created once for a given dataset.  Thus, if a dataset is opened twice,}
+00448 \textcolor{comment}{ * there will be two IDs and two H5D\_t structs, both sharing one H5D\_shared\_t.}
+00449 \textcolor{comment}{ */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00450}\hyperlink{struct_h5_d__shared__t}{00450} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__shared__t}{H5D\_shared\_t} \{
+00451     \textcolor{keywordtype}{size\_t}              fo\_count;       \textcolor{comment}{/* Reference count */}
+00452     hbool\_t             closing;        \textcolor{comment}{/* Flag to indicate dataset is closing */}
+00453     hid\_t               type\_id;        \textcolor{comment}{/* ID for dataset's datatype    */}
+00454     \hyperlink{struct_h5_t__t}{H5T\_t}              *type;           \textcolor{comment}{/* Datatype for this dataset     */}
+00455     \hyperlink{struct_h5_s__t}{H5S\_t}              *space;          \textcolor{comment}{/* Dataspace of this dataset    */}
+00456     hid\_t               dcpl\_id;        \textcolor{comment}{/* Dataset creation property id */}
+00457     H5D\_dcpl\_cache\_t    dcpl\_cache;     \textcolor{comment}{/* Cached DCPL values */}
+00458     H5O\_layout\_t        layout;         \textcolor{comment}{/* Data layout                  */}
+00459     hbool\_t             checked\_filters;\textcolor{comment}{/* TRUE if dataset passes can\_apply check */}
+00460 
+00461     \textcolor{comment}{/* Cached dataspace info */}
+00462     \textcolor{keywordtype}{unsigned}            ndims;          \textcolor{comment}{/* The dataset's dataspace rank */}
+00463     hsize\_t             curr\_dims[H5S\_MAX\_RANK];    \textcolor{comment}{/* The curr. size of dataset dimensions */}
+00464     hsize\_t             curr\_power2up[H5S\_MAX\_RANK];    \textcolor{comment}{/* The curr. dim sizes, rounded up to next power of
+       2 */}
+00465     hsize\_t             max\_dims[H5S\_MAX\_RANK];     \textcolor{comment}{/* The max. size of dataset dimensions */} 
+00466 
+00467     \textcolor{comment}{/* Buffered/cached information for types of raw data storage*/}
+00468     \textcolor{keyword}{struct }\{
+00469         \hyperlink{struct_h5_d__rdcdc__t}{H5D\_rdcdc\_t}     contig;         \textcolor{comment}{/* Information about contiguous data */}
+00470                                         \textcolor{comment}{/* (Note that the "contig" cache}
+00471 \textcolor{comment}{                                         * information can be used by a chunked}
+00472 \textcolor{comment}{                                         * dataset in certain circumstances)}
+00473 \textcolor{comment}{                                         */}
+00474         \hyperlink{struct_h5_d__rdcc__t}{H5D\_rdcc\_t}      chunk;          \textcolor{comment}{/* Information about chunked data */}
+00475     \} cache;
+00476 
+00477     H5D\_append\_flush\_t  append\_flush;   \textcolor{comment}{/* Append flush property information */}
+00478     \textcolor{keywordtype}{char}                *extfile\_prefix; \textcolor{comment}{/* expanded external file prefix */}
+00479 \} \hyperlink{struct_h5_d__shared__t}{H5D\_shared\_t};
+00480 
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00481}\hyperlink{struct_h5_d__t}{00481} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__t}{H5D\_t} \{
+00482     H5O\_loc\_t           oloc;           \textcolor{comment}{/* Object header location       */}
+00483     H5G\_name\_t          path;           \textcolor{comment}{/* Group hierarchy path         */}
+00484     \hyperlink{struct_h5_d__shared__t}{H5D\_shared\_t}        *shared;        \textcolor{comment}{/* cached information from file */}
+00485 \};
+00486 
+00487 \textcolor{comment}{/* Enumerated type for allocating dataset's storage */}
+00488 \textcolor{keyword}{typedef} \textcolor{keyword}{enum} \{
+00489     H5D\_ALLOC\_CREATE,           \textcolor{comment}{/* Dataset is being created */}
+00490     H5D\_ALLOC\_OPEN,             \textcolor{comment}{/* Dataset is being opened */}
+00491     H5D\_ALLOC\_EXTEND,           \textcolor{comment}{/* Dataset's dataspace is being extended */}
+00492     H5D\_ALLOC\_WRITE             \textcolor{comment}{/* Dataset is being extended */}
+00493 \} H5D\_time\_alloc\_t;
+00494 
+00495 
+00496 \textcolor{comment}{/* Typedef for dataset creation operation */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00497}\hyperlink{struct_h5_d__obj__create__t}{00497} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\{
+00498     hid\_t type\_id;              \textcolor{comment}{/* Datatype for dataset */}
+00499     \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *space;         \textcolor{comment}{/* Dataspace for dataset */}
+00500     hid\_t dcpl\_id;              \textcolor{comment}{/* Dataset creation property list */}
+00501     hid\_t dapl\_id;              \textcolor{comment}{/* Dataset access property list */}
+00502 \} \hyperlink{struct_h5_d__obj__create__t}{H5D\_obj\_create\_t};
+00503 
+00504 \textcolor{comment}{/* Typedef for filling a buffer with a fill value */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00505}\hyperlink{struct_h5_d__fill__buf__info__t}{00505} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\hyperlink{struct_h5_d__fill__buf__info__t}{H5D\_fill\_buf\_info\_t} \{
+00506     H5MM\_allocate\_t fill\_alloc\_func;    \textcolor{comment}{/* Routine to call for allocating fill buffer */}
+00507     \textcolor{keywordtype}{void}        *fill\_alloc\_info;       \textcolor{comment}{/* Extra info for allocation routine */}
+00508     H5MM\_free\_t fill\_free\_func;         \textcolor{comment}{/* Routine to call for freeing fill buffer */}
+00509     \textcolor{keywordtype}{void}        *fill\_free\_info;        \textcolor{comment}{/* Extra info for free routine */}
+00510     \hyperlink{struct_h5_t__path__t}{H5T\_path\_t} *fill\_to\_mem\_tpath;      \textcolor{comment}{/* Datatype conversion path for converting the fill value
+       to the memory buffer */}
+00511     \hyperlink{struct_h5_t__path__t}{H5T\_path\_t} *mem\_to\_dset\_tpath;      \textcolor{comment}{/* Datatype conversion path for converting the memory
+       buffer to the dataset elements */}
+00512     \textcolor{keyword}{const} H5O\_fill\_t *fill;             \textcolor{comment}{/* Pointer to fill value */}
+00513     \textcolor{keywordtype}{void}       *fill\_buf;               \textcolor{comment}{/* Fill buffer */}
+00514     \textcolor{keywordtype}{size\_t}      fill\_buf\_size;          \textcolor{comment}{/* Size of fill buffer */}
+00515     hbool\_t     use\_caller\_fill\_buf;    \textcolor{comment}{/* Whether the caller provided the fill buffer */}
+00516     \textcolor{keywordtype}{void}       *bkg\_buf;                \textcolor{comment}{/* Background conversion buffer */}
+00517     \textcolor{keywordtype}{size\_t}      bkg\_buf\_size;           \textcolor{comment}{/* Size of background buffer */}
+00518     \hyperlink{struct_h5_t__t}{H5T\_t}      *mem\_type;               \textcolor{comment}{/* Pointer to memory datatype */}
+00519     \textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *file\_type;             \textcolor{comment}{/* Pointer to file datatype */}
+00520     hid\_t       mem\_tid;                \textcolor{comment}{/* ID for memory version of disk datatype */}
+00521     hid\_t       file\_tid;               \textcolor{comment}{/* ID for disk datatype */}
+00522     \textcolor{keywordtype}{size\_t}      mem\_elmt\_size, file\_elmt\_size;       \textcolor{comment}{/* Size of element in memory and on disk */}
+00523     \textcolor{keywordtype}{size\_t}      max\_elmt\_size;          \textcolor{comment}{/* Max. size of memory or file datatype */}
+00524     \textcolor{keywordtype}{size\_t}      elmts\_per\_buf;          \textcolor{comment}{/* # of elements that fit into a buffer */}
+00525     hbool\_t     has\_vlen\_fill\_type;     \textcolor{comment}{/* Whether the datatype for the fill value has a variable-length
+       component */}
+00526 \} \hyperlink{struct_h5_d__fill__buf__info__t}{H5D\_fill\_buf\_info\_t};
+00527 
+00528 \textcolor{comment}{/* Internal data structure for computing variable-length dataset's total size */}
+\Hypertarget{_h_d_f5_21_810_81_2include_2_h5_dpkg_8h_source_l00529}\hyperlink{struct_h5_d__vlen__bufsize__t}{00529} \textcolor{keyword}{typedef} \textcolor{keyword}{struct }\{
+00530     \hyperlink{struct_h5_d__t}{H5D\_t} *dset;        \textcolor{comment}{/* Dataset for operation */}
+00531     \hyperlink{struct_h5_s__t}{H5S\_t} *fspace;      \textcolor{comment}{/* Dataset's dataspace for operation */}
+00532     \hyperlink{struct_h5_s__t}{H5S\_t} *mspace;      \textcolor{comment}{/* Memory dataspace for operation */}
+00533     \textcolor{keywordtype}{void} *fl\_tbuf;      \textcolor{comment}{/* Ptr to the temporary buffer we are using for fixed-length data */}
+00534     \textcolor{keywordtype}{void} *vl\_tbuf;      \textcolor{comment}{/* Ptr to the temporary buffer we are using for VL data */}
+00535     hid\_t xfer\_pid;     \textcolor{comment}{/* ID of the dataset xfer property list */}
+00536     hsize\_t size;       \textcolor{comment}{/* Accumulated number of bytes for the selection */}
+00537 \} \hyperlink{struct_h5_d__vlen__bufsize__t}{H5D\_vlen\_bufsize\_t};
+00538 
+00539 
+00540 \textcolor{comment}{/*****************************/}
+00541 \textcolor{comment}{/* Package Private Variables */}
+00542 \textcolor{comment}{/*****************************/}
+00543 \textcolor{keyword}{extern} H5D\_dxpl\_cache\_t H5D\_def\_dxpl\_cache;
+00544 
+00545 \textcolor{comment}{/* Storage layout class I/O operations */}
+00546 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_d__layout__ops__t}{H5D\_layout\_ops\_t} H5D\_LOPS\_CONTIG[1];
+00547 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_d__layout__ops__t}{H5D\_layout\_ops\_t} H5D\_LOPS\_EFL[1];
+00548 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_d__layout__ops__t}{H5D\_layout\_ops\_t} H5D\_LOPS\_COMPACT[1];
+00549 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_d__layout__ops__t}{H5D\_layout\_ops\_t} H5D\_LOPS\_CHUNK[1];
+00550 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_d__layout__ops__t}{H5D\_layout\_ops\_t} H5D\_LOPS\_VIRTUAL[1];
+00551 
+00552 \textcolor{comment}{/* Chunked layout operations */}
+00553 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_d__chunk__ops__t}{H5D\_chunk\_ops\_t} H5D\_COPS\_BTREE[1];
+00554 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_d__chunk__ops__t}{H5D\_chunk\_ops\_t} H5D\_COPS\_NONE[1];
+00555 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_d__chunk__ops__t}{H5D\_chunk\_ops\_t} H5D\_COPS\_SINGLE[1];
+00556 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_d__chunk__ops__t}{H5D\_chunk\_ops\_t} H5D\_COPS\_EARRAY[1];
+00557 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_d__chunk__ops__t}{H5D\_chunk\_ops\_t} H5D\_COPS\_FARRAY[1];
+00558 H5\_DLLVAR \textcolor{keyword}{const} \hyperlink{struct_h5_d__chunk__ops__t}{H5D\_chunk\_ops\_t} H5D\_COPS\_BT2[1];
+00559 
+00560 \textcolor{comment}{/* The v2 B-tree class for indexing chunked datasets with >1 unlimited dimensions */}
+00561 H5\_DLLVAR \textcolor{keyword}{const} H5B2\_class\_t H5D\_BT2[1];
+00562 H5\_DLLVAR \textcolor{keyword}{const} H5B2\_class\_t H5D\_BT2\_FILT[1];
+00563 
+00564 
+00565 \textcolor{comment}{/******************************/}
+00566 \textcolor{comment}{/* Package Private Prototypes */}
+00567 \textcolor{comment}{/******************************/}
+00568 
+00569 H5\_DLL \hyperlink{struct_h5_d__t}{H5D\_t} *H5D\_\_create(\hyperlink{struct_h5_f__t}{H5F\_t} *\hyperlink{structfile}{file}, hid\_t type\_id, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *space,
+00570     hid\_t dcpl\_id, hid\_t dapl\_id, hid\_t dxpl\_id);
+00571 H5\_DLL \hyperlink{struct_h5_d__t}{H5D\_t} *H5D\_\_create\_named(\textcolor{keyword}{const} H5G\_loc\_t *loc, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,
+00572     hid\_t type\_id, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *space, hid\_t lcpl\_id, hid\_t dcpl\_id,
+00573     hid\_t dapl\_id, hid\_t dxpl\_id);
+00574 H5\_DLL \hyperlink{struct_h5_d__t}{H5D\_t} *H5D\_\_open\_name(\textcolor{keyword}{const} H5G\_loc\_t *loc, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *name,
+00575     hid\_t dapl\_id, hid\_t dxpl\_id);
+00576 H5\_DLL herr\_t H5D\_\_get\_space\_status(\hyperlink{struct_h5_d__t}{H5D\_t} *dset, H5D\_space\_status\_t *allocation,
+00577     hid\_t dxpl\_id);
+00578 H5\_DLL herr\_t H5D\_\_alloc\_storage(\textcolor{keyword}{const} \hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info, H5D\_time\_alloc\_t time\_alloc,
+00579     hbool\_t full\_overwrite, hsize\_t old\_dim[]);
+00580 H5\_DLL herr\_t H5D\_\_get\_storage\_size(\hyperlink{struct_h5_d__t}{H5D\_t} *dset, hid\_t dxpl\_id, hsize\_t *storage\_size);
+00581 H5\_DLL haddr\_t H5D\_\_get\_offset(\textcolor{keyword}{const} \hyperlink{struct_h5_d__t}{H5D\_t} *dset);
+00582 H5\_DLL \textcolor{keywordtype}{void} *H5D\_\_vlen\_get\_buf\_size\_alloc(\textcolor{keywordtype}{size\_t} size, \textcolor{keywordtype}{void} *info);
+00583 H5\_DLL herr\_t H5D\_\_vlen\_get\_buf\_size(\textcolor{keywordtype}{void} *elem, hid\_t type\_id, \textcolor{keywordtype}{unsigned} ndim,
+00584     \textcolor{keyword}{const} hsize\_t *\hyperlink{structpoint}{point}, \textcolor{keywordtype}{void} *op\_data);
+00585 H5\_DLL herr\_t H5D\_\_check\_filters(\hyperlink{struct_h5_d__t}{H5D\_t} *dataset);
+00586 H5\_DLL herr\_t H5D\_\_set\_extent(\hyperlink{struct_h5_d__t}{H5D\_t} *dataset, \textcolor{keyword}{const} hsize\_t *size, hid\_t dxpl\_id);
+00587 H5\_DLL herr\_t H5D\_\_get\_dxpl\_cache(hid\_t dxpl\_id, H5D\_dxpl\_cache\_t **cache);
+00588 H5\_DLL herr\_t H5D\_\_flush\_sieve\_buf(\hyperlink{struct_h5_d__t}{H5D\_t} *dataset, hid\_t dxpl\_id);
+00589 H5\_DLL herr\_t H5D\_\_flush\_real(\hyperlink{struct_h5_d__t}{H5D\_t} *dataset, hid\_t dxpl\_id);
+00590 H5\_DLL herr\_t H5D\_\_mark(\textcolor{keyword}{const} \hyperlink{struct_h5_d__t}{H5D\_t} *dataset, hid\_t dxpl\_id, \textcolor{keywordtype}{unsigned} flags);
+00591 H5\_DLL herr\_t H5D\_\_refresh(hid\_t dset\_id, \hyperlink{struct_h5_d__t}{H5D\_t} *dataset, hid\_t dxpl\_id);
+00592 \textcolor{preprocessor}{#ifdef H5\_DEBUG\_BUILD}
+00593 H5\_DLL herr\_t H5D\_set\_io\_info\_dxpls(\hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info, hid\_t dxpl\_id);
+00594 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5\_DEBUG\_BUILD */}\textcolor{preprocessor}{}
+00595 
+00596 \textcolor{comment}{/* To convert a dataset's chunk indexing type to v1 B-tree */}
+00597 H5\_DLL herr\_t H5D\_\_format\_convert(\hyperlink{struct_h5_d__t}{H5D\_t} *dataset, hid\_t dxpl\_id);
+00598 
+00599 \textcolor{comment}{/* Internal I/O routines */}
+00600 H5\_DLL herr\_t H5D\_\_read(\hyperlink{struct_h5_d__t}{H5D\_t} *dataset, hid\_t mem\_type\_id,
+00601     \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space, hid\_t dset\_xfer\_plist,
+00602     \textcolor{keywordtype}{void} *buf\textcolor{comment}{/*out*/});
+00603 H5\_DLL herr\_t H5D\_\_write(\hyperlink{struct_h5_d__t}{H5D\_t} *dataset, hid\_t mem\_type\_id,
+00604     \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space, hid\_t dset\_xfer\_plist,
+00605     \textcolor{keyword}{const} \textcolor{keywordtype}{void} *buf);
+00606 
+00607 \textcolor{comment}{/* Functions that perform direct serial I/O operations */}
+00608 H5\_DLL herr\_t H5D\_\_select\_read(\textcolor{keyword}{const} \hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00609     \textcolor{keyword}{const} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info,
+00610     hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space);
+00611 H5\_DLL herr\_t H5D\_\_select\_write(\textcolor{keyword}{const} \hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00612     \textcolor{keyword}{const} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info,
+00613     hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space);
+00614 
+00615 \textcolor{comment}{/* Functions that perform scatter-gather serial I/O operations */}
+00616 H5\_DLL herr\_t H5D\_\_scatter\_mem(\textcolor{keyword}{const} \textcolor{keywordtype}{void} *\_tscat\_buf,
+00617     \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *space, H5S\_sel\_iter\_t *iter, \textcolor{keywordtype}{size\_t} nelmts,
+00618     \textcolor{keyword}{const} H5D\_dxpl\_cache\_t *dxpl\_cache, \textcolor{keywordtype}{void} *\_buf);
+00619 H5\_DLL herr\_t H5D\_\_scatgath\_read(\textcolor{keyword}{const} \hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00620     \textcolor{keyword}{const} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info,
+00621     hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space);
+00622 H5\_DLL herr\_t H5D\_\_scatgath\_write(\textcolor{keyword}{const} \hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00623     \textcolor{keyword}{const} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info,
+00624     hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space);
+00625 
+00626 \textcolor{comment}{/* Functions that operate on dataset's layout information */}
+00627 H5\_DLL herr\_t H5D\_\_layout\_set\_io\_ops(\textcolor{keyword}{const} \hyperlink{struct_h5_d__t}{H5D\_t} *dataset);
+00628 H5\_DLL \textcolor{keywordtype}{size\_t} H5D\_\_layout\_meta\_size(\textcolor{keyword}{const} \hyperlink{struct_h5_f__t}{H5F\_t} *f, \textcolor{keyword}{const} H5O\_layout\_t *layout,
+00629     hbool\_t include\_compact\_data);
+00630 H5\_DLL herr\_t H5D\_\_layout\_set\_latest\_version(H5O\_layout\_t *layout,
+00631     \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *space, \textcolor{keyword}{const} H5D\_dcpl\_cache\_t *dcpl\_cache);
+00632 H5\_DLL herr\_t H5D\_\_layout\_set\_latest\_indexing(H5O\_layout\_t *layout,
+00633     \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *space, \textcolor{keyword}{const} H5D\_dcpl\_cache\_t *dcpl\_cache);
+00634 H5\_DLL herr\_t H5D\_\_layout\_oh\_create(\hyperlink{struct_h5_f__t}{H5F\_t} *file, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh,
+00635     \hyperlink{struct_h5_d__t}{H5D\_t} *dset, hid\_t dapl\_id);
+00636 H5\_DLL herr\_t H5D\_\_layout\_oh\_read(\hyperlink{struct_h5_d__t}{H5D\_t} *dset, hid\_t dxpl\_id, hid\_t dapl\_id,
+00637     \hyperlink{struct_h5_p__genplist__t}{H5P\_genplist\_t} *plist);
+00638 H5\_DLL herr\_t H5D\_\_layout\_oh\_write(\hyperlink{struct_h5_d__t}{H5D\_t} *dataset, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh,
+00639     \textcolor{keywordtype}{unsigned} update\_flags);
+00640 
+00641 \textcolor{comment}{/* Functions that operate on contiguous storage */}
+00642 H5\_DLL herr\_t H5D\_\_contig\_alloc(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id,
+00643     H5O\_storage\_contig\_t *storage);
+00644 H5\_DLL hbool\_t H5D\_\_contig\_is\_space\_alloc(\textcolor{keyword}{const} H5O\_storage\_t *storage);
+00645 H5\_DLL herr\_t H5D\_\_contig\_fill(\textcolor{keyword}{const} \hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info);
+00646 H5\_DLL herr\_t H5D\_\_contig\_read(\hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info, \textcolor{keyword}{const} 
+      \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info,
+00647     hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space,
+00648     \hyperlink{struct_h5_d__chunk__map__t}{H5D\_chunk\_map\_t} *fm);
+00649 H5\_DLL herr\_t H5D\_\_contig\_write(\hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info, \textcolor{keyword}{const} 
+      \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info,
+00650     hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space,
+00651     \hyperlink{struct_h5_d__chunk__map__t}{H5D\_chunk\_map\_t} *fm);
+00652 H5\_DLL herr\_t H5D\_\_contig\_copy(\hyperlink{struct_h5_f__t}{H5F\_t} *f\_src, \textcolor{keyword}{const} H5O\_storage\_contig\_t *storage\_src,
+00653     \hyperlink{struct_h5_f__t}{H5F\_t} *f\_dst, H5O\_storage\_contig\_t *storage\_dst, \hyperlink{struct_h5_t__t}{H5T\_t} *src\_dtype,
+00654     H5O\_copy\_t *cpy\_info, hid\_t dxpl\_id);
+00655 H5\_DLL herr\_t H5D\_\_contig\_delete(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id,
+00656     \textcolor{keyword}{const} H5O\_storage\_t *store);
+00657 
+00658 \textcolor{comment}{/* Functions that operate on chunked dataset storage */}
+00659 H5\_DLL htri\_t H5D\_\_chunk\_cacheable(\textcolor{keyword}{const} \hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info, haddr\_t caddr,
+00660     hbool\_t write\_op);
+00661 H5\_DLL herr\_t H5D\_\_chunk\_create(\textcolor{keyword}{const} \hyperlink{struct_h5_d__t}{H5D\_t} *dset \textcolor{comment}{/*in,out*/}, hid\_t dxpl\_id);
+00662 H5\_DLL herr\_t H5D\_\_chunk\_set\_info(\textcolor{keyword}{const} \hyperlink{struct_h5_d__t}{H5D\_t} *dset);
+00663 H5\_DLL hbool\_t H5D\_\_chunk\_is\_space\_alloc(\textcolor{keyword}{const} H5O\_storage\_t *storage);
+00664 H5\_DLL herr\_t H5D\_\_chunk\_lookup(\textcolor{keyword}{const} \hyperlink{struct_h5_d__t}{H5D\_t} *dset, hid\_t dxpl\_id,
+00665     \textcolor{keyword}{const} hsize\_t *scaled, \hyperlink{struct_h5_d__chunk__ud__t}{H5D\_chunk\_ud\_t} *udata);
+00666 H5\_DLL herr\_t H5D\_\_chunk\_allocated(\hyperlink{struct_h5_d__t}{H5D\_t} *dset, hid\_t dxpl\_id, hsize\_t *nbytes);
+00667 H5\_DLL herr\_t H5D\_\_chunk\_allocate(\textcolor{keyword}{const} \hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info, hbool\_t full\_overwrite, 
+      hsize\_t old\_dim[]);
+00668 H5\_DLL herr\_t H5D\_\_chunk\_update\_old\_edge\_chunks(\hyperlink{struct_h5_d__t}{H5D\_t} *dset, hid\_t dxpl\_id,
+00669     hsize\_t old\_dim[]);
+00670 H5\_DLL herr\_t H5D\_\_chunk\_prune\_by\_extent(\hyperlink{struct_h5_d__t}{H5D\_t} *dset, hid\_t dxpl\_id,
+00671     \textcolor{keyword}{const} hsize\_t *old\_dim);
+00672 H5\_DLL herr\_t H5D\_\_chunk\_set\_sizes(\hyperlink{struct_h5_d__t}{H5D\_t} *dset);
+00673 \textcolor{preprocessor}{#ifdef H5\_HAVE\_PARALLEL}
+00674 H5\_DLL herr\_t H5D\_\_chunk\_addrmap(\textcolor{keyword}{const} \hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info, haddr\_t chunk\_addr[]);
+00675 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5\_HAVE\_PARALLEL */}\textcolor{preprocessor}{}
+00676 H5\_DLL herr\_t H5D\_\_chunk\_update\_cache(\hyperlink{struct_h5_d__t}{H5D\_t} *dset, hid\_t dxpl\_id);
+00677 H5\_DLL herr\_t H5D\_\_chunk\_copy(\hyperlink{struct_h5_f__t}{H5F\_t} *f\_src, H5O\_storage\_chunk\_t *storage\_src,
+00678     H5O\_layout\_chunk\_t *layout\_src, \hyperlink{struct_h5_f__t}{H5F\_t} *f\_dst, H5O\_storage\_chunk\_t *storage\_dst,
+00679     \textcolor{keyword}{const} \hyperlink{struct_h5_s__extent__t}{H5S\_extent\_t} *ds\_extent\_src, \textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *dt\_src,
+00680     \textcolor{keyword}{const} H5O\_pline\_t *pline\_src, H5O\_copy\_t *cpy\_info, hid\_t dxpl\_id);
+00681 H5\_DLL herr\_t H5D\_\_chunk\_bh\_info(\textcolor{keyword}{const} H5O\_loc\_t *loc, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh,
+00682     H5O\_layout\_t *layout, hsize\_t *btree\_size);
+00683 H5\_DLL herr\_t H5D\_\_chunk\_dump\_index(\hyperlink{struct_h5_d__t}{H5D\_t} *dset, hid\_t dxpl\_id, FILE *stream);
+00684 H5\_DLL herr\_t H5D\_\_chunk\_delete(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \hyperlink{struct_h5_o__t}{H5O\_t} *oh,
+00685     H5O\_storage\_t *store);
+00686 H5\_DLL herr\_t H5D\_\_chunk\_direct\_write(\textcolor{keyword}{const} \hyperlink{struct_h5_d__t}{H5D\_t} *dset, hid\_t dxpl\_id, uint32\_t filters, 
+00687          hsize\_t *offset, uint32\_t data\_size, \textcolor{keyword}{const} \textcolor{keywordtype}{void} *buf);
+00688 \textcolor{preprocessor}{#ifdef H5D\_CHUNK\_DEBUG}
+00689 H5\_DLL herr\_t H5D\_\_chunk\_stats(\textcolor{keyword}{const} \hyperlink{struct_h5_d__t}{H5D\_t} *dset, hbool\_t headers);
+00690 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5D\_CHUNK\_DEBUG */}\textcolor{preprocessor}{}
+00691 
+00692 \textcolor{comment}{/* format convert */}
+00693 H5\_DLL herr\_t H5D\_\_chunk\_format\_convert(\hyperlink{struct_h5_d__t}{H5D\_t} *dset, \hyperlink{struct_h5_d__chk__idx__info__t}{H5D\_chk\_idx\_info\_t} *idx\_info, 
+      \hyperlink{struct_h5_d__chk__idx__info__t}{H5D\_chk\_idx\_info\_t} *new\_idx\_info);
+00694 
+00695 \textcolor{comment}{/* Functions that operate on compact dataset storage */}
+00696 H5\_DLL herr\_t H5D\_\_compact\_fill(\textcolor{keyword}{const} \hyperlink{struct_h5_d__t}{H5D\_t} *dset, hid\_t dxpl\_id);
+00697 H5\_DLL herr\_t H5D\_\_compact\_copy(\hyperlink{struct_h5_f__t}{H5F\_t} *f\_src, H5O\_storage\_compact\_t *storage\_src,
+00698     \hyperlink{struct_h5_f__t}{H5F\_t} *f\_dst, H5O\_storage\_compact\_t *storage\_dst, \hyperlink{struct_h5_t__t}{H5T\_t} *src\_dtype,
+00699     H5O\_copy\_t *cpy\_info, hid\_t dxpl\_id);
+00700 
+00701 \textcolor{comment}{/* Functions that operate on virtual dataset storage */}
+00702 H5\_DLL herr\_t H5D\_\_virtual\_copy\_layout(H5O\_layout\_t *layout);
+00703 H5\_DLL herr\_t H5D\_\_virtual\_set\_extent\_unlim(\textcolor{keyword}{const} \hyperlink{struct_h5_d__t}{H5D\_t} *dset, hid\_t dxpl\_id);
+00704 H5\_DLL herr\_t H5D\_\_virtual\_reset\_layout(H5O\_layout\_t *layout);
+00705 H5\_DLL herr\_t H5D\_\_virtual\_delete(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, H5O\_storage\_t *storage);
+00706 H5\_DLL herr\_t H5D\_\_virtual\_copy(\hyperlink{struct_h5_f__t}{H5F\_t} *f\_src, H5O\_layout\_t *layout\_dst,
+00707     hid\_t dxpl\_id);
+00708 H5\_DLL herr\_t H5D\_\_virtual\_init(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, \textcolor{keyword}{const} \hyperlink{struct_h5_d__t}{H5D\_t} *dset,
+00709     hid\_t dapl\_id);
+00710 H5\_DLL hbool\_t H5D\_\_virtual\_is\_space\_alloc(\textcolor{keyword}{const} H5O\_storage\_t *storage);
+00711 H5\_DLL herr\_t H5D\_\_virtual\_hold\_source\_dset\_files(\textcolor{keyword}{const} \hyperlink{struct_h5_d__t}{H5D\_t} *dset, 
+      \hyperlink{struct_h5_d__virtual__held__file__t}{H5D\_virtual\_held\_file\_t} **head);
+00712 H5\_DLL herr\_t H5D\_\_virtual\_refresh\_source\_dsets(\hyperlink{struct_h5_d__t}{H5D\_t} *dset, hid\_t dxpl\_id);
+00713 H5\_DLL herr\_t H5D\_\_virtual\_release\_source\_dset\_files(\hyperlink{struct_h5_d__virtual__held__file__t}{H5D\_virtual\_held\_file\_t} *head);
+00714 
+00715 \textcolor{comment}{/* Functions that operate on EFL (External File List)*/}
+00716 H5\_DLL hbool\_t H5D\_\_efl\_is\_space\_alloc(\textcolor{keyword}{const} H5O\_storage\_t *storage);
+00717 H5\_DLL herr\_t H5D\_\_efl\_bh\_info(\hyperlink{struct_h5_f__t}{H5F\_t} *f, hid\_t dxpl\_id, H5O\_efl\_t *efl,
+00718     hsize\_t *heap\_size);
+00719 
+00720 \textcolor{comment}{/* Functions that perform fill value operations on datasets */}
+00721 H5\_DLL herr\_t H5D\_\_fill(\textcolor{keyword}{const} \textcolor{keywordtype}{void} *fill, \textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *fill\_type, \textcolor{keywordtype}{void} *buf,
+00722     \textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *buf\_type, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *space, hid\_t dxpl\_id);
+00723 H5\_DLL herr\_t H5D\_\_fill\_init(\hyperlink{struct_h5_d__fill__buf__info__t}{H5D\_fill\_buf\_info\_t} *fb\_info, \textcolor{keywordtype}{void} *caller\_fill\_buf,
+00724     H5MM\_allocate\_t alloc\_func, \textcolor{keywordtype}{void} *alloc\_info,
+00725     H5MM\_free\_t free\_func, \textcolor{keywordtype}{void} *free\_info,
+00726     \textcolor{keyword}{const} H5O\_fill\_t *fill, \textcolor{keyword}{const} \hyperlink{struct_h5_t__t}{H5T\_t} *dset\_type, hid\_t dset\_type\_id,
+00727     \textcolor{keywordtype}{size\_t} nelmts, \textcolor{keywordtype}{size\_t} min\_buf\_size, hid\_t dxpl\_id);
+00728 H5\_DLL herr\_t H5D\_\_fill\_refill\_vl(\hyperlink{struct_h5_d__fill__buf__info__t}{H5D\_fill\_buf\_info\_t} *fb\_info, \textcolor{keywordtype}{size\_t} nelmts, hid\_t 
+      dxpl\_id);
+00729 H5\_DLL herr\_t H5D\_\_fill\_term(\hyperlink{struct_h5_d__fill__buf__info__t}{H5D\_fill\_buf\_info\_t} *fb\_info);
+00730 
+00731 \textcolor{preprocessor}{#ifdef H5\_HAVE\_PARALLEL}
+00732 
+00733 \textcolor{preprocessor}{#ifdef H5S\_DEBUG}
+00734 \textcolor{preprocessor}{#ifndef H5Dmpio\_DEBUG}
+00735 \textcolor{preprocessor}{#define H5Dmpio\_DEBUG}
+00736 \textcolor{preprocessor}{#endif }\textcolor{comment}{/*H5Dmpio\_DEBUG*/}\textcolor{preprocessor}{}
+00737 \textcolor{preprocessor}{#endif}\textcolor{comment}{/*H5S\_DEBUG*/}\textcolor{preprocessor}{}
+00738 \textcolor{comment}{/* MPI-IO function to read, it will select either regular or irregular read */}
+00739 H5\_DLL herr\_t H5D\_\_mpio\_select\_read(\textcolor{keyword}{const} \hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00740     \textcolor{keyword}{const} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info,
+00741     hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space);
+00742 
+00743 \textcolor{comment}{/* MPI-IO function to write, it will select either regular or irregular read */}
+00744 H5\_DLL herr\_t H5D\_\_mpio\_select\_write(\textcolor{keyword}{const} \hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00745     \textcolor{keyword}{const} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info,
+00746     hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space);
+00747 
+00748 \textcolor{comment}{/* MPI-IO functions to handle contiguous collective IO */}
+00749 H5\_DLL herr\_t H5D\_\_contig\_collective\_read(\hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00750     \textcolor{keyword}{const} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info, hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space,
+00751     \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space, \hyperlink{struct_h5_d__chunk__map__t}{H5D\_chunk\_map\_t} *fm);
+00752 H5\_DLL herr\_t H5D\_\_contig\_collective\_write(\hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00753     \textcolor{keyword}{const} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info, hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space,
+00754     \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space, \hyperlink{struct_h5_d__chunk__map__t}{H5D\_chunk\_map\_t} *fm);
+00755 
+00756 \textcolor{comment}{/* MPI-IO functions to handle chunked collective IO */}
+00757 H5\_DLL herr\_t H5D\_\_chunk\_collective\_read(\hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00758     \textcolor{keyword}{const} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info, hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space,
+00759     \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space, \hyperlink{struct_h5_d__chunk__map__t}{H5D\_chunk\_map\_t} *fm);
+00760 H5\_DLL herr\_t H5D\_\_chunk\_collective\_write(\hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00761     \textcolor{keyword}{const} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info, hsize\_t nelmts, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space,
+00762     \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space, \hyperlink{struct_h5_d__chunk__map__t}{H5D\_chunk\_map\_t} *fm);
+00763 
+00764 \textcolor{comment}{/* MPI-IO function to check if a direct I/O transfer is possible between}
+00765 \textcolor{comment}{ * memory and the file */}
+00766 H5\_DLL htri\_t H5D\_\_mpio\_opt\_possible(\textcolor{keyword}{const} \hyperlink{struct_h5_d__io__info__t}{H5D\_io\_info\_t} *io\_info,
+00767     \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *file\_space, \textcolor{keyword}{const} \hyperlink{struct_h5_s__t}{H5S\_t} *mem\_space,
+00768     \textcolor{keyword}{const} \hyperlink{struct_h5_d__type__info__t}{H5D\_type\_info\_t} *type\_info, \textcolor{keyword}{const} \hyperlink{struct_h5_d__chunk__map__t}{H5D\_chunk\_map\_t} *fm,
+00769     \hyperlink{struct_h5_p__genplist__t}{H5P\_genplist\_t} *dx\_plist);
+00770 
+00771 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5\_HAVE\_PARALLEL */}\textcolor{preprocessor}{}
+00772 
+00773 \textcolor{comment}{/* Testing functions */}
+00774 \textcolor{preprocessor}{#ifdef H5D\_TESTING}
+00775 H5\_DLL herr\_t H5D\_\_layout\_version\_test(hid\_t did, \textcolor{keywordtype}{unsigned} *version);
+00776 H5\_DLL herr\_t H5D\_\_layout\_contig\_size\_test(hid\_t did, hsize\_t *size);
+00777 H5\_DLL herr\_t H5D\_\_layout\_idx\_type\_test(hid\_t did, H5D\_chunk\_index\_t *idx\_type);
+00778 H5\_DLL herr\_t H5D\_\_layout\_type\_test(hid\_t did, H5D\_layout\_t *layout\_type);
+00779 H5\_DLL herr\_t H5D\_\_current\_cache\_size\_test(hid\_t did, \textcolor{keywordtype}{size\_t} *nbytes\_used, \textcolor{keywordtype}{int} *nused);
+00780 \textcolor{preprocessor}{#endif }\textcolor{comment}{/* H5D\_TESTING */}\textcolor{preprocessor}{}
+00781 
+00782 \textcolor{preprocessor}{#endif }\textcolor{comment}{/*\_H5Dpkg\_H*/}\textcolor{preprocessor}{}
+00783 
+\end{DoxyCode}

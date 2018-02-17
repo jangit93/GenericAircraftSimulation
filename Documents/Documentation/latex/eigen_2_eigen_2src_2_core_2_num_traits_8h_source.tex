@@ -1,0 +1,224 @@
+\hypertarget{eigen_2_eigen_2src_2_core_2_num_traits_8h_source}{}\section{eigen/\+Eigen/src/\+Core/\+Num\+Traits.h}
+\label{eigen_2_eigen_2src_2_core_2_num_traits_8h_source}\index{Num\+Traits.\+h@{Num\+Traits.\+h}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{// This file is part of Eigen, a lightweight C++ template library}
+00002 \textcolor{comment}{// for linear algebra.}
+00003 \textcolor{comment}{//}
+00004 \textcolor{comment}{// Copyright (C) 2006-2010 Benoit Jacob <jacob.benoit.1@gmail.com>}
+00005 \textcolor{comment}{//}
+00006 \textcolor{comment}{// This Source Code Form is subject to the terms of the Mozilla}
+00007 \textcolor{comment}{// Public License v. 2.0. If a copy of the MPL was not distributed}
+00008 \textcolor{comment}{// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.}
+00009 
+00010 \textcolor{preprocessor}{#ifndef EIGEN\_NUMTRAITS\_H}
+00011 \textcolor{preprocessor}{#define EIGEN\_NUMTRAITS\_H}
+00012 
+00013 \textcolor{keyword}{namespace }\hyperlink{namespace_eigen}{Eigen} \{
+00014 
+00015 \textcolor{keyword}{namespace }\hyperlink{namespaceinternal}{internal} \{
+00016 
+00017 \textcolor{comment}{// default implementation of digits10(), based on numeric\_limits if specialized,}
+00018 \textcolor{comment}{// 0 for integer types, and log10(epsilon()) otherwise.}
+00019 \textcolor{keyword}{template}< \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module_class_eigen_1_1_triplet}{T},
+00020           \textcolor{keywordtype}{bool} use\_numeric\_limits = std::numeric\_limits<T>::is\_specialized,
+00021           \textcolor{keywordtype}{bool} is\_integer = NumTraits<T>::IsInteger>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_num_traits_8h_source_l00022}\hyperlink{struct_eigen_1_1internal_1_1default__digits10__impl}{00022} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1default__digits10__impl}{default\_digits10\_impl}
+00023 \{
+00024   \textcolor{keyword}{static} \textcolor{keywordtype}{int} run() \{ \textcolor{keywordflow}{return} std::numeric\_limits<T>::digits10; \}
+00025 \};
+00026 
+00027 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_num_traits_8h_source_l00028}\hyperlink{struct_eigen_1_1internal_1_1default__digits10__impl_3_01_t_00_01false_00_01false_01_4}{00028} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1default__digits10__impl}{default\_digits10\_impl}<\hyperlink{group___sparse_core___module}{T},false,false> \textcolor{comment}{// Floating point}
+00029 \{
+00030   \textcolor{keyword}{static} \textcolor{keywordtype}{int} run() \{
+00031     \textcolor{keyword}{using} std::log10;
+00032     \textcolor{keyword}{using} std::ceil;
+00033     \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___sparse_core___module}{NumTraits<T>::Real} Real;
+00034     \textcolor{keywordflow}{return} int(ceil(-log10(\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Real>::epsilon}())));
+00035   \}
+00036 \};
+00037 
+00038 \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_num_traits_8h_source_l00039}\hyperlink{struct_eigen_1_1internal_1_1default__digits10__impl_3_01_t_00_01false_00_01true_01_4}{00039} \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1internal_1_1default__digits10__impl}{default\_digits10\_impl}<\hyperlink{group___sparse_core___module}{T},false,true> \textcolor{comment}{// Integer}
+00040 \{
+00041   \textcolor{keyword}{static} \textcolor{keywordtype}{int} run() \{ \textcolor{keywordflow}{return} 0; \}
+00042 \};
+00043 
+00044 \} \textcolor{comment}{// end namespace internal}
+00045 
+\Hypertarget{eigen_2_eigen_2src_2_core_2_num_traits_8h_source_l00088}\hyperlink{struct_eigen_1_1_generic_num_traits}{00088} \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> \textcolor{keyword}{struct }\hyperlink{struct_eigen_1_1_generic_num_traits}{GenericNumTraits}
+00089 \{
+00090   \textcolor{keyword}{enum} \{
+00091     IsInteger = std::numeric\_limits<T>::is\_integer,
+00092     IsSigned = std::numeric\_limits<T>::is\_signed,
+00093     IsComplex = 0,
+00094     RequireInitialization = \hyperlink{struct_eigen_1_1internal_1_1is__arithmetic}{internal::is\_arithmetic<T>::value} ? 0 : 1,
+00095     ReadCost = 1,
+00096     AddCost = 1,
+00097     MulCost = 1
+00098   \};
+00099 
+00100   \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module}{T} \hyperlink{group___sparse_core___module}{Real};
+00101   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{struct_eigen_1_1internal_1_1conditional}{internal::conditional}<
+00102                      IsInteger,
+00103                      \textcolor{keyword}{typename} 
+      \hyperlink{struct_eigen_1_1internal_1_1conditional}{internal::conditional<sizeof(T)<=2, float, double>::type}
+      ,
+00104                      \hyperlink{group___sparse_core___module}{T}
+00105                    >::type NonInteger;
+00106   \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module}{T} Nested;
+00107   \textcolor{keyword}{typedef} \hyperlink{group___sparse_core___module}{T} Literal;
+00108 
+00109   EIGEN\_DEVICE\_FUNC
+00110   \textcolor{keyword}{static} \textcolor{keyword}{inline} Real epsilon()
+00111   \{
+00112     \textcolor{keywordflow}{return} numext::numeric\_limits<T>::epsilon();
+00113   \}
+00114 
+00115   EIGEN\_DEVICE\_FUNC
+00116   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{int} digits10()
+00117   \{
+00118     \textcolor{keywordflow}{return} \hyperlink{struct_eigen_1_1internal_1_1default__digits10__impl}{internal::default\_digits10\_impl<T>::run}();
+00119   \}
+00120 
+00121   EIGEN\_DEVICE\_FUNC
+00122   \textcolor{keyword}{static} \textcolor{keyword}{inline} Real dummy\_precision()
+00123   \{
+00124     \textcolor{comment}{// make sure to override this for floating-point types}
+00125     \textcolor{keywordflow}{return} Real(0);
+00126   \}
+00127 
+00128 
+00129   EIGEN\_DEVICE\_FUNC
+00130   \textcolor{keyword}{static} \textcolor{keyword}{inline} \hyperlink{group___sparse_core___module}{T} highest() \{
+00131     \textcolor{keywordflow}{return} (numext::numeric\_limits<T>::max)();
+00132   \}
+00133 
+00134   EIGEN\_DEVICE\_FUNC
+00135   \textcolor{keyword}{static} \textcolor{keyword}{inline} \hyperlink{group___sparse_core___module}{T} lowest()  \{
+00136     \textcolor{keywordflow}{return} IsInteger ? (numext::numeric\_limits<T>::min)() : (-(numext::numeric\_limits<T>::max)());
+00137   \}
+00138 
+00139   EIGEN\_DEVICE\_FUNC
+00140   \textcolor{keyword}{static} \textcolor{keyword}{inline} \hyperlink{group___sparse_core___module}{T} infinity() \{
+00141     \textcolor{keywordflow}{return} numext::numeric\_limits<T>::infinity();
+00142   \}
+00143 
+00144   EIGEN\_DEVICE\_FUNC
+00145   \textcolor{keyword}{static} \textcolor{keyword}{inline} \hyperlink{group___sparse_core___module}{T} quiet\_NaN() \{
+00146     \textcolor{keywordflow}{return} numext::numeric\_limits<T>::quiet\_NaN();
+00147   \}
+00148 \};
+00149 
+\Hypertarget{eigen_2_eigen_2src_2_core_2_num_traits_8h_source_l00150}\hyperlink{group___core___module}{00150} \textcolor{keyword}{template}<\textcolor{keyword}{typename} T> \textcolor{keyword}{struct }\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits} : \hyperlink{struct_eigen_1_1_generic_num_traits}{GenericNumTraits}<T>
+00151 \{\};
+00152 
+\Hypertarget{eigen_2_eigen_2src_2_core_2_num_traits_8h_source_l00153}\hyperlink{struct_eigen_1_1_num_traits_3_01float_01_4}{00153} \textcolor{keyword}{template}<> \textcolor{keyword}{struct }\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits}<float>
+00154   : \hyperlink{struct_eigen_1_1_generic_num_traits}{GenericNumTraits}<float>
+00155 \{
+00156   EIGEN\_DEVICE\_FUNC
+00157   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{float} dummy\_precision() \{ \textcolor{keywordflow}{return} 1e-5f; \}
+00158 \};
+00159 
+\Hypertarget{eigen_2_eigen_2src_2_core_2_num_traits_8h_source_l00160}\hyperlink{struct_eigen_1_1_num_traits_3_01double_01_4}{00160} \textcolor{keyword}{template}<> \textcolor{keyword}{struct }\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits}<double> : \hyperlink{struct_eigen_1_1_generic_num_traits}{GenericNumTraits}<double>
+00161 \{
+00162   EIGEN\_DEVICE\_FUNC
+00163   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{double} dummy\_precision() \{ \textcolor{keywordflow}{return} 1e-12; \}
+00164 \};
+00165 
+\Hypertarget{eigen_2_eigen_2src_2_core_2_num_traits_8h_source_l00166}\hyperlink{struct_eigen_1_1_num_traits_3_01long_01double_01_4}{00166} \textcolor{keyword}{template}<> \textcolor{keyword}{struct }\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits}<long double>
+00167   : \hyperlink{struct_eigen_1_1_generic_num_traits}{GenericNumTraits}<long double>
+00168 \{
+00169   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{long} \textcolor{keywordtype}{double} dummy\_precision() \{ \textcolor{keywordflow}{return} 1e-15l; \}
+00170 \};
+00171 
+\Hypertarget{eigen_2_eigen_2src_2_core_2_num_traits_8h_source_l00172}\hyperlink{struct_eigen_1_1_num_traits_3_01std_1_1complex_3_01___real_01_4_01_4}{00172} \textcolor{keyword}{template}<\textcolor{keyword}{typename} \_Real> \textcolor{keyword}{struct }\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits}<\hyperlink{namespacestd}{std}::\hyperlink{structcomplex}{complex}<\_Real> >
+00173   : \hyperlink{struct_eigen_1_1_generic_num_traits}{GenericNumTraits}<std::complex<\_Real> >
+00174 \{
+00175   \textcolor{keyword}{typedef} \_Real Real;
+00176   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<\_Real>::Literal} Literal;
+00177   \textcolor{keyword}{enum} \{
+00178     IsComplex = 1,
+00179     RequireInitialization = \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<\_Real>::RequireInitialization},
+00180     ReadCost = 2 * \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<\_Real>::ReadCost},
+00181     AddCost = 2 * \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Real>::AddCost},
+00182     MulCost = 4 * \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Real>::MulCost} + 2 * 
+      \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Real>::AddCost}
+00183   \};
+00184 
+00185   EIGEN\_DEVICE\_FUNC
+00186   \textcolor{keyword}{static} \textcolor{keyword}{inline} Real epsilon() \{ \textcolor{keywordflow}{return} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Real>::epsilon}(); \}
+00187   EIGEN\_DEVICE\_FUNC
+00188   \textcolor{keyword}{static} \textcolor{keyword}{inline} Real dummy\_precision() \{ \textcolor{keywordflow}{return} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Real>::dummy\_precision}
+      (); \}
+00189   EIGEN\_DEVICE\_FUNC
+00190   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{int} digits10() \{ \textcolor{keywordflow}{return} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Real>::digits10}(); \}
+00191 \};
+00192 
+00193 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Scalar, \textcolor{keywordtype}{int} Rows, \textcolor{keywordtype}{int} Cols, \textcolor{keywordtype}{int} Options, \textcolor{keywordtype}{int} MaxRows, \textcolor{keywordtype}{int} MaxCols>
+\Hypertarget{eigen_2_eigen_2src_2_core_2_num_traits_8h_source_l00194}\hyperlink{struct_eigen_1_1_num_traits_3_01_array_3_01_scalar_00_01_rows_00_01_cols_00_01_options_00_01_max_rows_00_01_max_cols_01_4_01_4}{00194} \textcolor{keyword}{struct }\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits}<\hyperlink{group___core___module_class_eigen_1_1_array}{Array}<Scalar, Rows, Cols, Options, MaxRows, MaxCols> >
+00195 \{
+00196   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_array}{Array<Scalar, Rows, Cols, Options, MaxRows, MaxCols>}
+       \hyperlink{group___core___module_class_eigen_1_1_array}{ArrayType};
+00197   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Real} RealScalar;
+00198   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_array}{Array<RealScalar, Rows, Cols, Options, MaxRows, MaxCols>}
+       \hyperlink{group___core___module_class_eigen_1_1_array}{Real};
+00199   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::NonInteger} NonIntegerScalar;
+00200   \textcolor{keyword}{typedef} \hyperlink{group___core___module_class_eigen_1_1_array}{Array<NonIntegerScalar, Rows, Cols, Options, MaxRows, MaxCols>}
+       \hyperlink{group___core___module_class_eigen_1_1_array}{NonInteger};
+00201   \textcolor{keyword}{typedef} ArrayType & \hyperlink{group___core___module_class_eigen_1_1_array}{Nested};
+00202   \textcolor{keyword}{typedef} \textcolor{keyword}{typename} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::Literal} Literal;
+00203 
+00204   \textcolor{keyword}{enum} \{
+00205     IsComplex = \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsComplex},
+00206     IsInteger = \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsInteger},
+00207     IsSigned  = \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::IsSigned},
+00208     RequireInitialization = 1,
+00209     ReadCost = ArrayType::SizeAtCompileTime==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} ? \hyperlink{namespace_eigen_a3163430a1c13173faffde69016b48aaf}{HugeCost} : 
+      ArrayType::SizeAtCompileTime * \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::ReadCost},
+00210     AddCost  = ArrayType::SizeAtCompileTime==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} ? \hyperlink{namespace_eigen_a3163430a1c13173faffde69016b48aaf}{HugeCost} : 
+      ArrayType::SizeAtCompileTime * \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::AddCost},
+00211     MulCost  = ArrayType::SizeAtCompileTime==\hyperlink{namespace_eigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic} ? \hyperlink{namespace_eigen_a3163430a1c13173faffde69016b48aaf}{HugeCost} : 
+      ArrayType::SizeAtCompileTime * \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::MulCost}
+00212   \};
+00213 
+00214   EIGEN\_DEVICE\_FUNC
+00215   \textcolor{keyword}{static} \textcolor{keyword}{inline} RealScalar epsilon() \{ \textcolor{keywordflow}{return} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<RealScalar>::epsilon}(
+      ); \}
+00216   EIGEN\_DEVICE\_FUNC
+00217   \textcolor{keyword}{static} \textcolor{keyword}{inline} RealScalar dummy\_precision() \{ \textcolor{keywordflow}{return} 
+      \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<RealScalar>::dummy\_precision}(); \}
+00218 
+00219   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{int} digits10() \{ \textcolor{keywordflow}{return} \hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits<Scalar>::digits10}(); \}
+00220 \};
+00221 
+\Hypertarget{eigen_2_eigen_2src_2_core_2_num_traits_8h_source_l00222}\hyperlink{struct_eigen_1_1_num_traits_3_01std_1_1string_01_4}{00222} \textcolor{keyword}{template}<> \textcolor{keyword}{struct }\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits}<\hyperlink{namespacestd}{std}::string>
+00223   : \hyperlink{struct_eigen_1_1_generic_num_traits}{GenericNumTraits}<std::string>
+00224 \{
+00225   \textcolor{keyword}{enum} \{
+00226     RequireInitialization = 1,
+00227     ReadCost = \hyperlink{namespace_eigen_a3163430a1c13173faffde69016b48aaf}{HugeCost},
+00228     AddCost  = \hyperlink{namespace_eigen_a3163430a1c13173faffde69016b48aaf}{HugeCost},
+00229     MulCost  = \hyperlink{namespace_eigen_a3163430a1c13173faffde69016b48aaf}{HugeCost}
+00230   \};
+00231 
+00232   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{int} digits10() \{ \textcolor{keywordflow}{return} 0; \}
+00233 
+00234 \textcolor{keyword}{private}:
+00235   \textcolor{keyword}{static} \textcolor{keyword}{inline} std::string epsilon();
+00236   \textcolor{keyword}{static} \textcolor{keyword}{inline} std::string dummy\_precision();
+00237   \textcolor{keyword}{static} \textcolor{keyword}{inline} std::string lowest();
+00238   \textcolor{keyword}{static} \textcolor{keyword}{inline} std::string highest();
+00239   \textcolor{keyword}{static} \textcolor{keyword}{inline} std::string infinity();
+00240   \textcolor{keyword}{static} \textcolor{keyword}{inline} std::string quiet\_NaN();
+00241 \};
+00242 
+00243 \textcolor{comment}{// Empty specialization for void to allow template specialization based on NumTraits<T>::Real with T==void
+       and SFINAE.}
+\Hypertarget{eigen_2_eigen_2src_2_core_2_num_traits_8h_source_l00244}\hyperlink{struct_eigen_1_1_num_traits_3_01void_01_4}{00244} \textcolor{keyword}{template}<> \textcolor{keyword}{struct }\hyperlink{group___core___module_struct_eigen_1_1_num_traits}{NumTraits}<void> \{\};
+00245 
+00246 \} \textcolor{comment}{// end namespace Eigen}
+00247 
+00248 \textcolor{preprocessor}{#endif // EIGEN\_NUMTRAITS\_H}
+\end{DoxyCode}

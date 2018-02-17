@@ -42,17 +42,19 @@ public:
 	/**
 	* \brief initialize aerodynamic paramters
 	*/
-	void initAerodynamic(AerodynamicStruct & AeroData, 
+	void initAerodynamic(Float64 &FlightTime,AerodynamicStruct & AeroData, 
 						 AircraftStruct & AircraftDatas);
 
 	/**
 	* \brief calculate aero forces and moments
 	*/
-	void updateAerodynamic(Float64 FlightTime,
+	void updateAerodynamic(Float64 &FlightTime,
 							AtmosphereStruct & AtmoData,
 							AerodynamicStruct & AeroData,
 							AirframeStruct & AirframeData,
 							ThrustStruct & ThrustData);
+
+	void LogAeroData();
 
 private:
 	BaseAerodynamic * aerodynamic;

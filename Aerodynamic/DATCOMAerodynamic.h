@@ -15,6 +15,7 @@
 #include"readInData.h"
 #include"LinearInterpolation.h"
 #include"MatFileReader.h"
+#include"DataLogger.h"
 #include<math.h>
 
 #ifndef DATCOMAERODYNAMIC_H
@@ -36,7 +37,7 @@ public:
 	/**
 	* @brief read in tables of derivatives
 	*/
-	void initAerodynamic(AerodynamicStruct & AeroData, 
+	virtual void initAerodynamic(Float64 &FlightTime, AerodynamicStruct & AeroData,
 							   AircraftStruct & AircraftData);
 
 	/**
@@ -44,17 +45,22 @@ public:
 				and  a linear aerodynamic model calculates forces
 				and moments
 	*/
-	void updateAerodynamic(Float64 FlightTime,
+	virtual void updateAerodynamic(Float64 &FlightTime,
 						AtmosphereStruct & AtmoData,
 						AerodynamicStruct & AeroData,
 						AirframeStruct & AirframeData,
 						ThrustStruct & ThrustData);
 
+	virtual void initLogAeroData(Float64 &FlightTime,
+								 AerodynamicStruct & AeroData);
+
+	void LogAeroData();
+
 private:
 	//objects
 	readInData *readIn;
 	LinearInterpolation Interpolation;
-
+	DataLogger *logAeroData;
 	//Aircraft Data
 	Float64 b;
 	Float64 S;
@@ -63,7 +69,7 @@ private:
 	//derivatives lift table
 	Eigen::MatrixXd CA;
 	Eigen::MatrixXd CAeta;
-	Eigen::MatrixXd CAq;
+	Eigen::VectorXd CAq;
 
 	//derivatives drag table
 	Eigen::MatrixXd CW;

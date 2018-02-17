@@ -1,0 +1,147 @@
+\hypertarget{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_performance_2h5slabwrite_8c_source}{}\section{visual\+\_\+studio/\+H\+D\+F5/1.10.1/\+H\+D\+F5\+Examples/\+C/\+Performance/h5slabwrite.c}
+\label{visual__studio_2_h_d_f5_21_810_81_2_h_d_f5_examples_2_c_2_performance_2h5slabwrite_8c_source}\index{h5slabwrite.\+c@{h5slabwrite.\+c}}
+
+\begin{DoxyCode}
+00001 \textcolor{comment}{/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+00002 \textcolor{comment}{ * Copyright by The HDF Group.                                               *}
+00003 \textcolor{comment}{ * All rights reserved.                                                      *}
+00004 \textcolor{comment}{ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */}
+00005 
+00006 \textcolor{comment}{/* This example shows different data writing patterns to generate data files}
+00007 \textcolor{comment}{ * that will exhibit substantially different data read speed. The files}
+00008 \textcolor{comment}{ * contain 2-D chunk storage datasets.}
+00009 \textcolor{comment}{ * The 2 writing patterns are:}
+00010 \textcolor{comment}{ * 1. Random--chunks are wriitten in the random order.}
+00011 \textcolor{comment}{ * 2. ByRow--chunks are written by row order.}
+00012 \textcolor{comment}{ */}
+00013 
+00014 \textcolor{preprocessor}{#include <stdlib.h>}
+00015 \textcolor{preprocessor}{#include <string.h>}
+00016 \textcolor{preprocessor}{#include "hdf5.h"}
+00017 \textcolor{preprocessor}{#include "h5slab.h"}
+00018 
+00019 \textcolor{comment}{/* Write the chunks in the row order.  This provides good and bad read}
+00020 \textcolor{comment}{ * performance if the read pattern is by row and by column respectivly.}
+00021 \textcolor{comment}{ *}
+00022 \textcolor{comment}{ * Created by Albert Cheng and Christian Chilan 2010/7/13.}
+00023 \textcolor{comment}{ */}
+00024 \textcolor{keywordtype}{int}
+00025 createfilebyrow(\textcolor{keywordtype}{void})
+00026 \{
+00027     hid\_t   file\_id, dset\_id, filespace, memspace, fapl, dxpl, dcpl;
+00028     hsize\_t dimsf[2], count[2], offset[2], chunk\_dims[2]=\{CX, CY\};
+00029     \textcolor{keywordtype}{char}     *data, dataval, table[RC];               
+00030     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} i, j, l, cx;
+00031     fapl = H5Pcreate(H5P\_FILE\_ACCESS);
+00032     dcpl = H5Pcreate(H5P\_DATASET\_CREATE);
+00033     dxpl = H5Pcreate(H5P\_DATASET\_XFER);
+00034     H5Pset\_chunk ( dcpl, 2, chunk\_dims);
+00035     fapl = dxpl = H5P\_DEFAULT;
+00036     file\_id = H5Fcreate(\textcolor{stringliteral}{"row\_alloc.h5"}, H5F\_ACC\_TRUNC, H5P\_DEFAULT, fapl);
+00037     dimsf[0] = NX;
+00038     dimsf[1] = NY;
+00039     filespace = H5Screate\_simple(2, dimsf, NULL); 
+00040     dset\_id = H5Dcreate(file\_id, \textcolor{stringliteral}{"dataset1"}, H5T\_NATIVE\_CHAR, filespace,
+00041             H5P\_DEFAULT, dcpl, H5P\_DEFAULT);
+00042     count[0] = CX;
+00043     count[1] = NY;
+00044     memspace = H5Screate\_simple(2, count, NULL);
+00045 
+00046     data = (\textcolor{keywordtype}{char} *)malloc(count[0]*count[1]*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{char}));
+00047     
+00048     \textcolor{comment}{/* writing the whole chunked rows each time. */}
+00049     \textcolor{keywordflow}{for} (l=0; l<RC; l++)\{
+00050 
+00051         offset[0] = l*CX;
+00052         offset[1] = 0;
+00053 
+00054     \textcolor{comment}{/* fill with values according to row number */}
+00055     \textcolor{keywordflow}{for} (i=0; i<count[0]; i++)
+00056         \textcolor{keywordflow}{for} (j=0; j<count[1]; j++)
+00057         data[i*count[1]+j]=l;
+00058 
+00059         H5Sselect\_hyperslab(filespace, H5S\_SELECT\_SET, offset, NULL, count, NULL);
+00060         H5Dwrite(dset\_id, H5T\_NATIVE\_CHAR, memspace, filespace, dxpl, data);
+00061     \} 
+00062  
+00063     free(data);
+00064     H5Dclose(dset\_id);
+00065     H5Sclose(filespace);
+00066     H5Sclose(memspace);
+00067     H5Pclose(dxpl);
+00068     H5Pclose(dcpl);
+00069     H5Pclose(fapl);
+00070     H5Fclose(file\_id);
+00071     \textcolor{keywordflow}{return} 0;
+00072 \}
+00073 
+00074 \textcolor{comment}{/* Write the chunks in a random pattern.  This provides a read performance}
+00075 \textcolor{comment}{ * worse than when the chunks are written and read in the same order, whether}
+00076 \textcolor{comment}{ * it is by row or by column.}
+00077 \textcolor{comment}{ *}
+00078 \textcolor{comment}{ * Created by Albert Cheng and Christian Chilan 2010/7/13.}
+00079 \textcolor{comment}{ */}
+00080 \textcolor{keywordtype}{int}
+00081 createfilerandom (\textcolor{keywordtype}{void})
+00082 \{
+00083     hid\_t   file\_id, dset\_id, filespace, memspace, fapl, dxpl, dcpl;
+00084     hsize\_t dimsf[2], count[2], offset[2], chunk\_dims[2]=\{CX, CY\};
+00085     \textcolor{keywordtype}{char}     *data, table[RC][CC];               
+00086     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} i, j, cx, cy;
+00087     fapl = H5Pcreate(H5P\_FILE\_ACCESS);
+00088     dcpl = H5Pcreate(H5P\_DATASET\_CREATE);
+00089     dxpl = H5Pcreate(H5P\_DATASET\_XFER);
+00090     H5Pset\_chunk ( dcpl, 2, chunk\_dims);
+00091     fapl = dxpl = H5P\_DEFAULT;
+00092     file\_id = H5Fcreate(\textcolor{stringliteral}{"random\_alloc.h5"}, H5F\_ACC\_TRUNC, H5P\_DEFAULT, fapl);
+00093     dimsf[0] = NX;
+00094     dimsf[1] = NY;
+00095     filespace = H5Screate\_simple(2, dimsf, NULL); 
+00096     dset\_id = H5Dcreate(file\_id, \textcolor{stringliteral}{"dataset1"}, H5T\_NATIVE\_CHAR, filespace,
+00097             H5P\_DEFAULT, dcpl, H5P\_DEFAULT);
+00098     count[0] = CX;
+00099     count[1] = CY;
+00100     memspace = H5Screate\_simple(2, count, NULL);
+00101     data = (\textcolor{keywordtype}{char} *)malloc(count[0]*count[1]*\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{char}));
+00102 
+00103     \textcolor{keywordflow}{for} (i=0; i<RC; i++)
+00104         \textcolor{keywordflow}{for} (j=0; j<CC; j++)
+00105             table[i][j]=0;
+00106 
+00107     \textcolor{keywordflow}{for} (i=0; i< RC*CC; i++) \{ 
+00108         \textcolor{keywordflow}{do}\{
+00109             cx=rand()%RC;
+00110             cy=rand()%CC;
+00111         \}\textcolor{keywordflow}{while} (table[cx][cy]);
+00112 
+00113         \textcolor{keywordflow}{for} (j=0; j < count[0]*count[1]; j++)\{
+00114             data[j] = cx+cy;
+00115         \}
+00116 
+00117         table[cx][cy]=1;
+00118         
+00119         offset[0] = cx*CX;
+00120         offset[1] = cy*CY;
+00121 
+00122         H5Sselect\_hyperslab(filespace, H5S\_SELECT\_SET, offset, NULL, count, NULL);
+00123         H5Dwrite(dset\_id, H5T\_NATIVE\_CHAR, memspace, filespace, dxpl, data);
+00124         
+00125     \} 
+00126  
+00127     free(data);
+00128     H5Dclose(dset\_id);
+00129     H5Sclose(filespace);
+00130     H5Sclose(memspace);
+00131     H5Pclose(dxpl);
+00132     H5Pclose(dcpl);
+00133     H5Pclose(fapl);
+00134     H5Fclose(file\_id);
+00135     \textcolor{keywordflow}{return} 0;
+00136 \}     
+00137 
+00138 \textcolor{keywordtype}{int} main (\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} **argv) \{
+00139     createfilebyrow();
+00140     createfilerandom();
+00141 \}     
+00142 
+\end{DoxyCode}
