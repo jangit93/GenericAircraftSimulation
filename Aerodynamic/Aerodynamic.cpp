@@ -1,9 +1,8 @@
 #include "Aerodynamic.h"
 
-Aerodynamics::Aerodynamics()
-{
-	int a = 1;
-	selectAerodynamicType(a);
+Aerodynamics::Aerodynamics(SimDPreference &SimPref)
+{ 
+	selectAerodynamicType(SimPref.AeroMode);
 
 }
 
@@ -22,10 +21,12 @@ void Aerodynamics::selectAerodynamicType(int type)
 	}
 }
 
-void Aerodynamics::initAerodynamic(Float64 &FlightTime, AerodynamicStruct & AeroData,
+void Aerodynamics::initAerodynamic(Float64 &FlightTime, 
+								   AerodynamicStruct & AeroData,
 								   AircraftStruct & AircraftData)
 {
-	aerodynamic->initAerodynamic(FlightTime, AeroData,
+	aerodynamic->initAerodynamic(FlightTime,
+								 AeroData,
 								 AircraftData);
 }
 

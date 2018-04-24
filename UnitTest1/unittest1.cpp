@@ -5,7 +5,8 @@
 #include"readInData.h"
 #include"DataCloud.h"
 #include"LinearInterpolation.h"
-#include <C:\Users\janol\Desktop\Studium\Master_Luft und Raumfahrttechnik\2.Fachsemester\Effizient Programmieren\Programierprojekt\GenericFlightSimulation\EIGENDIR\Eigen\dense>
+//#include <C:\Users\janol\Desktop\Studium\Master_Luft und Raumfahrttechnik\2.Fachsemester\Effizient Programmieren\Programierprojekt\GenericFlightSimulation\EIGENDIR\Eigen\dense>
+#include<Eigen/Dense>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 

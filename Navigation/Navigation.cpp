@@ -1,10 +1,9 @@
 #include "Navigation.h"
-
-Navigation::Navigation()
+#include<iostream>
+Navigation::Navigation(SimDPreference &SimPref)
 {
-	int type = 1;
 
-	selectNavigation(type);
+	selectNavigation(SimPref.NavMode);
 }
 
 Navigation::~Navigation()
@@ -16,9 +15,8 @@ void Navigation::selectNavigation(int Type)
 	switch (Type)
 	{
 	case 1:
+		std::cout << "Navigation:\t" << "Base Navigation" << std::endl;
 		navigation = new BaseNavigation;
-		break;
-	case 2:
 		break;
 	}
 }

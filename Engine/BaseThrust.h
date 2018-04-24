@@ -34,6 +34,11 @@ public:
 
 	/**
 	*  The update function from the selected engine is called by a pointer.
+	*   @param FlightTime
+	*	@param AtmoData	get current atmospheric data
+	*	@param AeroData get mach number
+	*	@param AirframeData	get current throttle stick position
+	*	@return current thrust data is stored in ThrustStruct
 	*/
 	virtual void updateThrust(Float64 FlightTime,
 						AtmosphereStruct & AtmoData,
@@ -42,12 +47,16 @@ public:
 						ThrustStruct & ThrustData);
 	/**
 	*  The init function from the selected engine is called by a pointer.
+	*	@param	ThrustData		structure of engine data
+	*	@param	AircraftData	structure of aircraft data
 	*/
-	virtual void initThrust(ThrustStruct & ThrustData,
-					AircraftStruct &AircraftData);
+	virtual void initThrust(Float64 &FlightTime, 
+							ThrustStruct & ThrustData,
+							AircraftStruct &AircraftData);
 
+	virtual void logEngineData();
 
-
+private:
 
 
 	

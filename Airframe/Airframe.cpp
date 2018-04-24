@@ -3,13 +3,15 @@
 Airframe::Airframe()
 {
 	readIn = new readInData;
+	LogAirframeData = new DataLogger("AirframeData.txt", 25, " ");
 }
 
 Airframe::~Airframe()
 {
 }
 
-void Airframe::initAirframe(AircraftStruct & AircraftData,
+void Airframe::initAirframe(Float64 &FlightTime,
+							AircraftStruct & AircraftData,
 							AirframeStruct & AirframeData)
 {
 	mass = readIn->readInParameter("mass", "Aircraft.txt");
@@ -24,13 +26,13 @@ void Airframe::initAirframe(AircraftStruct & AircraftData,
 
 	AirframeData.intertiaTensor(0, 0) = readIn->readInParameter("I_X", "Aircraft.txt");
 	AirframeData.intertiaTensor(0, 1) = 0;
-	AirframeData.intertiaTensor(0, 2) = readIn->readInParameter("I_zx", "Aircraft.txt");
+	AirframeData.intertiaTensor(0, 2) = -(readIn->readInParameter("I_zx", "Aircraft.txt"));
 
 	AirframeData.intertiaTensor(1, 0) = 0;
 	AirframeData.intertiaTensor(1, 1) = readIn->readInParameter("I_Y", "Aircraft.txt");
 	AirframeData.intertiaTensor(1, 2) = 0;
 
-	AirframeData.intertiaTensor(2, 0) = readIn->readInParameter("I_zx", "Aircraft.txt");
+	AirframeData.intertiaTensor(2, 0) = -(readIn->readInParameter("I_zx", "Aircraft.txt"));
 	AirframeData.intertiaTensor(2, 1) = 0;
 	AirframeData.intertiaTensor(2, 2) = readIn->readInParameter("I_Z", "Aircraft.txt");
 
@@ -51,6 +53,8 @@ void Airframe::initAirframe(AircraftStruct & AircraftData,
 	AirframeData.Xi = 0.0;
 	AirframeData.Eta = 0.0;
 	AirframeData.Zeta = 0.0;
+
+	initLogAirframeData(FlightTime, AirframeData);
 	
 }
 
@@ -58,11 +62,11 @@ void Airframe::updateTranslational(AerodynamicStruct & AeroData,
 								   ThrustStruct & ThrustData,
 									AirframeStruct & AirframeData)
 {
-	phi		= AirframeData.EulerAngles(0);
-	theta	= AirframeData.EulerAngles(1);
+	phi = AirframeData.EulerAngles(0);
+	theta = AirframeData.EulerAngles(1);
 
-	AoA = AeroData.AoA *PI / 180;
-	AoS = AeroData.AoS *PI / 180;
+	AoA = AeroData.Alpha *PI / 180;
+	AoS = AeroData.Beta *PI / 180;
 
 	TotalForce = AeroData.AeroForces + ThrustData.ThrustForce;
 
@@ -71,25 +75,71 @@ void Airframe::updateTranslational(AerodynamicStruct & AeroData,
 			cos(phi)*cos(theta);
 
 	AirframeData.accTransBody = (TotalForce / mass) + Vec_fg  * GRAVITATIONAL_CONSTANT;
+	AirframeData.accTransNED = AirframeData.matBodyToNED*AirframeData.accTransBody;
 }
 
 void Airframe::updateRotational(AerodynamicStruct & AeroData, 
 								ThrustStruct & ThrustData,
 								AirframeStruct &AirframeData)
 {
-	
+	phi = AirframeData.EulerAngles(0);
+	theta = AirframeData.EulerAngles(1);
+
+	Float64 p = AirframeData.rotRatesBody(0);
+	Float64 q = AirframeData.rotRatesBody(1);
+	Float64 r = AirframeData.rotRatesBody(2);
+
 	TotalMoment = AeroData.AeroMoments + ThrustData.ThrustMoments;
 
-	Vec_rotTensor << AirframeData.rotRatesBody(1)*AirframeData.rotRatesBody(2)*(AirframeData.intertiaTensor(2, 2) - AirframeData.intertiaTensor(1, 1)) - AirframeData.rotRatesBody(0)*AirframeData.rotRatesBody(1)*AirframeData.intertiaTensor(0, 2),
-		AirframeData.rotRatesBody(2)*AirframeData.rotRatesBody(0)*(AirframeData.intertiaTensor(0, 0) - AirframeData.intertiaTensor(2, 2)) + (AirframeData.rotRatesBody(0)*AirframeData.rotRatesBody(0) - AirframeData.rotRatesBody(2)*AirframeData.rotRatesBody(2))*AirframeData.intertiaTensor(0, 2),
-		AirframeData.rotRatesBody(0)*AirframeData.rotRatesBody(1)*(AirframeData.intertiaTensor(1, 1) - AirframeData.intertiaTensor(0, 0)) + AirframeData.rotRatesBody(1)*AirframeData.rotRatesBody(2)*AirframeData.intertiaTensor(0, 2);
+	Vec_rotTensor << q*r*(AirframeData.intertiaTensor(2, 2) - AirframeData.intertiaTensor(1, 1)) - p * q*AirframeData.intertiaTensor(0,2),
+					 r*p*(AirframeData.intertiaTensor(0, 0) - AirframeData.intertiaTensor(2, 2)) + (p*p - r * r)*AirframeData.intertiaTensor(0, 2),
+					 p*q*(AirframeData.intertiaTensor(1, 1) - AirframeData.intertiaTensor(0, 0)) + q * r*AirframeData.intertiaTensor(0, 2);
+
+
 
 	AirframeData.accRotBody = AirframeData.intertiaTensor.inverse()*(TotalMoment - Vec_rotTensor);
 
 	Eulerdot << 1, sin(phi) * tan(theta), cos(phi) * tan(theta),
 				0, cos(phi), -sin(phi),
-				0, sin(phi) / cos(theta), cos(phi) / cos(theta);
+				0, (sin(phi) / cos(theta)), (cos(phi) / cos(theta));
 
 	AirframeData.Eulerdot = Eulerdot *AirframeData.rotRatesBody;
 
+}
+
+void Airframe::initLogAirframeData(Float64 & FlightTime, AirframeStruct & AirframeData)
+{
+	LogAirframeData->add("FlightTime [s]", FlightTime);
+	LogAirframeData->add("accBodyx", AirframeData.accTransBody(0));
+	LogAirframeData->add("accBodyy", AirframeData.accTransBody(1));
+	LogAirframeData->add("accBodyz", AirframeData.accTransBody(2));
+	LogAirframeData->add("acc_x_NED",AirframeData.accTransNED(0));
+	LogAirframeData->add("acc_y_NED", AirframeData.accTransNED(1));
+	LogAirframeData->add("acc_y_NED", AirframeData.accTransNED(2));
+	LogAirframeData->add("Vel_x_NED", AirframeData.velNED(0));
+	LogAirframeData->add("Vel_y_NED", AirframeData.velNED(1));
+	LogAirframeData->add("Vel_z_NED", AirframeData.velNED(2));
+	LogAirframeData->add("x_NED", AirframeData.posNED(0));
+	LogAirframeData->add("y_NED", AirframeData.posNED(1));
+	LogAirframeData->add("z_NED", AirframeData.posNED(2));
+	LogAirframeData->add("phi", AirframeData.EulerAngles(0));
+	LogAirframeData->add("theta", AirframeData.EulerAngles(1));
+	LogAirframeData->add("psi", AirframeData.EulerAngles(2));
+	LogAirframeData->add("Eta", AirframeData.Eta);
+	LogAirframeData->add("Zeta", AirframeData.Zeta);
+	LogAirframeData->add("Xi", AirframeData.Xi);
+	LogAirframeData->add("delta", AirframeData.StickPosition);
+	LogAirframeData->add("Gamma", AirframeData.Gamma);
+	LogAirframeData->add("Chi", AirframeData.Chi);
+	LogAirframeData->add("p", AirframeData.rotRatesBody(0));
+	LogAirframeData->add("q", AirframeData.rotRatesBody(1));
+	LogAirframeData->add("r", AirframeData.rotRatesBody(2));
+	
+
+	LogAirframeData->printHeader();
+}
+
+void Airframe::logAirframeData()
+{
+	LogAirframeData->print();
 }

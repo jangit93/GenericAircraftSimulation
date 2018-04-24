@@ -62,6 +62,9 @@ struct AerodynamicStruct
 	Float64 C_A0;
 	Float64 C_zdalpha;
 
+	Float64 Alpha;
+	Float64 Beta;
+
 	Eigen::Vector3d AeroForces;
 	Eigen::Vector3d AeroMoments;
 
@@ -173,7 +176,7 @@ struct AutopilotStruct {
 		Eigen::VectorXd VelVec;
 		Eigen::VectorXd u_bar;
 		Eigen::VectorXd x_bar;
-		Eigen::VectorXd Kx_pitch;
+		Eigen::RowVectorXd Kx_pitch;
 		Float64 Ke_pitch;
 		Float64 Kv_pitch;
 		Float64 Kx_Vel;
@@ -196,14 +199,28 @@ struct GuidanceStruct
 	Float64	Theta_com;
 	Float64 Phi_com;
     Float64 Beta_com;
+	Eigen::Vector3d acc_com;
+	Eigen::Vector3d Vel_com;
+	Eigen::Vector3d Pos_com;
 };
-
+/**
+* \brief stores IMU parameters
+* @param realTransAcc	translation acceleration with faults
+* @param realRotAcc		rotational accleration with fault
+*/
 struct IMUStruct
 {
 	Eigen::Vector3d realTransAcc;
 	Eigen::Vector3d realTRotAcc;
 };
 
+/**
+* \brief stores Navigation parameters
+* @param intVelocity	velocity through integration
+* @param intPOS			position through integration
+* @param realVelocity	velocity with faults
+* @param realPOS		position with faults
+*/
 struct NavigationStruct
 {
 	Eigen::Vector3d intVelocity;
@@ -212,6 +229,12 @@ struct NavigationStruct
 	Eigen::Vector3d realPOS;
 };
 
+/**
+* \brief stores actuator parameters
+* @param realEta	real elevator deflection
+* @param realXi		real aileron deflection
+* @param realZeta	real rudder deflection
+*/
 struct ActuatorStruct
 {
 	Float64 realEta;
@@ -219,6 +242,18 @@ struct ActuatorStruct
 	Float64 realZeta;
 };
 
+/**
+* \brief stores model selection 
+* @param ActuatorMode	stores mode of actuator
+* @param AeroMode		stores mode of aerodynamic
+* @param AutopilotMode	stores mode of autopilot
+* @param EngineMode		stores mode of engine
+* @param GPSMode		stores mode of GPS
+* @param IMUMode		stores mode of IMU
+* @param GuidanceMode	stores mode of Guidance
+* @param NavMode		stores mode of navigation
+* @param TrajectoryMode	stores mode of trajectory calculation
+*/
 struct SimDPreference
 {
 	int ActuatorMode;
@@ -226,6 +261,7 @@ struct SimDPreference
 	int AutopilotMode;
 	int EngineMode;
 	int GPSMode;
+	int IMUMode;
 	int GuidanceMode;
 	int NavMode;
 	int Trajectory;

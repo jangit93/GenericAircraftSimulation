@@ -32,9 +32,27 @@ public:
 	*/
 	~BaseAerodynamic();
 
+
+	/**
+	*  @brief The init function from the selected aerodynamic model is called by a pointer.
+	*	@param	FlightTime			flighttime
+	*	@param	AeroData			structure of aero data
+	*	@param	AircraftData		structure of aircraft data
+	*/
+	virtual void initAerodynamic(Float64 &FlightTime,
+								 AerodynamicStruct & AeroData,
+								 AircraftStruct &AircraftData);
+
+
 	/**
 	*  @brief The update function from the selected aerodynamic model is called by a pointer.
+	*	@param	FlightTime			Flight Time
+	*	@param	AtmoData			structure of atmospheric data
+	*	@param	AeroData			structure of aero data
+	*	@param	AirframeData		structure of airframe data
+	*	@param	ThriustData			structure of thrust data
 	*/
+
 	virtual void updateAerodynamic(Float64 &FlightTime,
 							AtmosphereStruct & AtmoData,
 							AerodynamicStruct & AeroData,
@@ -42,11 +60,8 @@ public:
 							ThrustStruct & ThrustData);
 
 	/**
-	*  @brief The init function from the selected aerodynamic model is called by a pointer.
+	* \brief log aerodynamic data to text file
 	*/
-	virtual void initAerodynamic(Float64 &FlightTime, AerodynamicStruct & AeroData,
-						 AircraftStruct &AircraftData);
-
 	virtual void LogAeroData();
 
 

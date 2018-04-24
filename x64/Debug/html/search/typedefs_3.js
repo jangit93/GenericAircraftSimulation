@@ -1,0 +1,5 @@
+var searchData=
+[
+  ['densematrixtype',['DenseMatrixType',['../group___sparse_core___module.html#acca1ed7c478dbd2b36b7ef14cb781cff',1,'Eigen::SparseMatrixBase']]],
+  ['derivativetype',['DerivativeType',['../group___splines___module.html#ab8a352bf7e6f02ab6f1864e372868db2',1,'Eigen::SplineTraits&lt; Spline&lt; _Scalar, _Dim, _Degree &gt;, Dynamic &gt;::DerivativeType()'],['../group___splines___module.html#a5e0a0e3b07c844c84cf164a7f0db9314',1,'Eigen::SplineTraits&lt; Spline&lt; _Scalar, _Dim, _Degree &gt;, _DerivativeOrder &gt;::DerivativeType()']]]
+];

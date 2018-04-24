@@ -12,11 +12,13 @@
 #include"IMU.h"
 #include"Navigation.h"
 #include<iostream>
-#include<omp.h>
+#include"ODESolver.cpp"
+#include"Trajectory.h"
+
 
 void AtmosphereTest()
 {
-
+	
 	Atmopshere *Atmo = new Atmopshere;
 	AtmosphereStruct Atmos;
 
@@ -41,13 +43,11 @@ void AtmosphereTest()
 	std::cout << "Atmosphere Test done" << std::endl;
 };
 
-void AerodynamicTest()
+void AerodynamicTest(SimDPreference &SimPref)
 {
 
 	DataLogger logAeroTestData("AerodynamicTestData.txt", 25, " ");
-
-	Aerodynamics * Aero = new Aerodynamics;
-	Atmopshere * Atmo = new Atmopshere;
+	Aerodynamics * Aero = new Aerodynamics(SimPref);
 	readInData * readIn = new readInData;
 	Transformation * transformation = new Transformation;
 
@@ -89,8 +89,7 @@ void AerodynamicTest()
 	Eigen::VectorXd Mach	= readIn->readInVector("Ma.txt");
 	Eigen::VectorXd Eta		= readIn->readInVector("Eta.txt");
 
-	Aero->initAerodynamic(AeroData,AircraftData);
-	Atmo->initAtmosphere();
+	Aero->initAerodynamic(FlightTime,AeroData,AircraftData);
 
 	Float64 alpha;
 	Float64 beta = 0.0;
@@ -119,7 +118,8 @@ void AerodynamicTest()
 	logAeroTestData.printHeader();
 
 	// constant altitude
-	Atmo->updateAtmosphere(Altitude, AtmoData);
+	AtmoData.rho = 1.225;
+	AtmoData.speedOfSound = 340;
 
 	for (int eta = 0; eta <= Eta.maxCoeff(&i); eta = eta + 5)
 	{
@@ -158,8 +158,10 @@ void AerodynamicTest()
 	std::cout << "Aerodynamic Test done" << std::endl;
 };
 
-void GuidanceTest()
+void GuidanceTest(SimDPreference &SimPref)
 {
+
+	std::cout << "Guidance Test" << std::endl;
 	AerodynamicStruct  AeroData;
 	AircraftStruct     AircraftData;
 	AtmosphereStruct   AtmoData;
@@ -167,75 +169,276 @@ void GuidanceTest()
 	ThrustStruct  ThrustData;
 	GuidanceStruct GuidanceData;
 
-	Guidance *guidanceTest = new Guidance;
+	AtmoData.rho = 1.225;
+	AtmoData.speedOfSound = 340;
 
-	guidanceTest->initGuidance();
+	AirframeData.velNED << 180, 0, 0;
+	AirframeData.EulerAngles << 0, 0, 0;
+	AirframeData.Xi = 0;
+	AirframeData.Zeta = 0;
+	AirframeData.Eta = 0;
 
-	guidanceTest->updateGuidance(0.0,
-								AeroData,
-								ThrustData,
-								AircraftData,
-								AirframeData,
-								AtmoData, 
-								GuidanceData);
+	readInData *readIn = new readInData;
+	DataLogger logGuidanceTestData("GuidanceTestData.txt", 25, " ");
 
+	Aerodynamics *Aero = new Aerodynamics(SimPref);
+	Float64 FlightTime = 0;
+	Aero->initAerodynamic(FlightTime, AeroData, AircraftData);
+	AircraftData.mass = readIn->readInParameter("mass", "Aircraft.txt");
+	AircraftData.wingarea = readIn->readInParameter("wing_area", "Aircraft.txt");
+
+	logGuidanceTestData.add("FlightTime", FlightTime);
+	logGuidanceTestData.add("Phi_com", GuidanceData.Phi_com);
+	logGuidanceTestData.add("Theta_com", GuidanceData.Theta_com);
+	logGuidanceTestData.printHeader();
+
+	AirframeData.Chi = 0;
+	AirframeData.Gamma = 0;
+
+	AirframeData.rotRatesBody << 0, 0, 0;
+	Guidance *guidanceTest = new Guidance(SimPref);
+	Transformation transform;
+	guidanceTest->initGuidance(FlightTime,GuidanceData,AircraftData);
+
+	AirframeData.matNEDToTraj = transform.MatNEDToTrajectory(AirframeData.Gamma, AirframeData.Chi);
+	AirframeData.matNEDToBody = transform.MatNedToBody(AirframeData.EulerAngles(0), AirframeData.EulerAngles(1), AirframeData.EulerAngles(2));
+
+	Aero->updateAerodynamic(FlightTime,
+							AtmoData,
+							AeroData,
+							AirframeData,
+							ThrustData);
+	
+	for (FlightTime = 0; FlightTime < 150/0.01; FlightTime++) {
+
+
+		guidanceTest->updateGuidance(FlightTime,
+									AeroData,
+									ThrustData,
+									AirframeData,
+									GuidanceData);
+
+		logGuidanceTestData.print();
+
+		guidanceTest->logGuidanceData();
+	}
+
+
+	std::cout << "Guidance Test done" << std::endl;
 }
 
 
-int main()
+void AutopilotTest()
 {
-	std::cout << "----------Module Test----------" << std::endl;
 	AirframeStruct	AirframeData;
-	FindNeighbor findNeighbor;
+	AerodynamicStruct AeroData;
+	GuidanceStruct GuidanceData;
+
+	
+	StateController testController;
+
+	testController.initStateController();
+
 	MatFileReader test("../Autopilot.mat");
 
 	matvar_t MatFileData = test.getMatFileInfo("AutopilotData");
 	int Fields = MatFileData.dims[0] * MatFileData.dims[1];
 
-	AutopilotStruct Autopilotdata;
+	AutopilotStruct *Autopilotdata = new AutopilotStruct[Fields];;
 
 	int start, stride, edge, copy_field = 0;
 	start = 0;
 	stride = 0;
 	edge = 9;
 
+	for (start = 0; start < Fields; start++) {
+		Autopilotdata[start].Alt = std::get<2>(test.readMatFileStructure("Alt", start, stride, edge, copy_field));
+		Autopilotdata[start].Vel = std::get<2>(test.readMatFileStructure("Vel", start, stride, edge, copy_field));
+		Autopilotdata[start].x_bar = std::get<1>(test.readMatFileStructure("x_bar", start, stride, edge, copy_field));
+		Autopilotdata[start].u_bar = std::get<1>(test.readMatFileStructure("u_bar", start, stride, edge, copy_field));
+	}
+	AirframeData.Eta = Autopilotdata[1].u_bar(1);
+	AirframeData.posNED(2) = -Autopilotdata[1].Alt;
+	AirframeData.velNED << Autopilotdata[1].Vel, 0, 0;
+	AirframeData.StickPosition = Autopilotdata[1].u_bar(3);
+	AirframeData.EulerAngles(1) = Autopilotdata[1].x_bar(1);
+	AeroData.Alpha = Autopilotdata[1].x_bar(1);
+	AeroData.Beta = 0;
+	AirframeData.EulerAngles(0) = 0;
 
-	Autopilotdata.Alt = std::get<2>(test.readMatFileStructure("Alt", start, stride, edge, copy_field));
-	Autopilotdata.Vel = std::get<2>(test.readMatFileStructure("Vel", start, stride, edge, copy_field));
-	Autopilotdata.x_bar = std::get<1>(test.readMatFileStructure("x_bar", start, stride, edge, copy_field));
-	Autopilotdata.u_bar = std::get<1>(test.readMatFileStructure("u_bar", start, stride, edge, copy_field));
+	AirframeData.rotRatesBody.setZero();
+	GuidanceData.Theta_com = Autopilotdata[1].x_bar(1);
+	GuidanceData.Velocity_com = 180;
+	GuidanceData.Beta_com = 0;
+	GuidanceData.Phi_com = 0;
 
-	AirframeData.Eta = Autopilotdata.u_bar(1);
-	AirframeData.posNED(2) = -Autopilotdata.Alt;
-	AirframeData.velNED << Autopilotdata.Vel, 0, 0;
-	AirframeData.StickPosition = Autopilotdata.u_bar(3);
-	AirframeData.EulerAngles(1) = Autopilotdata.x_bar(1);
-	findNeighbor.initFindNeighbor();
-	findNeighbor.BlendingParameters(AirframeData);
+	testController.updateStateController(0, AirframeData, AeroData, GuidanceData);
+	/*findNeighbor.initFindNeighbor();
+	findNeighbor.BlendingParameters(AirframeData);*/
+}
 
+void IMUTest(SimDPreference &SimPref)
+{
 
-	//AtmosphereTest();
-
-
-	AerodynamicTest();
-	//GuidanceTest();
-	//AirframeStruct AirframeData;
-	NavigationStruct NavData;
+	AirframeStruct AirframeData;
 	IMUStruct IMUData;
+
+	IMU *imutest = new IMU(SimPref);
+	imutest->initIMU();
+	imutest->updateIMU(0, AirframeData, IMUData);
+
+	std::cout << "IMU Test Done" << std::endl;
+}
+
+void GPSTest(SimDPreference &SimPref)
+{
+	NavigationStruct NavData;
+	
+
+	GPS *gpstest = new GPS(SimPref);
+	gpstest->initGPS();
+	gpstest->updateGPS(0, NavData);
+
+	std::cout << "GPS Test Done" << std::endl;
+}
+
+void NavigationTest(SimDPreference &SimPref)
+{
+	NavigationStruct NavData;
 	GuidanceStruct GuidanceData;
 
+	Navigation *testNav = new Navigation(SimPref);
+	testNav->initNavigation();
+	testNav->updateNavigation(0, NavData, GuidanceData);
 
-	IMU imutest;
-	imutest.initIMU();
-	imutest.updateIMU(0,AirframeData,IMUData);
+	std::cout << "Navigation Test Done" << std::endl;
+}
 
-	GPS gpstest;
-	gpstest.initGPS();
-	gpstest.updateGPS(0,NavData);
+
+void TrajectoryTest(SimDPreference &SimPref)
+{
 	
-	Navigation testNav;
-	testNav.initNavigation();
-	testNav.updateNavigation(0, NavData, GuidanceData);
+	Trajectory *Test = new Trajectory(SimPref);
+	Atmopshere *Atmo = new Atmopshere;
+	Transformation *Trafo = new Transformation;
+	Float64				FlightTime = 0;
+	AtmosphereStruct	AtmoData;
+	AerodynamicStruct	AeroData;
+	AirframeStruct		AirframeData;
+	ThrustStruct		ThrustData;
+	AircraftStruct		AircraftData;
+	GuidanceStruct		GuidamceData;
+
+	MatFileReader test("../Autopilot.mat");
+	
+
+
+	matvar_t MatFileData = test.getMatFileInfo("AutopilotData");
+	int Fields = MatFileData.dims[0] * MatFileData.dims[1];
+
+	AutopilotStruct * AutopilotData = new AutopilotStruct[Fields];
+
+	int start, stride, edge, copy_field = 0;
+	stride = 0;
+	edge = 9;
+
+	for (start = 0; start < Fields; start++) {
+		AutopilotData[start].Alt = std::get<2>(test.readMatFileStructure("Alt", start, stride, edge, copy_field));
+		AutopilotData[start].Vel = std::get<2>(test.readMatFileStructure("Vel", start, stride, edge, copy_field));
+		AutopilotData[start].x_bar = std::get<1>(test.readMatFileStructure("x_bar", start, stride, edge, copy_field));
+		AutopilotData[start].u_bar = std::get<1>(test.readMatFileStructure("u_bar", start, stride, edge, copy_field));
+	}
+	NavigationStruct NavData;
+	ActuatorStruct ActuatorData;
+	IMUStruct IMUData;
+
+
+
+	Test->initTrajectory(FlightTime,
+						AeroData,
+						AirframeData,
+						ThrustData,
+						AircraftData,
+						GuidamceData,
+						NavData,
+						ActuatorData,
+						IMUData);
+
+	Atmo->initAtmosphere();
+
+	AirframeData.Eta = AutopilotData[1].u_bar(1);
+	AirframeData.posNED(2) = -AutopilotData[1].Alt;
+	AirframeData.velNED << AutopilotData[1].Vel, 0, 0;
+	AirframeData.StickPosition = AutopilotData[1].u_bar(3);
+	AirframeData.EulerAngles(1) = AutopilotData[1].x_bar(1);
+	GuidamceData.Theta_com = AirframeData.EulerAngles(1);
+
+	std::cout << "----------------------------------------------" << std::endl;
+	Float64 dt = 0.01;
+	for(FlightTime = 0.01;FlightTime < 150;FlightTime+=0.01){
+
+	AirframeData.velNED = EulerIntegration(AirframeData.velNED, AirframeData.accTransNED, dt);
+	AirframeData.posNED = EulerIntegration(AirframeData.posNED, AirframeData.velNED, dt);
+
+	AirframeData.rotRatesBody = EulerIntegration(AirframeData.rotRatesBody, AirframeData.accRotBody, dt);
+	AirframeData.EulerAngles = EulerIntegration(AirframeData.EulerAngles, AirframeData.Eulerdot, dt);
+
+	AirframeData.Gamma = atan2(-AirframeData.velNED(2), sqrt(AirframeData.velNED(0)*AirframeData.velNED(0) + AirframeData.velNED(1)*AirframeData.velNED(1)));
+
+
+	AirframeData.Chi = atan2(AirframeData.velNED(1), AirframeData.velNED(0));
+
+	AirframeData.matNEDToBody = Trafo->MatNedToBody(AirframeData.EulerAngles(0), AirframeData.EulerAngles(1), AirframeData.EulerAngles(2));
+	AirframeData.matBodyToNED = Trafo->MatBodyToNED(AirframeData.matNEDToBody);
+	AirframeData.matNEDToTraj = Trafo->MatNEDToTrajectory(AirframeData.Gamma, AirframeData.Chi);
+
+	Atmo->updateAtmosphere(AirframeData.posNED(2), AtmoData);
+
+
+	Test->updateTrajectory(FlightTime,
+							AtmoData,
+							AeroData,
+							AirframeData,
+							ThrustData,
+							GuidamceData,
+							NavData,
+							ActuatorData,
+							IMUData);
+
+	}
+
+
+
+}
+
+int main()
+{
+	std::cout << "----------Module Test----------" << std::endl;
+	
+	SimDPreference SimPref;
+	SimPref.AeroMode = 1;
+	SimPref.GuidanceMode = 2;
+	SimPref.IMUMode = 1;
+	SimPref.GPSMode = 1;
+	SimPref.NavMode = 1;
+	SimPref.Trajectory = 2;
+	SimPref.EngineMode = 1;
+	/*
+	AtmosphereTest();
+
+
+	AerodynamicTest(SimPref);
+	
+	
+
+	IMUTest(SimPref);
+	GPSTest(SimPref);
+	NavigationTest(SimPref);
+	*/
+	//AutopilotTest();
+	//GuidanceTest(SimPref);
+
+	TrajectoryTest(SimPref);
 
 	system("pause");
 }

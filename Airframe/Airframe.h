@@ -13,6 +13,7 @@
 #include"DataCloud.h"
 #include"readInData.h"
 #include"Constants.h"
+#include"DataLogger.h"
 #include<Eigen/Dense>
 
 
@@ -33,7 +34,8 @@ public:
 	* \brief Airframe initialization 
 	* Airframe and Aircraft Data are initialized. Parameters from Aircraft.dat are read in and stored in their specific structure
 	*/
-	void initAirframe(AircraftStruct	&AircraftData,
+	void initAirframe(Float64 &FlightTime,
+					  AircraftStruct	&AircraftData,
 					  AirframeStruct	&AirframeData);
 
 	/**
@@ -60,8 +62,13 @@ public:
 							ThrustStruct		&ThrustData,
 							AirframeStruct &AirframeData);
 
+	void initLogAirframeData(Float64 &FlightTime, 
+							 AirframeStruct &AirframeData);
+
+	void logAirframeData();
 
 private:
+	DataLogger * LogAirframeData;
 	Float64 mass;
 	readInData *readIn;
 	Eigen::Vector3d Vec_fg;

@@ -4,13 +4,13 @@
 *	@date 25.11.2017
 *	@version 1.0
 *
-*	Base Thrust class is the superclass for all engine models. Using pointer to base
-*	init and update function allows the user to extend the engine module with new
-*	engine models.
+*	ThrustAnalytical class is a child class of BaseThrust class.
+*	Thrust forces and moments are calculated with an analytical model.
 *
 */
 #include"BaseThrust.h"
 #include"Constants.h"
+#include"DataLogger.h"
 #include<math.h>
 
 #ifndef THRUSTANALYTICAL_H
@@ -32,25 +32,33 @@ public:
 
 	/**
 	*  @brief read in Data from Engine.dat
+	*	@param	ThrustData		structure of engine data
+	*	@param	AircraftData	structure of aircraft data
 	*/
-	void initThrust(ThrustStruct & ThrustData,
-						  AircraftStruct &AircraftData);
+	void initThrust(Float64 &FlightTime, 
+					ThrustStruct & ThrustData,
+					AircraftStruct &AircraftData);
 
 	/**
-	*	@brief calculate thrust forces and moments
-	*   @param FlightTime
-	*	@param AtmoData	get current atmospheric data
-	*	@param AeroData get mach number
-	*	@param AirframeData	get current throttle stick position
+	*	@brief calculate thrust forces and moments using an analytical model
+	*   @param FlightTime		flight time
+	*	@param AtmoData			get current atmospheric data
+	*	@param AeroData			get mach number
+	*	@param AirframeData		get current throttle stick position
 	*	@return current thrust data is stored in ThrustStruct
 	*/
 	void updateThrust(Float64 FlightTime,					
 					AtmosphereStruct & AtmoData,		
 					AerodynamicStruct & AeroData,		
 					AirframeStruct & AirframeData,		
-					ThrustStruct & ThrustData);			
+					ThrustStruct & ThrustData);		
 
+	void initLogEngineData(Float64 &FlightTime,
+							ThrustStruct &ThrustData);
+
+	virtual void logEngineData();
 private:
+	DataLogger * LogEngineData;
 	Eigen::Vector3d ThrustForce;		
 	Eigen::Vector3d ThrustMoment;		
 	Float64 rho;						

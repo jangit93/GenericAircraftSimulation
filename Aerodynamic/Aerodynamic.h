@@ -26,8 +26,9 @@ public:
 
 	/**
 	* \brief constructor
+	*	@param	SimPref			structure of model selctions
 	*/
-	Aerodynamics();
+	Aerodynamics(SimDPreference &SimPref);
 
 	/**
 	* \brief destructor
@@ -36,24 +37,36 @@ public:
 
 	/**
 	* \brief set pointer to desired class
+	*	@param	type			Aerodynamic Model Selection
 	*/
 	void selectAerodynamicType(int type);
 
 	/**
 	* \brief initialize aerodynamic paramters
+	*	@param	FlightTime			flighttime
+	*	@param	AeroData			structure of aero data
+	*	@param	AircraftData		structure of aircraft data
 	*/
-	void initAerodynamic(Float64 &FlightTime,AerodynamicStruct & AeroData, 
+	void initAerodynamic(Float64 &FlightTime,
+						 AerodynamicStruct & AeroData, 
 						 AircraftStruct & AircraftDatas);
 
 	/**
 	* \brief calculate aero forces and moments
+	*	@param	FlightTime			Flight Time
+	*	@param	AtmoData			structure of atmospheric data
+	*	@param	AeroData			structure of aero data
+	*	@param	AirframeData		structure of airframe data
+	*	@param	ThriustData			structure of thrust data
 	*/
 	void updateAerodynamic(Float64 &FlightTime,
 							AtmosphereStruct & AtmoData,
 							AerodynamicStruct & AeroData,
 							AirframeStruct & AirframeData,
 							ThrustStruct & ThrustData);
-
+	/**
+	* \brief log aerodynamic data to text file
+	*/
 	void LogAeroData();
 
 private:

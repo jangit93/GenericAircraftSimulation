@@ -25,6 +25,7 @@ int main(int argv, char* argc[])
 		std::cout << "-------------Aircraft Simulation--------------" << std::endl;
 
 		SimDPreference check;
+		check.Trajectory = 2;
 		Trajectory *Test = new Trajectory(check);
 		Atmopshere *Atmo = new Atmopshere;
 		Transformation *Trafo = new Transformation;
@@ -52,13 +53,6 @@ int main(int argv, char* argc[])
 			AutopilotData[start].Vel = std::get<2>(test.readMatFileStructure("Vel", start, stride, edge, copy_field));
 			AutopilotData[start].x_bar = std::get<1>(test.readMatFileStructure("x_bar", start, stride, edge, copy_field));
 			AutopilotData[start].u_bar = std::get<1>(test.readMatFileStructure("u_bar", start, stride, edge, copy_field));
-			AutopilotData[start].Kx_pitch = std::get<1>(test.readMatFileStructure("Kx_pitch", start, stride, edge, copy_field));
-			AutopilotData[start].Ke_pitch = std::get<2>(test.readMatFileStructure("Ke_pitch", start, stride, edge, copy_field));
-			AutopilotData[start].Kv_pitch = std::get<2>(test.readMatFileStructure("Kv_pitch", start, stride, edge, copy_field));
-			AutopilotData[start].Kx_Vel = std::get<2>(test.readMatFileStructure("Kx_Vel", start, stride, edge, copy_field));
-			AutopilotData[start].Ke_Vel = std::get<2>(test.readMatFileStructure("Ke_Vel", start, stride, edge, copy_field));
-			AutopilotData[start].Kx_lat = std::get<0>(test.readMatFileStructure("Kx_lat", start, stride, edge, copy_field));
-			AutopilotData[start].Ke_lat = std::get<0>(test.readMatFileStructure("Ke_lat", start, stride, edge, copy_field));
 		}
 		NavigationStruct NavData;
 		ActuatorStruct ActuatorData;
@@ -97,8 +91,8 @@ int main(int argv, char* argc[])
 
 		AirframeData.matNEDToBody = Trafo->MatNedToBody(AirframeData.EulerAngles(0), AirframeData.EulerAngles(1), AirframeData.EulerAngles(2));
 		AirframeData.matBodyToNED = Trafo->MatBodyToNED(AirframeData.matNEDToBody);
-		AirframeData.matNEDToTraj = Trafo->MatBodyToTrajectory(AirframeData.Gamma, AirframeData.Chi);
-
+		AirframeData.matNEDToTraj = Trafo->MatNEDToTrajectory(AirframeData.Gamma, AirframeData.Chi);
+	
 		Atmo->updateAtmosphere(AirframeData.posNED(2), AtmoData);
 
 		Test->updateTrajectory(FlightTime,

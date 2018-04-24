@@ -1,9 +1,8 @@
 #include "IMU.h"
 
-IMU::IMU()
+IMU::IMU(SimDPreference &SimPref)
 {
-	int Type = 2;
-	selectIMU(Type);
+	selectIMU(SimPref.IMUMode);
 }
 
 IMU::~IMU()
@@ -15,9 +14,7 @@ void IMU::selectIMU(int Type)
 	switch (Type)
 	{
 	case 1:
-		imu = new BaseIMU;
-		break;
-	case 2:
+		std::cout << "IMU:\t" << "flawless IMU" << std::endl;
 		imu = new flawlessIMU;
 	}
 }

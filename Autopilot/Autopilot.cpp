@@ -2,7 +2,7 @@
 
 Autopilot::Autopilot()
 {
-
+	controller = new StateController;
 }
 
 Autopilot::~Autopilot()
@@ -12,13 +12,17 @@ Autopilot::~Autopilot()
 
 void Autopilot::initAutopilot()
 {
-	controller = new StateController;
-	neigh = new FindNeighbor;
-
+	controller->initStateController();
 	
 }
 
-void Autopilot::updateAutopilot()
+void Autopilot::updateAutopilot(Float64 FlightTime,
+								AirframeStruct &AirframeData,
+								AerodynamicStruct &AeroData,
+								GuidanceStruct &GuidanceData)
 {
-	
+	controller->updateStateController(FlightTime,
+									  AirframeData,
+									  AeroData,
+									  GuidanceData);
 }

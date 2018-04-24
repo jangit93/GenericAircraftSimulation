@@ -1,9 +1,8 @@
 #include "Engine.h"
 
-Engine::Engine()
+Engine::Engine(SimDPreference &SimPref)
 {
-	int a = 1;
-	selectEngineType(a);
+	selectEngineType(SimPref.EngineMode);
 }
 
 Engine::~Engine()
@@ -21,11 +20,13 @@ void Engine::selectEngineType(int type)
 	}
 }
 
-void Engine::initEngine(ThrustStruct & ThrustData,
+void Engine::initEngine(Float64 &FlightTime,
+						ThrustStruct & ThrustData,
 						AircraftStruct &AircraftData)
 			
 {
-	Thrust->initThrust(ThrustData,
+	Thrust->initThrust(FlightTime,
+						ThrustData,
 					   AircraftData);
 }
 
@@ -40,4 +41,9 @@ void Engine::updateEngine(Float64 FlightTime,
 						 AeroData,
 						 AirframeData,
 						 ThrustData);
+}
+
+void Engine::logEngineData()
+{
+	Thrust->logEngineData();
 }

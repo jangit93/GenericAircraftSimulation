@@ -20,9 +20,10 @@ class Engine
 {
 public:
 	/**
-	*  @brief constructor
+	*	@brief constructor
+	*	@param	SimPref	mode selection for engine
 	*/
-	Engine();
+	Engine(SimDPreference &SimPref);
 
 	/**
 	*  @brief destructor
@@ -36,9 +37,12 @@ public:
 	void selectEngineType(int type);
 
 	/**
-	*  @brief initilization of engine specific data
+	*	@brief initilization of engine specific data
+	*	@param	ThrustData		structure of engine data
+	*	@param	AircraftData	structure of aircraft data
 	*/
-	void initEngine(ThrustStruct & ThrustData,
+	void initEngine(Float64 &FlightTime, 
+					ThrustStruct & ThrustData,
 					AircraftStruct &AircraftData);
 
 	/**
@@ -54,6 +58,8 @@ public:
 						AerodynamicStruct & AeroData,
 						AirframeStruct & AirframeData,
 						ThrustStruct & ThrustData);
+
+	void logEngineData();
 
 private:
 	BaseThrust * Thrust;

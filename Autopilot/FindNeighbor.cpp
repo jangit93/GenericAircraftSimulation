@@ -19,6 +19,8 @@ void FindNeighbor::initFindNeighbor()
 	neighbors = new AutopilotStruct[Fields];
 
 	start, stride, edge, copy_field = 0;
+	start = 0;
+	stride = 0;
 	edge = 9;
 
 	for (start = 0; start < Fields; start++) {
@@ -44,28 +46,28 @@ void FindNeighbor::initFindNeighbor()
 
 
 
-Eigen::Vector4d FindNeighbor::BlendingParameters(AirframeStruct & AirframeData)
+std::tuple<Eigen::Vector4d, Eigen::MatrixXd> FindNeighbor::BlendingParameters(AirframeStruct & AirframeData)
 {
 	
 	// find neighbours altitude
-	std::cout << neighbors[0].AltVec.size() << std::endl;
-	for (int i = 0; i < neighbors[0].AltVec.size() - 1; i++) {
-		std::cout << -AirframeData.posNED(2) << neighbors[0].AltVec(i + 1) << -AirframeData.posNED(2) << neighbors[0].AltVec(i) - 10 <<  std::endl;
-		if (-AirframeData.posNED(2) < neighbors[0].AltVec(i + 1) && -AirframeData.posNED(2) >= neighbors[0].AltVec(i) - 10) {
+	//std::cout << neighbors[0].AltVec.size() << std::endl;
+	for (int i = 0; i < neighbors[0].AltVec.size()-1 ; i++) {
+		if ((-AirframeData.posNED(2)) <= neighbors[0].AltVec(i+1) && -AirframeData.posNED(2) >= neighbors[0].AltVec(i) - 10) {
+			//std::cout << (-AirframeData.posNED(2)) << neighbors[0].AltVec(i + 1) << -AirframeData.posNED(2) << neighbors[0].AltVec(i) - 10  << std::endl;
+			tempAlt << i, i+1;
 
-			tempAlt << i, i + 1;
-
-			minAlt = neighbors[1].AltVec(i);
+			minAlt = neighbors[0].AltVec(i);
 			maxAlt = neighbors[0].AltVec(i + 1);
 			break;
 		}
 	}
 
 	// find neighbours velocity
+	//std::cout << neighbors[0].VelVec.size() << std::endl;
 	for (int i = 0; i < neighbors[0].VelVec.size() - 1; i++) {
-		if (AirframeData.velNED.norm() < neighbors[0].VelVec(i + 1) && AirframeData.velNED.norm() >= neighbors[0].VelVec(i) - 10) {
+		if (AirframeData.velNED.norm() < neighbors[0].VelVec(i+1) && AirframeData.velNED.norm() >= neighbors[0].VelVec(i) - 10) {
 			
-			tempVel << i, i + 1;
+			tempVel << i, i+1;
 
 			minVel = neighbors[0].VelVec(i);
 			maxVel = neighbors[0].VelVec(i + 1);
@@ -75,33 +77,31 @@ Eigen::Vector4d FindNeighbor::BlendingParameters(AirframeStruct & AirframeData)
 
 	//calculate blending parameters
 	Neighbor = combineVec(tempAlt, tempVel);
-	std::cout << Neighbor << std::endl;
-	
+
 	for (int i = 0; i < Neighbor.rows(); i++) {
 
-		int m, n;
-		m = Neighbor(i, 0);
-		n = Neighbor(i, 1);
-		xi(0) = (-AirframeData.posNED(2) - neighbors[n*MatFileData.dims[0]+m].Alt) / (maxAlt - minAlt);
+		int index = sub2ind(Neighbor(i, 0), Neighbor(i, 1), MatFileData.dims[0], MatFileData.dims[1]);
+
+		xi(0) = (-AirframeData.posNED(2) - neighbors[index].Alt) / (maxAlt - minAlt);
 
 		phi_j(0) = 1 - xi(0)*xi(0)*(3-2* abs(xi(0)));
 
-		xi(1) = (AirframeData.velNED.norm() - neighbors[n*MatFileData.dims[0] + m].Vel) / (maxVel - minVel);
+		xi(1) = (AirframeData.velNED.norm() - neighbors[index].Vel) / (maxVel - minVel);
 
 		phi_j(1) = 1 - xi(1)*xi(1)*(3-2 * abs(xi(1)));
 
 		phi(i) = phi_j(0)*phi_j(1);
 	}
 
-	return phi;
-	std::cout << phi << std::endl;
+	return std::make_tuple(phi,Neighbor);
+	
 }
 
 Eigen::MatrixXd FindNeighbor::combineVec(Eigen::Vector2d & Alt, Eigen::Vector2d & Vel)
 {
 	comb.resize(Alt.size()*Vel.size(), 2);
 	
-	Vec1.resize(Alt.size()*Alt.size());
+   Vec1.resize(Alt.size()*Alt.size());
 	Vec1 << Alt, Alt;
 
 	Vec2.resize(Vel.size()*Vel.size());
@@ -111,7 +111,12 @@ Eigen::MatrixXd FindNeighbor::combineVec(Eigen::Vector2d & Alt, Eigen::Vector2d 
 		Vec2(ii + 2) = Vel(1);
 	}
 
-	comb << Vec1, Vec2;
+	comb << Vec1, Vec2; 
 	
 	return comb;
+}
+
+int FindNeighbor::sub2ind(const int row, const int column, const int rows, const int columns)
+{
+	return row * (columns - 1) + column;
 }

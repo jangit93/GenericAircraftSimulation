@@ -2,3 +2,5 @@
 
 plotAtmosphereData();
 
+% plotAerodynamicTestData();
+

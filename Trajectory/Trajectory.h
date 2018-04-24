@@ -22,7 +22,7 @@ public:
 
 	~Trajectory();
 
-	void selectTrajectory(int type);
+	void selectTrajectory(int type,SimDPreference &SimPref);
 
 	void updateTrajectory(Float64 FlightTime,
 						AtmosphereStruct & AtmoData,

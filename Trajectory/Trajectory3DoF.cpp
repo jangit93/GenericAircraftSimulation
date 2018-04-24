@@ -1,9 +1,9 @@
 #include "Trajectory3DoF.h"
 
-Trajectory3Dof::Trajectory3Dof()
+Trajectory3Dof::Trajectory3Dof(SimDPreference &SimPref)
 {
-	engine		 = new Engine;
-	aerodynamics = new Aerodynamics;
+	engine		 = new Engine(SimPref);
+	aerodynamics = new Aerodynamics(SimPref);
 	airframe     = new Airframe;
 
 }
@@ -55,14 +55,17 @@ void Trajectory3Dof::initTrajectory3DoF(Float64 FlightTime,
 										ThrustStruct & ThrustData, 
 										AircraftStruct & AircraftData)
 {
-	airframe->initAirframe(AircraftData,
-		AirframeData);
+	airframe->initAirframe(FlightTime,
+						   AircraftData,
+						   AirframeData);
 
-	engine->initEngine(ThrustData,
-		AircraftData);
+	engine->initEngine(FlightTime,
+					   ThrustData,
+					   AircraftData);
 
-	aerodynamics->initAerodynamic(FlightTime, AeroData,
-		AircraftData);
+	aerodynamics->initAerodynamic(FlightTime, 
+								  AeroData,
+								  AircraftData);
 }
 
 void Trajectory3Dof::updateTrajectory3DoF(Float64 FlightTime, 
@@ -87,19 +90,13 @@ void Trajectory3Dof::updateTrajectory3DoF(Float64 FlightTime,
 								ThrustData,
 								AirframeData);
 
-	logData(FlightTime, 
-			AtmoData, 
-			AeroData, 
-			AirframeData, 
-			ThrustData);
+	log3DofData();
 
 }
 
-void Trajectory3Dof::logData(Float64 FlightTime, 
-							 AtmosphereStruct & AtmoData, 
-							 AerodynamicStruct & AeroData, 
-							 AirframeStruct & AirframeData, 
-							 ThrustStruct & ThrustData)
+void Trajectory3Dof::log3DofData()
 {
 	aerodynamics->LogAeroData();
+	engine->logEngineData();
+	airframe->logAirframeData();
 }

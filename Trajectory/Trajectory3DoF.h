@@ -11,15 +11,16 @@
 #define TRAJECTORY3DOF_H
 
 #include"BaseTrajectory.h"
-#include"Engine.h"
 #include"Aerodynamic.h"
 #include"Airframe.h"
 #include<iostream>
+#include"Engine.h"
 
 class Trajectory3Dof : public BaseTrajectory
 {
 public:
-	Trajectory3Dof();
+
+	Trajectory3Dof(SimDPreference &SimPref);
 
 	~Trajectory3Dof();
 
@@ -55,11 +56,8 @@ public:
 								AirframeStruct & AirframeData,
 								ThrustStruct & ThrustData);
 
-	void logData(Float64 FlightTime,
-		AtmosphereStruct & AtmoData,
-		AerodynamicStruct & AeroData,
-		AirframeStruct & AirframeData,
-		ThrustStruct & ThrustData);
+	void log3DofData();
+
 protected:
 	Airframe * airframe;
 private:

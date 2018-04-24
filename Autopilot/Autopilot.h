@@ -1,4 +1,15 @@
-#pragma once
+/** @defgroup	Autopilot Autopilot
+*	@author		Jan Olucak
+*	@date		15.01.2018
+*	@version	1.0
+*
+*	Autopilot class calls the desired type of controller.
+*  @{
+*/
+
+#ifndef AUTOPILOT_H
+#define AUTOPILOT_H
+
 #include"MatFileReader.h"
 #include"DataCloud.h"
 #include"StateController.h"
@@ -7,16 +18,33 @@
 class Autopilot
 {
 public: 
+	/**
+	* \brief constructor
+	*/
 	Autopilot();
 
+
+	/**
+	* \brief destructor
+	*/
 	~Autopilot();
 
+	/**
+	* \brief initialize autopilot
+	*/
 	void initAutopilot();
 
-	void updateAutopilot();
+	/**
+	* \brief calculate controlls
+	*/
+	void updateAutopilot(Float64 FlightTime, 
+						AirframeStruct &AirframeData,
+						AerodynamicStruct &AeroData,
+						GuidanceStruct &GuidanceData);
 
 private:
 	StateController *controller;
-	FindNeighbor *neigh;
 
 };
+/**@}*/
+#endif // !AUTOPILOT_H

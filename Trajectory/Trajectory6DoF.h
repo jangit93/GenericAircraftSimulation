@@ -22,7 +22,7 @@
 class Trajectory6Dof : public Trajectory3Dof
 {
 public:
-	Trajectory6Dof();
+	Trajectory6Dof(SimDPreference &SimPref);
 
 	~Trajectory6Dof();
 
@@ -64,7 +64,7 @@ public:
 							NavigationStruct &NavData);
 
 
-
+	void log6DofData();
 
 
 

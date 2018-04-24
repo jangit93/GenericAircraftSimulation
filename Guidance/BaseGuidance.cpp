@@ -8,7 +8,7 @@ BaseGuidance::~BaseGuidance()
 {
 }
 
-void BaseGuidance::initGuidance()
+void BaseGuidance::initGuidance(Float64 &FlightTime, GuidanceStruct &GuidanceData, AircraftStruct &AircraftData)
 {
 	
 }
@@ -20,4 +20,12 @@ void BaseGuidance::updateGuidance(Float64 FlightTime,
 								  GuidanceStruct &GuidanceData)
 {
 
+}
+
+void BaseGuidance::initLogGuidance(Float64 FlightTime, GuidanceStruct & GuidanceData)
+{
+}
+
+void BaseGuidance::logGuidanceData()
+{
 }

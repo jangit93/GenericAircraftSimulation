@@ -8,10 +8,15 @@ BaseThrust::~BaseThrust()
 {
 }
 
-void BaseThrust::initThrust(ThrustStruct & ThrustData,
+void BaseThrust::initThrust(Float64 &FlightTime, 
+							ThrustStruct & ThrustData,
 							AircraftStruct &AircraftData)
 {
 	std::cout << "Basis Schubklasse Init" << std::endl;
+}
+
+void BaseThrust::logEngineData()
+{
 }
 
 

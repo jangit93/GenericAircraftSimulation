@@ -15,7 +15,7 @@ public:
 
 	Eigen::Matrix3d MatBodyToNED(Eigen::Matrix3d MatNedToBody);
 
-	Eigen::Matrix3d MatBodyToTrajectory(Float64 Gamma, Float64 chi);
+	Eigen::Matrix3d MatNEDToTrajectory(Float64 Gamma, Float64 chi);
 
 	Eigen::Matrix3d MatAeroToBody(Float64 Alpha, Float64 Beta);
 

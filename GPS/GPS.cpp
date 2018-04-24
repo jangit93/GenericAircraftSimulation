@@ -1,9 +1,8 @@
 #include "GPS.h"
 
-GPS::GPS()
+GPS::GPS(SimDPreference &SimPref)
 {
-	int Type =2 ;
-	selectGPS(Type);
+	selectGPS(SimPref.GPSMode);
 }
 
 GPS::~GPS()
@@ -15,9 +14,7 @@ void GPS::selectGPS(int Type)
 	switch (Type)
 	{
 	case 1:
-		gps = new BaseGPS;
-		break;
-	case 2:
+		std::cout << "GPS:\t" << "flawless GPS" << std::endl;
 		gps = new flawlessGPS;
 	}
 }

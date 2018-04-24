@@ -4,11 +4,12 @@
 *	@date 25.11.2017
 *	@version 1.0
 *
-*	DATCOm aerodynamic class is a child class from BaseAerodynamic. This class
+*	DATCOM aerodynamic class is a child class from BaseAerodynamic. This class
 *	calculates aerodynamic forces and moments with tables from DATCOM. Tables of
 *	derivative are read in from specific file.
 *
 */
+
 
 #include"Constants.h"
 #include"BaseAerodynamic.h"
@@ -36,14 +37,23 @@ public:
 
 	/**
 	* @brief read in tables of derivatives
+	*	@param	FlightTime			flighttime
+	*	@param	AeroData			structure of aero data
+	*	@param	AircraftData		structure of aircraft data
 	*/
-	virtual void initAerodynamic(Float64 &FlightTime, AerodynamicStruct & AeroData,
-							   AircraftStruct & AircraftData);
+	virtual void initAerodynamic(Float64 &FlightTime, 
+								 AerodynamicStruct & AeroData,
+								 AircraftStruct & AircraftData);
 
 	/**
 	* @brief	current flight state is used to interpolated derivatives
 				and  a linear aerodynamic model calculates forces
 				and moments
+	*	@param	FlightTime			Flight Time
+	*	@param	AtmoData			structure of atmospheric data
+	*	@param	AeroData			structure of aero data
+	*	@param	AirframeData		structure of airframe data
+	*	@param	ThriustData			structure of thrust data
 	*/
 	virtual void updateAerodynamic(Float64 &FlightTime,
 						AtmosphereStruct & AtmoData,
@@ -51,9 +61,15 @@ public:
 						AirframeStruct & AirframeData,
 						ThrustStruct & ThrustData);
 
+	/**
+	* @brief	definition of data which is logged to an outputfile
+	*/
 	virtual void initLogAeroData(Float64 &FlightTime,
 								 AerodynamicStruct & AeroData);
 
+	/**
+	* @brief	logging of aerodynamic data
+	*/
 	void LogAeroData();
 
 private:
@@ -61,6 +77,7 @@ private:
 	readInData *readIn;
 	LinearInterpolation Interpolation;
 	DataLogger *logAeroData;
+
 	//Aircraft Data
 	Float64 b;
 	Float64 S;

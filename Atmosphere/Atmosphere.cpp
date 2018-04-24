@@ -22,26 +22,26 @@ void Atmopshere::initAtmosphere()
 void Atmopshere::updateAtmosphere(Float64 &Altitude, 
 								  AtmosphereStruct &AtmoData)
 {
-
-	///troposphere
-	if (Altitude < 11000.0)
+	Float64 Alt = -Altitude;
+	//troposphere
+	if (Alt < 11000.0)
 	{
-		Temperature = 15.04 - 0.00649 * Altitude + 273.1;
+		Temperature = 15.04 - 0.00649 * Alt + 273.1;
 		Pressure = 101.29 * pow(Temperature / 288.08,5.256);
 	}
 
-	/// lower stratosphere	
-	else if(Altitude < 25000.0)
+	// lower stratosphere	
+	else if(Alt < 25000.0)
 	{
 				Temperature = -56.46 + 273.1;
-				Pressure = 22.65 * exp(1.73 - 0.000157 * Altitude);
+				Pressure = 22.65 * exp(1.73 - 0.000157 * Alt);
 	}
 
 
-	///upper stratosphere--> Altitude >= 25000.0
+	//upper stratosphere--> Altitude >= 25000.0
 	else
 	{ 
-			Temperature = -131.21 + 0.00299 * Altitude + 273.1;
+			Temperature = -131.21 + 0.00299 * Alt + 273.1;
 			Pressure = 2.488 * pow(Temperature / 216.6,-11.388);
 	}
 		

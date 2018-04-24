@@ -24,7 +24,7 @@ Eigen::Matrix3d Transformation::MatBodyToNED(Eigen::Matrix3d MatNedToBody)
 	return matBodytoNED;
 }
 
-Eigen::Matrix3d Transformation::MatBodyToTrajectory(Float64 gamma, Float64 chi)
+Eigen::Matrix3d Transformation::MatNEDToTrajectory(Float64 gamma, Float64 chi)
 {
 
 	matNEDtoTrajectory << cos(gamma)*cos(chi)	, cos(gamma)*sin(chi)	, -sin(gamma),

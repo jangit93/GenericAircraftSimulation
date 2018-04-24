@@ -1,10 +1,9 @@
 #include "Guidance.h"
 
-Guidance::Guidance()
+Guidance::Guidance(SimDPreference &SimPref)
 {
-	int type = 2;
+	selectGuidance(SimPref.GuidanceMode);
 
-	selectGuidance(type);
 }
 
 Guidance::~Guidance()
@@ -27,9 +26,10 @@ void Guidance::selectGuidance(int Type)
 	}
 }
 
-void Guidance::initGuidance()
+void Guidance::initGuidance(Float64 &FlightTime, GuidanceStruct &GuidanceData, AircraftStruct &AircraftData)
 {
-	guidance->initGuidance();
+	guidance->initGuidance(FlightTime,GuidanceData,AircraftData);
+	
 }
 
 void Guidance::updateGuidance(Float64 FlightTime, 
@@ -43,4 +43,9 @@ void Guidance::updateGuidance(Float64 FlightTime,
 							 ThrustData,
 							 AirframeData,
 							 GuidanceData);
+}
+
+void Guidance::logGuidanceData()
+{
+	guidance->logGuidanceData();
 }

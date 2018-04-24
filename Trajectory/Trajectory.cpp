@@ -2,8 +2,7 @@
 
 Trajectory::Trajectory(SimDPreference &SimPref)
 {
-	int a = 2;
-	selectTrajectory(a);
+	selectTrajectory(SimPref.Trajectory,SimPref);
 
 }
 
@@ -11,18 +10,19 @@ Trajectory::~Trajectory()
 {
 }
 
-void Trajectory::selectTrajectory(int type)
+void Trajectory::selectTrajectory(int type,
+								  SimDPreference &SimPref)
 {
 	switch (type)
 	{
 	case 1:
 		std::cout << "Trajectory:\t"<< "3 Degrees of Freedom" << std::endl;
-		traj = new Trajectory3Dof;
+		traj = new Trajectory3Dof(SimPref);
 		break;
 
 	case 2:
 		std::cout << "Trajectory:\t"<<"6 Degrees of Freedom" << std::endl;
-		traj = new Trajectory6Dof;
+		traj = new Trajectory6Dof(SimPref);
 		break;
 
 	}

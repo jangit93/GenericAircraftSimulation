@@ -89,9 +89,9 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 &FlightTime,
 	 XI		= AirframeData.Xi * 180 / PI;
 	 ZETA	= AirframeData.Zeta * 180 / PI;
 	 
-	 p = AirframeData.rotRatesBody(0) * b / 2 * absVel;
-	 q = AirframeData.rotRatesBody(1) * l_nu*absVel;
-	 r = AirframeData.rotRatesBody(2)* b / 2 * absVel;
+	 p = AirframeData.rotRatesBody(0) * b / (2 * absVel);
+	 q = AirframeData.rotRatesBody(1) * l_nu/absVel;
+	 r = AirframeData.rotRatesBody(2)* b / (2 * absVel);
 
 
 	if (Ma >= 0.9)
@@ -152,8 +152,8 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 &FlightTime,
 	// Guidanc daten noch ergänzen
 	Float64 alpha0 = 0;
 	ca_alpha = Interpolation.linearInterpolation2D(AoA, Mach, CAalpha, Alpha, Ma);
-	ca_0 = Interpolation.linearInterpolation2D(AoA, Mach, CA, alpha0, Ma);
-	c_zdalpha = -C_W - ca_alpha;
+	AeroData.C_A0 = Interpolation.linearInterpolation2D(AoA, Mach, CA, alpha0, Ma);
+	AeroData.C_zdalpha = -C_W - ca_alpha;
 
 	// Kräfte und Momente
 	AeroData.AeroForces(0) = C_X * qbar*S;
@@ -163,19 +163,18 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 &FlightTime,
 	AeroData.AeroMoments(0) = C_L * qbar*S * (b / 2);
 	AeroData.AeroMoments(1) = C_M * qbar*S *  l_nu;
 	AeroData.AeroMoments(2) = C_N * qbar*S * (b / 2);
-	
-	// Daten in Struktur
-	AeroData.C_zdalpha = c_zdalpha;
-	AeroData.C_A0 = ca_0;
+
 
 	AeroData.CA = C_A;
 	AeroData.CW = C_W;
 	AeroData.CM = C_M;
 	AeroData.CZ = C_Z;
 	AeroData.CX = C_X;
-	AeroData.AoA = Alpha;
-	AeroData.AoS = Beta;
+	AeroData.Alpha = alpha;
+	AeroData.AoA = alpha;
+	AeroData.Beta = beta;
 	AeroData.Mach = Ma;
+	AeroData.q_bar = qbar;
 
 
 }
@@ -184,11 +183,16 @@ void DATCOMAerodymamic::initLogAeroData(Float64 &FlightTime,AerodynamicStruct & 
 {
 	
 	logAeroData->add("Time [s]", FlightTime);
+	logAeroData->add("AoA", AeroData.Alpha);
+	logAeroData->add("AoS", AeroData.Beta);
 	logAeroData->add("CA", AeroData.CA);
 	logAeroData->add("CM", AeroData.CM);
 	logAeroData->add("CW", AeroData.CW);
 	logAeroData->add("CZ", AeroData.CZ);
 	logAeroData->add("CX", AeroData.CX);
+	logAeroData->add("F_x", AeroData.AeroForces(0));
+	logAeroData->add("F_y", AeroData.AeroForces(1));
+	logAeroData->add("F_z", AeroData.AeroForces(2));
 
 	logAeroData->printHeader();
 }

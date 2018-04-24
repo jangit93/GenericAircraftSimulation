@@ -1,10 +1,10 @@
 #include "Trajectory6DoF.h"
 
-Trajectory6Dof::Trajectory6Dof() 
+Trajectory6Dof::Trajectory6Dof(SimDPreference &Simpref):Trajectory3Dof(Simpref)
 {
 	
 	airframe = new Airframe;
-	guidance = new Guidance;
+	guidance = new Guidance(Simpref);
 	autopilot = new Autopilot;
 
 }
@@ -49,7 +49,7 @@ void Trajectory6Dof::initTrajectory6Dof(Float64 FlightTime,
 
 	autopilot->initAutopilot();
 
-	guidance->initGuidance();
+	guidance->initGuidance(FlightTime,GuidanceData,AircraftData);
 	
 }
 
@@ -98,9 +98,17 @@ void Trajectory6Dof::updateTrajectory6Dof(Float64 FlightTime,
 							AirframeData,
 							GuidanceData);
 
-	autopilot->updateAutopilot();
+	autopilot->updateAutopilot(FlightTime,
+							   AirframeData,
+							   AeroData,
+							   GuidanceData);
 
+	log6DofData();
 
+}
 
+void Trajectory6Dof::log6DofData()
+{
+	guidance->logGuidanceData();
 }
 

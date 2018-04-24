@@ -4,6 +4,8 @@
 ThrustAnalytical::ThrustAnalytical():BaseThrust()
 {
 	ReadInThrustData = new readInData;
+
+	LogEngineData = new DataLogger("EngineData.txt", 25, " ");
 }
 
 /// destrcutor
@@ -12,8 +14,9 @@ ThrustAnalytical::~ThrustAnalytical()
 }
 
 /// data is read in from Engine.dat and stored in private variables
-void ThrustAnalytical::initThrust(ThrustStruct & ThrustData,
-										AircraftStruct &AircraftData)
+void ThrustAnalytical::initThrust(Float64 &FlightTime,
+									ThrustStruct & ThrustData,
+									AircraftStruct &AircraftData)
 {
 	ThrustData.ThrustForce.setZero();
 	ThrustData.ThrustMoments.setZero();
@@ -31,9 +34,12 @@ void ThrustAnalytical::initThrust(ThrustStruct & ThrustData,
 	ThrustData.i = incidenceAngle;
 	ThrustData.F_max = maxThrust;
 	ThrustData.r = EnginePos;
+	Kt = 0.7;
+
+	initLogEngineData(FlightTime, ThrustData);
 }
 
-/// calculation of thrust forces and moments
+// calculation of thrust forces and moments
 void ThrustAnalytical::updateThrust(Float64 FlightTime,
 								  AtmosphereStruct & AtmoData,
 								  AerodynamicStruct & AeroData,
@@ -54,6 +60,25 @@ void ThrustAnalytical::updateThrust(Float64 FlightTime,
 		ThrustData.ThrustMoments(0) = T * (cos(incidenceAngle) * EnginePos(2) - sin(incidenceAngle)*EnginePos(0));
 		ThrustData.ThrustMoments(0) = -T * cos(incidenceAngle) * EnginePos(1);
 
+}
+
+void ThrustAnalytical::initLogEngineData(Float64 & FlightTime, ThrustStruct & ThrustData)
+{
+	LogEngineData->add("FlightTime [s]", FlightTime);
+	LogEngineData->add("F_x", ThrustData.ThrustForce(0));
+	LogEngineData->add("F_y", ThrustData.ThrustForce(1));
+	LogEngineData->add("F_z", ThrustData.ThrustForce(2));
+	LogEngineData->add("M_x", ThrustData.ThrustMoments(0));
+	LogEngineData->add("M_x", ThrustData.ThrustMoments(0));
+	LogEngineData->add("M_y", ThrustData.ThrustMoments(1));
+	LogEngineData->add("M_z", ThrustData.ThrustMoments(2));
+
+	LogEngineData->printHeader();
+}
+
+void ThrustAnalytical::logEngineData()
+{
+	LogEngineData->print();
 }
 
 

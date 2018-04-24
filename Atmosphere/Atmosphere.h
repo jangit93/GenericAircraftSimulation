@@ -41,7 +41,8 @@ public:
 	*	@param	Altitude			current altitude
 	*	@return	AtmosphericStruc	store air density, speed of sound, temperature, pressure
 	*/
-	void	updateAtmosphere(Float64 &Altitude, AtmosphereStruct &AtmoData);
+	void	updateAtmosphere(Float64 &Altitude, 
+							 AtmosphereStruct &AtmoData);
 
 private:
 	Float64	Temperature;	// [K]
