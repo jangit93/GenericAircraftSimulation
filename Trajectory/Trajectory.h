@@ -13,6 +13,7 @@
 #include"BaseTrajectory.h"
 #include"Trajectory3DoF.h"
 #include"Trajectory6DoF.h"
+#include"RealSystemTrajectory.h"
 
 class Trajectory {
 
@@ -44,7 +45,7 @@ public:
 						ActuatorStruct &ActuatorData,
 						IMUStruct &IMUData);
 
-
+	void logTraj();
 private:
 	BaseTrajectory *traj;
 	

@@ -17,6 +17,7 @@
 #include"Airframe.h"
 #include"Autopilot.h"
 #include"Guidance.h"
+#include"ODESolver.cpp"
 #include<iostream>
 
 class Trajectory6Dof : public Trajectory3Dof
@@ -63,15 +64,19 @@ public:
 							GuidanceStruct & GuidanceData,
 							NavigationStruct &NavData);
 
+	void integrationTrajectory(AirframeStruct &AirframeData);
+
 
 	void log6DofData();
 
 
 
 private:
+	Float64 dt;
 	Autopilot * autopilot;
 	Guidance  *guidance;
 	Airframe     *airframe;
+	Transformation *Trafo;
 	
 };
 

@@ -34,4 +34,8 @@ void BaseTrajectory::updateTrajectory(Float64 FlightTime,
 
 }
 
+void BaseTrajectory::logTraj()
+{
+}
+
 

@@ -14,7 +14,10 @@
 #include<iostream>
 #include"ODESolver.cpp"
 #include"Trajectory.h"
-
+#include"Actuator.h"
+#include<omp.h>
+#include<ctime>
+#include"Aircraft.h"
 
 void AtmosphereTest()
 {
@@ -305,11 +308,11 @@ void GPSTest(SimDPreference &SimPref)
 void NavigationTest(SimDPreference &SimPref)
 {
 	NavigationStruct NavData;
-	GuidanceStruct GuidanceData;
+	AirframeStruct AirframeData;
 
 	Navigation *testNav = new Navigation(SimPref);
 	testNav->initNavigation();
-	testNav->updateNavigation(0, NavData, GuidanceData);
+	testNav->updateNavigation(0, NavData, AirframeData);
 
 	std::cout << "Navigation Test Done" << std::endl;
 }
@@ -372,44 +375,85 @@ void TrajectoryTest(SimDPreference &SimPref)
 	AirframeData.StickPosition = AutopilotData[1].u_bar(3);
 	AirframeData.EulerAngles(1) = AutopilotData[1].x_bar(1);
 	GuidamceData.Theta_com = AirframeData.EulerAngles(1);
-
+	double time1 = 0.0, tstart;
+	tstart = clock();
 	std::cout << "----------------------------------------------" << std::endl;
 	Float64 dt = 0.01;
-	for(FlightTime = 0.01;FlightTime < 150;FlightTime+=0.01){
 
-	AirframeData.velNED = EulerIntegration(AirframeData.velNED, AirframeData.accTransNED, dt);
-	AirframeData.posNED = EulerIntegration(AirframeData.posNED, AirframeData.velNED, dt);
+	//#pragma omp parallel
+	{
+		
+		for (FlightTime = 0.01; FlightTime < 150; FlightTime += 0.01) {
 
-	AirframeData.rotRatesBody = EulerIntegration(AirframeData.rotRatesBody, AirframeData.accRotBody, dt);
-	AirframeData.EulerAngles = EulerIntegration(AirframeData.EulerAngles, AirframeData.Eulerdot, dt);
+			AirframeData.velNED = EulerIntegration(AirframeData.velNED, AirframeData.accTransNED, dt);
+			AirframeData.posNED = EulerIntegration(AirframeData.posNED, AirframeData.velNED, dt);
 
-	AirframeData.Gamma = atan2(-AirframeData.velNED(2), sqrt(AirframeData.velNED(0)*AirframeData.velNED(0) + AirframeData.velNED(1)*AirframeData.velNED(1)));
+			AirframeData.rotRatesBody = EulerIntegration(AirframeData.rotRatesBody, AirframeData.accRotBody, dt);
+			AirframeData.EulerAngles = EulerIntegration(AirframeData.EulerAngles, AirframeData.Eulerdot, dt);
 
-
-	AirframeData.Chi = atan2(AirframeData.velNED(1), AirframeData.velNED(0));
-
-	AirframeData.matNEDToBody = Trafo->MatNedToBody(AirframeData.EulerAngles(0), AirframeData.EulerAngles(1), AirframeData.EulerAngles(2));
-	AirframeData.matBodyToNED = Trafo->MatBodyToNED(AirframeData.matNEDToBody);
-	AirframeData.matNEDToTraj = Trafo->MatNEDToTrajectory(AirframeData.Gamma, AirframeData.Chi);
-
-	Atmo->updateAtmosphere(AirframeData.posNED(2), AtmoData);
+			AirframeData.Gamma = atan2(-AirframeData.velNED(2), sqrt(AirframeData.velNED(0)*AirframeData.velNED(0) + AirframeData.velNED(1)*AirframeData.velNED(1)));
 
 
-	Test->updateTrajectory(FlightTime,
-							AtmoData,
-							AeroData,
-							AirframeData,
-							ThrustData,
-							GuidamceData,
-							NavData,
-							ActuatorData,
-							IMUData);
+			AirframeData.Chi = atan2(AirframeData.velNED(1), AirframeData.velNED(0));
 
+			AirframeData.matNEDToBody = Trafo->MatNedToBody(AirframeData.EulerAngles(0), AirframeData.EulerAngles(1), AirframeData.EulerAngles(2));
+			AirframeData.matBodyToNED = Trafo->MatBodyToNED(AirframeData.matNEDToBody);
+			AirframeData.matNEDToTraj = Trafo->MatNEDToTrajectory(AirframeData.Gamma, AirframeData.Chi);
+
+			Atmo->updateAtmosphere(AirframeData.posNED(2), AtmoData);
+
+
+			Test->updateTrajectory(FlightTime,
+									AtmoData,
+									AeroData,
+									AirframeData,
+									ThrustData,
+									GuidamceData,
+									NavData,
+									ActuatorData,
+									IMUData);
+
+		}
 	}
 
+	time1 += clock() - tstart;     // end
+	time1 = time1 / CLOCKS_PER_SEC;  // rescale to seconds
+
+	std::cout << "Simulationszeit = " << time1 << " sec." << std::endl;
 
 
 }
+
+void ActuatorTest(SimDPreference &SimPref)
+{
+	Float64 FlightTime = 0;
+	ActuatorStruct ActuatorData;
+	AirframeStruct AirframeData;
+	Actuator * actuator = new Actuator(SimPref);
+
+	actuator->initActuator(FlightTime, AirframeData, ActuatorData);
+
+	actuator->updateActuator(FlightTime, AirframeData, ActuatorData);
+
+}
+
+void testAircraft(SimDPreference &SimPref)
+{
+	//Float64 FlightTime = 0.0;
+	std::cout << "----------Aircraft Simulation----------" << std::endl;
+	Aircraft *testAircraft = new Aircraft(SimPref);
+
+	std::clock_t c_start = std::clock();
+	testAircraft->simulateAircraft();
+	std::clock_t c_end = std::clock();
+
+	double time_elapsed_ms = 1000.0 * (c_end - c_start) / CLOCKS_PER_SEC;
+	std::cout << "CPU time used: " << time_elapsed_ms << " ms\n";
+	
+		
+
+}
+
 
 int main()
 {
@@ -423,6 +467,7 @@ int main()
 	SimPref.NavMode = 1;
 	SimPref.Trajectory = 2;
 	SimPref.EngineMode = 1;
+	SimPref.ActuatorMode = 1;
 	/*
 	AtmosphereTest();
 
@@ -438,7 +483,10 @@ int main()
 	//AutopilotTest();
 	//GuidanceTest(SimPref);
 
-	TrajectoryTest(SimPref);
+	//TrajectoryTest(SimPref);
+
+	testAircraft(SimPref);
+	//ActuatorTest(SimPref);
 
 	system("pause");
 }

@@ -6,6 +6,7 @@ Trajectory6Dof::Trajectory6Dof(SimDPreference &Simpref):Trajectory3Dof(Simpref)
 	airframe = new Airframe;
 	guidance = new Guidance(Simpref);
 	autopilot = new Autopilot;
+	Trafo = new Transformation;
 
 }
 
@@ -30,6 +31,8 @@ void Trajectory6Dof::initTrajectory(Float64 FlightTime,
 						AircraftData,
 						GuidanceData,
 						NavData);
+
+	dt = 0.01;
 }
 
 
@@ -41,6 +44,7 @@ void Trajectory6Dof::initTrajectory6Dof(Float64 FlightTime,
 									GuidanceStruct & GuidanceData,
 									NavigationStruct &NavData)
 {
+	
 	initTrajectory3DoF(FlightTime,
 						AeroData,
 						AirframeData,
@@ -64,6 +68,8 @@ void Trajectory6Dof::updateTrajectory(Float64 FlightTime,
 									  IMUStruct & IMUData)
 {
 
+	integrationTrajectory(AirframeData);
+
 	updateTrajectory6Dof(FlightTime,
 						AtmoData,
 						AeroData,
@@ -81,6 +87,8 @@ void Trajectory6Dof::updateTrajectory6Dof(Float64 FlightTime,
 										GuidanceStruct & GuidanceData,
 										NavigationStruct &NavData)
 {
+
+	
 
 	updateTrajectory3DoF(FlightTime,
 						AtmoData,
@@ -105,10 +113,33 @@ void Trajectory6Dof::updateTrajectory6Dof(Float64 FlightTime,
 
 	log6DofData();
 
+
 }
+
+void Trajectory6Dof::integrationTrajectory(AirframeStruct & AirframeData)
+{
+	AirframeData.velNED = EulerIntegration(AirframeData.velNED, AirframeData.accTransNED, dt);
+	AirframeData.posNED = EulerIntegration(AirframeData.posNED, AirframeData.velNED, dt);
+
+	AirframeData.rotRatesBody = EulerIntegration(AirframeData.rotRatesBody, AirframeData.accRotBody, dt);
+	AirframeData.EulerAngles = EulerIntegration(AirframeData.EulerAngles, AirframeData.Eulerdot, dt);
+
+	AirframeData.Gamma = atan2(-AirframeData.velNED(2), sqrt(AirframeData.velNED(0)*AirframeData.velNED(0) + AirframeData.velNED(1)*AirframeData.velNED(1)));
+
+
+	AirframeData.Chi = atan2(AirframeData.velNED(1), AirframeData.velNED(0));
+
+	AirframeData.matNEDToBody = Trafo->MatNedToBody(AirframeData.EulerAngles(0), AirframeData.EulerAngles(1), AirframeData.EulerAngles(2));
+	AirframeData.matBodyToNED = Trafo->MatBodyToNED(AirframeData.matNEDToBody);
+	AirframeData.matNEDToTraj = Trafo->MatNEDToTrajectory(AirframeData.Gamma, AirframeData.Chi);
+
+}
+
 
 void Trajectory6Dof::log6DofData()
 {
 	guidance->logGuidanceData();
+
+	log3DofData();
 }
 

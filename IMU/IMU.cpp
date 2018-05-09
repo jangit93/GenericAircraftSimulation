@@ -14,7 +14,7 @@ void IMU::selectIMU(int Type)
 	switch (Type)
 	{
 	case 1:
-		std::cout << "IMU:\t" << "flawless IMU" << std::endl;
+		std::cout << "IMU:\t\t" << "flawless IMU" << std::endl;
 		imu = new flawlessIMU;
 	}
 }

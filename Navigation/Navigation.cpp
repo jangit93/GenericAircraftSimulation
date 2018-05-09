@@ -26,7 +26,7 @@ void Navigation::initNavigation()
 	navigation->initNavigation();
 }
 
-void Navigation::updateNavigation(Float64 FlightTime, NavigationStruct & NavData, GuidanceStruct & GuidanceData)
+void Navigation::updateNavigation(Float64 FlightTime, NavigationStruct & NavData, AirframeStruct &AirframeData)
 {
-	navigation->updateNavigation(FlightTime, NavData, GuidanceData);
+	navigation->updateNavigation(FlightTime, NavData, AirframeData);
 }

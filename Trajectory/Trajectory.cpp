@@ -25,6 +25,11 @@ void Trajectory::selectTrajectory(int type,
 		traj = new Trajectory6Dof(SimPref);
 		break;
 
+	case 3 :
+		std::cout << "Trajectory:\t" << "Real System Trajectory" << std::endl;
+		traj = new RealSystemTrajectory(SimPref);
+		break;
+
 	}
 }
 
@@ -58,6 +63,7 @@ void Trajectory::initTrajectory(Float64 FlightTime,
 								ActuatorStruct &ActuatorData,
 								IMUStruct &IMUData)
 {
+	
 	traj->initTrajectory(FlightTime,
 						AeroData,
 						AirframeData,
@@ -69,4 +75,7 @@ void Trajectory::initTrajectory(Float64 FlightTime,
 						IMUData);
 }
 
-
+void Trajectory::logTraj()
+{
+	traj->logTraj();
+}

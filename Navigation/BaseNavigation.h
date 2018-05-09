@@ -44,7 +44,7 @@ public:
 	*/
 	virtual void updateNavigation(Float64 Flighttime, 
 						  NavigationStruct &NavData,
-						  GuidanceStruct &GuidanecData);
+						  AirframeStruct &AirframeData);
 
 
 

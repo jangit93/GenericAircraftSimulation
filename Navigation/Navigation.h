@@ -50,7 +50,7 @@ public:
 	*/
 	void updateNavigation(Float64 FlightTime,
 						NavigationStruct & NavData,
-						GuidanceStruct &GuidanceData);
+						AirframeStruct &AirframeData);
 
 private:
 	BaseNavigation * navigation;

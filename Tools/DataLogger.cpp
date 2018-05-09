@@ -1,5 +1,5 @@
 #include "DataLogger.h"
-
+#include<iostream>
 DataLogger::DataLogger(std::string aPath, int aWidth, std::string aDelimiter)
 {
 	mWidth = aWidth;

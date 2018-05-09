@@ -34,9 +34,11 @@ public:
 							AirframeStruct & AirframeData,
 							ThrustStruct & ThrustData,
 							GuidanceStruct &GuidanceData,
-		NavigationStruct &NavData,
-		ActuatorStruct &ActuatorData,
-		IMUStruct &IMUData);
+							NavigationStruct &NavData,
+							ActuatorStruct &ActuatorData,
+							IMUStruct &IMUData);
+
+	virtual void logTraj();
 
 
 private:

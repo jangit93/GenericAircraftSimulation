@@ -14,6 +14,6 @@ void flawlessNavigation::initNavigation()
 
 void flawlessNavigation::updateNavigation(Float64 Flighttime, 
 										  NavigationStruct & NavData, 
-										  GuidanceStruct & GuidanecData)
+										  AirframeStruct &AirframeDataa)
 {
 }
