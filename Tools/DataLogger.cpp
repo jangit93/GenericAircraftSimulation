@@ -1,16 +1,18 @@
 #include "DataLogger.h"
 #include<iostream>
+
 DataLogger::DataLogger(std::string aPath, int aWidth, std::string aDelimiter)
 {
 	mWidth = aWidth;
 	mDelimiter = aDelimiter;
 	std::string PathName = "../Output/";
 	mStream.open(PathName+aPath);
-
+	
 	mStream << std::setiosflags(std::ios::left);
 
 	mNumberDoubles = 0;
 	mNumberInts = 0;
+	
 }
 
 DataLogger::~DataLogger()
@@ -36,10 +38,10 @@ void DataLogger::add(std::string aHeader, int & aVar)
 void DataLogger::print()
 {
 	mStream << std::setw(mWidth);
-
 	for (int i = 0; i < mNumberDoubles; i++)
 	{
 		mStream << std::to_string(*doubleVec.at(i)) + mDelimiter << std::setw(mWidth);
+		
 	}
 
 	for (int i = 0; i < mNumberInts; i++)
@@ -51,6 +53,8 @@ void DataLogger::print()
 
 	
 }
+std::size_t max_prec = std::numeric_limits<double>::max_digits10;
+
 
 
 void DataLogger::printHeader()

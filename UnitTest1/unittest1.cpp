@@ -81,8 +81,12 @@ namespace UnitTest1
 			VectorXd AOA = test.readInVector("AoA.txt");
 			VectorXd Mach = test.readInVector("Ma.txt");
 
+			Float64 aoa,ma;
+			aoa = 2;
+			ma = 0.31;
 
-			Assert::AreEqual(testInterp.linearInterpolation2D(AOA,Mach,CL,2,0.31) , 0.1912);
+
+			Assert::AreEqual(testInterp.linearInterpolation2D(AOA,Mach,CL,aoa,ma) , 0.1912);
 			
 
 			// TODO: Testcode hier eingeben
@@ -98,7 +102,8 @@ namespace UnitTest1
 
 			Eigen::VectorXd Ma = test1.readInVector("Ma.txt");
 
-			Assert::AreEqual(test.linearInterpolation1D(Ma, Cmq, 0.21), -7.3071);
+			Float64 ma = 0.21;
+			Assert::AreEqual(test.linearInterpolation1D(Ma, Cmq, ma), -7.3071);
 
 
 			// TODO: Testcode hier eingeben

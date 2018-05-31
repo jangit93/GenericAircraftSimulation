@@ -22,7 +22,7 @@ class IMU
 public:
 	/**
 	* \brief constructor
-	*	@param	SimPref			structure of model selctions
+	*	@param	SimPref	 structure of model selctions
 	*/
 	IMU(SimDPreference &SimPref);
 
@@ -34,7 +34,7 @@ public:
 
 	/**
 	* \brief set pointer to desired class
-	*	@param	type			Aerodynamic Model Selection
+	*	@param	Type	Aerodynamic Model Selection
 	*/
 	void selectIMU(int Type);
 

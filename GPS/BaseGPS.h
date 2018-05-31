@@ -41,7 +41,7 @@ public:
 	*	@param	FlightTime			flighttime
 	*	@param	NavData				structure of navigation data
 	*/
-	virtual void updateGPS(Float64 Flighttime, 
+	virtual void updateGPS(Float64 FlightTime, 
 						   NavigationStruct &NavData);
 
 

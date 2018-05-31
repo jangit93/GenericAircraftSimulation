@@ -20,10 +20,29 @@ class Trajectory3Dof : public BaseTrajectory
 {
 public:
 
+	/**
+	*	@brief constructor
+	*	@param	SimPref	mode selection for trajectory
+	*/
 	Trajectory3Dof(SimDPreference &SimPref);
 
+	/**
+	*	@brief destructor
+	*/
 	~Trajectory3Dof();
 
+	/**
+	* @brief initalize trajectory
+	* @param FlightTime flight time
+	* @param AeroData aerodynamic data
+	* @param AirframeData flight states
+	* @param ThrustData  thrust forces and moments
+	* @param AircraftData	geometric data of aircraft
+	* @param GuidanceData control variables
+	* @param NavData aircraft position, velocity
+	* @param ActuatorData real actuator angles
+	* @param IMUData measured acceleration
+	*/
 	virtual void initTrajectory(Float64 FlightTime, 
 								AerodynamicStruct & AeroData,
 								AirframeStruct & AirframeData,
@@ -34,6 +53,18 @@ public:
 								ActuatorStruct &ActuatorData,
 								IMUStruct &IMUData);
 
+	/**
+	* @brief calculate trajectory
+	* @param FlightTime flight time
+	* @param AtmoData current atmospheric data
+	* @param AeroData aerodynamic data
+	* @param AirframeData flight states
+	* @param ThrustData  thrust forces and moments
+	* @param GuidanceData control variables
+	* @param NavData aircraft position, velocity
+	* @param ActuatorData real actuator angles
+	* @param IMUData measured acceleration
+	*/
 	virtual void updateTrajectory(Float64 FlightTime,
 							AtmosphereStruct & AtmoData,
 							AerodynamicStruct & AeroData,
@@ -44,25 +75,43 @@ public:
 							ActuatorStruct &ActuatorData,
 							IMUStruct &IMUData);
 
+	/**
+	* @brief initalize 3 Dof trajectory 
+	* @param FlightTime flight time
+	* @param AeroData aerodynamic data
+	* @param AirframeData flight states
+	* @param ThrustData  thrust forces and moments
+	* @param AircraftData	geometric data of aircraft
+	*/
 	void initTrajectory3DoF(Float64 FlightTime, 
 							AerodynamicStruct & AeroData,
 							AirframeStruct & AirframeData,
 							ThrustStruct & ThrustData,
 							AircraftStruct &AircraftData);
 
+	/**
+	* @brief calculate 3 Dof trajectory
+	* @param FlightTime flight time
+	* @param AtmoData current atmospheric data
+	* @param AeroData aerodynamic data
+	* @param AirframeData flight states
+	* @param ThrustData  thrust forces and moments
+	*/
 	void updateTrajectory3DoF(Float64 FlightTime,
 								AtmosphereStruct & AtmoData,
 								AerodynamicStruct & AeroData,
 								AirframeStruct & AirframeData,
 								ThrustStruct & ThrustData);
 
+	/**
+	* @brief log 3Dof Data (Aerodynamic Data, Thrust Data and translational acclerations)
+	*/
 	void log3DofData();
 
-protected:
-	Airframe * airframe;
 private:
 	Engine		 *engine;
 	Aerodynamics *aerodynamics;
+	Airframe * airframe;
 	
 };
 

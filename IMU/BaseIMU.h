@@ -43,7 +43,7 @@ public:
 	* @param	AirframeData	structure of Airframe data
 	* @param	IMUData	structure of IMU data
 	*/
-	virtual void updateIMU(Float64 Flighttime, 
+	virtual void updateIMU(Float64 FlightTime, 
 						   AirframeStruct & AirframeData,
 						   IMUStruct &IMUData);
 

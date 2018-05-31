@@ -11,7 +11,7 @@
 #ifndef NAVIGATION_H
 #define NAVIGATION_H
 
-#include<Eigen/dense>
+//#include<Eigen/dense>
 #include"IndependetDataTypes.h"
 #include"BaseNavigation.h"
 #include"DataCloud.h"
@@ -33,7 +33,7 @@ public:
 
 	/**
 	* \brief set pointer to desired class
-	*	@param	type			Aerodynamic Model Selection
+	*	@param	Type			Aerodynamic Model Selection
 	*/
 	void selectNavigation(int Type);
 
@@ -46,7 +46,7 @@ public:
 	* \brief call to desired update function
 	*	@param	FlightTime			flighttime
 	*	@param	NavData				structure of navigation data
-	*	@param	GuidanceData		structure of guidance data
+	*	@param	AirframeData		flight states
 	*/
 	void updateNavigation(Float64 FlightTime,
 						NavigationStruct & NavData,

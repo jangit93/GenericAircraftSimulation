@@ -6,6 +6,8 @@ Aircraft::Aircraft(SimDPreference &SimPref)
 	trajectory = new Trajectory(SimPref);
 	Atmo = new Atmopshere;
 	
+	TotalSimTime = SimPref.TotalSimTime;
+	dt = SimPref.dt;
 	FlightTime = 0;
 	
 }
@@ -22,9 +24,9 @@ void Aircraft::initAircraft()
 
 void Aircraft::simulateAircraft()
 {
-	MatFileReader test("../Autopilot.mat");
+	MatFileReader trim("../Input/Autopilot.mat");
 
-	matvar_t MatFileData = test.getMatFileInfo("AutopilotData");
+	matvar_t MatFileData = trim.getMatFileInfo("AutopilotData");
 	Fields = MatFileData.dims[0] * MatFileData.dims[1];
 
 	TrimPoints = new AutopilotStruct[Fields];
@@ -34,10 +36,10 @@ void Aircraft::simulateAircraft()
 	edge = 9;
 
 	for (start = 0; start < Fields; start++) {
-		TrimPoints[start].Alt = std::get<2>(test.readMatFileStructure("Alt", start, stride, edge, copy_field));
-		TrimPoints[start].Vel = std::get<2>(test.readMatFileStructure("Vel", start, stride, edge, copy_field));
-		TrimPoints[start].x_bar = std::get<1>(test.readMatFileStructure("x_bar", start, stride, edge, copy_field));
-		TrimPoints[start].u_bar = std::get<1>(test.readMatFileStructure("u_bar", start, stride, edge, copy_field));
+		TrimPoints[start].Alt = std::get<2>(trim.readMatFileStructure("Alt", start, stride, edge, copy_field));
+		TrimPoints[start].Vel = std::get<2>(trim.readMatFileStructure("Vel", start, stride, edge, copy_field));
+		TrimPoints[start].x_bar = std::get<1>(trim.readMatFileStructure("x_bar", start, stride, edge, copy_field));
+		TrimPoints[start].u_bar = std::get<1>(trim.readMatFileStructure("u_bar", start, stride, edge, copy_field));
 	}
 
 	
@@ -63,21 +65,23 @@ void Aircraft::simulateAircraft()
 	double time1 = 0.0, tstart;
 	tstart = clock();
 	std::cout << "----------------------------------------------" << std::endl;
-	Float64 dt = 0.01;
+	
 
-	#pragma loop(hint_parallel(2))
-	for (FlightTime = 0.0; FlightTime < 150; FlightTime += 0.01) {
+	
+	for (FlightTime = 0.0; FlightTime < TotalSimTime; FlightTime += dt) {
 
 		Atmo->updateAtmosphere(AirframeData.posNED(2), AtmoData);
 
 		trajectory->updateTrajectory(FlightTime,
-			AtmoData,
-			AeroData,
-			AirframeData,
-			ThrustData,
-			GuidanceData, NavData, ActuatorData, IMUData);
+									AtmoData,
+									AeroData,
+									AirframeData,
+									ThrustData,
+									GuidanceData, 
+									NavData, 
+									ActuatorData, 
+									IMUData);
 
-		//trajectory->logTraj();
 	}
 	time1 += clock() - tstart;     // end
 	time1 = time1 / CLOCKS_PER_SEC;  // rescale to seconds

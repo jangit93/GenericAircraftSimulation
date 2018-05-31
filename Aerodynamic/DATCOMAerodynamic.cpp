@@ -15,7 +15,7 @@ void DATCOMAerodymamic::initAerodynamic(Float64 &FlightTime, AerodynamicStruct &
 											  AircraftStruct & AircraftData)
 {
 
-	MatFileReader readAeroData("../ADM.mat");
+	MatFileReader readAeroData("../Input/ADM.mat");
 	std::get<0>(readAeroData.readMatFileData("C_A"));
 	readIn->setPath("../Input/Aerodynamics/");
 

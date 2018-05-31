@@ -15,6 +15,12 @@
 #include<string>
 #include <C:\Users\janol\Desktop\Studium\Master_Luft und Raumfahrttechnik\2.Fachsemester\Effizient Programmieren\Programierprojekt\GenericFlightSimulation\EIGENDIR\Eigen\dense>
 #include<iomanip>
+#include<omp.h>
+#include<sstream>
+#include <iostream>
+#include <string>
+#include <cmath>
+
 
 class DataLogger
 {
@@ -45,7 +51,6 @@ public:
 	*/
 	void print();
 
-
 	/**
 	* \brief defines header of specific variable
 	*/
@@ -59,7 +64,7 @@ private:
 	std::vector<std::string> intHeader;
 	int mNumberInts;
 
-
+	std::string str;
 	std::ofstream mStream;
 
 	int mWidth;

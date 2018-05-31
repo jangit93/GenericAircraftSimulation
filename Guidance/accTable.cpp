@@ -11,7 +11,7 @@ accTable::~accTable()
 
 void accTable::initGuidance(Float64 &FlightTime, GuidanceStruct &GuidanceData, AircraftStruct &AircraftData)
 {
-	MatFileReader readAccTable("../accTable.mat");
+	MatFileReader readAccTable("../Input/accTable.mat");
 
 	AccTable = std::get<0>(readAccTable.readMatFileData("accTable"));
 

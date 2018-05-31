@@ -11,5 +11,6 @@
 #define INDEPENDETDATATYPES_H
 
 typedef double Float64;
+typedef float  Float32;
 
 #endif	INDEPENDETDATATYPES_H

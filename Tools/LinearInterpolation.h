@@ -41,6 +41,7 @@ public:
 	* \brief searches index of of a specific value in a vector/matrix
 	*  @param Vector specific vector to search for index
 	*  @param Value  wanted value
+	*  @param aIndex initial index
 	*/
 	Float64 searchIndex(VectorXd &Vector,
 						Float64 &Value,
@@ -62,7 +63,7 @@ public:
 
 	/**
 	* \brief 1D linear interpolation
-	*  @param vector that defines lines of a vector
+	*  @param Vector1 actual vector
 	*  @param Table  specific data vector
 	*  @param Value  wanted value
 	*/

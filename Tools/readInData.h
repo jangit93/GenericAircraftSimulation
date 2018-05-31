@@ -16,7 +16,7 @@
 #include <iostream>
 #include <vector>
 #include<Eigen/Dense>
-//#include <C:\Users\janol\Desktop\Studium\Master_Luft und Raumfahrttechnik\2.Fachsemester\Effizient Programmieren\Programierprojekt\GenericFlightSimulation\EIGENDIR\Eigen\dense>
+
 using Eigen::MatrixXd;
 using Eigen::Vector3f;
 using Eigen::MatrixX2f;
@@ -49,13 +49,13 @@ public:
 
 	/**
 	* \brief read in tables from input file
-	* @param Filename Name of specific file
+	* @param FileName Name of specific file
 	*/
 	 MatrixXd readInTable(std::string FileName);
 
 	 /**
 	 * \brief read in vector from input file
-	 * @param Filename Name of specific file
+	 * @param FileName Name of specific file
 	 */
 	VectorXd readInVector(std::string FileName);
 

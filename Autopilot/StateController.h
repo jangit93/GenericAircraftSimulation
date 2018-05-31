@@ -1,27 +1,58 @@
-#pragma once
+/**
+*	@ingroup Autopilot
+*	@author Jan Olucak
+*	@date 10.04.2018
+*	@version 1.0
+*
+*	StateController class simulates a state controller for flight states. Control variables are
+*   calculated with blending method.
+*
+*/
 #include"MatFileReader.h"
 #include"DataCloud.h"
 #include"FindNeighbor.h"
-#include<Eigen/dense>
+
 #include"Constants.h"
 
 class StateController
 {
 
 public:
+	/**
+	* \brief construtor
+	*/
 	StateController();
 
+	/**
+	* \brief construtor
+	*/
 	~StateController();
 
+	/**
+	* \brief read in and initalize state controller parameters 
+	*/
 	void initStateController();
 
+	/**
+	* \brief construtor
+	* @param FlightTime flight time
+	* @param AirframeData flight states
+	* @param AeroData get angle of attack
+	* @param GuidanceData control input
+	*/
 	void updateStateController(Float64 FlightTime,
 								AirframeStruct &AirframeData,
 								AerodynamicStruct &AeroData,
 								GuidanceStruct &GuidanceData);
 
+	/**
+	* \brief help functions to find index
+	*/
 	int sub2ind(const int row, const int column, const int rows, const int columns);
 	
+	/**
+	* \brief signum function
+	*/
 	int sign(Float64 val);
 private:
 	FindNeighbor * findneighbor;

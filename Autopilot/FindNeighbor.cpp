@@ -11,7 +11,7 @@ FindNeighbor::~FindNeighbor()
 
 void FindNeighbor::initFindNeighbor()
 {
-	MatFileReader readNeighborData("../Autopilot.mat");
+	MatFileReader readNeighborData("../Input/Autopilot.mat");
 
 	MatFileData = readNeighborData.getMatFileInfo("AutopilotData");
 	Fields = MatFileData.dims[0] * MatFileData.dims[1];
@@ -101,18 +101,8 @@ Eigen::MatrixXd FindNeighbor::combineVec(Eigen::Vector2d & Alt, Eigen::Vector2d 
 {
 	comb.resize(Alt.size()*Vel.size(), 2);
 	
-   Vec1.resize(Alt.size()*Alt.size());
-	Vec1 << Alt, Alt;
+	comb << Alt(0),Vel(0),Alt(1),Vel(0),Alt(0),Vel(1),Alt(1),Vel(1) ; 
 
-	Vec2.resize(Vel.size()*Vel.size());
-
-	for (int ii = 0; ii <Vel.size(); ii++) {
-		Vec2(ii) = Vel(0);
-		Vec2(ii + 2) = Vel(1);
-	}
-
-	comb << Vec1, Vec2; 
-	
 	return comb;
 }
 

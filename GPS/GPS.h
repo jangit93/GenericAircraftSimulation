@@ -33,7 +33,7 @@ public:
 
 	/**
 	* \brief set pointer to desired class
-	*	@param	type			Aerodynamic Model Selection
+	*	@param	Type	Aerodynamic Model Selection
 	*/
 	void selectGPS(int Type);
 

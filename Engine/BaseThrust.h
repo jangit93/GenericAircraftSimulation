@@ -16,7 +16,7 @@
 #include"DataCloud.h"
 #include"readInData.h"
 #include"IndependetDataTypes.h"
-#include<Eigen/Dense>
+//#include<Eigen/Dense>
 
 
 class BaseThrust {
@@ -34,11 +34,11 @@ public:
 
 	/**
 	*  The update function from the selected engine is called by a pointer.
-	*   @param FlightTime
+	*   @param FlightTime flight time
 	*	@param AtmoData	get current atmospheric data
 	*	@param AeroData get mach number
 	*	@param AirframeData	get current throttle stick position
-	*	@return current thrust data is stored in ThrustStruct
+	*	@param ThrustData store thrust data
 	*/
 	virtual void updateThrust(Float64 FlightTime,
 						AtmosphereStruct & AtmoData,
@@ -47,6 +47,7 @@ public:
 						ThrustStruct & ThrustData);
 	/**
 	*  The init function from the selected engine is called by a pointer.
+	*   @param FlightTime flight time
 	*	@param	ThrustData		structure of engine data
 	*	@param	AircraftData	structure of aircraft data
 	*/
@@ -54,6 +55,9 @@ public:
 							ThrustStruct & ThrustData,
 							AircraftStruct &AircraftData);
 
+	/**
+	*  @brief log engine data
+	*/
 	virtual void logEngineData();
 
 private:

@@ -10,7 +10,7 @@
 #ifndef GUIDANCE_H
 #define GUIDANCE_H
 
-#include<Eigen/dense>
+//#include<Eigen/dense>
 #include<iostream>
 #include"../DataCloud/DataCloud.h"
 #include"../Tools/IndependetDataTypes.h"
@@ -34,7 +34,7 @@ public:
 
 	/**
 	* \brief set pointer to desired class
-	*	@param	type			Aerodynamic Model Selection
+	*	@param	Type			Aerodynamic Model Selection
 	*/
 	void selectGuidance(int Type);
 

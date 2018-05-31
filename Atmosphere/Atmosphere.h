@@ -38,8 +38,8 @@ public:
 
 	/**
 	* \brief calculates atmospheric data depending on altitude
-	*	@param	Altitude			current altitude
-	*	@return	AtmosphericStruc	store air density, speed of sound, temperature, pressure
+	*	@param	Altitude	current altitude
+	*	@param	AtmoData	store air density, speed of sound, temperature, pressure
 	*/
 	void	updateAtmosphere(Float64 &Altitude, 
 							 AtmosphereStruct &AtmoData);

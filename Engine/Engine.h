@@ -38,6 +38,7 @@ public:
 
 	/**
 	*	@brief initilization of engine specific data
+	*   @param FlightTime flight time
 	*	@param	ThrustData		structure of engine data
 	*	@param	AircraftData	structure of aircraft data
 	*/
@@ -46,12 +47,12 @@ public:
 					AircraftStruct &AircraftData);
 
 	/**
-	*	@brief calculate thrust forces and moments
-	*   @param FlightTime
+	*  The update function from the selected engine is called by a pointer.
+	*   @param FlightTime flight time
 	*	@param AtmoData	get current atmospheric data
 	*	@param AeroData get mach number
 	*	@param AirframeData	get current throttle stick position
-	*	@return current thrust data is stored in ThrustStruct
+	*	@param ThrustData store thrust data
 	*/
 	void updateEngine(Float64 FlightTime,
 						AtmosphereStruct & AtmoData,
@@ -59,6 +60,9 @@ public:
 						AirframeStruct & AirframeData,
 						ThrustStruct & ThrustData);
 
+	/**
+	*  @brief log engine data
+	*/
 	void logEngineData();
 
 private:
@@ -66,5 +70,5 @@ private:
 
 
 };
-/**@}*/
+
 #endif // !ENGINE_H

@@ -11,7 +11,7 @@
 #define DATACLOUD_H
 
 #include"../Tools/IndependetDataTypes.h"
-#include<Eigen/Dense>
+#include"C://Users\janol\Desktop\Studium\Master_Luft und Raumfahrttechnik\2.Fachsemester\Effizient Programmieren\genericSim\eigen\Eigen\Dense"
 
 /** 
 * \brief stores atmospheric data
@@ -265,6 +265,8 @@ struct SimDPreference
 	int GuidanceMode;
 	int NavMode;
 	int Trajectory;
+	int TotalSimTime;
+	Float32 dt;
 
 };
 

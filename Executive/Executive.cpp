@@ -1,3 +1,16 @@
+/** @defgroup	Executive Executive
+*	@author		Jan Olucak
+*	@date		10.05.2018
+*	@version	1.0
+*
+*	This file executes the actual simulation. The prefered models are read in. Aircraft class is initalized. The Trajectory is calculated
+*  @{
+*/
+
+#ifndef EXECUTIVE__H
+#define EXECUTIVE__H
+
+
 #include"readInData.h"
 #include"LinearInterpolation.h"
 #include"Atmosphere.h"
@@ -10,109 +23,44 @@
 #include<ctime>
 #include"Aerodynamic.h"
 #include"Airframe.h"
-#include"Trajectory.h"
-#include"ODESolver.cpp"
-#include"Transformation.h"
+#include"Aircraft.h"
 
 int main(int argv, char* argc[])
 {
-	double time1 = 0.0, tstart;      // time measurment variable
-
-//#pragma omp parallel 
-		tstart = clock();              // start 
-
-
-		std::cout << "-------------Aircraft Simulation--------------" << std::endl;
-
-		SimDPreference check;
-		check.Trajectory = 2;
-		Trajectory *Test = new Trajectory(check);
-		Atmopshere *Atmo = new Atmopshere;
-		Transformation *Trafo = new Transformation;
-		Float64				FlightTime = 0.001;
-		AtmosphereStruct	AtmoData;
-		AerodynamicStruct	AeroData;
-		AirframeStruct		AirframeData;
-		ThrustStruct		ThrustData;
-		AircraftStruct		AircraftData;
-		GuidanceStruct		GuidamceData;
-
-		MatFileReader test("../Autopilot.mat");
-
-		matvar_t MatFileData = test.getMatFileInfo("AutopilotData");
-		int Fields = MatFileData.dims[0] * MatFileData.dims[1];
-
-		AutopilotStruct * AutopilotData = new AutopilotStruct[Fields];
-
-		int start, stride, edge, copy_field = 0;
-		stride = 0;
-		edge = 9;
-
-		for (start = 0; start < Fields; start++) {
-			AutopilotData[start].Alt = std::get<2>(test.readMatFileStructure("Alt", start, stride, edge, copy_field));
-			AutopilotData[start].Vel = std::get<2>(test.readMatFileStructure("Vel", start, stride, edge, copy_field));
-			AutopilotData[start].x_bar = std::get<1>(test.readMatFileStructure("x_bar", start, stride, edge, copy_field));
-			AutopilotData[start].u_bar = std::get<1>(test.readMatFileStructure("u_bar", start, stride, edge, copy_field));
-		}
-		NavigationStruct NavData;
-		ActuatorStruct ActuatorData;
-		IMUStruct IMUData;
-
-
-		
-		Test->initTrajectory(FlightTime,
-							AeroData,
-							AirframeData,
-							ThrustData,
-							AircraftData,
-							GuidamceData,
-							NavData,
-							ActuatorData,
-							IMUData);
-
-		Atmo->initAtmosphere();
-
-		AirframeData.Eta = AutopilotData[0].u_bar(1);
-		AirframeData.posNED(2) = -AutopilotData[0].Alt;
-		AirframeData.velNED(0) = AutopilotData[0].Vel;
-		AirframeData.StickPosition = AutopilotData[0].u_bar(3);
-		AirframeData.EulerAngles(1) = AutopilotData[0].x_bar(1);
-		std::cout << "----------------------------------------------" << std::endl;
-		system("pause");
-
-		AirframeData.velNED			 = EulerIntegration(AirframeData.velNED, AirframeData.accTransNED, 0.01);
-		AirframeData.posNED			 = EulerIntegration(AirframeData.posNED, AirframeData.velNED, 0.01);
-		AirframeData.rotRatesBody	 = EulerIntegration(AirframeData.rotRatesBody, AirframeData.accRotBody,0.01);
-		AirframeData.EulerAngles	 = EulerIntegration(AirframeData.EulerAngles, AirframeData.Eulerdot, 0.01);
-
-		AirframeData.Gamma = atan2(-AirframeData.velNED(2), sqrt(AirframeData.velNED(0)*AirframeData.velNED(0) + AirframeData.velNED(0)*AirframeData.velNED(0)));
-
-		AirframeData.Chi = atan2(AirframeData.velNED(1), AirframeData.velNED(0));
-
-		AirframeData.matNEDToBody = Trafo->MatNedToBody(AirframeData.EulerAngles(0), AirframeData.EulerAngles(1), AirframeData.EulerAngles(2));
-		AirframeData.matBodyToNED = Trafo->MatBodyToNED(AirframeData.matNEDToBody);
-		AirframeData.matNEDToTraj = Trafo->MatNEDToTrajectory(AirframeData.Gamma, AirframeData.Chi);
+	//initalization
+	Float32 time1;  
+	SimDPreference SimPref;
+	readInData SimulationData;
 	
-		Atmo->updateAtmosphere(AirframeData.posNED(2), AtmoData);
 
-		Test->updateTrajectory(FlightTime,
-								AtmoData,
-								AeroData,
-								AirframeData,
-								ThrustData,
-								GuidamceData,
-								NavData,
-								ActuatorData,
-								IMUData);
+	std::cout << "-------------Aircraft Simulation-------------" << std::endl;
 
-		
-		
+	SimPref.AeroMode		= SimulationData.readInParameter("AeroModel", "Simulation.dat");
+	SimPref.GuidanceMode	= SimulationData.readInParameter("GuidanceModel", "Simulation.dat");
+	SimPref.IMUMode			= SimulationData.readInParameter("ImuModel", "Simulation.dat");
+	SimPref.GPSMode			= SimulationData.readInParameter("GpsModel", "Simulation.dat");;
+	SimPref.NavMode			= SimulationData.readInParameter("NavigationModel", "Simulation.dat");;
+	SimPref.Trajectory		= SimulationData.readInParameter("Trajectory", "Simulation.dat");;
+	SimPref.EngineMode		= SimulationData.readInParameter("EngineModel", "Simulation.dat");
+	SimPref.ActuatorMode	= SimulationData.readInParameter("ActuatorModel", "Simulation.dat");
+	SimPref.dt				= SimulationData.readInParameter("time_step", "Simulation.dat");
+	SimPref.TotalSimTime	= SimulationData.readInParameter("Simulation_Time", "Simulation.dat");
 
-	time1 += clock() - tstart;     // end
-	time1 = time1 / CLOCKS_PER_SEC;  // rescale to seconds
+	Aircraft *testAircraft = new Aircraft(SimPref);
 
-	std::cout << "Simulationszeit = " << time1 << " sec." << std::endl;
+	time1 = 0.0;
+	
 
+	std::clock_t c_start = std::clock();
+
+	testAircraft->simulateAircraft();
+
+	std::clock_t c_end = std::clock();
+
+	double time_elapsed_ms = 1000.0 * (c_end - c_start) / CLOCKS_PER_SEC;
+	std::cout << "CPU time used: " << time_elapsed_ms << " ms\n";
 	system("Pause");
 
 }
+/**@}*/
+#endif	EXECUTIVE__H

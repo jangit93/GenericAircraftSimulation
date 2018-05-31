@@ -32,6 +32,7 @@ public:
 
 	/**
 	*  @brief read in Data from Engine.dat
+	*   @param FlightTime flight time
 	*	@param	ThrustData		structure of engine data
 	*	@param	AircraftData	structure of aircraft data
 	*/
@@ -40,12 +41,12 @@ public:
 					AircraftStruct &AircraftData);
 
 	/**
-	*	@brief calculate thrust forces and moments using an analytical model
-	*   @param FlightTime		flight time
-	*	@param AtmoData			get current atmospheric data
-	*	@param AeroData			get mach number
-	*	@param AirframeData		get current throttle stick position
-	*	@return current thrust data is stored in ThrustStruct
+	*  The update function from the selected engine is called by a pointer.
+	*   @param FlightTime flight time
+	*	@param AtmoData	get current atmospheric data
+	*	@param AeroData get mach number
+	*	@param AirframeData	get current throttle stick position
+	*	@param ThrustData store thrust data
 	*/
 	void updateThrust(Float64 FlightTime,					
 					AtmosphereStruct & AtmoData,		
@@ -53,9 +54,15 @@ public:
 					AirframeStruct & AirframeData,		
 					ThrustStruct & ThrustData);		
 
+	/**
+	*  @brief define output of thrust data
+	*/
 	void initLogEngineData(Float64 &FlightTime,
 							ThrustStruct &ThrustData);
 
+	/**
+	*  @brief log engine data
+	*/
 	virtual void logEngineData();
 private:
 	DataLogger * LogEngineData;

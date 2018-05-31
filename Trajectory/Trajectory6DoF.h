@@ -23,11 +23,29 @@
 class Trajectory6Dof : public Trajectory3Dof
 {
 public:
+	/**
+	*	@brief constructor
+	*	@param	SimPref	mode selection for trajectory
+	*/
 	Trajectory6Dof(SimDPreference &SimPref);
 
+	/**
+	*	@brief destructor
+	*/
 	~Trajectory6Dof();
 
-
+	/**
+	* @brief initalize trajectory
+	* @param FlightTime flight time
+	* @param AeroData aerodynamic data
+	* @param AirframeData flight states
+	* @param ThrustData  thrust forces and moments
+	* @param AircraftData	geometric data of aircraft
+	* @param GuidanceData control variables
+	* @param NavData aircraft position, velocity
+	* @param ActuatorData real actuator angles
+	* @param IMUData measured acceleration
+	*/
 	virtual void initTrajectory(Float64 FlightTime, 
 								AerodynamicStruct & AeroData,
 								AirframeStruct & AirframeData,
@@ -38,6 +56,16 @@ public:
 								ActuatorStruct &ActuatorData,
 								IMUStruct &IMUData);
 	
+	/**
+	* @brief initalize 6Dof trajectory
+	* @param FlightTime flight time
+	* @param AeroData aerodynamic data
+	* @param AirframeData flight states
+	* @param ThrustData  thrust forces and moments
+	* @param AircraftData	geometric data of aircraft
+	* @param GuidanceData control variables
+	* @param NavData aircraft position, velocity
+	*/
 	 void initTrajectory6Dof(Float64 FlightTime,
 								AerodynamicStruct & AeroData,
 								AirframeStruct & AirframeData,
@@ -46,6 +74,18 @@ public:
 								GuidanceStruct & GuidanceData,
 								NavigationStruct &NavData);
 	
+	 /**
+	 * @brief calculate trajectory
+	 * @param FlightTime flight time
+	 * @param AtmoData current atmospheric data
+	 * @param AeroData aerodynamic data
+	 * @param AirframeData flight states
+	 * @param ThrustData  thrust forces and moments
+	 * @param GuidanceData control variables
+	 * @param NavData aircraft position, velocity
+	 * @param ActuatorData real actuator angles
+	 * @param IMUData measured acceleration
+	 */
 	virtual void updateTrajectory(Float64 FlightTime,
 						AtmosphereStruct & AtmoData,
 						AerodynamicStruct & AeroData,
@@ -56,6 +96,16 @@ public:
 						ActuatorStruct &ActuatorData,
 						IMUStruct &IMUData);
 
+	/**
+	* @brief calculate 6Dof trajectory
+	* @param FlightTime flight time
+	* @param AtmoData current atmospheric data
+	* @param AeroData aerodynamic data
+	* @param AirframeData flight states
+	* @param ThrustData  thrust forces and moments
+	* @param GuidanceData control variables
+	* @param NavData aircraft position, velocity
+	*/
 	void updateTrajectory6Dof(Float64 FlightTime,
 							AtmosphereStruct & AtmoData,
 							AerodynamicStruct & AeroData,
@@ -63,10 +113,15 @@ public:
 							ThrustStruct & ThrustData,
 							GuidanceStruct & GuidanceData,
 							NavigationStruct &NavData);
-
+	/**
+	* @brief integrate accelerations and calculate new flight states
+	* @param AirframeData flight statess
+	*/
 	void integrationTrajectory(AirframeStruct &AirframeData);
 
-
+	/**
+	* @brief log 6Dof Trajectory data 
+	*/
 	void log6DofData();
 
 

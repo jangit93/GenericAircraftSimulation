@@ -12,7 +12,8 @@
 #define FINDNEIGHBOR_H
 
 
-#include<Eigen/dense>
+//#include<Eigen/dense>
+#include"C://Users\janol\Desktop\Studium\Master_Luft und Raumfahrttechnik\2.Fachsemester\Effizient Programmieren\genericSim\eigen\Eigen\Dense"
 #include<iostream>
 #include"DataCloud.h"
 #include"MatFileReader.h"
@@ -52,6 +53,9 @@ public:
 	Eigen::MatrixXd combineVec(Eigen::Vector2d &Alt, 
 							   Eigen::Vector2d &Vel);
 
+	/**
+	* \brief help function to find index of an array
+	*/
 	int sub2ind(const int row, const int column, const int rows, const int columns);
 	
 	

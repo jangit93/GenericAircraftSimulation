@@ -16,7 +16,6 @@
 #include"DataLogger.h"
 #include<Eigen/Dense>
 
-
 class Airframe
 {
 public:
@@ -43,8 +42,7 @@ public:
 	* translational body accelerations are calculated
 	* @param AeroData Aerodynamic forces,moments and angles
 	* @param ThrustData Thrust forces and moments
-	* @param AircraftData aircraft mass
-	* @return Data stored in AirframeStruct
+	* @param  AirframeData store acceleration
 	*/
 	void updateTranslational(AerodynamicStruct  &AeroData,
 							 ThrustStruct		&ThrustData,
@@ -53,18 +51,25 @@ public:
 	/**
 	* \brief rotational equations of motion
 	* rotation body accelerations are calculated. Euler angle derivatives,too.
-	* @param AeroData Aerodynamic moments and angles
+	* @param AeroData Aerodynamic forces,moments and angles
 	* @param ThrustData Thrust forces and moments
-	* @param AircraftData aircraft mass
-	* @return Data stored in AirframeStruct
+	* @param AirframeData store accelerations
 	*/
 	void updateRotational(AerodynamicStruct  &AeroData,
 							ThrustStruct		&ThrustData,
 							AirframeStruct &AirframeData);
 
+	/**
+	* \brief define output
+	* @param FlightTime flight time
+	* @param AirframeData flight states
+	*/
 	void initLogAirframeData(Float64 &FlightTime, 
 							 AirframeStruct &AirframeData);
 
+	/**
+	* \brief log airframe data
+	*/
 	void logAirframeData();
 
 private:

@@ -50,7 +50,7 @@ public:
 	*	@param	AtmoData			structure of atmospheric data
 	*	@param	AeroData			structure of aero data
 	*	@param	AirframeData		structure of airframe data
-	*	@param	ThriustData			structure of thrust data
+	*	@param	ThrustData			structure of thrust data
 	*/
 
 	virtual void updateAerodynamic(Float64 &FlightTime,

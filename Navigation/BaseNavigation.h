@@ -40,9 +40,9 @@ public:
 	* \brief call to desired update function
 	*	@param	FlightTime			flighttime
 	*	@param	NavData				structure of navigation data
-	*	@param	GuidanceData		structure of guidance data
+	*	@param	AirframeData		structure of flight states
 	*/
-	virtual void updateNavigation(Float64 Flighttime, 
+	virtual void updateNavigation(Float64 FlightTime, 
 						  NavigationStruct &NavData,
 						  AirframeStruct &AirframeData);
 

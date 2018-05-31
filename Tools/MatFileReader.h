@@ -26,7 +26,18 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+/** @ingroup	Tools
+*	@author		Jan Olucak
+*	@date		25.11.2017
+*	@version	1.0
+*
+*	MatFileReader class provides functions to read in compressed .mat-Files. All 
+*   functions are based in the main on the matio library of Christopher C. Hulbert (see above copyright)
+*  @{
+*/
+
+#ifndef MATFILEREADER_H
+#define MATFILEREADER_H
 
 #include<iostream>
 #include <stdlib.h>
@@ -37,7 +48,7 @@
 #include"../matio/getopt/getopt.h"
 #include "../matio/src/matio.h"
 #include<algorithm>
-#include<eigen\dense>
+#include<Eigen\dense>
 #include<tuple>
 #include"IndependetDataTypes.h"
 #include<vector>
@@ -45,16 +56,41 @@
 class MatFileReader
 {
 public:
+	/**
+	* \brief constructor
+	* @param filename name of specific .mat-file
+	*/
 	MatFileReader(const char *filename);
 
+	/**
+	* \brief destructor
+	*/
 	~MatFileReader();
 
-	void setPath(const char Pathname);
+	/**
+	* \brief reads in .mat files that cotains of structures (specific for gain scheduling controller)
+	* @param FieldName name of desired field 
+	* @param start 
+	* @param stride
+	* @param edge
+	* @param copy_fields
+	*/
+	std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Float64,Eigen::RowVectorXd> readMatFileStructure(const char *FieldName,
+																								  int &start, 
+																								  int &stride, 
+																								  int &edge, 
+																								  int &copy_fields);
+	/**
+	* \brief reads in .mat files that cotains only variables
+	* @param FieldName name of desired field
 
-	std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Float64,Eigen::RowVectorXd> readMatFileStructure(const char *FieldName, int &start, int &stride, int &edge, int &copy_fields);
-
+	*/
 	std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Float64, Eigen::RowVectorXd> readMatFileData(const char *FieldName);
 
+	/**
+	* \brief get basic information about the .mat-file
+	* @param MatFileName name of .mat-File
+	*/
 	matvar_t getMatFileInfo(const char *MatFileName);
 
 private:
@@ -72,3 +108,4 @@ private:
 
 
 };
+#endif MATFILEREADER_H

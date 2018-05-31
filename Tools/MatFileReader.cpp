@@ -19,10 +19,7 @@ MatFileReader::~MatFileReader()
 {
 }
 
-void MatFileReader::setPath(const char Pathname)
-{
-	PathName = Pathname;
-}
+
 
 std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Float64,Eigen::RowVectorXd> MatFileReader::readMatFileStructure(const char * FieldName, 
 																						 int & start, 
