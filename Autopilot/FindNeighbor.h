@@ -12,8 +12,8 @@
 #define FINDNEIGHBOR_H
 
 
-//#include<Eigen/dense>
-#include"C://Users\janol\Desktop\Studium\Master_Luft und Raumfahrttechnik\2.Fachsemester\Effizient Programmieren\genericSim\eigen\Eigen\Dense"
+#include<Eigen/dense>
+
 #include<iostream>
 #include"DataCloud.h"
 #include"MatFileReader.h"

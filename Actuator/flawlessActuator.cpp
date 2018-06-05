@@ -20,7 +20,7 @@ void flawlessActuator::initActuator(Float64 & FlightTime,
 	initLogActuatorData(FlightTime, ActuatorData);
 }
 
-void flawlessActuator::updateActuator(Float64 & FlightTime,
+void flawlessActuator::updateActuator(Float64 FlightTime,
 									  AirframeStruct & AirframeData,
 									  ActuatorStruct & ActuatorData)
 {

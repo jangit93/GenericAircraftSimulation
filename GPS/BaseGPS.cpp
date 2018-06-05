@@ -14,7 +14,9 @@ void BaseGPS::initGPS()
 }
 
 
-void BaseGPS::updateGPS(Float64 Flighttime, NavigationStruct & NavData)
+void BaseGPS::updateGPS(Float64 Flighttime, 
+						NavigationStruct & NavData, 
+						AirframeStruct & AirframeData)
 {
 
 }

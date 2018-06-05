@@ -15,15 +15,15 @@ void Navigation::selectNavigation(int Type)
 	switch (Type)
 	{
 	case 1:
-		std::cout << "Navigation:\t" << "Base Navigation" << std::endl;
-		navigation = new BaseNavigation;
+		std::cout << "Navigation:\t" << "flawless Navigation" << std::endl;
+		navigation = new flawlessNavigation;
 		break;
 	}
 }
 
-void Navigation::initNavigation()
+void Navigation::initNavigation(NavigationStruct & NavData)
 {
-	navigation->initNavigation();
+	navigation->initNavigation(NavData);
 }
 
 void Navigation::updateNavigation(Float64 FlightTime, NavigationStruct & NavData, AirframeStruct &AirframeData)

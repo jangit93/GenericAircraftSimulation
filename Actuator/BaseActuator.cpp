@@ -14,7 +14,7 @@ void BaseActuator::initActuator(Float64 & FlightTime,
 {
 }
 
-void BaseActuator::updateActuator(Float64 & FlightTime,
+void BaseActuator::updateActuator(Float64 FlightTime,
 								  AirframeStruct & AirframeData,
 								  ActuatorStruct & ActuatorData)
 {

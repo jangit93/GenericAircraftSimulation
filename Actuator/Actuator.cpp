@@ -31,7 +31,7 @@ void Actuator::selectActuatorType(int type)
 	}
 }
 
-void Actuator::updateActuator(Float64 & FlightTime,
+void Actuator::updateActuator(Float64  FlightTime,
 							  AirframeStruct & AirframeData, 
 							  ActuatorStruct & ActuatorData)
 {

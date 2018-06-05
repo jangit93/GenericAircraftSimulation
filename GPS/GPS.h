@@ -48,7 +48,8 @@ public:
 	*	@param	NavData				structure of navigation data
 	*/
 	void updateGPS(Float64 FlightTime,
-					NavigationStruct & NavData);
+					NavigationStruct & NavData, 
+					AirframeStruct & AirframeData);
 
 private:
 	BaseGPS * gps;

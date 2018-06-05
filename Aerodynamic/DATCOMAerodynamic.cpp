@@ -11,8 +11,9 @@ DATCOMAerodymamic::~DATCOMAerodymamic()
 {
 }
 
-void DATCOMAerodymamic::initAerodynamic(Float64 &FlightTime, AerodynamicStruct & AeroData,
-											  AircraftStruct & AircraftData)
+void DATCOMAerodymamic::initAerodynamic(Float64 &FlightTime, 
+										AerodynamicStruct & AeroData,
+										AircraftStruct & AircraftData)
 {
 
 	MatFileReader readAeroData("../Input/ADM.mat");

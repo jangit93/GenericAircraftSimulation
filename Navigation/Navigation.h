@@ -17,6 +17,7 @@
 #include"DataCloud.h"
 #include"flawlessNavigation.h"
 
+
 class Navigation
 {
 public:
@@ -40,7 +41,7 @@ public:
 	/**
 	* \brief call to desired init-function
 	*/
-	void initNavigation();
+	void initNavigation(NavigationStruct & NavData);
 
 	/**
 	* \brief call to desired update function

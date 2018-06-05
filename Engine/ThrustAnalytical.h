@@ -52,7 +52,7 @@ public:
 					AtmosphereStruct & AtmoData,		
 					AerodynamicStruct & AeroData,		
 					AirframeStruct & AirframeData,		
-					ThrustStruct & ThrustData);		
+					ThrustStruct & ThrustData);
 
 	/**
 	*  @brief define output of thrust data

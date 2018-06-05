@@ -47,7 +47,7 @@ public:
 	* @param AirframeData coammanded actuator angles from autopilot
 	* @param ActuatorData real Actuator angles
 	*/
-	virtual void updateActuator(Float64 & FlightTime,
+	virtual void updateActuator(Float64 FlightTime,
 							    AirframeStruct & AirframeData,
 								ActuatorStruct & ActuatorData);
 

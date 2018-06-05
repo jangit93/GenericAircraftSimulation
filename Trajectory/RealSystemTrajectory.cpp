@@ -1,11 +1,16 @@
 #include "RealSystemTrajectory.h"
 
-RealSystemTrajectory::RealSystemTrajectory(SimDPreference &SimPref) :Trajectory6Dof(SimPref)
+RealSystemTrajectory::RealSystemTrajectory(SimDPreference &SimPref) :Trajectory3Dof(SimPref)
 {
+
 	airframe = new Airframe;
+	guidance = new Guidance(SimPref);
+	autopilot = new Autopilot;
+
 	imu = new IMU(SimPref);
 	navigation = new Navigation(SimPref);
 	actuator = new Actuator(SimPref);
+	gps = new GPS(SimPref);
 }
 
 RealSystemTrajectory::~RealSystemTrajectory()
@@ -22,17 +27,25 @@ void RealSystemTrajectory::initTrajectory(Float64 FlightTime,
 										  ActuatorStruct & ActuatorData, 
 									      IMUStruct & IMUData)
 {
-	initTrajectory6Dof(FlightTime,
+
+	initTrajectory3DoF(FlightTime,
 						AeroData,
 						AirframeData,
 						ThrustData,
-						AircraftData,
-						GuidanceData,
-						NavData);
+						AircraftData);
+
+
+	autopilot->initAutopilot();
+
+	guidance->initGuidance(FlightTime,
+							GuidanceData, 
+							AircraftData);
+
+	gps->initGPS();
 
 	imu->initIMU();
 
-	navigation->initNavigation();
+	navigation->initNavigation(NavData);
 
 	actuator->initActuator(FlightTime,
 							AirframeData,
@@ -50,26 +63,45 @@ void RealSystemTrajectory::updateTrajectory(Float64 FlightTime,
 											IMUStruct & IMUData)
 {
 
-	imu->updateIMU(FlightTime,
-				   AirframeData,
-				   IMUData);
+	gps->updateGPS(FlightTime,
+					NavData,
+					AirframeData);
 
 	navigation->updateNavigation(FlightTime,
 								NavData,
 								AirframeData);
 
-	updateTrajectory6Dof(FlightTime,
+
+	updateTrajectory3DoF(FlightTime,
 						AtmoData,
 						AeroData,
 						AirframeData,
-						ThrustData,
-						GuidanceData,
-						NavData);
+						ThrustData);
 
+	airframe->updateRotational(AeroData,
+								ThrustData,
+								AirframeData);
+
+	imu->updateIMU(FlightTime,
+					AirframeData,
+					IMUData);
+
+	guidance->updateGuidance(FlightTime,
+							AeroData,
+							ThrustData,
+							AirframeData,
+							GuidanceData);
+
+	autopilot->updateAutopilot(FlightTime,
+								AirframeData,
+								AeroData,
+								GuidanceData);
 
 	actuator->updateActuator(FlightTime,
 							AirframeData,
 							ActuatorData);
+
+
 
 	logRealsystemTrajectory();
 
@@ -77,6 +109,7 @@ void RealSystemTrajectory::updateTrajectory(Float64 FlightTime,
 
 void RealSystemTrajectory::logRealsystemTrajectory()
 {
-	log6DofData();
+	log3DofData();
+	guidance->logGuidanceData();
 }
 

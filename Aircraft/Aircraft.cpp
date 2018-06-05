@@ -14,6 +14,9 @@ Aircraft::Aircraft(SimDPreference &SimPref)
 
 Aircraft::~Aircraft()
 {
+	delete trajectory;
+	delete Atmo;
+
 }
 
 void Aircraft::initAircraft()
@@ -61,6 +64,9 @@ void Aircraft::simulateAircraft()
 	AirframeData.StickPosition = TrimPoints[1].u_bar(3);
 	AirframeData.EulerAngles(1) = TrimPoints[1].x_bar(1);
 	GuidanceData.Theta_com = AirframeData.EulerAngles(1);
+
+	NavData.dt = dt;
+	IMUData.dt = dt;
 
 	double time1 = 0.0, tstart;
 	tstart = clock();

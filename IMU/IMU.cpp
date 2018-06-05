@@ -26,5 +26,7 @@ void IMU::initIMU()
 
 void IMU::updateIMU(Float64 FlightTime, AirframeStruct & AirframeData, IMUStruct &IMUData)
 {
-	imu->updateIMU(FlightTime, AirframeData, IMUData);
+	imu->updateIMU(FlightTime, 
+					AirframeData, 
+					IMUData);
 }

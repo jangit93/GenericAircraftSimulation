@@ -7,11 +7,16 @@ Trajectory6Dof::Trajectory6Dof(SimDPreference &Simpref):Trajectory3Dof(Simpref)
 	guidance = new Guidance(Simpref);
 	autopilot = new Autopilot;
 	Trafo = new Transformation;
+	dt = Simpref.dt;
 
 }
 
 Trajectory6Dof::~Trajectory6Dof()
 {
+	delete airframe;
+	delete guidance;
+	delete autopilot;
+	delete Trafo;
 }
 
 void Trajectory6Dof::initTrajectory(Float64 FlightTime, 
@@ -32,7 +37,6 @@ void Trajectory6Dof::initTrajectory(Float64 FlightTime,
 						GuidanceData,
 						NavData);
 
-	dt = 0.01;
 }
 
 
@@ -85,7 +89,7 @@ void Trajectory6Dof::updateTrajectory6Dof(Float64 FlightTime,
 										AirframeStruct & AirframeData,
 										ThrustStruct & ThrustData,
 										GuidanceStruct & GuidanceData,
-										NavigationStruct &NavData)
+										NavigationStruct &NavDat)
 {
 
 	
@@ -138,6 +142,7 @@ void Trajectory6Dof::integrationTrajectory(AirframeStruct & AirframeData)
 
 void Trajectory6Dof::log6DofData()
 {
+	
 	guidance->logGuidanceData();
 
 	log3DofData();

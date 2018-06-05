@@ -11,7 +11,7 @@
 #define DATACLOUD_H
 
 #include"../Tools/IndependetDataTypes.h"
-#include"C://Users\janol\Desktop\Studium\Master_Luft und Raumfahrttechnik\2.Fachsemester\Effizient Programmieren\genericSim\eigen\Eigen\Dense"
+#include<Eigen\dense>
 
 /** 
 * \brief stores atmospheric data
@@ -212,6 +212,7 @@ struct IMUStruct
 {
 	Eigen::Vector3d realTransAcc;
 	Eigen::Vector3d realTRotAcc;
+	Float64 dt;
 };
 
 /**
@@ -227,6 +228,7 @@ struct NavigationStruct
 	Eigen::Vector3d intPOS;
 	Eigen::Vector3d realVelocity;
 	Eigen::Vector3d realPOS;
+	Float64 dt;
 };
 
 /**

@@ -9,7 +9,8 @@
 *
 */
 #include"BaseNavigation.h"
-
+#include"Transformation.h"
+#include"ODESolver.cpp"
 
 class flawlessNavigation :  public BaseNavigation
 {
@@ -27,7 +28,7 @@ public:
 	/**
 	* \brief initialize flawless navigation
 	*/
-	virtual void initNavigation();
+	virtual void initNavigation(NavigationStruct & NavData);
 
 	/**
 	* \brief update function of a flawless navigation module
@@ -39,5 +40,6 @@ public:
 									NavigationStruct &NavData,
 								  AirframeStruct &AirframeData);
 private:
-
+	Transformation * Trafo;
+	Float64 dt;
 };

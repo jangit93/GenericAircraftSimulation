@@ -7,8 +7,9 @@
 #include"Navigation.h"
 #include"IMU.h"
 #include"Actuator.h"
+#include"GPS.h"
 
-class RealSystemTrajectory : public Trajectory6Dof
+class RealSystemTrajectory : public Trajectory3Dof
 {
 public:
 	RealSystemTrajectory(SimDPreference &SimPref);
@@ -37,11 +38,14 @@ public:
 
 
 	void logRealsystemTrajectory();
+
 private:
 	Autopilot * autopilot;
 	Guidance  *guidance;
 	Airframe     *airframe;
+
 	IMU *imu;
 	Navigation *navigation;
 	Actuator *actuator;
+	GPS * gps;
 };

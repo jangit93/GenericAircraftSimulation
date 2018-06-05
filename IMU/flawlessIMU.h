@@ -8,6 +8,7 @@
 *	is simulated.
 */
 #include"BaseIMU.h"
+#include"ODESolver.cpp"
 
 class flawlessIMU : public BaseIMU
 {

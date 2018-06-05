@@ -8,7 +8,7 @@ BaseNavigation::~BaseNavigation()
 {
 }
 
-void BaseNavigation::initNavigation()
+void BaseNavigation::initNavigation(NavigationStruct & NavData)
 {
 
 }

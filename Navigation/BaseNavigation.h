@@ -34,7 +34,7 @@ public:
 	/**
 	* \brief initialize navigation
 	*/
-	void initNavigation();
+	virtual void initNavigation(NavigationStruct & NavData);
 
 	/**
 	* \brief call to desired update function

@@ -102,7 +102,7 @@ void StateController::updateStateController(Float64 FlightTime,
 	Vel_com = GuidanceData.Velocity_com;
 	beta_com =  GuidanceData.Beta_com;
 
-	/// 3) calcuate control variable for every neighbor
+	/// 3) calculate control variable for every neighbor
 	for (int i = 0; i < NEIGHBOR.rows(); i++) {
 
 		//gains
