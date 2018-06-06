@@ -30,7 +30,7 @@ void Aerodynamics::initAerodynamic(Float64 &FlightTime,
 								 AircraftData);
 }
 
-void Aerodynamics::updateAerodynamic(Float64 &FlightTime, 
+void Aerodynamics::updateAerodynamic(Float64 FlightTime, 
 									AtmosphereStruct & AtmoData, 
 									AerodynamicStruct & AeroData, 
 									AirframeStruct & AirframeData, 

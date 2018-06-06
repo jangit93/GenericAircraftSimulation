@@ -17,7 +17,7 @@ RealSystemTrajectory::~RealSystemTrajectory()
 {
 }
 
-void RealSystemTrajectory::initTrajectory(Float64 FlightTime, 
+void RealSystemTrajectory::initTrajectory(Float64 &FlightTime, 
 										  AerodynamicStruct & AeroData, 
 										  AirframeStruct & AirframeData, 
 										  ThrustStruct & ThrustData, 
@@ -76,7 +76,7 @@ void RealSystemTrajectory::updateTrajectory(Float64 FlightTime,
 						AtmoData,
 						AeroData,
 						AirframeData,
-						ThrustData);
+						ThrustData,ActuatorData);
 
 	airframe->updateRotational(AeroData,
 								ThrustData,

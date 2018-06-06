@@ -46,7 +46,7 @@ public:
 	* @param ActuatorData real actuator angles
 	* @param IMUData measured acceleration
 	*/
-	virtual void initTrajectory(Float64 FlightTime, 
+	virtual void initTrajectory(Float64 &FlightTime, 
 								AerodynamicStruct & AeroData,
 								AirframeStruct & AirframeData,
 								ThrustStruct & ThrustData,
@@ -66,7 +66,7 @@ public:
 	* @param GuidanceData control variables
 	* @param NavData aircraft position, velocity
 	*/
-	 void initTrajectory6Dof(Float64 FlightTime,
+	 void initTrajectory6Dof(Float64 &FlightTime,
 								AerodynamicStruct & AeroData,
 								AirframeStruct & AirframeData,
 								ThrustStruct & ThrustData,
@@ -112,7 +112,7 @@ public:
 							AirframeStruct & AirframeData,
 							ThrustStruct & ThrustData,
 							GuidanceStruct & GuidanceData,
-							NavigationStruct &NavData);
+							NavigationStruct &NavData, ActuatorStruct &ActuatorData);
 	/**
 	* @brief integrate accelerations and calculate new flight states
 	* @param AirframeData flight statess

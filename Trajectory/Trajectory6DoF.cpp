@@ -19,7 +19,7 @@ Trajectory6Dof::~Trajectory6Dof()
 	delete Trafo;
 }
 
-void Trajectory6Dof::initTrajectory(Float64 FlightTime, 
+void Trajectory6Dof::initTrajectory(Float64 &FlightTime, 
 									AerodynamicStruct & AeroData,
 									AirframeStruct & AirframeData,
 									ThrustStruct & ThrustData,
@@ -40,7 +40,7 @@ void Trajectory6Dof::initTrajectory(Float64 FlightTime,
 }
 
 
-void Trajectory6Dof::initTrajectory6Dof(Float64 FlightTime, 
+void Trajectory6Dof::initTrajectory6Dof(Float64 &FlightTime, 
 									AerodynamicStruct & AeroData,
 									AirframeStruct & AirframeData,
 									ThrustStruct & ThrustData,
@@ -80,7 +80,7 @@ void Trajectory6Dof::updateTrajectory(Float64 FlightTime,
 						AirframeData,
 						ThrustData,
 						GuidanceData,
-						NavData);
+						NavData,ActuatorData);
 }
 
 void Trajectory6Dof::updateTrajectory6Dof(Float64 FlightTime,
@@ -89,7 +89,7 @@ void Trajectory6Dof::updateTrajectory6Dof(Float64 FlightTime,
 										AirframeStruct & AirframeData,
 										ThrustStruct & ThrustData,
 										GuidanceStruct & GuidanceData,
-										NavigationStruct &NavDat)
+										NavigationStruct &NavDat, ActuatorStruct &ActuatorData)
 {
 
 	
@@ -98,7 +98,7 @@ void Trajectory6Dof::updateTrajectory6Dof(Float64 FlightTime,
 						AtmoData,
 						AeroData,
 						AirframeData,
-						ThrustData);
+						ThrustData,ActuatorData);
 
 	airframe->updateRotational(AeroData,
 								ThrustData,

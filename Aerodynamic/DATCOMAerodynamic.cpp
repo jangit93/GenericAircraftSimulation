@@ -64,7 +64,7 @@ void DATCOMAerodymamic::initAerodynamic(Float64 &FlightTime,
 	initLogAeroData(FlightTime,AeroData);
 }
 
-void DATCOMAerodymamic::updateAerodynamic(Float64 &FlightTime,
+void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
 										AtmosphereStruct & AtmoData,
 										AerodynamicStruct & AeroData,
 										AirframeStruct & AirframeData,

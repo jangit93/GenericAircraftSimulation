@@ -48,7 +48,8 @@
 #include"../matio/getopt/getopt.h"
 #include "../matio/src/matio.h"
 #include<algorithm>
-#include<Eigen\dense>
+//#include<Eigen\dense>
+#include"../eigen/Eigen/dense"
 #include<tuple>
 #include"IndependetDataTypes.h"
 #include<vector>

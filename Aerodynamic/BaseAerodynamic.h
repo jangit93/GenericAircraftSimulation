@@ -17,7 +17,7 @@
 #include<iostream>
 #include"DataCloud.h"
 #include"IndependetDataTypes.h"
-#include<Eigen/Dense>
+//#include<Eigen/Dense>
 
 class BaseAerodynamic {
 
@@ -53,7 +53,7 @@ public:
 	*	@param	ThrustData			structure of thrust data
 	*/
 
-	virtual void updateAerodynamic(Float64 &FlightTime,
+	virtual void updateAerodynamic(Float64 FlightTime,
 							AtmosphereStruct & AtmoData,
 							AerodynamicStruct & AeroData,
 							AirframeStruct & AirframeData,

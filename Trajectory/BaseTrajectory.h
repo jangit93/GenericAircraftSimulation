@@ -35,7 +35,7 @@ public:
 	* @param ActuatorData real actuator angles
 	* @param IMUData measured acceleration
 	*/
-	virtual void initTrajectory(Float64 FlightTime, 
+	virtual void initTrajectory(Float64 &FlightTime, 
 						AerodynamicStruct & AeroData,
 						AirframeStruct & AirframeData,
 						ThrustStruct & ThrustData,

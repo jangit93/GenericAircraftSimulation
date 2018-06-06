@@ -14,7 +14,6 @@
 #include"readInData.h"
 #include"Constants.h"
 #include"DataLogger.h"
-#include<Eigen/Dense>
 
 class Airframe
 {

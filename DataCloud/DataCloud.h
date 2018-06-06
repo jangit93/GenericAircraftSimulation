@@ -11,7 +11,8 @@
 #define DATACLOUD_H
 
 #include"../Tools/IndependetDataTypes.h"
-#include<Eigen\dense>
+//#include<Eigen\dense>
+#include"../eigen/Eigen/dense"
 
 /** 
 * \brief stores atmospheric data

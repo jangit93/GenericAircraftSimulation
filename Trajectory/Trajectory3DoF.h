@@ -43,7 +43,7 @@ public:
 	* @param ActuatorData real actuator angles
 	* @param IMUData measured acceleration
 	*/
-	virtual void initTrajectory(Float64 FlightTime, 
+	virtual void initTrajectory(Float64 &FlightTime, 
 								AerodynamicStruct & AeroData,
 								AirframeStruct & AirframeData,
 								ThrustStruct & ThrustData,
@@ -83,7 +83,7 @@ public:
 	* @param ThrustData  thrust forces and moments
 	* @param AircraftData	geometric data of aircraft
 	*/
-	void initTrajectory3DoF(Float64 FlightTime, 
+	void initTrajectory3DoF(Float64 &FlightTime, 
 							AerodynamicStruct & AeroData,
 							AirframeStruct & AirframeData,
 							ThrustStruct & ThrustData,
@@ -101,7 +101,7 @@ public:
 								AtmosphereStruct & AtmoData,
 								AerodynamicStruct & AeroData,
 								AirframeStruct & AirframeData,
-								ThrustStruct & ThrustData);
+								ThrustStruct & ThrustData,ActuatorStruct &ActuatorData);
 
 	/**
 	* @brief log 3Dof Data (Aerodynamic Data, Thrust Data and translational acclerations)

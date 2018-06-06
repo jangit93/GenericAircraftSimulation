@@ -16,7 +16,7 @@ public:
 
 	~RealSystemTrajectory();
 
-	void initTrajectory(Float64 FlightTime,
+	void initTrajectory(Float64 &FlightTime,
 						AerodynamicStruct & AeroData,
 						AirframeStruct & AirframeData,
 						ThrustStruct & ThrustData,

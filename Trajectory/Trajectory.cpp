@@ -53,7 +53,7 @@ void Trajectory::updateTrajectory(Float64 FlightTime,
 						   GuidanceData,NavData,ActuatorData,IMUData);
 }
 
-void Trajectory::initTrajectory(Float64 FlightTime, 
+void Trajectory::initTrajectory(Float64 &FlightTime, 
 								AerodynamicStruct & AeroData,
 								AirframeStruct & AirframeData, 
 								ThrustStruct & ThrustData, 

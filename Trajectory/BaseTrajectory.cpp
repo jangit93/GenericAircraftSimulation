@@ -8,7 +8,7 @@ BaseTrajectory::~BaseTrajectory()
 {
 }
 
-void BaseTrajectory::initTrajectory(Float64 FlightTime, 
+void BaseTrajectory::initTrajectory(Float64 &FlightTime, 
 									AerodynamicStruct & AeroData,
 									AirframeStruct & AirframeData,
 									ThrustStruct & ThrustData,

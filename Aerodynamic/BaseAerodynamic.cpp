@@ -8,7 +8,7 @@ BaseAerodynamic::~BaseAerodynamic()
 {
 }
 
-void BaseAerodynamic::updateAerodynamic(Float64 &FlightTime, 
+void BaseAerodynamic::updateAerodynamic(Float64 FlightTime, 
 										AtmosphereStruct & AtmoData, 
 										AerodynamicStruct & AeroData, 
 										AirframeStruct & AirframeData, 

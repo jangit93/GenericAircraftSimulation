@@ -15,8 +15,8 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
-#include<Eigen/Dense>
-
+//#include<Eigen/Dense>
+#include"../eigen/Eigen/dense"
 using Eigen::MatrixXd;
 using Eigen::Vector3f;
 using Eigen::MatrixX2f;
