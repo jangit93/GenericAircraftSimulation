@@ -40,6 +40,7 @@ void DataLogger::print()
 	mStream << std::setw(mWidth);
 	for (int i = 0; i < mNumberDoubles; i++)
 	{
+		
 		mStream << std::to_string(*doubleVec.at(i)) + mDelimiter << std::setw(mWidth);
 		
 	}
@@ -74,3 +75,9 @@ void DataLogger::printHeader()
 	mStream << std::endl;
 }
 
+std::string DataLogger::Convert(double number)
+{
+	std::ostringstream buff;
+	buff << number;
+	return buff.str();
+};

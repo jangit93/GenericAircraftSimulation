@@ -49,7 +49,7 @@ int main(int argv, char* argc[])
 	Aircraft *testAircraft = new Aircraft(SimPref);
 
 	time1 = 0.0;
-	
+	fastformat:
 
 	std::clock_t c_start = std::clock();
 

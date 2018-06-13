@@ -47,7 +47,7 @@ void Aircraft::simulateAircraft()
 
 	
 	Atmo->initAtmosphere();
-
+	
 	trajectory->initTrajectory(FlightTime,
 								AeroData,
 								AirframeData,
@@ -58,11 +58,23 @@ void Aircraft::simulateAircraft()
 								ActuatorData,
 								IMUData);
 
+	
+
+	ActuatorData.Eta = TrimPoints[1].u_bar(1);
 	AirframeData.Eta = TrimPoints[1].u_bar(1);
+
 	AirframeData.posNED(2) = -TrimPoints[1].Alt;
+	NavData.posNED(2) = -TrimPoints[1].Alt;
+
 	AirframeData.velNED << TrimPoints[1].Vel, 0, 0;
+	NavData.velNED << TrimPoints[1].Vel, 0, 0;
+
 	AirframeData.StickPosition = TrimPoints[1].u_bar(3);
+	ActuatorData.Delta = TrimPoints[1].u_bar(3);
+
 	AirframeData.EulerAngles(1) = TrimPoints[1].x_bar(1);
+	NavData.EulerAngles(1) = TrimPoints[1].x_bar(1);
+
 	GuidanceData.Theta_com = AirframeData.EulerAngles(1);
 
 	NavData.dt = dt;

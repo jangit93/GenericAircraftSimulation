@@ -59,7 +59,7 @@ public:
 						AtmosphereStruct & AtmoData,
 						AerodynamicStruct & AeroData,
 						AirframeStruct & AirframeData,
-						ThrustStruct & ThrustData);
+						ThrustStruct & ThrustData, ActuatorStruct &ActuatorData);
 
 	/**
 	* @brief	definition of data which is logged to an outputfile

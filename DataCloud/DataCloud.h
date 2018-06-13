@@ -213,6 +213,9 @@ struct IMUStruct
 {
 	Eigen::Vector3d realTransAcc;
 	Eigen::Vector3d realTRotAcc;
+	Eigen::Vector3d accTransNED;
+	Eigen::Vector3d accRotBody;
+	Eigen::Vector3d rotRatesBody;
 	Float64 dt;
 };
 
@@ -229,6 +232,11 @@ struct NavigationStruct
 	Eigen::Vector3d intPOS;
 	Eigen::Vector3d realVelocity;
 	Eigen::Vector3d realPOS;
+	Eigen::Vector3d velNED;
+	Eigen::Vector3d posNED;
+	Eigen::Vector3d velBody;
+	Eigen::Vector3d EulerAngles;
+	Float64 absVel;
 	Float64 dt;
 };
 
@@ -243,6 +251,11 @@ struct ActuatorStruct
 	Float64 realEta;
 	Float64 realXi;
 	Float64 realZeta;
+	Float64 realDelta;
+	Float64 Delta;
+	Float64 Eta;
+	Float64 Xi;
+	Float64 Zeta;
 };
 
 /**

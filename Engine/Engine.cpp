@@ -34,13 +34,13 @@ void Engine::updateEngine(Float64 FlightTime,
 						AtmosphereStruct & AtmoData,
 						AerodynamicStruct & AeroData,
 						AirframeStruct & AirframeData,
-						ThrustStruct & ThrustData)
+						ThrustStruct & ThrustData, ActuatorStruct& ActuatorData)
 {
 	Thrust->updateThrust(FlightTime,
 						 AtmoData,
 						 AeroData,
 						 AirframeData,
-						 ThrustData);
+						 ThrustData,ActuatorData);
 }
 
 void Engine::logEngineData()

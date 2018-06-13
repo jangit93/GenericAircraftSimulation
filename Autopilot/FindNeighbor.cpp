@@ -46,13 +46,13 @@ void FindNeighbor::initFindNeighbor()
 
 
 
-std::tuple<Eigen::Vector4d, Eigen::MatrixXd> FindNeighbor::BlendingParameters(AirframeStruct & AirframeData)
+std::tuple<Eigen::Vector4d, Eigen::MatrixXd> FindNeighbor::BlendingParameters(NavigationStruct &NavData)
 {
 	
 	// find neighbours altitude
 	//std::cout << neighbors[0].AltVec.size() << std::endl;
 	for (int i = 0; i < neighbors[0].AltVec.size()-1 ; i++) {
-		if ((-AirframeData.posNED(2)) <= neighbors[0].AltVec(i+1) && -AirframeData.posNED(2) >= neighbors[0].AltVec(i) - 10) {
+		if ((-NavData.posNED(2)) <= neighbors[0].AltVec(i+1) && -NavData.posNED(2) >= neighbors[0].AltVec(i) - 10) {
 			//std::cout << (-AirframeData.posNED(2)) << neighbors[0].AltVec(i + 1) << -AirframeData.posNED(2) << neighbors[0].AltVec(i) - 10  << std::endl;
 			tempAlt << i, i+1;
 
@@ -65,7 +65,7 @@ std::tuple<Eigen::Vector4d, Eigen::MatrixXd> FindNeighbor::BlendingParameters(Ai
 	// find neighbours velocity
 	//std::cout << neighbors[0].VelVec.size() << std::endl;
 	for (int i = 0; i < neighbors[0].VelVec.size() - 1; i++) {
-		if (AirframeData.velNED.norm() < neighbors[0].VelVec(i+1) && AirframeData.velNED.norm() >= neighbors[0].VelVec(i) - 10) {
+		if (NavData.velNED.norm() < neighbors[0].VelVec(i+1) && NavData.velNED.norm() >= neighbors[0].VelVec(i) - 10) {
 			
 			tempVel << i, i+1;
 
@@ -82,11 +82,11 @@ std::tuple<Eigen::Vector4d, Eigen::MatrixXd> FindNeighbor::BlendingParameters(Ai
 
 		int index = sub2ind(Neighbor(i, 0), Neighbor(i, 1), MatFileData.dims[0], MatFileData.dims[1]);
 
-		xi(0) = (-AirframeData.posNED(2) - neighbors[index].Alt) / (maxAlt - minAlt);
+		xi(0) = (-NavData.posNED(2) - neighbors[index].Alt) / (maxAlt - minAlt);
 
 		phi_j(0) = 1 - xi(0)*xi(0)*(3-2* abs(xi(0)));
 
-		xi(1) = (AirframeData.velNED.norm() - neighbors[index].Vel) / (maxVel - minVel);
+		xi(1) = (NavData.velNED.norm() - neighbors[index].Vel) / (maxVel - minVel);
 
 		phi_j(1) = 1 - xi(1)*xi(1)*(3-2 * abs(xi(1)));
 

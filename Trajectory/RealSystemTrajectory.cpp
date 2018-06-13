@@ -95,7 +95,7 @@ void RealSystemTrajectory::updateTrajectory(Float64 FlightTime,
 	autopilot->updateAutopilot(FlightTime,
 								AirframeData,
 								AeroData,
-								GuidanceData);
+								GuidanceData,ActuatorData,IMUData,NavData);
 
 	actuator->updateActuator(FlightTime,
 							AirframeData,
@@ -109,7 +109,7 @@ void RealSystemTrajectory::updateTrajectory(Float64 FlightTime,
 
 void RealSystemTrajectory::logRealsystemTrajectory()
 {
-	log3DofData();
 	guidance->logGuidanceData();
+	log3DofData();
 }
 

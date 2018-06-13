@@ -14,7 +14,7 @@ void GPS::selectGPS(int Type)
 	switch (Type)
 	{
 	case 1:
-		std::cout << "GPS:\t" << "flawless GPS" << std::endl;
+		std::cout << "GPS:\t\t" << "flawless GPS" << std::endl;
 		gps = new flawlessGPS;
 	}
 }

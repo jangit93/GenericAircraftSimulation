@@ -28,7 +28,7 @@ void BaseThrust::updateThrust(Float64 FlightTime,
 							AtmosphereStruct & AtmoData,
 							AerodynamicStruct & AeroData,
 							AirframeStruct & AirframeData,
-							ThrustStruct & ThrustData)
+							ThrustStruct & ThrustData, ActuatorStruct& ActuatorData)
 {
 	std::cout << "Basis Schubklasse" << std::endl;
 }

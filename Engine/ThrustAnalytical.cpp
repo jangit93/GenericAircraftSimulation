@@ -44,11 +44,11 @@ void ThrustAnalytical::updateThrust(Float64 FlightTime,
 								  AtmosphereStruct & AtmoData,
 								  AerodynamicStruct & AeroData,
 								  AirframeStruct & AirframeData,
-								  ThrustStruct & ThrustData)
+								  ThrustStruct & ThrustData, ActuatorStruct& ActuatorData)
 {
 
 	                                              
-	Float64	T = AirframeData.StickPosition* maxThrust* (AtmoData.rho / RHO_0)* (1 + Kt * AeroData.Mach);
+	Float64	T = ActuatorData.Delta* maxThrust* (AtmoData.rho / RHO_0)* (1 + Kt * AeroData.Mach);
 
 	
 		ThrustData.ThrustForce(0) = T * cos(incidenceAngle);

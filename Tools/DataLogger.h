@@ -55,6 +55,9 @@ public:
 	* \brief defines header of specific variable
 	*/
 	void printHeader();
+
+	std::string Convert(double number);
+
 private:
 	std::vector<double*> doubleVec;
 	std::vector<std::string> doubleHeader;
@@ -69,6 +72,7 @@ private:
 
 	int mWidth;
 	std::string mDelimiter;
+	char buffer[10];
 };
 
 #endif DATALOGGER_H

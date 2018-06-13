@@ -68,7 +68,7 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
 										AtmosphereStruct & AtmoData,
 										AerodynamicStruct & AeroData,
 										AirframeStruct & AirframeData,
-										ThrustStruct & ThrustData)
+										ThrustStruct & ThrustData, ActuatorStruct &ActuatorData)
 {
 	relVelNED = AirframeData.velNED;
 
@@ -86,9 +86,9 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
 	 Alpha 	= atan2(velBody(2), velBody(0)) * 180 / PI;
 	 Beta 	= atan2(velBody(1), sqrt(velBody(0)*velBody(0)+ velBody(1)*velBody(1)+ velBody(2)*velBody(2))) * 180 / PI;
 
-	 ETA 	= AirframeData.Eta * 180 / PI;
-	 XI		= AirframeData.Xi * 180 / PI;
-	 ZETA	= AirframeData.Zeta * 180 / PI;
+	 ETA 	= ActuatorData.Eta * 180 / PI;
+	 XI		= ActuatorData.Xi * 180 / PI;
+	 ZETA	= ActuatorData.Zeta * 180 / PI;
 	 
 	 p = AirframeData.rotRatesBody(0) * b / (2 * absVel);
 	 q = AirframeData.rotRatesBody(1) * l_nu/absVel;

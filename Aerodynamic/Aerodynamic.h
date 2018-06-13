@@ -63,7 +63,7 @@ public:
 							AtmosphereStruct & AtmoData,
 							AerodynamicStruct & AeroData,
 							AirframeStruct & AirframeData,
-							ThrustStruct & ThrustData);
+							ThrustStruct & ThrustData,ActuatorStruct &ActuatorData);
 	/**
 	* \brief log aerodynamic data to text file
 	*/

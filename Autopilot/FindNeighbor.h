@@ -43,7 +43,7 @@ public:
 	* \brief blending parameters  for gain scheduing are calculated
 	*	@param AirframeData	structure of airframe parameters 
 	*/
-	std::tuple<Eigen::Vector4d,Eigen::MatrixXd> BlendingParameters(AirframeStruct &AirframeData);
+	std::tuple<Eigen::Vector4d,Eigen::MatrixXd> BlendingParameters(NavigationStruct &NavData);
 
 	/**
 	* \brief help function to combine vectors for gain scheduling

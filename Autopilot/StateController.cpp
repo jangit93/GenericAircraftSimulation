@@ -90,11 +90,11 @@ void StateController::initStateController()
 void StateController::updateStateController(Float64 FlightTime,
 											AirframeStruct &AirframeData,
 											AerodynamicStruct &AeroData,
-											GuidanceStruct &GuidanceData)
+											GuidanceStruct &GuidanceData, ActuatorStruct &ActuatorData, IMUStruct &IMUData, NavigationStruct &NavData)
 {
 	/// 1) find neighbors in grid
-	PHI << std::get<0>(findneighbor->BlendingParameters(AirframeData));
-	NEIGHBOR << std::get<1>(findneighbor->BlendingParameters(AirframeData));
+	PHI << std::get<0>(findneighbor->BlendingParameters(NavData));
+	NEIGHBOR << std::get<1>(findneighbor->BlendingParameters(NavData));
 
 	/// 2) get control input
 	theta_com = GuidanceData.Theta_com;
@@ -125,7 +125,7 @@ void StateController::updateStateController(Float64 FlightTime,
 					  StateControllertData[index].Ke_Vel;
 
 		//longitude
-		x_long_pitch << AirframeData.rotRatesBody(1), AeroData.Alpha, AirframeData.EulerAngles(1);
+		x_long_pitch << IMUData.rotRatesBody(1), AeroData.Alpha, NavData.EulerAngles(1);
 
 		
 		x_0_pitch << x_0(4), x_0(1), x_0(7);
@@ -134,16 +134,16 @@ void StateController::updateStateController(Float64 FlightTime,
 		delta_x_long = x_long_pitch - x_0_pitch;
 
 
-		e2_long = e2_long + dt * (theta_com - AirframeData.EulerAngles(1));
+		e2_long = e2_long + dt * (theta_com - NavData.EulerAngles(1));
 
 
-		delta_x_vel = AirframeData.velNED.norm() - x_0(0);
+		delta_x_vel = NavData.velNED.norm() - x_0(0);
 
-		e1_long = e1_long + dt * (Vel_com - AirframeData.velNED.norm());
+		e1_long = e1_long + dt * (Vel_com - NavData.velNED.norm());
 
 
 		//latitude
-		x_lat << AirframeData.rotRatesBody(2), AeroData.Beta, AirframeData.rotRatesBody(0), AirframeData.EulerAngles(0);
+		x_lat << IMUData.rotRatesBody(2), AeroData.Beta, IMUData.rotRatesBody(0), NavData.EulerAngles(0);
 
 		x_0_lat << x_0(5), x_0(2), x_0(3), x_0(6);
 
@@ -152,14 +152,14 @@ void StateController::updateStateController(Float64 FlightTime,
 
 
 		e1_lat = e1_lat + dt * (beta_com - AeroData.Beta);
-		e2_lat = e2_lat + dt * (phi_com - AirframeData.EulerAngles(0));
+		e2_lat = e2_lat + dt * (phi_com - NavData.EulerAngles(0));
 
 		e_lat << e1_lat, e2_lat;
 
 
 		Delta_x_lat.resize(6);
 		Delta_x_long << delta_x_long, e2_long;
-		delta_u_long = -K_long_pitch * Delta_x_long+K_v * (theta_com - AirframeData.EulerAngles(1));
+		delta_u_long = -K_long_pitch * Delta_x_long+K_v * (theta_com - NavData.EulerAngles(1));
 
 		Delta_x_vel << delta_x_vel, e1_long;
 		delta_u_vel = -K_long_vel * Delta_x_vel;
@@ -185,6 +185,13 @@ void StateController::updateStateController(Float64 FlightTime,
 	AirframeData.StickPosition	= PHI.dot(u_sched_delta);
 	AirframeData.Xi				= PHI.dot(u_sched_xi);
 	AirframeData.Zeta			= PHI.dot(u_sched_zeta);
+
+	ActuatorData.Eta = Eta;//PHI.dot(u_sched_eta);
+	ActuatorData.Delta = PHI.dot(u_sched_delta);
+	ActuatorData.Xi = PHI.dot(u_sched_xi);
+	ActuatorData.Zeta = PHI.dot(u_sched_zeta);
+
+
 
 	
 }

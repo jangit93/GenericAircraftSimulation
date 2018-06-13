@@ -19,10 +19,10 @@ void Autopilot::initAutopilot()
 void Autopilot::updateAutopilot(Float64 FlightTime,
 								AirframeStruct &AirframeData,
 								AerodynamicStruct &AeroData,
-								GuidanceStruct &GuidanceData)
+								GuidanceStruct &GuidanceData, ActuatorStruct &ActuatorData, IMUStruct &IMUData, NavigationStruct &NavData)
 {
 	controller->updateStateController(FlightTime,
 									  AirframeData,
 									  AeroData,
-									  GuidanceData);
+									  GuidanceData,ActuatorData,IMUData,NavData);
 }

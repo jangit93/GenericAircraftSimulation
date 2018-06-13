@@ -18,6 +18,7 @@ void flawlessIMU::updateIMU(Float64 FlightTime,
 {
 	IMUData.realTRotAcc  = AirframeData.accRotBody;
 	IMUData.realTransAcc = AirframeData.accTransBody;
-
-	AirframeData.rotRatesBody = EulerIntegration(AirframeData.rotRatesBody, AirframeData.accRotBody, IMUData.dt);
+	
+	IMUData.rotRatesBody = EulerIntegration(IMUData.rotRatesBody, IMUData.realTRotAcc, IMUData.dt);
+	AirframeData.rotRatesBody = IMUData.rotRatesBody;
 }

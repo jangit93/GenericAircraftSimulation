@@ -79,13 +79,13 @@ void Trajectory3Dof::updateTrajectory3DoF(Float64 FlightTime,
 									AtmoData,
 									AeroData,
 									AirframeData,
-									ThrustData);
+									ThrustData,ActuatorData);
 
 	engine->updateEngine(FlightTime,
 						AtmoData,
 						AeroData,
 						AirframeData,
-						ThrustData);
+						ThrustData,ActuatorData);
 
 	airframe->updateTranslational(AeroData,
 								ThrustData,

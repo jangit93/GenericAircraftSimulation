@@ -44,7 +44,7 @@ public:
 						AtmosphereStruct & AtmoData,
 						AerodynamicStruct & AeroData,
 						AirframeStruct & AirframeData,
-						ThrustStruct & ThrustData);
+						ThrustStruct & ThrustData, ActuatorStruct& ActuatorData);
 	/**
 	*  The init function from the selected engine is called by a pointer.
 	*   @param FlightTime flight time

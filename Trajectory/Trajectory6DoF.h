@@ -72,7 +72,7 @@ public:
 								ThrustStruct & ThrustData,
 								AircraftStruct &AircraftData,
 								GuidanceStruct & GuidanceData,
-								NavigationStruct &NavData);
+								NavigationStruct &NavData, IMUStruct &IMUData, ActuatorStruct& ActuatorData);
 	
 	 /**
 	 * @brief calculate trajectory
@@ -112,17 +112,20 @@ public:
 							AirframeStruct & AirframeData,
 							ThrustStruct & ThrustData,
 							GuidanceStruct & GuidanceData,
-							NavigationStruct &NavData, ActuatorStruct &ActuatorData);
+							NavigationStruct &NavData, ActuatorStruct &ActuatorData, IMUStruct &IMUData);
 	/**
 	* @brief integrate accelerations and calculate new flight states
 	* @param AirframeData flight statess
 	*/
-	void integrationTrajectory(AirframeStruct &AirframeData);
+	void integrationTrajectory(AirframeStruct &AirframeData, IMUStruct&IMUData, NavigationStruct &NavData);
 
 	/**
 	* @brief log 6Dof Trajectory data 
 	*/
 	void log6DofData();
+
+	void initLog6Dof(Float64 &FlightTime,IMUStruct &IMUData,NavigationStruct &NavData,ActuatorStruct &ActuatorData);
+
 
 
 
@@ -132,6 +135,9 @@ private:
 	Guidance  *guidance;
 	Airframe     *airframe;
 	Transformation *Trafo;
+	DataLogger *logNavData;
+	DataLogger *logActuatorData;
+	DataLogger *logIMUData;
 	
 };
 
