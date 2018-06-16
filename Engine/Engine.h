@@ -53,12 +53,14 @@ public:
 	*	@param AeroData get mach number
 	*	@param AirframeData	get current throttle stick position
 	*	@param ThrustData store thrust data
+	*	@param ActuatorData get thrust stick position
 	*/
 	void updateEngine(Float64 FlightTime,
 						AtmosphereStruct & AtmoData,
 						AerodynamicStruct & AeroData,
 						AirframeStruct & AirframeData,
-						ThrustStruct & ThrustData, ActuatorStruct& ActuatorData);
+						ThrustStruct & ThrustData, 
+						ActuatorStruct& ActuatorData);
 
 	/**
 	*  @brief log engine data

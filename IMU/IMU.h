@@ -41,7 +41,7 @@ public:
 	/**
 	* \brief call to desired init-function
 	*/
-	void initIMU();
+	void initIMU(IMUStruct & IMUData);
 
 
 	/**
@@ -53,6 +53,11 @@ public:
 	void updateIMU(Float64 FlightTime, 
 				   AirframeStruct & AirframeData, 
 				   IMUStruct &IMUData);
+
+	/**
+	* \brief log IMU data
+	*/
+	void logIMUData();
 
 private:
 	BaseIMU * imu;

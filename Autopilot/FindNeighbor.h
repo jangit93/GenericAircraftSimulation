@@ -11,9 +11,6 @@
 #ifndef FINDNEIGHBOR_H
 #define FINDNEIGHBOR_H
 
-
-//#include<Eigen/dense>
-
 #include<iostream>
 #include"DataCloud.h"
 #include"MatFileReader.h"
@@ -54,7 +51,11 @@ public:
 							   Eigen::Vector2d &Vel);
 
 	/**
-	* \brief help function to find index of an array
+	* \brief help functions to find index
+	* @param	row		desired row
+	* @param	column	desired column
+	* @param	rows	total number of rows
+	* @param	columns	total number of columns
 	*/
 	int sub2ind(const int row, const int column, const int rows, const int columns);
 	

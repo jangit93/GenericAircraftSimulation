@@ -13,8 +13,6 @@
 #define BASENAVIGATION_H
 
 
-
-
 #include"../DataCloud/DataCloud.h"
 
 class BaseNavigation
@@ -34,20 +32,27 @@ public:
 	/**
 	* \brief initialize navigation
 	*/
-	virtual void initNavigation(NavigationStruct & NavData);
+	virtual void initNavigation(Float64 & FlightTime,
+								NavigationStruct & NavData,
+								IMUStruct &IMUData);
 
 	/**
 	* \brief call to desired update function
-	*	@param	FlightTime			flighttime
-	*	@param	NavData				structure of navigation data
-	*	@param	AirframeData		structure of flight states
+	*	@param	FlightTime	 flighttime
+	*	@param	NavData		 structure of navigation data
+	*	@param	AirframeData structure of flight states
+	*	@param  IMUDat		 structures with accelerations and rotatory rates
 	*/
 	virtual void updateNavigation(Float64 FlightTime, 
-						  NavigationStruct &NavData,
-						  AirframeStruct &AirframeData);
+								  NavigationStruct &NavData,
+								  AirframeStruct &AirframeData,
+								  IMUStruct &IMUData);
 
 
-
+	/**
+	* \brief data logger for navigation data
+	*/
+	virtual void logNavigationData();
 
 private:
 

@@ -15,64 +15,70 @@ void DATCOMAerodymamic::initAerodynamic(Float64 &FlightTime,
 										AerodynamicStruct & AeroData,
 										AircraftStruct & AircraftData)
 {
-
+	/// 1) read in tables of  aerdynamic derivatives
 	MatFileReader readAeroData("../Input/ADM.mat");
 	std::get<0>(readAeroData.readMatFileData("C_A"));
 	readIn->setPath("../Input/Aerodynamics/");
 
-	//read in tables of derivatives
-	CA		= std::get<0>(readAeroData.readMatFileData("C_A"));//readIn->readInTable("CL.txt");
-	CAeta	= std::get<0>(readAeroData.readMatFileData("C_Aeta"));//readIn->readInTable("CLeta.txt");
-	CAq		= std::get<1>(readAeroData.readMatFileData("C_Aq"));//readIn->readInVector("CLQ.txt");
+	
+	CA		= std::get<0>(readAeroData.readMatFileData("C_A"));
+	CAeta	= std::get<0>(readAeroData.readMatFileData("C_Aeta"));
+	CAq		= std::get<1>(readAeroData.readMatFileData("C_Aq"));
 	CAalpha = std::get<0>(readAeroData.readMatFileData("C_Aalpha"));
 			 
-	CW		= std::get<0>(readAeroData.readMatFileData("C_W"));//readIn->readInTable("CD.txt");
-	CWeta   = std::get<0>(readAeroData.readMatFileData("C_Weta"));//readIn->readInTable("CDeta.txt");
+	CW		= std::get<0>(readAeroData.readMatFileData("C_W"));
+	CWeta   = std::get<0>(readAeroData.readMatFileData("C_Weta"));
 		
 	CQ		= std::get<0>(readAeroData.readMatFileData("C_Y"));
 	CQp		= std::get<0>(readAeroData.readMatFileData("C_Yp"));
 	CQzeta	= std::get<2>(readAeroData.readMatFileData("C_Yzeta"));
 
-	CM		= std::get<0>(readAeroData.readMatFileData("C_M"));//readIn->readInTable("CM.txt");
-	CMalpha = std::get<0>(readAeroData.readMatFileData("C_Malpha"));//readIn->readInTable("CMA.txt");
-	CMeta	= std::get<0>(readAeroData.readMatFileData("C_Meta"));//readIn->readInTable("CMeta.txt");
-	CMq		= std::get<1>(readAeroData.readMatFileData("C_Mq"));//readIn->readInVector("CMq.txt");
+	CM		= std::get<0>(readAeroData.readMatFileData("C_M"));
+	CMalpha = std::get<0>(readAeroData.readMatFileData("C_Malpha"));
+	CMeta	= std::get<0>(readAeroData.readMatFileData("C_Meta"));
+	CMq		= std::get<1>(readAeroData.readMatFileData("C_Mq"));
 			  
-	CN		= std::get<0>(readAeroData.readMatFileData("C_N"));//readIn->readInTable("CN.txt");
-	CNp		= std::get<0>(readAeroData.readMatFileData("C_Np"));//readIn->readInTable("CNP.txt");
-	CNr		= std::get<0>(readAeroData.readMatFileData("C_Nr"));//readIn->readInTable("CNR.txt");
-	CNxi	= std::get<0>(readAeroData.readMatFileData("C_Nxi"));//readIn->readInTable("CNxi.txt");
+	CN		= std::get<0>(readAeroData.readMatFileData("C_N"));
+	CNp		= std::get<0>(readAeroData.readMatFileData("C_Np"));
+	CNr		= std::get<0>(readAeroData.readMatFileData("C_Nr"));
+	CNxi	= std::get<0>(readAeroData.readMatFileData("C_Nxi"));
 	CNzeta = std::get<2>(readAeroData.readMatFileData("C_Nzeta"));
 
-	CL		= std::get<0>(readAeroData.readMatFileData("C_L"));//readIn->readInTable("CLmoment.txt");
-	CLp		= std::get<0>(readAeroData.readMatFileData("C_Lp"));//readIn->readInTable("CLP.txt");
-	CLr		= std::get<0>(readAeroData.readMatFileData("C_Lr")); //readIn->readInTable("CLR.txt");
-	CLxi	= std::get<0>(readAeroData.readMatFileData("C_Lxi"));//readIn->readInTable("CLxi.txt");
+	CL		= std::get<0>(readAeroData.readMatFileData("C_L"));
+	CLp		= std::get<0>(readAeroData.readMatFileData("C_Lp"));
+	CLr		= std::get<0>(readAeroData.readMatFileData("C_Lr")); 
+	CLxi	= std::get<0>(readAeroData.readMatFileData("C_Lxi"));
 	CLzeta = std::get<2>(readAeroData.readMatFileData("C_Lzeta"));
 
-	//read in Vectors for interpolation
-	AoA		= std::get<1>(readAeroData.readMatFileData("AoA"));//readIn->readInVector("AoA.txt");
-	AoS		= std::get<1>(readAeroData.readMatFileData("AoS"));//readIn->readInVector("AoS.txt");
-	Mach	= std::get<1>(readAeroData.readMatFileData("Mach"));//readIn->readInVector("Ma.txt");
-	Xi		= std::get<1>(readAeroData.readMatFileData("Xi"));//readIn->readInVector("Xi.txt");
-	Eta		= std::get<1>(readAeroData.readMatFileData("Eta"));//readIn->readInVector("Eta.txt");
+
+	AoA		= std::get<1>(readAeroData.readMatFileData("AoA"));
+	AoS		= std::get<1>(readAeroData.readMatFileData("AoS"));
+	Mach	= std::get<1>(readAeroData.readMatFileData("Mach"));
+	Xi		= std::get<1>(readAeroData.readMatFileData("Xi"));
+	Eta		= std::get<1>(readAeroData.readMatFileData("Eta"));
 
 	b = AircraftData.wingspan;
 	S = AircraftData.wingarea;
 	l_nu = AircraftData.MAC;
+	alpha0 = 0;
 
 	initLogAeroData(FlightTime,AeroData);
 }
 
 void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
-										AtmosphereStruct & AtmoData,
-										AerodynamicStruct & AeroData,
-										AirframeStruct & AirframeData,
-										ThrustStruct & ThrustData, ActuatorStruct &ActuatorData)
+										AtmosphereStruct &AtmoData,
+										AerodynamicStruct &AeroData,
+										AirframeStruct &AirframeData,
+										ThrustStruct &ThrustData, 
+										ActuatorStruct &ActuatorData, 
+										IMUStruct &IMUData, 
+										NavigationStruct  &NavData)
 {
-	relVelNED = AirframeData.velNED;
+	/// 1) get data from structures
+	relVelNED = NavData.velNED;
 
-	 absVel 			= sqrt(relVelNED(0)*relVelNED(0)+ relVelNED(1)*relVelNED(1)+ relVelNED(2)*relVelNED(2));
+	 AeroData.absVel = sqrt(relVelNED(0)*relVelNED(0)+ relVelNED(1)*relVelNED(1)+ relVelNED(2)*relVelNED(2));
+	 absVel = AeroData.absVel;
 	 rho 				= AtmoData.rho;
 	 SpeedOfSound 		= AtmoData.speedOfSound;
 
@@ -80,8 +86,8 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
 	 qbar 				= 0.5*rho*absVel*absVel;
 
 
-	velBody 				= AirframeData.matNEDToBody*AirframeData.velNED;
-	AirframeData.velBody	= velBody;
+	 velBody = AirframeData.matNEDToBody*relVelNED;
+	 AirframeData.velBody	= velBody;
 	
 	 Alpha 	= atan2(velBody(2), velBody(0)) * 180 / PI;
 	 Beta 	= atan2(velBody(1), sqrt(velBody(0)*velBody(0)+ velBody(1)*velBody(1)+ velBody(2)*velBody(2))) * 180 / PI;
@@ -90,9 +96,9 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
 	 XI		= ActuatorData.Xi * 180 / PI;
 	 ZETA	= ActuatorData.Zeta * 180 / PI;
 	 
-	 p = AirframeData.rotRatesBody(0) * b / (2 * absVel);
-	 q = AirframeData.rotRatesBody(1) * l_nu/absVel;
-	 r = AirframeData.rotRatesBody(2)* b / (2 * absVel);
+	 p = IMUData.rotRatesBody(0) * b / (2 * absVel);
+	 q = IMUData.rotRatesBody(1) * l_nu/absVel;
+	 r = IMUData.rotRatesBody(2)* b / (2 * absVel);
 
 
 	if (Ma >= 0.9)
@@ -100,6 +106,7 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
 		Ma = 0.9;
 	}
 
+	/// 2) depending on flight states interpolate derivatives
 	c_a 	= Interpolation.linearInterpolation2D(AoA, Mach, CA, Alpha, Ma);
 	c_aEta 	= Interpolation.linearInterpolation2D(Eta, Mach, CAeta, ETA, Ma);
 	c_w 	= Interpolation.linearInterpolation2D(AoA, Mach, CW, Alpha, Ma);
@@ -132,11 +139,13 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
 	xi		= XI * PI / 180;
 	zeta	= ZETA * PI / 180;
 
+
+	/// 3) calculate aerodynamic coefficients
 	C_A = c_a + c_aq * q + c_aEta *eta;
 
 	C_W = c_w + c_weta * eta;
 
-	C_Q = c_y + c_yp*p   + c_yzeta*zeta + c_yxi*xi;  //Fehler in Aeromodell BA!!!!!
+	C_Q = c_y + c_yp*p   + c_yzeta*zeta + c_yxi*xi; 
 
 	C_L = c_l + c_lp * p + c_lr * r + c_lxi * xi + c_lzeta * zeta; 
 
@@ -150,13 +159,13 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
 
 	C_Z = -C_W * sin(alpha) * cos(beta) - C_Q  *sin(alpha) * sin(beta) - C_A * cos(alpha);
 
-	// Guidanc daten noch ergänzen
-	Float64 alpha0 = 0;
+	/// 4) calculate derivatives for acceleration table guidance
+	
 	ca_alpha = Interpolation.linearInterpolation2D(AoA, Mach, CAalpha, Alpha, Ma);
 	AeroData.C_A0 = Interpolation.linearInterpolation2D(AoA, Mach, CA, alpha0, Ma);
 	AeroData.C_zdalpha = -C_W - ca_alpha;
 
-	// Kräfte und Momente
+	/// 5) store data to aerodynamic struct
 	AeroData.AeroForces(0) = C_X * qbar*S;
 	AeroData.AeroForces(1) = C_Y * qbar*S;
 	AeroData.AeroForces(2) = C_Z * qbar*S;
@@ -172,9 +181,9 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
 	AeroData.CZ = C_Z;
 	AeroData.CX = C_X;
 	AeroData.Alpha = alpha;
-	AeroData.AoA = alpha;
-	AeroData.Beta = beta;
-	AeroData.Mach = Ma;
+	AeroData.AoA   = alpha;
+	AeroData.Beta  = beta;
+	AeroData.Mach  = Ma;
 	AeroData.q_bar = qbar;
 
 

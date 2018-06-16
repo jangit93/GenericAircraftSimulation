@@ -1,6 +1,6 @@
 #include "ThrustAnalytical.h"
 
-/// constructor
+
 ThrustAnalytical::ThrustAnalytical():BaseThrust()
 {
 	ReadInThrustData = new readInData;
@@ -8,16 +8,17 @@ ThrustAnalytical::ThrustAnalytical():BaseThrust()
 	LogEngineData = new DataLogger("EngineData.txt", 25, " ");
 }
 
-/// destrcutor
+
 ThrustAnalytical::~ThrustAnalytical()
 {
 }
 
-/// data is read in from Engine.dat and stored in private variables
+
 void ThrustAnalytical::initThrust(Float64 &FlightTime,
 									ThrustStruct & ThrustData,
 									AircraftStruct &AircraftData)
 {
+	/// thrust data are read in and variables are initialized
 	ThrustData.ThrustForce.setZero();
 	ThrustData.ThrustMoments.setZero();
 	
@@ -39,26 +40,25 @@ void ThrustAnalytical::initThrust(Float64 &FlightTime,
 	initLogEngineData(FlightTime, ThrustData);
 }
 
-// calculation of thrust forces and moments
+
 void ThrustAnalytical::updateThrust(Float64 FlightTime,
 								  AtmosphereStruct & AtmoData,
 								  AerodynamicStruct & AeroData,
 								  AirframeStruct & AirframeData,
 								  ThrustStruct & ThrustData, ActuatorStruct& ActuatorData)
 {
+	/// 1) calculate absolute thrust force                                              
+	thrust = ActuatorData.Delta* maxThrust* (AtmoData.rho / RHO_0)* (1 + Kt * AeroData.Mach);
 
-	                                              
-	Float64	T = ActuatorData.Delta* maxThrust* (AtmoData.rho / RHO_0)* (1 + Kt * AeroData.Mach);
+	/// 2) calculate thrust force and moments depending on incidence angle and engine position
+	ThrustData.ThrustForce(0) = thrust * cos(incidenceAngle);
+	ThrustData.ThrustForce(1) = 0;
+	ThrustData.ThrustForce(2) = thrust * sin(incidenceAngle);
 
 	
-		ThrustData.ThrustForce(0) = T * cos(incidenceAngle);
-		ThrustData.ThrustForce(1) = 0;
-		ThrustData.ThrustForce(2) = T * sin(incidenceAngle);
-
-	
-		ThrustData.ThrustMoments(0) = T * sin(incidenceAngle) * EnginePos(1);
-		ThrustData.ThrustMoments(0) = T * (cos(incidenceAngle) * EnginePos(2) - sin(incidenceAngle)*EnginePos(0));
-		ThrustData.ThrustMoments(0) = -T * cos(incidenceAngle) * EnginePos(1);
+	ThrustData.ThrustMoments(0) =  thrust * sin(incidenceAngle) * EnginePos(1);
+	ThrustData.ThrustMoments(0) =  thrust * (cos(incidenceAngle) * EnginePos(2) - sin(incidenceAngle)*EnginePos(0));
+	ThrustData.ThrustMoments(0) = -thrust * cos(incidenceAngle) * EnginePos(1);
 
 }
 

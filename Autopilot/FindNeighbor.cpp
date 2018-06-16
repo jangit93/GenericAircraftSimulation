@@ -14,11 +14,11 @@ void FindNeighbor::initFindNeighbor()
 	MatFileReader readNeighborData("../Input/Autopilot.mat");
 
 	MatFileData = readNeighborData.getMatFileInfo("AutopilotData");
-	Fields = MatFileData.dims[0] * MatFileData.dims[1];
+	Fields		= MatFileData.dims[0] * MatFileData.dims[1];
 
 	neighbors = new AutopilotStruct[Fields];
 
-	start, stride, edge, copy_field = 0;
+	copy_field = 0;
 	start = 0;
 	stride = 0;
 	edge = 9;
@@ -28,19 +28,6 @@ void FindNeighbor::initFindNeighbor()
 		neighbors[start].Vel = std::get<2>(readNeighborData.readMatFileStructure("Vel", start, stride, edge, copy_field));
 		neighbors[start].AltVec = std::get<3>(readNeighborData.readMatFileStructure("AltVec", start, stride, edge, copy_field));
 		neighbors[start].VelVec = std::get<3>(readNeighborData.readMatFileStructure("VelVec", start, stride, edge, copy_field));
-
-		/*
-		std::cout << "Alt" << "\t" << SchedulingPara[start].Alt << "\n" << std::endl;
-		std::cout << "Vel" << "\t" << SchedulingPara[start].Vel << "\n" << std::endl;
-		std::cout << "x_bar" << "\t" << SchedulingPara[start].x_bar << "\n" << std::endl;
-		std::cout << "u_bar" << "\t" << SchedulingPara[start].u_bar << "\n" << std::endl;
-		std::cout << "Kx_pitch" << "\t" << SchedulingPara[start].Kx_pitch << "\n" << std::endl;
-		std::cout << "Ke_pitch" << "\t" << SchedulingPara[start].Ke_pitch << "\n" << std::endl;
-		std::cout << "Kv_pitch" << "\t" << SchedulingPara[start].Kv_pitch << "\n" << std::endl;
-		std::cout << "Kx_Vel" << "\t" << SchedulingPara[start].Kx_Vel << "\n" << std::endl;
-		std::cout << "Ke_Vel" << "\t" << SchedulingPara[start].Ke_Vel << "\n" << std::endl;
-		std::cout << "Kx_lat" << "\t" << SchedulingPara[start].Kx_lat << "\n" << std::endl;
-		*/
 	}
 }
 
@@ -49,11 +36,8 @@ void FindNeighbor::initFindNeighbor()
 std::tuple<Eigen::Vector4d, Eigen::MatrixXd> FindNeighbor::BlendingParameters(NavigationStruct &NavData)
 {
 	
-	// find neighbours altitude
-	//std::cout << neighbors[0].AltVec.size() << std::endl;
 	for (int i = 0; i < neighbors[0].AltVec.size()-1 ; i++) {
 		if ((-NavData.posNED(2)) <= neighbors[0].AltVec(i+1) && -NavData.posNED(2) >= neighbors[0].AltVec(i) - 10) {
-			//std::cout << (-AirframeData.posNED(2)) << neighbors[0].AltVec(i + 1) << -AirframeData.posNED(2) << neighbors[0].AltVec(i) - 10  << std::endl;
 			tempAlt << i, i+1;
 
 			minAlt = neighbors[0].AltVec(i);
@@ -62,8 +46,6 @@ std::tuple<Eigen::Vector4d, Eigen::MatrixXd> FindNeighbor::BlendingParameters(Na
 		}
 	}
 
-	// find neighbours velocity
-	//std::cout << neighbors[0].VelVec.size() << std::endl;
 	for (int i = 0; i < neighbors[0].VelVec.size() - 1; i++) {
 		if (NavData.velNED.norm() < neighbors[0].VelVec(i+1) && NavData.velNED.norm() >= neighbors[0].VelVec(i) - 10) {
 			
@@ -101,7 +83,7 @@ Eigen::MatrixXd FindNeighbor::combineVec(Eigen::Vector2d & Alt, Eigen::Vector2d 
 {
 	comb.resize(Alt.size()*Vel.size(), 2);
 	
-	comb << Alt(0),Vel(0),Alt(1),Vel(0),Alt(0),Vel(1),Alt(1),Vel(1) ; 
+	comb << Alt(0),Vel(0),Alt(1),Vel(0),Alt(0),Vel(1),Alt(1),Vel(1); 
 
 	return comb;
 }

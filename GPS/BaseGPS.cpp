@@ -21,3 +21,7 @@ void BaseGPS::updateGPS(Float64 Flighttime,
 
 }
 
+void BaseGPS::logGPSData()
+{
+}
+

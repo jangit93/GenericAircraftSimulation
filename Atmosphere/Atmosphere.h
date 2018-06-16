@@ -3,8 +3,8 @@
 *	@date		25.11.2017
 *	@version	1.0
 *
-*	DataCloud is a global data storage for structures. It serves the purpose to provide data
-*	for several applications like the simulation itself, module and unit tests.
+*	Atmosphere class simulates the US Standard atmosphere.  Air density, speed of sound, temperature
+*   and pressure are calculated depending on altitude.
 *  @{
 */
 
@@ -45,13 +45,11 @@ public:
 							 AtmosphereStruct &AtmoData);
 
 private:
-	Float64	Temperature;	// [K]
-	Float64 Pressure;       //[Pa]
-	Float64	rho;			//[Kg / m³]
-	Float64 speedOfSound;   //[m / s]
-	
-	AtmosphereStruct AtmosphereData;
-
+	Float64	Temperature;	
+	Float64 Pressure;       
+	Float64	rho;		
+	Float64 speedOfSound;   
+	Float64 Alt;
 };
 /**@}*/
 #endif	ATMOSPHERE__HPP

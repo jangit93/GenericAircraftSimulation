@@ -27,9 +27,9 @@ void BaseTrajectory::updateTrajectory(Float64 FlightTime,
 									  AirframeStruct & AirframeData, 
 									  ThrustStruct & ThrustData,
 									  GuidanceStruct & GuidanceData,
-										NavigationStruct &NavData,
-										ActuatorStruct &ActuatorData,
-										IMUStruct &IMUData)
+									  NavigationStruct &NavData,
+									  ActuatorStruct &ActuatorData,
+									  IMUStruct &IMUData)
 {
 
 }

@@ -3,7 +3,7 @@
 *	@date		14.12.2017
 *	@version	1.0
 *
-*	Aircraft class simulates the actual trajectory of the designed aircraft. 
+*	Aircraft class simulates the trajectory of the designed aircraft. 
 *  @{
 */
 
@@ -29,10 +29,6 @@ public:
 	*/
 	~Aircraft();
 
-	/**
-	* \brief initalize aircraft with desired models and parameters
-	*/
-	void initAircraft();
 
 	/**
 	* \brief simulation of aircraft
@@ -44,22 +40,33 @@ public:
 
 private:
 	
-	Trajectory * trajectory;
-	Atmopshere *Atmo;
-	AutopilotStruct * TrimPoints;
-	Float64 FlightTime;
-	AirframeStruct AirframeData;
+	//objects of classes
+	Trajectory		*trajectory;
+	Atmopshere		*Atmo;
+	AutopilotStruct *TrimPoints;
+
+	//structures
+	AirframeStruct		AirframeData;
 	AtmosphereStruct	AtmoData;
 	AerodynamicStruct	AeroData;
 	ThrustStruct		ThrustData;
 	AircraftStruct		AircraftData;
 	GuidanceStruct		GuidanceData;
-	NavigationStruct NavData;
-	ActuatorStruct ActuatorData;
-	IMUStruct IMUData;
-	int Fields;
-	int TotalSimTime;
-	Float32 dt;
+	NavigationStruct	NavData;
+	ActuatorStruct		ActuatorData;
+	IMUStruct			IMUData;
+
+	//simulation data
+	Float64		FlightTime;
+	int			Fields;
+	int			TotalSimTime;
+	Float32		dt;
+	int			start;
+	int			stride;
+	int			edge; 
+	int			copy_field;
+	Float64		time1;
+	Float64		tstart;
 
 
 };

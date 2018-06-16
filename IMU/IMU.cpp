@@ -19,14 +19,20 @@ void IMU::selectIMU(int Type)
 	}
 }
 
-void IMU::initIMU()
+void IMU::initIMU(IMUStruct & IMUData)
 {
-	imu->initIMU();
+	imu->initIMU(IMUData);
 }
 
-void IMU::updateIMU(Float64 FlightTime, AirframeStruct & AirframeData, IMUStruct &IMUData)
+void IMU::updateIMU(Float64 FlightTime,
+					AirframeStruct & AirframeData, 
+					IMUStruct &IMUData)
 {
 	imu->updateIMU(FlightTime, 
 					AirframeData, 
 					IMUData);
+}
+
+void IMU::logIMUData()
+{
 }

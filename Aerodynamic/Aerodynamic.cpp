@@ -34,14 +34,14 @@ void Aerodynamics::updateAerodynamic(Float64 FlightTime,
 									AtmosphereStruct & AtmoData, 
 									AerodynamicStruct & AeroData, 
 									AirframeStruct & AirframeData, 
-									ThrustStruct & ThrustData, ActuatorStruct &ActuatorData)
+									ThrustStruct & ThrustData, ActuatorStruct &ActuatorData,IMUStruct &IMUData, NavigationStruct  &NavData)
 {
 
 	aerodynamic->updateAerodynamic(FlightTime,
 									AtmoData,
 									AeroData,
 									AirframeData,
-									ThrustData,ActuatorData);
+									ThrustData,ActuatorData,IMUData,NavData);
 }
 
 void Aerodynamics::LogAeroData()

@@ -21,12 +21,27 @@ void Navigation::selectNavigation(int Type)
 	}
 }
 
-void Navigation::initNavigation(NavigationStruct & NavData)
+void Navigation::initNavigation(Float64 & FlightTime,
+								NavigationStruct & NavData,
+								IMUStruct &IMUData)
 {
-	navigation->initNavigation(NavData);
+	navigation->initNavigation(FlightTime,
+							   NavData,
+							   IMUData);
 }
 
-void Navigation::updateNavigation(Float64 FlightTime, NavigationStruct & NavData, AirframeStruct &AirframeData)
+void Navigation::updateNavigation(Float64 FlightTime,
+								  NavigationStruct & NavData,	
+								  AirframeStruct &AirframeData, 
+								  IMUStruct& IMUData)
 {
-	navigation->updateNavigation(FlightTime, NavData, AirframeData);
+	navigation->updateNavigation(FlightTime,
+								 NavData,
+								 AirframeData,
+								 IMUData);
+}
+
+void Navigation::logNavigationData()
+{
+	navigation->logNavigationData();
 }

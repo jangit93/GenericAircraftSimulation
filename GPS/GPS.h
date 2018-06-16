@@ -22,7 +22,7 @@ class GPS
 public:
 	/**
 	* \brief constructor
-	*	@param	SimPref			structure of model selctions
+	*	@param	SimPref	 structure of model selctions
 	*/
 	GPS(SimDPreference &SimPref);
 
@@ -44,12 +44,17 @@ public:
 
 	/**
 	* \brief call to desired update function 
-	*	@param	FlightTime			flighttime
-	*	@param	NavData				structure of navigation data
+	*	@param	FlightTime	flighttime
+	*	@param	NavData		structure of navigation data
 	*/
 	void updateGPS(Float64 FlightTime,
 					NavigationStruct & NavData, 
 					AirframeStruct & AirframeData);
+
+	/**
+	* \brief log GPS data
+	*/
+	void logGPSData();
 
 private:
 	BaseGPS * gps;

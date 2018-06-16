@@ -43,9 +43,12 @@ public:
 	*/
 	virtual void updateGPS(Float64 FlightTime, 
 						   NavigationStruct &NavData,
-							AirframeStruct & AirframeData);
+						   AirframeStruct & AirframeData);
 
-
+	/**
+	* \brief log GPS data
+	*/
+	virtual void logGPSData();
 
 private:
 

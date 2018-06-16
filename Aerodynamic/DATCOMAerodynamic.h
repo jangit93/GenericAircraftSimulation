@@ -41,34 +41,42 @@ public:
 	*	@param	AeroData			structure of aero data
 	*	@param	AircraftData		structure of aircraft data
 	*/
-	virtual void initAerodynamic(Float64 &FlightTime, 
-								 AerodynamicStruct & AeroData,
-								 AircraftStruct & AircraftData);
+	void initAerodynamic(Float64 &FlightTime, 
+						 AerodynamicStruct & AeroData,
+						 AircraftStruct & AircraftData);
 
 	/**
 	* @brief	current flight state is used to interpolated derivatives
-				and  a linear aerodynamic model calculates forces
-				and moments
+	*			and  a linear aerodynamic model calculates forces
+	*			and moments
 	*	@param	FlightTime			Flight Time
-	*	@param	AtmoData			structure of atmospheric data
+	*	@param	AtmoData			air density, speed of sound
 	*	@param	AeroData			structure of aero data
 	*	@param	AirframeData		structure of airframe data
 	*	@param	ThrustData			structure of thrust data
+	*	@param  ActuatorData		actuator angles
+	*	@param	IMUData				rotational rates
+	*	@param	NavData				Navigation data like velocity in NED system
 	*/
-	virtual void updateAerodynamic(Float64 FlightTime,
-						AtmosphereStruct & AtmoData,
-						AerodynamicStruct & AeroData,
-						AirframeStruct & AirframeData,
-						ThrustStruct & ThrustData, ActuatorStruct &ActuatorData);
+	void updateAerodynamic(Float64 FlightTime,
+						   AtmosphereStruct & AtmoData,
+						   AerodynamicStruct & AeroData,
+						   AirframeStruct & AirframeData,
+						   ThrustStruct & ThrustData, 
+						   ActuatorStruct &ActuatorData,
+						   IMUStruct &IMUData, 
+						   NavigationStruct  &NavData);
 
 	/**
-	* @brief	definition of data which is logged to an outputfile
+	*	@brief	definition of data which is logged to an outputfile
+	*	@param	FlightTime time of flight
+	*	@param	structure of aerodynamic data
 	*/
 	virtual void initLogAeroData(Float64 &FlightTime,
 								 AerodynamicStruct & AeroData);
 
 	/**
-	* @brief	logging of aerodynamic data
+	* @brief logging of aerodynamic data
 	*/
 	void LogAeroData();
 
@@ -170,6 +178,7 @@ private:
 	Float64 c_zdalpha;
 	Float64 ca_alpha;
 	Float64 ca_0;
+	Float64 alpha0;
 
 
     Float64 Alpha; 			

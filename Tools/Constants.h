@@ -1,4 +1,4 @@
-/** @ingroup	Tools Tools
+/** @ingroup	Tools
 *	@author		Jan Olucak
 *	@date		25.11.2017
 *	@version	1.0

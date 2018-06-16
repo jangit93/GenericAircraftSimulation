@@ -12,8 +12,6 @@
 #ifndef FLAWLESSACTUATOR_H
 #define FLAWLESSACTUATOR_H
 
-
-
 #include"BaseActuator.h"
 #include"../Tools/DataLogger.h"
 
@@ -58,6 +56,7 @@ public:
 	*/
 	void initLogActuatorData(Float64 & FlightTime,
 							 ActuatorStruct & ActuatorData);
+
 
 	/**
 	* \brief log actuator data

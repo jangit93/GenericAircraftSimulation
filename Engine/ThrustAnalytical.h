@@ -47,12 +47,14 @@ public:
 	*	@param AeroData get mach number
 	*	@param AirframeData	get current throttle stick position
 	*	@param ThrustData store thrust data
+	*	@param ActuatorData get thrust stick position
 	*/
 	void updateThrust(Float64 FlightTime,					
-					AtmosphereStruct & AtmoData,		
-					AerodynamicStruct & AeroData,		
-					AirframeStruct & AirframeData,		
-					ThrustStruct & ThrustData, ActuatorStruct& ActuatorData);
+					  AtmosphereStruct & AtmoData,		
+					  AerodynamicStruct & AeroData,		
+					  AirframeStruct & AirframeData,		
+					  ThrustStruct & ThrustData, 
+					  ActuatorStruct& ActuatorData);
 
 	/**
 	*  @brief define output of thrust data
@@ -64,8 +66,13 @@ public:
 	*  @brief log engine data
 	*/
 	virtual void logEngineData();
+
 private:
+	//objects
 	DataLogger * LogEngineData;
+	readInData *ReadInThrustData;
+
+	//variables
 	Eigen::Vector3d ThrustForce;		
 	Eigen::Vector3d ThrustMoment;		
 	Float64 rho;						
@@ -75,8 +82,8 @@ private:
 	int maxThrust;						
 	Float64 Kt;							
 	Float64 incidenceAngle;				
-	Eigen::Vector3d EnginePos;			
-	readInData *ReadInThrustData;		
+	Eigen::Vector3d EnginePos;		
+	Float64 thrust;
 
 };
 #endif  THRUSTANALYTICAL_H

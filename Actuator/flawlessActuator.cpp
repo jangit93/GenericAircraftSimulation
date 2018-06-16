@@ -17,25 +17,27 @@ void flawlessActuator::initActuator(Float64 & FlightTime,
 	ActuatorData.realXi = 0.0;
 	ActuatorData.realZeta = 0.0;
 
-	initLogActuatorData(FlightTime, ActuatorData);
+	initLogActuatorData(FlightTime, 
+						ActuatorData);
 }
 
 void flawlessActuator::updateActuator(Float64 FlightTime,
 									  AirframeStruct & AirframeData,
 									  ActuatorStruct & ActuatorData)
 {
-	ActuatorData.realEta	= AirframeData.Eta;
-	ActuatorData.realXi		= AirframeData.Xi;
-	ActuatorData.realZeta	= AirframeData.Zeta;
+	ActuatorData.Eta	= ActuatorData.Eta;
+	ActuatorData.Xi		= ActuatorData.Xi;
+	ActuatorData.Zeta	= ActuatorData.Zeta;
 }
 
 void flawlessActuator::initLogActuatorData(Float64 & FlightTime,
 										   ActuatorStruct & ActuatorData)
 {
 	logActuatorData->add("FlightTime", FlightTime);
-	logActuatorData->add("realEta", ActuatorData.realEta);
-	logActuatorData->add("realXi", ActuatorData.realXi);
-	logActuatorData->add("realZeta", ActuatorData.realZeta);
+	logActuatorData->add("Eta", ActuatorData.Eta);
+	logActuatorData->add("Xi", ActuatorData.Xi);
+	logActuatorData->add("Zeta", ActuatorData.Zeta);
+	logActuatorData->add("Delta", ActuatorData.Delta);
 
 	logActuatorData->printHeader();
 }

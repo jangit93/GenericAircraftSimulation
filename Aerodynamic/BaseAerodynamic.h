@@ -17,7 +17,6 @@
 #include<iostream>
 #include"DataCloud.h"
 #include"IndependetDataTypes.h"
-//#include<Eigen/Dense>
 
 class BaseAerodynamic {
 
@@ -45,19 +44,24 @@ public:
 
 
 	/**
-	*  @brief The update function from the selected aerodynamic model is called by a pointer.
+	* \brief calculate aero forces and moments
 	*	@param	FlightTime			Flight Time
-	*	@param	AtmoData			structure of atmospheric data
+	*	@param	AtmoData			air density, speed of sound
 	*	@param	AeroData			structure of aero data
 	*	@param	AirframeData		structure of airframe data
 	*	@param	ThrustData			structure of thrust data
+	*	@param  ActuatorData		actuator angles
+	*	@param	IMUData				rotational rates
+	*	@param	NavData				Navigation data like velocity in NED system
 	*/
-
 	virtual void updateAerodynamic(Float64 FlightTime,
-							AtmosphereStruct & AtmoData,
-							AerodynamicStruct & AeroData,
-							AirframeStruct & AirframeData,
-							ThrustStruct & ThrustData, ActuatorStruct &ActuatorData);
+								   AtmosphereStruct & AtmoData,
+								   AerodynamicStruct & AeroData,
+								   AirframeStruct & AirframeData,
+								   ThrustStruct & ThrustData, 
+								   ActuatorStruct &ActuatorData,
+								   IMUStruct &IMUData, 
+								   NavigationStruct  &NavData);
 
 	/**
 	* \brief log aerodynamic data to text file

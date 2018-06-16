@@ -11,11 +11,10 @@
 *	are calculated
 *
 */
+
 #ifndef ACCTABLE_H
 #define ACCTABLE_H
 
-
-//#include<Eigen/dense>
 #include<iostream>
 #include"DataCloud.h"
 #include"IndependetDataTypes.h"
@@ -57,10 +56,10 @@ public:
 	*	@param	GuidanceData		structure of guidance data
 	*/
 	void updateGuidance(Float64 FlightTime,
-					  AerodynamicStruct &AeroData,
-					  ThrustStruct &ThrustData,
-					  AirframeStruct &AirframeData,
-					  GuidanceStruct &GuidanceData);
+					    AerodynamicStruct &AeroData,
+					    ThrustStruct &ThrustData,
+					    AirframeStruct &AirframeData,
+					    GuidanceStruct &GuidanceData);
 
 	/**
 	* \brief desired data for logging are selected
@@ -68,7 +67,7 @@ public:
 	*	@param	GuidanceData		structure of guidance data
 	*/
 	virtual void initLogGuidance(Float64 &FlightTime, 
-								GuidanceStruct &GuidanceData);
+								 GuidanceStruct &GuidanceData);
 
 	/**
 	* \brief  logging of guidance data
@@ -76,8 +75,13 @@ public:
 	virtual void logGuidanceData();
 
 private:
+
+	//obejcts
 	DataLogger *LogGuidanceData;
 
+	//variables
+	Float64 flightTime;
+	int reshape;
 	Eigen::MatrixXd AccTable;
 	Eigen::RowVectorXd s_x;
 	Eigen::RowVectorXd s_y;
@@ -101,5 +105,13 @@ private:
 
 	Float64 mass;
 	Float64 wingarea;
+
+	// help function
+	Float64	G;
+	Float64 a;
+	Float64 b;
+	Float64 c;
+	Float64 a1;
+	Float64 b1;
 };
 #endif ACCTABLE_H

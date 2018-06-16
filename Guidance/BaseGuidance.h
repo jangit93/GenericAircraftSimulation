@@ -11,8 +11,6 @@
 #ifndef BASEGUIDANCE_H
 #define BASEGUIDANCE_H
 
-
-
 #include<iostream>
 #include"DataCloud.h"
 #include"IndependetDataTypes.h"
@@ -36,7 +34,9 @@ public:
 	*	@param	GuidanceData		structure of Guidance data
 	*	@param	AircraftData		specific airfraft data
 	*/
-	virtual void initGuidance(Float64 &FlightTime, GuidanceStruct &GuidanceData,AircraftStruct &AircraftData);
+	virtual void initGuidance(Float64 &FlightTime, 
+							  GuidanceStruct &GuidanceData,
+							  AircraftStruct &AircraftData);
 
 	/**
 	* \brief calculate commands for flight path
@@ -47,10 +47,10 @@ public:
 	*	@param	GuidanceData		structure of guidance data
 	*/
 	virtual void updateGuidance(Float64 FlightTime,
-						AerodynamicStruct &AeroData,
-						ThrustStruct &ThrustData,
-						AirframeStruct &AirframeData,
-						GuidanceStruct &GuidanceData);
+						        AerodynamicStruct &AeroData,
+						        ThrustStruct &ThrustData,
+						        AirframeStruct &AirframeData,
+						        GuidanceStruct &GuidanceData);
 
 	/**
 	* \brief define output for guidance data

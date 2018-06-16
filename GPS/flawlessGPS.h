@@ -36,12 +36,23 @@ public:
 
 	/**
 	* \brief update flwaless GPS 
-	*	@param	FlightTime			flighttime
-	*	@param	NavData				structure of navigation data
+	*	@param	FlightTime	 flighttime
+	*	@param	NavData		 structure of navigation data
 	*/
 	void updateGPS(Float64 FlightTime, 
 				   NavigationStruct &NavData,
-					AirframeStruct & AirframeData);
+				   AirframeStruct & AirframeData);
+
+
+	/**
+	* \brief define GPS data output
+	*/
+	void initlogGPSData();
+
+	/**
+	* \brief log GPS data
+	*/
+	void logGPSData();
 
 private:
 

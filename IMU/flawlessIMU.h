@@ -4,11 +4,17 @@
 *	@date 02.01.2018
 *	@version 1.0
 *
-*	falwlessIMU class is a child class of BaseIMU. A flawless IMU
+*	falwlessIMU class is a child class of BaseIMU. A flawless IMU 
 *	is simulated.
 */
+
+#ifndef FLAWLESSIMU_H
+#define FLAWLESSIMU_H
+
+
 #include"BaseIMU.h"
 #include"ODESolver.cpp"
+#include"DataLogger.h"
 
 class flawlessIMU : public BaseIMU
 {
@@ -27,7 +33,7 @@ public:
 	/**
 	* \brief initialize flawless IMU
 	*/
-	void initIMU();
+	void initIMU(IMUStruct & IMUData);
 
 	/**
 	* \brief update flawless IMU
@@ -39,6 +45,21 @@ public:
 					AirframeStruct & AirframeData, 
 					IMUStruct &IMUData);
 
-private:
 
+	/**
+	* \brief define IMU data output
+	* @param FlightTime time of flight
+	* @param IMUDaa structure with accelerations and rotatory rates
+	*/
+	void initlogIMUData(Float64 &FlightTime,
+						IMUStruct &IMUData);
+
+	/**
+	* \brief log IMU data
+	*/
+	void logIMUData();
+
+private:
+	DataLogger * logimuData;
 };
+#endif // !FLAWLESSIMU_H

@@ -13,10 +13,7 @@
 #ifndef BASEIMU_H
 #define BASEIMU_H
 
-
-
 #include"../DataCloud/DataCloud.h"
-
 
 class BaseIMU
 {
@@ -35,7 +32,7 @@ public:
 	/**
 	* \brief initialize IMU
 	*/
-    virtual void initIMU();
+    virtual void initIMU(IMUStruct & IMUData);
 
 	/**
 	* \brief update IMU
@@ -47,7 +44,10 @@ public:
 						   AirframeStruct & AirframeData,
 						   IMUStruct &IMUData);
 
-
+	/**
+	* \brief log IMU data
+	*/
+	virtual void logIMUData();
 
 private:
 };

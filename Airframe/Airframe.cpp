@@ -14,6 +14,7 @@ void Airframe::initAirframe(Float64 &FlightTime,
 							AircraftStruct & AircraftData,
 							AirframeStruct & AirframeData)
 {
+	/// 1) read in geometric aircraft data (wingspan,...)
 	mass = readIn->readInParameter("mass", "Aircraft.txt");
 	AircraftData.mass 		= readIn->readInParameter("mass", "Aircraft.txt");
 	AircraftData.wingarea 	= readIn->readInParameter("wing_area", "Aircraft.txt");
@@ -36,6 +37,7 @@ void Airframe::initAirframe(Float64 &FlightTime,
 	AirframeData.intertiaTensor(2, 1) = 0;
 	AirframeData.intertiaTensor(2, 2) = readIn->readInParameter("I_Z", "Aircraft.txt");
 
+	/// 3) initialize airframe data
 	AirframeData.accRotBody.setZero();
 	AirframeData.accRotNED.setZero();
 	AirframeData.accTransBody.setZero();
@@ -54,20 +56,23 @@ void Airframe::initAirframe(Float64 &FlightTime,
 	AirframeData.Eta = 0.0;
 	AirframeData.Zeta = 0.0;
 
-	initLogAirframeData(FlightTime, AirframeData);
+	initLogAirframeData(FlightTime, 
+						AirframeData);
 	
 }
 
-void Airframe::updateTranslational(AerodynamicStruct & AeroData, 
-								   ThrustStruct & ThrustData,
-									AirframeStruct & AirframeData)
+void Airframe::updateTranslational(AerodynamicStruct &AeroData, 
+								   ThrustStruct &ThrustData,
+								   AirframeStruct &AirframeData)
 {
+	/// 1) get data from structs
 	phi = AirframeData.EulerAngles(0);
 	theta = AirframeData.EulerAngles(1);
 
 	AoA = AeroData.Alpha *PI / 180;
 	AoS = AeroData.Beta *PI / 180;
 
+	/// 2) calculate translational accelerations
 	TotalForce = AeroData.AeroForces + ThrustData.ThrustForce;
 
 	Vec_fg << -sin(theta),
@@ -78,17 +83,19 @@ void Airframe::updateTranslational(AerodynamicStruct & AeroData,
 	AirframeData.accTransNED = AirframeData.matBodyToNED*AirframeData.accTransBody;
 }
 
-void Airframe::updateRotational(AerodynamicStruct & AeroData, 
-								ThrustStruct & ThrustData,
-								AirframeStruct &AirframeData)
+void Airframe::updateRotatory(AerodynamicStruct &AeroData, 
+							  ThrustStruct &ThrustData,
+							  AirframeStruct &AirframeData)
 {
-	phi = AirframeData.EulerAngles(0);
+	/// 1) get data from structs
+	phi   = AirframeData.EulerAngles(0);
 	theta = AirframeData.EulerAngles(1);
 
-	Float64 p = AirframeData.rotRatesBody(0);
-	Float64 q = AirframeData.rotRatesBody(1);
-	Float64 r = AirframeData.rotRatesBody(2);
+	p = AirframeData.rotRatesBody(0);
+	q = AirframeData.rotRatesBody(1);
+	r = AirframeData.rotRatesBody(2);
 
+	/// 2) calculate rotatory accelerations
 	TotalMoment = AeroData.AeroMoments + ThrustData.ThrustMoments;
 
 	Vec_rotTensor << q*r*(AirframeData.intertiaTensor(2, 2) - AirframeData.intertiaTensor(1, 1)) - p * q*AirframeData.intertiaTensor(0,2),
@@ -96,7 +103,7 @@ void Airframe::updateRotational(AerodynamicStruct & AeroData,
 					 p*q*(AirframeData.intertiaTensor(1, 1) - AirframeData.intertiaTensor(0, 0)) + q * r*AirframeData.intertiaTensor(0, 2);
 
 
-
+	/// 3)  calculate derivation of euler angles
 	AirframeData.accRotBody = AirframeData.intertiaTensor.inverse()*(TotalMoment - Vec_rotTensor);
 
 	Eulerdot << 1, sin(phi) * tan(theta), cos(phi) * tan(theta),

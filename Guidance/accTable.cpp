@@ -9,8 +9,11 @@ accTable::~accTable()
 {
 }
 
-void accTable::initGuidance(Float64 &FlightTime, GuidanceStruct &GuidanceData, AircraftStruct &AircraftData)
+void accTable::initGuidance(Float64 &FlightTime, 
+							GuidanceStruct &GuidanceData, 
+							AircraftStruct &AircraftData)
 {
+	/// read in table with accelerations dependig on time and aircraft specific data
 	MatFileReader readAccTable("../Input/accTable.mat");
 
 	AccTable = std::get<0>(readAccTable.readMatFileData("accTable"));
@@ -27,12 +30,13 @@ void accTable::initGuidance(Float64 &FlightTime, GuidanceStruct &GuidanceData, A
 	a_y_com = AccTable.row(7);
 	a_z_com = AccTable.row(8);
 		
-		mass = AircraftData.mass;
-		wingarea = AircraftData.wingarea;
+	mass	 = AircraftData.mass;
+	wingarea = AircraftData.wingarea;
 
-		initLogGuidance(FlightTime, GuidanceData);
+	initLogGuidance(FlightTime,
+				    GuidanceData);
 
-	
+
 }
 
 void accTable::updateGuidance(Float64 FlightTime, 
@@ -41,7 +45,9 @@ void accTable::updateGuidance(Float64 FlightTime,
 							AirframeStruct & AirframeData, 
 							GuidanceStruct &GuidanceData)
 {
-	Float64 flightTime = FlightTime * 100;
+    flightTime = FlightTime * GuidanceData.reshape;
+
+	/// 1) get accelerations depending on time step
 	accNED << a_x_com(flightTime), a_y_com(flightTime), a_z_com(flightTime) + GRAVITATIONAL_CONSTANT;
 	velNED << v_x(flightTime), v_y(flightTime), v_z(flightTime);
 
@@ -52,23 +58,23 @@ void accTable::updateGuidance(Float64 FlightTime,
 	GuidanceData.Velocity_com = sqrt(v_x(flightTime)*v_x(flightTime) + v_y(flightTime) * v_y(flightTime) + v_z(flightTime) * v_z(flightTime));
 
 
+	/// 2) calculate control inputs 
 	 Alpha_com = -(accBody(2)*mass) / (AeroData.C_zdalpha*AeroData.q_bar*wingarea )+ AeroData.C_A0 / AeroData.C_zdalpha;
 	 Beta_com  = 0.0;
 
 	chi_dot = accTraj(1) / GuidanceData.Velocity_com;
 
 	//help functions
-	
-	Float64	G = (chi_dot*AirframeData.velNED.norm()) / GRAVITATIONAL_CONSTANT;
-	Float64 a = 1 - G * tan(Alpha_com)*sin(AeroData.Beta);
-	Float64 b = AirframeData.Gamma / cos(AeroData.Beta);
-	Float64 c = 1 + G * G*cos(AeroData.Beta)*cos(AeroData.Beta);
+	 G = (chi_dot*AeroData.absVel) / GRAVITATIONAL_CONSTANT;
+	 a = 1 - G * tan(Alpha_com)*sin(AeroData.Beta);
+	 b = AirframeData.Gamma / cos(AeroData.Beta);
+	 c = 1 + G * G*cos(AeroData.Beta)*cos(AeroData.Beta);
 
 	GuidanceData.Phi_com = atan(G * (cos(AeroData.Beta) / cos(Alpha_com)) * (a - b * b + b * tan(Alpha_com)*sqrt(c*(1 - b * b) + G * G*sin(AeroData.Beta)*sin(AeroData.Beta))) / 
 							(a*a - b * b*(1 + c * tan(Alpha_com)*tan(Alpha_com))));
 
-	Float64 a1 = cos(Alpha_com) * cos(AeroData.Beta);
-	Float64 b1 = sin(AeroData.Beta)*sin(GuidanceData.Phi_com) + sin(Alpha_com) * cos(AeroData.Beta)*cos(GuidanceData.Phi_com);
+	a1 = cos(Alpha_com) * cos(AeroData.Beta);
+	b1 = sin(AeroData.Beta)*sin(GuidanceData.Phi_com) + sin(Alpha_com) * cos(AeroData.Beta)*cos(GuidanceData.Phi_com);
 
 	GuidanceData.Theta_com = atan((a1*b1 + sin(AeroData.Beta)*sqrt(a1*a1 - sin(AeroData.Beta)*sin(AeroData.Beta) + b1 * b1)) / (a1*a1 - sin(AeroData.Beta)*sin(AeroData.Beta)));
 
@@ -77,7 +83,8 @@ void accTable::updateGuidance(Float64 FlightTime,
 	GuidanceData.Pos_com << s_x(flightTime), s_y(flightTime), s_z(flightTime);
 }
 
-void accTable::initLogGuidance(Float64 &FlightTime, GuidanceStruct & GuidanceData)
+void accTable::initLogGuidance(Float64 &FlightTime, 
+							   GuidanceStruct & GuidanceData)
 {
 	LogGuidanceData->add("Flighttime [s]", FlightTime);
 	LogGuidanceData->add("accBody_com_x", GuidanceData.acc_com(0));

@@ -8,7 +8,7 @@ clc
 [Guidance]  = readIn('GuidanceData.txt',' ',1);
 [Thrust]  = readIn('EngineData.txt',' ',1);
 [Aerodynamic] = readIn('AerodynamicData.txt',' ',1);
-
+[Navigation] = readIn('NavigationData.txt',' ',1);
 FlightTime = Airframe.data(:,1);
 
 Acc_body_x = Airframe.data(:,2);
@@ -23,9 +23,9 @@ Vel_NED_x = Airframe.data(:,8);
 Vel_NED_y = Airframe.data(:,9);
 Vel_NED_z = Airframe.data(:,10);
 
-Pos_NED_x = Airframe.data(:,11);
-Pos_NED_y = Airframe.data(:,12);
-Pos_NED_z = Airframe.data(:,13);
+Pos_NED_x = Navigation.data(:,3);
+Pos_NED_y = Navigation.data(:,4);
+Pos_NED_z = Navigation.data(:,5);
 
 Phi   = Airframe.data(:,14)*180/pi;
 Theta = Airframe.data(:,15)*180/pi;

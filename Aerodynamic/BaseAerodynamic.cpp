@@ -12,7 +12,7 @@ void BaseAerodynamic::updateAerodynamic(Float64 FlightTime,
 										AtmosphereStruct & AtmoData, 
 										AerodynamicStruct & AeroData, 
 										AirframeStruct & AirframeData, 
-										ThrustStruct & ThrustData, ActuatorStruct &ActuatorData)
+										ThrustStruct & ThrustData, ActuatorStruct &ActuatorData,  IMUStruct &IMUData, NavigationStruct  &NavData)
 {
 	std::cout << "Base Aerodynamic Update" << std::endl;
 }

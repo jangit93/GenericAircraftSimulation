@@ -14,19 +14,13 @@ Aircraft::Aircraft(SimDPreference &SimPref)
 
 Aircraft::~Aircraft()
 {
-	delete trajectory;
-	delete Atmo;
 
 }
 
-void Aircraft::initAircraft()
-{
-
-
-}
 
 void Aircraft::simulateAircraft()
 {
+	/// 1) Read in trim points for initialization
 	MatFileReader trim("../Input/Autopilot.mat");
 
 	matvar_t MatFileData = trim.getMatFileInfo("AutopilotData");
@@ -34,7 +28,8 @@ void Aircraft::simulateAircraft()
 
 	TrimPoints = new AutopilotStruct[Fields];
 
-	int start, stride, edge, copy_field = 0;
+	start = 0;
+	copy_field = 0;
 	stride = 0;
 	edge = 9;
 
@@ -45,7 +40,7 @@ void Aircraft::simulateAircraft()
 		TrimPoints[start].u_bar = std::get<1>(trim.readMatFileStructure("u_bar", start, stride, edge, copy_field));
 	}
 
-	
+	/// 2) initialize atmosphere and aircraft
 	Atmo->initAtmosphere();
 	
 	trajectory->initTrajectory(FlightTime,
@@ -59,36 +54,33 @@ void Aircraft::simulateAircraft()
 								IMUData);
 
 	
-
+	/// 3) set trim point
 	ActuatorData.Eta = TrimPoints[1].u_bar(1);
-	AirframeData.Eta = TrimPoints[1].u_bar(1);
-
-	AirframeData.posNED(2) = -TrimPoints[1].Alt;
-	NavData.posNED(2) = -TrimPoints[1].Alt;
-
-	AirframeData.velNED << TrimPoints[1].Vel, 0, 0;
-	NavData.velNED << TrimPoints[1].Vel, 0, 0;
-
-	AirframeData.StickPosition = TrimPoints[1].u_bar(3);
 	ActuatorData.Delta = TrimPoints[1].u_bar(3);
 
-	AirframeData.EulerAngles(1) = TrimPoints[1].x_bar(1);
-	NavData.EulerAngles(1) = TrimPoints[1].x_bar(1);
+	AirframeData.posNED(2) = -TrimPoints[1].Alt;
+	NavData.posNED(2) = AirframeData.posNED(2);
 
-	GuidanceData.Theta_com = AirframeData.EulerAngles(1);
+	AirframeData.velNED << TrimPoints[1].Vel, 0, 0;
+	NavData.velNED = AirframeData.velNED;
+
+	AirframeData.EulerAngles(1) = TrimPoints[1].x_bar(1);
+	NavData.EulerAngles(1) = AirframeData.EulerAngles(1);
+
+	GuidanceData.Theta_com = NavData.EulerAngles(1);
 
 	NavData.dt = dt;
 	IMUData.dt = dt;
-
-	double time1 = 0.0, tstart;
+	GuidanceData.reshape = 1/dt;
+	time1 = 0.0;
 	tstart = clock();
 	std::cout << "----------------------------------------------" << std::endl;
 	
 
-	
+	/// 4) simulate aircraft (calculate trajectory)
 	for (FlightTime = 0.0; FlightTime < TotalSimTime; FlightTime += dt) {
 
-		Atmo->updateAtmosphere(AirframeData.posNED(2), AtmoData);
+		Atmo->updateAtmosphere(NavData.posNED(2), AtmoData);
 
 		trajectory->updateTrajectory(FlightTime,
 									AtmoData,

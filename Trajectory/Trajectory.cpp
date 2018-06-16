@@ -41,16 +41,19 @@ void Trajectory::updateTrajectory(Float64 FlightTime,
 								  AirframeStruct & AirframeData, 
 								  ThrustStruct & ThrustData,
 								  GuidanceStruct & GuidanceData,
-									NavigationStruct &NavData,
-									ActuatorStruct &ActuatorData,
-									IMUStruct &IMUData)
+								  NavigationStruct &NavData,
+								  ActuatorStruct &ActuatorData,
+								  IMUStruct &IMUData)
 {
 	traj->updateTrajectory(FlightTime,
 						   AtmoData,
 						   AeroData, 
 						   AirframeData, 
 						   ThrustData,
-						   GuidanceData,NavData,ActuatorData,IMUData);
+						   GuidanceData,
+						   NavData,
+						   ActuatorData,
+						   IMUData);
 }
 
 void Trajectory::initTrajectory(Float64 &FlightTime, 

@@ -30,3 +30,7 @@ void GPS::updateGPS(Float64 FlightTime,
 {
 	gps->updateGPS(FlightTime, NavData,AirframeData);
 }
+
+void GPS::logGPSData()
+{
+}

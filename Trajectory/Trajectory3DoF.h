@@ -101,7 +101,7 @@ public:
 								AtmosphereStruct & AtmoData,
 								AerodynamicStruct & AeroData,
 								AirframeStruct & AirframeData,
-								ThrustStruct & ThrustData,ActuatorStruct &ActuatorData);
+								ThrustStruct & ThrustData,ActuatorStruct &ActuatorData,IMUStruct &IMUData,NavigationStruct  &NavData);
 
 	/**
 	* @brief log 3Dof Data (Aerodynamic Data, Thrust Data and translational acclerations)

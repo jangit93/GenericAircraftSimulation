@@ -45,7 +45,7 @@ public:
 	*/
 	void updateTranslational(AerodynamicStruct  &AeroData,
 							 ThrustStruct		&ThrustData,
-							AirframeStruct &AirframeData);
+							 AirframeStruct &AirframeData);
 
 	/**
 	* \brief rotational equations of motion
@@ -54,9 +54,9 @@ public:
 	* @param ThrustData Thrust forces and moments
 	* @param AirframeData store accelerations
 	*/
-	void updateRotational(AerodynamicStruct  &AeroData,
-							ThrustStruct		&ThrustData,
-							AirframeStruct &AirframeData);
+	void updateRotatory(AerodynamicStruct  &AeroData,
+						ThrustStruct	&ThrustData,
+						AirframeStruct &AirframeData);
 
 	/**
 	* \brief define output
@@ -72,9 +72,12 @@ public:
 	void logAirframeData();
 
 private:
+	// objects
 	DataLogger * LogAirframeData;
-	Float64 mass;
 	readInData *readIn;
+
+	//variables
+	Float64 mass;
 	Eigen::Vector3d Vec_fg;
 	Eigen::Vector3d Vec_rotTensor;
 	Float64 theta;

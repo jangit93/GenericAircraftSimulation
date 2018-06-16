@@ -10,7 +10,6 @@
 #ifndef GUIDANCE_H
 #define GUIDANCE_H
 
-//#include<Eigen/dense>
 #include<iostream>
 #include"../DataCloud/DataCloud.h"
 #include"../Tools/IndependetDataTypes.h"
@@ -44,7 +43,9 @@ public:
 	*	@param	GuidanceData		structure of Guidance data
 	*	@param	AircraftData		specific airfraft data
 	*/
-	void initGuidance(Float64 &FlightTime, GuidanceStruct &GuidanceData, AircraftStruct &AircraftData);
+	void initGuidance(Float64 &FlightTime,
+					  GuidanceStruct &GuidanceData, 
+					  AircraftStruct &AircraftData);
 
 	/**
 	* \brief calculate commands for flight path

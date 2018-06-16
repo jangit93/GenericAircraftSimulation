@@ -12,6 +12,8 @@ StateController::~StateController()
 
 void StateController::initStateController()
 {
+
+	/// 1) get controller for every trim point in grid
 	MatFileReader readAutopilotData("../Input/Autopilot.mat");
 
 	MatFileData = readAutopilotData.getMatFileInfo("AutopilotData");
@@ -19,7 +21,7 @@ void StateController::initStateController()
 
 	StateControllertData = new AutopilotStruct[Fields];
 
-	start, stride, edge, copy_field = 0;
+	copy_field = 0;
 	start = 0;
 	stride = 0;
 	edge = 9;
@@ -42,7 +44,7 @@ void StateController::initStateController()
 
 	findneighbor->initFindNeighbor();
 
-	//initialise parameters
+	/// 2) initialise parameters
 	x_0.resize(9, 1);
 	u_0.resize(4, 1);
 	K_lat.resize(2, 6);
@@ -90,23 +92,26 @@ void StateController::initStateController()
 void StateController::updateStateController(Float64 FlightTime,
 											AirframeStruct &AirframeData,
 											AerodynamicStruct &AeroData,
-											GuidanceStruct &GuidanceData, ActuatorStruct &ActuatorData, IMUStruct &IMUData, NavigationStruct &NavData)
+											GuidanceStruct &GuidanceData, 
+										    ActuatorStruct &ActuatorData, 
+											IMUStruct &IMUData, 
+											NavigationStruct &NavData)
 {
 	/// 1) find neighbors in grid
 	PHI << std::get<0>(findneighbor->BlendingParameters(NavData));
 	NEIGHBOR << std::get<1>(findneighbor->BlendingParameters(NavData));
 
-	/// 2) get control input
-	theta_com = GuidanceData.Theta_com;
-	phi_com = GuidanceData.Phi_com;
-	Vel_com = GuidanceData.Velocity_com;
-	beta_com =  GuidanceData.Beta_com;
+	/// 2) get control input from guidance
+	theta_com	= GuidanceData.Theta_com;
+	phi_com		= GuidanceData.Phi_com;
+	Vel_com		= GuidanceData.Velocity_com;
+	beta_com	=  GuidanceData.Beta_com;
 
-	/// 3) calculate control variable for every neighbor
+	/// 3) calculate control variable for every grid neighbor
 	for (int i = 0; i < NEIGHBOR.rows(); i++) {
 
-		//gains
-		int index = sub2ind(NEIGHBOR(i, 0), NEIGHBOR(i, 1), MatFileData.dims[0], MatFileData.dims[1]);
+	
+		index = sub2ind(NEIGHBOR(i, 0), NEIGHBOR(i, 1), MatFileData.dims[0], MatFileData.dims[1]);
 		x_0 = StateControllertData[index].x_bar;
 	
 		u_0 = StateControllertData[index].u_bar;
@@ -181,19 +186,11 @@ void StateController::updateStateController(Float64 FlightTime,
 	}
 
 	/// 4) blending 
-	AirframeData.Eta = Eta;//PHI.dot(u_sched_eta);
-	AirframeData.StickPosition	= PHI.dot(u_sched_delta);
-	AirframeData.Xi				= PHI.dot(u_sched_xi);
-	AirframeData.Zeta			= PHI.dot(u_sched_zeta);
-
-	ActuatorData.Eta = Eta;//PHI.dot(u_sched_eta);
+	ActuatorData.Eta = Eta;
 	ActuatorData.Delta = PHI.dot(u_sched_delta);
 	ActuatorData.Xi = PHI.dot(u_sched_xi);
 	ActuatorData.Zeta = PHI.dot(u_sched_zeta);
 
-
-
-	
 }
 
 int StateController::sub2ind(const int row, const int column, const int rows,const int columns)

@@ -14,6 +14,10 @@
 
 #include"Constants.h"
 
+#ifndef STATECONTROLLER_H
+#define STATECONTROLLER_H
+
+
 class StateController
 {
 
@@ -24,7 +28,7 @@ public:
 	StateController();
 
 	/**
-	* \brief construtor
+	* \brief destrutor
 	*/
 	~StateController();
 
@@ -34,19 +38,29 @@ public:
 	void initStateController();
 
 	/**
-	* \brief construtor
-	* @param FlightTime flight time
-	* @param AirframeData flight states
-	* @param AeroData get angle of attack
-	* @param GuidanceData control input
+	* \brief calculate controlls depending on flight state
+	* @param	FlightTime		flight time
+	* @param	AirframeData	flight states
+	* @param	AeroData		get angle of attack
+	* @param	GuidanceData	control input
+	* @param	ActuatorData	actuator angles
+	* @param	IMUData			rotatory rates
+	* @param	NavData			velocity 
 	*/
 	void updateStateController(Float64 FlightTime,
 								AirframeStruct &AirframeData,
 								AerodynamicStruct &AeroData,
-								GuidanceStruct &GuidanceData, ActuatorStruct &ActuatorData, IMUStruct &IMUData, NavigationStruct &NavData);
+								GuidanceStruct &GuidanceData, 
+								ActuatorStruct &ActuatorData, 
+								IMUStruct &IMUData, 
+								NavigationStruct &NavData);
 
 	/**
 	* \brief help functions to find index
+	* @param	row		desired row
+	* @param	column	desired column
+	* @param	rows	total number of rows
+	* @param	columns	total number of columns
 	*/
 	int sub2ind(const int row, const int column, const int rows, const int columns);
 	
@@ -70,6 +84,7 @@ private:
 	int copy_field;
 
 	Float64 dt;
+	int index;
 	//trim point and controller
 	Eigen::VectorXd x_0;
 	Eigen::VectorXd u_0;
@@ -113,3 +128,4 @@ private:
 	Eigen::Vector2d Delta_x_vel;
 	Eigen::VectorXd	Delta_x_lat;
 };
+#endif

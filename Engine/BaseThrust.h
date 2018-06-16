@@ -39,12 +39,14 @@ public:
 	*	@param AeroData get mach number
 	*	@param AirframeData	get current throttle stick position
 	*	@param ThrustData store thrust data
+	*	@param ActuatorData get thrust stick position
 	*/
 	virtual void updateThrust(Float64 FlightTime,
 						AtmosphereStruct & AtmoData,
 						AerodynamicStruct & AeroData,
 						AirframeStruct & AirframeData,
-						ThrustStruct & ThrustData, ActuatorStruct& ActuatorData);
+						ThrustStruct & ThrustData, 
+						ActuatorStruct& ActuatorData);
 	/**
 	*  The init function from the selected engine is called by a pointer.
 	*   @param FlightTime flight time

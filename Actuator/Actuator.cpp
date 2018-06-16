@@ -2,8 +2,6 @@
 
 Actuator::Actuator(SimDPreference &SimPref)
 {
-	
-
 	selectActuatorType(SimPref.ActuatorMode);
 }
 

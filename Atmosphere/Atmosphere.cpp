@@ -22,7 +22,9 @@ void Atmopshere::initAtmosphere()
 void Atmopshere::updateAtmosphere(Float64 &Altitude, 
 								  AtmosphereStruct &AtmoData)
 {
-	Float64 Alt = -Altitude;
+
+	/// US Standard atmosphere
+	Alt = -Altitude;
 	//troposphere
 	if (Alt < 11000.0)
 	{
@@ -46,12 +48,8 @@ void Atmopshere::updateAtmosphere(Float64 &Altitude,
 	}
 		
 
-			rho			 = Pressure / (0.2869 * Temperature);           
-			speedOfSound = sqrt(GAMMA * GAS_CONSTANT * Temperature);
-			Pressure	 = Pressure * 1000;
-
-			AtmoData.rho = rho;
-			AtmoData.Pressure = Pressure;
-			AtmoData.speedOfSound = speedOfSound;
-			AtmoData.Temperature = Temperature;
+	AtmoData.rho = Pressure / (0.2869 * Temperature);
+	AtmoData.Pressure = Pressure * 1000;
+	AtmoData.speedOfSound = sqrt(GAMMA * GAS_CONSTANT * Temperature);
+    AtmoData.Temperature = Temperature;
 }

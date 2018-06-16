@@ -36,11 +36,21 @@ public:
 
 	/**
 	* \brief calculate controlls
+	* @param	FlightTime		flight time
+	* @param	AirframeData	flight states
+	* @param	AeroData		get angle of attack
+	* @param	GuidanceData	control input
+	* @param	ActuatorData	actuator angles
+	* @param	IMUData			rotatory rates
+	* @param	NavData			velocity
 	*/
 	void updateAutopilot(Float64 FlightTime, 
 						AirframeStruct &AirframeData,
 						AerodynamicStruct &AeroData,
-						GuidanceStruct &GuidanceData,ActuatorStruct &ActuatorData, IMUStruct &IMUData,NavigationStruct &NavData);
+						GuidanceStruct &GuidanceData,
+						ActuatorStruct &ActuatorData, 
+						IMUStruct &IMUData,
+						NavigationStruct &NavData);
 
 private:
 	StateController *controller;

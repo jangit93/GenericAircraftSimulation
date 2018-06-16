@@ -52,6 +52,7 @@ struct AerodynamicStruct
 	Float64 AoA;		
 	Float64 AoS;
 	Float64 VelAero;
+	Float64 absVel;
 	Float64 Mach;
 	Float64 CA;
 	Float64 CM;
@@ -203,6 +204,7 @@ struct GuidanceStruct
 	Eigen::Vector3d acc_com;
 	Eigen::Vector3d Vel_com;
 	Eigen::Vector3d Pos_com;
+	Float32 reshape;
 };
 /**
 * \brief stores IMU parameters

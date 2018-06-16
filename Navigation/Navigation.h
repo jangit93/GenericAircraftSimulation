@@ -11,7 +11,6 @@
 #ifndef NAVIGATION_H
 #define NAVIGATION_H
 
-//#include<Eigen/dense>
 #include"IndependetDataTypes.h"
 #include"BaseNavigation.h"
 #include"DataCloud.h"
@@ -23,7 +22,7 @@ class Navigation
 public:
 	/**
 	* \brief constructor
-	*	@param	SimPref			structure of model selctions
+	*	@param	SimPref		structure of model selctions
 	*/
 	Navigation(SimDPreference &SimPref);
 
@@ -34,14 +33,16 @@ public:
 
 	/**
 	* \brief set pointer to desired class
-	*	@param	Type			Aerodynamic Model Selection
+	*	@param	Type navigation Model Selection
 	*/
 	void selectNavigation(int Type);
 
 	/**
 	* \brief call to desired init-function
 	*/
-	void initNavigation(NavigationStruct & NavData);
+	void initNavigation(Float64 & FlightTime,
+						NavigationStruct & NavData,
+						IMUStruct &IMUData);
 
 	/**
 	* \brief call to desired update function
@@ -50,8 +51,14 @@ public:
 	*	@param	AirframeData		flight states
 	*/
 	void updateNavigation(Float64 FlightTime,
-						NavigationStruct & NavData,
-						AirframeStruct &AirframeData);
+						NavigationStruct &NavData,
+						AirframeStruct &AirframeData,
+						IMUStruct &IMUData);
+
+	/**
+	* \brief data logger for navigation data
+	*/
+	void logNavigationData();
 
 private:
 	BaseNavigation * navigation;
