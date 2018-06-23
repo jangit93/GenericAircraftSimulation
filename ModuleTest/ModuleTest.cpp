@@ -324,43 +324,6 @@ void AutopilotTest()
 	findNeighbor.BlendingParameters(AirframeData);
 }*/
 
-void IMUTest(SimDPreference &SimPref)
-{
-
-	AirframeStruct AirframeData;
-	IMUStruct IMUData;
-
-	IMU *imutest = new IMU(SimPref);
-	imutest->initIMU();
-	imutest->updateIMU(0, AirframeData, IMUData);
-
-	std::cout << "IMU Test Done" << std::endl;
-}
-
-void GPSTest(SimDPreference &SimPref)
-{
-	NavigationStruct NavData;
-	AirframeStruct AirframeData;
-
-	GPS *gpstest = new GPS(SimPref);
-	gpstest->initGPS();
-	gpstest->updateGPS(0, NavData,AirframeData);
-
-	std::cout << "GPS Test Done" << std::endl;
-}
-
-void NavigationTest(SimDPreference &SimPref)
-{
-	NavigationStruct NavData;
-	AirframeStruct AirframeData;
-
-	Navigation *testNav = new Navigation(SimPref);
-	testNav->initNavigation();
-	testNav->updateNavigation(0, NavData, AirframeData);
-
-	std::cout << "Navigation Test Done" << std::endl;
-}
-
 
 void TrajectoryTest(SimDPreference &SimPref)
 {
@@ -503,16 +466,10 @@ int main()
 
 	//TrajectoryTest(SimPref);
 	
-/*
-	IMUTest(SimPref);
-	GPSTest(SimPref);
-	NavigationTest(SimPref);
-	
-	AutopilotTest();
+	//AutopilotTest();
 
-	ActuatorTest(SimPref);
+//	ActuatorTest(SimPref);
 
-	*/
 	system("pause");
 }
 /**@}*/

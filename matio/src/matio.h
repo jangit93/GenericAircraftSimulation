@@ -33,7 +33,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "../matio/visual_studio/matio_pubconf.h"
+
+#include"../visual_studio/matio_pubconf.h"
 
 #include <stdarg.h>
 
