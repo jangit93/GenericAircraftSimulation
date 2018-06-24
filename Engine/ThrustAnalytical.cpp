@@ -57,8 +57,8 @@ void ThrustAnalytical::updateThrust(Float64 FlightTime,
 
 	
 	ThrustData.ThrustMoments(0) =  thrust * sin(incidenceAngle) * EnginePos(1);
-	ThrustData.ThrustMoments(0) =  thrust * (cos(incidenceAngle) * EnginePos(2) - sin(incidenceAngle)*EnginePos(0));
-	ThrustData.ThrustMoments(0) = -thrust * cos(incidenceAngle) * EnginePos(1);
+	ThrustData.ThrustMoments(1) =  thrust * (cos(incidenceAngle) * EnginePos(2) - sin(incidenceAngle)*EnginePos(0));
+	ThrustData.ThrustMoments(2) = -thrust * cos(incidenceAngle) * EnginePos(1);
 
 }
 
@@ -68,10 +68,6 @@ void ThrustAnalytical::initLogEngineData(Float64 & FlightTime, ThrustStruct & Th
 	LogEngineData->add("F_x", ThrustData.ThrustForce(0));
 	LogEngineData->add("F_y", ThrustData.ThrustForce(1));
 	LogEngineData->add("F_z", ThrustData.ThrustForce(2));
-	LogEngineData->add("M_x", ThrustData.ThrustMoments(0));
-	LogEngineData->add("M_x", ThrustData.ThrustMoments(0));
-	LogEngineData->add("M_y", ThrustData.ThrustMoments(1));
-	LogEngineData->add("M_z", ThrustData.ThrustMoments(2));
 
 	LogEngineData->printHeader();
 }

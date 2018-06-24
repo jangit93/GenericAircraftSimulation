@@ -117,31 +117,8 @@ void Airframe::updateRotatory(AerodynamicStruct &AeroData,
 void Airframe::initLogAirframeData(Float64 & FlightTime, AirframeStruct & AirframeData)
 {
 	LogAirframeData->add("FlightTime [s]", FlightTime);
-	LogAirframeData->add("accBodyx", AirframeData.accTransBody(0));
-	LogAirframeData->add("accBodyy", AirframeData.accTransBody(1));
-	LogAirframeData->add("accBodyz", AirframeData.accTransBody(2));
-	LogAirframeData->add("acc_x_NED",AirframeData.accTransNED(0));
-	LogAirframeData->add("acc_y_NED", AirframeData.accTransNED(1));
-	LogAirframeData->add("acc_y_NED", AirframeData.accTransNED(2));
-	LogAirframeData->add("Vel_x_NED", AirframeData.velNED(0));
-	LogAirframeData->add("Vel_y_NED", AirframeData.velNED(1));
-	LogAirframeData->add("Vel_z_NED", AirframeData.velNED(2));
-	LogAirframeData->add("x_NED", AirframeData.posNED(0));
-	LogAirframeData->add("y_NED", AirframeData.posNED(1));
-	LogAirframeData->add("z_NED", AirframeData.posNED(2));
-	LogAirframeData->add("phi", AirframeData.EulerAngles(0));
-	LogAirframeData->add("theta", AirframeData.EulerAngles(1));
-	LogAirframeData->add("psi", AirframeData.EulerAngles(2));
-	LogAirframeData->add("Eta", AirframeData.Eta);
-	LogAirframeData->add("Zeta", AirframeData.Zeta);
-	LogAirframeData->add("Xi", AirframeData.Xi);
-	LogAirframeData->add("delta", AirframeData.StickPosition);
 	LogAirframeData->add("Gamma", AirframeData.Gamma);
 	LogAirframeData->add("Chi", AirframeData.Chi);
-	LogAirframeData->add("p", AirframeData.rotRatesBody(0));
-	LogAirframeData->add("q", AirframeData.rotRatesBody(1));
-	LogAirframeData->add("r", AirframeData.rotRatesBody(2));
-	
 
 	LogAirframeData->printHeader();
 }

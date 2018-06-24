@@ -9,6 +9,7 @@ clc
 [Thrust]  = readIn('EngineData.txt',' ',1);
 [Aerodynamic] = readIn('AerodynamicData.txt',' ',1);
 [Navigation] = readIn('NavigationData.txt',' ',1);
+[Actuator] = readIn('ActuatorData.txt',' ',1);
 FlightTime = Airframe.data(:,1);
 
 Acc_body_x = Airframe.data(:,2);
@@ -31,10 +32,10 @@ Phi   = Airframe.data(:,14)*180/pi;
 Theta = Airframe.data(:,15)*180/pi;
 Psi   = Airframe.data(:,16)*180/pi;
 
-Eta = Airframe.data(:,17);
-Zeta = Airframe.data(:,18);
-Xi = Airframe.data(:,19);
-delta = Airframe.data(:,20);
+Eta = Actuator.data(:,1);
+Zeta = Actuator.data(:,2);
+Xi = Actuator.data(:,3);
+delta = Actuator.data(:,4);
 
 p = Airframe.data(:,23);
 q = Airframe.data(:,24);
@@ -85,7 +86,7 @@ grid on
 %//////////////////////////////////////////////////////////////////////////
 % pitch axis parameter over time
 %//////////////////////////////////////////////////////////////////////////
-figure('Name','Pitch Axis')
+figure('Name','Longitudinal')
 subplot(511)
 plot(FlightTime,AoA)
 subplot(512)
@@ -97,6 +98,24 @@ plot(FlightTime,Gamma)
 subplot(515)
 plot(FlightTime,Eta)
 grid on
+
+figure('Name','Lateral')
+subplot(711)
+plot(FlightTime,AoS)
+subplot(712)
+plot(FlightTime,Phi,'k--',FlightTime,Phi_com)
+subplot(713)
+plot(FlightTime,p)
+subplot(714)
+plot(FlightTime,Chi)
+subplot(715)
+plot(FlightTime,Zeta)
+subplot(716)
+plot(FlightTime,r)
+subplot(717)
+plot(FlightTime,Xi)
+grid on
+
 figure('Name','Acceleration Body [m/s^2]')
 subplot(311)
 plot(FlightTime,Acc_NED_x,'--',FlightTime,Acc_body_xcom)
@@ -113,3 +132,4 @@ plot(FlightTime,Acc_body_z,'--',FlightTime,Acc_body_zcom)
 xlabel('Time [s]')
 ylabel('Acc_{z} [m/s^2]')
 grid on
+axis auto

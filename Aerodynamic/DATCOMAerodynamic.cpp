@@ -198,8 +198,6 @@ void DATCOMAerodymamic::initLogAeroData(Float64 &FlightTime,AerodynamicStruct & 
 	logAeroData->add("CA", AeroData.CA);
 	logAeroData->add("CM", AeroData.CM);
 	logAeroData->add("CW", AeroData.CW);
-	logAeroData->add("CZ", AeroData.CZ);
-	logAeroData->add("CX", AeroData.CX);
 	logAeroData->add("F_x", AeroData.AeroForces(0));
 	logAeroData->add("F_y", AeroData.AeroForces(1));
 	logAeroData->add("F_z", AeroData.AeroForces(2));

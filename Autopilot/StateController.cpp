@@ -59,6 +59,7 @@ void StateController::initStateController()
 	x_0_lat.resize(4, 1);
 	delta_x_lat.resize(4, 1);
 	e_lat.resize(2, 1);
+	Delta_x_lat.resize(6);
 
 	x_0.setZero();
 	u_0.setZero();
@@ -107,6 +108,11 @@ void StateController::updateStateController(Float64 FlightTime,
 	Vel_com		= GuidanceData.Velocity_com;
 	beta_com	=  GuidanceData.Beta_com;
 
+	//longitude
+	x_long_pitch << IMUData.rotRatesBody(1), AeroData.Alpha, NavData.EulerAngles(1);
+	//latitude
+	x_lat << IMUData.rotRatesBody(2), AeroData.Beta, IMUData.rotRatesBody(0), NavData.EulerAngles(0);
+
 	/// 3) calculate control variable for every grid neighbor
 	for (int i = 0; i < NEIGHBOR.rows(); i++) {
 
@@ -129,10 +135,9 @@ void StateController::updateStateController(Float64 FlightTime,
 		K_long_vel << StateControllertData[index].Kx_Vel,
 					  StateControllertData[index].Ke_Vel;
 
-		//longitude
-		x_long_pitch << IMUData.rotRatesBody(1), AeroData.Alpha, NavData.EulerAngles(1);
+	
 
-		
+		//longitude
 		x_0_pitch << x_0(4), x_0(1), x_0(7);
 
 
@@ -148,8 +153,6 @@ void StateController::updateStateController(Float64 FlightTime,
 
 
 		//latitude
-		x_lat << IMUData.rotRatesBody(2), AeroData.Beta, IMUData.rotRatesBody(0), NavData.EulerAngles(0);
-
 		x_0_lat << x_0(5), x_0(2), x_0(3), x_0(6);
 
 
@@ -162,7 +165,7 @@ void StateController::updateStateController(Float64 FlightTime,
 		e_lat << e1_lat, e2_lat;
 
 
-		Delta_x_lat.resize(6);
+		
 		Delta_x_long << delta_x_long, e2_long;
 		delta_u_long = -K_long_pitch * Delta_x_long+K_v * (theta_com - NavData.EulerAngles(1));
 
@@ -179,14 +182,17 @@ void StateController::updateStateController(Float64 FlightTime,
 		u_sched_zeta(i)		= delta_u_lat(1) + u_0(2);
 		u_sched_xi(i)		= delta_u_lat(0) + u_0(0);
 	}
-	Float64 Eta = PHI.dot(u_sched_eta);
-	if (abs(Eta) >= 29.99*PI / 180)
+	
+	if (abs(PHI.dot(u_sched_eta)) >= 29.99*PI / 180)
 	{
-		Eta = sign(Eta)*29.99*PI / 180;
+		ActuatorData.Eta = sign(abs(PHI.dot(u_sched_eta)))*29.99*PI / 180;
+	}
+	else {
+		ActuatorData.Eta = PHI.dot(u_sched_eta);
 	}
 
 	/// 4) blending 
-	ActuatorData.Eta = Eta;
+	
 	ActuatorData.Delta = PHI.dot(u_sched_delta);
 	ActuatorData.Xi = PHI.dot(u_sched_xi);
 	ActuatorData.Zeta = PHI.dot(u_sched_zeta);
