@@ -13,9 +13,9 @@
 #include<vector>
 #include<fstream>
 #include<string>
-#include <C:\Users\janol\Desktop\Studium\Master_Luft und Raumfahrttechnik\2.Fachsemester\Effizient Programmieren\Programierprojekt\GenericFlightSimulation\EIGENDIR\Eigen\dense>
+#include"../eigen/Eigen/dense"
 #include<iomanip>
-#include<omp.h>
+
 #include<sstream>
 #include <iostream>
 #include <string>
@@ -56,7 +56,11 @@ public:
 	*/
 	void printHeader();
 
-	std::string Convert(double number);
+	std::string to_string1(double value);
+
+	std::string to_string2(double value);
+	std::string to_string3(double value);
+
 
 private:
 	std::vector<double*> doubleVec;

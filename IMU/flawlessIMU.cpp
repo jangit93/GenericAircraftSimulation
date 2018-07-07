@@ -15,6 +15,8 @@ void flawlessIMU::initIMU(IMUStruct & IMUData)
 	IMUData.rotRatesBody.setZero();
 	IMUData.accTransNED.setZero();
 	IMUData.realTRotAcc.setZero();
+
+	initlogIMUData(IMUData);
 }
 
 void flawlessIMU::updateIMU(Float64 FlightTime, 
@@ -28,10 +30,8 @@ void flawlessIMU::updateIMU(Float64 FlightTime,
 	AirframeData.rotRatesBody = IMUData.rotRatesBody;
 }
 
-void flawlessIMU::initlogIMUData(Float64 & FlightTime, 
-								 IMUStruct & IMUData)
+void flawlessIMU::initlogIMUData(IMUStruct & IMUData)
 {
-	logimuData->add("FlightTime", FlightTime);
 	logimuData->add("roll-rate", IMUData.rotRatesBody(0));
 	logimuData->add("pitch-rate", IMUData.rotRatesBody(1));
 	logimuData->add("yaw-rate", IMUData.rotRatesBody(2));

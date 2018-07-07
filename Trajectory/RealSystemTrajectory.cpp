@@ -120,6 +120,8 @@ void RealSystemTrajectory::logRealsystemTrajectory()
 {
 	guidance->logGuidanceData();
 	navigation->logNavigationData();
+	actuator->logActuator();
+	imu->logIMUData();
 
 	log3DofData();
 }

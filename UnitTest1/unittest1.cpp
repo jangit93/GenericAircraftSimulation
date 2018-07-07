@@ -6,6 +6,7 @@
 #include"DataCloud.h"
 #include"LinearInterpolation.h"
 #include"MatFileReader.h"
+#include"MatFileReader.cpp"
 #include"ODESolver.cpp"
 #include<Eigen/Dense>
 #include"Transformation.h"
@@ -318,25 +319,27 @@ namespace UnitTest1
 
 
 
-		/*
+		
 		TEST_METHOD(Matfilereader_test)
 		{
 			//Arrange
 			MatFileReader readData("../../Input/test_mat.mat");
-		
-			Eigen::MatrixXd A;
-			Float64 B;
-			Eigen::VectorXd C;
 
-			Eigen::MatrixXd A_ref;
-			Float64 B_ref;
-			Eigen::VectorXd C_ref;
+			Eigen::Matrix2d A;
+			Float64 B;
+			Eigen::Vector2d C;
+
+			Eigen::Matrix2d A_ref;
+			A_ref << 1, 2, 3, 4;
+			Float64 B_ref = 7;
+			Eigen::Vector2d C_ref;
+			C_ref << 8, 9;
+			
 
 			//Act
 			A = std::get<0>(readData.readMatFileData("A"));
 			B = std::get<2>(readData.readMatFileData("B"));
-			C = std::get<1>(readData.readMatFileData("C"));
-			
+			C = std::get<1>(readData.readMatFileData("c"));
 			//Assert
 			Assert::AreEqual(A(0, 0), A_ref(0, 0));
 			Assert::AreEqual(A(0, 1), A_ref(0, 1));
@@ -344,12 +347,10 @@ namespace UnitTest1
 			Assert::AreEqual(A(1, 1), A_ref(1, 1));
 
 			Assert::AreEqual(B, B_ref);
-
 			Assert::AreEqual(C(0), C_ref(0));
 			Assert::AreEqual(C(1), C_ref(1));
-			
 
-		}*/
+		}
 
 	};
 }

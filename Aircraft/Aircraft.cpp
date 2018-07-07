@@ -1,5 +1,5 @@
 #include "Aircraft.h"
-#include<omp.h>
+
 
 Aircraft::Aircraft(SimDPreference &SimPref)
 {
@@ -28,6 +28,7 @@ void Aircraft::simulateAircraft()
 
 	TrimPoints = new AutopilotStruct[Fields];
 
+	
 	start = 0;
 	copy_field = 0;
 	stride = 0;
@@ -76,23 +77,28 @@ void Aircraft::simulateAircraft()
 	tstart = clock();
 	std::cout << "----------------------------------------------" << std::endl;
 	
-
+	
 	/// 4) simulate aircraft (calculate trajectory)
-	for (FlightTime = 0.0; FlightTime < TotalSimTime; FlightTime += dt) {
 
-		Atmo->updateAtmosphere(NavData.posNED(2), AtmoData);
+		//#pragma loop( hint_parallel(90))
+		//#pragma omp parallel
+		for (FlightTime = 0.0; FlightTime < TotalSimTime; FlightTime += dt) {
 
-		trajectory->updateTrajectory(FlightTime,
-									AtmoData,
-									AeroData,
-									AirframeData,
-									ThrustData,
-									GuidanceData, 
-									NavData, 
-									ActuatorData, 
-									IMUData);
+			Atmo->updateAtmosphere(NavData.posNED(2), AtmoData);
+			
+			//#pragma omp master
+			trajectory->updateTrajectory(FlightTime,
+										AtmoData,
+										AeroData,
+										AirframeData,
+										ThrustData,
+										GuidanceData, 
+										NavData, 
+										ActuatorData, 
+										IMUData);
+		
 
-	}
+		}
 	time1 += clock() - tstart;     // end
 	time1 = time1 / CLOCKS_PER_SEC;  // rescale to seconds
 

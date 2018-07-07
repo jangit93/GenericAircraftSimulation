@@ -48,11 +48,9 @@ public:
 
 	/**
 	* \brief define IMU data output
-	* @param FlightTime time of flight
-	* @param IMUDaa structure with accelerations and rotatory rates
+	* @param IMUData structure with accelerations and rotatory rates
 	*/
-	void initlogIMUData(Float64 &FlightTime,
-						IMUStruct &IMUData);
+	void initlogIMUData(IMUStruct &IMUData);
 
 	/**
 	* \brief log IMU data

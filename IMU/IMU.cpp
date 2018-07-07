@@ -35,4 +35,5 @@ void IMU::updateIMU(Float64 FlightTime,
 
 void IMU::logIMUData()
 {
+	imu->logIMUData();
 }

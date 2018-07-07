@@ -1,5 +1,5 @@
 #include "Trajectory6DoF.h"
-
+#include<omp.h>
 Trajectory6Dof::Trajectory6Dof(SimDPreference &Simpref):Trajectory3Dof(Simpref)
 {
 	
@@ -30,34 +30,24 @@ void Trajectory6Dof::initTrajectory(Float64 &FlightTime,
 									ActuatorStruct &ActuatorData,
 									IMUStruct &IMUData)
 {
-	/*
-	initTrajectory6Dof(FlightTime,
-						AeroData,
-						AirframeData,
-						ThrustData,
-						AircraftData,
-						GuidanceData,
-						NavData,
-						IMUData,
-						ActuatorData);*/
 
 
 	initTrajectory3DoF(FlightTime,
-		AeroData,
-		AirframeData,
-		ThrustData,
-		AircraftData);
+						AeroData,
+						AirframeData,
+						ThrustData,
+						AircraftData);
 
 	autopilot->initAutopilot();
 
 	guidance->initGuidance(FlightTime,
-		GuidanceData,
-		AircraftData);
+							GuidanceData,
+							AircraftData);
 
 	initLog6Dof(FlightTime,
-		IMUData,
-		NavData,
-		ActuatorData);
+				IMUData,
+				NavData,
+				ActuatorData);
 
 }
 
@@ -107,59 +97,7 @@ void Trajectory6Dof::updateTrajectory(Float64 FlightTime,
 						  IMUData,
 						  NavData);
 
-	/*updateTrajectory6Dof(FlightTime,
-						AtmoData,
-						AeroData,
-						AirframeData,
-						ThrustData,
-						GuidanceData,
-						NavData,
-						ActuatorData,
-						IMUData);*/
 
-
-	updateTrajectory3DoF(FlightTime,
-		AtmoData,
-		AeroData,
-		AirframeData,
-		ThrustData,
-		ActuatorData,
-		IMUData,
-		NavData);
-
-	airframe->updateRotatory(AeroData,
-		ThrustData,
-		AirframeData);
-
-	guidance->updateGuidance(FlightTime,
-		AeroData,
-		ThrustData,
-		AirframeData,
-		GuidanceData);
-
-	autopilot->updateAutopilot(FlightTime,
-		AirframeData,
-		AeroData,
-		GuidanceData,
-		ActuatorData,
-		IMUData,
-		NavData);
-
-	log6DofData();
-}
-
-void Trajectory6Dof::updateTrajectory6Dof(Float64 FlightTime,
-									   	  AtmosphereStruct & AtmoData,
-										  AerodynamicStruct & AeroData,
-										  AirframeStruct & AirframeData,
-										  ThrustStruct & ThrustData,
-										  GuidanceStruct & GuidanceData,
-										  NavigationStruct &NavData, 
-										  ActuatorStruct &ActuatorData,
-										  IMUStruct &IMUData)
-{
-
-	
 
 	updateTrajectory3DoF(FlightTime,
 						AtmoData,
@@ -171,8 +109,8 @@ void Trajectory6Dof::updateTrajectory6Dof(Float64 FlightTime,
 						NavData);
 
 	airframe->updateRotatory(AeroData,
-							 ThrustData,
-							 AirframeData);
+							ThrustData,
+							AirframeData);
 
 	guidance->updateGuidance(FlightTime,
 							AeroData,
@@ -181,16 +119,15 @@ void Trajectory6Dof::updateTrajectory6Dof(Float64 FlightTime,
 							GuidanceData);
 
 	autopilot->updateAutopilot(FlightTime,
-							   AirframeData,
-							   AeroData,
-							   GuidanceData,
-							   ActuatorData,
-							   IMUData,
-							   NavData);
-
+								AirframeData,
+								AeroData,
+								GuidanceData,
+								ActuatorData,
+								IMUData,
+								NavData);
 	log6DofData();
-
 }
+
 
 void Trajectory6Dof::integrationTrajectory(AirframeStruct & AirframeData,
 										   IMUStruct&IMUData,
@@ -219,7 +156,7 @@ void Trajectory6Dof::integrationTrajectory(AirframeStruct & AirframeData,
 
 
 void Trajectory6Dof::log6DofData()
-{
+{	
 	log3DofData();
 
 	guidance->logGuidanceData();

@@ -1,5 +1,5 @@
-#include "DataLogger.h"
-#include<iostream>
+#include"DataLogger.h"
+
 
 DataLogger::DataLogger(std::string aPath, int aWidth, std::string aDelimiter)
 {
@@ -41,7 +41,7 @@ void DataLogger::print()
 	for (int i = 0; i < mNumberDoubles; i++)
 	{
 		
-		mStream << std::to_string(*doubleVec.at(i)) + mDelimiter << std::setw(mWidth);
+		mStream <<  DataLogger::to_string2(*doubleVec.at(i)) + mDelimiter << std::setw(mWidth);
 		
 	}
 
@@ -54,7 +54,6 @@ void DataLogger::print()
 
 	
 }
-std::size_t max_prec = std::numeric_limits<double>::max_digits10;
 
 
 
@@ -75,9 +74,23 @@ void DataLogger::printHeader()
 	mStream << std::endl;
 }
 
-std::string DataLogger::Convert(double number)
+std::string DataLogger::to_string1(double value)
 {
-	std::ostringstream buff;
-	buff << number;
-	return buff.str();
-};
+	std::ostringstream oss;
+	oss << value;
+	return oss.str();
+}
+
+std::string DataLogger::to_string2(double value)
+{
+	char buffer[80] = {};
+	sprintf_s(buffer, "%f", value);
+	std::string s = buffer;
+	return s;
+}
+/*
+std::string DataLogger::to_string3(double value)
+{
+	std::string as_string = strtk::type_to_string<double>(value);
+	return as_string;
+}*/

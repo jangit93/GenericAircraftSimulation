@@ -14,6 +14,7 @@
 #include"MatFileReader.h"
 #include"Trajectory.h"
 #include"Atmosphere.h"
+#include<omp.h>
 
 class Aircraft
 {
