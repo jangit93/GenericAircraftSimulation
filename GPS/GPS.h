@@ -1,6 +1,6 @@
 /** @defgroup	GPS GPS
 *	@author		Jan Olucak
-*	@date		02.01.2018
+*	@date		01.05.2018
 *	@version	1.0
 *
 *	GPS class is used to call the desired GPS model. The GPS model is selected from
@@ -46,6 +46,7 @@ public:
 	* \brief call to desired update function 
 	*	@param	FlightTime	flighttime
 	*	@param	NavData		structure of navigation data
+	*	@param  AirframeData structure of flight states
 	*/
 	void updateGPS(Float64 FlightTime,
 					NavigationStruct & NavData, 

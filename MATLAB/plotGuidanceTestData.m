@@ -1,7 +1,7 @@
 clc
 clear 
 close all
-[Guidance] = readIn('GuidanceTestData.txt',' ',1);
+[Guidance] = importdata('../ModuleTest/Output/GuidanceTestData.txt',' ',1);
 
 figure('Name','Commanded Roll Angle')
 plot(Guidance.data(:,1),Guidance.data(:,2)*180/pi)

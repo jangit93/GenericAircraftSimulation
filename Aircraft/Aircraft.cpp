@@ -99,10 +99,13 @@ void Aircraft::simulateAircraft()
 		
 
 		}
-	time1 += clock() - tstart;     // end
-	time1 = time1 / CLOCKS_PER_SEC;  // rescale to seconds
 
-	std::cout << "Simulation TIme = " << time1 << " sec." << std::endl;
+		delete trajectory;
+		delete Atmo;
+		time1 += clock() - tstart;     // end
+		time1 = time1 / CLOCKS_PER_SEC;  // rescale to seconds
+
+		std::cout << "Simulation TIme = " << time1 << " sec." << std::endl;
 
 
 }

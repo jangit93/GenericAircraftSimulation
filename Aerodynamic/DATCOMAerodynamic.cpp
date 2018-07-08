@@ -77,8 +77,8 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
 	/// 1) get data from structures
 	relVelNED = NavData.velNED;
 
-	 AeroData.absVel = sqrt(relVelNED(0)*relVelNED(0)+ relVelNED(1)*relVelNED(1)+ relVelNED(2)*relVelNED(2));
-	 absVel = AeroData.absVel;
+	 AeroData.absVel    = sqrt(relVelNED(0)*relVelNED(0)+ relVelNED(1)*relVelNED(1)+ relVelNED(2)*relVelNED(2));
+	 absVel			    = AeroData.absVel;
 	 rho 				= AtmoData.rho;
 	 SpeedOfSound 		= AtmoData.speedOfSound;
 
@@ -161,9 +161,9 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
 
 	/// 4) calculate derivatives for acceleration table guidance
 	
-	ca_alpha = Interpolation.linearInterpolation2D(AoA, Mach, CAalpha, Alpha, Ma);
-	AeroData.C_A0 = Interpolation.linearInterpolation2D(AoA, Mach, CA, alpha0, Ma);
-	AeroData.C_zdalpha = -C_W - ca_alpha;
+	ca_alpha			= Interpolation.linearInterpolation2D(AoA, Mach, CAalpha, Alpha, Ma);
+	AeroData.C_A0		= Interpolation.linearInterpolation2D(AoA, Mach, CA, alpha0, Ma);
+	AeroData.C_zdalpha	= -C_W - ca_alpha;
 
 	/// 5) store data to aerodynamic struct
 	AeroData.AeroForces(0) = C_X * qbar*S;

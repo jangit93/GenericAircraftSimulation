@@ -70,7 +70,7 @@ public:
 	/**
 	*	@brief	definition of data which is logged to an outputfile
 	*	@param	FlightTime time of flight
-	*	@param	structure of aerodynamic data
+	*	@param	AeroData structure of aerodynamic data
 	*/
 	virtual void initLogAeroData(Float64 &FlightTime,
 								 AerodynamicStruct & AeroData);

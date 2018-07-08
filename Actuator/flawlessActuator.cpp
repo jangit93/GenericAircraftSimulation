@@ -33,7 +33,7 @@ void flawlessActuator::updateActuator(Float64 FlightTime,
 void flawlessActuator::initLogActuatorData(Float64 & FlightTime,
 										   ActuatorStruct & ActuatorData)
 {
-	logActuatorData->add("FlightTime", FlightTime);
+	
 	logActuatorData->add("Eta", ActuatorData.Eta);
 	logActuatorData->add("Xi", ActuatorData.Xi);
 	logActuatorData->add("Zeta", ActuatorData.Zeta);

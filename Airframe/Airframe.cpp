@@ -80,7 +80,7 @@ void Airframe::updateTranslational(AerodynamicStruct &AeroData,
 			cos(phi)*cos(theta);
 
 	AirframeData.accTransBody = (TotalForce / mass) + Vec_fg  * GRAVITATIONAL_CONSTANT;
-	AirframeData.accTransNED = AirframeData.matBodyToNED*AirframeData.accTransBody;
+	AirframeData.accTransNED  = AirframeData.matBodyToNED*AirframeData.accTransBody;
 }
 
 void Airframe::updateRotatory(AerodynamicStruct &AeroData, 

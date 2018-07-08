@@ -1,6 +1,6 @@
 /** @defgroup	IMU IMU
 *	@author		Jan Olucak
-*	@date		02.01.2018
+*	@date		01.05.2018
 *	@version	1.0
 *
 *	IMU class is used to call the desired IMU model. The IMU model is selected from

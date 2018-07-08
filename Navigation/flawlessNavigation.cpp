@@ -2,8 +2,8 @@
 
 flawlessNavigation::flawlessNavigation()
 {
-	Trafo = new Transformation;
 	lognavigationData = new DataLogger("NavigationData.txt", 25, " ");
+
 }
 
 flawlessNavigation::~flawlessNavigation()
@@ -33,14 +33,14 @@ void flawlessNavigation::updateNavigation(Float64 Flighttime,
 
 	NavData.absVel = NavData.velNED.norm();
 
-	NavData.EulerAngles = EulerIntegration(NavData.EulerAngles, AirframeData.Eulerdot, NavData.dt);
-	AirframeData.EulerAngles = NavData.EulerAngles;
-	AirframeData.Gamma = atan2(-NavData.velNED(2), sqrt(NavData.velNED(0)*NavData.velNED(0) + NavData.velNED(1)*NavData.velNED(1)));
-	AirframeData.Chi = atan2(NavData.velNED(1), NavData.velNED(0));
+	NavData.EulerAngles			= EulerIntegration(NavData.EulerAngles, AirframeData.Eulerdot, NavData.dt);
+	AirframeData.EulerAngles	= NavData.EulerAngles;
+	AirframeData.Gamma			= atan2(-NavData.velNED(2), sqrt(NavData.velNED(0)*NavData.velNED(0) + NavData.velNED(1)*NavData.velNED(1)));
+	AirframeData.Chi			= atan2(NavData.velNED(1), NavData.velNED(0));
 
-	AirframeData.matNEDToBody = Trafo->MatNedToBody(NavData.EulerAngles(0), NavData.EulerAngles(1), NavData.EulerAngles(2));
-	AirframeData.matBodyToNED = Trafo->MatBodyToNED(AirframeData.matNEDToBody);
-	AirframeData.matNEDToTraj = Trafo->MatNEDToTrajectory(AirframeData.Gamma, AirframeData.Chi);
+	AirframeData.matNEDToBody = Trafo.MatNedToBody(NavData.EulerAngles(0), NavData.EulerAngles(1), NavData.EulerAngles(2));
+	AirframeData.matBodyToNED = Trafo.MatBodyToNED(AirframeData.matNEDToBody);
+	AirframeData.matNEDToTraj = Trafo.MatNEDToTrajectory(AirframeData.Gamma, AirframeData.Chi);
 }
 
 void flawlessNavigation::initlogNavigationData(Float64 & FlightTime, 

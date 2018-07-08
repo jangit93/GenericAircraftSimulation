@@ -37,15 +37,17 @@ void ThrustAnalytical::initThrust(Float64 &FlightTime,
 	ThrustData.r = EnginePos;
 	Kt = 0.7;
 
-	initLogEngineData(FlightTime, ThrustData);
+	initLogEngineData(FlightTime, 
+					  ThrustData);
 }
 
 
 void ThrustAnalytical::updateThrust(Float64 FlightTime,
-								  AtmosphereStruct & AtmoData,
-								  AerodynamicStruct & AeroData,
-								  AirframeStruct & AirframeData,
-								  ThrustStruct & ThrustData, ActuatorStruct& ActuatorData)
+								    AtmosphereStruct & AtmoData,
+								    AerodynamicStruct & AeroData,
+								    AirframeStruct & AirframeData,
+								    ThrustStruct & ThrustData, 
+								    ActuatorStruct& ActuatorData)
 {
 	/// 1) calculate absolute thrust force                                              
 	thrust = ActuatorData.Delta* maxThrust* (AtmoData.rho / RHO_0)* (1 + Kt * AeroData.Mach);
@@ -62,7 +64,8 @@ void ThrustAnalytical::updateThrust(Float64 FlightTime,
 
 }
 
-void ThrustAnalytical::initLogEngineData(Float64 & FlightTime, ThrustStruct & ThrustData)
+void ThrustAnalytical::initLogEngineData(Float64 & FlightTime, 
+										 ThrustStruct & ThrustData)
 {
 	LogEngineData->add("FlightTime [s]", FlightTime);
 	LogEngineData->add("F_x", ThrustData.ThrustForce(0));

@@ -6,6 +6,7 @@ Trajectory3Dof::Trajectory3Dof(SimDPreference &SimPref)
 	aerodynamics = new Aerodynamics(SimPref);
 	airframe     = new Airframe;
 
+	dt = SimPref.dt;
 }
 
 Trajectory3Dof::~Trajectory3Dof()
@@ -28,6 +29,11 @@ void Trajectory3Dof::initTrajectory(Float64 &FlightTime,
 					   ThrustData,
 					   AircraftData);
 
+	Transformation Trafo;
+	AirframeData.matNEDToBody = Trafo.MatNedToBody(AirframeData.EulerAngles(0), AirframeData.EulerAngles(1), AirframeData.EulerAngles(2));
+	AirframeData.matBodyToNED = Trafo.MatBodyToNED(AirframeData.matNEDToBody);
+	AirframeData.matNEDToTraj = Trafo.MatNEDToTrajectory(AirframeData.Gamma, AirframeData.Chi);
+
 }
 
 void Trajectory3Dof::updateTrajectory(Float64 FlightTime,
@@ -40,6 +46,20 @@ void Trajectory3Dof::updateTrajectory(Float64 FlightTime,
 									  ActuatorStruct &ActuatorData,
 									  IMUStruct &IMUData)
 {
+
+	AirframeData.velNED = EulerIntegration(AirframeData.velNED, AirframeData.accTransNED, dt);
+	AirframeData.posNED = EulerIntegration(AirframeData.posNED, AirframeData.velNED, dt);
+
+	IMUData.accTransNED = AirframeData.accTransNED;
+
+	NavData.absVel = AirframeData.velBody.norm();
+	NavData.velNED = AirframeData.velNED;
+	NavData.posNED = AirframeData.posNED;
+
+	AirframeData.Gamma = atan2(-AirframeData.velNED(2), sqrt(AirframeData.velNED(0)*AirframeData.velNED(0) + AirframeData.velNED(1)*AirframeData.velNED(1)));
+	AirframeData.Chi = atan2(AirframeData.velNED(1), AirframeData.velNED(0));
+
+
 
 	updateTrajectory3DoF(FlightTime,
 						AtmoData,

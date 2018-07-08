@@ -1,6 +1,6 @@
 /** @defgroup	Actuator Actuator
 *	@author		Jan Olucak
-*	@date		25.11.2017
+*	@date		01.05.2018
 *	@version	1.0
 *
 *	Actuator module simulates the actuators of an aircraft. 

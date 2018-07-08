@@ -1,9 +1,7 @@
 
-function plotAtmosphereData()
+[Atmosphere] = importdata('../ModuleTest/Output/AtmosphereTestData.txt',' ',1);
 
-[Atmosphere] = readIn('Atmosphere.txt',' ',1);
-
-Altitude = Atmosphere.data(:,1);
+Altitude = -Atmosphere.data(:,1);
 Rho = Atmosphere.data(:,2);
 Temperature =  Atmosphere.data(:,3);
 Pressure =  Atmosphere.data(:,4);
@@ -30,5 +28,3 @@ plot(Altitude,Pressure)
 xlabel('Altitude [m]')
 ylabel('P [Pa]')
 grid on
-
-end

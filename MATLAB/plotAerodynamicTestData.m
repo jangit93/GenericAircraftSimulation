@@ -1,9 +1,8 @@
 %% plot Aerodynamic polars
-clear
-close all
-clc
+
 %% read in data
-[Aerodynamic] = readIn('AerodynamicTestData.txt',' ',1);
+
+[Aerodynamic] = importdata('../ModuleTest/Output/AerodynamicTestData.txt',' ',1);
 
 
 nAoA = Aerodynamic.data(1,9);

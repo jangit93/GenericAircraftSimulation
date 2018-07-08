@@ -1,7 +1,7 @@
 /**
 *	@ingroup GPS
 *	@author Jan Olucak
-*	@date 02.01.2018
+*	@date 01.05.2018
 *	@version 1.0
 *
 *	flawlessGPS class is a child class of BaseGPS class. A flawless GPS-module is
@@ -38,6 +38,7 @@ public:
 	* \brief update flwaless GPS 
 	*	@param	FlightTime	 flighttime
 	*	@param	NavData		 structure of navigation data
+	*	@param	AirframeData structure of flight states
 	*/
 	void updateGPS(Float64 FlightTime, 
 				   NavigationStruct &NavData,

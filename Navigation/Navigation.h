@@ -1,6 +1,6 @@
 /** @defgroup	Navigtion Navigation
 *	@author		Jan Olucak
-*	@date		02.01.2018
+*	@date		01.05.2018
 *	@version	1.0
 *
 *	Navigation class is used to call the desired navigation model. The navigation model is selected from
@@ -49,6 +49,7 @@ public:
 	*	@param	FlightTime			flighttime
 	*	@param	NavData				structure of navigation data
 	*	@param	AirframeData		flight states
+	*   @param  IMUData				structure of acceleratiosn and rotatory rates
 	*/
 	void updateNavigation(Float64 FlightTime,
 						NavigationStruct &NavData,

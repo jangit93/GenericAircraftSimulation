@@ -1,6 +1,6 @@
 /** @defgroup	Aircaft Aircraft
 *	@author		Jan Olucak
-*	@date		14.12.2017
+*	@date		01.06.2018
 *	@version	1.0
 *
 *	Aircraft class simulates the trajectory of the designed aircraft. 

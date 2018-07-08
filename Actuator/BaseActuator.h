@@ -1,7 +1,7 @@
 /**
 *	@ingroup Actuator
 *	@author Jan Olucak
-*	@date 25.11.2017
+*	@date 01.05.2018
 *	@version 1.0
 *
 *	BaseActuator class is the superclass for all actuator models. Using pointer to base

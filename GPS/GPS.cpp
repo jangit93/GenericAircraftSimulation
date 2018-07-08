@@ -28,7 +28,9 @@ void GPS::updateGPS(Float64 FlightTime,
 					NavigationStruct & NavData, 
 					AirframeStruct & AirframeData)
 {
-	gps->updateGPS(FlightTime, NavData,AirframeData);
+	gps->updateGPS(FlightTime, 
+				   NavData,
+				   AirframeData);
 }
 
 void GPS::logGPSData()

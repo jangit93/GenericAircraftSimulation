@@ -1,12 +1,11 @@
 #include "Trajectory6DoF.h"
-#include<omp.h>
+
 Trajectory6Dof::Trajectory6Dof(SimDPreference &Simpref):Trajectory3Dof(Simpref)
 {
 	
 	airframe	= new Airframe;
 	guidance	= new Guidance(Simpref);
 	autopilot	= new Autopilot;
-	Trafo		= new Transformation;
 	dt			= Simpref.dt;
 
 	logNavData		= new DataLogger("NavigationData.txt", 25, " ");
@@ -51,36 +50,6 @@ void Trajectory6Dof::initTrajectory(Float64 &FlightTime,
 
 }
 
-
-void Trajectory6Dof::initTrajectory6Dof(Float64 &FlightTime, 
-										AerodynamicStruct & AeroData,
-										AirframeStruct & AirframeData,
-										ThrustStruct & ThrustData,
-										AircraftStruct &AircraftData,
-										GuidanceStruct & GuidanceData,
-										NavigationStruct &NavData,
-										IMUStruct &IMUData,
-										ActuatorStruct& ActuatorData)
-{
-	
-	initTrajectory3DoF(FlightTime,
-						AeroData,
-						AirframeData,
-						ThrustData,
-						AircraftData);
-
-	autopilot->initAutopilot();
-
-	guidance->initGuidance(FlightTime,
-						   GuidanceData,
-						   AircraftData);
-
-	initLog6Dof(FlightTime, 
-				IMUData, 
-				NavData, 
-				ActuatorData);
-	
-}
 
 void Trajectory6Dof::updateTrajectory(Float64 FlightTime, 
 									  AtmosphereStruct & AtmoData,
@@ -136,21 +105,22 @@ void Trajectory6Dof::integrationTrajectory(AirframeStruct & AirframeData,
 	AirframeData.velNED = EulerIntegration(AirframeData.velNED, AirframeData.accTransNED, dt);
 	AirframeData.posNED = EulerIntegration(AirframeData.posNED, AirframeData.velNED, dt);
 
-	IMUData.accTransNED = AirframeData.accTransNED;
-	AirframeData.rotRatesBody = EulerIntegration(AirframeData.rotRatesBody, AirframeData.accRotBody, dt);
-	IMUData.rotRatesBody = AirframeData.rotRatesBody;
-	AirframeData.EulerAngles = EulerIntegration(AirframeData.EulerAngles, AirframeData.Eulerdot, dt);
+	IMUData.accTransNED			= AirframeData.accTransNED;
+	AirframeData.rotRatesBody	= EulerIntegration(AirframeData.rotRatesBody, AirframeData.accRotBody, dt);
+	IMUData.rotRatesBody		= AirframeData.rotRatesBody;
+	AirframeData.EulerAngles	= EulerIntegration(AirframeData.EulerAngles, AirframeData.Eulerdot, dt);
 
 	NavData.EulerAngles = AirframeData.EulerAngles;
-	NavData.velNED = AirframeData.velNED;
-	NavData.posNED = AirframeData.posNED;
+	NavData.absVel		= AirframeData.velBody.norm();
+	NavData.velNED		= AirframeData.velNED;
+	NavData.posNED		= AirframeData.posNED;
 
-	AirframeData.Gamma = atan2(-AirframeData.velNED(2), sqrt(AirframeData.velNED(0)*AirframeData.velNED(0) + AirframeData.velNED(1)*AirframeData.velNED(1)));
-	AirframeData.Chi = atan2(AirframeData.velNED(1), AirframeData.velNED(0));
+	AirframeData.Gamma	= atan2(-AirframeData.velNED(2), sqrt(AirframeData.velNED(0)*AirframeData.velNED(0) + AirframeData.velNED(1)*AirframeData.velNED(1)));
+	AirframeData.Chi	= atan2(AirframeData.velNED(1), AirframeData.velNED(0));
 
-	AirframeData.matNEDToBody = Trafo->MatNedToBody(AirframeData.EulerAngles(0), AirframeData.EulerAngles(1), AirframeData.EulerAngles(2));
-	AirframeData.matBodyToNED = Trafo->MatBodyToNED(AirframeData.matNEDToBody);
-	AirframeData.matNEDToTraj = Trafo->MatNEDToTrajectory(AirframeData.Gamma, AirframeData.Chi);
+	AirframeData.matNEDToBody = Trafo.MatNedToBody(AirframeData.EulerAngles(0), AirframeData.EulerAngles(1), AirframeData.EulerAngles(2));
+	AirframeData.matBodyToNED = Trafo.MatBodyToNED(AirframeData.matNEDToBody);
+	AirframeData.matNEDToTraj = Trafo.MatNEDToTrajectory(AirframeData.Gamma, AirframeData.Chi);
 
 }
 

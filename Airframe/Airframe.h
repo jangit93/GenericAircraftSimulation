@@ -1,6 +1,6 @@
 /** @defgroup	Airframe Airframe
 *	@author		Jan Olucak
-*	@date		27.11.2017
+*	@date		01.02.2018
 *	@version	1.0
 *
 *	Airframe class calculates body fixed acceleration

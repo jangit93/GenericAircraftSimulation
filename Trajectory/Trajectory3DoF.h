@@ -1,6 +1,6 @@
 /** @defgroup	Trajectory Trajectory
 *	@author		Jan Olucak
-*	@date		28.11.2017
+*	@date		01.04.2018
 *	@version	1.0
 *
 *	BaseTrajectory is the superclass for all trajectory classes.
@@ -15,6 +15,8 @@
 #include"Airframe.h"
 #include<iostream>
 #include"Engine.h"
+#include"ODESolver.cpp"
+#include"Transformation.h"
 
 class Trajectory3Dof : public BaseTrajectory
 {
@@ -96,12 +98,18 @@ public:
 	* @param AeroData aerodynamic data
 	* @param AirframeData flight states
 	* @param ThrustData  thrust forces and moments
+	* @param ActuatorData real actuator angles
+	* @param IMUData measured acceleration
+	* @param NavData aircraft position, velocity
 	*/
 	void updateTrajectory3DoF(Float64 FlightTime,
-								AtmosphereStruct & AtmoData,
-								AerodynamicStruct & AeroData,
-								AirframeStruct & AirframeData,
-								ThrustStruct & ThrustData,ActuatorStruct &ActuatorData,IMUStruct &IMUData,NavigationStruct  &NavData);
+							  AtmosphereStruct & AtmoData,
+							  AerodynamicStruct & AeroData,
+							  AirframeStruct & AirframeData,
+							  ThrustStruct & ThrustData,
+							  ActuatorStruct &ActuatorData,
+							  IMUStruct &IMUData,
+							  NavigationStruct  &NavData);
 
 	/**
 	* @brief log 3Dof Data (Aerodynamic Data, Thrust Data and translational acclerations)
@@ -113,6 +121,9 @@ private:
 	Aerodynamics *aerodynamics;
 	Airframe * airframe;
 	
-};
 
+	Float32 dt;
+	
+};
 #endif // TRAJECTORY3DOF_H
+/**@}*/

@@ -1,7 +1,7 @@
 /**
 *	@ingroup GPS
 *	@author Jan Olucak
-*	@date 02.01.2018
+*	@date 01.05.2018
 *	@version 1.0
 *
 *	BaseGPS class is the superclass for all GPS models. Using pointer to base
@@ -40,6 +40,7 @@ public:
 	* \brief update GPS data 
 	*	@param	FlightTime			flighttime
 	*	@param	NavData				structure of navigation data
+	*   @param AirframeData			flight states
 	*/
 	virtual void updateGPS(Float64 FlightTime, 
 						   NavigationStruct &NavData,

@@ -1,7 +1,7 @@
 /**
 *	@ingroup Autopilot
 *	@author Jan Olucak
-*	@date 25.11.2017
+*	@date 01.05.2018
 *	@version 1.0
 *
 *	FindNeighbor class calculates parameters for gain scheduling. 
@@ -38,7 +38,7 @@ public:
 
 	/**
 	* \brief blending parameters  for gain scheduing are calculated
-	*	@param AirframeData	structure of airframe parameters 
+	*	@param NavData	structure of airframe parameters 
 	*/
 	std::tuple<Eigen::Vector4d,Eigen::MatrixXd> BlendingParameters(NavigationStruct &NavData);
 

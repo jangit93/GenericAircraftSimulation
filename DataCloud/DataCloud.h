@@ -11,7 +11,6 @@
 #define DATACLOUD_H
 
 #include"../Tools/IndependetDataTypes.h"
-//#include<Eigen\dense>
 #include"../eigen/Eigen/dense"
 
 /** 
@@ -287,6 +286,5 @@ struct SimDPreference
 	Float32 dt;
 
 };
-
-/**@}*/	
 #endif	DATACLOUD_H
+/**@}*/

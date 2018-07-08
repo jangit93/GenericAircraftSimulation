@@ -7,33 +7,33 @@ In der vorangegangen Kapiteln wurde die Umsetzung der Simulation erläutert und 
 	\item Der Rechner (Laptop) soll an einer Stromquelle angeschlossen sein. 
 \end{itemize}
 \section{Profiling}
-Mithilfe des integrierten Leistungsprofilers wird das Laufzeitverhalten der Simulation untersucht. Somit sollen Problembereiche aufgezeigt werden, die kritisch hinsichtlich der Rechenzeit sind. In dieser Arbeit wird der Profiler genutzt, um die Anzahl der Aufrufe und Durchläufe von Funktionen festzustellen. Somit kann das Hauptaugenmerk auf Funktionen gerichtet werden, die durch ihre Aufrufe viel Zeit in Anspruch nehmen. In Tabelle \ref{tab:.profiler} werden besagte Funktionen mit ihrer jeweiligen CPU-Zeit aufgelistet. 
+Mithilfe des in Visual Studio integrierten Leistungsprofilers  wird das Laufzeitverhalten der Simulation untersucht. Somit sollen Problembereiche aufgezeigt werden, die kritisch hinsichtlich der Rechenzeit sind. In dieser Arbeit wird der Profiler genutzt, um die Anzahl der Aufrufe und Durchläufe von Funktionen festzustellen. Somit kann das Hauptaugenmerk auf Funktionen gerichtet werden, die durch ihre Aufrufe viel Zeit in Anspruch nehmen. In Tabelle \ref{tab:.profiler} werden besagte Funktionen mit ihrer jeweiligen CPU-Zeit aufgelistet. 
 \begin{table}[h]
-	\centering\begin{tabular}{lp{4cm}l}
-		\textbf{Methode} & \textbf{Kurzbeschreibung} &\textbf{CPU-Zeit}\\
-		Trajectory6Dof::log6DofData() & Daten-Logging der einzelnen Module&50,79\% \\
-		updateAutopilot::updateStateController(...) & Zustandsregler & 22,62\% \\
-		LinearInterpolation::linearInterpolation2D(...) & Tabellen Interpolaton & 13,18\%
+	\centering\begin{tabular}{llp{5cm}l}
+	\textbf{Nr.} &	\textbf{Methode} & \textbf{Kurzbeschreibung} &\textbf{CPU-Zeit}\\
+	1&	Trajectory6Dof::log6DofData() & Daten-Logging der einzelnen Module&50,79\% \\
+	2&	updateAutopilot::updateStateController(...) & Zustandsregler & 22,62\% \\
+	3&	LinearInterpolation::linearInterpolation2D(...) & Tabellen-Interpolation & 13,18\%
 	\end{tabular}
 \caption{Ergebnisse des Leistungsprofilers}
 \label{tab:.profiler}
 \end{table}\noindent\\
-Es ist offensichtlich, dass das erzeugen der Output-File den größten Einfluss auf die gesamt Rechenzeit hat. Im nächsten Schritt müssen mögliche Ursachen gefunden werden, die für die jeweiligen Funktionen die Rechenzeit beeinflussen. Im Anschluss muss eine Lösung für die Rechenzeit-Reduktion gefunden werden. In Tabelle \ref{tab:korrektur} werden die Ursachen und die vermeintlichen Lösungen gegenüber gestellt.
+Es ist offensichtlich, dass das erzeugen der Output-File den größten Einfluss auf die Gesamtrechenzeit hat. Im nächsten Schritt müssen mögliche Ursachen gefunden werden, die für die jeweiligen Funktionen die Rechenzeit beeinflussen. Im Anschluss muss eine Lösung für die Rechenzeit-Reduktion gefunden werden. In Tabelle \ref{tab:korrektur} werden die möglichen Ursachen und Lösungsansätze gegenüber gestellt.
 \begin{table}[h]
-	\centering\begin{tabular}{lp{4cm}p{4cm}}
-		\textbf{Methode} & \textbf{Ursachen} & \textbf{Lösungsansatz}\\
-		...log6DofData() & nicht benötigte Daten werden geloggt & Reduktion des Outputs \\
-									  & std::to\_string (25,5\%) & alternative Methode finden (Benchmarking)\\
+	\centering\begin{tabular}{lp{6cm}p{4cm}}
+		\textbf{Nr.} & \textbf{Ursachen} & \textbf{Lösungsansatz}\\
+		1 & -nicht benötigte Daten werden geloggt & -Reduktion des Outputs \\
+									  & -std::to\_string (25,5\%) & -alternative Methode finden (Benchmarking)\\
 									  &&\\
-		...updateStateController(...) & Eigen::Library & alternative Bibliotheken \\	
+		2 & Eigen::Library & alternative Bibliotheken \\	
 									  &&\\
-		...linearInterpolation2D(...)	& Index suche im Array & 	Suchmethoden anpassen		
+		3	& Index suche im Array & 	Suchmethoden anpassen		
 	\end{tabular}
 	\caption{Gegenüberstellung Ursachen und Lösungsansätze der Rechenzeit}
 	\label{tab:korrektur}
 \end{table}
 \section{Code Optimierung}
-Wie in Tabelle \ref{tab:korrektur} beschrieben, wurde der Output der einzelnen Module reduziert. Da das Hauptaugenmerk auf der Überprüfung der Flugregelung steht, wurden Parameter vernachlässigt, die wenig Aussagekraft darüber besitzen.\\ Der Flugzustandsregler selbst beruht in großen Teilen auf linearer Algebra. In dieser Ausarbeitung wurde die lineare Algebra durch die Open Source Bibliothek Eigen realisiert. Eine Effizienzsteigerung wäre mithilfe einer alternativen Bibliothek denkbar, wurde aber nicht weiter betrachtet. Der Aufwand, sämtliche mathematischen Operationen in der Gesamtsimulation abzuändern wäre zu groß. Nach \cite{TuxFamily.2018} gibt es spezielle Einstellungen für Visual Studio, um die Performance der Bibliothek zu steigern, welche letztlich umgesetzt wurden. \\  Für die Interpolation werden Stützstellen benötigt. Diese Stützstellen zu finden ist mit großem Aufwand verbunden, da dass gesamte Array durchsucht werden muss. Es wurde versucht, diese Suche zu beschleunigen. Diese algorithmische Optimierung hat sich als äußerst komplex rausgestellt und konnte nicht gelöst werden. Das Ergebnis des ersten Teils der Optimierung ist in Abbildung \ref{fig:opt1} zu sehen.\newpage
+Wie in Tabelle \ref{tab:korrektur} beschrieben, wurde unter Punkt 1 der Output der einzelnen Module reduziert. Da das Hauptaugenmerk auf der Überprüfung der Flugregelung steht, wurden Parameter vernachlässigt, die wenig Aussagekraft darüber besitzen.\\ Der Flugzustandsregler (Punkt 2) selbst beruht in großen Teilen auf linearer Algebra. In dieser Ausarbeitung wurde die lineare Algebra durch die Open Source Bibliothek \textbf{eigen} realisiert. Eine Effizienzsteigerung wäre mithilfe einer alternativen Bibliothek denkbar, wurde aber nicht weiter betrachtet. Der Aufwand, sämtliche mathematischen Operationen in der Gesamtsimulation abzuändern wäre zu groß. Nach \cite{TuxFamily.2018} gibt es spezielle Einstellungen für Visual Studio, um die Performance der Bibliothek zu steigern, welche letztlich umgesetzt wurden. \\  Für die Interpolation (Punkt 3) werden Stützstellen benötigt. Diese Stützstellen zu finden ist mit großem Aufwand verbunden, da dass gesamte Array durchsucht werden muss. Es wurde versucht, diese Suche zu beschleunigen. Diese algorithmische Optimierung hat sich als äußerst komplex rausgestellt und konnte nicht gelöst werden. Das Ergebnis des ersten Teils der Optimierung ist in Abbildung \ref{fig:opt1} zu sehen.\newpage
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=0.6\linewidth]{opt1}
@@ -42,7 +42,7 @@ Wie in Tabelle \ref{tab:korrektur} beschrieben, wurde der Output der einzelnen M
 \end{figure}\noindent
 Durch kleinere Maßnahmen im Code konnte die Rechenzeit nochmals um rund 4 Sekunden reduziert werden, was in etwa 19\% zum ursprünglichen C++ Code und 76,86\% zu Matlab schneller ist.
 \subsection{Benchmarking String-Typumwandlung}
-Wie in Tabelle\ref{tab:korrektur} angedeutet, beschäftigt sich dieser Abschnitt mit der Untersuchung von verschiedenen Möglichkeiten, die Typumwandlung in Strings umzusetzen. Neben den Standardbibliotheken werden an dieser Stelle auch Open Source Bibliotheken hinzugezogen. Zum Einen wurden zwei Methoden der Boost-Bibliothek genutzt. Besagte Bibliothek wurde zur Produktivitätssteigerung in C++ erschaffen. Zum Anderen wurde strtk (string Toolkit) genutzt. Dabei handelt es sich um eine Bibliothek, die speziell für den Umgang von Strings implementiert wurde. In Tabelle \ref{tab:benchmarking} werden die unterschiedlichen Methoden aufgelistet. 
+Wie in Tabelle \ref{tab:korrektur} angedeutet, beschäftigt sich dieser Abschnitt mit der Untersuchung von verschiedenen Möglichkeiten, die Typumwandlung in Strings umzusetzen. Neben den Standardbibliotheken werden an dieser Stelle auch Open Source Bibliotheken hinzugezogen. Zum Einen wurden zwei Methoden der Boost-Bibliothek \cite{C++StandardsCommittees.2018} genutzt. Besagte Bibliothek wurde zur Produktivitätssteigerung in C++ erschaffen. Zum Anderen wurde die C++ String Toolkit Library (StrTk) von \cite{Partow.2018} genutzt. Dabei handelt es sich um eine Bibliothek, die speziell für den Umgang von Strings implementiert wurde. In Tabelle \ref{tab:benchmarking} werden die unterschiedlichen Methoden aufgelistet. 
 \begin{table}[h]
 	\centering\begin{tabular}{l}
 		\textbf{Methode}  \\
@@ -84,14 +84,14 @@ Eine weitere Möglichkeit, neben der Code Optimierung, die Performance zu steige
 	\caption{Rechnerdaten}
 	\label{tab:Rechnerdaten}
 \end{table}\\
-Ausgangslage für die weitere Optimierung stellt das Ergebnis der Code Optimierung.
+Ausgangslage für die weitere Optimierung stellt das Ergebnis der  zweiten Code Optimierung.
 \subsection{Automatische Parallelisierung und Vektorisierung}
 Die automatische Parallelisierung und Vektorisierung kann schnell und einfach über Compiler-Flags durchgeführt werden. Der Compiler entscheidet selbstständig, ob er beispielsweise einen Abschnitt parallelisiert oder nicht. Die in dieser Arbeit genutzten Flags von Visual Studio werden in Tabelle \ref{tab:compilerflags} aufgezeigt. 
 \begin{table}[h]
 \centering	\begin{tabular}{ll}
 		\textbf{Flag-Name} & \textbf{Verwendung}\\
-		/Qpar & automatische Parallelisierung\\
-		/arch & automatische Vektorisierung
+		Qpar & automatische Parallelisierung\\
+		arch & automatische Vektorisierung
 	\end{tabular}
 \caption{Compiler-Flags für automatische Parallelisierung und Vektorisierung}
 \label{tab:compilerflags}

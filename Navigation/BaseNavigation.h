@@ -1,7 +1,7 @@
 /**
 *	@ingroup Navigation
 *	@author Jan Olucak
-*	@date 02.01.2018
+*	@date 01.05.2018
 *	@version 1.0
 *
 *	BaseNavigation class is the superclass for all Navigation models. Using pointer to base
@@ -41,7 +41,7 @@ public:
 	*	@param	FlightTime	 flighttime
 	*	@param	NavData		 structure of navigation data
 	*	@param	AirframeData structure of flight states
-	*	@param  IMUDat		 structures with accelerations and rotatory rates
+	*	@param  IMUData		 structures with accelerations and rotatory rates
 	*/
 	virtual void updateNavigation(Float64 FlightTime, 
 								  NavigationStruct &NavData,

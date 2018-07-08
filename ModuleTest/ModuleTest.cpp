@@ -44,7 +44,7 @@ void AtmosphereTest()
 
 	Float64 Altitude;
 
-	DataLogger logAtmoTestData("AtmosphereTestData.txt", 25, " ");
+	DataLogger logAtmoTestData("../ModuleTest/Output/AtmosphereTestData.txt", 25, " ");
 
 	logAtmoTestData.add("Altitude", Altitude);
 	logAtmoTestData.add("Rho", Atmos.rho);
@@ -57,7 +57,7 @@ void AtmosphereTest()
 	Atmo->initAtmosphere();
 
 	/// 2) Loop increases altitude; data is stored to outputfile
-	for (Altitude = 0; Altitude < 10000; Altitude++) {
+	for (Altitude = -10000; Altitude < 0; Altitude++) {
 		Atmo->updateAtmosphere(Altitude, Atmos);
 		logAtmoTestData.print();
 	}
@@ -74,7 +74,7 @@ void AerodynamicTest(SimDPreference &SimPref)
 {
 
 	/// 1) Initialization of models and data
-	DataLogger logAeroTestData("AerodynamicTestData.txt", 25, " ");
+	DataLogger logAeroTestData("../ModuleTest/Output/AerodynamicTestData.txt", 25, " ");
 	Aerodynamics * Aero = new Aerodynamics(SimPref);
 	readInData * readIn = new readInData;
 	Transformation * transformation = new Transformation;
@@ -175,13 +175,13 @@ void AerodynamicTest(SimDPreference &SimPref)
 				NavData.velNED = AirframeData.matBodyToNED*AirframeData.velBody;
 
 				Aero->updateAerodynamic(FlightTime,
-					AtmoData,
-					AeroData,
-					AirframeData,
-					ThrustData,
-					ActuatorData,
-					IMUData,
-					NavData);
+										AtmoData,
+										AeroData,
+										AirframeData,
+										ThrustData,
+										ActuatorData,
+										IMUData,
+										NavData);
 
 				logAeroTestData.print();
 			}// end Eta loop
@@ -198,7 +198,7 @@ void GuidanceTest(SimDPreference &SimPref)
 
 	std::cout << "Guidance Test" << std::endl;
 	readInData *readIn = new readInData;
-	DataLogger logGuidanceTestData("GuidanceTestData.txt", 25, " ");
+	DataLogger logGuidanceTestData("../ModuleTest/Output/GuidanceTestData.txt", 25, " ");
 	Aerodynamics *Aero = new Aerodynamics(SimPref);
 	Guidance *guidanceTest = new Guidance(SimPref);
 	Transformation transform;
@@ -252,85 +252,32 @@ void GuidanceTest(SimDPreference &SimPref)
 							ActuatorData,
 							IMUData,
 							NavData);
-	
-	for (FlightTime = 0; FlightTime < 150; FlightTime++) {
+
+	Float32 dt = 0.01;
+	GuidanceData.reshape = 1 / dt;
+	for (FlightTime = 0; FlightTime < 150; FlightTime+=dt) {
 			
 
 		guidanceTest->updateGuidance(FlightTime,
-									AeroData,
-									ThrustData,
-									AirframeData,
-									GuidanceData);
-
-		logGuidanceTestData.print();
+									 AeroData,
+									 ThrustData,
+									 AirframeData,
+									 GuidanceData);
 
 		guidanceTest->logGuidanceData();
+
 	}
 
 
 	std::cout << "Guidance Test done" << std::endl;
 }
 
-/*
-void AutopilotTest()
-{
-	AirframeStruct	AirframeData;
-	AerodynamicStruct AeroData;
-	GuidanceStruct GuidanceData;
-	IMUStruct IMUData;
-	NavigationStruct NavData;
-	ActuatorStruct ActuatorData;
-
-	
-	StateController testController;
-
-	testController.initStateController();
-
-	MatFileReader test("../Autopilot.mat");
-
-	matvar_t MatFileData = test.getMatFileInfo("AutopilotData");
-	int Fields = MatFileData.dims[0] * MatFileData.dims[1];
-
-	AutopilotStruct *Autopilotdata = new AutopilotStruct[Fields];;
-
-	int start, stride, edge, copy_field = 0;
-	start = 0;
-	stride = 0;
-	edge = 9;
-
-	for (start = 0; start < Fields; start++) {
-		Autopilotdata[start].Alt = std::get<2>(test.readMatFileStructure("Alt", start, stride, edge, copy_field));
-		Autopilotdata[start].Vel = std::get<2>(test.readMatFileStructure("Vel", start, stride, edge, copy_field));
-		Autopilotdata[start].x_bar = std::get<1>(test.readMatFileStructure("x_bar", start, stride, edge, copy_field));
-		Autopilotdata[start].u_bar = std::get<1>(test.readMatFileStructure("u_bar", start, stride, edge, copy_field));
-	}
-	ActuatorData.Eta = Autopilotdata[1].u_bar(1);
-	NavData.posNED(2) = -Autopilotdata[1].Alt;
-	NavData.velNED << Autopilotdata[1].Vel, 0, 0;
-	ActuatorData.Delta = Autopilotdata[1].u_bar(3);
-	NavData.EulerAngles(1) = Autopilotdata[1].x_bar(1);
-	AeroData.Alpha = Autopilotdata[1].x_bar(1);
-	AeroData.Beta = 0;
-	NavData.EulerAngles(0) = 0;
-
-	IMUData.rotRatesBody.setZero();
-	GuidanceData.Theta_com = Autopilotdata[1].x_bar(1);
-	GuidanceData.Velocity_com = 180;
-	GuidanceData.Beta_com = 0;
-	GuidanceData.Phi_com = 0;
-
-	testController.updateStateController(0, AirframeData, AeroData, GuidanceData, ActuatorData, IMUData, NavData);
-	findNeighbor.initFindNeighbor();
-	findNeighbor.BlendingParameters(AirframeData);
-}*/
-
 
 void TrajectoryTest(SimDPreference &SimPref)
 {
-	
+	std::cout << "Trajectory Test" << std::endl;
 	Trajectory *Test = new Trajectory(SimPref);
 	Atmopshere *Atmo = new Atmopshere;
-	Transformation *Trafo = new Transformation;
 	Float64				FlightTime = 0;
 	AtmosphereStruct	AtmoData;
 	AerodynamicStruct	AeroData;
@@ -339,7 +286,7 @@ void TrajectoryTest(SimDPreference &SimPref)
 	AircraftStruct		AircraftData;
 	GuidanceStruct		GuidamceData;
 
-	MatFileReader test("../Autopilot.mat");
+	MatFileReader test("../Input/Autopilot.mat");
 	
 
 
@@ -376,38 +323,32 @@ void TrajectoryTest(SimDPreference &SimPref)
 
 	Atmo->initAtmosphere();
 
-	AirframeData.Eta = AutopilotData[1].u_bar(1);
+	ActuatorData.Eta = AutopilotData[1].u_bar(1);
+	ActuatorData.Delta = AutopilotData[1].u_bar(3);
+
 	AirframeData.posNED(2) = -AutopilotData[1].Alt;
+	NavData.posNED(2) = AirframeData.posNED(2);
+
 	AirframeData.velNED << AutopilotData[1].Vel, 0, 0;
-	AirframeData.StickPosition = AutopilotData[1].u_bar(3);
+	NavData.velNED = AirframeData.velNED;
+
 	AirframeData.EulerAngles(1) = AutopilotData[1].x_bar(1);
-	GuidamceData.Theta_com = AirframeData.EulerAngles(1);
-	double time1 = 0.0, tstart;
-	tstart = clock();
+	NavData.EulerAngles(1) = AirframeData.EulerAngles(1);
+
+	GuidamceData.Theta_com = NavData.EulerAngles(1);
+	Float32 dt = 0.01;
+	NavData.dt = dt;
+	IMUData.dt = dt;
+	GuidamceData.reshape = 1 / dt;
+
 	std::cout << "----------------------------------------------" << std::endl;
-	Float64 dt = 0.01;
+	
 
 	{
 		
-		for (FlightTime = 0.01; FlightTime < 150; FlightTime += 0.01) {
+		for (FlightTime = 0.0; FlightTime < 150; FlightTime += dt) {
 
-			AirframeData.velNED = EulerIntegration(AirframeData.velNED, AirframeData.accTransNED, dt);
-			AirframeData.posNED = EulerIntegration(AirframeData.posNED, AirframeData.velNED, dt);
-
-			AirframeData.rotRatesBody = EulerIntegration(AirframeData.rotRatesBody, AirframeData.accRotBody, dt);
-			AirframeData.EulerAngles = EulerIntegration(AirframeData.EulerAngles, AirframeData.Eulerdot, dt);
-
-			AirframeData.Gamma = atan2(-AirframeData.velNED(2), sqrt(AirframeData.velNED(0)*AirframeData.velNED(0) + AirframeData.velNED(1)*AirframeData.velNED(1)));
-
-
-			AirframeData.Chi = atan2(AirframeData.velNED(1), AirframeData.velNED(0));
-
-			AirframeData.matNEDToBody = Trafo->MatNedToBody(AirframeData.EulerAngles(0), AirframeData.EulerAngles(1), AirframeData.EulerAngles(2));
-			AirframeData.matBodyToNED = Trafo->MatBodyToNED(AirframeData.matNEDToBody);
-			AirframeData.matNEDToTraj = Trafo->MatNEDToTrajectory(AirframeData.Gamma, AirframeData.Chi);
-
-			Atmo->updateAtmosphere(AirframeData.posNED(2), AtmoData);
-
+			Atmo->updateAtmosphere(NavData.posNED(2), AtmoData);
 
 			Test->updateTrajectory(FlightTime,
 									AtmoData,
@@ -422,26 +363,11 @@ void TrajectoryTest(SimDPreference &SimPref)
 		}
 	}
 
-	time1 += clock() - tstart;     // end
-	time1 = time1 / CLOCKS_PER_SEC;  // rescale to seconds
-
-	std::cout << "Simulationszeit = " << time1 << " sec." << std::endl;
+	std::cout << "Trajectory Test Done" << std::endl;
 
 
 }
 
-void ActuatorTest(SimDPreference &SimPref)
-{
-	Float64 FlightTime = 0;
-	ActuatorStruct ActuatorData;
-	AirframeStruct AirframeData;
-	Actuator * actuator = new Actuator(SimPref);
-
-	actuator->initActuator(FlightTime, AirframeData, ActuatorData);
-
-	actuator->updateActuator(FlightTime, AirframeData, ActuatorData);
-
-}
 
 
 int main()
@@ -466,9 +392,6 @@ int main()
 
 	//TrajectoryTest(SimPref);
 	
-	//AutopilotTest();
-
-//	ActuatorTest(SimPref);
 
 	system("pause");
 }

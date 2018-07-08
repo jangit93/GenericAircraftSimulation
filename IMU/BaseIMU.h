@@ -1,7 +1,7 @@
 /**
 *	@ingroup IMU
 *	@author Jan Olucak
-*	@date 02.01.2018
+*	@date 01.05.2018
 *	@version 1.0
 *
 *	BaseIMU class is the superclass for all GPS models. Using pointer to base

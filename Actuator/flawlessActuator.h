@@ -1,7 +1,7 @@
 /**
 *	@ingroup Actuator
 *	@author Jan Olucak
-*	@date 25.11.2017
+*	@date 01.05.2018
 *	@version 1.0
 *
 *	flawlessActuator class is inherited from BaseActuator. 

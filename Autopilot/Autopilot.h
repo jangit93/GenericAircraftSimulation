@@ -1,6 +1,6 @@
 /** @defgroup	Autopilot Autopilot
 *	@author		Jan Olucak
-*	@date		15.01.2018
+*	@date		01.05.2018
 *	@version	1.0
 *
 *	Autopilot class calls the desired type of controller.

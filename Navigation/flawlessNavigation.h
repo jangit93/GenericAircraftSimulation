@@ -1,7 +1,7 @@
 /**
 *	@ingroup Navigation
 *	@author Jan Olucak
-*	@date 02.01.2018
+*	@date 01.05.2018
 *	@version 1.0
 *
 *	flawlessNavigation class is a child class of BaseNavigation. A flawless 
@@ -28,8 +28,11 @@ public:
 
 	/**
 	* \brief initialize flawless navigation
+	*	@param	FlightTime			flighttime
+	*	@param	NavData				structure of position and velocity
+	*	@param	IMUData				structure with accelerations and rotatory rates
 	*/
-	virtual void initNavigation(Float64 & FlightTime,
+	 void initNavigation(Float64 & FlightTime,
 								NavigationStruct & NavData,
 								IMUStruct &IMUData);
 
@@ -40,16 +43,17 @@ public:
 	*	@param	AirframeData		structure of flight states
 	*	@param	IMUData				structure with accelerations and rotatory rates
 	*/
-	virtual void updateNavigation(Float64 FlightTime,
-								  NavigationStruct &NavData,
-								  AirframeStruct &AirframeData,
-								  IMUStruct &IMUData);
+	 void updateNavigation(Float64 FlightTime,
+						   NavigationStruct &NavData,
+						   AirframeStruct &AirframeData,
+						   IMUStruct &IMUData);
 
 
 	/**
 	* \brief data logger for navigation data
 	* @param FlightTime time of flight
 	* @param NavData solution of navigation estimation 
+	*	@param	IMUData				structure with accelerations and rotatory rates
 	*/
 	void initlogNavigationData(Float64 & FlightTime,
 								NavigationStruct &NavData,
@@ -61,7 +65,7 @@ public:
 	void logNavigationData();
 
 private:
-	Transformation * Trafo;
+	Transformation  Trafo;
 	DataLogger *lognavigationData;
 	Float64 dt;
 };

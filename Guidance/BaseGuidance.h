@@ -1,7 +1,7 @@
 /**
 *	@ingroup Guidance
 *	@author Jan Olucak
-*	@date 23.12.2017
+*	@date 01.04.2018
 *	@version 1.0
 *
 *	BaseGuidance is the superclass for all guidance models

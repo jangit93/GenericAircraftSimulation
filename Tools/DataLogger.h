@@ -15,7 +15,7 @@
 #include<string>
 #include"../eigen/Eigen/dense"
 #include<iomanip>
-
+#include"IndependetDataTypes.h"
 #include<sstream>
 #include <iostream>
 #include <string>
@@ -28,7 +28,7 @@ public:
 	/**
 	* \brief constructor
 	*/
-	DataLogger(std::string aPath, int aWidth, std::string aDelimiter);
+	DataLogger(std::string Path, int Width, std::string Delimiter);
 
 	/**
 	* \brief Destructor
@@ -38,12 +38,12 @@ public:
 	/**
 	* \brief defines variable which is stored in outputfile (double)
 	*/
-	void add(std::string aHeader, double &aVar);
+	void add(std::string Header, double &Var);
 
 	/**
 	* \brief defines variable which is stored in outputfile (integer)
 	*/
-	void add(std::string aHeader, int &aVar);  
+	void add(std::string Header, int &Var);  
 
 
 	/**
@@ -56,10 +56,7 @@ public:
 	*/
 	void printHeader();
 
-	std::string to_string1(double value);
-
-	std::string to_string2(double value);
-	std::string to_string3(double value);
+	std::string to_string2(Float64 value);
 
 
 private:

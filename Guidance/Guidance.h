@@ -1,6 +1,6 @@
 /** @defgroup	Guidance Guidance
 *	@author		Jan Olucak
-*	@date		23.12.2017
+*	@date		01.04.2018
 *	@version	1.0
 *
 *	Guidance class is used to call the desired Guidance model.

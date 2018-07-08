@@ -26,21 +26,23 @@ void Engine::initEngine(Float64 &FlightTime,
 			
 {
 	Thrust->initThrust(FlightTime,
-						ThrustData,
+					   ThrustData,
 					   AircraftData);
 }
 
 void Engine::updateEngine(Float64 FlightTime,
-						AtmosphereStruct & AtmoData,
-						AerodynamicStruct & AeroData,
-						AirframeStruct & AirframeData,
-						ThrustStruct & ThrustData, ActuatorStruct& ActuatorData)
+						  AtmosphereStruct & AtmoData,
+						  AerodynamicStruct & AeroData,
+						  AirframeStruct & AirframeData,
+						  ThrustStruct & ThrustData,
+						  ActuatorStruct& ActuatorData)
 {
 	Thrust->updateThrust(FlightTime,
 						 AtmoData,
 						 AeroData,
 						 AirframeData,
-						 ThrustData,ActuatorData);
+						 ThrustData,
+						 ActuatorData);
 }
 
 void Engine::logEngineData()

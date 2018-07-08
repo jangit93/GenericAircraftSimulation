@@ -12,16 +12,21 @@ void BaseAerodynamic::updateAerodynamic(Float64 FlightTime,
 										AtmosphereStruct & AtmoData, 
 										AerodynamicStruct & AeroData, 
 										AirframeStruct & AirframeData, 
-										ThrustStruct & ThrustData, ActuatorStruct &ActuatorData,  IMUStruct &IMUData, NavigationStruct  &NavData)
+										ThrustStruct & ThrustData, 
+										ActuatorStruct &ActuatorData,  
+										IMUStruct &IMUData, 
+										NavigationStruct  &NavData)
 {
-	std::cout << "Base Aerodynamic Update" << std::endl;
+	
 }
 
 
 
-void BaseAerodynamic::initAerodynamic(Float64 &FlightTime, AerodynamicStruct & AeroData, AircraftStruct & AircraftData)
+void BaseAerodynamic::initAerodynamic(Float64 &FlightTime, 
+									 AerodynamicStruct & AeroData, 
+									 AircraftStruct & AircraftData)
 {
-	std::cout << "Base Aerodynamic Init" << std::endl;
+
 }
 
 void BaseAerodynamic::LogAeroData()

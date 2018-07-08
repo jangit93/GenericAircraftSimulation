@@ -121,13 +121,16 @@ namespace UnitTest1
 			Eigen::Matrix3d test_matrix;
 			Eigen::Matrix3d ref_matrix;
 			Eigen::Matrix3d matrix;
-			ref_matrix << 1, 0, 2, -1, 5, 0, 0, 3, -9;
-			test_matrix << 0.8824, -0.1176, 0.1961, 0.1765, 0.1765, 0.0392, 0.0588, 0.0588, -0.0980;
+			test_matrix << 12,0,-1,0,7,0,-1,0,8;
+			ref_matrix << 0.0842105, 0, 0.0105,
+				0, 0.1429, 0,
+				0.0105, 0, 0.1263;
 
 			//Act
 			matrix = test_matrix.inverse();
 
 
+			//Assert
 			//Assert
 			Assert::AreEqual(matrix(0, 0), ref_matrix(0, 0));
 			Assert::AreEqual(matrix(0, 1), ref_matrix(0, 1));
@@ -140,6 +143,7 @@ namespace UnitTest1
 			Assert::AreEqual(matrix(2, 0), ref_matrix(2, 0));
 			Assert::AreEqual(matrix(2, 1), ref_matrix(2, 1));
 			Assert::AreEqual(matrix(2, 2), ref_matrix(2, 2));
+	
 
 		}*/
 
