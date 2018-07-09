@@ -13,9 +13,9 @@ void flawlessActuator::initActuator(Float64 & FlightTime,
 									AirframeStruct & AirframeData,
 									ActuatorStruct & ActuatorData)
 {
-	ActuatorData.realEta = 0.0;
-	ActuatorData.realXi = 0.0;
-	ActuatorData.realZeta = 0.0;
+	ActuatorData.Eta  = 0.0;
+	ActuatorData.Xi   = 0.0;
+	ActuatorData.Zeta = 0.0;
 
 	initLogActuatorData(FlightTime, 
 						ActuatorData);

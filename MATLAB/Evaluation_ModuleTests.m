@@ -5,3 +5,5 @@ clc
 plotAtmosphereData();
 
 plotAerodynamicTestData();
+
+plotGuidanceTestData();

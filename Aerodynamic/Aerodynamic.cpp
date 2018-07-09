@@ -31,13 +31,13 @@ void Aerodynamics::initAerodynamic(Float64 &FlightTime,
 }
 
 void Aerodynamics::updateAerodynamic(Float64 FlightTime, 
-									AtmosphereStruct & AtmoData, 
-									AerodynamicStruct & AeroData, 
-									AirframeStruct & AirframeData, 
-									ThrustStruct & ThrustData, 
-									ActuatorStruct &ActuatorData,
-									IMUStruct &IMUData, 
-									NavigationStruct  &NavData)
+									 AtmosphereStruct & AtmoData, 
+									 AerodynamicStruct & AeroData, 
+									 AirframeStruct & AirframeData, 
+									 ThrustStruct & ThrustData, 
+									 ActuatorStruct &ActuatorData,
+									 IMUStruct &IMUData, 
+									 NavigationStruct  &NavData)
 {
 
 	aerodynamic->updateAerodynamic(FlightTime,

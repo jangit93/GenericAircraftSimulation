@@ -99,8 +99,8 @@ void StateController::updateStateController(Float64 FlightTime,
 											NavigationStruct &NavData)
 {
 	/// 1) find neighbors in grid
-	PHI << std::get<0>(findneighbor->BlendingParameters(NavData));
-	NEIGHBOR << std::get<1>(findneighbor->BlendingParameters(NavData));
+	PHI			<< std::get<0>(findneighbor->BlendingParameters(NavData));
+	NEIGHBOR	<< std::get<1>(findneighbor->BlendingParameters(NavData));
 
 	/// 2) get control input from guidance
 	theta_com	= GuidanceData.Theta_com;

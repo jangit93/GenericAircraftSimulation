@@ -33,8 +33,8 @@ public:
 	*	@param	IMUData				structure with accelerations and rotatory rates
 	*/
 	 void initNavigation(Float64 & FlightTime,
-								NavigationStruct & NavData,
-								IMUStruct &IMUData);
+						 NavigationStruct & NavData,
+						 IMUStruct &IMUData);
 
 	/**
 	* \brief update function of a flawless navigation module

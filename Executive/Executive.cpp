@@ -46,18 +46,18 @@ int main(int argv, char* argc[])
 	SimPref.dt				= SimulationData.readInParameter("time_step", "Simulation.dat");
 	SimPref.TotalSimTime	= SimulationData.readInParameter("Simulation_Time", "Simulation.dat");
 
-	Aircraft *testAircraft = new Aircraft(SimPref);
+	Aircraft *aircraft = new Aircraft(SimPref);
 
 	time1 = 0.0;
 	fastformat:
 
 	std::clock_t c_start = std::clock();
 
-	testAircraft->simulateAircraft();
+	aircraft->simulateAircraft();
 
 	std::clock_t c_end = std::clock();
 
-	delete testAircraft;
+	delete aircraft;
 
 	double time_elapsed_ms = 1000.0 * (c_end - c_start) / CLOCKS_PER_SEC;
 	std::cout << "CPU time used: " << time_elapsed_ms << " ms\n";

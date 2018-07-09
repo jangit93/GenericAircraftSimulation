@@ -86,7 +86,7 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
 	 qbar 				= 0.5*rho*absVel*absVel;
 
 
-	 velBody = AirframeData.matNEDToBody*relVelNED;
+	 velBody				= AirframeData.matNEDToBody*relVelNED;
 	 AirframeData.velBody	= velBody;
 	
 	 Alpha 	= atan2(velBody(2), velBody(0)) * 180 / PI;
@@ -189,7 +189,8 @@ void DATCOMAerodymamic::updateAerodynamic(Float64 FlightTime,
 
 }
 
-void DATCOMAerodymamic::initLogAeroData(Float64 &FlightTime,AerodynamicStruct & AeroData)
+void DATCOMAerodymamic::initLogAeroData(Float64 &FlightTime,
+										AerodynamicStruct & AeroData)
 {
 	
 	logAeroData->add("Time [s]", FlightTime);

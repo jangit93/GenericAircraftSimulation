@@ -16,7 +16,6 @@
 #include"DataCloud.h"
 #include"readInData.h"
 #include"IndependetDataTypes.h"
-//#include<Eigen/Dense>
 
 
 class BaseThrust {
@@ -42,11 +41,11 @@ public:
 	*	@param ActuatorData get thrust stick position
 	*/
 	virtual void updateThrust(Float64 FlightTime,
-						AtmosphereStruct & AtmoData,
-						AerodynamicStruct & AeroData,
-						AirframeStruct & AirframeData,
-						ThrustStruct & ThrustData, 
-						ActuatorStruct& ActuatorData);
+						      AtmosphereStruct & AtmoData,
+						      AerodynamicStruct & AeroData,
+						      AirframeStruct & AirframeData,
+						      ThrustStruct & ThrustData, 
+						      ActuatorStruct& ActuatorData);
 	/**
 	*  The init function from the selected engine is called by a pointer.
 	*   @param FlightTime flight time

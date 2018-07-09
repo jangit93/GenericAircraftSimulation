@@ -114,38 +114,6 @@ namespace UnitTest1
 			Assert::AreEqual(Vector(1), ref_vector(1));
 			Assert::AreEqual(Vector(2), ref_vector(2));
 		}
-/*
-		TEST_METHOD(Matrix_inversion_test)
-		{
-			//Arrange
-			Eigen::Matrix3d test_matrix;
-			Eigen::Matrix3d ref_matrix;
-			Eigen::Matrix3d matrix;
-			test_matrix << 12,0,-1,0,7,0,-1,0,8;
-			ref_matrix << 0.0842105, 0, 0.0105,
-				0, 0.1429, 0,
-				0.0105, 0, 0.1263;
-
-			//Act
-			matrix = test_matrix.inverse();
-
-
-			//Assert
-			//Assert
-			Assert::AreEqual(matrix(0, 0), ref_matrix(0, 0));
-			Assert::AreEqual(matrix(0, 1), ref_matrix(0, 1));
-			Assert::AreEqual(matrix(0, 2), ref_matrix(0, 2));
-
-			Assert::AreEqual(matrix(1, 0), ref_matrix(1, 0));
-			Assert::AreEqual(matrix(1, 1), ref_matrix(1, 1));
-			Assert::AreEqual(matrix(1, 2), ref_matrix(1, 2));
-
-			Assert::AreEqual(matrix(2, 0), ref_matrix(2, 0));
-			Assert::AreEqual(matrix(2, 1), ref_matrix(2, 1));
-			Assert::AreEqual(matrix(2, 2), ref_matrix(2, 2));
-	
-
-		}*/
 
 
 		TEST_METHOD(scalar_product_test)

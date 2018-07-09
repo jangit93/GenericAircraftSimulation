@@ -390,7 +390,7 @@ int main()
 	
 	GuidanceTest(SimPref);
 
-	//TrajectoryTest(SimPref);
+	TrajectoryTest(SimPref);
 	
 
 	system("pause");

@@ -1,7 +1,9 @@
 #include"DataLogger.h"
 
 
-DataLogger::DataLogger(std::string Path, int Width, std::string Delimiter)
+DataLogger::DataLogger(std::string Path, 
+					   int Width, 
+					   std::string Delimiter)
 {
 	mWidth = Width;
 	mDelimiter = Delimiter;
@@ -20,14 +22,16 @@ DataLogger::~DataLogger()
 	mStream.close();
 }
 
-void DataLogger::add(std::string Header, double & Var)
+void DataLogger::add(std::string Header, 
+					 Float64 & Var)
 {
 	doubleHeader.push_back(Header);
 	doubleVec.push_back(&Var);
 	mNumberDoubles++;
 }
 
-void DataLogger::add(std::string Header, int & Var)
+void DataLogger::add(std::string Header, 
+					 int & Var)
 {
 	intHeader.push_back(Header);
 	intVec.push_back(&Var);

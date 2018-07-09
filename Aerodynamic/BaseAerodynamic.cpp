@@ -23,8 +23,8 @@ void BaseAerodynamic::updateAerodynamic(Float64 FlightTime,
 
 
 void BaseAerodynamic::initAerodynamic(Float64 &FlightTime, 
-									 AerodynamicStruct & AeroData, 
-									 AircraftStruct & AircraftData)
+									  AerodynamicStruct & AeroData, 
+									  AircraftStruct & AircraftData)
 {
 
 }

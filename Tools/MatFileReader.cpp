@@ -22,12 +22,12 @@ MatFileReader::~MatFileReader()
 
 
 std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Float64,Eigen::RowVectorXd> MatFileReader::readMatFileStructure(const char * FieldName, 
-																						 int & start, 
-																						 int & stride, 
-																						 int & edge, 
-																						 int & copy_fields)
+																											 int & start, 
+																											 int & stride, 
+																											 int & edge, 
+																											 int & copy_fields)
 {
-	stru = Mat_VarGetStructsLinear(matvar, start, stride, edge, copy_fields); // liest gesamte Structure ein
+	stru = Mat_VarGetStructsLinear(matvar, start, stride, edge, copy_fields); 
 
 	if (NULL == stru) {
 		fprintf(stderr, "Error getting 'ing{%lu}'\n", ing_index);
@@ -38,25 +38,25 @@ std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Float64,Eigen::RowVectorXd> MatFile
 		err = EXIT_FAILURE;
 	}
 	else {
-		field = Mat_VarGetStructFieldByName(stru, FieldName, 0); // suche nach bestimmten Feld
+		field = Mat_VarGetStructFieldByName(stru, FieldName, 0); 
 		if (NULL == stru) {
 			fprintf(stderr, "Error getting 'ing{%lu}.%s'\n", ing_index, FieldName);
 			err = EXIT_FAILURE;
 		}
 		else {
-			read_err = Mat_VarReadDataAll(mat, field); // liest
+			read_err = Mat_VarReadDataAll(mat, field); 
 			if (read_err) {
 				fprintf(stderr, "Error reading data for 'ing{%lu}.%s'\n", ing_index, FieldName);
 				err = EXIT_FAILURE;
 			}
-			else //Mat_VarPrint(field, 1);
+			else 
 			{
 				if (MAT_T_DOUBLE == field->data_type) {
 					field->dims;
 					unsigned xSize = field->nbytes / field->data_size;
 					const double *xData = static_cast<const double*>(field->data);
 					size_t * dim = static_cast<size_t*>(field->dims);
-					//std::cout << dim[0] << "x" << dim[1] << std::endl;
+			
 					if (dim[0] > 1 && dim[1] > 1)
 					{
 						matrix.resize(dim[0], dim[1]);
@@ -97,13 +97,13 @@ std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Float64, Eigen::RowVectorXd> MatFil
 {
 	matvar = Mat_VarRead(mat, FieldName);
 
-	//Mat_VarPrint(matvar, 1);
+	
 	if (MAT_T_DOUBLE == matvar->data_type) {
 
 		unsigned xSize = matvar->nbytes / matvar->data_size;
 		const double *xData = static_cast<const double*>(matvar->data);
 		size_t * dim = static_cast<size_t*>(matvar->dims);
-		//std::cout << dim[0] << "x" << dim[1] << std::endl;
+		
 		if (dim[0] > 1 && dim[1] > 1)
 		{
 			matrix.resize(dim[0], dim[1]);

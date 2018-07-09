@@ -57,7 +57,10 @@ public:
 	* @param	rows	total number of rows
 	* @param	columns	total number of columns
 	*/
-	int sub2ind(const int row, const int column, const int rows, const int columns);
+	int sub2ind(const int row, 
+				const int column, 
+				const int rows, 
+				const int columns);
 	
 	
 private:

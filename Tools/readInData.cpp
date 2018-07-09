@@ -8,30 +8,29 @@ readInData::~readInData()
 {
 }
 
-Float64 readInData::readInParameter(std::string CodeWord, std::string FileName)
+Float64 readInData::readInParameter(std::string CodeWord, 
+									std::string FileName)
 {
 	
 
-	// Öffne File
+
 	input.open(PathName2+FileName, std::ios::in);
 
-	// Exit if file opening failed
+
 	if (!input.is_open()) {
 		std::cerr << "Daten von  " << CodeWord << " aus " << FileName << " konnten nicht gelesen werden" << std::endl;
 		return 0;
-		//exit(1);
+		
 	}
 
-	// Durchlaufe File, solange Daten vorhanden
 	while (!input.eof())
 	{
-		// Einlesen Zeile für Zeile
 		std::getline(input, currtenLine);
 
-		// Suche nach Code Wort in der aktuellen Zeile
+		
 		std::size_t found = currtenLine.find(CodeWord, 0);
 
-		// Wenn Zeile gefunden, dann Parameter extrahieren
+		
 		if (found != std::string::npos)
 		{
 
@@ -58,7 +57,7 @@ Float64 readInData::readInParameter(std::string CodeWord, std::string FileName)
 
 MatrixXd readInData::readInTable(std::string FileName)
 {
-	// initialisation of data
+	
 	lines, columns = -1;
 
 
@@ -71,9 +70,6 @@ MatrixXd readInData::readInTable(std::string FileName)
 		return tempMatrix.setZero();
 	}
 
-	//Ignore header
-	//std::string dummyline;
-	//getline(input, dummyline);
 
 	while (getline(input, line))
 	{
@@ -87,15 +83,10 @@ MatrixXd readInData::readInTable(std::string FileName)
 			++columncounter;
 		}
 		if (columns == -1) columns = columncounter;
-		/*if (columns != columncounter)
-		{
-		cerr << "Fehler: Unterschiedliche Spaltenzahl in mindestens zwei Zeilen" << endl;
-		exit(1);
-		}*/
+
 	}
 	lines = tempData.size() / columns;
 
-	//write data to matrix
 	tempMatrix.resize(lines, columns);
 	tempMatrix.setZero(lines, columns);
 

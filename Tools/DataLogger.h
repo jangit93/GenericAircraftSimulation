@@ -28,7 +28,9 @@ public:
 	/**
 	* \brief constructor
 	*/
-	DataLogger(std::string Path, int Width, std::string Delimiter);
+	DataLogger(std::string Path, 
+			   int Width,
+			   std::string Delimiter);
 
 	/**
 	* \brief Destructor
@@ -38,12 +40,14 @@ public:
 	/**
 	* \brief defines variable which is stored in outputfile (double)
 	*/
-	void add(std::string Header, double &Var);
+	void add(std::string Header, 
+			 Float64 &Var);
 
 	/**
 	* \brief defines variable which is stored in outputfile (integer)
 	*/
-	void add(std::string Header, int &Var);  
+	void add(std::string Header,
+			 int &Var);  
 
 
 	/**

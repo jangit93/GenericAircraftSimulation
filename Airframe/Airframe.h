@@ -30,7 +30,8 @@ public:
 
 	/**
 	* \brief Airframe initialization 
-	* Airframe and Aircraft Data are initialized. Parameters from Aircraft.dat are read in and stored in their specific structure
+	* Airframe and Aircraft Data are initialized. Parameters from Aircraft.dat 
+	* are read in and stored in their specific structure
 	*/
 	void initAirframe(Float64 &FlightTime,
 					  AircraftStruct	&AircraftData,

@@ -68,14 +68,14 @@ public:
 	* @param IMUData measured acceleration
 	*/
 	virtual void updateTrajectory(Float64 FlightTime,
-							AtmosphereStruct & AtmoData,
-							AerodynamicStruct & AeroData,
-							AirframeStruct & AirframeData,
-							ThrustStruct & ThrustData,
-							GuidanceStruct & GuidanceData,
-							NavigationStruct &NavData,
-							ActuatorStruct &ActuatorData,
-							IMUStruct &IMUData);
+							      AtmosphereStruct & AtmoData,
+							      AerodynamicStruct & AeroData,
+							      AirframeStruct & AirframeData,
+							      ThrustStruct & ThrustData,
+							      GuidanceStruct & GuidanceData,
+							      NavigationStruct &NavData,
+							      ActuatorStruct &ActuatorData,
+							      IMUStruct &IMUData);
 
 	/**
 	* @brief initalize 3 Dof trajectory 

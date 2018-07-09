@@ -11,7 +11,6 @@
 #define LINEARINTERPOLATION_H
 
 #include <vector>
-//#include<Eigen/Dense>
 #include"../eigen/Eigen/dense"
 #include<math.h>
 #include<algorithm>

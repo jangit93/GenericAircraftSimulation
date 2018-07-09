@@ -14,8 +14,6 @@
 #define BASEGPS_H
 
 
-
-
 #include"../DataCloud/DataCloud.h"
 
 class BaseGPS

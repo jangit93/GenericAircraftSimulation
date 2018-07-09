@@ -24,8 +24,8 @@ void FindNeighbor::initFindNeighbor()
 	edge = 9;
 
 	for (start = 0; start < Fields; start++) {
-		neighbors[start].Alt = std::get<2>(readNeighborData.readMatFileStructure("Alt", start, stride, edge, copy_field));
-		neighbors[start].Vel = std::get<2>(readNeighborData.readMatFileStructure("Vel", start, stride, edge, copy_field));
+		neighbors[start].Alt	= std::get<2>(readNeighborData.readMatFileStructure("Alt", start, stride, edge, copy_field));
+		neighbors[start].Vel	= std::get<2>(readNeighborData.readMatFileStructure("Vel", start, stride, edge, copy_field));
 		neighbors[start].AltVec = std::get<3>(readNeighborData.readMatFileStructure("AltVec", start, stride, edge, copy_field));
 		neighbors[start].VelVec = std::get<3>(readNeighborData.readMatFileStructure("VelVec", start, stride, edge, copy_field));
 	}

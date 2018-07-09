@@ -50,14 +50,14 @@ public:
     * @param IMUData measured acceleration
     */
 	void updateTrajectory(Float64 FlightTime,
-						AtmosphereStruct & AtmoData,
-						AerodynamicStruct & AeroData,
-						AirframeStruct & AirframeData,
-						ThrustStruct & ThrustData,
-						GuidanceStruct & GuidanceData, 
-						NavigationStruct &NavData, 
-						ActuatorStruct &ActuatorData, 
-						IMUStruct &IMUData);
+						  AtmosphereStruct & AtmoData,
+						  AerodynamicStruct & AeroData,
+						  AirframeStruct & AirframeData,
+						  ThrustStruct & ThrustData,
+						  GuidanceStruct & GuidanceData, 
+						  NavigationStruct &NavData, 
+						  ActuatorStruct &ActuatorData, 
+						  IMUStruct &IMUData);
 
 
 	/**

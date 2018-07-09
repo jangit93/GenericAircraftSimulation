@@ -47,7 +47,7 @@ public:
 	*	@param AeroData get mach number
 	*	@param AirframeData	get current throttle stick position
 	*	@param ThrustData store thrust data
-	*	@param ActuatorData get thrust stick position
+	*	@param ActuatorData get thrust stick positions
 	*/
 	void updateThrust(Float64 FlightTime,					
 					  AtmosphereStruct & AtmoData,		
@@ -70,7 +70,7 @@ public:
 private:
 	//objects
 	DataLogger * LogEngineData;
-	readInData *ReadInThrustData;
+	readInData ReadInThrustData;
 
 	//variables
 	Eigen::Vector3d ThrustForce;		

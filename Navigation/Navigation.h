@@ -52,9 +52,9 @@ public:
 	*   @param  IMUData				structure of acceleratiosn and rotatory rates
 	*/
 	void updateNavigation(Float64 FlightTime,
-						NavigationStruct &NavData,
-						AirframeStruct &AirframeData,
-						IMUStruct &IMUData);
+						  NavigationStruct &NavData,
+						  AirframeStruct &AirframeData,
+						  IMUStruct &IMUData);
 
 	/**
 	* \brief data logger for navigation data

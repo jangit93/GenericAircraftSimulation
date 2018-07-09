@@ -62,12 +62,16 @@ public:
 	* @param	rows	total number of rows
 	* @param	columns	total number of columns
 	*/
-	int sub2ind(const int row, const int column, const int rows, const int columns);
+	int sub2ind(const int row, 
+				const int column,		
+				const int rows, 
+				const int columns);
 	
 	/**
 	* \brief signum function
 	*/
 	int sign(Float64 val);
+
 private:
 	FindNeighbor * findneighbor;
 	Eigen::Vector4d PHI;

@@ -56,11 +56,11 @@ public:
 	*	@param ActuatorData get thrust stick position
 	*/
 	void updateEngine(Float64 FlightTime,
-						AtmosphereStruct & AtmoData,
-						AerodynamicStruct & AeroData,
-						AirframeStruct & AirframeData,
-						ThrustStruct & ThrustData, 
-						ActuatorStruct& ActuatorData);
+					  AtmosphereStruct & AtmoData,
+					  AerodynamicStruct & AeroData,
+					  AirframeStruct & AirframeData,
+					  ThrustStruct & ThrustData, 
+					  ActuatorStruct& ActuatorData);
 
 	/**
 	*  @brief log engine data

@@ -52,9 +52,9 @@ void Airframe::initAirframe(Float64 &FlightTime,
 	AirframeData.velNED.setZero();
 	AirframeData.rotRatesBody.setZero();
 
-	AirframeData.Xi = 0.0;
-	AirframeData.Eta = 0.0;
-	AirframeData.Zeta = 0.0;
+	AirframeData.Xi		= 0.0;
+	AirframeData.Eta	= 0.0;
+	AirframeData.Zeta	= 0.0;
 
 	initLogAirframeData(FlightTime, 
 						AirframeData);
@@ -66,8 +66,8 @@ void Airframe::updateTranslational(AerodynamicStruct &AeroData,
 								   AirframeStruct &AirframeData)
 {
 	/// 1) get data from structs
-	phi = AirframeData.EulerAngles(0);
-	theta = AirframeData.EulerAngles(1);
+	phi		= AirframeData.EulerAngles(0);
+	theta	= AirframeData.EulerAngles(1);
 
 	AoA = AeroData.Alpha *PI / 180;
 	AoS = AeroData.Beta *PI / 180;

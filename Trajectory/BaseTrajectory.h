@@ -36,14 +36,14 @@ public:
 	* @param IMUData measured acceleration
 	*/
 	virtual void initTrajectory(Float64 &FlightTime, 
-						AerodynamicStruct & AeroData,
-						AirframeStruct & AirframeData,
-						ThrustStruct & ThrustData,
-						AircraftStruct &AircraftData, 
-						GuidanceStruct & GuidanceData,
-						NavigationStruct &NavData,
-						ActuatorStruct &ActuatorData,
-						IMUStruct &IMUData);
+						        AerodynamicStruct & AeroData,
+						        AirframeStruct & AirframeData,
+						        ThrustStruct & ThrustData,
+						        AircraftStruct &AircraftData, 
+						        GuidanceStruct & GuidanceData,
+						        NavigationStruct &NavData,
+						        ActuatorStruct &ActuatorData,
+						        IMUStruct &IMUData);
 	/**
 	* @brief calculate trajectory
 	* @param FlightTime flight time
@@ -57,14 +57,14 @@ public:
 	* @param IMUData measured acceleration
 	*/
 	virtual void updateTrajectory(Float64 FlightTime,
-							AtmosphereStruct & AtmoData,
-							AerodynamicStruct & AeroData,
-							AirframeStruct & AirframeData,
-							ThrustStruct & ThrustData,
-							GuidanceStruct &GuidanceData,
-							NavigationStruct &NavData,
-							ActuatorStruct &ActuatorData,
-							IMUStruct &IMUData);
+							      AtmosphereStruct & AtmoData,
+							      AerodynamicStruct & AeroData,
+							      AirframeStruct & AirframeData,
+							      ThrustStruct & ThrustData,
+							      GuidanceStruct &GuidanceData,
+							      NavigationStruct &NavData,
+							      ActuatorStruct &ActuatorData,
+							      IMUStruct &IMUData);
 	/**
 	*	@brief log trajectory data
 	*/

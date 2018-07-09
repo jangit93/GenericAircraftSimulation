@@ -3,9 +3,8 @@
 
 ThrustAnalytical::ThrustAnalytical():BaseThrust()
 {
-	ReadInThrustData = new readInData;
 
-	LogEngineData = new DataLogger("EngineData.txt", 25, " ");
+	LogEngineData	 = new DataLogger("EngineData.txt", 25, " ");
 }
 
 
@@ -25,17 +24,17 @@ void ThrustAnalytical::initThrust(Float64 &FlightTime,
 	ThrustForce.setZero();
 	ThrustMoment.setZero();
 
-	EnginePos(0) = ReadInThrustData->readInParameter("x_F", "Engine.dat");
-	EnginePos(1) = ReadInThrustData->readInParameter("y_F", "Engine.dat");
-	EnginePos(2) = ReadInThrustData->readInParameter("z_F", "Engine.dat");
+	EnginePos(0) = ReadInThrustData.readInParameter("x_F", "Engine.dat");
+	EnginePos(1) = ReadInThrustData.readInParameter("y_F", "Engine.dat");
+	EnginePos(2) = ReadInThrustData.readInParameter("z_F", "Engine.dat");
 
-	maxThrust = ReadInThrustData->readInParameter("F_max", "Engine.dat");
-	incidenceAngle = ReadInThrustData->readInParameter("incidenceAngle", "Engine.dat");
+	maxThrust		= ReadInThrustData.readInParameter("F_max", "Engine.dat");
+	incidenceAngle	= ReadInThrustData.readInParameter("incidenceAngle", "Engine.dat");
 
-	ThrustData.i = incidenceAngle;
-	ThrustData.F_max = maxThrust;
-	ThrustData.r = EnginePos;
-	Kt = 0.7;
+	ThrustData.i		= incidenceAngle;
+	ThrustData.F_max	= maxThrust;
+	ThrustData.r		= EnginePos;
+	Kt					= 0.7;
 
 	initLogEngineData(FlightTime, 
 					  ThrustData);

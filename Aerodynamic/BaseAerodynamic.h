@@ -69,7 +69,7 @@ public:
 	virtual void LogAeroData();
 
 
-
+private:
 
 };
 #endif BASEAERODYNAMIC

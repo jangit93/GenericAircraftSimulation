@@ -45,12 +45,12 @@ public:
 	* @param	NavData			velocity
 	*/
 	void updateAutopilot(Float64 FlightTime, 
-						AirframeStruct &AirframeData,
-						AerodynamicStruct &AeroData,
-						GuidanceStruct &GuidanceData,
-						ActuatorStruct &ActuatorData, 
-						IMUStruct &IMUData,
-						NavigationStruct &NavData);
+						 AirframeStruct &AirframeData,
+						 AerodynamicStruct &AeroData,
+						 GuidanceStruct &GuidanceData,
+						 ActuatorStruct &ActuatorData, 
+						 IMUStruct &IMUData,
+						 NavigationStruct &NavData);
 
 private:
 	StateController *controller;

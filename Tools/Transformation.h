@@ -12,7 +12,6 @@
 
 
 #include<iostream>
-//#include<Eigen/dense>
 #include"../eigen/Eigen/dense"
 #include"IndependetDataTypes.h"
 
@@ -35,7 +34,9 @@ public:
 	* @param theta pitch angle
 	* @param psi heading angle
 	*/
-	Eigen::Matrix3d MatNedToBody(Float64 phi, Float64 theta, Float64 psi);
+	Eigen::Matrix3d MatNedToBody(Float64 phi, 
+								 Float64 theta, 
+								 Float64 psi);
 
 	/**
 	* \brief tranformation matrix from Body system to NED system 
@@ -48,14 +49,16 @@ public:
 	* @param Gamma  
 	* @param chi azimuth
 	*/
-	Eigen::Matrix3d MatNEDToTrajectory(Float64 Gamma, Float64 chi);
+	Eigen::Matrix3d MatNEDToTrajectory(Float64 Gamma, 
+									   Float64 chi);
 
 	/**
 	* \brief tranformation matrix from aerodynamic system to body fixed system
 	* @param Alpha angle of attack
 	* @param Beta angle of sideslip
 	*/
-	Eigen::Matrix3d MatAeroToBody(Float64 Alpha, Float64 Beta);
+	Eigen::Matrix3d MatAeroToBody(Float64 Alpha, 
+								  Float64 Beta);
 
 private:
 
