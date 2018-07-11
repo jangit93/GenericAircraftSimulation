@@ -144,7 +144,26 @@ xlabel('Flighttime in [s]')
 ylabel('\zeta in [°]')
 grid on
 
-%%acceleration
+%% velocity
+Vel = Navigation.data(:,2);
+Vel_Com = sqrt(Guidance.data(:,4).^2+Guidance.data(:,5).^2+Guidance.data(:,6).^2);
+Delta = Actuator.data(:,4);
+figure('Name','Velocity')
+subplot(2,1,1)
+plot(FlightTime,Vel,FlightTime,Vel_Com,'k--')
+xlabel('Flighttime in [s]')
+ylabel('Velocity [m/s]')
+legend('Vel_{sim}','Vel_{com}','Location','best')
+grid on
+
+subplot(2,1,2)
+plot(FlightTime,Delta*100)
+grid on
+xlabel('Flighttime in [s]')
+ylabel('\delta_F [%]')
+
+
+%% acceleration
 Acc_body_xcom = Guidance.data(:,2);
 Acc_body_ycom = Guidance.data(:,3);
 Acc_body_zcom = Guidance.data(:,4);
@@ -170,23 +189,3 @@ xlabel('Time [s]')
 ylabel('Acc_{z} [m/s^2]')
 grid on
 legend('Acc_{sim}','Acc_{com}','Location','best')
-
-%% Velocity
-Vel = Navigation.data(:,2);
-Vel_Com = sqrt(Guidance.data(:,4).^2+Guidance.data(:,5).^2+Guidance.data(:,6).^2);
-Delta = Actuator.data(:,4);
-figure('Name','Velocity')
-subplot(2,1,1)
-plot(FlightTime,Vel,FlightTime,Vel_Com,'k--')
-xlabel('Flighttime in [s]')
-ylabel('Velocity [m/s]')
-legend('Vel_{sim}','Vel_{com}','Location','best')
-grid on
-
-subplot(2,1,2)
-plot(FlightTime,Delta*100)
-grid on
-xlabel('Flighttime in [s]')
-ylabel('\delta_F [%]')
-
-clear
